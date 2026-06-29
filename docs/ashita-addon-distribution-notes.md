@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-06-29
 
-AccessXI should be distributed as its own addon/project files, not as edits to Ashita's bundled addon sources.
+AccessXI should be distributed as its own project files, not as edits to Ashita's bundled addon sources or as a repackaged Ashita install.
 
 Relevant Ashita guidance:
 
@@ -12,10 +12,10 @@ Relevant Ashita guidance:
 
 AccessXI repository policy:
 
-- Keep AccessXI source, setup docs, installer scripts, tests, and the repo copy of `accessxi_reader` in Git.
+- Keep AccessXI source, setup docs, installer scripts, tests, Reloaded/PlayOnline support source, and the repo copy of `accessxi_reader` in Git.
 - Keep runtime logs, generated installers, build outputs, screenshots, reverse-engineering project dumps, local Ghidra output, and Microsoft redistributable installers out of Git.
 - Keep the live installed addon under `C:\Users\buu42\Ashita\addons\accessxi_reader` as the runtime test copy. Sync it into `ashita/addons/accessxi_reader` before committing release work.
-- Treat third-party payloads, navmesh packs, Reloaded-II payloads, and redistributables as local build/package dependencies unless their licenses and size are reviewed for repository inclusion.
+- Treat Ashita itself, third-party payloads, navmesh packs, Reloaded-II framework binaries, generated installer packages, and redistributables as local build/package dependencies unless their licenses and size are reviewed for repository inclusion.
 
 Sources:
 

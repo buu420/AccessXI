@@ -1,0 +1,63 @@
+##########################################################################
+#
+# AccessXI Ashita v4 Default Script
+#
+# This script is executed at the start of the game and must load the
+# AccessXI in-game reader addon.
+#
+##########################################################################
+
+##########################################################################
+#
+# Load Plugins and Addons
+#
+##########################################################################
+
+/load thirdparty
+/load addons
+/load screenshot
+
+/addon load distance
+/addon load fps
+/addon load move
+/addon load accessxi_reader
+/addon load timestamp
+/addon load tparty
+
+##########################################################################
+#
+# Set Keybinds and Alias
+#
+##########################################################################
+
+/bind ^+c /axi console
+/bind ^+r /addon reload accessxi_reader
+/bind SYSRQ /screenshot hide
+/bind $^v /paste
+/bind F11 /ambient
+/bind F12 /fps
+/bind ^F1 /ta <a10>
+/bind ^F2 /ta <a11>
+/bind ^F3 /ta <a12>
+/bind ^F4 /ta <a13>
+/bind ^F5 /ta <a14>
+/bind ^F6 /ta <a15>
+/bind !F1 /ta <a20>
+/bind !F2 /ta <a21>
+/bind !F3 /ta <a22>
+/bind !F4 /ta <a23>
+/bind !F5 /ta <a24>
+/bind !F6 /ta <a25>
+
+##########################################################################
+#
+# Plugin and Addon Configurations
+#
+# Important: The wait here is required. Without it, addons may not see
+# commands inside this file.
+#
+##########################################################################
+/wait 3
+##########################################################################
+
+/ambient 255 255 255

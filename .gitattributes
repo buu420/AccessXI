@@ -1,0 +1,10 @@
+* text=auto
+
+*.lua text eol=lf
+*.ps1 text eol=crlf
+*.cs text eol=crlf
+*.cpp text eol=crlf
+*.h text eol=crlf
+*.md text eol=lf
+*.tsv text eol=lf
+*.json text eol=lf

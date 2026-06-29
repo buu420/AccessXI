@@ -1,0 +1,6 @@
+LIBRARY accessxi_pol_nvda
+EXPORTS
+    expCreatePolPlugin=_expCreatePolPlugin@4
+    expDestroyPlugin=_expDestroyPlugin@4
+    expGetInterfaceVersion=_expGetInterfaceVersion@0
+    AccessXI_POL_ReloadedInitialize=_AccessXI_POL_ReloadedInitialize@0

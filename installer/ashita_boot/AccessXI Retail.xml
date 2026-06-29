@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+  <setting name="config_name">AccessXI Retail</setting>
+  <setting name="auto_close">True</setting>
+  <setting name="language">2</setting>
+  <setting name="pol_version">2</setting>
+  <setting name="test_server">False</setting>
+  <setting name="log_level">5</setting>
+  <setting name="windowed">True</setting>
+  <setting name="show_border">True</setting>
+  <setting name="unhook_mouse">True</setting>
+  <setting name="window_x">1920</setting>
+  <setting name="window_y">1080</setting>
+  <setting name="startpos_x">-1</setting>
+  <setting name="startpos_y">-1</setting>
+  <setting name="background_x">4096</setting>
+  <setting name="background_y">4096</setting>
+  <setting name="menu_x">-1</setting>
+  <setting name="menu_y">-1</setting>
+  <setting name="boot_file"></setting>
+  <setting name="boot_command">/game eAZcFcB</setting>
+  <setting name="startup_script">default.txt</setting>
+  <setting name="d3d_presentparams_buffercount">1</setting>
+  <setting name="d3d_presentparams_swapeffect">1</setting>
+  <setting name="game_mipmapping">-1</setting>
+  <setting name="game_bumpmapping">-1</setting>
+  <setting name="game_gammabase">0</setting>
+  <setting name="game_envanimation">-1</setting>
+  <setting name="game_texturecompression">-1</setting>
+  <setting name="game_mapcompression">-1</setting>
+  <setting name="game_fontcompression">-1</setting>
+  <setting name="game_soundenabled">-1</setting>
+  <setting name="game_soundalwayson">-1</setting>
+  <setting name="game_showopeningmovie">-1</setting>
+  <setting name="game_simplecharcreation">-1</setting>
+  <setting name="game_stablegraphics">-1</setting>
+</settings>

@@ -1,0 +1,845 @@
+zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	to_code	to_x	to_z	to_y	source	confidence	note
+808595578	2	Carpenters' Landing	z020	0.786	-819.851	-10.312	104	Jugner Forest	z2w9	341.844	15.117	-5.005	lsb-zonelines	untested	
+842150010	2	Carpenters' Landing	z022	-420.264	-560.076	-10.153	104	Jugner Forest	z2wb	-536.152	336.587	1.163	lsb-zonelines	untested	
+875704442	2	Carpenters' Landing	z024	-479.706	672.851	-14.351	231	Northern San d'Oria	z6fb	-127.472	195.478	10.500	lsb-zonelines	untested	
+808726650	4	Bibiki Bay	z040	673.803	911.899	-24.869	118	Buburimu Peninsula	z3a9	-276.529	-324.519	16.403	lsb-zonelines	untested	
+842346618	5	Uleguerand Range	z052	360.102	-59.900	15.074	6	Bearclaw Pinnacle	z061	-679.796	-539.992	16.000	lsb-zonelines	untested	
+875901050	5	Uleguerand Range	z054	420.134	196.059	-40.825	6	Bearclaw Pinnacle	z063	-819.917	-82.521	-39.987	lsb-zonelines	untested	
+909455482	5	Uleguerand Range	z056	59.998	438.236	-104.974	6	Bearclaw Pinnacle	z065	-795.490	619.960	-104.137	lsb-zonelines	untested	
+943009914	5	Uleguerand Range	z058	81.956	179.876	-196.429	6	Bearclaw Pinnacle	z067	119.997	660.017	-195.490	lsb-zonelines	untested	
+1630875770	5	Uleguerand Range	z05a	-200.076	-60.120	-8.687	6	Bearclaw Pinnacle	z069	-519.513	-899.992	0.541	lsb-zonelines	untested	
+1664430202	5	Uleguerand Range	z05c	180.004	121.050	-228.953	6	Bearclaw Pinnacle	z06b	-199.494	-100.018	-112.470	lsb-zonelines	untested	
+808792186	5	Uleguerand Range	z050	-299.951	-605.658	-45.216	112	Xarcabard	z345	-136.287	137.302	-23.268	lsb-zonelines	untested	
+808857722	6	Bearclaw Pinnacle	z060	-677.021	-540.013	15.975	5	Uleguerand Range	z053	363.025	-59.903	16.017	lsb-zonelines	untested	
+842412154	6	Bearclaw Pinnacle	z062	-820.016	-79.066	-41.017	5	Uleguerand Range	z055	420.024	198.498	-40.006	lsb-zonelines	untested	
+875966586	6	Bearclaw Pinnacle	z064	-798.984	620.020	-105.026	5	Uleguerand Range	z057	60.015	440.661	-103.627	lsb-zonelines	untested	
+909521018	6	Bearclaw Pinnacle	z066	116.984	660.044	-197.114	5	Uleguerand Range	z059	79.508	179.999	-196.004	lsb-zonelines	untested	
+943075450	6	Bearclaw Pinnacle	z068	-523.003	-899.966	-1.031	5	Uleguerand Range	z05b	-202.872	-60.003	-7.470	lsb-zonelines	untested	
+1630941306	6	Bearclaw Pinnacle	z06a	-203.003	-99.965	-113.417	5	Uleguerand Range	z05d	179.994	118.492	-227.801	lsb-zonelines	untested	
+842477690	7	Attohwa Chasm	z072	-191.031	336.814	-16.408	8	Boneyard Gully	z081	-709.508	456.241	18.066	lsb-zonelines	untested	
+876032122	7	Attohwa Chasm	z074	-59.999	242.986	-27.570	8	Boneyard Gully	z083	627.536	-695.364	15.737	lsb-zonelines	untested	
+808923258	7	Attohwa Chasm	z070	-167.101	-261.720	5.012	198	Maze of Shakhrami	z5i5	-140.246	160.709	-12.738	lsb-zonelines	untested	
+808988794	8	Boneyard Gully	z080	-713.016	458.011	18.687	7	Attohwa Chasm	z073	-194.487	338.704	-13.766	lsb-zonelines	untested	
+842543226	8	Boneyard Gully	z082	630.969	-696.831	15.539	7	Attohwa Chasm	z075	-60.008	239.497	-25.908	lsb-zonelines	untested	
+1664692346	9	Pso'Xja	z09c	14.978	230.000	-2.967	9	Pso'Xja	z09d	132.039	69.998	-2.159	lsb-zonelines	untested	
+1698246778	9	Pso'Xja	z09e	135.039	70.033	-3.555	9	Pso'Xja	z09f	12.055	229.969	-1.981	lsb-zonelines	untested	
+1731801210	9	Pso'Xja	z09g	135.050	50.038	-3.196	9	Pso'Xja	z09h	-49.986	211.994	-2.027	lsb-zonelines	untested	
+1765355642	9	Pso'Xja	z09i	-50.005	214.952	-3.141	9	Pso'Xja	z09j	131.994	50.014	-2.165	lsb-zonelines	untested	
+1798910074	9	Pso'Xja	z09k	-69.997	214.950	-3.693	9	Pso'Xja	z09l	30.009	147.993	-1.727	lsb-zonelines	untested	
+1832464506	9	Pso'Xja	z09m	30.033	144.979	-3.381	9	Pso'Xja	z09n	-70.002	211.975	-2.123	lsb-zonelines	untested	
+1866018938	9	Pso'Xja	z09o	14.955	209.989	-3.033	9	Pso'Xja	z09p	10.013	147.996	-1.745	lsb-zonelines	untested	
+1899573370	9	Pso'Xja	z09q	10.013	144.969	-3.439	9	Pso'Xja	z09r	11.977	210.019	-1.930	lsb-zonelines	untested	
+1933127802	9	Pso'Xja	z09s	15.029	70.045	-3.027	9	Pso'Xja	z09t	11.971	-49.977	-1.949	lsb-zonelines	untested	
+1966682234	9	Pso'Xja	z09u	14.984	-50.011	-3.031	9	Pso'Xja	z09v	12.008	70.000	-1.928	lsb-zonelines	untested	
+2000236666	9	Pso'Xja	z09w	15.027	50.016	-3.076	9	Pso'Xja	z09x	12.004	-70.009	-1.964	lsb-zonelines	untested	
+2033791098	9	Pso'Xja	z09y	15.022	-69.999	-3.024	9	Pso'Xja	z09z	12.011	49.986	-1.956	lsb-zonelines	untested	
+809068922	9	Pso'Xja	zi90	-150.019	50.043	-3.121	9	Pso'Xja	zi91	-29.956	212.521	-1.903	lsb-zonelines	untested	
+842623354	9	Pso'Xja	zi92	-29.994	210.000	-3.440	9	Pso'Xja	zi93	-150.006	47.486	-1.982	lsb-zonelines	untested	
+876177786	9	Pso'Xja	zi94	-169.960	9.953	-3.361	9	Pso'Xja	zi95	-52.472	170.008	-2.022	lsb-zonelines	untested	
+909732218	9	Pso'Xja	zi96	-50.001	169.955	-3.156	9	Pso'Xja	zi97	-167.514	9.987	-2.009	lsb-zonelines	untested	
+943286650	9	Pso'Xja	zi98	-110.000	30.007	-3.418	9	Pso'Xja	zi99	12.486	189.982	-1.963	lsb-zonelines	untested	
+1631152506	9	Pso'Xja	zi9a	10.013	189.982	-3.350	9	Pso'Xja	zi9b	-112.500	30.015	-1.963	lsb-zonelines	untested	
+1664706938	9	Pso'Xja	zi9c	-29.992	-70.015	-3.018	9	Pso'Xja	zi9d	90.034	52.504	-1.980	lsb-zonelines	untested	
+1698261370	9	Pso'Xja	zi9e	89.974	49.990	-3.204	9	Pso'Xja	zi9f	-30.181	-67.082	-1.500	lsb-zonelines	untested	
+1731815802	9	Pso'Xja	zi9g	-60.000	1.078	36.986	10	The Shrouded Maw	z0a1	-300.000	-219.928	-1.500	lsb-zonelines	untested	
+1765370234	9	Pso'Xja	zi9i	20.000	-15.073	36.769	10	The Shrouded Maw	z0a3	-179.683	-296.610	2.250	lsb-zonelines	untested	
+809054330	9	Pso'Xja	z090	404.925	-20.008	-11.876	111	Beaucedine Glacier	z339	242.292	-20.005	4.950	lsb-zonelines	untested	
+842608762	9	Pso'Xja	z092	220.053	-274.952	-11.916	111	Beaucedine Glacier	z33b	60.008	-357.679	4.950	lsb-zonelines	untested	
+876163194	9	Pso'Xja	z094	180.013	234.996	-11.992	111	Beaucedine Glacier	z33d	100.011	157.695	-15.050	lsb-zonelines	untested	
+909717626	9	Pso'Xja	z096	-235.011	-259.985	4.119	111	Beaucedine Glacier	z33f	-197.717	-219.995	-35.050	lsb-zonelines	untested	
+943272058	9	Pso'Xja	z098	-179.989	-85.020	-11.938	111	Beaucedine Glacier	z33h	-19.996	-42.291	-55.050	lsb-zonelines	untested	
+1631137914	9	Pso'Xja	z09a	-299.999	194.992	-11.983	111	Beaucedine Glacier	z33j	-339.974	157.732	-95.050	lsb-zonelines	untested	
+811675770	10	The Shrouded Maw	z0a0	-300.000	-215.250	-4.075	9	Pso'Xja	zi9h	-60.000	4.981	38.504	lsb-zonelines	untested	
+845230202	10	The Shrouded Maw	z0a2	-180.020	-291.250	-0.336	9	Pso'Xja	zi9j	20.000	-11.005	38.500	lsb-zonelines	untested	
+912404602	11	Oldton Movalpolos	z0b6	73.896	139.753	5.030	12	Newton Movalpolos	z0c1	-261.858	180.559	10.858	lsb-zonelines	untested	
+945959034	11	Oldton Movalpolos	z0b8	139.913	-5.051	5.031	12	Newton Movalpolos	z0c3	-220.031	43.605	10.065	lsb-zonelines	untested	
+1633824890	11	Oldton Movalpolos	z0ba	247.604	-59.960	8.701	12	Newton Movalpolos	z0c5	-141.883	-19.373	10.737	lsb-zonelines	untested	
+1667379322	11	Oldton Movalpolos	z0bc	199.017	-140.129	5.050	12	Newton Movalpolos	z0c7	-196.066	-59.949	6.088	lsb-zonelines	untested	
+1700933754	11	Oldton Movalpolos	z0be	100.132	-158.626	12.877	12	Newton Movalpolos	z0c9	-260.004	-123.785	10.148	lsb-zonelines	untested	
+1734488186	11	Oldton Movalpolos	z0bg	-2.339	-219.733	4.788	12	Newton Movalpolos	z0cb	-356.944	-179.974	6.047	lsb-zonelines	untested	
+811741306	11	Oldton Movalpolos	z0b0	-325.112	-259.658	4.409	106	North Gustaberg	z2yd	575.589	692.864	-16.677	lsb-zonelines	untested	
+845295738	11	Oldton Movalpolos	z0b2	-307.079	-100.008	-10.849	106	North Gustaberg	z2yf	455.859	733.027	-6.690	lsb-zonelines	untested	
+878850170	11	Oldton Movalpolos	z0b4	-375.326	464.797	-14.094	196	Gusgen Mines	z5g3	100.007	-237.441	-61.630	lsb-zonelines	untested	
+811806842	12	Newton Movalpolos	z0c0	-264.792	180.392	9.903	11	Oldton Movalpolos	z0b7	70.956	139.843	5.990	lsb-zonelines	untested	
+845361274	12	Newton Movalpolos	z0c2	-219.790	40.947	8.775	11	Oldton Movalpolos	z0b9	140.447	-8.471	5.236	lsb-zonelines	untested	
+878915706	12	Newton Movalpolos	z0c4	-144.604	-19.511	9.139	11	Oldton Movalpolos	z0bb	244.542	-60.040	9.962	lsb-zonelines	untested	
+912470138	12	Newton Movalpolos	z0c6	-198.923	-60.046	4.799	11	Oldton Movalpolos	z0bd	195.901	-140.140	6.033	lsb-zonelines	untested	
+946024570	12	Newton Movalpolos	z0c8	-259.934	-120.907	9.171	11	Oldton Movalpolos	z0bf	99.852	-155.918	14.249	lsb-zonelines	untested	
+1633890426	12	Newton Movalpolos	z0ca	-359.771	-179.999	4.964	11	Oldton Movalpolos	z0bh	-5.107	-219.906	5.531	lsb-zonelines	untested	
+1667444858	12	Newton Movalpolos	z0cc	454.912	-19.355	25.132	13	Mine Shaft #2716	z0d1	-116.599	-620.010	-122.103	lsb-zonelines	untested	
+1700999290	12	Newton Movalpolos	z0ce	218.126	187.428	17.189	13	Mine Shaft #2716	z0d3	-155.302	500.121	178.261	lsb-zonelines	untested	
+811872378	13	Mine Shaft #2716	z0d0	-119.955	-619.984	-123.476	12	Newton Movalpolos	z0cd	451.895	-19.782	26.214	lsb-zonelines	untested	
+845426810	13	Mine Shaft #2716	z0d2	-158.309	500.083	176.935	12	Newton Movalpolos	z0cf	215.991	185.113	18.071	lsb-zonelines	untested	
+812068986	16	Promyvion - Holla	z0g0	180.000	-19.992	-2.174	17	Spire of Holla	z0h1	-0.039	-293.741	-4.083	lsb-zonelines	untested	
+812134522	17	Spire of Holla	z0h0	-0.013	-295.991	-4.105	16	Promyvion - Holla	z0g1	179.973	-23.145	-2.100	lsb-zonelines	untested	
+812200058	18	Promyvion - Dem	z0i0	20.000	59.998	-2.174	19	Spire of Dem	z0j1	-0.039	293.641	-4.083	lsb-zonelines	untested	
+812265594	19	Spire of Dem	z0j0	-0.013	296.024	-4.105	18	Promyvion - Dem	z0i1	20.000	63.031	-2.100	lsb-zonelines	untested	
+812331130	20	Promyvion - Mea	z0k0	100.000	180.035	-2.295	21	Spire of Mea	z0l1	-0.039	293.641	-4.083	lsb-zonelines	untested	
+812396666	21	Spire of Mea	z0l0	-0.013	296.024	-4.105	20	Promyvion - Mea	z0k1	100.000	183.068	-2.059	lsb-zonelines	untested	
+812462202	22	Promyvion - Vahzl	z0m0	-140.000	-59.926	-2.174	23	Spire of Vahzl	z0n1	-0.039	293.641	-4.083	lsb-zonelines	untested	
+812527738	23	Spire of Vahzl	z0n0	-0.013	296.024	-4.105	22	Promyvion - Vahzl	z0m1	-140.000	-56.893	-2.100	lsb-zonelines	untested	
+812593274	24	Lufaise Meadows	z0o0	-482.593	283.523	-20.100	25	Misareaux Coast	z0p1	567.624	280.775	-20.000	lsb-zonelines	untested	
+846147706	24	Lufaise Meadows	z0o2	-600.989	-100.086	-2.981	26	Tavnazian Safehold	z0q1	7.425	155.009	-31.201	lsb-zonelines	untested	
+879702138	24	Lufaise Meadows	z0o4	-401.488	-219.958	-3.056	26	Tavnazian Safehold	z0q3	13.659	118.255	-27.742	lsb-zonelines	untested	
+812658810	25	Misareaux Coast	z0p0	572.441	282.673	-19.402	24	Lufaise Meadows	z0o1	-475.825	281.149	-20.461	lsb-zonelines	untested	
+846213242	25	Misareaux Coast	z0p2	602.537	19.974	-2.850	26	Tavnazian Safehold	z0q5	-46.465	158.105	-32.599	lsb-zonelines	untested	
+879767674	25	Misareaux Coast	z0p4	642.432	-220.022	21.094	26	Tavnazian Safehold	z0q7	-37.079	118.783	-30.028	lsb-zonelines	untested	
+913322106	25	Misareaux Coast	z0p6	61.063	739.997	-27.674	28	Sacrarium	z0s1	-219.996	82.795	-18.587	lsb-zonelines	untested	
+812724346	26	Tavnazian Safehold	z0q0	9.902	157.162	-31.566	24	Lufaise Meadows	z0o3	-596.494	-99.420	-2.937	lsb-zonelines	untested	
+846278778	26	Tavnazian Safehold	z0q2	16.108	116.194	-27.796	24	Lufaise Meadows	z0o5	-398.021	-220.780	-2.555	lsb-zonelines	untested	
+879833210	26	Tavnazian Safehold	z0q4	-48.435	159.972	-34.162	25	Misareaux Coast	z0p3	599.205	20.144	-2.013	lsb-zonelines	untested	
+913387642	26	Tavnazian Safehold	z0q6	-39.224	117.016	-31.364	25	Misareaux Coast	z0p5	638.832	-220.494	21.740	lsb-zonelines	untested	
+1634807930	26	Tavnazian Safehold	z0qa	27.989	57.053	-16.337	27	Phomiuna Aqueducts	z0r1	260.020	-290.461	-2.120	lsb-zonelines	untested	
+946942074	26	Tavnazian Safehold	z0q8	-0.034	-41.987	-11.218	32	Sealion's Den	z0w1	600.101	797.612	130.355	lsb-zonelines	untested	
+812789882	27	Phomiuna Aqueducts	z0r0	259.967	-293.412	-3.881	26	Tavnazian Safehold	z0qb	27.971	43.735	-14.068	lsb-zonelines	untested	
+812855418	28	Sacrarium	z0s0	-220.082	84.991	-19.679	25	Misareaux Coast	z0p7	53.226	739.997	-25.671	lsb-zonelines	untested	
+813117562	32	Sealion's Den	z0w0	599.803	802.149	129.570	26	Tavnazian Safehold	z0q9	-0.173	-39.706	-9.572	lsb-zonelines	untested	
+813183098	33	Al'Taieu	z0x0	0.068	-439.247	-13.286	34	Grand Palace of Hu'Xzoi	z0y1	-20.000	-355.482	-1.500	lsb-zonelines	untested	
+846737530	33	Al'Taieu	z0x2	0.000	723.119	0.065	37	Temenos	z111	580.000	4.452	-1.500	lsb-zonelines	untested	
+813248634	34	Grand Palace of Hu'Xzoi	z0y0	-20.000	-364.277	-2.840	33	Al'Taieu	z0x1	0.000	-464.781	-12.500	lsb-zonelines	untested	
+846803066	34	Grand Palace of Hu'Xzoi	z0y2	10.000	-320.000	-2.812	34	Grand Palace of Hu'Xzoi	z0y3	-368.794	260.000	-2.216	lsb-zonelines	untested	
+880357498	34	Grand Palace of Hu'Xzoi	z0y4	-371.972	260.000	-3.669	34	Grand Palace of Hu'Xzoi	z0y5	-1.608	-320.000	-1.661	lsb-zonelines	untested	
+913911930	34	Grand Palace of Hu'Xzoi	z0y6	-20.000	-271.805	-3.808	35	The Garden of Ru'Hmet	z0z1	-420.000	243.491	-2.216	lsb-zonelines	untested	
+813314170	35	The Garden of Ru'Hmet	z0z0	-420.000	235.712	-3.669	34	Grand Palace of Hu'Xzoi	z0y7	-20.000	-285.460	-2.064	lsb-zonelines	untested	
+846868602	35	The Garden of Ru'Hmet	z0z2	-484.739	-340.000	-3.000	35	The Garden of Ru'Hmet	z0z3	-351.136	-380.000	-2.250	lsb-zonelines	untested	
+880423034	35	The Garden of Ru'Hmet	z0z4	-355.149	-380.141	-3.000	35	The Garden of Ru'Hmet	z0z5	-488.908	-340.000	-2.318	lsb-zonelines	untested	
+913977466	35	The Garden of Ru'Hmet	z0z6	-478.374	-339.977	-3.000	35	The Garden of Ru'Hmet	z0z7	-365.291	-380.000	-2.250	lsb-zonelines	untested	
+947531898	35	The Garden of Ru'Hmet	z0z8	-361.598	-380.000	-3.000	35	The Garden of Ru'Hmet	z0z9	-474.853	-340.000	-2.250	lsb-zonelines	untested	
+1635397754	35	The Garden of Ru'Hmet	z0za	-361.604	-340.000	-3.000	35	The Garden of Ru'Hmet	z0zb	-474.843	-380.000	-2.250	lsb-zonelines	untested	
+1668952186	35	The Garden of Ru'Hmet	z0zc	-478.375	-380.000	-3.000	35	The Garden of Ru'Hmet	z0zd	-365.298	-340.000	-2.250	lsb-zonelines	untested	
+1702506618	35	The Garden of Ru'Hmet	z0ze	-355.157	-340.000	-3.000	35	The Garden of Ru'Hmet	z0zf	-488.897	-380.000	-2.250	lsb-zonelines	untested	
+1736061050	35	The Garden of Ru'Hmet	z0zg	-484.729	-380.000	-3.000	35	The Garden of Ru'Hmet	z0zh	-351.143	-340.000	-2.250	lsb-zonelines	untested	
+1769615482	35	The Garden of Ru'Hmet	z0zi	-460.000	-446.305	-2.500	35	The Garden of Ru'Hmet	z0zj	-380.000	-478.369	-2.250	lsb-zonelines	untested	
+1803169914	35	The Garden of Ru'Hmet	z0zk	-380.000	-473.733	-3.500	35	The Garden of Ru'Hmet	z0zl	-460.000	-441.682	-2.250	lsb-zonelines	untested	
+1836724346	35	The Garden of Ru'Hmet	z0zm	-460.000	-473.733	-3.500	35	The Garden of Ru'Hmet	z0zn	-380.000	-441.682	-2.250	lsb-zonelines	untested	
+1870278778	35	The Garden of Ru'Hmet	z0zo	-380.000	-446.305	-3.500	35	The Garden of Ru'Hmet	z0zp	-460.000	-478.369	-2.250	lsb-zonelines	untested	
+808530298	37	Temenos	z110	580.000	-4.342	-2.840	33	Al'Taieu	z0x3	0.000	718.112	0.079	lsb-zonelines	untested	
+2003987834	48	Al Zahbi	zmrw	40.000	-74.000	-3.764	48	Al Zahbi	Mog House	40.000	-62.510	-1.500	lsb-zonelines	untested	
+878915962	48	Al Zahbi	z1c4	122.109	40.005	-5.160	50	Aht Urhgan Whitegate	z1e1	-155.854	-0.004	0.225	lsb-zonelines	untested	
+811807098	48	Al Zahbi	z1c0	-120.190	67.981	-1.369	51	Wajaom Woodlands	z1fl	610.542	356.247	-28.547	lsb-zonelines	untested	
+845361530	48	Al Zahbi	z1c2	-68.008	120.009	-1.091	52	Bhaflau Thickets	z1g7	432.986	-40.041	-11.075	lsb-zonelines	untested	
+811938170	50	Aht Urhgan Whitegate	z1e0	-158.102	0.005	0.000	48	Al Zahbi	z1c5	120.359	40.004	-3.816	lsb-zonelines	untested	
+2037542266	50	Aht Urhgan Whitegate	zmry	-114.000	-80.000	-3.333	50	Aht Urhgan Whitegate	Mog House	-102.500	-80.000	-1.500	lsb-zonelines	untested	
+1801859450	51	Wajaom Woodlands	z1fk	614.376	356.287	-27.143	48	Al Zahbi	z1c1	-118.150	67.996	0.480	lsb-zonelines	untested	
+1835413882	51	Wajaom Woodlands	z1fm	381.293	440.795	-15.565	52	Bhaflau Thickets	z1g1	299.997	-27.998	-13.369	lsb-zonelines	untested	
+1868968314	51	Wajaom Woodlands	z1fo	-853.488	99.990	-19.409	62	Halvung	z1q1	119.515	-379.987	-32.000	lsb-zonelines	untested	
+1902522746	51	Wajaom Woodlands	z1fq	-480.455	-539.990	-7.982	65	Mamook	z1t1	397.473	-219.999	-32.284	lsb-zonelines	untested	
+1936077178	51	Wajaom Woodlands	z1fs	-739.064	-569.553	-5.158	65	Mamook	z1t3	220.001	-81.496	-32.284	lsb-zonelines	untested	
+1969631610	51	Wajaom Woodlands	z1fu	-570.520	-781.055	-20.789	65	Mamook	z1t5	317.504	-339.995	-8.317	lsb-zonelines	untested	
+812003706	51	Wajaom Woodlands	z1f0	440.032	-100.039	-22.721	68	Aydeewa Subterrane	z1w1	356.503	-179.607	-0.364	lsb-zonelines	untested	
+845558138	51	Wajaom Woodlands	z1f2	99.428	-146.551	-11.313	68	Aydeewa Subterrane	z1w3	20.007	-116.515	6.332	lsb-zonelines	untested	
+879112570	51	Wajaom Woodlands	z1f4	-173.529	-260.572	-11.719	68	Aydeewa Subterrane	z1w5	-51.776	-225.531	28.510	lsb-zonelines	untested	
+912667002	51	Wajaom Woodlands	z1f6	-334.403	-379.995	-11.860	68	Aydeewa Subterrane	z1w7	-196.824	-420.565	-19.145	lsb-zonelines	untested	
+946221434	51	Wajaom Woodlands	z1f8	60.017	399.995	-14.568	68	Aydeewa Subterrane	z1w9	101.428	151.549	8.673	lsb-zonelines	untested	
+1634087290	51	Wajaom Woodlands	z1fa	-259.434	306.498	-18.953	68	Aydeewa Subterrane	z1wb	-140.002	118.503	6.012	lsb-zonelines	untested	
+1667641722	51	Wajaom Woodlands	z1fc	-679.970	-20.007	-7.950	68	Aydeewa Subterrane	z1wd	-408.475	-139.983	3.342	lsb-zonelines	untested	
+1701196154	51	Wajaom Woodlands	z1fe	-420.018	-80.015	-7.389	68	Aydeewa Subterrane	z1wf	-220.786	-149.674	3.763	lsb-zonelines	untested	
+1734750586	51	Wajaom Woodlands	z1fg	-333.491	-180.887	-19.647	68	Aydeewa Subterrane	z1wh	-204.826	-259.893	-17.797	lsb-zonelines	untested	
+1768305018	51	Wajaom Woodlands	z1fi	-550.506	-221.456	-13.216	68	Aydeewa Subterrane	z1wj	-354.967	-260.010	-20.750	lsb-zonelines	untested	
+912732538	52	Bhaflau Thickets	z1g6	437.971	-40.006	-12.999	48	Al Zahbi	z1c3	-67.989	118.151	0.394	lsb-zonelines	untested	
+812069242	52	Bhaflau Thickets	z1g0	300.014	-32.192	-15.685	51	Wajaom Woodlands	z1fn	380.031	435.510	-13.370	lsb-zonelines	untested	
+1667707258	52	Bhaflau Thickets	z1gc	-41.055	300.012	-7.022	62	Halvung	z1q5	519.486	260.008	-12.001	lsb-zonelines	untested	
+1701261690	52	Bhaflau Thickets	z1ge	-556.948	99.990	-3.357	62	Halvung	z1q7	-572.452	-104.542	-6.054	lsb-zonelines	untested	
+946286970	52	Bhaflau Thickets	z1g8	-31.048	-619.061	-13.084	65	Mamook	z1t7	-117.491	-299.997	-20.115	lsb-zonelines	untested	
+1634152826	52	Bhaflau Thickets	z1ga	-340.017	-123.048	-10.947	65	Mamook	z1t9	-459.995	197.520	-14.278	lsb-zonelines	untested	
+1801924986	52	Bhaflau Thickets	z1gk	-100.006	-476.957	-14.761	67	Jade Sepulcher	z1v1	340.383	-157.447	-13.625	lsb-zonelines	untested	
+845623674	52	Bhaflau Thickets	z1g2	439.985	419.973	-14.677	68	Aydeewa Subterrane	z1wl	516.598	459.890	-34.888	lsb-zonelines	untested	
+879178106	52	Bhaflau Thickets	z1g4	120.986	420.007	-14.686	68	Aydeewa Subterrane	z1wn	245.502	499.935	-34.853	lsb-zonelines	untested	
+1734816122	52	Bhaflau Thickets	z1gg	82.999	620.022	-22.629	72	Alzadaal Undersea Ruins	z20b	325.000	-620.000	-6.574	lsb-zonelines	untested	
+1768370554	52	Bhaflau Thickets	z1gi	-398.012	20.005	-11.075	72	Alzadaal Undersea Ruins	z20d	-115.000	-620.000	-6.500	lsb-zonelines	untested	
+812134778	53	Nashmau	z1h0	42.910	-24.006	-9.508	79	Caedarva Mire	z271	25.965	-700.009	2.535	lsb-zonelines	untested	
+845689210	53	Nashmau	z1h2	16.000	82.895	-9.508	79	Caedarva Mire	z273	13.930	-453.836	-6.684	lsb-zonelines	untested	
+879243642	53	Nashmau	z1h4	-42.911	23.997	-9.508	79	Caedarva Mire	z275	-260.961	-699.985	-4.370	lsb-zonelines	untested	
+1667838330	54	Arrapago Reef	z1ic	-180.006	-563.570	-12.713	57	Talacca Cove	z1l3	64.007	-99.988	-9.281	lsb-zonelines	untested	
+812200314	54	Arrapago Reef	z1i0	499.997	-43.502	-20.717	79	Caedarva Mire	z277	140.007	-40.736	-13.500	lsb-zonelines	untested	
+845754746	54	Arrapago Reef	z1i2	603.978	380.000	-13.066	79	Caedarva Mire	z279	477.713	139.990	-29.500	lsb-zonelines	untested	
+879309178	54	Arrapago Reef	z1i4	-420.000	-83.543	-20.709	79	Caedarva Mire	z27b	-499.999	118.326	-1.500	lsb-zonelines	untested	
+912863610	54	Arrapago Reef	z1i6	-419.995	-565.494	-12.918	79	Caedarva Mire	z27d	-719.993	-20.020	14.500	lsb-zonelines	untested	
+946418042	54	Arrapago Reef	z1i8	-420.008	-276.433	-12.854	79	Caedarva Mire	z27f	-700.010	121.777	6.500	lsb-zonelines	untested	
+1634283898	54	Arrapago Reef	z1ia	-563.517	379.970	-12.610	79	Caedarva Mire	z27h	-640.759	339.955	-17.500	lsb-zonelines	untested	
+845951354	57	Talacca Cove	z1l2	64.009	-96.994	-11.443	54	Arrapago Reef	z1id	-180.028	-559.987	-10.335	lsb-zonelines	untested	
+812396922	57	Talacca Cove	z1l0	-43.034	-260.010	-11.862	79	Caedarva Mire	z27j	-441.566	-499.974	10.414	lsb-zonelines	untested	
+812659066	61	Mount Zhayolm	z1p0	901.279	182.176	-12.497	62	Halvung	z1q9	160.540	139.988	-22.001	lsb-zonelines	untested	
+846213498	61	Mount Zhayolm	z1p2	659.804	10.743	-1.480	62	Halvung	z1qb	60.052	118.482	-12.005	lsb-zonelines	untested	
+879767930	61	Mount Zhayolm	z1p4	340.889	-105.180	-12.946	62	Halvung	z1qd	-100.030	-40.539	-22.003	lsb-zonelines	untested	
+913322362	61	Mount Zhayolm	z1p6	133.594	99.840	-25.738	62	Halvung	z1qf	-200.567	100.001	-2.000	lsb-zonelines	untested	
+946876794	61	Mount Zhayolm	z1p8	-140.441	-227.184	-3.340	62	Halvung	z1qh	-340.028	-200.503	-12.000	lsb-zonelines	untested	
+1634742650	61	Mount Zhayolm	z1pa	-59.824	293.319	-21.114	62	Halvung	z1qj	-413.024	385.630	-37.730	lsb-zonelines	untested	
+1668297082	61	Mount Zhayolm	z1pc	-380.440	304.699	-4.200	62	Halvung	z1ql	-539.997	400.551	-42.000	lsb-zonelines	untested	
+1701851514	61	Mount Zhayolm	z1pe	-372.770	-178.528	10.382	62	Halvung	z1qn	-599.423	179.971	-12.000	lsb-zonelines	untested	
+1735405946	61	Mount Zhayolm	z1pg	-461.086	-269.248	-9.204	62	Halvung	z1qp	-539.978	79.533	-12.000	lsb-zonelines	untested	
+1768960378	61	Mount Zhayolm	z1pi	-518.023	59.959	-7.405	64	Navukgo Execution Chamber	z1s1	-660.185	-199.532	-12.079	lsb-zonelines	untested	
+1802514810	61	Mount Zhayolm	z1pk	-514.716	139.977	-18.763	64	Navukgo Execution Chamber	z1s3	-660.012	119.067	-22.073	lsb-zonelines	untested	
+1836069242	61	Mount Zhayolm	z1pm	-19.543	321.230	0.998	72	Alzadaal Undersea Ruins	z20f	100.000	-675.000	-6.500	lsb-zonelines	untested	
+812724602	62	Halvung	z1q0	122.076	-379.992	-32.975	51	Wajaom Woodlands	z1fp	-848.503	100.583	-20.835	lsb-zonelines	untested	
+879833466	62	Halvung	z1q4	522.040	260.010	-13.900	52	Bhaflau Thickets	z1gd	-38.306	300.018	-5.500	lsb-zonelines	untested	
+913387898	62	Halvung	z1q6	-574.919	-107.016	-8.759	52	Bhaflau Thickets	z1gf	-559.439	100.023	-1.500	lsb-zonelines	untested	
+946942330	62	Halvung	z1q8	157.974	140.047	-24.159	61	Mount Zhayolm	z1p1	897.992	182.576	-10.195	lsb-zonelines	untested	
+1634808186	62	Halvung	z1qa	59.975	121.036	-13.402	61	Mount Zhayolm	z1p3	657.948	14.117	1.019	lsb-zonelines	untested	
+1668362618	62	Halvung	z1qc	-99.974	-38.030	-23.760	61	Mount Zhayolm	z1p5	341.609	-101.977	-12.590	lsb-zonelines	untested	
+1701917050	62	Halvung	z1qe	-197.984	99.981	-4.091	61	Mount Zhayolm	z1p7	136.983	101.415	-24.148	lsb-zonelines	untested	
+1735471482	62	Halvung	z1qg	-340.027	-198.010	-13.824	61	Mount Zhayolm	z1p9	-138.312	-223.010	-1.912	lsb-zonelines	untested	
+1769025914	62	Halvung	z1qi	-411.154	383.152	-39.692	61	Mount Zhayolm	z1pb	-58.721	288.952	-19.525	lsb-zonelines	untested	
+1802580346	62	Halvung	z1qk	-539.989	398.060	-44.292	61	Mount Zhayolm	z1pd	-381.807	301.066	-2.737	lsb-zonelines	untested	
+1836134778	62	Halvung	z1qm	-601.957	179.948	-14.122	61	Mount Zhayolm	z1pf	-376.457	-177.608	13.497	lsb-zonelines	untested	
+1869689210	62	Halvung	z1qo	-539.948	81.993	-13.966	61	Mount Zhayolm	z1ph	-462.072	-265.969	-7.018	lsb-zonelines	untested	
+846279034	62	Halvung	z1q2	-19.996	-442.020	16.655	68	Aydeewa Subterrane	z1wp	-539.567	-163.887	14.996	lsb-zonelines	untested	
+812855674	64	Navukgo Execution Chamber	z1s0	-660.555	-203.192	-13.736	61	Mount Zhayolm	z1pj	-521.016	60.013	-6.191	lsb-zonelines	untested	
+846410106	64	Navukgo Execution Chamber	z1s2	-660.000	123.071	-24.483	61	Mount Zhayolm	z1pl	-518.013	139.972	-16.514	lsb-zonelines	untested	
+879964538	64	Navukgo Execution Chamber	z1s4	378.162	440.268	-105.012	61	Mount Zhayolm	z1pl	-518.013	139.972	-16.514	lsb-zonelines	untested	
+913518970	64	Navukgo Execution Chamber	z1s6	-21.948	40.038	-5.035	61	Mount Zhayolm	z1pl	-518.013	139.972	-16.514	lsb-zonelines	untested	
+947073402	64	Navukgo Execution Chamber	z1s8	378.065	-360.002	95.015	61	Mount Zhayolm	z1pl	-518.013	139.972	-16.514	lsb-zonelines	untested	
+812921210	65	Mamook	z1t0	400.003	-220.004	-35.018	51	Wajaom Woodlands	z1fr	-475.452	-539.960	-5.925	lsb-zonelines	untested	
+846475642	65	Mamook	z1t2	220.003	-78.990	-34.280	51	Wajaom Woodlands	z1ft	-739.549	-565.146	-5.502	lsb-zonelines	untested	
+880030074	65	Mamook	z1t4	319.974	-340.015	-10.746	51	Wajaom Woodlands	z1fv	-565.517	-780.596	-21.503	lsb-zonelines	untested	
+913584506	65	Mamook	z1t6	-119.988	-299.970	-22.929	52	Bhaflau Thickets	z1g9	-33.517	-619.263	-12.770	lsb-zonelines	untested	
+947138938	65	Mamook	z1t8	-460.025	200.007	-16.686	52	Bhaflau Thickets	z1gb	-340.017	-119.995	-9.553	lsb-zonelines	untested	
+813052282	67	Jade Sepulcher	z1v0	340.668	-160.007	-16.868	52	Bhaflau Thickets	z1gl	-100.000	-479.514	-13.500	lsb-zonelines	untested	
+813117818	68	Aydeewa Subterrane	z1w0	359.961	-179.998	-1.770	51	Wajaom Woodlands	z1f1	444.495	-99.976	-22.120	lsb-zonelines	untested	
+846672250	68	Aydeewa Subterrane	z1w2	20.016	-120.017	4.566	51	Wajaom Woodlands	z1f3	99.049	-150.954	-12.592	lsb-zonelines	untested	
+880226682	68	Aydeewa Subterrane	z1w4	-48.857	-223.656	27.092	51	Wajaom Woodlands	z1f5	-168.529	-260.803	-12.902	lsb-zonelines	untested	
+913781114	68	Aydeewa Subterrane	z1w6	-194.081	-420.932	-20.834	51	Wajaom Woodlands	z1f7	-328.495	-379.397	-12.893	lsb-zonelines	untested	
+947335546	68	Aydeewa Subterrane	z1w8	101.075	154.991	6.390	51	Wajaom Woodlands	z1f9	59.976	404.470	-13.674	lsb-zonelines	untested	
+1635201402	68	Aydeewa Subterrane	z1wa	-140.001	122.003	3.002	51	Wajaom Woodlands	z1fb	-258.999	311.538	-20.903	lsb-zonelines	untested	
+1668755834	68	Aydeewa Subterrane	z1wc	-405.060	-140.039	0.345	51	Wajaom Woodlands	z1fd	-675.497	-19.657	-5.780	lsb-zonelines	untested	
+1702310266	68	Aydeewa Subterrane	z1we	-219.928	-153.012	0.398	51	Wajaom Woodlands	z1ff	-419.293	-84.475	-5.753	lsb-zonelines	untested	
+1735864698	68	Aydeewa Subterrane	z1wg	-200.820	-260.050	-22.142	51	Wajaom Woodlands	z1fh	-328.534	-180.819	-20.852	lsb-zonelines	untested	
+1769419130	68	Aydeewa Subterrane	z1wi	-359.001	-259.970	-25.301	51	Wajaom Woodlands	z1fj	-555.517	-220.201	-13.730	lsb-zonelines	untested	
+1802973562	68	Aydeewa Subterrane	z1wk	519.935	459.902	-38.040	52	Bhaflau Thickets	z1g3	442.765	419.999	-13.531	lsb-zonelines	untested	
+1836527994	68	Aydeewa Subterrane	z1wm	242.450	500.050	-37.642	52	Bhaflau Thickets	z1g5	118.659	419.999	-13.567	lsb-zonelines	untested	
+1870082426	68	Aydeewa Subterrane	z1wo	-539.999	-160.091	11.703	62	Halvung	z1q3	-20.007	-439.514	18.000	lsb-zonelines	untested	
+1630548602	72	Alzadaal Undersea Ruins	z20a	320.000	-620.000	-10.436	52	Bhaflau Thickets	z1gh	79.994	619.974	-21.578	lsb-zonelines	untested	
+1664103034	72	Alzadaal Undersea Ruins	z20c	-120.000	-620.000	-10.000	52	Bhaflau Thickets	z1gj	-401.065	19.995	-9.633	lsb-zonelines	untested	
+1697657466	72	Alzadaal Undersea Ruins	z20e	100.014	-680.020	-10.000	61	Mount Zhayolm	z1pn	-19.867	316.915	1.551	lsb-zonelines	untested	
+808465018	72	Alzadaal Undersea Ruins	z200	-20.000	840.000	-10.000	79	Caedarva Mire	z27l	339.996	-721.286	2.500	lsb-zonelines	untested	
+842019450	72	Alzadaal Undersea Ruins	z202	320.000	700.066	-10.000	79	Caedarva Mire	z27n	644.720	219.989	-5.627	lsb-zonelines	untested	
+875573882	72	Alzadaal Undersea Ruins	z204	-220.000	480.000	-10.000	79	Caedarva Mire	z27p	-460.005	-760.756	2.500	lsb-zonelines	untested	
+909128314	72	Alzadaal Undersea Ruins	z206	-520.000	740.000	-10.000	79	Caedarva Mire	z27r	-360.759	-300.035	-1.500	lsb-zonelines	untested	
+942682746	72	Alzadaal Undersea Ruins	z208	-240.000	220.000	-10.000	79	Caedarva Mire	z27t	-600.739	-260.003	22.500	lsb-zonelines	untested	
+808858234	78	Hazhalm Testing Grounds	z260	654.670	-107.741	-274.266	79	Caedarva Mire	z27v	-539.996	-559.207	10.500	lsb-zonelines	untested	
+808923770	79	Caedarva Mire	z270	22.439	-700.082	3.048	53	Nashmau	z1h1	40.658	-24.001	-7.527	lsb-zonelines	untested	
+842478202	79	Caedarva Mire	z272	10.539	-454.895	-5.338	53	Nashmau	z1h3	15.999	80.664	-7.535	lsb-zonelines	untested	
+876032634	79	Caedarva Mire	z274	-257.573	-699.995	-5.016	53	Nashmau	z1h5	-40.617	24.000	-7.565	lsb-zonelines	untested	
+909587066	79	Caedarva Mire	z276	140.076	-37.471	-14.268	54	Arrapago Reef	z1i1	500.019	-40.026	-18.333	lsb-zonelines	untested	
+943141498	79	Caedarva Mire	z278	474.546	140.050	-30.732	54	Arrapago Reef	z1i3	600.003	379.997	-10.332	lsb-zonelines	untested	
+1631007354	79	Caedarva Mire	z27a	-499.980	121.517	-3.438	54	Arrapago Reef	z1i5	-420.006	-79.998	-18.332	lsb-zonelines	untested	
+1664561786	79	Caedarva Mire	z27c	-717.074	-20.004	13.080	54	Arrapago Reef	z1i7	-419.998	-561.263	-10.334	lsb-zonelines	untested	
+1698116218	79	Caedarva Mire	z27e	-699.982	118.534	5.971	54	Arrapago Reef	z1i9	-419.998	-279.996	-10.332	lsb-zonelines	untested	
+1731670650	79	Caedarva Mire	z27g	-637.394	339.974	-18.773	54	Arrapago Reef	z1ib	-559.995	380.002	-10.332	lsb-zonelines	untested	
+1765225082	79	Caedarva Mire	z27i	-438.503	-499.968	8.638	57	Talacca Cove	z1l1	-39.998	-260.182	-9.873	lsb-zonelines	untested	
+1798779514	79	Caedarva Mire	z27k	340.005	-724.025	1.423	72	Alzadaal Undersea Ruins	z201	-20.000	835.000	-6.500	lsb-zonelines	untested	
+1832333946	79	Caedarva Mire	z27m	641.578	220.043	-7.103	72	Alzadaal Undersea Ruins	z203	315.000	700.000	-6.500	lsb-zonelines	untested	
+1865888378	79	Caedarva Mire	z27o	-460.012	-764.002	0.816	72	Alzadaal Undersea Ruins	z205	-220.000	475.000	-6.500	lsb-zonelines	untested	
+1899442810	79	Caedarva Mire	z27q	-357.507	-300.011	-2.670	72	Alzadaal Undersea Ruins	z207	-515.000	740.000	-6.500	lsb-zonelines	untested	
+1932997242	79	Caedarva Mire	z27s	-597.492	-259.977	21.284	72	Alzadaal Undersea Ruins	z209	-235.000	220.000	-6.500	lsb-zonelines	untested	
+1966551674	79	Caedarva Mire	z27u	-539.987	-556.030	9.085	78	Hazhalm Testing Grounds	z261	652.174	-104.920	-272.632	lsb-zonelines	untested	
+812871034	80	Southern San d'Oria [S]	zms0	164.933	164.792	-5.547	80	Southern San d'Oria [S]	zms1	162.591	162.423	-4.103	lsb-zonelines	untested	
+808989306	80	Southern San d'Oria [S]	z280	113.458	-57.351	-4.079	81	East Ronfaure [S]	z291	86.131	273.861	-65.817	lsb-zonelines	untested	
+809054842	81	East Ronfaure [S]	z290	79.181	280.841	-70.089	80	Southern San d'Oria [S]	z281	103.978	-47.951	-1.000	lsb-zonelines	untested	
+842609274	81	East Ronfaure [S]	z292	706.187	-591.226	-21.975	82	Jugner Forest [S]	z2a1	-339.471	462.074	-6.782	lsb-zonelines	untested	
+811676282	82	Jugner Forest [S]	z2a0	-340.908	465.750	-8.244	81	East Ronfaure [S]	z293	693.068	-590.713	-21.256	lsb-zonelines	untested	
+878785146	82	Jugner Forest [S]	z2a4	625.783	298.389	-8.850	83	Vunkerl Inlet [S]	z2b1	-393.238	741.199	-50.034	lsb-zonelines	untested	
+912339578	82	Jugner Forest [S]	z2a6	545.714	-138.350	-8.406	83	Vunkerl Inlet [S]	z2b3	-579.977	198.729	-49.507	lsb-zonelines	untested	
+945894010	82	Jugner Forest [S]	z2a8	178.491	-585.659	-24.823	83	Vunkerl Inlet [S]	z2b5	-661.000	-328.000	-66.268	lsb-zonelines	untested	
+845230714	82	Jugner Forest [S]	z2a2	591.936	560.095	-15.294	84	Batallia Downs [S]	z2c1	-439.393	-239.958	-11.765	lsb-zonelines	untested	
+1633759866	82	Jugner Forest [S]	z2aa	-240.440	-597.493	-16.683	85	La Vaule [S]	z2d1	236.500	20.000	-2.250	lsb-zonelines	untested	
+811741818	83	Vunkerl Inlet [S]	z2b0	-399.024	740.117	-51.535	82	Jugner Forest [S]	z2a5	621.865	300.264	-6.665	lsb-zonelines	untested	
+845296250	83	Vunkerl Inlet [S]	z2b2	-580.330	192.989	-52.266	82	Jugner Forest [S]	z2a7	541.857	-140.268	-6.664	lsb-zonelines	untested	
+878850682	83	Vunkerl Inlet [S]	z2b4	-660.000	-322.995	-67.593	82	Jugner Forest [S]	z2a9	180.335	-581.766	-22.653	lsb-zonelines	untested	
+912405114	83	Vunkerl Inlet [S]	z2b6	243.803	-579.216	-59.195	91	Rolanberry Fields [S]	z2jb	-417.175	337.204	1.512	lsb-zonelines	untested	
+811807354	84	Batallia Downs [S]	z2c0	-444.042	-240.077	-16.166	82	Jugner Forest [S]	z2a3	584.034	558.296	-8.476	lsb-zonelines	untested	
+845361786	84	Batallia Downs [S]	z2c2	479.834	-358.198	-0.786	91	Rolanberry Fields [S]	z2j3	-31.981	611.327	19.609	lsb-zonelines	untested	
+878916218	84	Batallia Downs [S]	z2c4	-501.560	508.768	-40.541	136	Beaucedine Glacier [S]	z3s1	17.331	-654.230	-2.813	lsb-zonelines	untested	
+912470650	84	Batallia Downs [S]	z2c6	167.076	-407.071	10.867	175	The Eldieme Necropolis [S]	z4v1	420.035	-119.510	-58.114	lsb-zonelines	untested	
+946025082	84	Batallia Downs [S]	z2c8	162.950	-605.297	21.998	175	The Eldieme Necropolis [S]	z4v3	436.613	-300.015	-49.301	lsb-zonelines	untested	
+1633890938	84	Batallia Downs [S]	z2ca	87.122	167.127	2.497	175	The Eldieme Necropolis [S]	z4v5	339.992	321.016	-50.075	lsb-zonelines	untested	
+1667445370	84	Batallia Downs [S]	z2cc	-100.904	19.082	-5.221	175	The Eldieme Necropolis [S]	z4v7	59.989	160.973	-34.062	lsb-zonelines	untested	
+1700999802	84	Batallia Downs [S]	z2ce	-247.087	167.078	-4.659	175	The Eldieme Necropolis [S]	z4v9	-160.776	259.998	-34.077	lsb-zonelines	untested	
+1734554234	84	Batallia Downs [S]	z2cg	-259.112	-99.116	-20.417	175	The Eldieme Necropolis [S]	z4vb	-300.010	119.191	-26.100	lsb-zonelines	untested	
+1768108666	84	Batallia Downs [S]	z2ci	-432.915	367.091	-20.722	175	The Eldieme Necropolis [S]	z4vd	-438.878	540.004	-26.091	lsb-zonelines	untested	
+1801663098	84	Batallia Downs [S]	z2ck	-660.897	140.929	-12.621	175	The Eldieme Necropolis [S]	z4vf	-558.931	99.999	-18.096	lsb-zonelines	untested	
+811872890	85	La Vaule [S]	z2d0	240.000	20.000	-4.470	82	Jugner Forest [S]	z2ab	-199.971	-497.938	-10.035	lsb-zonelines	untested	
+846425466	87	Bastok Markets [S]	zms2	-150.750	29.920	-6.766	87	Bastok Markets [S]	zms3	-177.000	30.026	-9.400	lsb-zonelines	untested	
+879979898	87	Bastok Markets [S]	zms4	-150.750	-30.329	-6.781	87	Bastok Markets [S]	zms5	-177.000	-30.251	-9.400	lsb-zonelines	untested	
+812003962	87	Bastok Markets [S]	z2f0	-233.956	105.000	-4.231	88	North Gustaberg [S]	z2g1	380.038	147.627	-2.250	lsb-zonelines	untested	
+812069498	88	North Gustaberg [S]	z2g0	380.080	144.116	-3.085	87	Bastok Markets [S]	z2f1	-233.879	94.000	-2.000	lsb-zonelines	untested	
+845623930	88	North Gustaberg [S]	z2g2	-262.334	574.413	32.738	89	Grauberg [S]	z2h1	-675.000	-880.000	41.209	lsb-zonelines	untested	
+812135034	89	Grauberg [S]	z2h0	-680.000	-880.000	41.930	88	North Gustaberg [S]	z2g3	-265.440	572.308	33.413	lsb-zonelines	untested	
+845689466	89	Grauberg [S]	z2h2	489.490	927.574	71.695	90	Pashhow Marshlands [S]	z2i1	-219.445	-490.542	22.500	lsb-zonelines	untested	
+879243898	89	Grauberg [S]	z2h4	759.208	834.376	65.940	90	Pashhow Marshlands [S]	z2i3	59.268	-530.265	22.281	lsb-zonelines	untested	
+812200570	90	Pashhow Marshlands [S]	z2i0	-216.311	-494.094	20.719	89	Grauberg [S]	z2h3	495.063	924.102	69.903	lsb-zonelines	untested	
+845755002	90	Pashhow Marshlands [S]	z2i2	56.554	-533.834	21.417	89	Grauberg [S]	z2h5	759.684	829.356	66.250	lsb-zonelines	untested	
+912863866	90	Pashhow Marshlands [S]	z2i6	551.257	697.035	20.719	91	Rolanberry Fields [S]	z2j1	-102.210	-917.643	-3.017	lsb-zonelines	untested	
+879309434	90	Pashhow Marshlands [S]	z2i4	582.492	-377.871	21.080	92	Beadeaux [S]	z2k1	-297.109	96.002	0.008	lsb-zonelines	untested	
+1634349690	91	Rolanberry Fields [S]	z2ja	-419.567	341.178	-0.213	83	Vunkerl Inlet [S]	z2b7	240.000	-580.000	-57.501	lsb-zonelines	untested	
+845820538	91	Rolanberry Fields [S]	z2j2	-36.615	616.612	17.017	84	Batallia Downs [S]	z2c3	479.218	-354.065	3.629	lsb-zonelines	untested	
+812266106	91	Rolanberry Fields [S]	z2j0	-108.940	-918.101	-7.558	90	Pashhow Marshlands [S]	z2i7	547.841	696.323	23.192	lsb-zonelines	untested	
+879374970	91	Rolanberry Fields [S]	z2j4	367.707	478.227	16.399	98	Sauromugue Champaign [S]	z2q3	-454.218	206.263	-2.923	lsb-zonelines	untested	
+912929402	91	Rolanberry Fields [S]	z2j6	-381.995	-791.740	-32.113	171	Crawlers' Nest [S]	z4r1	380.617	4.581	-34.610	lsb-zonelines	untested	
+946483834	91	Rolanberry Fields [S]	z2j8	-792.229	-502.043	-40.476	171	Crawlers' Nest [S]	z4r3	84.741	379.574	-2.471	lsb-zonelines	untested	
+812331642	92	Beadeaux [S]	z2k0	-300.088	96.044	-1.085	90	Pashhow Marshlands [S]	z2i5	578.786	-376.731	23.416	lsb-zonelines	untested	
+913534330	94	Windurst Waters [S]	zms6	159.934	-64.086	-8.386	94	Windurst Waters [S]	zms7	160.000	-8.000	-2.350	lsb-zonelines	untested	
+812462714	94	Windurst Waters [S]	z2m0	-40.194	248.809	-7.871	95	West Sarutabaruta [S]	z2n1	320.018	-45.166	-6.684	lsb-zonelines	untested	
+812528250	95	West Sarutabaruta [S]	z2n0	320.010	-48.071	-8.222	94	Windurst Waters [S]	z2m1	-39.996	235.000	-7.640	lsb-zonelines	untested	
+846082682	95	West Sarutabaruta [S]	z2n2	118.936	648.841	-27.623	96	Fort Karugo- -Narugo [S]	z2o1	-572.103	-731.530	-7.774	lsb-zonelines	untested	
+812593786	96	Fort Karugo- -Narugo [S]	z2o0	-576.178	-733.593	-11.372	95	West Sarutabaruta [S]	z2n3	120.000	640.000	-26.001	lsb-zonelines	untested	
+846148218	96	Fort Karugo- -Narugo [S]	z2o2	820.000	121.000	23.592	97	Meriphataud Mountains [S]	z2p1	540.000	-599.000	-19.355	lsb-zonelines	untested	
+879702650	96	Fort Karugo- -Narugo [S]	z2o4	101.981	375.323	-28.619	97	Meriphataud Mountains [S]	z2p3	-614.041	-416.260	-14.181	lsb-zonelines	untested	
+913257082	96	Fort Karugo- -Narugo [S]	z2o6	141.722	574.817	-24.604	97	Meriphataud Mountains [S]	z2p5	-654.060	63.536	-20.130	lsb-zonelines	untested	
+946811514	96	Fort Karugo- -Narugo [S]	z2o8	105.384	781.756	-17.448	97	Meriphataud Mountains [S]	z2p7	-652.239	213.951	-12.305	lsb-zonelines	untested	
+812659322	97	Meriphataud Mountains [S]	z2p0	540.000	-602.000	-20.909	96	Fort Karugo- -Narugo [S]	z2o3	820.000	117.991	25.782	lsb-zonelines	untested	
+846213754	97	Meriphataud Mountains [S]	z2p2	-614.879	-419.435	-14.538	96	Fort Karugo- -Narugo [S]	z2o5	97.017	375.674	-27.936	lsb-zonelines	untested	
+879768186	97	Meriphataud Mountains [S]	z2p4	-654.638	60.580	-22.264	96	Fort Karugo- -Narugo [S]	z2o7	137.112	575.659	-23.945	lsb-zonelines	untested	
+913322618	97	Meriphataud Mountains [S]	z2p6	-653.456	217.250	-14.479	96	Fort Karugo- -Narugo [S]	z2o9	103.991	777.201	-15.999	lsb-zonelines	untested	
+946877050	97	Meriphataud Mountains [S]	z2p8	-454.593	661.763	23.968	98	Sauromugue Champaign [S]	z2q1	520.391	-502.917	-15.885	lsb-zonelines	untested	
+1634742906	97	Meriphataud Mountains [S]	z2pa	756.268	-40.040	-35.643	99	Castle Oztroja [S]	z2r1	-239.447	-19.980	-1.813	lsb-zonelines	untested	
+846279290	98	Sauromugue Champaign [S]	z2q2	-458.558	205.424	-6.960	91	Rolanberry Fields [S]	z2j5	363.430	473.826	20.515	lsb-zonelines	untested	
+812724858	98	Sauromugue Champaign [S]	z2q0	519.887	-507.899	-21.817	97	Meriphataud Mountains [S]	z2p9	-454.135	657.790	28.409	lsb-zonelines	untested	
+879833722	98	Sauromugue Champaign [S]	z2q4	-104.001	-427.826	-27.307	164	Garlaige Citadel [S]	z4k1	-300.000	157.000	-13.548	lsb-zonelines	untested	
+913388154	98	Sauromugue Champaign [S]	z2q6	263.991	-390.048	-3.402	164	Garlaige Citadel [S]	z4k3	100.000	197.000	-19.566	lsb-zonelines	untested	
+812790394	99	Castle Oztroja [S]	z2r0	-242.002	-20.019	-3.955	97	Meriphataud Mountains [S]	z2pb	730.000	-40.000	-33.663	lsb-zonelines	untested	
+879964794	100	West Ronfaure	z2s4	-11.697	140.000	-53.643	101	East Ronfaure	z2t1	-16.472	140.003	-54.180	lsb-zonelines	untested	
+913519226	100	West Ronfaure	z2s6	94.760	-200.153	-29.531	101	East Ronfaure	z2t5	81.582	-199.921	-29.242	lsb-zonelines	untested	
+1668493946	100	West Ronfaure	z2sc	-560.415	-613.176	-10.328	102	La Theine Plateau	z2u1	-559.978	680.592	-3.098	lsb-zonelines	untested	
+947073658	100	West Ronfaure	z2s8	-740.570	623.341	-68.478	140	Ghelsba Outpost	z3w1	100.002	-38.021	-2.062	lsb-zonelines	untested	
+1702048378	100	West Ronfaure	z2se	-716.831	18.192	-42.252	167	Bostaunieux Oubliette	z4n3	-379.994	-237.249	-9.351	lsb-zonelines	untested	
+812855930	100	West Ronfaure	z2s0	-119.065	280.921	-65.707	230	Southern San d'Oria	z6e3	-110.465	-54.469	-2.083	lsb-zonelines	untested	
+846410362	100	West Ronfaure	z2s2	-157.666	379.960	-66.124	231	Northern San d'Oria	z6f3	-248.893	44.026	4.640	lsb-zonelines	untested	
+1634939514	100	West Ronfaure	z2sa	-177.516	420.000	-68.461	231	Northern San d'Oria	z6f9	-234.393	106.009	-5.741	lsb-zonelines	untested	
+812921466	101	East Ronfaure	z2t0	-30.050	140.034	-58.027	100	West Ronfaure	z2s5	-24.427	140.000	-53.107	lsb-zonelines	untested	
+880030330	101	East Ronfaure	z2t4	56.140	-199.961	-37.462	100	West Ronfaure	z2s7	83.913	-200.033	-26.756	lsb-zonelines	untested	
+1635005050	101	East Ronfaure	z2ta	821.681	666.443	-68.003	166	Ranguemont Pass	z4m1	-139.986	-321.508	2.162	lsb-zonelines	untested	
+913584762	101	East Ronfaure	z2t6	199.982	-544.574	-8.500	190	King Ranperre's Tomb	z5a1	-129.996	256.499	-2.529	lsb-zonelines	untested	
+947139194	101	East Ronfaure	z2t8	661.624	-595.631	-21.974	190	King Ranperre's Tomb	z5a3	57.415	300.784	5.482	lsb-zonelines	untested	
+846475898	101	East Ronfaure	z2t2	79.181	280.841	-70.089	230	Southern San d'Oria	z6e1	110.234	-54.223	-2.127	lsb-zonelines	untested	
+812987002	102	La Theine Plateau	z2u0	-558.569	688.049	-7.049	100	West Ronfaure	z2sd	-559.963	-602.479	-7.062	lsb-zonelines	untested	
+880095866	102	La Theine Plateau	z2u4	160.169	-764.007	24.326	103	Valkurm Dunes	z2v3	760.069	409.269	-9.949	lsb-zonelines	untested	
+846541434	102	La Theine Plateau	z2u2	801.831	-37.618	24.326	104	Jugner Forest	z2w1	-583.857	-441.110	-9.344	lsb-zonelines	untested	
+913650298	102	La Theine Plateau	z2u6	-276.649	99.618	20.594	193	Ordelle's Caves	z5d1	-76.839	659.969	-1.696	lsb-zonelines	untested	
+947204730	102	La Theine Plateau	z2u8	-60.125	148.001	27.231	193	Ordelle's Caves	z5d3	179.906	596.605	30.349	lsb-zonelines	untested	
+1635070586	102	La Theine Plateau	z2ua	59.001	-312.493	36.459	193	Ordelle's Caves	z5d5	-200.326	-219.847	-29.608	lsb-zonelines	untested	
+846606970	103	Valkurm Dunes	z2v2	758.323	412.168	-11.992	102	La Theine Plateau	z2u5	159.989	-760.190	28.406	lsb-zonelines	untested	
+813052538	103	Valkurm Dunes	z2v0	919.212	-440.003	-4.639	108	Konschtat Highlands	z305	-160.124	883.812	68.250	lsb-zonelines	untested	
+913715834	103	Valkurm Dunes	z2v6	-767.866	18.376	-11.956	212	Gustav Tunnel	z5w3	280.502	100.019	-51.820	lsb-zonelines	untested	
+880161402	103	Valkurm Dunes	z2v4	60.003	-154.537	-7.529	248	Selbina	z6w1	17.981	99.830	-16.806	lsb-zonelines	untested	
+947335802	104	Jugner Forest	z2w8	344.389	8.197	-6.769	2	Carpenters' Landing	z021	6.509	-819.333	-9.163	lsb-zonelines	untested	
+1635201658	104	Jugner Forest	z2wa	-538.898	340.548	-0.164	2	Carpenters' Landing	z023	-419.796	-554.553	-8.943	lsb-zonelines	untested	
+813118074	104	Jugner Forest	z2w0	-599.998	-440.077	-16.683	102	La Theine Plateau	z2u3	795.118	-39.978	28.221	lsb-zonelines	untested	
+846672506	104	Jugner Forest	z2w2	591.936	560.095	-15.294	105	Batallia Downs	z2x1	-439.393	-239.958	-11.765	lsb-zonelines	untested	
+913781370	104	Jugner Forest	z2w6	-240.440	-597.493	-16.683	149	Davoi	z451	218.468	-3.871	-2.302	lsb-zonelines	untested	
+880226938	104	Jugner Forest	z2w4	-340.908	465.750	-8.244	190	King Ranperre's Tomb	z5a5	242.012	340.059	5.305	lsb-zonelines	untested	
+813183610	105	Batallia Downs	z2x0	-444.042	-240.077	-16.166	104	Jugner Forest	z2w3	584.034	558.296	-8.476	lsb-zonelines	untested	
+846738042	105	Batallia Downs	z2x2	479.955	-363.913	-0.786	110	Rolanberry Fields	z323	-39.230	635.328	21.178	lsb-zonelines	untested	
+913846906	105	Batallia Downs	z2x6	-501.560	508.768	-40.541	111	Beaucedine Glacier	z335	17.331	-654.230	-2.813	lsb-zonelines	untested	
+947401338	105	Batallia Downs	z2x8	-467.273	332.724	-23.040	195	The Eldieme Necropolis	z5f3	-438.878	540.004	-26.091	lsb-zonelines	untested	
+1635267194	105	Batallia Downs	z2xa	-212.725	132.695	-7.424	195	The Eldieme Necropolis	z5f5	-160.776	259.998	-34.077	lsb-zonelines	untested	
+1668821626	105	Batallia Downs	z2xc	52.695	132.701	0.348	195	The Eldieme Necropolis	z5f7	339.992	321.016	-50.075	lsb-zonelines	untested	
+1702376058	105	Batallia Downs	z2xe	-135.321	-15.526	-7.435	195	The Eldieme Necropolis	z5f9	59.989	160.973	-34.062	lsb-zonelines	untested	
+1735930490	105	Batallia Downs	z2xg	-224.545	-64.537	-23.550	195	The Eldieme Necropolis	z5fb	-300.010	119.191	-26.100	lsb-zonelines	untested	
+1769484922	105	Batallia Downs	z2xi	132.648	-372.663	8.566	195	The Eldieme Necropolis	z5fd	420.035	-119.510	-58.114	lsb-zonelines	untested	
+1803039354	105	Batallia Downs	z2xk	162.950	-605.297	21.998	195	The Eldieme Necropolis	z5ff	439.955	-300.015	-49.607	lsb-zonelines	untested	
+1836593786	105	Batallia Downs	z2xm	-695.363	175.332	-15.756	195	The Eldieme Necropolis	z5f1	-558.931	99.999	-18.096	lsb-zonelines	untested	
+880292474	105	Batallia Downs	z2x4	491.918	-159.982	1.171	244	Upper Jeuno	z6s1	-104.576	187.365	-2.286	lsb-zonelines	untested	
+1668887162	106	North Gustaberg	z2yc	580.986	695.899	-17.809	11	Oldton Movalpolos	z0b1	-322.031	-259.946	6.251	lsb-zonelines	untested	
+1702441594	106	North Gustaberg	z2ye	461.255	736.063	-8.139	11	Oldton Movalpolos	z0b3	-304.061	-99.272	-8.651	lsb-zonelines	untested	
+846803578	106	North Gustaberg	z2y2	0.735	-79.065	-5.555	107	South Gustaberg	z2z5	0.840	76.838	-5.027	lsb-zonelines	untested	
+880358010	106	North Gustaberg	z2y4	-440.639	-276.308	33.094	107	South Gustaberg	z2z7	-440.502	-121.753	35.486	lsb-zonelines	untested	
+913912442	106	North Gustaberg	z2y6	-518.828	592.074	33.034	108	Konschtat Highlands	z301	101.543	-607.531	-75.453	lsb-zonelines	untested	
+947466874	106	North Gustaberg	z2y8	497.899	1174.924	-37.517	143	Palborough Mines	z3z1	4.923	59.551	-2.383	lsb-zonelines	untested	
+1635332730	106	North Gustaberg	z2ya	-697.012	311.829	92.175	191	Dangruf Wadi	z5b3	2.871	619.342	-2.986	lsb-zonelines	untested	
+813249146	106	North Gustaberg	z2y0	660.046	302.725	-3.085	236	Port Bastok	z6k1	142.002	-2.008	4.969	lsb-zonelines	untested	
+880423546	107	South Gustaberg	z2z4	0.877	80.156	-6.763	106	North Gustaberg	z2y3	0.020	-75.405	-4.409	lsb-zonelines	untested	
+913977978	107	South Gustaberg	z2z6	-440.465	-118.436	33.268	106	North Gustaberg	z2y5	-440.792	-272.901	35.531	lsb-zonelines	untested	
+947532410	107	South Gustaberg	z2z8	-605.340	-520.223	33.826	191	Dangruf Wadi	z5b1	-4.025	0.016	-4.449	lsb-zonelines	untested	
+813314682	107	South Gustaberg	z2z0	580.030	-301.760	-3.225	234	Bastok Mines	z6i1	-16.039	-132.804	-4.217	lsb-zonelines	untested	
+846869114	107	South Gustaberg	z2z2	260.000	-180.000	-3.225	235	Bastok Markets	z6j5	-363.536	-183.525	-12.108	lsb-zonelines	untested	
+875574138	108	Konschtat Highlands	z304	-160.469	887.731	64.883	103	Valkurm Dunes	z2v1	919.989	-436.816	-2.101	lsb-zonelines	untested	
+808465274	108	Konschtat Highlands	z300	101.199	-611.982	-77.595	106	North Gustaberg	z2y7	-518.867	588.640	35.538	lsb-zonelines	untested	
+842019706	108	Konschtat Highlands	z302	520.100	752.858	26.451	109	Pashhow Marshlands	z311	-543.423	-647.550	22.197	lsb-zonelines	untested	
+909128570	108	Konschtat Highlands	z306	707.646	217.545	16.174	196	Gusgen Mines	z5g1	45.982	-340.094	-69.651	lsb-zonelines	untested	
+808530810	109	Pashhow Marshlands	z310	-543.870	-651.966	20.719	108	Konschtat Highlands	z303	521.922	747.850	28.361	lsb-zonelines	untested	
+842085242	109	Pashhow Marshlands	z312	551.257	697.035	20.719	110	Rolanberry Fields	z321	-117.506	-920.604	-3.282	lsb-zonelines	untested	
+875639674	109	Pashhow Marshlands	z314	582.492	-377.871	21.080	147	Beadeaux	z431	-297.109	96.002	0.008	lsb-zonelines	untested	
+842150778	110	Rolanberry Fields	z322	-38.664	640.092	14.566	105	Batallia Downs	z2x3	479.744	-359.840	3.338	lsb-zonelines	untested	
+808596346	110	Rolanberry Fields	z320	-124.192	-920.091	-7.558	109	Pashhow Marshlands	z313	547.841	696.323	23.192	lsb-zonelines	untested	
+875705210	110	Rolanberry Fields	z324	376.860	480.032	16.399	120	Sauromugue Champaign	z3c3	-475.679	201.675	-3.228	lsb-zonelines	untested	
+942814074	110	Rolanberry Fields	z328	-381.995	-791.740	-32.113	197	Crawlers' Nest	z5h1	380.617	4.581	-34.610	lsb-zonelines	untested	
+1630679930	110	Rolanberry Fields	z32a	-792.229	-502.043	-40.476	197	Crawlers' Nest	z5h3	84.741	379.574	-2.471	lsb-zonelines	untested	
+909259642	110	Rolanberry Fields	z326	340.051	613.388	17.423	245	Lower Jeuno	z6t1	-121.659	-198.247	-2.053	lsb-zonelines	untested	
+942879610	111	Beaucedine Glacier	z338	238.826	-20.012	5.207	9	Pso'Xja	z091	402.473	-19.984	-10.330	lsb-zonelines	untested	
+1630745466	111	Beaucedine Glacier	z33a	60.002	-361.118	5.568	9	Pso'Xja	z093	220.011	-277.490	-10.344	lsb-zonelines	untested	
+1664299898	111	Beaucedine Glacier	z33c	100.005	161.199	-14.568	9	Pso'Xja	z095	179.977	237.494	-10.340	lsb-zonelines	untested	
+1697854330	111	Beaucedine Glacier	z33e	-201.163	-219.982	-34.923	9	Pso'Xja	z097	-237.472	-259.995	5.695	lsb-zonelines	untested	
+1731408762	111	Beaucedine Glacier	z33g	-19.975	-38.825	-55.085	9	Pso'Xja	z099	-179.986	-82.495	-10.417	lsb-zonelines	untested	
+1764963194	111	Beaucedine Glacier	z33i	-339.952	161.198	-95.082	9	Pso'Xja	z09b	-299.995	197.504	-10.321	lsb-zonelines	untested	
+875770746	111	Beaucedine Glacier	z334	18.084	-658.120	-4.298	105	Batallia Downs	z2x7	-500.451	504.894	-39.710	lsb-zonelines	untested	
+842216314	111	Beaucedine Glacier	z332	-251.957	260.655	-86.893	112	Xarcabard	z341	596.626	-259.979	-2.495	lsb-zonelines	untested	
+808661882	111	Beaucedine Glacier	z330	-542.044	-378.674	-44.593	166	Ranguemont Pass	z4m3	302.778	257.759	-68.131	lsb-zonelines	untested	
+909325178	111	Beaucedine Glacier	z336	280.020	571.937	15.917	204	Fei'Yin	z5o1	-180.003	-196.945	-25.671	lsb-zonelines	untested	
+875836282	112	Xarcabard	z344	-131.779	139.017	-24.316	5	Uleguerand Range	z051	-300.004	-603.122	-44.225	lsb-zonelines	untested	
+808727418	112	Xarcabard	z340	600.017	-260.094	-6.517	111	Beaucedine Glacier	z333	-247.911	260.207	-82.165	lsb-zonelines	untested	
+842281850	112	Xarcabard	z342	-437.021	20.018	-52.941	161	Castle Zvahl Baileys	z4h1	412.020	-19.964	-13.611	lsb-zonelines	untested	
+842347386	113	Cape Teriggan	z352	239.925	-180.056	-3.197	128	Valley of Sorrows	z3k3	45.250	-140.562	-2.115	lsb-zonelines	untested	
+875901818	113	Cape Teriggan	z354	319.969	-59.997	-2.942	128	Valley of Sorrows	z3k1	-231.231	-19.154	-2.672	lsb-zonelines	untested	
+808792954	113	Cape Teriggan	z350	-218.710	-328.023	-3.046	174	Kuftal Tunnel	z4u3	20.370	275.782	-21.104	lsb-zonelines	untested	
+943010682	113	Cape Teriggan	z358	-290.939	540.090	-12.670	201	Cloister of Gales	z5l1	-399.541	-420.000	-1.697	lsb-zonelines	untested	
+909456250	113	Cape Teriggan	z356	260.023	440.024	4.918	212	Gustav Tunnel	z5w1	-260.013	-276.352	-21.802	lsb-zonelines	untested	
+842412922	114	Eastern Altepa Desert	z362	260.282	323.975	5.016	125	Western Altepa Desert	z3h1	379.256	-7.993	6.954	lsb-zonelines	untested	
+875967354	114	Eastern Altepa Desert	z364	-325.066	-99.662	25.163	125	Western Altepa Desert	z3h7	-118.837	-500.499	-2.646	lsb-zonelines	untested	
+808858490	114	Eastern Altepa Desert	z360	499.979	-79.972	4.509	173	Korroloka Tunnel	z4t3	-500.004	0.358	-21.824	lsb-zonelines	untested	
+909521786	114	Eastern Altepa Desert	z366	420.063	194.874	6.398	208	Quicksand Caves	z5s1	940.000	-357.759	-17.591	lsb-zonelines	untested	
+943076218	114	Eastern Altepa Desert	z368	20.049	-325.004	14.297	208	Quicksand Caves	z5s3	700.001	-688.183	-25.793	lsb-zonelines	untested	
+1630942074	114	Eastern Altepa Desert	z36a	129.980	-20.014	6.192	208	Quicksand Caves	z5s9	618.389	-380.008	-9.800	lsb-zonelines	untested	
+1664496506	114	Eastern Altepa Desert	z36c	85.052	-99.867	6.504	209	Cloister of Tremors	z5t3	-636.001	-500.023	-16.563	lsb-zonelines	untested	
+876032890	115	West Sarutabaruta	z374	504.436	133.854	-13.689	116	East Sarutabaruta	z383	-341.494	106.469	-12.089	lsb-zonelines	untested	
+909587322	115	West Sarutabaruta	z376	425.197	693.491	-29.483	116	East Sarutabaruta	z385	-422.940	601.463	-28.935	lsb-zonelines	untested	
+943141754	115	West Sarutabaruta	z378	-374.546	61.091	-25.351	145	Giddeus	z411	-100.050	406.818	-2.664	lsb-zonelines	untested	
+1731670906	115	West Sarutabaruta	z37g	-228.613	-186.111	-10.402	146	Balga's Dais	z423	-259.648	-358.869	113.723	lsb-zonelines	untested	
+1698116474	115	West Sarutabaruta	z37e	221.245	39.306	-0.634	192	Inner Horutoto Ruins	z5cb	-200.937	59.994	-11.573	lsb-zonelines	untested	
+1631007610	115	West Sarutabaruta	z37a	-279.160	660.050	-12.112	194	Outer Horutoto Ruins	z5e1	-316.779	860.009	-9.680	lsb-zonelines	untested	
+1664562042	115	West Sarutabaruta	z37c	-340.006	-399.521	8.097	194	Outer Horutoto Ruins	z5e9	-579.995	-636.951	-9.667	lsb-zonelines	untested	
+808924026	115	West Sarutabaruta	z370	320.010	-48.071	-8.222	238	Windurst Waters	z6m1	-39.996	244.035	-7.640	lsb-zonelines	untested	
+842478458	115	West Sarutabaruta	z372	169.197	-320.032	-3.751	240	Port Windurst	z6o1	-244.532	199.974	-10.765	lsb-zonelines	untested	
+842543994	116	East Sarutabaruta	z382	-343.926	106.455	-13.696	115	West Sarutabaruta	z375	501.209	134.432	-12.111	lsb-zonelines	untested	
+876098426	116	East Sarutabaruta	z384	-425.512	600.890	-30.692	115	West Sarutabaruta	z377	421.970	694.068	-28.059	lsb-zonelines	untested	
+909652858	116	East Sarutabaruta	z386	306.101	664.733	-37.753	117	Tahrongi Canyon	z391	-65.655	-737.096	44.371	lsb-zonelines	untested	
+1631073146	116	East Sarutabaruta	z38a	399.294	99.968	-8.287	192	Inner Horutoto Ruins	z5c5	437.101	180.014	-9.602	lsb-zonelines	untested	
+943207290	116	East Sarutabaruta	z388	-60.020	759.397	-32.344	194	Outer Horutoto Ruins	z5e3	419.991	716.991	-9.637	lsb-zonelines	untested	
+1664627578	116	East Sarutabaruta	z38c	259.996	-479.060	-12.117	194	Outer Horutoto Ruins	z5e7	580.018	-637.011	-25.626	lsb-zonelines	untested	
+808989562	116	East Sarutabaruta	z380	-128.070	-520.014	-7.903	241	Windurst Woods	z6p1	124.043	-39.992	-7.704	lsb-zonelines	untested	
+809055098	117	Tahrongi Canyon	z390	-64.818	-740.870	42.560	116	East Sarutabaruta	z387	305.377	660.435	-36.092	lsb-zonelines	untested	
+909718394	117	Tahrongi Canyon	z396	446.613	-40.255	-6.385	118	Buburimu Peninsula	z3a1	-620.614	159.343	-46.470	lsb-zonelines	untested	
+842609530	117	Tahrongi Canyon	z392	-238.244	703.991	48.730	119	Meriphataud Mountains	z3b1	-121.850	-616.268	-30.722	lsb-zonelines	untested	
+876163962	117	Tahrongi Canyon	z394	485.901	514.729	43.001	198	Maze of Shakhrami	z5i1	-362.446	-179.992	-12.747	lsb-zonelines	untested	
+945894266	118	Buburimu Peninsula	z3a8	-279.987	-324.019	14.891	4	Bibiki Bay	z041	669.917	911.655	-23.138	lsb-zonelines	untested	
+811676538	118	Buburimu Peninsula	z3a0	-625.802	159.848	-50.081	117	Tahrongi Canyon	z397	442.781	-40.144	-1.641	lsb-zonelines	untested	
+878785402	118	Buburimu Peninsula	z3a4	-360.092	315.477	-45.410	198	Maze of Shakhrami	z5i3	474.629	-259.091	-31.203	lsb-zonelines	untested	
+912339834	118	Buburimu Peninsula	z3a6	444.135	201.022	15.322	213	Labyrinth of Onzozo	z5x1	-58.808	-286.654	-21.364	lsb-zonelines	untested	
+845230970	118	Buburimu Peninsula	z3a2	187.797	-227.499	-6.095	249	Mhaura	z6x1	0.003	117.971	-6.252	lsb-zonelines	untested	
+811742074	119	Meriphataud Mountains	z3b0	-119.897	-620.103	-36.606	117	Tahrongi Canyon	z393	-239.016	699.986	49.663	lsb-zonelines	untested	
+845296506	119	Meriphataud Mountains	z3b2	-454.593	661.763	23.968	120	Sauromugue Champaign	z3c1	520.391	-502.917	-15.885	lsb-zonelines	untested	
+912405370	119	Meriphataud Mountains	z3b6	774.883	621.556	-23.719	121	The Sanctuary of Zi'Tah	z3d1	-459.974	-480.899	1.075	lsb-zonelines	untested	
+878850938	119	Meriphataud Mountains	z3b4	756.268	-40.040	-35.643	151	Castle Oztroja	z471	-239.447	-19.980	-1.813	lsb-zonelines	untested	
+845362042	120	Sauromugue Champaign	z3c2	-480.019	200.836	-9.175	110	Rolanberry Fields	z325	372.582	475.631	19.363	lsb-zonelines	untested	
+811807610	120	Sauromugue Champaign	z3c0	519.887	-507.899	-21.817	119	Meriphataud Mountains	z3b3	-454.135	657.790	28.409	lsb-zonelines	untested	
+912470906	120	Sauromugue Champaign	z3c6	-104.001	-427.826	-27.307	200	Garlaige Citadel	z5k1	-380.035	398.032	-13.548	lsb-zonelines	untested	
+946025338	120	Sauromugue Champaign	z3c8	263.991	-390.048	-3.402	200	Garlaige Citadel	z5k3	19.991	438.008	-19.566	lsb-zonelines	untested	
+878916474	120	Sauromugue Champaign	z3c4	-579.985	399.839	-3.881	246	Port Jeuno	z6u1	52.497	-0.004	-1.579	lsb-zonelines	untested	
+811873146	121	The Sanctuary of Zi'Tah	z3d0	-459.975	-483.827	-0.849	119	Meriphataud Mountains	z3b7	772.487	612.472	-19.504	lsb-zonelines	untested	
+946090874	121	The Sanctuary of Zi'Tah	z3d8	-240.008	647.439	-3.052	122	Ro'Maeve	z3e1	-0.012	-146.430	-9.889	lsb-zonelines	untested	
+845427578	121	The Sanctuary of Zi'Tah	z3d2	543.198	-581.175	2.706	153	The Boyahda Tree	z491	397.158	-59.985	3.590	lsb-zonelines	untested	
+878982010	121	The Sanctuary of Zi'Tah	z3d4	378.574	-496.548	2.738	153	The Boyahda Tree	z493	338.298	75.195	-5.135	lsb-zonelines	untested	
+912536442	121	The Sanctuary of Zi'Tah	z3d6	177.189	-181.773	2.677	154	Dragon's Aery	z4a3	118.378	140.068	-11.935	lsb-zonelines	untested	
+811938682	122	Ro'Maeve	z3e0	-0.001	-150.120	-11.035	121	The Sanctuary of Zi'Tah	z3d9	-238.888	642.089	-2.225	lsb-zonelines	untested	
+845493114	122	Ro'Maeve	z3e2	0.010	126.633	-35.107	251	Hall of the Gods	z6z1	-0.011	-176.133	-1.848	lsb-zonelines	untested	
+879113082	123	Yuhtunga Jungle	z3f4	120.004	99.994	4.267	124	Yhoator Jungle	z3g1	-357.024	139.422	6.386	lsb-zonelines	untested	
+912667514	123	Yuhtunga Jungle	z3f6	119.984	19.983	4.267	124	Yhoator Jungle	z3g3	-476.853	59.442	6.503	lsb-zonelines	untested	
+946221946	123	Yuhtunga Jungle	z3f8	119.993	-299.975	4.267	124	Yhoator Jungle	z3g5	-586.840	-263.946	6.758	lsb-zonelines	untested	
+1634087802	123	Yuhtunga Jungle	z3fa	111.600	-457.326	4.267	124	Yhoator Jungle	z3g7	-476.878	-500.774	6.665	lsb-zonelines	untested	
+845558650	123	Yuhtunga Jungle	z3f2	-640.020	-419.949	12.240	176	Sea Serpent Grotto	z4w1	228.391	335.129	-28.160	lsb-zonelines	untested	
+1667642234	123	Yuhtunga Jungle	z3fc	420.025	480.034	16.096	205	Ifrit's Cauldron	z5p7	-418.664	231.701	28.916	lsb-zonelines	untested	
+812004218	123	Yuhtunga Jungle	z3f0	-241.934	531.924	-2.136	250	Kazham	z6y1	-51.997	-106.254	-11.656	lsb-zonelines	untested	
+812069754	124	Yhoator Jungle	z3g0	-360.018	140.012	4.000	123	Yuhtunga Jungle	z3f5	116.825	100.000	6.613	lsb-zonelines	untested	
+845624186	124	Yhoator Jungle	z3g2	-480.012	59.973	4.222	123	Yuhtunga Jungle	z3f7	116.805	19.989	6.613	lsb-zonelines	untested	
+879178618	124	Yhoator Jungle	z3g4	-589.975	-263.321	4.407	123	Yuhtunga Jungle	z3f9	116.813	-299.969	6.428	lsb-zonelines	untested	
+912733050	124	Yhoator Jungle	z3g6	-479.986	-499.997	4.279	123	Yuhtunga Jungle	z3fb	108.189	-456.889	6.375	lsb-zonelines	untested	
+1667707770	124	Yhoator Jungle	z3gc	299.955	-627.151	-6.708	159	Temple of Uggalepih	z4f1	179.986	41.971	-9.694	lsb-zonelines	untested	
+1701262202	124	Yhoator Jungle	z3ge	65.003	-507.206	-12.874	159	Temple of Uggalepih	z4f3	59.996	81.988	-9.598	lsb-zonelines	untested	
+1734816634	124	Yhoator Jungle	z3gg	7.971	-507.240	-12.884	159	Temple of Uggalepih	z4f5	-59.956	81.957	-9.725	lsb-zonelines	untested	
+1768371066	124	Yhoator Jungle	z3gi	347.445	-225.017	-12.797	159	Temple of Uggalepih	z4f9	238.951	179.998	-9.730	lsb-zonelines	untested	
+1801925498	124	Yhoator Jungle	z3gk	347.382	-168.008	-12.750	159	Temple of Uggalepih	z4f7	198.942	300.020	-17.706	lsb-zonelines	untested	
+1835479930	124	Yhoator Jungle	z3gm	380.022	80.029	4.321	160	Den of Rancor	z4gb	260.019	319.871	-15.728	lsb-zonelines	untested	
+946287482	124	Yhoator Jungle	z3g8	-102.098	258.741	-2.930	205	Ifrit's Cauldron	z5p3	100.285	-320.749	-1.768	lsb-zonelines	untested	
+1634153338	124	Yhoator Jungle	z3ga	105.101	345.912	-3.384	205	Ifrit's Cauldron	z5p1	299.938	-81.802	14.160	lsb-zonelines	untested	
+812135290	125	Western Altepa Desert	z3h0	378.677	-12.103	7.081	114	Eastern Altepa Desert	z363	260.090	320.454	6.013	lsb-zonelines	untested	
+912798586	125	Western Altepa Desert	z3h6	-114.443	-500.360	-2.575	114	Eastern Altepa Desert	z365	-320.016	-100.021	25.995	lsb-zonelines	untested	
+845689722	125	Western Altepa Desert	z3h2	680.278	-100.201	12.371	173	Korroloka Tunnel	z4t5	-519.361	340.020	-31.872	lsb-zonelines	untested	
+946353018	125	Western Altepa Desert	z3h8	-19.832	443.826	12.931	174	Kuftal Tunnel	z4u1	-20.008	-242.030	-22.161	lsb-zonelines	untested	
+1634218874	125	Western Altepa Desert	z3ha	179.942	-285.087	14.684	208	Quicksand Caves	z5s5	179.993	-147.950	-9.754	lsb-zonelines	untested	
+1667773306	125	Western Altepa Desert	z3hc	-739.979	-765.012	-13.356	208	Quicksand Caves	z5s7	-740.014	-521.835	-17.602	lsb-zonelines	untested	
+1701327738	125	Western Altepa Desert	z3he	-280.009	299.985	14.345	208	Quicksand Caves	z5sx	-381.571	859.998	-1.774	lsb-zonelines	untested	
+1734882170	125	Western Altepa Desert	z3hg	-138.758	-328.026	8.079	208	Quicksand Caves	z5sb	419.981	-879.744	-8.635	lsb-zonelines	untested	
+1768436602	125	Western Altepa Desert	z3hi	-329.071	-221.287	8.361	208	Quicksand Caves	z5sd	-290.525	-141.257	-8.762	lsb-zonelines	untested	
+1801991034	125	Western Altepa Desert	z3hk	223.952	12.711	14.189	208	Quicksand Caves	z5sf	327.608	60.391	-8.805	lsb-zonelines	untested	
+1835545466	125	Western Altepa Desert	z3hm	-19.983	204.964	22.144	208	Quicksand Caves	z5sh	-59.994	263.474	-17.649	lsb-zonelines	untested	
+1869099898	125	Western Altepa Desert	z3ho	-848.505	-541.019	7.985	208	Quicksand Caves	z5sj	-382.233	-296.316	-0.653	lsb-zonelines	untested	
+1902654330	125	Western Altepa Desert	z3hq	-888.021	-421.232	7.199	208	Quicksand Caves	z5sl	-811.328	-258.488	-0.758	lsb-zonelines	untested	
+1936208762	125	Western Altepa Desert	z3hs	-375.969	186.971	14.526	208	Quicksand Caves	z5sn	-583.626	743.580	-0.883	lsb-zonelines	untested	
+1969763194	125	Western Altepa Desert	z3hu	-492.829	97.924	13.822	208	Quicksand Caves	z5sp	-341.118	484.062	-1.337	lsb-zonelines	untested	
+879244154	125	Western Altepa Desert	z3h4	420.284	363.912	4.911	247	Rabao	z6v1	-20.052	-122.408	6.074	lsb-zonelines	untested	
+845755258	126	Qufim Island	z3i2	-642.015	459.993	13.918	127	Behemoth's Dominion	z3j1	358.134	-60.001	24.806	lsb-zonelines	untested	
+879309690	126	Qufim Island	z3i4	-289.882	320.036	-26.699	184	Lower Delkfutt's Tower	z541	460.022	-103.442	-1.770	lsb-zonelines	untested	
+812200826	126	Qufim Island	z3i0	140.004	-480.004	5.979	246	Port Jeuno	z6u5	-158.194	97.573	10.315	lsb-zonelines	untested	
+812266362	127	Behemoth's Dominion	z3j0	361.024	-60.001	22.103	126	Qufim Island	z3i3	-638.714	459.966	16.865	lsb-zonelines	untested	
+812331898	128	Valley of Sorrows	z3k0	-239.077	-19.953	-3.098	113	Cape Teriggan	z355	315.644	-60.633	-1.517	lsb-zonelines	untested	
+845886330	128	Valley of Sorrows	z3k2	39.951	-140.068	-3.102	113	Cape Teriggan	z353	230.879	-180.868	-2.668	lsb-zonelines	untested	
+913126266	130	Ru'Aun Gardens	z3m6	-91.502	-433.740	-26.530	177	Ve'Lugannon Palace	z4x1	-100.010	-399.468	-25.752	lsb-zonelines	untested	
+946680698	130	Ru'Aun Gardens	z3m8	91.486	-433.753	-26.530	177	Ve'Lugannon Palace	z4x3	99.981	-399.453	-25.752	lsb-zonelines	untested	
+1634546554	130	Ru'Aun Gardens	z3ma	359.114	-242.838	-26.530	177	Ve'Lugannon Palace	z4x5	359.501	-260.017	-25.752	lsb-zonelines	untested	
+1701655418	130	Ru'Aun Gardens	z3me	433.233	-14.592	-26.718	177	Ve'Lugannon Palace	z4x7	399.460	19.983	-25.752	lsb-zonelines	untested	
+1735209850	130	Ru'Aun Gardens	z3mg	341.805	266.383	-26.741	177	Ve'Lugannon Palace	z4x9	319.465	419.983	-25.752	lsb-zonelines	untested	
+1802318714	130	Ru'Aun Gardens	z3mk	147.751	407.505	-26.728	177	Ve'Lugannon Palace	z4xb	139.982	399.486	-25.752	lsb-zonelines	untested	
+1835873146	130	Ru'Aun Gardens	z3mm	-147.737	407.471	-26.762	177	Ve'Lugannon Palace	z4xd	-140.018	399.461	-25.752	lsb-zonelines	untested	
+1902982010	130	Ru'Aun Gardens	z3mq	-341.805	266.353	-26.762	177	Ve'Lugannon Palace	z4xf	-320.485	419.998	-25.752	lsb-zonelines	untested	
+1936536442	130	Ru'Aun Gardens	z3ms	-433.420	-14.597	-26.762	177	Ve'Lugannon Palace	z4xh	-400.505	19.998	-25.752	lsb-zonelines	untested	
+2003645306	130	Ru'Aun Gardens	z3mw	-358.998	-242.817	-26.762	177	Ve'Lugannon Palace	z4xj	-360.460	-260.002	-25.752	lsb-zonelines	untested	
+812462970	130	Ru'Aun Gardens	z3m0	0.001	-106.589	-50.351	178	The Shrine of Ru'Avitau	z4y1	-40.005	-232.000	-3.398	lsb-zonelines	untested	
+846017402	130	Ru'Aun Gardens	z3m2	-94.809	-145.489	-34.736	178	The Shrine of Ru'Avitau	z4y3	-119.993	-192.009	-19.360	lsb-zonelines	untested	
+879571834	130	Ru'Aun Gardens	z3m4	94.793	-145.478	-34.736	178	The Shrine of Ru'Avitau	z4y5	119.987	-191.989	-19.344	lsb-zonelines	untested	
+1668100986	130	Ru'Aun Gardens	z3mc	317.283	-103.073	-10.713	178	The Shrine of Ru'Avitau	z4y7	351.996	-160.002	-3.398	lsb-zonelines	untested	
+1768764282	130	Ru'Aun Gardens	z3mi	193.716	266.626	-10.700	178	The Shrine of Ru'Avitau	z4y9	239.998	352.002	-3.398	lsb-zonelines	untested	
+1869427578	130	Ru'Aun Gardens	z3mo	-195.491	269.073	-10.747	178	The Shrine of Ru'Avitau	z4yb	-240.003	352.003	-3.398	lsb-zonelines	untested	
+1970090874	130	Ru'Aun Gardens	z3mu	-316.315	-102.789	-10.756	178	The Shrine of Ru'Avitau	z4yd	-351.995	-159.991	-3.398	lsb-zonelines	untested	
+2037199738	130	Ru'Aun Gardens	z3my	334.888	-460.958	-45.956	180	La'Loff Amphitheater	z501	527.721	559.469	-41.082	lsb-zonelines	untested	
+812477562	130	Ru'Aun Gardens	zlm0	541.865	176.066	-45.956	180	La'Loff Amphitheater	z503	189.849	346.531	-176.455	lsb-zonelines	untested	
+846031994	130	Ru'Aun Gardens	zlm2	0.002	569.781	-45.956	180	La'Loff Amphitheater	z505	-605.070	436.136	-25.487	lsb-zonelines	untested	
+879586426	130	Ru'Aun Gardens	zlm4	-541.859	176.056	-45.956	180	La'Loff Amphitheater	z507	60.080	473.425	-227.125	lsb-zonelines	untested	
+913140858	130	Ru'Aun Gardens	zlm6	-334.886	-460.949	-45.956	180	La'Loff Amphitheater	z509	-236.692	413.546	-140.109	lsb-zonelines	untested	
+946695290	130	Ru'Aun Gardens	zlm8	-1.099	-641.502	-58.013	251	Hall of the Gods	z6z3	0.005	362.018	-1.640	lsb-zonelines	untested	
+812856186	136	Beaucedine Glacier [S]	z3s0	18.084	-658.120	-4.298	84	Batallia Downs [S]	z2c5	-500.451	504.894	-39.710	lsb-zonelines	untested	
+846410618	136	Beaucedine Glacier [S]	z3s2	-180.000	283.000	-86.893	137	Xarcabard [S]	z3t1	680.000	-300.000	-2.495	lsb-zonelines	untested	
+812921722	137	Xarcabard [S]	z3t0	683.275	-300.196	-6.517	136	Beaucedine Glacier [S]	z3s3	-180.000	280.000	-81.850	lsb-zonelines	untested	
+846476154	137	Xarcabard [S]	z3t2	-437.021	20.018	-52.941	138	Castle Zvahl Baileys [S]	z3u1	412.020	-19.964	-13.611	lsb-zonelines	untested	
+812987258	138	Castle Zvahl Baileys [S]	z3u0	414.951	-19.995	-16.608	137	Xarcabard [S]	z3t3	-414.000	20.000	-46.500	lsb-zonelines	untested	
+846541690	138	Castle Zvahl Baileys [S]	z3u2	-185.026	20.000	-39.497	155	Castle Zvahl Keep [S]	z4b1	62.014	-19.989	-1.907	lsb-zonelines	untested	
+813052794	139	Horlais Peak	z3v0	-540.003	-209.995	156.710	142	Yughott Grotto	z3y9	439.814	169.755	-42.481	lsb-zonelines	untested	
+846607226	139	Horlais Peak	z3v2	439.943	69.988	-43.222	142	Yughott Grotto	z3yb	437.235	68.564	-42.063	lsb-zonelines	untested	
+813118330	140	Ghelsba Outpost	z3w0	99.723	-45.669	-2.166	100	West Ronfaure	z2s9	-738.178	619.325	-67.173	lsb-zonelines	untested	
+880227194	140	Ghelsba Outpost	z3w4	130.046	181.572	-22.812	141	Fort Ghelsba	z3x1	-161.497	19.985	-21.977	lsb-zonelines	untested	
+846672762	140	Ghelsba Outpost	z3w2	-7.915	-60.877	-2.391	142	Yughott Grotto	z3y7	-255.961	-69.828	-2.711	lsb-zonelines	untested	
+813183866	141	Fort Ghelsba	z3x0	-172.091	16.925	-23.874	140	Ghelsba Outpost	z3w5	125.852	180.403	-22.097	lsb-zonelines	untested	
+846738298	141	Fort Ghelsba	z3x2	225.670	18.620	-87.001	142	Yughott Grotto	z3y1	276.235	149.944	-42.359	lsb-zonelines	untested	
+880292730	141	Fort Ghelsba	z3x4	232.903	101.886	-47.029	142	Yughott Grotto	z3y3	295.374	249.657	-26.691	lsb-zonelines	untested	
+913847162	141	Fort Ghelsba	z3x6	11.523	-108.084	-23.930	142	Yughott Grotto	z3y5	55.237	70.061	-14.923	lsb-zonelines	untested	
+947467130	142	Yughott Grotto	z3y8	443.240	169.684	-43.033	139	Horlais Peak	z3v1	-536.363	-210.819	157.713	lsb-zonelines	untested	
+1635332986	142	Yughott Grotto	z3ya	440.908	69.949	-43.149	139	Horlais Peak	z3v3	444.270	68.513	-42.210	lsb-zonelines	untested	
+913912698	142	Yughott Grotto	z3y6	-251.344	-69.672	-3.365	140	Ghelsba Outpost	z3w3	-2.049	-60.185	-2.202	lsb-zonelines	untested	
+813249402	142	Yughott Grotto	z3y0	273.019	150.416	-43.500	141	Fort Ghelsba	z3x3	219.949	19.489	-86.032	lsb-zonelines	untested	
+846803834	142	Yughott Grotto	z3y2	291.230	249.336	-27.265	141	Fort Ghelsba	z3x5	226.688	101.045	-46.417	lsb-zonelines	untested	
+880358266	142	Yughott Grotto	z3y4	50.504	70.595	-15.840	141	Fort Ghelsba	z3x7	6.587	-107.077	-22.088	lsb-zonelines	untested	
+813314938	143	Palborough Mines	z3z0	1.494	59.893	-3.051	106	North Gustaberg	z2y9	495.999	1172.910	-36.647	lsb-zonelines	untested	
+846869370	143	Palborough Mines	z3z2	117.365	-140.074	-43.612	144	Waughroon Shrine	z401	-361.434	-259.996	101.798	lsb-zonelines	untested	
+880423802	143	Palborough Mines	z3z4	180.841	-73.497	-42.417	144	Waughroon Shrine	z403	340.017	277.484	-118.107	lsb-zonelines	untested	
+808465530	144	Waughroon Shrine	z400	-364.006	-259.955	101.224	143	Palborough Mines	z3z3	114.483	-140.014	-41.944	lsb-zonelines	untested	
+842019962	144	Waughroon Shrine	z402	340.004	280.002	-118.806	143	Palborough Mines	z3z5	180.861	-70.971	-40.500	lsb-zonelines	untested	
+808531066	145	Giddeus	z410	-100.857	411.410	-4.534	115	West Sarutabaruta	z379	-374.008	63.289	-23.712	lsb-zonelines	untested	
+842085498	145	Giddeus	z412	-139.999	-300.329	-7.532	146	Balga's Dais	z421	317.842	380.143	-126.158	lsb-zonelines	untested	
+842151034	146	Balga's Dais	z422	-260.290	-363.578	111.152	115	West Sarutabaruta	z37h	-225.921	-185.284	-8.401	lsb-zonelines	untested	
+808596602	146	Balga's Dais	z420	321.741	379.976	-128.397	145	Giddeus	z413	-135.904	-300.668	-5.788	lsb-zonelines	untested	
+808662138	147	Beadeaux	z430	-300.088	96.044	-1.085	109	Pashhow Marshlands	z315	578.786	-376.731	23.416	lsb-zonelines	untested	
+842216570	147	Beadeaux	z432	384.501	19.617	36.717	148	Qulun Dome	z441	337.901	20.087	38.091	lsb-zonelines	untested	
+875771002	147	Beadeaux	z434	260.002	1.730	29.129	148	Qulun Dome	z443	259.988	42.943	38.363	lsb-zonelines	untested	
+909325434	147	Beadeaux	z436	-31.975	59.829	20.859	148	Qulun Dome	z445	2.887	59.957	22.372	lsb-zonelines	untested	
+808727674	148	Qulun Dome	z440	340.763	20.085	36.669	147	Beadeaux	z433	387.382	19.694	38.029	lsb-zonelines	untested	
+842282106	148	Qulun Dome	z442	260.018	40.049	36.672	147	Beadeaux	z435	259.988	-0.811	30.447	lsb-zonelines	untested	
+875836538	148	Qulun Dome	z444	-0.012	60.009	20.602	147	Beadeaux	z437	-34.844	59.775	22.357	lsb-zonelines	untested	
+808793210	149	Davoi	z450	219.470	0.038	-4.470	104	Jugner Forest	z2w7	-239.556	-591.281	-10.381	lsb-zonelines	untested	
+842347642	149	Davoi	z452	279.002	-18.078	2.534	150	Monastic Cavern	z461	261.354	23.124	-8.792	lsb-zonelines	untested	
+875902074	149	Davoi	z454	177.907	-241.380	2.807	150	Monastic Cavern	z463	203.232	-260.029	-17.416	lsb-zonelines	untested	
+909456506	149	Davoi	z456	-22.126	-82.941	3.042	150	Monastic Cavern	z465	-43.718	-101.104	-18.034	lsb-zonelines	untested	
+943010938	149	Davoi	z458	57.810	-362.412	3.393	150	Monastic Cavern	z467	37.269	-380.190	-17.565	lsb-zonelines	untested	
+1630876794	149	Davoi	z45a	93.208	-162.222	1.734	150	Monastic Cavern	z469	77.537	-180.037	-17.565	lsb-zonelines	untested	
+808858746	150	Monastic Cavern	z460	262.959	19.936	-10.803	149	Davoi	z453	282.292	-17.908	2.498	lsb-zonelines	untested	
+842413178	150	Monastic Cavern	z462	200.040	-260.230	-19.282	149	Davoi	z455	177.745	-238.573	2.918	lsb-zonelines	untested	
+875967610	150	Monastic Cavern	z464	-40.076	-100.113	-19.404	149	Davoi	z457	-22.086	-80.150	3.454	lsb-zonelines	untested	
+909522042	150	Monastic Cavern	z466	40.040	-380.068	-19.277	149	Davoi	z459	57.952	-359.422	3.204	lsb-zonelines	untested	
+943076474	150	Monastic Cavern	z468	79.993	-180.071	-19.133	149	Davoi	z45b	93.179	-158.973	2.233	lsb-zonelines	untested	
+808924282	151	Castle Oztroja	z470	-242.002	-20.019	-3.955	119	Meriphataud Mountains	z3b5	752.632	-40.035	-33.761	lsb-zonelines	untested	
+842478714	151	Castle Oztroja	z472	-165.505	-140.027	19.887	152	Altar Room	z481	-247.998	-100.008	12.609	lsb-zonelines	untested	
+876033146	151	Castle Oztroja	z474	-295.090	180.000	-4.001	152	Altar Room	z483	-288.028	180.054	-1.406	lsb-zonelines	untested	
+808989818	152	Altar Room	z480	-244.926	-100.000	10.383	151	Castle Oztroja	z473	-162.895	-139.923	22.136	lsb-zonelines	untested	
+842544250	152	Altar Room	z482	-285.039	180.032	-3.611	151	Castle Oztroja	z475	-292.009	179.994	-1.886	lsb-zonelines	untested	
+809055354	153	The Boyahda Tree	z490	393.999	-60.573	2.331	121	The Sanctuary of Zi'Tah	z3d3	539.901	-580.218	3.379	lsb-zonelines	untested	
+842609786	153	The Boyahda Tree	z492	337.280	71.739	-6.619	121	The Sanctuary of Zi'Tah	z3d5	380.081	-499.802	3.756	lsb-zonelines	untested	
+876164218	153	The Boyahda Tree	z494	-140.890	206.980	2.353	154	Dragon's Aery	z4a1	-60.006	-39.501	-2.915	lsb-zonelines	untested	
+909718650	153	The Boyahda Tree	z496	96.526	-221.490	-16.907	202	Cloister of Storms	z5m1	517.957	540.045	-18.013	lsb-zonelines	untested	
+943273082	153	The Boyahda Tree	z498	8.902	-338.835	5.360	202	Cloister of Storms	z5m3	-523.126	-500.019	6.808	lsb-zonelines	untested	
+845231226	154	Dragon's Aery	z4a2	121.480	139.987	-13.450	121	The Sanctuary of Zi'Tah	z3d7	179.953	-180.016	3.753	lsb-zonelines	untested	
+811676794	154	Dragon's Aery	z4a0	-60.006	-42.501	-4.748	153	The Boyahda Tree	z495	-140.008	202.715	3.787	lsb-zonelines	untested	
+811742330	155	Castle Zvahl Keep [S]	z4b0	64.947	-20.005	-4.505	138	Castle Zvahl Baileys [S]	z3u3	-181.969	19.995	-35.542	lsb-zonelines	untested	
+845296762	155	Castle Zvahl Keep [S]	z4b2	-559.607	59.959	-72.731	156	Throne Room [S]	z4c1	114.308	0.022	-7.639	lsb-zonelines	untested	
+811807866	156	Throne Room [S]	z4c0	117.118	0.007	-8.712	155	Castle Zvahl Keep [S]	z4b3	-555.996	59.989	-71.691	lsb-zonelines	untested	
+811938938	158	Upper Delkfutt's Tower	z4e0	-300.039	31.308	-107.256	158	Upper Delkfutt's Tower	z4e1	12.098	27.683	-105.408	lsb-zonelines	untested	
+845493370	158	Upper Delkfutt's Tower	z4e2	19.967	31.392	-105.775	158	Upper Delkfutt's Tower	z4e3	-291.555	27.636	-109.008	lsb-zonelines	untested	
+879047802	158	Upper Delkfutt's Tower	z4e4	19.976	31.373	-42.212	158	Upper Delkfutt's Tower	z4e5	251.863	27.592	-40.981	lsb-zonelines	untested	
+912602234	158	Upper Delkfutt's Tower	z4e6	260.008	31.337	-42.091	158	Upper Delkfutt's Tower	z4e7	27.719	28.094	-45.196	lsb-zonelines	untested	
+812004474	159	Temple of Uggalepih	z4f0	179.986	44.575	-10.897	124	Yhoator Jungle	z3gd	299.997	-622.998	-5.838	lsb-zonelines	untested	
+845558906	159	Temple of Uggalepih	z4f2	60.015	84.513	-10.929	124	Yhoator Jungle	z3gf	65.035	-503.018	-11.628	lsb-zonelines	untested	
+879113338	159	Temple of Uggalepih	z4f4	-59.978	84.547	-11.206	124	Yhoator Jungle	z3gh	8.004	-503.051	-11.638	lsb-zonelines	untested	
+912667770	159	Temple of Uggalepih	z4f6	195.937	300.014	-19.215	124	Yhoator Jungle	z3gl	343.003	-168.009	-11.650	lsb-zonelines	untested	
+946222202	159	Temple of Uggalepih	z4f8	235.933	179.988	-11.407	124	Yhoator Jungle	z3gj	342.997	-225.007	-11.682	lsb-zonelines	untested	
+1634088058	159	Temple of Uggalepih	z4fa	430.465	213.312	5.268	160	Den of Rancor	z4g1	460.003	236.893	-15.531	lsb-zonelines	untested	
+1667642490	159	Temple of Uggalepih	z4fc	9.384	13.077	5.085	160	Den of Rancor	z4g3	20.019	36.936	4.681	lsb-zonelines	untested	
+1701196922	159	Temple of Uggalepih	z4fe	-230.897	-106.535	5.026	160	Den of Rancor	z4g5	-219.972	-83.082	4.738	lsb-zonelines	untested	
+1734751354	159	Temple of Uggalepih	z4fg	-13.745	30.688	5.181	160	Den of Rancor	z4g7	-36.018	19.986	5.194	lsb-zonelines	untested	
+1768305786	159	Temple of Uggalepih	z4fi	-230.364	67.211	3.011	163	Sacrificial Chamber	z4j1	-363.970	-341.473	-13.233	lsb-zonelines	untested	
+1634153594	160	Den of Rancor	z4ga	259.965	323.041	-17.295	124	Yhoator Jungle	z3gn	380.798	83.074	6.340	lsb-zonelines	untested	
+812070010	160	Den of Rancor	z4g0	459.971	240.010	-17.212	159	Temple of Uggalepih	z4fb	432.013	216.472	5.353	lsb-zonelines	untested	
+845624442	160	Den of Rancor	z4g2	19.987	40.053	2.568	159	Temple of Uggalepih	z4fd	8.340	15.884	5.039	lsb-zonelines	untested	
+879178874	160	Den of Rancor	z4g4	-220.004	-79.965	2.818	159	Temple of Uggalepih	z4ff	-231.602	-103.515	5.049	lsb-zonelines	untested	
+912733306	160	Den of Rancor	z4g6	-40.012	20.044	2.798	159	Temple of Uggalepih	z4fh	-16.737	31.905	5.220	lsb-zonelines	untested	
+946287738	160	Den of Rancor	z4g8	-104.914	55.960	42.060	163	Sacrificial Chamber	z4j3	316.848	340.030	-2.182	lsb-zonelines	untested	
+1667708026	160	Den of Rancor	z4gc	200.047	-60.079	32.813	211	Cloister of Tides	z5v1	564.776	500.819	34.297	lsb-zonelines	untested	
+1701262458	160	Den of Rancor	z4ge	179.971	-160.013	13.098	211	Cloister of Tides	z5v3	-499.996	-440.788	14.222	lsb-zonelines	untested	
+812135546	161	Castle Zvahl Baileys	z4h0	414.951	-19.995	-16.608	112	Xarcabard	z343	-433.249	20.010	-48.742	lsb-zonelines	untested	
+845689978	161	Castle Zvahl Baileys	z4h2	-185.026	20.000	-39.497	162	Castle Zvahl Keep	z4i1	62.014	-19.989	-1.907	lsb-zonelines	untested	
+812201082	162	Castle Zvahl Keep	z4i0	64.947	-20.005	-4.505	161	Castle Zvahl Baileys	z4h3	-181.969	19.995	-35.542	lsb-zonelines	untested	
+845755514	162	Castle Zvahl Keep	z4i2	-559.607	59.959	-72.731	165	Throne Room	z4l1	114.308	0.022	-7.639	lsb-zonelines	untested	
+812266618	163	Sacrificial Chamber	z4j0	-367.745	-343.181	-15.839	159	Temple of Uggalepih	z4fj	-231.701	64.605	3.273	lsb-zonelines	untested	
+845821050	163	Sacrificial Chamber	z4j2	319.996	340.015	-3.150	160	Den of Rancor	z4g9	-100.848	55.405	43.910	lsb-zonelines	untested	
+812332154	164	Garlaige Citadel [S]	z4k0	-300.000	160.000	-15.506	98	Sauromugue Champaign [S]	z2q5	-104.000	-410.000	-25.360	lsb-zonelines	untested	
+845886586	164	Garlaige Citadel [S]	z4k2	100.000	200.000	-21.596	98	Sauromugue Champaign [S]	z2q7	264.000	-370.000	-1.360	lsb-zonelines	untested	
+812397690	165	Throne Room	z4l0	117.118	0.007	-8.712	162	Castle Zvahl Keep	z4i3	-555.996	59.989	-71.691	lsb-zonelines	untested	
+812463226	166	Ranguemont Pass	z4m0	-140.044	-324.570	0.000	101	East Ronfaure	z2tb	818.507	659.680	-66.774	lsb-zonelines	untested	
+846017658	166	Ranguemont Pass	z4m2	305.885	258.022	-70.470	111	Beaucedine Glacier	z331	-538.233	-377.391	-42.189	lsb-zonelines	untested	
+846083194	167	Bostaunieux Oubliette	z4n2	-379.996	-239.562	-11.723	100	West Ronfaure	z2sf	-712.746	18.408	-40.500	lsb-zonelines	untested	
+812528762	167	Bostaunieux Oubliette	z4n0	99.973	75.035	-27.768	233	Chateau d'Oraguille	z6h3	14.872	24.002	8.918	lsb-zonelines	untested	
+812594298	168	Chamber of Oracles	z4o0	-179.547	-42.006	-3.431	208	Quicksand Caves	z5st	-980.193	-282.863	14.913	lsb-zonelines	untested	
+846148730	168	Chamber of Oracles	z4o2	184.919	-100.041	-1.794	208	Quicksand Caves	z5sv	-900.334	-245.438	14.849	lsb-zonelines	untested	
+879768698	169	Toraimarai Canal	z4p4	-260.000	85.825	21.102	170	Full Moon Fountain	z4q1	-260.136	-325.702	2.090	lsb-zonelines	untested	
+913323130	169	Toraimarai Canal	z4p6	-323.996	260.004	8.864	170	Full Moon Fountain	z4q3	405.990	420.062	2.111	lsb-zonelines	untested	
+812659834	169	Toraimarai Canal	z4p0	-340.011	275.049	4.068	192	Inner Horutoto Ruins	z5cd	-259.996	242.859	6.399	lsb-zonelines	untested	
+846214266	169	Toraimarai Canal	z4p2	139.984	132.962	-3.771	239	Windurst Walls	z6n7	-16.436	255.546	-1.940	lsb-zonelines	untested	
+812725370	170	Full Moon Fountain	z4q0	-260.059	-329.073	0.719	169	Toraimarai Canal	z4p5	-259.980	81.887	21.794	lsb-zonelines	untested	
+846279802	170	Full Moon Fountain	z4q2	409.773	419.936	0.701	169	Toraimarai Canal	z4p7	-320.003	260.022	9.742	lsb-zonelines	untested	
+812790906	171	Crawlers' Nest [S]	z4r0	380.064	6.945	-35.332	91	Rolanberry Fields [S]	z2j7	-376.179	-776.159	-30.387	lsb-zonelines	untested	
+846345338	171	Crawlers' Nest [S]	z4r2	87.469	380.545	-3.590	91	Rolanberry Fields [S]	z2j9	-774.920	-494.912	-38.356	lsb-zonelines	untested	
+846410874	172	Zeruhn Mines	z4s2	-273.927	-20.256	12.872	173	Korroloka Tunnel	z4t1	459.967	160.627	-41.728	lsb-zonelines	untested	
+812856442	172	Zeruhn Mines	z4s0	23.039	3.851	-2.622	234	Bastok Mines	z6i5	-193.484	-21.772	-9.986	lsb-zonelines	untested	
+846476410	173	Korroloka Tunnel	z4t2	-500.000	4.001	-23.838	114	Eastern Altepa Desert	z361	499.839	-76.809	5.391	lsb-zonelines	untested	
+880030842	173	Korroloka Tunnel	z4t4	-523.020	340.048	-33.357	125	Western Altepa Desert	z3h3	676.280	-99.425	12.742	lsb-zonelines	untested	
+812921978	173	Korroloka Tunnel	z4t0	459.979	156.973	-42.936	172	Zeruhn Mines	z4s3	-270.707	-20.268	14.159	lsb-zonelines	untested	
+846541946	174	Kuftal Tunnel	z4u2	20.418	280.014	-23.369	113	Cape Teriggan	z351	-219.149	-324.096	-1.742	lsb-zonelines	untested	
+812987514	174	Kuftal Tunnel	z4u0	-20.034	-245.611	-23.995	125	Western Altepa Desert	z3h9	-19.901	440.058	13.607	lsb-zonelines	untested	
+813053050	175	The Eldieme Necropolis [S]	z4v0	420.008	-122.008	-60.092	84	Batallia Downs [S]	z2c7	176.010	-415.987	5.979	lsb-zonelines	untested	
+846607482	175	The Eldieme Necropolis [S]	z4v2	438.647	-299.991	-51.914	84	Batallia Downs [S]	z2c9	165.521	-603.006	22.218	lsb-zonelines	untested	
+880161914	175	The Eldieme Necropolis [S]	z4v4	340.011	324.996	-52.117	84	Batallia Downs [S]	z2cb	96.010	175.998	-2.021	lsb-zonelines	untested	
+913716346	175	The Eldieme Necropolis [S]	z4v6	60.012	164.979	-36.354	84	Batallia Downs [S]	z2cd	-91.992	28.006	-10.000	lsb-zonelines	untested	
+947270778	175	The Eldieme Necropolis [S]	z4v8	-165.031	260.003	-36.024	84	Batallia Downs [S]	z2cf	-256.002	176.001	-10.021	lsb-zonelines	untested	
+1635136634	175	The Eldieme Necropolis [S]	z4va	-300.006	115.014	-28.084	84	Batallia Downs [S]	z2ch	-267.996	-107.999	-26.000	lsb-zonelines	untested	
+1668691066	175	The Eldieme Necropolis [S]	z4vc	-434.959	540.002	-28.154	84	Batallia Downs [S]	z2cj	-424.004	376.000	-26.021	lsb-zonelines	untested	
+1702245498	175	The Eldieme Necropolis [S]	z4ve	-555.012	99.998	-20.914	84	Batallia Downs [S]	z2cl	-652.004	131.999	-18.000	lsb-zonelines	untested	
+813118586	176	Sea Serpent Grotto	z4w0	232.119	337.806	-30.290	123	Yuhtunga Jungle	z3f3	-636.328	-420.062	14.480	lsb-zonelines	untested	
+846673018	176	Sea Serpent Grotto	z4w2	-60.563	415.563	-4.396	252	Norg	z701	-19.238	-63.964	-2.163	lsb-zonelines	untested	
+813184122	177	Ve'Lugannon Palace	z4x0	-99.991	-396.020	-28.774	130	Ru'Aun Gardens	z3m7	-90.952	-431.084	-25.676	lsb-zonelines	untested	
+846738554	177	Ve'Lugannon Palace	z4x2	100.000	-396.005	-28.774	130	Ru'Aun Gardens	z3m9	90.945	-431.105	-25.686	lsb-zonelines	untested	
+880292986	177	Ve'Lugannon Palace	z4x4	356.044	-260.000	-28.774	130	Ru'Aun Gardens	z3mb	356.155	-240.876	-25.660	lsb-zonelines	untested	
+913847418	177	Ve'Lugannon Palace	z4x6	396.003	20.000	-28.774	130	Ru'Aun Gardens	z3mf	429.720	-14.436	-25.641	lsb-zonelines	untested	
+947401850	177	Ve'Lugannon Palace	z4x8	316.009	420.000	-28.774	130	Ru'Aun Gardens	z3mh	339.137	264.275	-25.660	lsb-zonelines	untested	
+1635267706	177	Ve'Lugannon Palace	z4xa	140.000	396.016	-28.774	130	Ru'Aun Gardens	z3ml	146.516	404.193	-25.660	lsb-zonelines	untested	
+1668822138	177	Ve'Lugannon Palace	z4xc	-140.000	395.992	-28.774	130	Ru'Aun Gardens	z3mn	-146.537	404.204	-25.660	lsb-zonelines	untested	
+1702376570	177	Ve'Lugannon Palace	z4xe	-315.995	420.000	-28.774	130	Ru'Aun Gardens	z3mr	-339.163	264.267	-25.660	lsb-zonelines	untested	
+1735931002	177	Ve'Lugannon Palace	z4xg	-396.015	20.000	-28.774	130	Ru'Aun Gardens	z3mt	-430.705	-14.479	-25.660	lsb-zonelines	untested	
+1769485434	177	Ve'Lugannon Palace	z4xi	-355.970	-260.000	-28.774	130	Ru'Aun Gardens	z3mx	-356.137	-240.902	-25.660	lsb-zonelines	untested	
+813249658	178	The Shrine of Ru'Avitau	z4y0	-40.000	-235.621	-4.452	130	Ru'Aun Gardens	z3m1	-0.003	-112.182	-46.609	lsb-zonelines	untested	
+846804090	178	The Shrine of Ru'Avitau	z4y2	-119.988	-195.630	-20.414	130	Ru'Aun Gardens	z3m3	-96.318	-147.817	-33.737	lsb-zonelines	untested	
+880358522	178	The Shrine of Ru'Avitau	z4y4	119.993	-195.610	-20.398	130	Ru'Aun Gardens	z3m5	96.326	-147.828	-33.663	lsb-zonelines	untested	
+913912954	178	The Shrine of Ru'Avitau	z4y6	355.705	-159.993	-4.452	130	Ru'Aun Gardens	z3md	320.798	-104.233	-9.770	lsb-zonelines	untested	
+947467386	178	The Shrine of Ru'Avitau	z4y8	239.985	355.654	-4.452	130	Ru'Aun Gardens	z3mj	195.928	269.686	-9.654	lsb-zonelines	untested	
+1635333242	178	The Shrine of Ru'Avitau	z4ya	-240.015	355.655	-4.452	130	Ru'Aun Gardens	z3mp	-197.707	272.111	-9.589	lsb-zonelines	untested	
+1668887674	178	The Shrine of Ru'Avitau	z4yc	-355.712	-160.000	-4.452	130	Ru'Aun Gardens	z3mv	-319.884	-103.948	-9.696	lsb-zonelines	untested	
+1702442106	178	The Shrine of Ru'Avitau	z4ye	-0.024	60.008	43.363	181	The Celestial Nexus	z511	-697.114	-32.351	-6.656	lsb-zonelines	untested	
+808465786	180	La'Loff Amphitheater	z500	525.982	561.904	-42.268	130	Ru'Aun Gardens	z3mz	333.017	-458.350	-44.896	lsb-zonelines	untested	
+842020218	180	La'Loff Amphitheater	z502	186.966	345.600	-177.520	130	Ru'Aun Gardens	zlm1	538.792	175.066	-44.896	lsb-zonelines	untested	
+875574650	180	La'Loff Amphitheater	z504	-605.074	433.148	-26.576	130	Ru'Aun Gardens	zlm3	-0.001	566.523	-44.896	lsb-zonelines	untested	
+909129082	180	La'Loff Amphitheater	z506	62.905	472.507	-228.241	130	Ru'Aun Gardens	zlm5	-538.786	175.059	-44.896	lsb-zonelines	untested	
+942683514	180	La'Loff Amphitheater	z508	-234.934	415.984	-141.199	130	Ru'Aun Gardens	zlm7	-332.991	-458.311	-44.896	lsb-zonelines	untested	
+808531322	181	The Celestial Nexus	z510	-700.982	-32.345	-9.674	178	The Shrine of Ru'Avitau	z4yf	-3.380	59.996	46.326	lsb-zonelines	untested	
+808727930	184	Lower Delkfutt's Tower	z540	459.993	-106.484	-4.880	126	Qufim Island	z3i5	-286.271	320.084	-21.619	lsb-zonelines	untested	
+811677050	190	King Ranperre's Tomb	z5a0	-130.011	260.750	-3.772	101	East Ronfaure	z2t7	200.015	-536.074	-3.187	lsb-zonelines	untested	
+845231482	190	King Ranperre's Tomb	z5a2	59.815	305.710	4.162	101	East Ronfaure	z2t9	660.078	-588.047	-21.883	lsb-zonelines	untested	
+878785914	190	King Ranperre's Tomb	z5a4	250.585	340.224	3.163	104	Jugner Forest	z2w5	-339.471	462.074	-6.782	lsb-zonelines	untested	
+845297018	191	Dangruf Wadi	z5b2	7.124	619.315	-6.431	106	North Gustaberg	z2yb	-694.542	314.168	93.097	lsb-zonelines	untested	
+811742586	191	Dangruf Wadi	z5b0	0.228	-0.011	-6.431	107	South Gustaberg	z2z9	-601.433	-520.031	35.204	lsb-zonelines	untested	
+1633891706	192	Inner Horutoto Ruins	z5ca	-193.007	59.969	-15.057	115	West Sarutabaruta	z37f	223.706	39.976	0.114	lsb-zonelines	untested	
+878916986	192	Inner Horutoto Ruins	z5c4	429.002	180.000	-12.992	116	East Sarutabaruta	z38b	396.225	99.989	-7.669	lsb-zonelines	untested	
+1667446138	192	Inner Horutoto Ruins	z5cc	-259.981	250.063	6.448	169	Toraimarai Canal	z4p1	-339.995	278.013	5.941	lsb-zonelines	untested	
+811873658	193	Ordelle's Caves	z5d0	-74.082	659.997	-4.103	102	La Theine Plateau	z2u7	-272.118	98.859	21.715	lsb-zonelines	untested	
+845428090	193	Ordelle's Caves	z5d2	180.034	600.112	28.075	102	La Theine Plateau	z2u9	-59.413	151.634	28.699	lsb-zonelines	untested	
+878982522	193	Ordelle's Caves	z5d4	-203.476	-219.995	-31.924	102	La Theine Plateau	z2ub	60.020	-316.183	37.761	lsb-zonelines	untested	
+811939194	194	Outer Horutoto Ruins	z5e0	-309.020	860.021	-12.866	115	West Sarutabaruta	z37b	-276.409	660.009	-11.665	lsb-zonelines	untested	
+946156922	194	Outer Horutoto Ruins	z5e8	-579.994	-629.016	-12.993	115	West Sarutabaruta	z37d	-339.959	-396.924	8.355	lsb-zonelines	untested	
+845493626	194	Outer Horutoto Ruins	z5e2	420.018	709.024	-13.105	116	East Sarutabaruta	z389	-59.996	756.249	-31.677	lsb-zonelines	untested	
+912602490	194	Outer Horutoto Ruins	z5e6	580.025	-628.988	-28.976	116	East Sarutabaruta	z38d	259.999	-476.211	-11.661	lsb-zonelines	untested	
+812004730	195	The Eldieme Necropolis	z5f0	-555.012	99.998	-20.914	105	Batallia Downs	z2xn	-693.609	173.590	-14.583	lsb-zonelines	untested	
+845559162	195	The Eldieme Necropolis	z5f2	-434.959	540.002	-28.154	105	Batallia Downs	z2x9	-464.853	335.136	-22.563	lsb-zonelines	untested	
+879113594	195	The Eldieme Necropolis	z5f4	-165.031	260.003	-36.024	105	Batallia Downs	z2xb	-214.550	134.555	-6.542	lsb-zonelines	untested	
+912668026	195	The Eldieme Necropolis	z5f6	340.011	324.996	-52.117	105	Batallia Downs	z2xd	54.594	134.594	0.978	lsb-zonelines	untested	
+946222458	195	The Eldieme Necropolis	z5f8	60.012	164.979	-36.354	105	Batallia Downs	z2xf	-133.604	-13.814	-6.624	lsb-zonelines	untested	
+1634088314	195	The Eldieme Necropolis	z5fa	-300.006	115.014	-28.084	105	Batallia Downs	z2xh	-226.393	-66.378	-22.628	lsb-zonelines	untested	
+1667642746	195	The Eldieme Necropolis	z5fc	420.008	-122.008	-60.092	105	Batallia Downs	z2xj	134.402	-374.405	9.438	lsb-zonelines	untested	
+1701197178	195	The Eldieme Necropolis	z5fe	441.989	-299.991	-51.914	105	Batallia Downs	z2xl	165.521	-603.006	22.218	lsb-zonelines	untested	
+845624698	196	Gusgen Mines	z5g2	100.204	-240.494	-63.562	11	Oldton Movalpolos	z0b5	-372.562	462.226	-12.814	lsb-zonelines	untested	
+812070266	196	Gusgen Mines	z5g0	44.028	-340.120	-71.118	108	Konschtat Highlands	z307	703.532	216.502	17.044	lsb-zonelines	untested	
+812135802	197	Crawlers' Nest	z5h0	380.064	6.945	-35.332	110	Rolanberry Fields	z329	-381.747	-788.092	-31.068	lsb-zonelines	untested	
+845690234	197	Crawlers' Nest	z5h2	87.469	380.545	-3.590	110	Rolanberry Fields	z32b	-788.664	-502.067	-39.278	lsb-zonelines	untested	
+879310202	198	Maze of Shakhrami	z5i4	-140.331	164.240	-14.165	7	Attohwa Chasm	z071	-163.496	-260.872	7.221	lsb-zonelines	untested	
+812201338	198	Maze of Shakhrami	z5i0	-370.004	-180.822	-15.322	117	Tahrongi Canyon	z395	481.394	515.493	44.388	lsb-zonelines	untested	
+845755770	198	Maze of Shakhrami	z5i2	479.993	-259.976	-33.642	118	Buburimu Peninsula	z3a5	-356.219	314.873	-43.107	lsb-zonelines	untested	
+812332410	200	Garlaige Citadel	z5k0	-380.015	400.996	-15.506	120	Sauromugue Champaign	z3c7	-103.991	-425.221	-25.956	lsb-zonelines	untested	
+845886842	200	Garlaige Citadel	z5k2	20.000	440.979	-21.596	120	Sauromugue Champaign	z3c9	264.002	-387.444	-1.748	lsb-zonelines	untested	
+812397946	201	Cloister of Gales	z5l0	-403.028	-420.001	-3.794	113	Cape Teriggan	z359	-294.009	539.901	-12.278	lsb-zonelines	untested	
+812463482	202	Cloister of Storms	z5m0	514.061	539.258	-19.553	153	The Boyahda Tree	z497	93.262	-220.303	-16.609	lsb-zonelines	untested	
+846017914	202	Cloister of Storms	z5m2	-527.022	-500.806	5.412	153	The Boyahda Tree	z499	4.992	-340.571	6.323	lsb-zonelines	untested	
+812529018	203	Cloister of Frost	z5n0	500.039	519.998	-4.622	204	Fei'Yin	z5o7	99.980	275.993	-1.768	lsb-zonelines	untested	
+846083450	203	Cloister of Frost	z5n2	-453.019	-399.995	-23.037	204	Fei'Yin	z5o9	241.998	159.991	-30.236	lsb-zonelines	untested	
+812594554	204	Fei'Yin	z5o0	-179.993	-199.963	-28.770	111	Beaucedine Glacier	z337	280.025	568.587	17.881	lsb-zonelines	untested	
+913257850	204	Fei'Yin	z5o6	100.007	280.023	-4.454	203	Cloister of Frost	z5n1	499.993	523.343	-1.696	lsb-zonelines	untested	
+946812282	204	Fei'Yin	z5o8	245.790	159.982	-31.265	203	Cloister of Frost	z5n3	-449.500	-399.976	-21.936	lsb-zonelines	untested	
+846148986	204	Fei'Yin	z5o2	244.965	59.998	-26.953	206	Qu'Bia Arena	z5q1	-241.046	19.991	-25.860	lsb-zonelines	untested	
+879703418	204	Fei'Yin	z5o4	264.944	-70.021	-31.225	206	Qu'Bia Arena	z5q3	-62.095	-80.027	-30.074	lsb-zonelines	untested	
+913323386	205	Ifrit's Cauldron	z5p6	-419.271	227.968	27.025	123	Yuhtunga Jungle	z3fd	420.005	476.787	18.650	lsb-zonelines	untested	
+812660090	205	Ifrit's Cauldron	z5p0	299.994	-85.013	12.061	124	Yhoator Jungle	z3gb	102.056	344.135	-1.571	lsb-zonelines	untested	
+846214522	205	Ifrit's Cauldron	z5p2	100.340	-323.961	-3.652	124	Yhoator Jungle	z3g9	-100.461	255.806	-1.628	lsb-zonelines	untested	
+879768954	205	Ifrit's Cauldron	z5p4	-58.748	110.261	46.833	207	Cloister of Flames	z5r1	-698.729	-646.659	-1.045	lsb-zonelines	untested	
+812725626	206	Qu'Bia Arena	z5q0	-243.979	19.998	-27.156	204	Fei'Yin	z5o3	242.074	60.014	-25.860	lsb-zonelines	untested	
+846280058	206	Qu'Bia Arena	z5q2	-65.027	-80.020	-31.190	204	Fei'Yin	z5o5	262.011	-69.998	-30.115	lsb-zonelines	untested	
+812791162	207	Cloister of Flames	z5r0	-698.595	-650.200	-3.594	205	Ifrit's Cauldron	z5p5	-60.296	105.967	48.884	lsb-zonelines	untested	
+812856698	208	Quicksand Caves	z5s0	940.001	-360.986	-20.088	114	Eastern Altepa Desert	z367	420.002	191.739	8.362	lsb-zonelines	untested	
+846411130	208	Quicksand Caves	z5s2	700.015	-685.018	-28.008	114	Eastern Altepa Desert	z369	19.980	-321.526	16.529	lsb-zonelines	untested	
+947074426	208	Quicksand Caves	z5s8	614.981	-379.983	-12.028	114	Eastern Altepa Desert	z36b	126.597	-20.012	8.245	lsb-zonelines	untested	
+879965562	208	Quicksand Caves	z5s4	180.010	-145.070	-12.268	125	Western Altepa Desert	z3hb	179.988	-281.511	16.043	lsb-zonelines	untested	
+913519994	208	Quicksand Caves	z5s6	-740.003	-518.989	-20.211	125	Western Altepa Desert	z3hd	-740.000	-761.537	-11.967	lsb-zonelines	untested	
+1634940282	208	Quicksand Caves	z5sa	420.065	-883.002	-10.161	125	Western Altepa Desert	z3hh	-138.784	-332.049	8.934	lsb-zonelines	untested	
+1668494714	208	Quicksand Caves	z5sc	-286.968	-141.236	-10.436	125	Western Altepa Desert	z3hj	-325.234	-220.852	8.777	lsb-zonelines	untested	
+1702049146	208	Quicksand Caves	z5se	324.022	60.323	-10.514	125	Western Altepa Desert	z3hl	220.071	13.230	14.204	lsb-zonelines	untested	
+1735603578	208	Quicksand Caves	z5sg	-59.992	259.977	-20.009	125	Western Altepa Desert	z3hn	-20.001	201.725	23.951	lsb-zonelines	untested	
+1769158010	208	Quicksand Caves	z5si	-376.956	-297.505	-1.988	125	Western Altepa Desert	z3hp	-844.734	-540.749	8.842	lsb-zonelines	untested	
+1802712442	208	Quicksand Caves	z5sk	-806.639	-259.527	-1.941	125	Western Altepa Desert	z3hr	-883.969	-420.910	8.776	lsb-zonelines	untested	
+1836266874	208	Quicksand Caves	z5sm	-587.853	743.779	-2.493	125	Western Altepa Desert	z3ht	-379.069	186.901	14.444	lsb-zonelines	untested	
+1869821306	208	Quicksand Caves	z5so	-344.133	488.583	-3.209	125	Western Altepa Desert	z3hv	-492.920	101.989	13.869	lsb-zonelines	untested	
+2004039034	208	Quicksand Caves	z5sw	-384.968	860.009	-4.019	125	Western Altepa Desert	z3hf	-283.003	299.964	15.913	lsb-zonelines	untested	
+1936930170	208	Quicksand Caves	z5ss	-980.393	-278.256	13.943	168	Chamber of Oracles	z4o1	-177.804	-37.893	-2.765	lsb-zonelines	untested	
+1970484602	208	Quicksand Caves	z5su	-900.079	-240.896	13.606	168	Chamber of Oracles	z4o3	185.914	-96.413	-0.910	lsb-zonelines	untested	
+1903375738	208	Quicksand Caves	z5sq	578.563	-492.004	6.198	209	Cloister of Tremors	z5t1	-580.383	-563.956	-0.820	lsb-zonelines	untested	
+846476666	209	Cloister of Tremors	z5t2	-640.009	-499.999	-18.380	114	Eastern Altepa Desert	z36d	80.866	-100.362	8.464	lsb-zonelines	untested	
+812922234	209	Cloister of Tremors	z5t0	-580.924	-567.951	-2.070	208	Quicksand Caves	z5sr	577.033	-496.000	7.343	lsb-zonelines	untested	
+813053306	211	Cloister of Tides	z5v0	561.347	499.999	33.018	160	Den of Rancor	z4gd	196.421	-60.319	34.595	lsb-zonelines	untested	
+846607738	211	Cloister of Tides	z5v2	-500.026	-437.114	12.543	160	Den of Rancor	z4gf	179.837	-157.074	13.394	lsb-zonelines	untested	
+846673274	212	Gustav Tunnel	z5w2	276.725	99.985	-52.898	103	Valkurm Dunes	z2v7	-772.018	19.101	-9.873	lsb-zonelines	untested	
+813118842	212	Gustav Tunnel	z5w0	-260.017	-280.011	-23.161	113	Cape Teriggan	z357	260.398	435.661	5.823	lsb-zonelines	untested	
+813184378	213	Labyrinth of Onzozo	z5x0	-58.909	-290.176	-23.085	118	Buburimu Peninsula	z3a7	443.994	198.161	16.464	lsb-zonelines	untested	
+845493882	230	Southern San d'Oria	z6e2	-113.372	-57.418	-4.075	100	West Ronfaure	z2s1	-125.880	274.100	-64.637	lsb-zonelines	untested	
+811939450	230	Southern San d'Oria	z6e0	113.458	-57.351	-4.079	101	East Ronfaure	z2t3	86.131	273.861	-65.817	lsb-zonelines	untested	
+812805498	230	Southern San d'Oria	zmr0	164.933	164.792	-5.547	230	Southern San d'Oria	Mog House	162.591	162.423	-4.103	lsb-zonelines	untested	
+879048314	230	Southern San d'Oria	z6e4	0.620	54.388	-2.049	231	Northern San d'Oria	z6f1	0.007	-32.470	-2.315	live-verified-axi-pos	proven	
+1634088570	231	Northern San d'Oria	z6fa	-123.566	192.841	9.966	2	Carpenters' Landing	z025	-479.621	665.350	-8.141	lsb-zonelines	untested	
+845559418	231	Northern San d'Oria	z6f2	-252.158	43.913	1.663	100	West Ronfaure	z2s3	-172.186	379.998	-64.596	lsb-zonelines	untested	
+946222714	231	Northern San d'Oria	z6f8	-238.702	105.961	-9.433	100	West Ronfaure	z2sb	-180.473	419.995	-66.650	lsb-zonelines	untested	
+812004986	231	Northern San d'Oria	z6f0	-0.107	-36.133	-7.068	230	Southern San d'Oria	z6e5	0.620	54.388	-2.049	live-verified-axi-pos	proven	
+846359930	231	Northern San d'Oria	zmr2	134.995	-8.439	-7.068	231	Northern San d'Oria	Mog House	132.764	-6.178	-2.320	lsb-zonelines	untested	
+912668282	231	Northern San d'Oria	z6f6	-123.510	270.516	8.289	232	Port San d'Oria	z6g1	-107.682	-132.215	-10.301	lsb-zonelines	untested	
+812070522	232	Port San d'Oria	z6g0	-108.899	-132.949	-8.500	231	Northern San d'Oria	z6f7	-125.375	268.640	11.949	live-verified-axi-pos	proven	
+879914362	232	Port San d'Oria	zmr4	83.260	-139.282	-19.486	232	Port San d'Oria	Mog House	79.362	-135.450	-18.173	lsb-zonelines	untested	
+845690490	233	Chateau d'Oraguille	z6h2	12.495	24.047	6.974	167	Bostaunieux Oubliette	z4n1	99.978	72.867	-25.647	lsb-zonelines	untested	
+812201594	234	Bastok Mines	z6i0	-15.961	-136.018	-5.475	107	South Gustaberg	z2z1	579.993	-305.077	-1.928	lsb-zonelines	untested	
+879310458	234	Bastok Mines	z6i4	-196.032	-21.883	-10.599	172	Zeruhn Mines	z4s1	20.510	4.019	-1.583	lsb-zonelines	untested	
+1735552378	234	Bastok Mines	zmrg	121.831	-71.955	-3.367	234	Bastok Mines	Mog House	116.899	-71.987	-1.622	lsb-zonelines	untested	
+845756026	234	Bastok Mines	z6i2	-104.080	84.578	8.101	235	Bastok Markets	z6j1	-201.904	-194.828	1.928	lsb-zonelines	untested	
+879375994	235	Bastok Markets	z6j4	-365.697	-185.638	-13.544	107	South Gustaberg	z2z3	259.963	-183.317	-1.928	lsb-zonelines	untested	
+812267130	235	Bastok Markets	z6j0	-202.243	-197.784	0.332	234	Bastok Mines	z6i3	-104.018	81.411	9.359	lsb-zonelines	untested	
+1634889082	235	Bastok Markets	zmra	-146.160	29.920	-6.766	235	Bastok Markets	Mog House	-177.000	30.026	-9.400	lsb-zonelines	untested	
+1668443514	235	Bastok Markets	zmrc	-146.168	-30.329	-6.781	235	Bastok Markets	Mog House	-177.000	-30.251	-9.400	lsb-zonelines	untested	
+845821562	235	Bastok Markets	z6j2	-233.956	92.340	-1.943	236	Port Bastok	z6k3	-194.012	-76.239	-0.138	lsb-zonelines	untested	
+912930426	235	Bastok Markets	z6j6	-211.990	-0.046	-13.216	237	Metalworks	z6l1	-9.168	0.001	-1.595	lsb-zonelines	untested	
+812332666	236	Port Bastok	z6k0	150.300	6.330	5.934	106	North Gustaberg	z2y1	660.004	306.236	-2.478	lsb-zonelines	untested	
+845887098	236	Port Bastok	z6k2	-193.452	-84.046	0.969	235	Bastok Markets	z6j3	-233.879	86.783	-2.224	lsb-zonelines	untested	
+1769106810	236	Port Bastok	zmri	59.970	-252.825	5.919	236	Port Bastok	Mog House	59.999	-239.997	3.395	lsb-zonelines	untested	
+812398202	237	Metalworks	z6l0	-6.175	-0.008	-2.966	235	Bastok Markets	z6j7	-208.918	0.020	-11.654	lsb-zonelines	untested	
+812463738	238	Windurst Waters	z6m0	-40.194	248.809	-7.871	115	West Sarutabaruta	z371	320.018	-45.166	-6.684	lsb-zonelines	untested	
+913468794	238	Windurst Waters	zmr6	159.934	-64.086	-8.386	238	Windurst Waters	Mog House	159.978	-61.890	-7.713	lsb-zonelines	untested	
+879572602	238	Windurst Waters	z6m4	160.108	60.360	-7.303	239	Windurst Walls	z6n1	-193.627	140.505	-5.585	lsb-zonelines	untested	
+846018170	238	Windurst Waters	z6m2	-59.591	-209.045	-7.115	240	Port Windurst	z6o3	-117.255	208.127	-9.874	lsb-zonelines	untested	
+913192570	239	Windurst Walls	z6n6	-18.340	253.680	-2.709	169	Toraimarai Canal	z4p3	139.992	130.492	-2.169	lsb-zonelines	untested	
+812529274	239	Windurst Walls	z6n0	-204.979	139.551	-7.031	238	Windurst Waters	z6m5	153.460	58.883	-4.960	lsb-zonelines	untested	
+947023226	239	Windurst Walls	zmr8	-259.849	-120.051	-8.494	239	Windurst Walls	Mog House	-256.780	-119.973	-7.628	lsb-zonelines	untested	
+846083706	239	Windurst Walls	z6n2	100.505	-166.490	-7.090	241	Windurst Woods	z6p5	-50.641	79.201	-5.776	lsb-zonelines	untested	
+812594810	240	Port Windurst	z6o0	-249.083	199.980	-11.658	115	West Sarutabaruta	z373	166.612	-319.972	-2.610	lsb-zonelines	untested	
+846149242	240	Port Windurst	z6o2	-114.594	215.791	-11.654	238	Windurst Waters	z6m3	-59.524	-199.046	-5.360	lsb-zonelines	untested	
+1701997946	240	Port Windurst	zmre	197.805	264.495	-21.667	240	Port Windurst	Mog House	197.711	261.857	-20.775	lsb-zonelines	untested	
+879703674	240	Port Windurst	z6o4	230.555	179.926	-11.658	241	Windurst Woods	z6p3	-81.121	-67.625	0.190	lsb-zonelines	untested	
+812660346	241	Windurst Woods	z6p0	126.748	-39.977	-9.457	116	East Sarutabaruta	z381	-125.638	-520.000	-6.602	lsb-zonelines	untested	
+879769210	241	Windurst Woods	z6p4	-60.725	91.983	-7.184	239	Windurst Walls	z6n3	99.772	-154.266	-5.624	lsb-zonelines	untested	
+846214778	241	Windurst Woods	z6p2	-94.202	-72.738	-1.707	240	Port Windurst	z6o5	219.815	176.514	-10.453	lsb-zonelines	untested	
+1802661242	241	Windurst Woods	zmrk	-144.727	40.005	-14.513	241	Windurst Woods	Mog House	-142.487	40.007	-12.760	lsb-zonelines	untested	
+1836215674	243	Ru'Lude Gardens	zmrm	48.989	-79.994	17.190	243	Ru'Lude Gardens	Mog House	46.477	-72.806	9.307	lsb-zonelines	untested	
+812791418	243	Ru'Lude Gardens	z6r0	-0.004	-109.710	-2.494	244	Upper Jeuno	z6s5	42.996	-32.190	-4.682	lsb-zonelines	untested	
+812856954	244	Upper Jeuno	z6s0	-106.095	189.999	-4.637	105	Batallia Downs	z2x5	486.298	-159.953	4.169	lsb-zonelines	untested	
+879965818	244	Upper Jeuno	z6s4	46.000	-30.915	-6.542	243	Ru'Lude Gardens	z6r1	-0.025	-107.260	-1.585	lsb-zonelines	untested	
+1869770106	244	Upper Jeuno	zmro	49.180	-82.946	-9.642	244	Upper Jeuno	Mog House	47.798	-80.568	-6.556	lsb-zonelines	untested	
+846411386	244	Upper Jeuno	z6s2	4.763	-54.883	-1.796	245	Lower Jeuno	z6t3	2.830	57.689	-4.799	lsb-zonelines	untested	
+812922490	245	Lower Jeuno	z6t0	-123.065	-200.691	-4.435	110	Rolanberry Fields	z327	339.741	608.166	21.798	lsb-zonelines	untested	
+846476922	245	Lower Jeuno	z6t2	0.177	59.589	-6.280	244	Upper Jeuno	z6s3	7.042	-53.100	-0.642	lsb-zonelines	untested	
+1970433402	245	Lower Jeuno	zmru	43.944	88.580	-9.359	245	Lower Jeuno	Mog House	42.500	86.074	-6.733	lsb-zonelines	untested	
+880031354	245	Lower Jeuno	z6t4	29.694	41.444	-3.019	246	Port Jeuno	z6u3	-150.730	-19.900	-3.899	lsb-zonelines	untested	
+812988026	246	Port Jeuno	z6u0	54.979	-0.019	-3.629	120	Sauromugue Champaign	z3c5	-574.647	399.974	-0.680	lsb-zonelines	untested	
+880096890	246	Port Jeuno	z6u4	-157.114	100.055	9.878	126	Qufim Island	z3i1	139.997	-476.956	8.903	lsb-zonelines	untested	
+846542458	246	Port Jeuno	z6u2	-150.994	-22.820	-6.324	245	Lower Jeuno	z6t5	27.891	42.423	-2.635	lsb-zonelines	untested	
+1936878970	246	Port Jeuno	zmrs	-197.560	0.005	-8.546	246	Port Jeuno	Mog House	-195.028	0.008	-6.095	lsb-zonelines	untested	
+813053562	247	Rabao	z6v0	-20.586	-128.046	6.412	125	Western Altepa Desert	z3h5	419.969	359.802	5.699	lsb-zonelines	untested	
+813119098	248	Selbina	z6w0	16.895	104.284	-19.333	103	Valkurm Dunes	z2v5	60.989	-151.001	-4.898	lsb-zonelines	untested	
+813184634	249	Mhaura	z6x0	-0.179	121.015	-8.549	118	Buburimu Peninsula	z3a3	186.723	-223.510	-3.483	lsb-zonelines	untested	
+813250170	250	Kazham	z6y0	-50.004	-111.502	-11.780	123	Yuhtunga Jungle	z3f1	-239.661	528.069	-1.575	lsb-zonelines	untested	
+813315706	251	Hall of the Gods	z6z0	0.004	-180.057	-3.526	122	Ro'Maeve	z3e3	-0.008	123.478	-33.595	lsb-zonelines	untested	
+846870138	251	Hall of the Gods	z6z2	0.000	365.058	-3.316	130	Ru'Aun Gardens	zlm9	-1.122	-638.232	-56.846	lsb-zonelines	untested	
+808466298	252	Norg	z700	-19.216	-67.525	-3.609	176	Sea Serpent Grotto	z4w3	-60.566	411.976	-2.127	lsb-zonelines	untested	
+947088762	256	Western Adoulin	zms8	-4.500	-146.000	-3.308	256	Western Adoulin	zms9	-1.000	-142.500	-2.352	lsb-zonelines	untested	
+875837306	256	Western Adoulin	z744	180.000	-20.000	1.000	257	Eastern Adoulin	z753	-150.000	-20.000	-3.100	lsb-zonelines	untested	
+909391738	256	Western Adoulin	z746	74.000	-148.000	8.845	258	Rala Waterways	z761	-268.000	-380.000	-7.850	lsb-zonelines	untested	
+942946170	256	Western Adoulin	z748	-76.000	114.000	21.051	258	Rala Waterways	z763	-612.000	100.000	-7.863	lsb-zonelines	untested	
+1630812026	256	Western Adoulin	z74a	138.000	4.000	16.761	258	Rala Waterways	z765	-188.000	60.000	-7.815	lsb-zonelines	untested	
+842282874	256	Western Adoulin	z742	-160.300	-26.000	0.000	261	Ceizak Battlegrounds	z79b	431.000	178.000	-1.928	lsb-zonelines	untested	
+842348410	257	Eastern Adoulin	z752	-165.000	-20.000	-3.500	256	Western Adoulin	z745	170.000	-20.000	0.900	lsb-zonelines	untested	
+1634954618	257	Eastern Adoulin	zmsa	-56.000	-140.000	-4.500	257	Eastern Adoulin	zmsb	-56.000	-128.500	-2.250	lsb-zonelines	untested	
+875902842	257	Eastern Adoulin	z754	-122.000	28.000	4.874	258	Rala Waterways	z767	148.000	140.000	-7.805	lsb-zonelines	untested	
+808859514	258	Rala Waterways	z760	-265.000	-380.000	-8.000	256	Western Adoulin	z747	77.000	-148.000	10.463	lsb-zonelines	untested	
+842413946	258	Rala Waterways	z762	-615.000	100.000	-8.272	256	Western Adoulin	z749	-76.000	117.000	22.495	lsb-zonelines	untested	
+875968378	258	Rala Waterways	z764	-185.000	60.000	-8.440	256	Western Adoulin	z74b	141.000	4.000	18.454	lsb-zonelines	untested	
+909522810	258	Rala Waterways	z766	145.000	140.000	-8.382	257	Eastern Adoulin	z755	-126.000	28.000	6.632	lsb-zonelines	untested	
+943077242	258	Rala Waterways	z768	295.000	-260.000	-8.532	257	Eastern Adoulin	z757	65.000	-16.000	-41.600	lsb-zonelines	untested	
+808990586	260	Yahse Hunting Grounds	z780	-379.572	-446.000	-2.908	261	Ceizak Battlegrounds	z791	-300.500	400.000	-1.860	lsb-zonelines	untested	
+842545018	260	Yahse Hunting Grounds	z782	-100.208	-405.000	-2.908	261	Ceizak Battlegrounds	z793	-20.000	440.000	-1.852	lsb-zonelines	untested	
+876099450	260	Yahse Hunting Grounds	z784	260.446	-446.000	-2.454	261	Ceizak Battlegrounds	z795	340.708	359.000	-1.846	lsb-zonelines	untested	
+909653882	260	Yahse Hunting Grounds	z786	-540.000	-117.500	4.534	269	Moh Gates	z7h5	100.000	-479.500	47.350	lsb-zonelines	untested	
+943208314	260	Yahse Hunting Grounds	z788	-117.000	419.984	4.194	269	Moh Gates	z7h3	300.000	-359.000	47.369	lsb-zonelines	untested	
+1631139706	261	Ceizak Battlegrounds	z79a	460.781	176.941	-1.341	256	Western Adoulin	z743	-142.000	-20.000	0.950	lsb-zonelines	untested	
+809056122	261	Ceizak Battlegrounds	z790	-299.713	405.000	-2.525	260	Yahse Hunting Grounds	z781	-379.759	-441.000	-1.808	lsb-zonelines	untested	
+842610554	261	Ceizak Battlegrounds	z792	-20.359	445.000	-3.059	260	Yahse Hunting Grounds	z783	-100.836	-399.000	-1.878	lsb-zonelines	untested	
+876164986	261	Ceizak Battlegrounds	z794	340.376	364.000	-3.236	260	Yahse Hunting Grounds	z785	260.044	-441.000	-1.844	lsb-zonelines	untested	
+909719418	261	Ceizak Battlegrounds	z796	-540.000	-315.000	4.926	268	Sih Gates	z7g3	-260.000	39.000	-31.550	lsb-zonelines	untested	
+943273850	261	Ceizak Battlegrounds	z798	-99.891	-527.175	3.906	268	Sih Gates	z7g1	-41.000	-20.166	-31.602	lsb-zonelines	untested	
+811677562	262	Foret De Hennetiel	z7a0	380.358	462.210	9.428	268	Sih Gates	z7g5	-159.500	-420.268	-31.569	lsb-zonelines	untested	
+845231994	262	Foret De Hennetiel	z7a2	99.147	-61.628	8.836	268	Sih Gates	z7g7	-299.849	-438.154	-21.588	lsb-zonelines	untested	
+878786426	262	Foret De Hennetiel	z7a4	-360.061	305.120	11.097	272	Dho Gates	z7k3	120.000	380.000	-12.088	lsb-zonelines	untested	
+912340858	262	Foret De Hennetiel	z7a6	-460.977	-302.508	9.467	272	Dho Gates	z7k1	60.000	80.000	-12.087	lsb-zonelines	untested	
+811743098	263	Yorcia Weald	z7b0	235.000	59.500	3.830	270	Cirdas Caverns	z7i9	200.500	220.032	7.895	lsb-zonelines	untested	
+845297530	263	Yorcia Weald	z7b2	-405.000	259.500	4.115	273	Woh Gates	z7l3	480.500	140.000	-2.147	lsb-zonelines	untested	
+811874170	265	Morimar Basalt Fields	z7d0	580.000	-482.000	-11.650	269	Moh Gates	z7h1	100.000	121.000	7.297	lsb-zonelines	untested	
+845428602	265	Morimar Basalt Fields	z7d2	-540.000	-405.000	-27.866	273	Woh Gates	z7l1	500.000	400.500	7.918	lsb-zonelines	untested	
+811939706	266	Marjami Ravine	z7e0	445.000	299.000	-64.303	272	Dho Gates	z7k5	-320.500	340.000	-42.100	lsb-zonelines	untested	
+845494138	266	Marjami Ravine	z7e2	-501.000	325.000	-42.530	273	Woh Gates	z7l5	180.000	40.500	27.854	lsb-zonelines	untested	
+812005242	267	Kamihr Drifts	z7f0	500.500	-483.000	68.500	273	Woh Gates	z7l9	340.000	520.500	-32.115	lsb-zonelines	untested	
+812070778	268	Sih Gates	z7g0	-36.500	-19.748	-33.662	261	Ceizak Battlegrounds	z799	-100.000	-521.955	6.156	lsb-zonelines	untested	
+845625210	268	Sih Gates	z7g2	-260.000	43.000	-33.513	261	Ceizak Battlegrounds	z797	-540.319	-320.000	6.197	lsb-zonelines	untested	
+879179642	268	Sih Gates	z7g4	-164.078	-420.772	-34.005	262	Foret De Hennetiel	z7a1	374.347	460.167	7.820	lsb-zonelines	untested	
+912734074	268	Sih Gates	z7g6	-299.669	-443.428	-23.891	262	Foret De Hennetiel	z7a3	99.563	-66.515	7.790	lsb-zonelines	untested	
+946288506	268	Sih Gates	z7g8	-501.283	4.197	-44.429	270	Cirdas Caverns	z7i7	420.000	-280.500	37.845	lsb-zonelines	untested	
+845690746	269	Moh Gates	z7h2	300.000	-364.000	46.000	260	Yahse Hunting Grounds	z789	-121.000	420.000	5.118	lsb-zonelines	untested	
+879245178	269	Moh Gates	z7h4	100.500	-484.500	46.000	260	Yahse Hunting Grounds	z787	-540.076	-121.519	5.135	lsb-zonelines	untested	
+812136314	269	Moh Gates	z7h0	99.500	116.000	6.000	265	Morimar Basalt Fields	z7d1	580.522	-477.705	-10.035	lsb-zonelines	untested	
+912799610	269	Moh Gates	z7h6	-126.260	-381.551	38.853	270	Cirdas Caverns	z7i3	520.000	419.832	17.918	lsb-zonelines	untested	
+946419578	270	Cirdas Caverns	z7i8	207.632	217.938	4.893	263	Yorcia Weald	z7b1	240.000	59.500	6.150	lsb-zonelines	untested	
+912865146	270	Cirdas Caverns	z7i6	419.000	-286.000	36.782	268	Sih Gates	z7g9	-500.388	-0.261	-41.805	lsb-zonelines	untested	
+845756282	270	Cirdas Caverns	z7i2	527.531	418.559	16.455	269	Moh Gates	z7h7	-120.923	-380.194	37.348	lsb-zonelines	untested	
+879310714	270	Cirdas Caverns	z7i4	-180.217	-321.000	26.996	272	Dho Gates	z7k7	60.000	520.000	-32.100	lsb-zonelines	untested	
+812201850	270	Cirdas Caverns	z7i0	-219.784	524.000	6.327	273	Woh Gates	z7l7	400.500	100.000	27.856	lsb-zonelines	untested	
+812332922	272	Dho Gates	z7k0	60.000	85.000	-15.500	262	Foret De Hennetiel	z7a7	-455.880	-300.683	8.441	lsb-zonelines	untested	
+845887354	272	Dho Gates	z7k2	125.000	380.000	-15.600	262	Foret De Hennetiel	z7a5	-355.480	301.098	9.543	lsb-zonelines	untested	
+879441786	272	Dho Gates	z7k4	-325.000	340.000	-45.831	266	Marjami Ravine	z7e1	440.000	300.000	-62.599	lsb-zonelines	untested	
+912996218	272	Dho Gates	z7k6	60.000	525.000	-35.500	270	Cirdas Caverns	z7i5	-179.418	-315.152	27.688	lsb-zonelines	untested	
+845952890	273	Woh Gates	z7l2	484.000	140.000	-5.282	263	Yorcia Weald	z7b3	-400.000	260.000	6.100	lsb-zonelines	untested	
+812398458	273	Woh Gates	z7l0	500.000	404.000	4.758	265	Morimar Basalt Fields	z7d3	-540.237	-399.500	-25.794	lsb-zonelines	untested	
+879507322	273	Woh Gates	z7l4	180.000	37.000	25.164	266	Marjami Ravine	z7e3	-500.000	320.000	-42.530	lsb-zonelines	untested	
+946616186	273	Woh Gates	z7l8	340.000	524.000	-35.227	267	Kamihr Drifts	z7f1	500.500	-479.500	70.922	lsb-zonelines	untested	
+913061754	273	Woh Gates	z7l6	404.000	100.000	27.626	270	Cirdas Caverns	z7i1	-219.869	519.000	7.800	lsb-zonelines	untested	
+812922746	281	Leafallia	z7t0	19.355	-43.000	-5.000	267	Kamihr Drifts	z7f3	-212.000	-414.000	41.000	lsb-zonelines	untested	

@@ -1,0 +1,7 @@
+# AccessXI FFXI navigation route notes.
+# Format:
+# scope	from_zone	from_name	to_zone	to_name	source	confidence	note
+# Notes are informational only unless future route code explicitly consumes them.
+edge	192	Inner Horutoto Ruins	169	Toraimarai Canal	bg-wiki-three-mage-gate	observed	Three Mage Gate access may be required; BG Wiki lists party circles, Portal charm assistance, or prior Toraimarai Home Point/Survival Guide unlock as ways past it.
+zone	200	Garlaige Citadel			bg-wiki-garlaige-citadel	observed	Some internal routes require Banishing Gate access; BG Wiki says gates use four pressure switches or the Pouch of weighted stones.
+zone	195	The Eldieme Necropolis			bg-wiki-eldieme-necropolis	observed	Some internal routes require door access; BG Wiki says solo door opening uses the Magicked astrolabe key item.

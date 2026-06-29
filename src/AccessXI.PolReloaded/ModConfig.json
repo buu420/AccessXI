@@ -1,0 +1,21 @@
+{
+  "ModId": "accessxi.pol.prelogin",
+  "ModName": "AccessXI POL Pre-Login",
+  "ModAuthor": "AccessXI",
+  "ModVersion": "1.0.0",
+  "ModDescription": "Native-state-backed PlayOnline pre-login accessibility hooks. Ashita remains responsible for in-game FFXI.",
+  "ModDll": "AccessXI.PolReloaded.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "",
+  "ModR2RManagedDll64": "",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "AccessXI.PolReloaded.ReleaseMetadata.json",
+  "PluginData": {},
+  "IsUniversalMod": false,
+  "ModDependencies": [],
+  "OptionalDependencies": [],
+  "SupportedAppId": [ "pol.exe" ],
+  "ProjectUrl": ""
+}

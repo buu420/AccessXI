@@ -1,0 +1,163 @@
+param(
+    [string]$LogPath = 'C:\Users\buu42\AccessXI\logs\pol-monitor.log',
+    [string]$BridgeLog = 'C:\Users\buu42\AccessXI\logs\pol-bridge.log',
+    [string]$NvdaDll = 'C:\Users\buu42\AccessXI\ocr-watcher\nvdaControllerClient64.dll'
+)
+
+function Bridge-Log([string]$text) {
+    $dir = Split-Path -Parent $BridgeLog
+    if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'
+    Add-Content -LiteralPath $BridgeLog -Value "$stamp $text" -Encoding ASCII
+}
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class NvdaNative {
+    [DllImport(@"$NvdaDll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+    public static extern int nvdaController_speakText(string text);
+    [DllImport(@"$NvdaDll", CallingConvention = CallingConvention.StdCall)]
+    public static extern int nvdaController_testIfRunning();
+}
+"@
+
+function Speak-Nvda([string]$text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return }
+    try {
+        $running = [NvdaNative]::nvdaController_testIfRunning()
+        $spoken = [NvdaNative]::nvdaController_speakText($text)
+        Bridge-Log "SPEAK running=$running result=$spoken text=$text"
+    } catch {
+        Bridge-Log "SPEAK_ERROR $($_.Exception.Message) text=$text"
+    }
+}
+
+function Clean-PolValue([string]$value) {
+    if ($null -eq $value) { return '' }
+    return $value.Trim()
+}
+
+$allowed = @{
+    'Square Enix Password' = $true
+    'One-Time Password' = $true
+    'Automatically log in at startup' = $true
+    'Settings' = $true
+    'Connect' = $true
+    'Cancel' = $true
+    'Log In' = $true
+    'Delete' = $true
+    'Back' = $true
+    'Member Brice' = $true
+    'Member List' = $true
+    'Information' = $true
+    'Guest Login' = $true
+    'Add Member' = $true
+    'Check Files' = $true
+    'Join PlayOnline' = $true
+    'Network Settings' = $true
+    'Security Settings' = $true
+    'Quick Manuals' = $true
+    'Exit Viewer' = $true
+    'Yes' = $true
+    'No' = $true
+}
+
+$ignored = @{
+    'Connect to PlayOnline' = $true
+    'Connect to PlayOnline.' = $true
+    'Do not remove devices while connecting.' = $true
+    'Check the latest information on PlayOnline services.' = $true
+    'Temporary login. No data will be saved.' = $true
+    'Change Brice''s member information.' = $true
+}
+
+$passwordSeen = @{}
+$passwordAnnounced = $false
+$position = 0L
+$lastSpoken = ''
+$lastSpeakAt = [DateTime]::MinValue
+$pending = $null
+$pendingAt = [DateTime]::MinValue
+$windowUntil = [DateTime]::MinValue
+
+if (Test-Path -LiteralPath $LogPath) {
+    $position = (Get-Item -LiteralPath $LogPath).Length
+}
+
+Bridge-Log "START position=$position log=$LogPath"
+Speak-Nvda 'AccessXI POL bridge started.'
+
+while ($true) {
+    Start-Sleep -Milliseconds 35
+    if (-not (Test-Path -LiteralPath $LogPath)) { continue }
+    $file = [System.IO.File]::Open($LogPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try {
+        if ($file.Length -lt $position) { $position = 0 }
+        if ($file.Length -eq $position) {
+            if ($pending -and [DateTime]::Now -ge $pendingAt) {
+                if ($pending -ne $lastSpoken -or ([DateTime]::Now - $lastSpeakAt).TotalSeconds -gt 1.2) {
+                    $lastSpoken = $pending
+                    $lastSpeakAt = [DateTime]::Now
+                    Speak-Nvda $pending
+                }
+                $pending = $null
+            }
+            continue
+        }
+        $file.Seek($position, [System.IO.SeekOrigin]::Begin) | Out-Null
+        $reader = New-Object System.IO.StreamReader($file, [Text.Encoding]::UTF8, $true, 4096, $true)
+        $text = $reader.ReadToEnd()
+        $position = $file.Position
+        $reader.Dispose()
+    } finally {
+        $file.Dispose()
+    }
+
+    foreach ($line in ($text -split "`r?`n")) {
+        if ($line -match 'AccessXI POL plugin initializing') {
+            $passwordSeen.Clear()
+            $passwordAnnounced = $false
+            Bridge-Log 'PLUGIN_INIT'
+            continue
+        }
+        if ($line -match 'AccessXI POL plugin releasing') {
+            Bridge-Log 'PLUGIN_RELEASE'
+            continue
+        }
+        if ($line -match 'DRAWTEXT speaking(?: password| summary| snapshot)? (?<spoken>.+)$') {
+            $spoken = Clean-PolValue $matches.spoken
+            if ($spoken -and ($spoken -ne $lastSpoken -or ([DateTime]::Now - $lastSpeakAt).TotalSeconds -gt 1.2)) {
+                $lastSpoken = $spoken
+                $lastSpeakAt = [DateTime]::Now
+                Speak-Nvda $spoken
+            }
+            continue
+        }
+        if ($line -match ' KEY (up|down|left|right|enter|escape)$') {
+            $pending = $null
+            $windowUntil = [DateTime]::Now.AddMilliseconds(650)
+            continue
+        }
+        if ($line -notmatch 'POLTEXT .*color=(0x[0-9A-F]+).*value=(.*)$') { continue }
+        $color = $matches[1]
+        $value = Clean-PolValue $matches[2]
+
+        if ($value -eq 'Square Enix Password' -or $value -eq 'One-Time Password' -or $value -eq 'Automatically log in at startup' -or $value -eq 'Settings' -or $value -eq 'Connect' -or $value -eq 'Cancel') {
+            $passwordSeen[$value] = $true
+            if (-not $passwordAnnounced -and $passwordSeen.ContainsKey('Square Enix Password') -and $passwordSeen.ContainsKey('Settings') -and $passwordSeen.ContainsKey('Connect') -and $passwordSeen.ContainsKey('Cancel')) {
+                $passwordAnnounced = $true
+                Speak-Nvda 'Password screen. Square Enix Password, One-Time Password, automatic login, Settings, Connect, Cancel.'
+            }
+        }
+
+        if ([DateTime]::Now -gt $windowUntil) { continue }
+        if ($ignored.ContainsKey($value)) { continue }
+        if (-not $allowed.ContainsKey($value)) { continue }
+        if ($color -ne '0xFFFFFFFF' -and $color -ne '0xFF000000') { continue }
+        if ($pending -eq $null) {
+            $pending = $value
+            $pendingAt = [DateTime]::Now.AddMilliseconds(120)
+        }
+    }
+}

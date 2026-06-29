@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="42">
+  <CheatEntries/>
+  <UserdefinedSymbols/>
+  <LuaScript>local outpath = [[C:\Users\buu42\AccessXI\logs\ce-polscan.txt]]
+local f = io.open(outpath, &apos;w&apos;)
+local function log(s)
+  if f then f:write(os.date(&apos;%Y-%m-%d %H:%M:%S &apos;)..s..&apos;\n&apos;); f:flush() end
+end
+local function hexpat_ascii(s)
+  local t={}
+  for i=1,#s do t[#t+1]=string.format(&apos;%02X&apos;, string.byte(s,i)) end
+  return table.concat(t, &apos; &apos;)
+end
+local function hexpat_wide(s)
+  local t={}
+  for i=1,#s do t[#t+1]=string.format(&apos;%02X 00&apos;, string.byte(s,i)) end
+  return table.concat(t, &apos; &apos;)
+end
+local function scan(label, pat)
+  log(&apos;SCAN &apos;..label..&apos; pat=&apos;..pat)
+  local ok, res = pcall(AOBScan, pat)
+  if (not ok) or (res==nil) then log(&apos;NORESULT &apos;..label..&apos; err=&apos;..tostring(res)); return end
+  local n = res.Count or 0
+  log(&apos;COUNT &apos;..label..&apos; &apos;..tostring(n))
+  local max = math.min(n, 40)
+  for i=0,max-1 do
+    local a = res[i]
+    local txtA, txtW = &apos;&apos;, &apos;&apos;
+    pcall(function() txtA = readString(a, 96, false) or &apos;&apos; end)
+    pcall(function() txtW = readString(a, 192, true) or &apos;&apos; end)
+    log(string.format(&apos;HIT %s %s A=&quot;%s&quot; W=&quot;%s&quot;&apos;, label, tostring(a), tostring(txtA), tostring(txtW)))
+  end
+  res.destroy()
+end
+local okp, err = pcall(openProcess, &apos;pol.exe&apos;)
+log(&apos;openProcess pol.exe ok=&apos;..tostring(okp)..&apos; err=&apos;..tostring(err)..&apos; pid=&apos;..tostring(getOpenedProcessID()))
+local labels = {&apos;Friend List&apos;,&apos;Log Out&apos;,&apos;Back to Game&apos;,&apos;Quick Manuals&apos;,&apos;Friend Search&apos;,&apos;Connection&apos;,&apos;File Manager&apos;,&apos;PlayOnline Chat&apos;,&apos;Options&apos;,&apos;Navigator&apos;,&apos;FINAL FANTASY XI&apos;,&apos;Message List&apos;,&apos;Handle List&apos;,&apos;Get Friend List&apos;,&apos;Exit Viewer&apos;,&apos;Close&apos;,&apos;Main Menu&apos;,&apos;arMenu2Rec&apos;,&apos;fncMenu2&apos;,&apos;apMenuBt&apos;,&apos;arLogout&apos;,&apos;PLAYINGCLASSID&apos;,&apos;Menu2BaseCmd&apos;,&apos;Bt6&apos;,&apos;rNum&apos;,&apos;fcNum1&apos;}
+for _,s in ipairs(labels) do
+  scan(&apos;A:&apos;..s, hexpat_ascii(s))
+  scan(&apos;W:&apos;..s, hexpat_wide(s))
+end
+log(&apos;DONE&apos;)
+if f then f:close() end</LuaScript>
+</CheatTable>

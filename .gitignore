@@ -1,0 +1,65 @@
+# Build outputs
+/build/
+/dist/
+**/bin/
+**/obj/
+**/.vs/
+*.ilk
+*.pdb
+*.idb
+*.exp
+*.lib
+*.obj
+
+# Packaged/install-time binaries and redistributables
+*.exe
+*.dll
+*.asi
+*.zip
+*.nupkg
+/installer/prerequisites/
+/external/
+/tools/jdk-21/
+/tools/*.zip
+/tools/__pycache__/
+/tools/xi-tinkerer/
+*.pyc
+
+# Runtime logs, captures, and local diagnostics
+/logs/
+**/logs/
+*.log
+*.dmp
+*.trace
+/video_frames/
+*.png
+*.jpg
+*.jpeg
+
+# Reverse-engineering and local analysis work
+/ffxi_re/
+/pol_re/
+/polstuff/
+/tmp_polstuff_decompiled/
+*ghidra*
+*.gzf
+*.rep/
+*.gbf
+
+# Temporary/scratch/backup material
+/tmp/
+/scratch/
+/backups/
+*.bak
+*.bak*
+*~
+
+# Large third-party payload mirrors kept locally for packaging.
+# Keep fetch/build notes in docs and scripts instead of committing vendored payloads.
+/third_party/
+/ashita/addons/accessxi_reader/third_party/
+
+# Local machine files
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,315 @@
+# AccessXI Final Fantasy XI Setup Guide
+
+Last reviewed: 2026-06-29
+
+This guide is for a blind player setting up Final Fantasy XI with AccessXI. It assumes you are using speech for the accessible parts and OCR for the old PlayOnline screens that still do not expose usable text.
+
+The most important thing to know is that Final Fantasy XI setup has two different account layers:
+
+- Your Square Enix account. This is the account you use on the Square Enix Account Management website.
+- Your PlayOnline ID. This is the old Final Fantasy XI login ID. Square Enix creates or shows it after Final Fantasy XI is registered to your Square Enix account.
+
+Write down these four things before you start PlayOnline:
+
+- Square Enix ID.
+- Square Enix password.
+- PlayOnline ID.
+- PlayOnline password.
+
+The PlayOnline ID is not your Square Enix ID. Square Enix support describes PlayOnline IDs as four capital letters followed by four numbers, for example `ABCD1234`.
+
+## Important Install Order
+
+Install PlayOnline Viewer and Final Fantasy XI before running the AccessXI installer. AccessXI needs the real PlayOnline `pol.exe` file so it can install the loader files in the correct place and write the Ashita profile for that computer.
+
+You do not need to finish PlayOnline registration, log in, update PlayOnline, or create a character before installing AccessXI. You only need the game and PlayOnline Viewer installed far enough that `pol.exe` exists. If you run the AccessXI installer before PlayOnline is installed, it will show a warning and exit.
+
+The usual order is:
+
+1. Create or prepare your Square Enix account.
+2. Buy and register Final Fantasy XI.
+3. Download and install PlayOnline Viewer and Final Fantasy XI.
+4. Run the AccessXI installer. It should detect the installed PlayOnline Viewer.
+5. Start PlayOnline through the AccessXI launcher and continue with the PlayOnline update and member setup steps below.
+
+## Links You Need First
+
+Create or manage your Square Enix account:
+
+- Square Enix account registration: https://secure.square-enix.com/regist/
+- Square Enix Account Management: https://secure.square-enix.com/
+
+Buy and register Final Fantasy XI:
+
+- Official Final Fantasy XI client download page: https://www.playonline.com/ff11us/download/media/install_win.html
+- Square Enix Store Final Fantasy XI page, region may redirect: https://sqex.to/ffxi_store_na
+- Official account and registration-code guide: https://www.playonline.com/ff11us/intro/regist/
+- Official Square Enix support install guide: https://support.na.square-enix.com/faqarticle.php?id=20&kid=59270&la=1
+
+Official PlayOnline setup and login references:
+
+- PlayOnline first-time setup support article: https://support.na.square-enix.com/faqarticle.php?id=20&kid=77435&la=1
+- Final Fantasy XI login support article: https://support.na.square-enix.com/faqarticle.php?id=20&kid=77473&la=1
+- Final Fantasy XI service fee and character-option information: https://www.playonline.com/ff11us/envi/charge.html
+
+AccessXI/Reloaded dependency links, only needed if the installer or PlayOnline fails with runtime errors:
+
+- Microsoft Visual C++ Redistributable downloads: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+- Microsoft .NET 9 Desktop Runtime downloads: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+
+## Account And Game Setup Before PlayOnline
+
+1. Create a Square Enix account, or make sure you can log in to your existing one.
+2. Purchase Final Fantasy XI. New players usually want Final Fantasy XI: Ultimate Collection Seekers Edition, because it includes the game and expansion content.
+3. Download the Final Fantasy XI Windows client from the official download page.
+4. Download every part of the split installer into the same folder.
+5. Run `FFXIFullSetup_US.part1.exe` to extract the installer folder.
+6. In the extracted folder, run `FFXISetup.exe`.
+7. When the installer asks what to install, choose PlayOnline Viewer, Final Fantasy XI, and the expansion packs.
+8. Log in to Square Enix Account Management.
+9. Choose `PlayOnline / FINAL FANTASY XI`.
+10. Add or register the Final Fantasy XI service account using the registration code from your purchase email.
+11. Add at least one character option or Content ID. Final Fantasy XI requires a service account and at least one playable character slot.
+12. Find and write down your PlayOnline ID and PlayOnline password. You will need them in the PlayOnline Viewer.
+
+If you use a one-time password or security token on your Square Enix account, keep that device or app nearby. If you do not use a token, leave one-time password set to not used when PlayOnline asks.
+
+## Install AccessXI After PlayOnline Is Installed
+
+After PlayOnline Viewer and Final Fantasy XI are installed, run the AccessXI installer. Do not run the AccessXI installer before installing PlayOnline, because it must find `pol.exe`. If it cannot detect PlayOnline, it will close and you should install or repair PlayOnline before trying AccessXI again.
+
+When the AccessXI installer opens:
+
+1. Choose where AccessXI should be installed, or keep the default destination.
+2. Confirm the PlayOnline executable path.
+3. Click `Install`.
+4. If the installer detects missing Microsoft runtime dependencies, choose whether to let it run the bundled dependency installers before AccessXI installs.
+5. On the finish screen, leave `Open setup guide when I click Finish` checked if you want this guide to open after installation.
+
+## Dependency Warning
+
+If PlayOnline or the AccessXI Reloaded part crashes with a dialog like this:
+
+```text
+Microsoft Visual C++ Runtime Library
+Runtime Error!
+Program: C:\Program...
+This application has requested the Runtime to terminate it in an unusual way.
+```
+
+install the runtime dependencies, then try again.
+
+Install both x86 and x64 versions of the Visual C++ Redistributable. PlayOnline is a 32-bit program, so the x86 package matters even on a 64-bit copy of Windows.
+
+Also install both x86 and x64 versions of the .NET Desktop Runtime 9. AccessXI currently packages .NET Desktop Runtime 9.0.17, but if you are installing manually from Microsoft, use the current supported .NET 9 Desktop Runtime downloads.
+
+The AccessXI installer tries to include these dependencies, but if detection fails or another computer is missing them, installing them manually is the first thing to do.
+
+## First PlayOnline Launch And Update
+
+The first time you start PlayOnline, it will usually want to update before you can do anything useful.
+
+1. Start PlayOnline through the AccessXI launcher.
+2. If PlayOnline shows an update prompt, press Enter.
+3. Use OCR to confirm that the update actually started.
+4. Wait for the update to finish.
+5. When the update is finished, PlayOnline will restart.
+
+After PlayOnline restarts, if everything is working, AccessXI should begin speaking the mapped PlayOnline screens. You may land on one of these:
+
+- A `Network`, `Next`, `Cancel` screen.
+- An `Add New Registration` screen.
+- A `For Members` screen.
+
+You want `For Members`.
+
+If you accidentally activate the new registration option instead of `For Members`, press Alt+F4 to close PlayOnline, then start again. Do not continue through the new registration path.
+
+## Add Your PlayOnline Member
+
+On the `For Members` screen:
+
+1. Press Enter on `For Members`.
+2. PlayOnline may put focus inside a text field. Press Escape once so you can arrow freely in the menu.
+3. The options should read. Sometimes `Register` does not speak, but `Cancel` usually does.
+4. If you go right and land on `What is a PlayOnline ID?`, go left again.
+5. Use Up and Down to move through the setup fields.
+
+Fill in the fields in this order.
+
+### Member Name
+
+1. Move to `Member Name`.
+2. Press Enter to enter the field.
+3. Type any name you want. This is just a local label for this PlayOnline member.
+4. Press Escape to leave the field.
+
+### PlayOnline ID
+
+1. Move to `PlayOnline ID`.
+2. Press Enter to enter the field.
+3. Type the PlayOnline ID from Square Enix Account Management.
+4. Press Escape to leave the field.
+
+### Set Password And PlayOnline Password
+
+This part is strange and may not read yet.
+
+1. Move to `Set Password`.
+2. Press Enter.
+3. Press Up once. Do not press Left or Right here, because Left or Right can close this small menu.
+4. This should set the password option to save and make the PlayOnline password field appear below `Set Password`.
+5. Move to the PlayOnline password field.
+6. Press Enter.
+7. The software keyboard may appear. Ignore it.
+8. Type your PlayOnline password on the real keyboard.
+9. Press Enter to confirm the PlayOnline password. Do not press Escape for this password field.
+
+### Member Password
+
+Skip `Member Password`. It is optional and only protects this local PlayOnline Viewer member on this computer.
+
+### Square Enix ID
+
+1. Move to `Square Enix ID`.
+2. Press Enter.
+3. Type your Square Enix ID.
+4. Press Escape to leave the field.
+
+### One-Time Password
+
+Skip this unless you use a Square Enix security token or software token. If you do use one, set this according to your token setup.
+
+### Register
+
+1. Move to `Register`.
+2. Press Enter.
+3. Choose `Yes`.
+4. Use OCR to confirm the success message. It should say the member was registered successfully.
+5. Press Enter on `OK`.
+6. You may have to press Enter once more.
+
+After this, PlayOnline should put you on the main PlayOnline member screen.
+
+## Log In Through PlayOnline The First Time
+
+The main PlayOnline member screen has two separate rows or groups. The right side has the main options. If you go left, it should place you on your member name.
+
+Your member name may currently speak as gibberish. That is a known issue.
+
+1. Move left to your member name.
+2. Press Enter.
+3. Choose `Login`.
+4. When PlayOnline asks for `Square Enix Password`, press Enter.
+5. Type the Square Enix password you use on the Square Enix Account Management website.
+6. Press Enter if the field needs confirmation.
+7. Press Down once to reach `Connect`.
+8. Press Enter on `Connect`.
+
+If login works, PlayOnline changes screens.
+
+## First-Time Handle And License Agreement
+
+The first successful login may ask for a handle name. This name is not important for AccessXI gameplay; you will not normally use the PlayOnline Viewer after setup.
+
+1. Type any handle name you want.
+2. Press Tab.
+3. Press Enter on `Next`.
+4. A menu may pop up. Press Escape to leave that menu.
+5. You should now be on the license agreement.
+
+Use OCR freely on these screens. OCR works decently here.
+
+For the license agreement:
+
+1. Press or hold Down Arrow until you reach the bottom of the agreement.
+2. Use OCR to confirm you are at the bottom and that the accept button is available.
+3. Click or activate `Accept`.
+4. Press Enter on `OK`.
+
+If everything worked, you will be in the main PlayOnline Viewer screen. That screen is mostly not accessible, and AccessXI does not fully solve it yet.
+
+## Starting Final Fantasy XI After The First-Time Setup
+
+You have two choices after reaching the mostly inaccessible main PlayOnline Viewer screen.
+
+### Option A: Start Final Fantasy XI From The Current Viewer Screen
+
+This is a rough fallback.
+
+1. Press Right.
+2. Hold Down Arrow and listen for fast movement through a list.
+3. Hold Up Arrow until you reach the top.
+4. Press Down once.
+5. Press Enter if the game does not start automatically.
+
+This can work, but it is not the normal flow you will use later.
+
+### Option B: Exit And Use The Normal Accessible Flow
+
+This is the recommended flow.
+
+1. Press Alt+F4, or press Escape until PlayOnline asks to exit.
+2. Choose `Yes` on the exit confirmations.
+3. Restart PlayOnline through AccessXI.
+4. Select your member name.
+5. Select `Login`.
+6. Enter your Square Enix password.
+7. Move to `Connect`.
+8. Press Enter.
+
+This time, the AccessXI PlayOnline plugin should move you to the Final Fantasy XI option.
+
+1. Press Enter on `FINAL FANTASY XI`.
+2. On the next game screen, press Enter twice if there are no updates.
+3. If the game needs an update, press Enter once to start the update.
+4. Wait while the update downloads and installs.
+5. Use OCR to check progress.
+6. When the update says it is finished, press Enter.
+
+After that, Final Fantasy XI should start, and the in-game AccessXI addon takes over.
+
+## Regular Login After Setup
+
+After the first setup is finished, the normal flow is:
+
+1. Start PlayOnline through AccessXI.
+2. Select your member name.
+3. Select `Login`.
+4. Enter your Square Enix password.
+5. Move to `Connect`.
+6. Press Enter.
+7. Press Enter on `FINAL FANTASY XI`.
+8. Press Enter through the Final Fantasy XI start/update screen.
+
+If an update is required, start it with Enter, monitor it with OCR, then press Enter when it finishes.
+
+## Server Note
+
+If you want help from other blind players, Leviathan is currently a good server choice because other AccessXI users may be there.
+
+## Troubleshooting Notes
+
+If nothing speaks after PlayOnline restarts:
+
+- Make sure PlayOnline was started through the AccessXI launcher.
+- Try closing PlayOnline with Alt+F4 and starting again.
+- If a Visual C++ Runtime Library dialog appears, install the dependencies listed in the dependency warning section.
+- If you are at an old PlayOnline update or agreement screen, use OCR until you get through it.
+
+If PlayOnline says the PlayOnline ID or password is wrong:
+
+- Check that you entered the PlayOnline ID, not the Square Enix ID.
+- Check that the PlayOnline ID looks like four capital letters followed by four numbers.
+- Reset or verify the PlayOnline password in Square Enix Account Management.
+
+If PlayOnline says the Square Enix password is wrong:
+
+- Check that you entered the Square Enix password at the Square Enix password prompt.
+- If you use a one-time password, make sure the token setting and token code are correct.
+
+If you accidentally enter the wrong registration or new-member path:
+
+- Close PlayOnline with Alt+F4.
+- Start again.
+- Choose `For Members`, not the new registration option.

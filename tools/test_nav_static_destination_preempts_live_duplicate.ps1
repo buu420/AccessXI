@@ -34,6 +34,11 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
+    -Pattern 'function accessxi\.nav_live_entity_duplicate_key\(entity_point\)' `
+    -Message 'Expected live entity duplicate suppression to compute a key without requiring static confidence fields.'
+
+Assert-Match `
+    -Text $source `
     -Pattern 'function accessxi\.nav_live_entity_shadowed_by_static_destination\(entity_point,\s*static_destination_keys\)' `
     -Message 'Expected live entity duplicate suppression against observed/proven static destinations.'
 
@@ -63,8 +68,13 @@ $shadowBody = $source.Substring($shadowStart, $shadowEnd - $shadowStart)
 
 Assert-Match `
     -Text $shadowBody `
+    -Pattern 'nav_live_entity_duplicate_key\(entity_point\)' `
+    -Message 'Live duplicate suppression should compare normalized zone/name keys that do not depend on entity confidence.'
+
+Assert-NotMatch `
+    -Text $shadowBody `
     -Pattern 'nav_stable_destination_duplicate_key\(entity_point\)' `
-    -Message 'Live duplicate suppression should compare normalized zone/name/kind keys.'
+    -Message 'Live entity duplicate suppression must not require observed/proven confidence on live entities.'
 
 Assert-Match `
     -Text $shadowBody `

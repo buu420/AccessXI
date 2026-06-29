@@ -68939,6 +68939,20 @@ function accessxi.nav_stable_destination_duplicate_key(point)
     return ('%d:%s'):fmt(tonumber(point.zone) or 0, name);
 end
 
+function accessxi.nav_live_entity_duplicate_key(entity_point)
+    if (entity_point == nil) then
+        return '';
+    end
+
+    local name = nav_clean_field(entity_point.name or ''):lower():gsub('%s+', ' '):trim();
+    if (name == '') then
+        return '';
+    end
+
+    local zone = tonumber(entity_point.zone) or nav_zone_id();
+    return ('%d:%s'):fmt(zone or 0, name);
+end
+
 function accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, static_destination_keys)
     if (entity_point == nil or type(static_destination_keys) ~= 'table') then
         return false;
@@ -68949,7 +68963,7 @@ function accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, s
         return false;
     end
 
-    local key = accessxi.nav_stable_destination_duplicate_key(entity_point);
+    local key = accessxi.nav_live_entity_duplicate_key(entity_point);
     return key ~= '' and static_destination_keys[key] == true;
 end
 

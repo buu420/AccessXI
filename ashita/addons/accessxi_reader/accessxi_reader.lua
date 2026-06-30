@@ -67381,6 +67381,9 @@ function accessxi.nav_arrival_radius(destination)
     end
 
     local name = tostring(destination.name or ''):lower();
+    if (name == 'telepoint' and (tonumber(destination.zone) or 0) == 102) then
+        return 3;
+    end
     if (name:contains('zone line')) then
         return 8;
     end

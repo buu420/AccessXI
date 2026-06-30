@@ -153,6 +153,12 @@ foreach ($path in $luaPaths) {
     $source = Get-Content -LiteralPath $path -Raw
     Assert-True ($source -match "name\s*==\s*'telepoint'[\s\S]*?tonumber\(destination\.zone\)[\s\S]*?==\s*102[\s\S]*?return\s+3") "La Theine Telepoint should use a tighter arrival radius so nav does not stop under the crag in $path."
     Assert-True ($source -match "function accessxi\.nav_route_override_requires_full_start\(points\)[\s\S]*?lathine-crag-to-telepoint[\s\S]*?function accessxi\.nav_route_override_start_index") "La Theine Telepoint stair override should force the route to start at the stair entry instead of skipping ahead by flat X/Z proximity in $path."
+
+    $pollRouteStart = $source.IndexOf('local function poll_nav_route')
+    $pollRouteEnd = $source.IndexOf('local function load_step', $pollRouteStart)
+    Assert-True ($pollRouteStart -ge 0 -and $pollRouteEnd -gt $pollRouteStart) "Could not locate poll_nav_route block in $path."
+    $pollRouteBody = $source.Substring($pollRouteStart, $pollRouteEnd - $pollRouteStart)
+    Assert-True ($pollRouteBody -match "route_count\s*>\s*1[\s\S]*?not\s+accessxi\.nav_route_points_are_override\(accessxi\.nav_route_points\)[\s\S]*?nav_route_override_points\(player,\s*destination\)[\s\S]*?override_handoff:len\(\)\s*>\s*1[\s\S]*?accessxi\.nav_route_points\s*=\s*override_handoff[\s\S]*?nav route override handoff") "Active mesh routes should hand off to the La Theine Telepoint override as soon as the player enters the Holla crag box, instead of waiting for blocked-route recovery in $path."
 }
 
 Write-Host 'La Theine telepoint approach checks ok'

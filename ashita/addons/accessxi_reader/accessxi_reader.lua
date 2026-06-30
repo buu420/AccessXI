@@ -83779,8 +83779,19 @@ local function poll_nav_route()
             nav_distance(player, destination)));
     end
 
-    local route_target = destination;
     local route_count = accessxi.nav_route_points:len();
+    if (route_count > 1 and not accessxi.nav_route_points_are_override(accessxi.nav_route_points)) then
+        local override_handoff = accessxi.nav_route_override_points(player, destination);
+        if (override_handoff:len() > 1) then
+            accessxi.nav_route_points = override_handoff;
+            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, override_handoff, destination);
+            accessxi.nav_route_last_recalc_tick = now;
+            route_count = accessxi.nav_route_points:len();
+            log_line(('nav route override handoff destination="%s" count=%d'):fmt(destination.name or '', route_count));
+        end
+    end
+
+    local route_target = destination;
     local real_route_target = destination;
     if (route_count > 1) then
         accessxi.nav_sync_route_index(player);

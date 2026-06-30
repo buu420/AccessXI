@@ -1099,6 +1099,7 @@ local accessxi = T{
     enemy_warning_last_key = '',
     enemy_warning_range = 35,
     nav_widescan_max_range = 350,
+    nav_live_search_max_range = 9999,
     nav_mesh_handle = nil,
     nav_mesh_zone = 0,
     nav_mesh_loaded = false,
@@ -1108,6 +1109,7 @@ local accessxi = T{
     nav_route_last_recalc_tick = 0,
     nav_active = false,
     nav_destination = nil,
+    nav_live_route_missing_since = 0,
     nav_zone_search_target = nil,
     nav_zone_search_query = '',
     nav_zone_search_waiting_zone = 0,
@@ -68659,7 +68661,8 @@ nav_nearby = function (max_count, max_distance)
 
     local player_index = tonumber(player.index) or -1;
     local size = tonumber(safe_call(function () return entity:GetEntityMapSize(); end, 0)) or 0;
-    local distance_limit = math.max(1, math.min(tonumber(max_distance) or 120, tonumber(accessxi.nav_widescan_max_range) or 350));
+    local hard_limit = math.max(tonumber(accessxi.nav_widescan_max_range) or 350, tonumber(accessxi.nav_live_search_max_range) or 9999);
+    local distance_limit = math.max(1, math.min(tonumber(max_distance) or 120, hard_limit));
     local results = {};
     for i = 0, math.min(size - 1, 2303) do
         if (i ~= player_index) then
@@ -68892,6 +68895,10 @@ function accessxi.nav_live_entity_valid(pos)
     return zone <= 0 or (tonumber(pos.zone) or 0) == zone;
 end
 
+function accessxi.nav_live_entity_search_range()
+    return math.max(tonumber(accessxi.nav_widescan_max_range) or 350, tonumber(accessxi.nav_live_search_max_range) or 9999);
+end
+
 function accessxi.nav_live_nm_names_for_zone(zone)
     nav_load_points();
     zone = tonumber(zone) or nav_zone_id();
@@ -68985,7 +68992,8 @@ function accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, s
 end
 
 function accessxi.nav_live_entity_snapshot(max_count, max_distance)
-    local limit = math.max(1, math.min(tonumber(max_distance) or (tonumber(accessxi.nav_widescan_max_range) or 350), tonumber(accessxi.nav_widescan_max_range) or 350));
+    local hard_limit = math.max(tonumber(accessxi.nav_widescan_max_range) or 350, tonumber(accessxi.nav_live_search_max_range) or 9999);
+    local limit = math.max(1, math.min(tonumber(max_distance) or (tonumber(accessxi.nav_widescan_max_range) or 350), hard_limit));
     local nearby = nav_nearby(max_count or 80, limit);
     local results = {};
     if (nearby == nil) then
@@ -69040,6 +69048,155 @@ end
 
 function accessxi.nav_live_enemies(max_distance)
     return accessxi.nav_live_entities_for_category('enemy', max_distance);
+end
+
+function accessxi.nav_point_is_live_entity(point)
+    if (point == nil) then
+        return false;
+    end
+
+    local source = tostring(point.source or ''):lower();
+    if (source:startswith('live-entity:')) then
+        return true;
+    end
+
+    local live_kind = nav_clean_field(point.live_kind or '');
+    return live_kind == 'enemy' or live_kind == 'live-nm' or live_kind == 'player';
+end
+
+function accessxi.nav_resolve_live_entity_point(point, player)
+    if (point == nil) then
+        return nil;
+    end
+
+    if (not accessxi.nav_point_is_live_entity(point)) then
+        return nil;
+    end
+
+    local source = tostring(point.source or ''):lower();
+    local expected_name = nav_clean_field(point.name or '');
+    local expected_name_key = expected_name:lower():gsub('%s+', ' ');
+    local source_index, source_server_id = source:match('live%-entity:(%-?%d+):(%d+)');
+    local expected_index = tonumber(point.index) or tonumber(source_index) or -1;
+    local expected_server_id = tonumber(point.server_id) or tonumber(source_server_id) or 0;
+
+    local function normalize_candidate(pos)
+        if (pos == nil or not accessxi.nav_live_entity_valid(pos)) then
+            return nil;
+        end
+        local name_key = nav_clean_field(pos.name or ''):lower():gsub('%s+', ' ');
+        local server_id = tonumber(pos.server_id) or 0;
+        if (expected_server_id > 0 and server_id ~= expected_server_id) then
+            return nil;
+        end
+        if (expected_server_id <= 0 and expected_name_key ~= '' and name_key ~= expected_name_key) then
+            return nil;
+        end
+
+        pos.live_kind = accessxi.nav_entity_kind(pos);
+        pos.live_nm = accessxi.nav_entity_is_live_nm_candidate(pos);
+        if (pos.live_nm == true) then
+            pos.live_kind = 'live-nm';
+        end
+        pos.distance = player ~= nil and nav_distance(player, pos) or tonumber(pos.distance) or 0;
+        return T{
+            zone = pos.zone,
+            name = pos.name,
+            x = pos.x,
+            z = pos.z,
+            y = pos.y,
+            kind = pos.live_kind,
+            source = ('live-entity:%d:%d'):fmt(pos.index or -1, pos.server_id or 0),
+            confidence = nav_clean_field(point.confidence or ''),
+            section = nav_clean_field(point.section or ''),
+            distance = pos.distance or 0,
+            index = pos.index,
+            server_id = pos.server_id,
+            live_kind = pos.live_kind,
+            live_nm = pos.live_nm,
+        };
+    end
+
+    if (expected_index >= 0) then
+        local direct = normalize_candidate(nav_entity_position(expected_index));
+        if (direct ~= nil) then
+            return direct;
+        end
+    end
+
+    local best = nil;
+    local best_distance = 999999;
+    local candidates = accessxi.nav_live_entity_snapshot(240, accessxi.nav_live_entity_search_range());
+    for _, pos in ipairs(candidates) do
+        local candidate = normalize_candidate(pos);
+        if (candidate ~= nil) then
+            local distance = expected_server_id > 0 and (candidate.distance or 0) or nav_distance(point, candidate);
+            if (best == nil or distance < best_distance) then
+                best = candidate;
+                best_distance = distance;
+            end
+        end
+    end
+    return best;
+end
+
+function accessxi.nav_refresh_live_route_destination(player, now)
+    if (not accessxi.nav_active or accessxi.nav_destination == nil) then
+        return false;
+    end
+
+    local current = accessxi.nav_destination;
+    local resolved = accessxi.nav_resolve_live_entity_point(current, player);
+    if (resolved == nil) then
+        if (accessxi.nav_point_is_live_entity(current)) then
+            now = tonumber(now) or tick();
+            if ((tonumber(accessxi.nav_live_route_missing_since) or 0) == 0) then
+                accessxi.nav_live_route_missing_since = now;
+                return false;
+            end
+            if ((now - (tonumber(accessxi.nav_live_route_missing_since) or now)) >= 3000) then
+                local text = ('Route stopped. %s is no longer visible.'):fmt(current.name or 'Target');
+                accessxi.nav_active = false;
+                accessxi.nav_destination = nil;
+                accessxi.nav_route_points:clear();
+                accessxi.nav_route_point_index = 1;
+                accessxi.nav_last_key = '';
+                accessxi.nav_last_direction_text = '';
+                accessxi.nav_beacon_last_key = '';
+                accessxi.nav_beacon_last_tick = 0;
+                accessxi.nav_live_route_missing_since = 0;
+                speak(text);
+                log_line(('nav live route target lost name="%s"'):fmt(current.name or ''));
+                return true;
+            end
+        end
+        return false;
+    end
+
+    accessxi.nav_live_route_missing_since = 0;
+    local moved = nav_distance(current, resolved);
+    if (moved <= 0.15) then
+        return false;
+    end
+
+    now = tonumber(now) or tick();
+    accessxi.nav_destination = resolved;
+    local route_count = accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() or 0;
+    if (moved >= 3.0 and route_count > 1 and ((now - (tonumber(accessxi.nav_route_last_recalc_tick) or 0)) > 1800)) then
+        accessxi.nav_route_last_recalc_tick = now;
+        accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, resolved);
+        if (accessxi.nav_route_points:len() > 1) then
+            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, accessxi.nav_route_points, resolved);
+        else
+            accessxi.nav_route_point_index = 1;
+        end
+    end
+    log_line(('nav live route retarget name="%s" moved=%.1f x=%.3f z=%.3f'):fmt(
+        resolved.name or current.name or '',
+        moved,
+        resolved.x or 0,
+        resolved.z or 0));
+    return true;
 end
 
 function accessxi.nav_live_category(category_key)
@@ -69236,9 +69393,9 @@ local function nav_collect_menu_items(category_key, search_query)
         seen:append(nav_point_key(point));
     end
 
-    local live_distance = (category_key == 'enemy' or category_key == 'live-nm') and (tonumber(accessxi.nav_widescan_max_range) or 350) or 120;
+    local live_distance = (category_key == 'enemy' or category_key == 'live-nm') and accessxi.nav_live_entity_search_range() or 120;
     if (nav_clean_field(search_query) ~= '') then
-        live_distance = tonumber(accessxi.nav_widescan_max_range) or 350;
+        live_distance = accessxi.nav_live_entity_search_range();
     end
     local nearby = accessxi.nav_live_entities_for_category(category_key, live_distance);
     for _, entity_point in ipairs(nearby) do
@@ -69252,6 +69409,10 @@ local function nav_collect_menu_items(category_key, search_query)
             kind = entity_kind,
             source = ('live-entity:%d:%d'):fmt(entity_point.index or -1, entity_point.server_id or 0),
             distance = entity_point.distance or 0,
+            index = entity_point.index,
+            server_id = entity_point.server_id,
+            live_kind = entity_kind,
+            live_nm = entity_point.live_nm,
         };
         local key = nav_point_key(point);
         if (accessxi.nav_point_matches_category(point, category_key)
@@ -69536,6 +69697,12 @@ local function nav_menu_start_route()
     end
 
     accessxi.nav_clear_zone_search();
+    local player = nav_cached_player_position();
+    local live_item = accessxi.nav_resolve_live_entity_point(item, player);
+    if (live_item ~= nil) then
+        item = live_item;
+    end
+
     accessxi.nav_active = true;
     accessxi.nav_destination = item;
     accessxi.nav_last_key = '';
@@ -69565,11 +69732,11 @@ local function nav_menu_start_route()
     accessxi.nav_menu_poll_key = 0;
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = 0;
-    local player = nav_cached_player_position();
     accessxi.nav_route_start_point = player ~= nil and T{ zone = player.zone, x = player.x, z = player.z, y = player.y, yaw = player.yaw } or nil;
     accessxi.nav_route_start_tick = tick();
     accessxi.nav_last_failure_key = '';
     accessxi.nav_last_failure_tick = 0;
+    accessxi.nav_live_route_missing_since = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, item);
     if (accessxi.nav_point_effective_kind(item) == 'area' and accessxi.nav_route_points:len() <= 1 and not accessxi.nav_area_point_direct_route_allowed(player, item) and not accessxi.nav_area_point_reachable(player, item)) then
         nav_write_route_evidence('unreachable', player, item, nil, T{ reason = 'menu start unreachable' });
@@ -69712,6 +69879,10 @@ function accessxi.nav_copy_point(point)
         confidence = nav_clean_field(point.confidence or ''),
         section = nav_clean_field(point.section or ''),
         distance = tonumber(point.distance) or 0,
+        index = tonumber(point.index),
+        server_id = tonumber(point.server_id),
+        live_kind = nav_clean_field(point.live_kind or ''),
+        live_nm = point.live_nm == true,
     };
 end
 
@@ -69721,6 +69892,12 @@ function accessxi.nav_start_route_to_point(point, reason)
     end
 
     accessxi.nav_clear_zoning_watch('route-start');
+    local player = nav_cached_player_position();
+    local live_point = accessxi.nav_resolve_live_entity_point(point, player);
+    if (live_point ~= nil) then
+        point = live_point;
+    end
+
     accessxi.nav_active = true;
     accessxi.nav_destination = point;
     accessxi.nav_last_key = '';
@@ -69746,11 +69923,11 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_wall_avoid_last_tick = 0;
     accessxi.nav_route_point_index = 1;
     accessxi.nav_route_last_recalc_tick = tick();
-    local player = nav_cached_player_position();
     accessxi.nav_route_start_point = player ~= nil and T{ zone = player.zone, x = player.x, z = player.z, y = player.y, yaw = player.yaw } or nil;
     accessxi.nav_route_start_tick = tick();
     accessxi.nav_last_failure_key = '';
     accessxi.nav_last_failure_tick = 0;
+    accessxi.nav_live_route_missing_since = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, point);
     if (accessxi.nav_point_effective_kind(point) == 'area' and accessxi.nav_route_points:len() <= 1 and not accessxi.nav_area_point_direct_route_allowed(player, point) and not accessxi.nav_area_point_reachable(player, point)) then
         nav_write_route_evidence('unreachable', player, point, nil, T{ reason = tostring(reason or 'command') .. ' start unreachable' });
@@ -83761,6 +83938,13 @@ local function poll_nav_route()
         return;
     end
 
+    if (accessxi.nav_refresh_live_route_destination(player, now)) then
+        destination = accessxi.nav_destination;
+        if (destination == nil) then
+            return;
+        end
+    end
+
     if ((accessxi.nav_route_points:len() == 0) and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 3000)) then
         accessxi.nav_route_last_recalc_tick = now;
         accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
@@ -84633,9 +84817,9 @@ function accessxi.handle_axi_command(args, e, source)
         end
     elseif (#args >= 2 and args[2]:any('enemies', 'mobs')) then
         e.blocked = true;
-        local enemies = accessxi.nav_live_enemies(tonumber(accessxi.nav_widescan_max_range) or 350);
+        local enemies = accessxi.nav_live_enemies(accessxi.nav_live_entity_search_range());
         if (#enemies == 0) then
-            speak('No visible enemies nearby.');
+            speak('No visible enemies in this zone.');
             log_line('nav enemies none');
             accessxi.nav_log_entity_candidates('nav enemies candidate', 12);
         else

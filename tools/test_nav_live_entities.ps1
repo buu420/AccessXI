@@ -36,6 +36,10 @@ foreach ($fragment in @(
     'function accessxi.nav_live_entity_key(pos)',
     'function accessxi.nav_live_entity_valid(pos)',
     'function accessxi.nav_live_entity_snapshot(max_count, max_distance)',
+    'function accessxi.nav_live_entity_search_range()',
+    'function accessxi.nav_point_is_live_entity(point)',
+    'function accessxi.nav_resolve_live_entity_point(point, player)',
+    'function accessxi.nav_refresh_live_route_destination(player, now)',
     'function accessxi.nav_live_nm_names_for_zone(zone)',
     'function accessxi.nav_entity_is_live_nm_candidate(pos)',
     'function accessxi.nav_zone_suppresses_named_npc_obstacles(zone)',
@@ -121,6 +125,9 @@ if ($liveEnemiesStart -lt 0 -or $liveEnemiesEnd -lt 0) {
 $liveEnemiesBody = $source.Substring($liveEnemiesStart, $liveEnemiesEnd - $liveEnemiesStart)
 Assert-Match -Text $liveEnemiesBody -Pattern 'nav_live_entities_for_category' -Message 'Enemy warning should share live category filtering.'
 
+Assert-Match -Text $source -Pattern 'nav_live_search_max_range\s*=\s*9999' -Message 'Enemy search should have a zone-wide live-entity search range separate from nearby warning range.'
+Assert-Match -Text $source -Pattern 'local\s+hard_limit\s*=\s*math\.max\([^\r\n]*nav_widescan_max_range[\s\S]*?nav_live_search_max_range' -Message 'Live entity scans should allow the wider search range when explicitly requested.'
+
 $liveCategoryStart = $source.IndexOf('function accessxi.nav_live_category')
 $liveCategoryEnd = $source.IndexOf('function accessxi.nav_log_entity_candidates', $liveCategoryStart)
 if ($liveCategoryStart -lt 0 -or $liveCategoryEnd -lt 0) {
@@ -136,6 +143,37 @@ if ($collectStart -lt 0 -or $collectEnd -lt 0) {
 }
 $collectBody = $source.Substring($collectStart, $collectEnd - $collectStart)
 Assert-Match -Text $collectBody -Pattern 'nav_live_entities_for_category' -Message 'Navigation menu should use shared live entity category filtering.'
+Assert-Match -Text $collectBody -Pattern 'nav_live_entity_search_range\(\)' -Message 'Enemy/search menu should use the zone-wide live search range.'
 Assert-Match -Text $collectBody -Pattern "source = \('live-entity:%d:%d'" -Message 'Live menu entries should be visibly live entity sourced.'
+Assert-Match -Text $collectBody -Pattern 'index\s*=\s*entity_point\.index[\s\S]*?server_id\s*=\s*entity_point\.server_id[\s\S]*?live_kind\s*=\s*entity_kind' -Message 'Live menu entries should preserve entity identity for moving-target route retargeting.'
+
+$copyPointStart = $source.IndexOf('function accessxi.nav_copy_point')
+$copyPointEnd = $source.IndexOf('function accessxi.nav_start_route_to_point', $copyPointStart)
+if ($copyPointStart -lt 0 -or $copyPointEnd -lt 0) {
+    throw 'Could not locate nav_copy_point block.'
+}
+$copyPointBody = $source.Substring($copyPointStart, $copyPointEnd - $copyPointStart)
+Assert-Match -Text $copyPointBody -Pattern 'index\s*=\s*tonumber\(point\.index\)[\s\S]*?server_id\s*=\s*tonumber\(point\.server_id\)[\s\S]*?live_kind\s*=\s*nav_clean_field\(point\.live_kind' -Message 'Copied live nav points must retain index, server id, and live kind.'
+
+$startRouteBody = $source.Substring($copyPointEnd, $source.IndexOf('function accessxi.nav_zone_search_npc_results', $copyPointEnd) - $copyPointEnd)
+Assert-Match -Text $startRouteBody -Pattern 'nav_resolve_live_entity_point\(point,\s*player\)' -Message 'Command-started live enemy routes should resolve the current entity position before route creation.'
+
+$menuStartRouteStart = $source.IndexOf('local function nav_menu_start_route')
+$menuStartRouteEnd = $source.IndexOf('local function nav_menu_handle_key', $menuStartRouteStart)
+if ($menuStartRouteStart -lt 0 -or $menuStartRouteEnd -lt 0) {
+    throw 'Could not locate nav_menu_start_route block.'
+}
+$menuStartRouteBody = $source.Substring($menuStartRouteStart, $menuStartRouteEnd - $menuStartRouteStart)
+Assert-Match -Text $menuStartRouteBody -Pattern 'nav_resolve_live_entity_point\(item,\s*player\)' -Message 'Menu-started live enemy routes should resolve the current entity position before route creation.'
+
+Assert-Match -Text $pollRouteBody -Pattern 'nav_refresh_live_route_destination\(player,\s*now\)' -Message 'Active live enemy routes should retarget to the moving entity during route polling.'
+
+$refreshStart = $source.IndexOf('function accessxi.nav_refresh_live_route_destination')
+$refreshEnd = $source.IndexOf('function accessxi.nav_live_category', $refreshStart)
+if ($refreshStart -lt 0 -or $refreshEnd -lt 0) {
+    throw 'Could not locate nav_refresh_live_route_destination block.'
+}
+$refreshBody = $source.Substring($refreshStart, $refreshEnd - $refreshStart)
+Assert-Match -Text $refreshBody -Pattern 'nav_point_is_live_entity\(current\)[\s\S]*?accessxi\.nav_active\s*=\s*false[\s\S]*?nav live route target lost' -Message 'Live enemy routes should stop instead of continuing to stale coordinates when the target disappears.'
 
 Write-Host 'nav live entity checks ok'

@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $paths = @(
     'C:\Users\buu42\AccessXI\data\ffxi-nav-destinations.tsv',
+    'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\data\ffxi-nav-destinations.tsv',
     'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-destinations.tsv'
 )
 
@@ -57,8 +58,8 @@ foreach ($path in $paths) {
     Assert-True ($telepointRows.Count -eq 1) "Expected one La Theine Telepoint row in $path; found $($telepointRows.Count)."
     $telepoint = $telepointRows[0]
     Assert-True ($telepoint.Y -ge 23.5 -and $telepoint.Y -le 24.8) "La Theine Telepoint should use the walkable floor height near y=24, not the lower object center: $($telepoint.Y) in $path."
-    Assert-True ($telepoint.X -ge 414.0 -and $telepoint.X -le 418.5 -and $telepoint.Z -ge 24.0 -and $telepoint.Z -le 28.0) "La Theine Telepoint should route to the observed reachable edge, not the column center: x=$($telepoint.X) z=$($telepoint.Z) in $path."
-    Assert-True ($telepoint.Source -match 'live-screenshot-lathine-telepoint-20260628') "La Theine Telepoint source should record the live screenshot/evidence correction in $path."
+    Assert-True ($telepoint.X -ge 430.0 -and $telepoint.X -le 435.0 -and $telepoint.Z -ge 26.0 -and $telepoint.Z -le 30.0) "La Theine Telepoint should route to the targetable outside edge, not underneath the crag: x=$($telepoint.X) z=$($telepoint.Z) in $path."
+    Assert-True ($telepoint.Source -match 'live-target-focus-lathine-telepoint-20260628-235605') "La Theine Telepoint source should record the live targetable edge evidence in $path."
     Assert-True ($telepoint.Confidence -eq 'observed') "La Theine Telepoint correction should be marked observed until live-tested: $($telepoint.Confidence) in $path."
 
     $shatteredRows = @(Get-NavRows -Path $path -Name 'Shattered Telepoint')

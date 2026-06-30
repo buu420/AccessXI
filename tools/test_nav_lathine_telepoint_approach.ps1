@@ -128,7 +128,7 @@ foreach ($path in $paths) {
 
 foreach ($path in $routeOverridePaths) {
     $rows = @(Get-RouteRows -Path $path -RouteId 'lathine-crag-to-telepoint')
-    Assert-True ($rows.Count -eq 7) "Expected seven stair approach waypoints for La Theine Telepoint in $path; found $($rows.Count)."
+    Assert-True ($rows.Count -eq 5) "Expected five live-recorded descent waypoints for La Theine Telepoint in $path; found $($rows.Count)."
 
     foreach ($row in $rows) {
         Assert-True ($row.Zone -eq 102) "La Theine Telepoint route override should be zone 102 in $path."
@@ -138,9 +138,13 @@ foreach ($path in $routeOverridePaths) {
         Assert-True ($row.MinX -eq 400.0 -and $row.MaxX -eq 465.0 -and $row.MinZ -eq 10.0 -and $row.MaxZ -eq 55.0) "La Theine Telepoint override should only apply near the Holla crag and stair approach in $path."
         Assert-True ($row.Source -eq 'live-axi-pos-lathine-holla-stairs-20260629') "La Theine Telepoint override should record the live stair /axi pos evidence in $path."
         Assert-True ($row.Confidence -eq 'observed') "La Theine Telepoint override should remain observed until live-tested in $path."
+        Assert-True ($row.WaypointX -ge 418.8 -and $row.WaypointX -le 420.2) "La Theine Telepoint override should follow the live x=419 descent path instead of crossing the upper platform: x=$($row.WaypointX) in $path."
     }
 
     Assert-True ([math]::Abs($rows[0].WaypointX - 419.6) -le 0.1 -and [math]::Abs($rows[0].WaypointZ - 41.2) -le 0.1 -and [math]::Abs($rows[0].WaypointY - 25.0) -le 0.1) "First La Theine Telepoint waypoint should be the live-recorded stair entry at X 419.6 Z 41.2 Y 25.0 in $path."
+    Assert-True ([math]::Abs($rows[1].WaypointX - 419.511) -le 0.1 -and [math]::Abs($rows[1].WaypointZ - 37.443) -le 0.1 -and [math]::Abs($rows[1].WaypointY - 23.354) -le 0.1) "Second La Theine Telepoint waypoint should start the confirmed stair descent at X 419.511 Z 37.443 Y 23.354 in $path."
+    Assert-True ([math]::Abs($rows[2].WaypointX - 419.296) -le 0.1 -and [math]::Abs($rows[2].WaypointZ - 29.197) -le 0.1 -and [math]::Abs($rows[2].WaypointY - 19.604) -le 0.1) "Third La Theine Telepoint waypoint should stay on the lower descent corridor at X 419.296 Z 29.197 Y 19.604 in $path."
+    Assert-True ([math]::Abs($rows[3].WaypointX - 419.272) -le 0.1 -and [math]::Abs($rows[3].WaypointZ - 27.468) -le 0.1 -and [math]::Abs($rows[3].WaypointY - 19.477) -le 0.1) "Fourth La Theine Telepoint waypoint should keep the short lower approach at X 419.272 Z 27.468 Y 19.477 in $path."
     Assert-True ([math]::Abs($rows[-1].WaypointX - 420.0) -le 0.1 -and [math]::Abs($rows[-1].WaypointZ - 20.2) -le 0.1 -and [math]::Abs($rows[-1].WaypointY - 19.1) -le 0.1) "Final La Theine Telepoint approach should stop at the live-recorded Holla gate crystal point in $path."
 }
 

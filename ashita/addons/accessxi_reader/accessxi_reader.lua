@@ -68016,9 +68016,23 @@ function accessxi.nav_route_override_matches(player, point, override)
     return expected_name == '' or point_name == '' or point_name:contains(expected_name) or expected_name:contains(point_name);
 end
 
+function accessxi.nav_route_override_requires_full_start(points)
+    local count = points ~= nil and points:len() or 0;
+    if (count <= 0) then
+        return false;
+    end
+
+    local first = points[1];
+    local route_id = tostring(first ~= nil and first.route_override_id or ''):lower();
+    return route_id == 'lathine-crag-to-telepoint';
+end
+
 function accessxi.nav_route_override_start_index(player, points)
     local count = points ~= nil and points:len() or 0;
     if (player == nil or count <= 1) then
+        return 1;
+    end
+    if (accessxi.nav_route_override_requires_full_start(points)) then
         return 1;
     end
     local wall = (type(accessxi.nav_wall_distance) == 'function') and accessxi.nav_wall_distance(player) or nil;

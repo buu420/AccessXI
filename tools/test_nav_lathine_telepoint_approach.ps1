@@ -114,9 +114,8 @@ foreach ($path in $paths) {
     $telepointRows = @(Get-NavRows -Path $path -Name 'Telepoint')
     Assert-True ($telepointRows.Count -eq 1) "Expected one La Theine Telepoint row in $path; found $($telepointRows.Count)."
     $telepoint = $telepointRows[0]
-    Assert-True ($telepoint.Y -ge 23.5 -and $telepoint.Y -le 24.8) "La Theine Telepoint should use the walkable floor height near y=24, not the lower object center: $($telepoint.Y) in $path."
-    Assert-True ($telepoint.X -ge 430.0 -and $telepoint.X -le 435.0 -and $telepoint.Z -ge 26.0 -and $telepoint.Z -le 30.0) "La Theine Telepoint should route to the targetable outside edge, not underneath the crag: x=$($telepoint.X) z=$($telepoint.Z) in $path."
-    Assert-True ($telepoint.Source -match 'live-target-focus-lathine-telepoint-20260628-235605') "La Theine Telepoint source should record the live targetable edge evidence in $path."
+    Assert-True ([math]::Abs($telepoint.X - 420.0) -le 0.1 -and [math]::Abs($telepoint.Z - 20.2) -le 0.1 -and [math]::Abs($telepoint.Y - 19.1) -le 0.1) "La Theine Telepoint should route to the live-recorded Holla gate crystal interaction point: x=$($telepoint.X) z=$($telepoint.Z) y=$($telepoint.Y) in $path."
+    Assert-True ($telepoint.Source -match 'live-axi-pos-lathine-holla-gate-crystal-20260629') "La Theine Telepoint source should record the live gate crystal /axi pos evidence in $path."
     Assert-True ($telepoint.Confidence -eq 'observed') "La Theine Telepoint correction should be marked observed until live-tested: $($telepoint.Confidence) in $path."
 
     $shatteredRows = @(Get-NavRows -Path $path -Name 'Shattered Telepoint')
@@ -129,26 +128,27 @@ foreach ($path in $paths) {
 
 foreach ($path in $routeOverridePaths) {
     $rows = @(Get-RouteRows -Path $path -RouteId 'lathine-crag-to-telepoint')
-    Assert-True ($rows.Count -eq 5) "Expected five crag approach waypoints for La Theine Telepoint in $path; found $($rows.Count)."
+    Assert-True ($rows.Count -eq 7) "Expected seven stair approach waypoints for La Theine Telepoint in $path; found $($rows.Count)."
 
     foreach ($row in $rows) {
         Assert-True ($row.Zone -eq 102) "La Theine Telepoint route override should be zone 102 in $path."
         Assert-True ($row.DestinationName -eq 'Telepoint') "La Theine Telepoint route override should target Telepoint in $path."
-        Assert-True ([math]::Abs($row.DestinationX - 432.895) -lt 0.001 -and [math]::Abs($row.DestinationZ - 27.770) -lt 0.001 -and [math]::Abs($row.DestinationY - 24.000) -lt 0.001) "La Theine Telepoint override destination drifted in $path."
+        Assert-True ([math]::Abs($row.DestinationX - 420.0) -lt 0.001 -and [math]::Abs($row.DestinationZ - 20.2) -lt 0.001 -and [math]::Abs($row.DestinationY - 19.1) -lt 0.001) "La Theine Telepoint override destination should be the live-recorded Holla gate crystal point in $path."
         Assert-True ($row.MatchRadius -eq 4.0) "La Theine Telepoint override should match only the observed Telepoint row in $path."
-        Assert-True ($row.MinX -eq 400.0 -and $row.MaxX -eq 450.0 -and $row.MinZ -eq 10.0 -and $row.MaxZ -eq 50.0) "La Theine Telepoint override should only apply near the Holla crag in $path."
-        Assert-True ($row.Source -eq 'live-screenshot-video-lathine-holla-20260629') "La Theine Telepoint override should record screenshot/video evidence in $path."
+        Assert-True ($row.MinX -eq 400.0 -and $row.MaxX -eq 465.0 -and $row.MinZ -eq 10.0 -and $row.MaxZ -eq 55.0) "La Theine Telepoint override should only apply near the Holla crag and stair approach in $path."
+        Assert-True ($row.Source -eq 'live-axi-pos-lathine-holla-stairs-20260629') "La Theine Telepoint override should record the live stair /axi pos evidence in $path."
         Assert-True ($row.Confidence -eq 'observed') "La Theine Telepoint override should remain observed until live-tested in $path."
     }
 
-    Assert-True ($rows[0].WaypointZ -ge 36.0) "First La Theine Telepoint waypoint should pull out from under the crag before crossing to the Telepoint platform in $path."
-    Assert-True ($rows[-1].WaypointX -ge 434.0 -and $rows[-1].WaypointX -le 438.0 -and $rows[-1].WaypointZ -ge 29.0 -and $rows[-1].WaypointZ -le 33.0) "Final La Theine Telepoint approach should stop on the platform edge, not under the overhang in $path."
+    Assert-True ([math]::Abs($rows[0].WaypointX - 419.6) -le 0.1 -and [math]::Abs($rows[0].WaypointZ - 41.2) -le 0.1 -and [math]::Abs($rows[0].WaypointY - 25.0) -le 0.1) "First La Theine Telepoint waypoint should be the live-recorded stair entry at X 419.6 Z 41.2 Y 25.0 in $path."
+    Assert-True ([math]::Abs($rows[-1].WaypointX - 420.0) -le 0.1 -and [math]::Abs($rows[-1].WaypointZ - 20.2) -le 0.1 -and [math]::Abs($rows[-1].WaypointY - 19.1) -le 0.1) "Final La Theine Telepoint approach should stop at the live-recorded Holla gate crystal point in $path."
 }
 
 foreach ($path in $luaPaths) {
     Assert-True (Test-Path -LiteralPath $path) "Missing addon Lua file: $path"
     $source = Get-Content -LiteralPath $path -Raw
     Assert-True ($source -match "name\s*==\s*'telepoint'[\s\S]*?tonumber\(destination\.zone\)[\s\S]*?==\s*102[\s\S]*?return\s+3") "La Theine Telepoint should use a tighter arrival radius so nav does not stop under the crag in $path."
+    Assert-True ($source -match "function accessxi\.nav_route_override_requires_full_start\(points\)[\s\S]*?lathine-crag-to-telepoint[\s\S]*?function accessxi\.nav_route_override_start_index") "La Theine Telepoint stair override should force the route to start at the stair entry instead of skipping ahead by flat X/Z proximity in $path."
 }
 
 Write-Host 'La Theine telepoint approach checks ok'

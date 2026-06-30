@@ -58,6 +58,7 @@ function Assert-LaTheineShelfOverrides {
 
     foreach ($routeId in @(
         'lathine-shelf-to-west-ronfaure-zoneline',
+        'lathine-gully-to-west-ronfaure-zoneline',
         'lathine-shelf-to-planar-rift',
         'lathine-shelf-to-survival-guide',
         'lathine-shelf-to-jugner-zoneline'
@@ -87,6 +88,21 @@ function Assert-LaTheineShelfOverrides {
         -Text $Text `
         -Pattern "(?m)^lathine-shelf-to-west-ronfaure-zoneline`t102`tWest Ronfaure zone line`t-558\.569`t688\.049`t-7\.049`t4\.0`t-705\.000`t-550\.000`t320\.000`t520\.000`t[0-9]+`t-621\." `
         -Message "Expected $Label westward shelf recovery to avoid the old cliff-edge -621 route points."
+
+    Assert-Match `
+        -Text $Text `
+        -Pattern "(?m)^lathine-gully-to-west-ronfaure-zoneline`t102`tWest Ronfaure zone line`t-558\.569`t688\.049`t-7\.049`t4\.0`t-455\.000`t-380\.000`t190\.000`t250\.000`t1`t-391\.600`t208\.000`t10\.950`t" `
+        -Message "Expected $Label westward gully recovery to pull the current screenshot pocket back to the known central route."
+
+    Assert-Match `
+        -Text $Text `
+        -Pattern "(?m)^lathine-gully-to-west-ronfaure-zoneline`t102`tWest Ronfaure zone line`t-558\.569`t688\.049`t-7\.049`t4\.0`t-455\.000`t-380\.000`t190\.000`t250\.000`t2`t-396\.000`t255\.600`t8\.750`t" `
+        -Message "Expected $Label westward gully recovery to continue north on the observed central corridor instead of the bad cliff-facing mesh leg."
+
+    Assert-Match `
+        -Text $Text `
+        -Pattern "(?m)^lathine-gully-to-west-ronfaure-zoneline`t102`tWest Ronfaure zone line`t-558\.569`t688\.049`t-7\.049`t4\.0`t-455\.000`t-380\.000`t190\.000`t250\.000`t10`t-478\.800`t454\.000`t-7\.450`t" `
+        -Message "Expected $Label westward gully recovery to rejoin the lower cross-valley route before the west zone line approach."
 
     Assert-Match `
         -Text $Text `
@@ -125,6 +141,11 @@ Assert-NavProbeWaypointCount `
     -Coordinates @('-596.859', '16.048', '387.850', '-570.000', '12.000', '420.000') `
     -MaxCount 2 `
     -Message 'Expected the screenshot shelf pocket to have a direct pull-away segment to the open eastern shelf.'
+
+Assert-NavProbeWaypointCount `
+    -Coordinates @('-426.804', '8.788', '220.242', '-391.600', '10.950', '208.000') `
+    -MaxCount 2 `
+    -Message 'Expected the current gully screenshot pocket to have a direct pull-away segment back to the central route.'
 
 Assert-NavProbeWaypointCount `
     -Coordinates @('-679.628', '15.975', '482.464', '-570.000', '12.000', '420.000') `

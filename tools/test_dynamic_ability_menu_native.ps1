@@ -96,7 +96,7 @@ Assert-Match `
 Assert-Match `
     -Text $source `
     -Pattern 'function\s+accessxi\.ability_aix_weapon_skill_for_selected\(selected,\s*child\)' `
-    -Message 'Weapon Skill AIX selected-row helper should avoid a live-count equality gate; live count can differ from the AIX known Weapon Skill run.'
+    -Message 'Weapon Skill AIX selected-row helper is missing.'
 
 $weaponAixStart = $source.IndexOf('function accessxi.ability_aix_weapon_skill_for_selected')
 if ($weaponAixStart -lt 0) {
@@ -108,10 +108,20 @@ if ($weaponAixEnd -lt 0) {
 }
 $weaponAixBody = $source.Substring($weaponAixStart, $weaponAixEnd - $weaponAixStart)
 
-Assert-NotMatch `
+Assert-Match `
     -Text $weaponAixBody `
-    -Pattern "order\.ids:len\(\) ~= count|'count'" `
-    -Message 'Weapon Skill AIX selected-row helper must not reject rows solely because live count differs from the local AIX known Weapon Skill run.'
+    -Pattern "(?s)local\s+live_count,\s*count_source\s*=\s*accessxi\.ability_direct_live_count\(0,\s*child\).*?order\.ids:len\(\)\s*~=\s*live_count" `
+    -Message 'Weapon Skill AIX order must match the live ability-specific child count before it can speak.'
+
+Assert-Match `
+    -Text $weaponAixBody `
+    -Pattern "(?s)local\s+known_list\s*=\s*accessxi\.ability_known_list_for_category\('Weapon Skills'\).*?known_list:len\(\)\s*~=\s*order\.ids:len\(\)" `
+    -Message 'Weapon Skill AIX order must cover the current character known Weapon Skill set exactly.'
+
+Assert-Match `
+    -Text $weaponAixBody `
+    -Pattern "anchor\s*==\s*0\s+or\s+anchor\s*==\s*0xFFFF" `
+    -Message 'An unset native Weapon Skill anchor should be accepted only after live-count and current-known-set validation.'
 
 Assert-NotMatch `
     -Text $source `

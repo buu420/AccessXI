@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import re
-from collections import Counter
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,13 +25,71 @@ DESTINATIONS = ROOT / "data" / "ffxi-nav-destinations.tsv"
 GRAPH = ROOT / "data" / "ffxi-nav-zoneline-graph.tsv"
 ZONELINES = ROOT / "data" / "lsb_zonelines.sql"
 NPC_LIST = ROOT / "data" / "lsb_npc_list.sql"
+MOB_SPAWN_POINTS = ROOT / "third_party" / "LandSandBoat-server" / "sql" / "mob_spawn_points.sql"
 ZONE_IDS = ROOT / "third_party" / "LandSandBoat-server" / "documentation" / "ZoneIDs.txt"
 
 GENERATED_SOURCE = "lsb-zoneline-all"
 GENERATED_NPC_SOURCE = "lsb-npc-list-all"
+GENERATED_ENEMY_SOURCE = "lsb-mob-spawn-camps"
+GENERATED_SOURCES = (GENERATED_SOURCE, GENERATED_NPC_SOURCE, GENERATED_ENEMY_SOURCE)
 GENERATED_SECTION = "world-zonelines-2026-06-20"
 GENERATED_NPC_SECTION = "world-npcs-2026-06-20"
+GENERATED_ENEMY_SECTION = "world-enemy-camps-2026-07-01"
 SKIP_DISTANCE_YALMS = 2.0
+MOB_CLUSTER_DISTANCE_YALMS = 120.0
+MOB_CLUSTER_Y_DISTANCE_YALMS = 24.0
+
+GRAPH_EDGE_OVERRIDES = {
+    # Live /axi pos evidence for the Port San d'Oria -> Northern San d'Oria
+    # trigger.  The raw LSB endpoint is close but steers into the wall.
+    812070522: {
+        "from_x": -108.899,
+        "from_z": -132.949,
+        "from_y": -8.500,
+        "to_y": 11.949,
+        "source": "live-verified-axi-pos",
+        "confidence": "proven",
+        "note": "port-to-northern-2026-06-28",
+    },
+    # The La Theine-side Valkurm trigger was captured with /axi pos after the
+    # recorded survey mark proved to be too far back from the zone boundary.
+    880095866: {
+        "from_x": 159.989,
+        "from_z": -760.190,
+        "from_y": 31.950,
+        "source": "live-axi-pos-lathine-valkurm-20260713",
+        "confidence": "observed",
+        "note": "La Theine-side trigger boundary recorded after Valkurm crossing",
+    },
+    846606970: {
+        "to_x": 159.989,
+        "to_z": -760.190,
+        "to_y": 31.950,
+        "source": "live-axi-pos-lathine-valkurm-20260713",
+        "confidence": "observed",
+        "note": "La Theine-side trigger boundary recorded after Valkurm crossing",
+    },
+    # These are the two Ordelle exits confirmed by the user's walked survey
+    # and aligned with the existing navmesh/zoneline endpoints.
+    913650298: {
+        "source": "live-mark-aligned-navmesh-20260713",
+        "confidence": "proven",
+        "note": "user-confirmed-ordelle-line-2026-07-13",
+    },
+    947204730: {
+        "source": "live-mark-aligned-navmesh-20260713",
+        "confidence": "proven",
+        "note": "user-confirmed-ordelle-line-2026-07-13",
+    },
+}
+
+# The third LSB Ordelle pair is not reachable from the surveyed La Theine
+# component. Keeping either direction would let world routing advertise a
+# transition the player cannot safely use.
+GRAPH_EDGE_EXCLUSIONS = {
+    1635070586,
+    878982522,
+}
 
 
 @dataclass(frozen=True)
@@ -63,6 +122,17 @@ class Destination:
     source: str
     confidence: str
     section: str
+
+
+@dataclass(frozen=True)
+class MobSpawn:
+    zone: int
+    name: str
+    x: float
+    z: float
+    y: float
+    min_level: int
+    max_level: int
 
 
 OBJECT_NAME_PARTS = (
@@ -195,6 +265,125 @@ def parse_npc_list(path: Path) -> list[Destination]:
     return rows
 
 
+def mob_name_is_placeholder(name: str) -> bool:
+    lower_name = clean_label(name).lower()
+    if lower_name == "" or lower_name == "blank" or lower_name == "fxtest":
+        return True
+    if lower_name.startswith("npc[") or lower_name.startswith("sdoor"):
+        return True
+    return re.match(r"^0x[0-9a-f]+$", lower_name) is not None
+
+
+def mob_position_is_placeholder(x: float, y: float, z: float) -> bool:
+    if abs(x) < 0.001 and abs(z) < 0.001:
+        return True
+    return abs(x - 1.0) < 0.001 and abs(y - 1.0) < 0.001 and abs(z - 1.0) < 0.001
+
+
+def parse_mob_spawn_points(path: Path) -> list[MobSpawn]:
+    rows: list[MobSpawn] = []
+    pattern = re.compile(r"INSERT INTO `mob_spawn_points` VALUES \((.*)\);")
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        values = next(csv.reader([match.group(1)], quotechar="'", escapechar="\\"))
+        if len(values) < 10:
+            continue
+        try:
+            mobid = int(values[0])
+            min_level = int(values[5] or 0)
+            max_level = int(values[6] or 0)
+            x = float(values[7])
+            y = float(values[8])
+            z = float(values[9])
+        except ValueError:
+            continue
+        name = clean_label((values[3] or values[2] or "").replace("_", " "))
+        if mob_name_is_placeholder(name) or mob_position_is_placeholder(x, y, z):
+            continue
+        rows.append(
+            MobSpawn(
+                zone=(mobid >> 12) & 0x0FFF,
+                name=name,
+                x=x,
+                z=z,
+                y=y,
+                min_level=min_level,
+                max_level=max_level,
+            )
+        )
+    return rows
+
+
+def enemy_camp_destination(spawns: list[MobSpawn]) -> Destination:
+    avg_x = sum(spawn.x for spawn in spawns) / len(spawns)
+    avg_z = sum(spawn.z for spawn in spawns) / len(spawns)
+    avg_y = sum(spawn.y for spawn in spawns) / len(spawns)
+    best = min(
+        spawns,
+        key=lambda spawn: ((spawn.x - avg_x) ** 2) + ((spawn.z - avg_z) ** 2) + (((spawn.y - avg_y) * 2.0) ** 2),
+    )
+    min_level = min(spawn.min_level for spawn in spawns)
+    max_level = max(spawn.max_level for spawn in spawns)
+    section = f"{GENERATED_ENEMY_SECTION}; spawns={len(spawns)}; levels={min_level}-{max_level}"
+    return Destination(
+        zone=best.zone,
+        name=best.name,
+        x=best.x,
+        z=best.z,
+        y=best.y,
+        kind="enemy",
+        source=GENERATED_ENEMY_SOURCE,
+        confidence="untested",
+        section=section,
+    )
+
+
+def cluster_enemy_camps(spawns: list[MobSpawn]) -> list[Destination]:
+    grouped: dict[tuple[int, str], list[MobSpawn]] = defaultdict(list)
+    for spawn in spawns:
+        grouped[(spawn.zone, spawn.name)].append(spawn)
+
+    camps: list[Destination] = []
+    distance_sq = MOB_CLUSTER_DISTANCE_YALMS * MOB_CLUSTER_DISTANCE_YALMS
+    cell_size = MOB_CLUSTER_DISTANCE_YALMS
+
+    for _, group_spawns in grouped.items():
+        grid: dict[tuple[int, int], list[int]] = defaultdict(list)
+        for index, spawn in enumerate(group_spawns):
+            grid[(math.floor(spawn.x / cell_size), math.floor(spawn.z / cell_size))].append(index)
+
+        seen = [False] * len(group_spawns)
+        for start_index, start_spawn in enumerate(group_spawns):
+            if seen[start_index]:
+                continue
+            component: list[MobSpawn] = []
+            pending: deque[int] = deque([start_index])
+            seen[start_index] = True
+            while pending:
+                index = pending.popleft()
+                spawn = group_spawns[index]
+                component.append(spawn)
+                grid_x = math.floor(spawn.x / cell_size)
+                grid_z = math.floor(spawn.z / cell_size)
+                for offset_x in (-1, 0, 1):
+                    for offset_z in (-1, 0, 1):
+                        for candidate_index in grid.get((grid_x + offset_x, grid_z + offset_z), []):
+                            if seen[candidate_index]:
+                                continue
+                            candidate = group_spawns[candidate_index]
+                            if (
+                                ((spawn.x - candidate.x) ** 2) + ((spawn.z - candidate.z) ** 2) <= distance_sq
+                                and abs(spawn.y - candidate.y) <= MOB_CLUSTER_Y_DISTANCE_YALMS
+                            ):
+                                seen[candidate_index] = True
+                                pending.append(candidate_index)
+            camps.append(enemy_camp_destination(component))
+
+    return camps
+
+
 def read_destinations(path: Path) -> tuple[list[str], list[Destination]]:
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     destinations: list[Destination] = []
@@ -227,6 +416,29 @@ def distance_2d(a: Destination, b: Destination) -> float:
     return ((a.x - b.x) ** 2 + (a.z - b.z) ** 2) ** 0.5
 
 
+def destination_duplicate_shadowed(destination: Destination, existing: list[Destination], max_distance: float, max_y_distance: float) -> bool:
+    destination_name = clean_label(destination.name).lower()
+    destination_kind = clean_label(destination.kind).lower()
+    for old in existing:
+        if old.zone != destination.zone:
+            continue
+        if clean_label(old.name).lower() != destination_name:
+            continue
+        if clean_label(old.kind).lower() != destination_kind:
+            continue
+        if distance_2d(old, destination) <= max_distance and abs(old.y - destination.y) <= max_y_distance:
+            return True
+    return False
+
+
+def filter_generated_destinations(generated: list[Destination], existing: list[Destination], max_distance: float, max_y_distance: float) -> list[Destination]:
+    return [
+        destination
+        for destination in generated
+        if not destination_duplicate_shadowed(destination, existing, max_distance, max_y_distance)
+    ]
+
+
 def base_name(edge: ZoneLine, zone_names: dict[int, str]) -> str:
     if edge.note.lower() == "mog house":
         return "Mog House entrance"
@@ -247,17 +459,22 @@ def destination_section(edge: ZoneLine) -> str:
 
 
 def generated_destination(edge: ZoneLine, name: str) -> Destination:
+    override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
     return Destination(
         zone=edge.from_zone,
         name=name,
-        x=edge.from_x,
-        z=edge.from_z,
-        y=edge.from_y,
+        x=override.get("from_x", edge.from_x),
+        z=override.get("from_z", edge.from_z),
+        y=override.get("from_y", edge.from_y),
         kind="area",
-        source=GENERATED_SOURCE,
-        confidence="untested",
-        section=destination_section(edge),
+        source=override.get("source", GENERATED_SOURCE),
+        confidence=override.get("confidence", "untested"),
+        section=override.get("note", destination_section(edge)),
     )
+
+
+def apply_edge_policy(edges: list[ZoneLine]) -> list[ZoneLine]:
+    return [edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS]
 
 
 def existing_nearby(destination: Destination, existing: list[Destination]) -> bool:
@@ -294,15 +511,14 @@ def write_destination_file(path: Path, lines: list[str], generated: list[Destina
                 line
                 and not line.startswith("#")
                 and (
-                    f"\t{GENERATED_SOURCE}\t" in f"\t{line}\t"
-                    or f"\t{GENERATED_NPC_SOURCE}\t" in f"\t{line}\t"
+                    any(f"\t{source}\t" in f"\t{line}\t" for source in GENERATED_SOURCES)
                 )
             )
         )
     ]
     if retained and retained[-1] != "":
         retained.append("")
-    retained.append(f"# Generated from {ZONELINES} by tools/generate_nav_zoneline_destinations.py.")
+    retained.append(f"# Generated from {ZONELINES}, {NPC_LIST}, and {MOB_SPAWN_POINTS} by tools/generate_nav_zoneline_destinations.py.")
     retained.append("# Generated rows are untested until route evidence proves them.")
     for row in sorted(generated, key=lambda d: (d.zone, d.kind, d.name.lower(), d.x, d.z)):
         retained.append(
@@ -336,24 +552,34 @@ def write_graph(path: Path, edges: list[ZoneLine], zone_names: dict[int, str]) -
             ]
         )
         for edge in sorted(edges, key=lambda e: (e.from_zone, e.to_zone, e.from_code, e.to_code, e.zoneline_id)):
+            override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
+            from_x = override.get("from_x", edge.from_x)
+            from_z = override.get("from_z", edge.from_z)
+            from_y = override.get("from_y", edge.from_y)
+            to_x = override.get("to_x", edge.to_x)
+            to_z = override.get("to_z", edge.to_z)
+            to_y = override.get("to_y", edge.to_y)
+            source = override.get("source", "lsb-zonelines")
+            confidence = override.get("confidence", "untested")
+            note = override.get("note", edge.note)
             writer.writerow(
                 [
                     edge.zoneline_id,
                     edge.from_zone,
                     zone_names.get(edge.from_zone, edge.from_label or f"Zone {edge.from_zone}"),
                     edge.from_code,
-                    f"{edge.from_x:.3f}",
-                    f"{edge.from_z:.3f}",
-                    f"{edge.from_y:.3f}",
+                    f"{from_x:.3f}",
+                    f"{from_z:.3f}",
+                    f"{from_y:.3f}",
                     edge.to_zone,
                     zone_names.get(edge.to_zone, edge.to_label or f"Zone {edge.to_zone}"),
                     edge.to_code,
-                    f"{edge.to_x:.3f}",
-                    f"{edge.to_z:.3f}",
-                    f"{edge.to_y:.3f}",
-                    "lsb-zonelines",
-                    "untested",
-                    edge.note,
+                    f"{to_x:.3f}",
+                    f"{to_z:.3f}",
+                    f"{to_y:.3f}",
+                    source,
+                    confidence,
+                    note,
                 ]
             )
 
@@ -365,17 +591,22 @@ def main() -> int:
     args = parser.parse_args()
 
     zone_names = parse_zone_ids(ZONE_IDS)
-    edges = parse_zonelines(ZONELINES)
+    parsed_edges = parse_zonelines(ZONELINES)
+    edges = apply_edge_policy(parsed_edges)
     lines, existing = read_destinations(DESTINATIONS)
-    stable_existing = [row for row in existing if row.source not in (GENERATED_SOURCE, GENERATED_NPC_SOURCE)]
+    stable_existing = [row for row in existing if row.source not in GENERATED_SOURCES]
     generated_zonelines = generate_destinations(edges, zone_names, stable_existing)
-    generated_npcs = parse_npc_list(NPC_LIST)
-    generated = generated_zonelines + generated_npcs
+    generated_npcs_raw = parse_npc_list(NPC_LIST)
+    generated_npcs = filter_generated_destinations(generated_npcs_raw, stable_existing, 8.0, 8.0)
+    mob_spawns = parse_mob_spawn_points(MOB_SPAWN_POINTS)
+    generated_enemy_camps = cluster_enemy_camps(mob_spawns)
+    generated = generated_zonelines + generated_npcs + generated_enemy_camps
 
     existing_zones = {row.zone for row in stable_existing}
     generated_zones = {row.zone for row in generated}
-    print(f"parsed_zonelines={len(edges)}")
-    print(f"parsed_npc_destinations={len(generated_npcs)}")
+    print(f"parsed_zonelines={len(parsed_edges)} active_zonelines={len(edges)}")
+    print(f"parsed_npc_destinations={len(generated_npcs_raw)} generated_npc_destinations={len(generated_npcs)}")
+    print(f"parsed_mob_spawns={len(mob_spawns)} generated_enemy_camps={len(generated_enemy_camps)}")
     print(f"existing_destinations={len(stable_existing)} existing_zones={len(existing_zones)}")
     print(f"generated_missing_zonelines={len(generated_zonelines)} generated_total={len(generated)} generated_zones={len(generated_zones)}")
     print(f"post_write_zone_coverage={len(existing_zones | generated_zones)}")

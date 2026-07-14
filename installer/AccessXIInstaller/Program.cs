@@ -20,6 +20,9 @@ internal sealed class InstallerForm : Form
 {
     private const string PayloadResourceName = "Payload.AccessXI-Ashita-Reloaded-Installer.zip";
     private const string CompletionMessage = "AccessXI was installed. Use the AccessXI Ashita desktop shortcut to start the game. Advanced: from the Ashita folder, run Ashita-cli.exe accessxi-retail.ini. PlayOnline diagnostics are written to %USERPROFILE%\\AccessXI\\logs.";
+    private const long KnownUpdatedPlayOnlineAppDllSize = 4335104;
+    private const ulong KnownUpdatedPlayOnlineAppDllFnv64 = 0x07E88E8067FEF6CCUL;
+    private const string UpdatedPlayOnlineAppDllRelativePathForDiagnostics = @"PlayOnlineViewer\viewer\com\app.dll";
 
     private readonly TextBox installRootText;
     private readonly TextBox polExeText;
@@ -36,6 +39,14 @@ internal sealed class InstallerForm : Form
     private InstallState installState = InstallState.Ready;
 
     private sealed record RuntimePrerequisite(string Name, string FileName);
+
+    private enum PlayOnlineViewerStateKind
+    {
+        Updated,
+        UpdateSafe,
+    }
+
+    private sealed record PlayOnlineViewerState(PlayOnlineViewerStateKind Kind, string Message);
 
     private sealed record VisualCppPrerequisite(string Name, string Architecture, string FileName)
     {
@@ -344,6 +355,13 @@ internal sealed class InstallerForm : Form
             return;
         }
 
+        var playOnlineViewerState = DetectPlayOnlineViewerVersion(polExe);
+        AppendLog(playOnlineViewerState.Message);
+        if (playOnlineViewerState.Kind == PlayOnlineViewerStateKind.UpdateSafe)
+        {
+            MessageBox.Show(this, playOnlineViewerState.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         try
         {
             var missingVisualCppRedistributables = DetectMissingVisualCppRedistributables();
@@ -488,6 +506,69 @@ internal sealed class InstallerForm : Form
         SetStepThreadSafe("Reading installation summary.", 95);
         var summaryPath = Path.Combine(installRoot, "install_summary.json");
         return File.Exists(summaryPath) ? File.ReadAllText(summaryPath) : string.Empty;
+    }
+
+    private static PlayOnlineViewerState DetectPlayOnlineViewerVersion(string polExe)
+    {
+        var polDirectory = Path.GetDirectoryName(polExe);
+        if (string.IsNullOrWhiteSpace(polDirectory))
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The selected pol.exe path could not be classified, so native PlayOnline menu hooks will stay disabled until the updated viewer files are present.");
+        }
+
+        var appDll = Path.Combine(polDirectory, "viewer", "com", "app.dll");
+        if (!File.Exists(appDll))
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The updated PlayOnline app.dll was not found at " + UpdatedPlayOnlineAppDllRelativePathForDiagnostics + "; start PlayOnline through AccessXI and finish the PlayOnline update. Native PlayOnline menu hooks stay disabled until the updated viewer files are present.");
+        }
+
+        try
+        {
+            var fingerprint = ComputeFileFnv64(appDll, out var size);
+            if (size == KnownUpdatedPlayOnlineAppDllSize && fingerprint == KnownUpdatedPlayOnlineAppDllFnv64)
+            {
+                return new(
+                    PlayOnlineViewerStateKind.Updated,
+                    "Updated PlayOnline Viewer recognized. AccessXI can enable native PlayOnline menu hooks after installation.");
+            }
+
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. This PlayOnline Viewer appears to be pre-update or an unrecognized build; start PlayOnline through AccessXI and finish the PlayOnline update. Native PlayOnline menu hooks stay disabled until the updated viewer files are present. Detected size=" + size + ", fnv64=0x" + fingerprint.ToString("X16") + ".");
+        }
+        catch (Exception ex)
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The PlayOnline Viewer version could not be fingerprinted (" + ex.GetType().Name + "), so native PlayOnline menu hooks will stay disabled until the updated viewer files are present.");
+        }
+    }
+
+    private static ulong ComputeFileFnv64(string path, out long size)
+    {
+        const ulong offsetBasis = 14695981039346656037UL;
+        const ulong prime = 1099511628211UL;
+
+        var hash = offsetBasis;
+        size = 0;
+        var buffer = new byte[32768];
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            size += read;
+            for (var index = 0; index < read; index++)
+            {
+                hash ^= buffer[index];
+                hash *= prime;
+            }
+        }
+
+        return hash;
     }
 
     private DialogResult AskPrerequisiteInstallChoice(IReadOnlyCollection<RuntimePrerequisite> missingPrerequisites)

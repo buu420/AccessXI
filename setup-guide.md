@@ -22,7 +22,7 @@ The PlayOnline ID is not your Square Enix ID. Square Enix support describes Play
 
 Install PlayOnline Viewer and Final Fantasy XI before running the AccessXI installer. AccessXI needs the real PlayOnline `pol.exe` file so it can install the loader files in the correct place and write the Ashita profile for that computer.
 
-You do not need to finish PlayOnline registration, log in, update PlayOnline, or create a character before installing AccessXI. You only need the game and PlayOnline Viewer installed far enough that `pol.exe` exists. If you run the AccessXI installer before PlayOnline is installed, it will show a warning and exit.
+AccessXI can recognize both the updated PlayOnline Viewer and a PlayOnline Viewer that still needs its first update. If PlayOnline still needs its update, the installer will continue in update-safe mode. In update-safe mode, native PlayOnline menu hooks stay disabled until the updated viewer files are present, so PlayOnline can update without the Reloaded bridge patching the wrong viewer build. You may need OCR for the update screen itself, but AccessXI can remain installed while the update runs.
 
 The usual order is:
 
@@ -30,7 +30,9 @@ The usual order is:
 2. Buy and register Final Fantasy XI.
 3. Download and install PlayOnline Viewer and Final Fantasy XI.
 4. Run the AccessXI installer. It should detect the installed PlayOnline Viewer.
-5. Start PlayOnline through the AccessXI launcher and continue with the PlayOnline update and member setup steps below.
+5. Start PlayOnline through the AccessXI launcher.
+6. If PlayOnline offers an update, press Enter, use OCR to confirm that the update started, and wait for it to finish.
+7. After the update finishes and PlayOnline restarts, continue with the member setup steps below.
 
 ## Links You Need First
 
@@ -76,7 +78,7 @@ If you use a one-time password or security token on your Square Enix account, ke
 
 ## Install AccessXI After PlayOnline Is Installed
 
-After PlayOnline Viewer and Final Fantasy XI are installed, run the AccessXI installer. Do not run the AccessXI installer before installing PlayOnline, because it must find `pol.exe`. If it cannot detect PlayOnline, it will close and you should install or repair PlayOnline before trying AccessXI again.
+After PlayOnline Viewer and Final Fantasy XI are installed, run the AccessXI installer. Do not run the AccessXI installer before installing PlayOnline, because it must find `pol.exe`. If PlayOnline still needs its first update, the installer should recognize that and continue in update-safe mode. In update-safe mode, native PlayOnline menu hooks stay disabled until the updated viewer files are present, which lets the PlayOnline update complete instead of crashing on the old viewer build.
 
 When the AccessXI installer opens:
 

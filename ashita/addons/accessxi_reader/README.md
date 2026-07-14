@@ -177,6 +177,16 @@ Speaks known destinations for the current navigation data.
 Speaks your current position.
 
 ```text
+/axi record start <route name>
+/axi route record start <route name>
+/axi nav record start <route name>
+/axi record mark <note>
+/axi record stop
+```
+
+Records your live position to `logs\ffxi-nav-route-recordings.tsv` so broken routes can be repaired from a walked path. The recorder samples your own character, so it works while following another player as long as your character is physically moving along behind them.
+
+```text
 /axi nav clearance
 /axi clearance
 /axi wall
@@ -307,12 +317,12 @@ Use these only when intentionally capturing, correcting, or auditing navigation 
 
 ## Repository Notes
 
-This folder is the repository copy of the live AccessXI Ashita addon.
+This folder contains the AccessXI Ashita addon.
 
 The live test copy currently lives at:
 
 ```text
-C:\Users\buu42\Ashita\addons\accessxi_reader
+Ashita\addons\accessxi_reader
 ```
 
 Before committing release work, sync the live `accessxi_reader.lua`, `modules`, `data`, `resources`, and `sounds` folders into this folder. Do not commit live logs, backup Lua files, generated DLLs, or the large third-party navmesh payloads here.

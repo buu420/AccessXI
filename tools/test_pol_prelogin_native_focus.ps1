@@ -473,6 +473,14 @@ Assert-Contains $source 'PmlCurrentChildSetterRva\s*=\s*0x000044F1u' `
     "Native pre-login focus speech must hook the Ghidra-backed current-child setter at 048144F1."
 Assert-Contains $source 'PmlTextSetterRva\s*=\s*0x00064156u' `
     "Native pre-login member-name speech must document the crash-disabled wide text setter at 04874156."
+Assert-Contains $source 'KnownUpdatedAppDllSize\s*=\s*4335104ull' `
+    "Native pre-login hooks must document the validated updated PlayOnline app.dll size."
+Assert-Contains $source 'KnownUpdatedAppDllFnv64\s*=\s*0x07E88E8067FEF6CCull' `
+    "Native pre-login hooks must document the validated updated PlayOnline app.dll fingerprint."
+Assert-Contains $source 'bool\s+app_module_matches_known_updated_pol_build\s*\(' `
+    "Native pre-login hooks must refuse to patch unknown or pre-update PlayOnline app.dll builds."
+Assert-Contains $source 'finish-playonline-update' `
+    "Native pre-login app.dll mismatch diagnostics must tell users to finish the PlayOnline update, not block AccessXI installation."
 Assert-Contains $source 'g_selected_index_setter_trampoline' `
     "Native pre-login selection speech must keep a trampoline for the selected-index setter hook."
 Assert-Contains $source 'g_pml_current_child_setter_trampoline' `
@@ -481,6 +489,8 @@ Assert-Contains $selectionInstaller 'selected_index_target\s*=\s*app_base\s*\+\s
     "Native selection truth installer must install the selected-index setter hook from the named RVA."
 Assert-Contains $selectionInstaller 'current_child_target\s*=\s*app_base\s*\+\s*PmlCurrentChildSetterRva' `
     "Native selection truth installer must install the current-child setter hook from the named RVA."
+Assert-Contains $selectionInstaller 'app_module_matches_known_updated_pol_build\s*\(\s*app\s*,\s*"selection-truth"\s*\)' `
+    "Native selection truth installer must verify the loaded app.dll build before patching hard-coded RVAs."
 Assert-Contains $selectionInstaller 'install_inline_jump\s*\(\s*selected_index_target\s*,\s*reinterpret_cast<void\*>\s*\(&hook_selected_index_setter\)\s*,\s*7\s*,\s*&g_selected_index_setter_trampoline\s*\)' `
     "Selected-index setter hook must patch complete instructions at 049ED903 without reintroducing key monitoring."
 Assert-Contains $selectionInstaller 'install_inline_jump\s*\(\s*current_child_target\s*,\s*reinterpret_cast<void\*>\s*\(&hook_pml_current_child_setter\)\s*,\s*7\s*,\s*&g_pml_current_child_setter_trampoline\s*\)' `
@@ -494,6 +504,10 @@ Assert-Contains $selectionInstaller 'PRELOGIN_CURRENTCHILD hook-installed rva=00
     "Current-child hook installer must leave a stable live-log marker."
 Assert-Contains $selectionInstaller 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability' `
     "Wide text setter installer must leave a stable live-log marker explaining why the Ghidra-backed hook is disabled."
+
+$focusEventInstaller = Get-FunctionBody $source "void install_pml_focus_event_call_hook_once"
+Assert-Contains $focusEventInstaller 'app_module_matches_known_updated_pol_build\s*\(\s*app\s*,\s*"focus-event"\s*\)' `
+    "Native focus-event installer must verify the loaded app.dll build before patching hard-coded RVAs."
 
 $selectedIndexHook = Get-FunctionBody $source "void __fastcall hook_selected_index_setter"
 Assert-Contains $selectedIndexHook 'original\s*\(\s*self\s*,\s*index\s*\)' `

@@ -273,6 +273,21 @@ $reloadedExcludePatterns = @(
 )
 
 Copy-FilteredTree -Source $AshitaRoot -Destination $payloadAshita -ExcludePatterns $ashitaExcludePatterns
+$payloadWin32Types = Join-Path $payloadAshita 'addons\libs\win32types.lua'
+if (-not (Test-Path -LiteralPath $payloadWin32Types)) {
+    throw "Ashita win32types.lua is missing from the packaged payload: $payloadWin32Types"
+}
+$win32TypesSource = [System.IO.File]::ReadAllText($payloadWin32Types)
+$win32TypesRepaired = $win32TypesSource `
+    -replace 'typedef\s+const\s+IID\s*&\s*REFIID\s*;', 'typedef const IID* REFIID;' `
+    -replace 'typedef\s+const\s+GUID\s*&\s*REFGUID\s*;', 'typedef const GUID* REFGUID;'
+if ($win32TypesRepaired -notmatch 'typedef\s+const\s+IID\s*\*\s*REFIID' -or
+    $win32TypesRepaired -notmatch 'typedef\s+const\s+GUID\s*\*\s*REFGUID') {
+    throw "Unable to make packaged Ashita win32types.lua C-compatible for LuaJIT ffi.cdef: $payloadWin32Types"
+}
+if ($win32TypesRepaired -cne $win32TypesSource) {
+    [System.IO.File]::WriteAllText($payloadWin32Types, $win32TypesRepaired, (New-Object System.Text.UTF8Encoding($false)))
+}
 Copy-FilteredTree -Source $reloadedRoot -Destination $payloadReloaded -ExcludePatterns $reloadedExcludePatterns
 $payloadAshitaAddons = Join-Path $payloadAshita 'addons'
 if (Test-Path -LiteralPath $payloadAshitaAddons) {

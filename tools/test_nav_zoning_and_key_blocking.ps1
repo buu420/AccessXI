@@ -246,8 +246,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $presentBody `
-    -Pattern "(?s)if \(accessxi\.nav_zoning_watch_active\(now\) or accessxi\.nav_zone_load_settle_active\(now\)\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*return;\s*end\s*poll_nav_position\(\);.*?accessxi\.poll_compass_hotkey\(\)" `
-    -Message 'Present loop should stop normal addon polling and avoid player/entity position reads while a zone-line loading handoff or post-zone settle is pending.'
+    -Pattern "(?s)if \(accessxi\.nav_zoning_watch_active\(now\) or accessxi\.nav_zone_load_settle_active\(now\)\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*return;\s*end\s*poll_nav_position\(\);.*?accessxi\.poll_compass_hotkey\(\)" `
+    -Message 'Present loop should preserve explicit route recording but stop normal addon polling while a zone-line loading handoff or post-zone settle is pending.'
 
 Assert-Match `
     -Text $source `

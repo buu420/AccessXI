@@ -53,9 +53,13 @@ $programSource = Get-Content -LiteralPath $programPath -Raw
 $packageSource = Get-Content -LiteralPath $packageScriptPath -Raw
 $installerSource = Get-Content -LiteralPath $installerScriptPath -Raw
 $addonSource = Get-Content -LiteralPath $addonPath -Raw
+$setupGuideSource = Get-Content -LiteralPath $setupGuidePath -Raw
 
 Assert-Contains $packageSource 'setup-guide\.md' 'Package builder must stage setup-guide.md at the package root.'
 Assert-Contains $installerSource 'setup-guide\.md' 'Installer script must copy setup-guide.md into the installed AccessXI root.'
+Assert-Contains $setupGuideSource 'AccessXI can recognize both the updated PlayOnline Viewer and a PlayOnline Viewer that still needs its first update' 'Setup guide must explain that AccessXI can install before the PlayOnline update.'
+Assert-Contains $setupGuideSource 'update-safe mode' 'Setup guide must describe the safe pre-update PlayOnline behavior.'
+Assert-Contains $setupGuideSource 'native PlayOnline menu hooks stay disabled until the updated viewer files are present' 'Setup guide must explain how pre-update PlayOnline avoids the Reloaded bridge crash.'
 Assert-Contains $programSource 'openSetupGuideCheckBox' 'Installer finish screen must include an open-setup-guide checkbox.'
 Assert-Contains $programSource 'Checked\s*=\s*true' 'Setup guide checkbox must be checked by default.'
 Assert-Contains $programSource 'OpenSetupGuideAfterFinish' 'Finish button must open the setup guide when the checkbox is checked.'

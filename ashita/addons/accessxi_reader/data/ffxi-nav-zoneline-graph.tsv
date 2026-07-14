@@ -313,12 +313,11 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 947139194	101	East Ronfaure	z2t8	661.624	-595.631	-21.974	190	King Ranperre's Tomb	z5a3	57.415	300.784	5.482	lsb-zonelines	untested	
 846475898	101	East Ronfaure	z2t2	79.181	280.841	-70.089	230	Southern San d'Oria	z6e1	110.234	-54.223	-2.127	lsb-zonelines	untested	
 812987002	102	La Theine Plateau	z2u0	-558.569	688.049	-7.049	100	West Ronfaure	z2sd	-559.963	-602.479	-7.062	lsb-zonelines	untested	
-880095866	102	La Theine Plateau	z2u4	160.169	-764.007	24.326	103	Valkurm Dunes	z2v3	760.069	409.269	-9.949	lsb-zonelines	untested	
+880095866	102	La Theine Plateau	z2u4	159.989	-760.190	31.950	103	Valkurm Dunes	z2v3	760.069	409.269	-9.949	live-axi-pos-lathine-valkurm-20260713	observed	La Theine-side trigger boundary recorded after Valkurm crossing
 846541434	102	La Theine Plateau	z2u2	801.831	-37.618	24.326	104	Jugner Forest	z2w1	-583.857	-441.110	-9.344	lsb-zonelines	untested	
-913650298	102	La Theine Plateau	z2u6	-276.649	99.618	20.594	193	Ordelle's Caves	z5d1	-76.839	659.969	-1.696	lsb-zonelines	untested	
-947204730	102	La Theine Plateau	z2u8	-60.125	148.001	27.231	193	Ordelle's Caves	z5d3	179.906	596.605	30.349	lsb-zonelines	untested	
-1635070586	102	La Theine Plateau	z2ua	59.001	-312.493	36.459	193	Ordelle's Caves	z5d5	-200.326	-219.847	-29.608	lsb-zonelines	untested	
-846606970	103	Valkurm Dunes	z2v2	758.323	412.168	-11.992	102	La Theine Plateau	z2u5	159.989	-760.190	28.406	lsb-zonelines	untested	
+913650298	102	La Theine Plateau	z2u6	-276.649	99.618	20.594	193	Ordelle's Caves	z5d1	-76.839	659.969	-1.696	live-mark-aligned-navmesh-20260713	proven	user-confirmed-ordelle-line-2026-07-13
+947204730	102	La Theine Plateau	z2u8	-60.125	148.001	27.231	193	Ordelle's Caves	z5d3	179.906	596.605	30.349	live-mark-aligned-navmesh-20260713	proven	user-confirmed-ordelle-line-2026-07-13
+846606970	103	Valkurm Dunes	z2v2	758.323	412.168	-11.992	102	La Theine Plateau	z2u5	159.989	-760.190	31.950	live-axi-pos-lathine-valkurm-20260713	observed	La Theine-side trigger boundary recorded after Valkurm crossing
 813052538	103	Valkurm Dunes	z2v0	919.212	-440.003	-4.639	108	Konschtat Highlands	z305	-160.124	883.812	68.250	lsb-zonelines	untested	
 913715834	103	Valkurm Dunes	z2v6	-767.866	18.376	-11.956	212	Gustav Tunnel	z5w3	280.502	100.019	-51.820	lsb-zonelines	untested	
 880161402	103	Valkurm Dunes	z2v4	60.003	-154.537	-7.529	248	Selbina	z6w1	17.981	99.830	-16.806	lsb-zonelines	untested	
@@ -656,7 +655,6 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 1667446138	192	Inner Horutoto Ruins	z5cc	-259.981	250.063	6.448	169	Toraimarai Canal	z4p1	-339.995	278.013	5.941	lsb-zonelines	untested	
 811873658	193	Ordelle's Caves	z5d0	-74.082	659.997	-4.103	102	La Theine Plateau	z2u7	-272.118	98.859	21.715	lsb-zonelines	untested	
 845428090	193	Ordelle's Caves	z5d2	180.034	600.112	28.075	102	La Theine Plateau	z2u9	-59.413	151.634	28.699	lsb-zonelines	untested	
-878982522	193	Ordelle's Caves	z5d4	-203.476	-219.995	-31.924	102	La Theine Plateau	z2ub	60.020	-316.183	37.761	lsb-zonelines	untested	
 811939194	194	Outer Horutoto Ruins	z5e0	-309.020	860.021	-12.866	115	West Sarutabaruta	z37b	-276.409	660.009	-11.665	lsb-zonelines	untested	
 946156922	194	Outer Horutoto Ruins	z5e8	-579.994	-629.016	-12.993	115	West Sarutabaruta	z37d	-339.959	-396.924	8.355	lsb-zonelines	untested	
 845493626	194	Outer Horutoto Ruins	z5e2	420.018	709.024	-13.105	116	East Sarutabaruta	z389	-59.996	756.249	-31.677	lsb-zonelines	untested	
@@ -722,14 +720,14 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 845493882	230	Southern San d'Oria	z6e2	-113.372	-57.418	-4.075	100	West Ronfaure	z2s1	-125.880	274.100	-64.637	lsb-zonelines	untested	
 811939450	230	Southern San d'Oria	z6e0	113.458	-57.351	-4.079	101	East Ronfaure	z2t3	86.131	273.861	-65.817	lsb-zonelines	untested	
 812805498	230	Southern San d'Oria	zmr0	164.933	164.792	-5.547	230	Southern San d'Oria	Mog House	162.591	162.423	-4.103	lsb-zonelines	untested	
-879048314	230	Southern San d'Oria	z6e4	0.620	54.388	-2.049	231	Northern San d'Oria	z6f1	0.007	-32.470	-2.315	live-verified-axi-pos	proven	
+879048314	230	Southern San d'Oria	z6e4	0.013	57.965	-8.469	231	Northern San d'Oria	z6f1	0.007	-32.470	-2.315	lsb-zonelines	untested
 1634088570	231	Northern San d'Oria	z6fa	-123.566	192.841	9.966	2	Carpenters' Landing	z025	-479.621	665.350	-8.141	lsb-zonelines	untested	
 845559418	231	Northern San d'Oria	z6f2	-252.158	43.913	1.663	100	West Ronfaure	z2s3	-172.186	379.998	-64.596	lsb-zonelines	untested	
 946222714	231	Northern San d'Oria	z6f8	-238.702	105.961	-9.433	100	West Ronfaure	z2sb	-180.473	419.995	-66.650	lsb-zonelines	untested	
-812004986	231	Northern San d'Oria	z6f0	-0.107	-36.133	-7.068	230	Southern San d'Oria	z6e5	0.620	54.388	-2.049	live-verified-axi-pos	proven	
+812004986	231	Northern San d'Oria	z6f0	-0.107	-36.133	-7.068	230	Southern San d'Oria	z6e5	-0.004	54.388	-4.182	lsb-zonelines	untested
 846359930	231	Northern San d'Oria	zmr2	134.995	-8.439	-7.068	231	Northern San d'Oria	Mog House	132.764	-6.178	-2.320	lsb-zonelines	untested	
 912668282	231	Northern San d'Oria	z6f6	-123.510	270.516	8.289	232	Port San d'Oria	z6g1	-107.682	-132.215	-10.301	lsb-zonelines	untested	
-812070522	232	Port San d'Oria	z6g0	-108.899	-132.949	-8.500	231	Northern San d'Oria	z6f7	-125.375	268.640	11.949	live-verified-axi-pos	proven	
+812070522	232	Port San d'Oria	z6g0	-108.899	-132.949	-8.500	231	Northern San d'Oria	z6f7	-125.375	268.640	11.949	live-verified-axi-pos	proven	port-to-northern-2026-06-28
 879914362	232	Port San d'Oria	zmr4	83.260	-139.282	-19.486	232	Port San d'Oria	Mog House	79.362	-135.450	-18.173	lsb-zonelines	untested	
 845690490	233	Chateau d'Oraguille	z6h2	12.495	24.047	6.974	167	Bostaunieux Oubliette	z4n1	99.978	72.867	-25.647	lsb-zonelines	untested	
 812201594	234	Bastok Mines	z6i0	-15.961	-136.018	-5.475	107	South Gustaberg	z2z1	579.993	-305.077	-1.928	lsb-zonelines	untested	

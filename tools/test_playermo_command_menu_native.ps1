@@ -128,14 +128,14 @@ if ($dynamicProbeIndex -lt 0) {
 if ($dynamicQuietIndex -lt 0) {
     throw 'playermo_menu_speech does not have the dynamic target quiet block'
 }
-if ($nativeHelpIndex -gt $nativeQueryIndex) {
-    throw 'playermo native help must run before generic native row query'
+if ($nativeHelpIndex -gt $dynamicCommandIndex) {
+    throw 'playermo native help must run before dynamic command id mapper'
+}
+if ($dynamicCommandIndex -gt $nativeQueryIndex) {
+    throw 'playermo dynamic command id mapper must run before generic native row query'
 }
 if ($nativeQueryIndex -gt $dynamicProbeIndex) {
     throw 'playermo generic native row query must run before dynamic target row probe'
-}
-if ($nativeQueryIndex -gt $dynamicCommandIndex) {
-    throw 'playermo generic native row query must run before dynamic command id mapper'
 }
 if ($dynamicCommandIndex -gt $dynamicProbeIndex) {
     throw 'playermo dynamic command id mapper must run before dynamic target row probe'

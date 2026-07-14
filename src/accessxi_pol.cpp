@@ -29,6 +29,8 @@ namespace
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
     constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
     constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
+    constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
+    constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0x07E88E8067FEF6CCull;
     constexpr DWORD AddMemberContextCacheTtlMs = 60000;
 
     std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
@@ -36,6 +38,8 @@ namespace
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
+    std::atomic<bool> g_appdll_fingerprint_ok_logged{ false };
+    std::atomic<bool> g_appdll_fingerprint_mismatch_logged{ false };
 
     std::mutex g_log_lock;
     std::mutex g_candidate_lock;
@@ -240,6 +244,118 @@ namespace
         std::string output(static_cast<size_t>(needed - 1), '\0');
         WideCharToMultiByte(CP_UTF8, 0, value, -1, output.data(), needed, nullptr, nullptr);
         return output;
+    }
+
+    bool file_fnv64(const wchar_t* path, unsigned long long* size, unsigned long long* fingerprint)
+    {
+        if (path == nullptr || path[0] == 0 || size == nullptr || fingerprint == nullptr)
+            return false;
+
+        HANDLE file = CreateFileW(
+            path,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            nullptr,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr);
+        if (file == INVALID_HANDLE_VALUE)
+            return false;
+
+        LARGE_INTEGER file_size{};
+        if (!GetFileSizeEx(file, &file_size) || file_size.QuadPart < 0)
+        {
+            CloseHandle(file);
+            return false;
+        }
+
+        unsigned long long hash = 14695981039346656037ull;
+        uint8_t buffer[32768]{};
+        DWORD read = 0;
+        BOOL read_ok = FALSE;
+        while ((read_ok = ReadFile(file, buffer, static_cast<DWORD>(sizeof(buffer)), &read, nullptr)) && read > 0)
+        {
+            for (DWORD i = 0; i < read; ++i)
+            {
+                hash ^= static_cast<unsigned long long>(buffer[i]);
+                hash *= 1099511628211ull;
+            }
+        }
+
+        CloseHandle(file);
+        if (!read_ok)
+            return false;
+
+        *size = static_cast<unsigned long long>(file_size.QuadPart);
+        *fingerprint = hash;
+        return true;
+    }
+
+    bool app_module_matches_known_updated_pol_build(HMODULE app, const char* reason)
+    {
+        if (app == nullptr)
+            return false;
+
+        wchar_t path[MAX_PATH]{};
+        const DWORD copied = GetModuleFileNameW(app, path, MAX_PATH);
+        if (copied == 0 || copied >= MAX_PATH)
+        {
+            if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+                log_line("PRELOGIN_APPDLL fingerprint-unavailable reason=module-path");
+            return false;
+        }
+
+        unsigned long long size = 0;
+        unsigned long long fingerprint = 0;
+        if (!file_fnv64(path, &size, &fingerprint))
+        {
+            if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+            {
+                std::string line = std::string("PRELOGIN_APPDLL fingerprint-unavailable reason=file-read hook=") +
+                    (reason == nullptr ? "" : reason) +
+                    " path=\"" +
+                    narrow_from_wide(path) +
+                    "\"";
+                log_line(line.c_str());
+            }
+            return false;
+        }
+
+        const bool matches = size == KnownUpdatedAppDllSize && fingerprint == KnownUpdatedAppDllFnv64;
+        if (matches)
+        {
+            if (!g_appdll_fingerprint_ok_logged.exchange(true))
+            {
+                char line[256]{};
+                std::snprintf(
+                    line,
+                    sizeof(line) - 1,
+                    "PRELOGIN_APPDLL fingerprint-ok hook=%s size=%llu fnv64=%016llX",
+                    reason == nullptr ? "" : reason,
+                    size,
+                    fingerprint);
+                log_line(line);
+            }
+            return true;
+        }
+
+        if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+        {
+            std::string line = std::string("PRELOGIN_APPDLL fingerprint-mismatch hook=") +
+                (reason == nullptr ? "" : reason) +
+                " size=" +
+                std::to_string(size) +
+                " fnv64=";
+            char hash_text[17]{};
+            std::snprintf(hash_text, sizeof(hash_text), "%016llX", fingerprint);
+            line += hash_text;
+            line += " expectedSize=" + std::to_string(KnownUpdatedAppDllSize);
+            line += " expectedFnv64=07E88E8067FEF6CC path=\"";
+            line += narrow_from_wide(path);
+            line += "\" action=skip-native-hooks update=finish-playonline-update";
+            log_line(line.c_str());
+        }
+        return false;
     }
 
     std::string lower_copy(std::string value)
@@ -2889,6 +3005,9 @@ namespace
             return;
         }
 
+        if (!app_module_matches_known_updated_pol_build(app, "selection-truth"))
+            return;
+
         auto* app_base = reinterpret_cast<uint8_t*>(app);
         auto* register_target = app_base + 0x00009E62u;
         UNREFERENCED_PARAMETER(register_target);
@@ -2982,6 +3101,9 @@ namespace
             g_pml_focus_event_hook_installed.store(false);
             return;
         }
+
+        if (!app_module_matches_known_updated_pol_build(app, "focus-event"))
+            return;
 
         auto* app_base = reinterpret_cast<uint8_t*>(app);
         bool ok = true;

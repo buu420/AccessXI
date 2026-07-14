@@ -125,6 +125,15 @@ if ($liveEnemiesStart -lt 0 -or $liveEnemiesEnd -lt 0) {
 $liveEnemiesBody = $source.Substring($liveEnemiesStart, $liveEnemiesEnd - $liveEnemiesStart)
 Assert-Match -Text $liveEnemiesBody -Pattern 'nav_live_entities_for_category' -Message 'Enemy warning should share live category filtering.'
 
+$enemyNamesStart = $source.IndexOf('function accessxi.nav_entity_name_looks_like_enemy')
+$enemyNamesEnd = $source.IndexOf('function accessxi.nav_entity_is_enemy', $enemyNamesStart)
+if ($enemyNamesStart -lt 0 -or $enemyNamesEnd -lt 0) {
+    throw 'Could not locate nav_entity_name_looks_like_enemy block.'
+}
+$enemyNamesBody = $source.Substring($enemyNamesStart, $enemyNamesEnd - $enemyNamesStart)
+Assert-Match -Text $enemyNamesBody -Pattern "name:contains\('wasp'\)" -Message 'Live enemy classification should recognize Wasp-family monsters.'
+Assert-Match -Text $enemyNamesBody -Pattern "name:contains\('hornet'\)" -Message 'Live enemy classification should recognize Hornet-family monsters.'
+
 Assert-Match -Text $source -Pattern 'nav_live_search_max_range\s*=\s*9999' -Message 'Enemy search should have a zone-wide live-entity search range separate from nearby warning range.'
 Assert-Match -Text $source -Pattern 'local\s+hard_limit\s*=\s*math\.max\([^\r\n]*nav_widescan_max_range[\s\S]*?nav_live_search_max_range' -Message 'Live entity scans should allow the wider search range when explicitly requested.'
 
@@ -144,6 +153,7 @@ if ($collectStart -lt 0 -or $collectEnd -lt 0) {
 $collectBody = $source.Substring($collectStart, $collectEnd - $collectStart)
 Assert-Match -Text $collectBody -Pattern 'nav_live_entities_for_category' -Message 'Navigation menu should use shared live entity category filtering.'
 Assert-Match -Text $collectBody -Pattern 'nav_live_entity_search_range\(\)' -Message 'Enemy/search menu should use the zone-wide live search range.'
+Assert-Match -Text $collectBody -Pattern "category_key == 'all'[\s\S]*?nav_live_entities_for_category\('enemy'" -Message 'Explicit all-category nav search should include a dedicated live enemy pass.'
 Assert-Match -Text $collectBody -Pattern "source = \('live-entity:%d:%d'" -Message 'Live menu entries should be visibly live entity sourced.'
 Assert-Match -Text $collectBody -Pattern 'index\s*=\s*entity_point\.index[\s\S]*?server_id\s*=\s*entity_point\.server_id[\s\S]*?live_kind\s*=\s*entity_kind' -Message 'Live menu entries should preserve entity identity for moving-target route retargeting.'
 

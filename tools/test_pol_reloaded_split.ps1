@@ -176,7 +176,7 @@ Assert-Contains $modSource 'FindPrismUiaHostWindow' 'Reloaded POL mod must disco
 Assert-Contains $modSource 'EnumWindows' 'Reloaded POL mod must enumerate process windows when POL is visible but not foreground.'
 Assert-Contains $modSource 'IsPrismUiaCandidateWindow' 'Reloaded POL mod must use Prism-compatible host-window rules before UIA initialization.'
 Assert-Contains $modSource 'GetForegroundWindow' 'Reloaded POL mod must prefer the current foreground POL window when it is valid.'
-Assert-Contains $modSource 'SetForegroundWindow' 'Reloaded POL mod should try to restore POL foreground focus before binding Prism UIA.'
+Assert-NotContainsLiteral $modSource 'SetForegroundWindow' 'Reloaded POL mod must not steal POL foreground focus while binding Prism UIA.'
 Assert-Contains $modSource 'prism-uia-host-window-ready' 'Reloaded POL mod must log the real UIA host window used for Prism binding.'
 Assert-Contains $modSource 'prism-uia-host-window-missing' 'Reloaded POL mod must log when no real UIA host window is available yet.'
 Assert-Contains $modSource 'FailInitialize' 'Reloaded POL Prism initialization failures must be retryable after POL creates its real window.'

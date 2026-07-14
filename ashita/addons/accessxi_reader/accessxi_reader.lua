@@ -134,6 +134,7 @@ ffi.cdef[[
     BOOL __stdcall GetFileTime(void* hFile, FILETIME* lpCreationTime, FILETIME* lpLastAccessTime, FILETIME* lpLastWriteTime);
     BOOL __stdcall ReadFile(void* hFile, void* lpBuffer, DWORD nNumberOfBytesToRead, DWORD* lpNumberOfBytesRead, void* lpOverlapped);
     BOOL __stdcall CloseHandle(void* hObject);
+    BOOL __stdcall MoveFileExW(LPCWCH lpExistingFileName, LPCWCH lpNewFileName, DWORD dwFlags);
     BOOL __stdcall PlaySoundW(LPCWCH pszSound, void* hmod, DWORD fdwSound);
     short GetAsyncKeyState(int vKey);
     typedef struct MEMORY_BASIC_INFORMATION {
@@ -407,7 +408,8 @@ local accessxi = T{
     menu_title_prefix_spoken_title = '',
     menu_title_prefix_spoken_tick = 0,
     log_path = accessxi_paths.addon_path('logs', 'ffxi-menu-reader.log'),
-    chat_history_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history.tsv'),
+    chat_history_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history-v2.tsv'),
+    chat_history_legacy_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history.tsv'),
     prism_dll_path = accessxi_paths.ashita_path('polplugins', 'prism.dll'),
     prism_last_error = '',
     prism_last_error_log = '',
@@ -1035,7 +1037,10 @@ local accessxi = T{
     chat_reader_category_index = 1,
     chat_reader_positions = T{},
     chat_reader_last_key = 0,
-    chat_reader_last_key_tick = 0,
+    chat_reader_keys_armed = true,
+    chat_history_cache_ready = false,
+    chat_history_cache_load_handled = false,
+    chat_history_cache_write_blocked = false,
     last_npc_text_key = '',
     last_npc_text_tick = 0,
     npc_text_hold_until = 0,
@@ -59061,6 +59066,58 @@ accessxi.chat_history_unescape = function (text)
     return text;
 end
 
+-- These are the rendered text_in low-byte modes, not the packet chat-channel
+-- ids. Keep the native client line intact; its punctuation carries direction,
+-- speaker, linkshell number, yell zone, and Assist metadata that should not be
+-- reconstructed from a static format guess.
+accessxi.chat_mode_metadata = T{
+    [1] = T{ label = 'Say', category = 'say' },
+    [9] = T{ label = 'Say', category = 'say' },
+    [2] = T{ label = 'Shout', category = 'shout' },
+    [10] = T{ label = 'Shout', category = 'shout' },
+    [3] = T{ label = 'Yell', category = 'yell' },
+    [11] = T{ label = 'Yell', category = 'yell' },
+    [4] = T{ label = 'Tell', category = 'tell' },
+    [12] = T{ label = 'Tell', category = 'tell' },
+    [5] = T{ label = 'Party', category = 'party' },
+    [13] = T{ label = 'Party', category = 'party' },
+    [6] = T{ label = 'Linkshell', category = 'linkshell' },
+    [14] = T{ label = 'Linkshell', category = 'linkshell' },
+    [7] = T{ label = 'Emote', category = 'emote' },
+    [15] = T{ label = 'Emote', category = 'emote' },
+    [8] = T{ label = 'Call for help', category = 'system' },
+    [17] = T{ label = 'Message', category = 'message' },
+    [20] = T{ label = 'Combat', category = 'combat' },
+    [21] = T{ label = 'Combat', category = 'combat' },
+    [22] = T{ label = 'Combat', category = 'combat' },
+    [28] = T{ label = 'Combat', category = 'combat' },
+    [29] = T{ label = 'Combat', category = 'combat' },
+    [30] = T{ label = 'Combat', category = 'combat' },
+    [36] = T{ label = 'Combat', category = 'combat' },
+    [37] = T{ label = 'Combat', category = 'combat' },
+    [38] = T{ label = 'Combat', category = 'combat' },
+    [50] = T{ label = 'Combat', category = 'combat' },
+    [56] = T{ label = 'Combat', category = 'combat' },
+    [57] = T{ label = 'Combat', category = 'combat' },
+    [59] = T{ label = 'Combat', category = 'combat' },
+    [60] = T{ label = 'Combat', category = 'combat' },
+    [61] = T{ label = 'Combat', category = 'combat' },
+    [63] = T{ label = 'Combat', category = 'combat' },
+    [121] = T{ label = 'System', category = 'system' },
+    [142] = T{ label = 'NPC', category = 'npc' },
+    [150] = T{ label = 'NPC', category = 'npc' },
+    [151] = T{ label = 'NPC', category = 'npc' },
+    [200] = T{ label = 'System', category = 'system' },
+    [211] = T{ label = 'Unity', category = 'unity' },
+    [212] = T{ label = 'Unity', category = 'unity' },
+    [213] = T{ label = 'Linkshell 2', category = 'linkshell2' },
+    [214] = T{ label = 'Linkshell 2', category = 'linkshell2' },
+    [219] = T{ label = 'Assist J', category = 'assistj' },
+    [220] = T{ label = 'Assist J', category = 'assistj' },
+    [221] = T{ label = 'Assist E', category = 'assiste' },
+    [222] = T{ label = 'Assist E', category = 'assiste' },
+};
+
 accessxi.chat_history_entry = function (mode_text, label, text)
     text = accessxi.clean_incoming_text(text or '');
     if (text == '') then
@@ -59071,7 +59128,7 @@ accessxi.chat_history_entry = function (mode_text, label, text)
     return T{
         tick = tick(),
         mode = mode,
-        label = tostring(label or '') ~= '' and tostring(label or '') or accessxi.chat_mode_label(mode),
+        label = accessxi.chat_mode_label(mode),
         category = accessxi.chat_reader_category_key(mode, text),
         text = text,
     };
@@ -59093,23 +59150,118 @@ accessxi.chat_history_rebuild_positions = function ()
     end
 end
 
-accessxi.chat_history_write_cache = function ()
-    local f = io.open(accessxi.chat_history_path, 'w');
+accessxi.chat_history_validate_cache_file = function (path, expected_count)
+    local f = io.open(path, 'r');
     if (f == nil) then
         return false;
     end
 
-    for _, entry in ipairs(accessxi.chat_history or T{}) do
-        f:write(tostring(entry.mode or 0), '\t',
-            accessxi.chat_history_escape(entry.label or ''), '\t',
-            accessxi.chat_history_escape(entry.text or ''), '\n');
+    local header = f:read('*l');
+    local count = 0;
+    local valid = header == '#accessxi-chat-history-v2-native-only';
+    if (valid) then
+        for line in f:lines() do
+            local row = tostring(line or '');
+            if (row:match('^(%-?%d+)\t.*$') == nil) then
+                valid = false;
+                break;
+            end
+            count = count + 1;
+        end
     end
-    f:close();
+    local closed = f:close();
+    return valid and closed ~= nil and count == (tonumber(expected_count) or 0);
+end
+
+accessxi.chat_history_replace_cache_file = function (temporary_path)
+    if (accessxi.chat_history_cache_write_blocked == true) then
+        return false;
+    end
+
+    local source_wide = utf8_to_wide(temporary_path);
+    local destination_wide = utf8_to_wide(accessxi.chat_history_path);
+    if (source_wide == nil or destination_wide == nil) then
+        return false;
+    end
+
+    local ok, moved = pcall(function ()
+        -- MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH
+        return kernel32.MoveFileExW(source_wide, destination_wide, 0x00000009) ~= 0;
+    end);
+    return ok and moved == true;
+end
+
+accessxi.chat_history_preserve_invalid_cache = function ()
+    local invalid_path = accessxi.chat_history_path .. '.invalid';
+    local existing = io.open(invalid_path, 'r');
+    if (existing ~= nil) then
+        existing:close();
+        invalid_path = invalid_path .. ('-%d-%d'):fmt(os.time(), tick());
+    end
+
+    local renamed, rename_error = os.rename(accessxi.chat_history_path, invalid_path);
+    if (renamed == nil) then
+        accessxi.chat_history_cache_write_blocked = true;
+        log_state(('state chatlog cache-invalid-preserve-failed path="%s" error="%s"'):fmt(
+            accessxi.escape_probe_log_text(accessxi.chat_history_path),
+            accessxi.escape_probe_log_text(rename_error or 'unknown')));
+        return false;
+    end
+
+    log_state(('state chatlog cache-invalid-preserved path="%s"'):fmt(
+        accessxi.escape_probe_log_text(invalid_path)));
+    return true;
+end
+
+accessxi.chat_history_write_cache = function ()
+    if (accessxi.chat_history_cache_write_blocked == true) then
+        return false;
+    end
+
+    local temporary_path = accessxi.chat_history_path .. '.tmp';
+    local f = io.open(temporary_path, 'w');
+    if (f == nil) then
+        return false;
+    end
+
+    local wrote, write_error = pcall(function ()
+        assert(f:write('#accessxi-chat-history-v2-native-only\n'));
+        for _, entry in ipairs(accessxi.chat_history or T{}) do
+            assert(f:write(tostring(entry.mode or 0), '\t',
+                accessxi.chat_history_escape(entry.text or ''), '\n'));
+        end
+        assert(f:close());
+    end);
+    if (not wrote) then
+        pcall(function () f:close(); end);
+        os.remove(temporary_path);
+        log_state(('state chatlog cache-write-failed error="%s"'):fmt(
+            accessxi.escape_probe_log_text(write_error or 'unknown')));
+        return false;
+    end
+
+    local expected_count = accessxi.chat_history ~= nil and accessxi.chat_history:len() or 0;
+    if (not accessxi.chat_history_validate_cache_file(temporary_path, expected_count)) then
+        os.remove(temporary_path);
+        log_state('state chatlog cache-write-failed error="validation"');
+        return false;
+    end
+    if (not accessxi.chat_history_replace_cache_file(temporary_path)) then
+        os.remove(temporary_path);
+        log_state('state chatlog cache-write-failed error="replace"');
+        return false;
+    end
+
+    accessxi.chat_history_cache_ready = true;
     return true;
 end
 
 accessxi.chat_history_append_cache = function (entry)
     if (entry == nil) then
+        return;
+    end
+    if (accessxi.chat_history_cache_ready ~= true) then
+        accessxi.chat_history_write_cache();
         return;
     end
 
@@ -59118,36 +59270,122 @@ accessxi.chat_history_append_cache = function (entry)
         return;
     end
 
-    f:write(tostring(entry.mode or 0), '\t',
-        accessxi.chat_history_escape(entry.label or ''), '\t',
-        accessxi.chat_history_escape(entry.text or ''), '\n');
-    f:close();
+    local appended, append_error = pcall(function ()
+        assert(f:write(tostring(entry.mode or 0), '\t',
+            accessxi.chat_history_escape(entry.text or ''), '\n'));
+        assert(f:close());
+    end);
+    if (not appended) then
+        pcall(function () f:close(); end);
+        accessxi.chat_history_cache_ready = false;
+        log_state(('state chatlog cache-append-failed error="%s"'):fmt(
+            accessxi.escape_probe_log_text(append_error or 'unknown')));
+    end
+end
+
+function accessxi.chat_history_legacy_entry_reliable(mode_text, text)
+    local mid = bit.band(tonumber(mode_text) or 0, 0xFF);
+    -- Old AccessXI/Ashita output used 0 and 1, colliding with the real Say
+    -- echo mode. The old cache did not preserve e.injected, so silence is
+    -- safer than assigning those rows a native chat category.
+    if (mid == 0 or mid == 1) then
+        return false;
+    end
+    return accessxi.clean_incoming_text(text or '') ~= '';
 end
 
 accessxi.chat_history_load_cache = function ()
-    local f = io.open(accessxi.chat_history_path, 'r');
-    if (f == nil) then
-        return 0;
-    end
-
     local max_history = math.max(100, tonumber(accessxi.chat_history_max) or 1000);
-    local parsed = {};
-    local added = 0;
-    for line in f:lines() do
-        line = tostring(line or ''):gsub('^\239\187\191', '');
-        local mode_text, label, text = line:match('^(%-?%d+)\t([^\t]*)\t(.*)$');
-        if (text ~= nil) then
-            local entry = accessxi.chat_history_entry(mode_text, accessxi.chat_history_unescape(label), accessxi.chat_history_unescape(text));
-            if (entry ~= nil) then
-                added = added + 1;
-                parsed[((added - 1) % max_history) + 1] = entry;
-                if (accessxi.chat_log_remember_apururu_defeated_line ~= nil) then
-                    accessxi.chat_log_remember_apururu_defeated_line(entry.text);
+    local function parse_cache_file(f, legacy)
+        local parsed = {};
+        local added = 0;
+        local valid = true;
+        local first_line = true;
+        for line in f:lines() do
+            line = tostring(line or ''):gsub('^\239\187\191', '');
+            if (first_line and not legacy) then
+                first_line = false;
+                if (line ~= '#accessxi-chat-history-v2-native-only') then
+                    valid = false;
+                    break;
+                end
+            else
+                first_line = false;
+                local mode_text = nil;
+                local label = '';
+                local text = nil;
+                if (legacy) then
+                    mode_text, label, text = line:match('^(%-?%d+)\t([^\t]*)\t(.*)$');
+                else
+                    mode_text, text = line:match('^(%-?%d+)\t(.*)$');
+                end
+
+                if (text == nil) then
+                    if (not legacy) then
+                        valid = false;
+                        break;
+                    end
+                else
+                    text = accessxi.chat_history_unescape(text);
+                    local reliable = not legacy or accessxi.chat_history_legacy_entry_reliable(mode_text, text);
+                    if (reliable) then
+                        local entry = accessxi.chat_history_entry(mode_text, label, text);
+                        if (entry == nil and not legacy) then
+                            valid = false;
+                            break;
+                        elseif (entry ~= nil) then
+                            added = added + 1;
+                            parsed[((added - 1) % max_history) + 1] = entry;
+                            if (accessxi.chat_log_remember_apururu_defeated_line ~= nil) then
+                                accessxi.chat_log_remember_apururu_defeated_line(entry.text);
+                            end
+                        end
+                    end
                 end
             end
         end
+        if (first_line) then
+            valid = legacy;
+        end
+        local closed = f:close();
+        if (closed == nil) then
+            valid = false;
+        end
+        return added, parsed, valid;
     end
-    f:close();
+
+    accessxi.chat_history_cache_load_handled = true;
+    local legacy = false;
+    local added = 0;
+    local parsed = {};
+    local valid = false;
+    local needs_write = false;
+    local f = io.open(accessxi.chat_history_path, 'r');
+    if (f ~= nil) then
+        added, parsed, valid = parse_cache_file(f, false);
+        if (not valid) then
+            needs_write = true;
+            local preserved = accessxi.chat_history_preserve_invalid_cache();
+            local legacy_file = io.open(accessxi.chat_history_legacy_path, 'r');
+            if (legacy_file ~= nil) then
+                legacy = true;
+                added, parsed, valid = parse_cache_file(legacy_file, true);
+            else
+                added = 0;
+                parsed = {};
+                valid = preserved;
+            end
+        end
+    else
+        needs_write = true;
+        local legacy_file = io.open(accessxi.chat_history_legacy_path, 'r');
+        if (legacy_file ~= nil) then
+            legacy = true;
+            added, parsed, valid = parse_cache_file(legacy_file, true);
+        else
+            valid = true;
+        end
+    end
 
     local keep = math.min(added, max_history);
     local start = added - keep + 1;
@@ -59157,8 +59395,10 @@ accessxi.chat_history_load_cache = function ()
             accessxi.chat_history:append(entry);
         end
     end
-    if (added > max_history) then
-        accessxi.chat_history_write_cache();
+
+    accessxi.chat_history_cache_ready = not legacy and valid;
+    if (needs_write or legacy or not valid or added > max_history) then
+        accessxi.chat_history_cache_ready = accessxi.chat_history_write_cache();
     end
     return added;
 end
@@ -59170,7 +59410,7 @@ accessxi.seed_chat_history_from_log = function ()
     accessxi.chat_history_seeded = true;
 
     local cached = accessxi.chat_history_load_cache();
-    if (cached > 0) then
+    if (accessxi.chat_history_cache_load_handled == true) then
         accessxi.chat_history_rebuild_positions();
         log_state(('state chatlog history-cache-seeded lines=%d total=%d'):fmt(cached, accessxi.chat_history:len()));
         return;
@@ -59215,19 +59455,10 @@ end
 
 accessxi.chat_mode_label = function (mode)
     local mid = bit.band(tonumber(mode) or 0, 0xFF);
-    if (mid == 0) then return 'Say'; end
-    if (mid == 1) then return 'Shout'; end
-    if (mid == 2) then return 'Tell'; end
-    if (mid == 3) then return 'Party'; end
-    if (mid == 4) then return 'Linkshell'; end
-    if (mid == 5) then return 'Emote'; end
-    if (mid == 6) then return 'Yell'; end
-    if (mid == 7) then return 'Unity'; end
-    if (mid == 8) then return 'System'; end
-    if (mid == 121) then return 'Combat'; end
-    if (mid == 122) then return 'Combat'; end
-    if (mid == 123) then return 'Combat'; end
-    if (mid == 150 or mid == 151) then return 'Dialogue'; end
+    local info = accessxi.chat_mode_metadata[mid];
+    if (info ~= nil) then
+        return tostring(info.label or 'Chat');
+    end
     return 'Chat';
 end
 
@@ -59236,22 +59467,10 @@ accessxi.chat_reader_categories = accessxi.chat_reader_data.categories or T{};
 
 accessxi.chat_reader_category_key = function (mode, text)
     local mid = bit.band(tonumber(mode) or 0, 0xFF);
-    text = tostring(text or '');
-
-    if (mid == 0) then return 'say'; end
-    if (mid == 1 or mid == 6) then return 'shout'; end
-    if (mid == 2) then return 'tell'; end
-    if (mid == 3) then return 'party'; end
-    if (mid == 4) then return 'linkshell'; end
-    if (mid == 7 or mid == 212 or text:find('^{Apururu}', 1, false) ~= nil) then return 'unity'; end
-    if (mid == 121 or mid == 122 or mid == 123) then return 'combat'; end
-    if (mid == 150 or mid == 151) then return 'dialogue'; end
-    if (mid == 8 or mid == 52 or mid == 56 or mid == 136 or mid == 148
-        or mid == 157 or mid == 161 or mid == 190 or mid == 191
-        or mid == 200 or mid == 205 or mid == 206) then
-        return 'system';
+    local info = accessxi.chat_mode_metadata[mid];
+    if (info ~= nil) then
+        return tostring(info.category or 'other');
     end
-
     return 'other';
 end
 
@@ -59285,7 +59504,7 @@ accessxi.chat_reader_entry_speech = function (category, entries, index, prefix)
     end
 
     index = math.max(1, math.min(tonumber(index) or count, count));
-    local line = accessxi.chat_entry_speech(entries[index]);
+    local line = accessxi.chat_entry_speech(entries[index], tostring(category.key or 'all') == 'all');
     if (line == '') then
         line = 'Blank line.';
     end
@@ -59372,14 +59591,28 @@ accessxi.chat_reader_move = function (delta)
     return accessxi.chat_reader_entry_speech(category, entries, next_pos, prefix);
 end
 
+accessxi.chat_reader_native_log_open = function ()
+    local menu_name = tostring(get_menu_name() or '');
+    return menu_name:eq('menu    logwindo', true)
+        or menu_name:eq('menu    fulllog', true)
+        or menu_name:find('menu    logwin2', 1, true) == 1;
+end
+
 accessxi.chat_reader_handle_key = function (key)
     key = tonumber(key) or 0;
     if (key ~= 0x24 and key ~= 0x23 and key ~= 0x21 and key ~= 0x22) then
         return false;
     end
 
+    if (accessxi.chat_reader_keys_armed ~= true) then
+        return true;
+    end
+    -- One press owns the complete four-key chord until every reader key is up.
+    -- Suppression gates must not re-arm a key that is still physically held.
+    accessxi.chat_reader_keys_armed = false;
+    accessxi.chat_reader_last_key = key;
+
     if (not accessxi.is_foreground_process()) then
-        accessxi.chat_reader_last_key = 0;
         return false;
     end
 
@@ -59387,13 +59620,9 @@ accessxi.chat_reader_handle_key = function (key)
         return false;
     end
 
-    local now = tick();
-    if (key == (tonumber(accessxi.chat_reader_last_key) or 0)
-        and ((now - (tonumber(accessxi.chat_reader_last_key_tick) or 0)) < 90)) then
-        return true;
+    if (accessxi.chat_reader_native_log_open()) then
+        return false;
     end
-    accessxi.chat_reader_last_key = key;
-    accessxi.chat_reader_last_key_tick = now;
 
     local text = '';
     if (key == 0x24) then
@@ -59414,16 +59643,6 @@ accessxi.chat_reader_handle_key = function (key)
 end
 
 accessxi.poll_chat_reader_hotkeys = function ()
-    if (not accessxi.is_foreground_process()) then
-        accessxi.chat_reader_last_key = 0;
-        return;
-    end
-
-    if (is_chat_input_open()) then
-        accessxi.chat_reader_last_key = 0;
-        return;
-    end
-
     local key = 0;
     if (bit.band(kernel32.GetAsyncKeyState(0x24), 0x8000) ~= 0) then
         key = 0x24;
@@ -59437,6 +59656,15 @@ accessxi.poll_chat_reader_hotkeys = function ()
 
     if (key == 0) then
         accessxi.chat_reader_last_key = 0;
+        accessxi.chat_reader_keys_armed = true;
+        return;
+    end
+
+    if (not accessxi.is_foreground_process()
+        or is_chat_input_open()
+        or accessxi.chat_reader_native_log_open()) then
+        accessxi.chat_reader_last_key = key;
+        accessxi.chat_reader_keys_armed = false;
         return;
     end
 
@@ -59460,7 +59688,10 @@ accessxi.chat_should_speak = function (mode, text)
     return true;
 end
 
-accessxi.chat_add_history = function (mode, text)
+accessxi.chat_add_history = function (mode, text, injected)
+    if (injected == true) then
+        return nil;
+    end
     text = accessxi.clean_incoming_text(text);
     if (text == '') then
         return nil;
@@ -59487,14 +59718,14 @@ accessxi.chat_add_history = function (mode, text)
     return entry;
 end
 
-accessxi.chat_entry_speech = function (entry)
+accessxi.chat_entry_speech = function (entry, include_label)
     if (entry == nil or entry.text == nil or entry.text == '') then
         return '';
     end
 
     local label = clean_login_text(entry.label or 'Chat');
     local text = accessxi.speech_name(entry.text);
-    if (label == '' or label == 'Chat') then
+    if (include_label == false or label == '' or label == 'Chat') then
         return text;
     end
     return ('%s. %s'):fmt(label, text);
@@ -60186,8 +60417,8 @@ function accessxi.capture_combat_action_packet(e)
     accessxi.queue_combat_action_feedback(speech, detail, action);
 end
 
-accessxi.handle_chat_text = function (mode, text)
-    local entry = accessxi.chat_add_history(mode, text);
+accessxi.handle_chat_text = function (mode, text, injected)
+    local entry = accessxi.chat_add_history(mode, text, injected);
     if (entry == nil) then
         return;
     end
@@ -90815,12 +91046,13 @@ ashita.events.register('unload', 'unload_cb', function ()
 end);
 
 ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
-    local mode = tonumber(e.mode_modified) or tonumber(e.mode) or 0;
+    local mode = tonumber(e.mode) or tonumber(e.mode_modified) or 0;
     local mid = bit.band(mode, 0xFF);
+    local injected = e.injected == true;
 
-    local text = accessxi.clean_incoming_text(e.message_modified or e.message or '');
+    local text = accessxi.clean_incoming_text(e.message or e.message_modified or '');
     accessxi.chat_text_in_diag(e, mid, text);
-    if (text == '') then
+    if (text == '' or injected or e.blocked == true) then
         return;
     end
     safe_call(function ()
@@ -90839,7 +91071,7 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
             log_line(('chat text npc echo suppressed mode=%d "%s"'):fmt(mid, accessxi.escape_probe_log_text(text)));
             return;
         end
-        accessxi.handle_chat_text(mid, text);
+        accessxi.handle_chat_text(mid, text, injected);
         return;
     end
 
@@ -90896,7 +91128,7 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
     accessxi.last_npc_text_tick = now;
     accessxi.last_npc_echo_compare_text = accessxi.npc_echo_compare_text(text);
     accessxi.last_npc_echo_tick = now;
-    accessxi.chat_add_history(mid, text);
+    accessxi.chat_add_history(mid, text, injected);
     accessxi.npc_text_hold_until = now + 900;
     accessxi.last = '';
     accessxi.last_key = '';

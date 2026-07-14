@@ -235,7 +235,7 @@ These keys work when the game is in focus and chat input is closed.
 | `Page Up` | Read one older chat line |
 | `Page Down` | Read one newer chat line |
 
-Chat categories are All, Tell, Linkshell, Party, Say, Shout and Yell, Unity, Combat, System, and Other.
+Chat categories follow FFXI's rendered chat modes: All, Say, Tell, Party, Linkshell, Linkshell 2, Assist J, Assist E, Unity, Emotes, Message, NPC, Shout, Yell, Combat, System, and Other. Each key press moves exactly one category or line; release the key before moving again.
 
 ## Ashita Settings Reader Keys
 

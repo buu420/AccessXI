@@ -1,4 +1,5 @@
 #include <Ashita.h>
+#include "pol_pml/native_selected_text.h"
 #include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
@@ -89,6 +90,8 @@ namespace
         void* manager = nullptr;
         void* requested_child = nullptr;
         uintptr_t current_child = 0;
+        bool captured_sheet_row = false;
+        uintptr_t nested_child = 0;
         DWORD tick = 0;
     };
 
@@ -467,6 +470,11 @@ namespace
         }
     }
 
+    bool read_pol_pml_memory(void*, uintptr_t address, void* output, size_t size) noexcept
+    {
+        return copy_memory_safely(output, reinterpret_cast<const void*>(address), size);
+    }
+
     bool read_ptr_safely(const void* address, uintptr_t* value)
     {
         if (value == nullptr)
@@ -748,10 +756,15 @@ namespace
             label == "One-Time Password";
     }
 
+    bool prelogin_probe_candidate_label(const std::string& value);
+
     bool prelogin_pml_focus_candidate_label_allowed(const char* source_text, const std::string& label)
     {
         if (!useful_text(label))
             return false;
+
+        if (source_text != nullptr && std::strcmp(source_text, "native-selected-text") == 0)
+            return prelogin_probe_candidate_label(label);
 
         const std::string lower = lower_copy(label);
         if (lower == "play" || lower == "pla" || lower == "pol" || lower == "online")
@@ -1440,6 +1453,9 @@ namespace
         if (std::strcmp(label_source, "atlas-geometry") == 0)
             return true;
 
+        if (std::strcmp(label_source, "native-selected-text") == 0)
+            return true;
+
         if (std::strcmp(label_source, "add-member") == 0 && prelogin_add_member_value_label(label))
             return !current_child_is_tiny;
 
@@ -1878,6 +1894,50 @@ namespace
         }
 
         return true;
+    }
+
+    bool native_object_has_vtable_rva(void* object, uintptr_t expected_rva)
+    {
+        if (object == nullptr)
+            return false;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return false;
+
+        uintptr_t vtable = 0;
+        if (!read_ptr_safely(object, &vtable))
+            return false;
+        return vtable == reinterpret_cast<uintptr_t>(app) + expected_rva;
+    }
+
+    std::string read_native_selected_control_text(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const std::u16string native_text = accessxi::pol_pml::read_selected_control_text(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+        if (native_text.empty())
+            return {};
+
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        std::wstring wide_text;
+        wide_text.reserve(native_text.size());
+        for (char16_t character : native_text)
+            wide_text.push_back(static_cast<wchar_t>(character));
+
+        const std::string label = clean_wide_text(wide_text.c_str(), static_cast<int>(wide_text.size()));
+        if (!prelogin_probe_candidate_label(label))
+            return {};
+        return label;
     }
 
     void log_startup_member_model_probe(void* object)
@@ -3101,10 +3161,32 @@ namespace
         snapshot.manager = manager;
         snapshot.requested_child = requested_child;
         snapshot.current_child = current_child;
+        snapshot.captured_sheet_row = native_object_has_vtable_rva(
+            reinterpret_cast<void*>(current_child),
+            accessxi::pol_pml::CpmlSheetVtableRva);
         snapshot.tick = GetTickCount();
 
         {
             std::lock_guard<std::mutex> guard(g_current_child_lock);
+            const auto disposition = accessxi::pol_pml::classify_sheet_focus_event(
+                g_pending_current_child_snapshot_valid && g_pending_current_child_snapshot.captured_sheet_row,
+                g_pending_current_child_snapshot.current_child,
+                g_pending_current_child_snapshot.nested_child,
+                snapshot.captured_sheet_row,
+                reinterpret_cast<uintptr_t>(manager),
+                current_child);
+            if (disposition == accessxi::pol_pml::SheetFocusEventDisposition::capture_nested_child)
+            {
+                g_pending_current_child_snapshot.nested_child = current_child;
+                g_pending_current_child_snapshot.tick = snapshot.tick;
+                return;
+            }
+            if (disposition == accessxi::pol_pml::SheetFocusEventDisposition::preserve)
+            {
+                g_pending_current_child_snapshot.tick = snapshot.tick;
+                return;
+            }
+
             g_pending_current_child_snapshot = snapshot;
             g_pending_current_child_snapshot_valid = true;
         }
@@ -3144,13 +3226,17 @@ namespace
         const bool current_child_is_tiny = native_prelogin_add_member_inner_textbox_child(current_child_object);
         uint32_t label_source_offset = 0;
         uint32_t atlas_resource = 0;
+        std::string label = read_native_selected_control_text(current_child_object);
+        const bool native_selected_text_focus = !label.empty();
         std::string member_dynamic_label;
-        if (native_prelogin_member_access_context(current_child_object))
+        if (!native_selected_text_focus && native_prelogin_member_access_context(current_child_object))
             member_dynamic_label = best_native_pml_dynamic_text_from_object_tree(current_child_object);
         std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
-        std::string label = member_dynamic_label;
-        const bool member_dynamic_focus = !member_dynamic_label.empty();
-        const char* label_source = member_dynamic_focus ? "member-dynamic" : "object-tree";
+        const bool member_dynamic_focus = !native_selected_text_focus && !member_dynamic_label.empty();
+        if (label.empty())
+            label = member_dynamic_label;
+        const char* label_source = native_selected_text_focus ? "native-selected-text" :
+            (member_dynamic_focus ? "member-dynamic" : "object-tree");
         const bool startup_member_focus_rect = native_prelogin_startup_member_list_focus_rect(current_child_object);
         if (startup_member_focus_rect)
             log_startup_member_probe(manager, current_child_object);
@@ -3195,7 +3281,8 @@ namespace
             native_prelogin_add_member_form_context(current_child_object);
         const bool add_member_field_geometry_focus = add_member_context &&
             !geometry_label.empty() &&
-            prelogin_add_member_field_geometry_label(geometry_label);
+            prelogin_add_member_field_geometry_label(geometry_label) &&
+            !native_selected_text_focus;
 
         if (add_member_field_geometry_focus)
         {
@@ -3216,9 +3303,13 @@ namespace
             label_source = "atlas-geometry";
         }
 
-        bool add_member_value_candidate = add_member_context && prelogin_add_member_value_label(label);
+        bool add_member_value_candidate = add_member_context &&
+            prelogin_add_member_value_label(label) &&
+            !native_selected_text_focus;
         bool add_member_value_focus = add_member_value_candidate && !current_child_is_tiny;
-        bool add_member_button_candidate = add_member_context && prelogin_add_member_button_label(label);
+        bool add_member_button_candidate = add_member_context &&
+            prelogin_add_member_button_label(label) &&
+            !native_selected_text_focus;
         bool add_member_button_focus = add_member_button_candidate &&
             !add_member_field_geometry_focus &&
             (native_prelogin_add_member_button_object_tree_label(current_child_object, label) ||
@@ -3250,23 +3341,26 @@ namespace
                 label_source = "add-member-button";
         }
 
-        if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus && !member_dynamic_focus && !startup_member_atlas_focus)
+        if (!native_selected_text_focus)
         {
-            if (!label.empty() && label != geometry_label)
+            if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus && !member_dynamic_focus && !startup_member_atlas_focus)
             {
-                char conflict[256]{};
-                std::snprintf(
-                    conflict,
-                    sizeof(conflict) - 1,
-                    "PRELOGIN_ATLASGEOM prefer-focused-geometry resource=%08X objectText=%s geometryText=%s",
-                    static_cast<unsigned>(atlas_resource),
-                    label.c_str(),
-                    geometry_label.c_str());
-            if (g_atlas_geometry_conflict_log_budget.fetch_sub(1) > 0)
-                log_line(conflict);
+                if (!label.empty() && label != geometry_label)
+                {
+                    char conflict[256]{};
+                    std::snprintf(
+                        conflict,
+                        sizeof(conflict) - 1,
+                        "PRELOGIN_ATLASGEOM prefer-focused-geometry resource=%08X objectText=%s geometryText=%s",
+                        static_cast<unsigned>(atlas_resource),
+                        label.c_str(),
+                        geometry_label.c_str());
+                    if (g_atlas_geometry_conflict_log_budget.fetch_sub(1) > 0)
+                        log_line(conflict);
+                }
+                label = geometry_label;
+                label_source = "atlas-geometry";
             }
-            label = geometry_label;
-            label_source = "atlas-geometry";
         }
 
         if (label.empty() && prelogin_member_dynamic_value_rect(current_child_object))
@@ -3316,7 +3410,8 @@ namespace
         }
 
         const char* candidate_source =
-            (std::strcmp(label_source, "add-member") == 0 ||
+            (std::strcmp(label_source, "native-selected-text") == 0 ||
+             std::strcmp(label_source, "add-member") == 0 ||
              std::strcmp(label_source, "add-member-button") == 0 ||
              std::strcmp(label_source, "member-dynamic") == 0 ||
              std::strcmp(label_source, "startup-member-dynamic") == 0) ? label_source : "current-child";

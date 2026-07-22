@@ -35,7 +35,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $AshitaSdk 'Ashita.h') -PathType Lea
 $env:ASHITA4_SDK_PATH = [System.IO.Path]::GetFullPath($AshitaSdk)
 Invoke-Checked { cmake -S $repo -B $build -A Win32 } 'Win32 CMake configuration failed'
 Invoke-Checked {
-    cmake --build $build --config $Configuration --target accessxi_pol_nvda accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_native_speech_worker_tests pol_native_host_tests
+    cmake --build $build --config $Configuration --target accessxi_pol_nvda accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_pml_selected_text_tests pol_native_speech_worker_tests pol_native_host_tests
 } 'Native PlayOnline build failed'
 Invoke-Checked { ctest --test-dir $build -C $Configuration --output-on-failure } 'Native PlayOnline tests failed'
 

@@ -1,6 +1,7 @@
 #include "pol_trace/postlogin_trace.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
@@ -24,6 +25,16 @@ namespace accessxi::pol_trace
         bool same_text(const char* left, const char* right) noexcept
         {
             return std::strncmp(left, right, TraceTextCapacity) == 0;
+        }
+
+        std::string lower_ascii(std::string_view value)
+        {
+            std::string output(value);
+            for (char& character : output)
+            {
+                character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+            }
+            return output;
         }
     }
 
@@ -162,6 +173,41 @@ namespace accessxi::pol_trace
     std::string format_dropped(uint64_t count)
     {
         return "DROPPED\tcount=" + std::to_string(count);
+    }
+
+    bool snapshot_contains_sensitive_context(const Snapshot& value)
+    {
+        std::string context = lower_ascii(value.resolver_text);
+        const size_t candidate_count = std::min<size_t>(
+            value.candidate_count,
+            TraceCandidateCapacity);
+        for (size_t index = 0; index < candidate_count; ++index)
+        {
+            context.push_back(' ');
+            context += lower_ascii(value.candidates[index].text);
+        }
+
+        return context.find("password") != std::string::npos ||
+            context.find("one-time password") != std::string::npos ||
+            context.find("one time password") != std::string::npos;
+    }
+
+    void redact_sensitive_snapshot(Snapshot& value)
+    {
+        value.redacted = true;
+        value.trusted = false;
+        copy_utf8_bounded(value.resolver_text, sizeof(value.resolver_text), "<redacted>");
+
+        const size_t candidate_count = std::min<size_t>(
+            value.candidate_count,
+            TraceCandidateCapacity);
+        for (size_t index = 0; index < candidate_count; ++index)
+        {
+            copy_utf8_bounded(
+                value.candidates[index].text,
+                sizeof(value.candidates[index].text),
+                "<redacted>");
+        }
     }
 
     TraceBuffer::TraceBuffer(size_t capacity)

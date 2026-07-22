@@ -268,8 +268,8 @@ start_postlogin_trace writes format_schema and format_session before publishing 
 stop_postlogin_trace publishes active=false before draining
 FFXiMain.dll causes an automatic stop
 capture_postlogin_focus_event is called by both PML focus hooks
-capture_postlogin_current_child is called by the current-child hook
-capture_postlogin_selected_index is called after the original selected-index setter
+capture_postlogin_current_child is called by the current-child resolver after its existing child lookup
+capture_postlogin_selected_index is called by the selected-index resolver after its existing child lookup
 PmlTextSetterRva remains followed by hook-disabled and crash-stability
 no file-open function exists inside a function named capture_postlogin_*
 src/pol_trace/postlogin_trace.cpp contains no speech, Prism, sink, or output call
@@ -338,14 +338,14 @@ Call diagnostic capture at these stable boundaries:
 capture_postlogin_focus_event(EventKind::focus_shared, self, event_info, focused_object);
 capture_postlogin_focus_event(EventKind::focus_select, self, event_info, focused_object);
 
-// After the original current-child setter and after reading manager+0x164.
+// Inside remember_current_child_candidate, after reading manager+0x164.
 capture_postlogin_current_child(self, new_child, reinterpret_cast<void*>(current_child));
 
-// After the original selected-index setter and after resolving stored index and selected child.
+// Inside remember_selected_index_candidate, after resolving stored index and selected child.
 capture_postlogin_selected_index(self, index, stored_index, selected_child);
 ```
 
-Do not alter `remember_focus_candidate`, `remember_current_child_candidate`, `remember_selected_index_candidate`, `prelogin_pml_focus_candidate_label_allowed`, or `speak_prelogin_label` in this task. Add `poll_postlogin_trace_hotkey()` and `drain_postlogin_trace()` to `run_reloaded_native_hook_iteration()` on the worker thread.
+Do not alter the speech decisions in `remember_focus_candidate`, `remember_current_child_candidate`, `remember_selected_index_candidate`, `prelogin_pml_focus_candidate_label_allowed`, or `speak_prelogin_label`; add only the diagnostic enqueue after each resolver's existing pointer lookup. Add `poll_postlogin_trace_hotkey()` and `drain_postlogin_trace()` to `run_reloaded_native_hook_iteration()` on the worker thread.
 
 - [ ] **Step 5: Run the integration guard and focused native tests**
 

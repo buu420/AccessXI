@@ -11,6 +11,7 @@ endif()
 add_library(accessxi_pol_nvda SHARED
     src/accessxi_pol.cpp
     src/accessxi_pol.def
+    src/pol_trace/postlogin_trace.cpp
 )
 
 target_compile_features(accessxi_pol_nvda PRIVATE cxx_std_20)
@@ -25,6 +26,7 @@ endif()
 
 target_include_directories(accessxi_pol_nvda PRIVATE
     "$ENV{ASHITA4_SDK_PATH}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
 target_link_libraries(accessxi_pol_nvda PRIVATE

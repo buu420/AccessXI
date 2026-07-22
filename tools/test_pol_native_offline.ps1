@@ -27,4 +27,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native hook ABI regression failed with exit $LASTEXITCODE"
 }
 
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\test_pol_postlogin_trace_integration.ps1') -RepoRoot $repo
+if ($LASTEXITCODE -ne 0) {
+    throw "Post-login PML trace integration regression failed with exit $LASTEXITCODE"
+}
+
 'ok: native PlayOnline offline queue, post-login trace, Prism, host, fingerprint, and hook ABI tests passed.'

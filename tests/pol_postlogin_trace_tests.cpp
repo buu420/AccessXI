@@ -89,6 +89,28 @@ namespace
         Snapshot value{};
         require(queue.try_dequeue(value) && value.sequence == 1, "reset did not restart sequence");
     }
+
+    void test_sensitive_context_redacts_every_text_field()
+    {
+        Snapshot value = event(EventKind::focus_select, 55, 0x2000, "Change Password");
+        value.candidate_count = 2;
+        copy_utf8_bounded(value.candidates[0].source, sizeof(value.candidates[0].source), "field-w");
+        copy_utf8_bounded(value.candidates[0].text, sizeof(value.candidates[0].text), "visible label");
+        copy_utf8_bounded(value.candidates[1].source, sizeof(value.candidates[1].source), "ptr-w");
+        copy_utf8_bounded(value.candidates[1].text, sizeof(value.candidates[1].text), "secret value");
+
+        require(snapshot_contains_sensitive_context(value), "password context was not detected");
+        redact_sensitive_snapshot(value);
+
+        require(value.redacted, "redacted flag missing");
+        require(!value.trusted, "redacted snapshot remained trusted");
+        require(std::string(value.resolver_text) == "<redacted>", "resolver was not redacted");
+        require(std::string(value.candidates[0].text) == "<redacted>", "first candidate was not redacted");
+        require(std::string(value.candidates[1].text) == "<redacted>", "second candidate was not redacted");
+
+        Snapshot safe = event(EventKind::focus_select, 56, 0x2001, "Friend List");
+        require(!snapshot_contains_sensitive_context(safe), "ordinary post-login label was marked sensitive");
+    }
 }
 
 int main()
@@ -99,6 +121,7 @@ int main()
     test_utf8_truncation_preserves_code_points();
     test_tsv_escaping_and_schema();
     test_reset_starts_new_sequence();
+    test_sensitive_context_redacts_every_text_field();
     std::cout << "ok: post-login PML trace bounds, ordering, dedupe, UTF-8, and TSV formatting\n";
     return 0;
 }

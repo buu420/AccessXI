@@ -76,6 +76,8 @@ namespace accessxi::pol_trace
     std::string format_session(std::string_view action, uint64_t session, uint32_t tick, std::string_view reason);
     std::string format_event(const Snapshot& value);
     std::string format_dropped(uint64_t count);
+    bool snapshot_contains_sensitive_context(const Snapshot& value);
+    void redact_sensitive_snapshot(Snapshot& value);
 
     class TraceBuffer
     {

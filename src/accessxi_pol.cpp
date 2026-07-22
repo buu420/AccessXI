@@ -1,4 +1,5 @@
 #include <Ashita.h>
+#include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
 #include <algorithm>
@@ -17,6 +18,7 @@ namespace
 {
     constexpr const wchar_t* DefaultLogFileName = L"pol-monitor.log";
     constexpr const wchar_t* DefaultReloadedSpeechQueueFileName = L"pol-reloaded-native-speech.queue";
+    constexpr const wchar_t* DefaultPostLoginTraceFileName = L"pol-postlogin-pml-trace.tsv";
 
     constexpr uintptr_t AppRuntimeBase = 0x04810000u;
     constexpr uintptr_t PmlSharedFocusEventRva = 0x0005BBF5u;
@@ -46,6 +48,7 @@ namespace
 
     std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
     std::atomic<bool> g_reloaded_native_worker_running{ false };
+    std::atomic<bool> g_postlogin_trace_active{ false };
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
@@ -54,8 +57,12 @@ namespace
     std::atomic<AccessXiPolSpeechSinkV1> g_speech_sink_v1{ nullptr };
     std::atomic<void*> g_speech_sink_context_v1{ nullptr };
     std::atomic<int> g_native_initialize_state{ 0 };
+    accessxi::pol_trace::TraceBuffer g_postlogin_trace(1024);
+    bool g_postlogin_trace_hotkey_down = false;
+    uint64_t g_postlogin_trace_session = 0;
 
     std::mutex g_log_lock;
+    std::mutex g_postlogin_trace_state_lock;
     std::mutex g_candidate_lock;
     std::mutex g_current_child_lock;
     std::mutex g_speech_lock;
@@ -206,6 +213,11 @@ namespace
         return path_join(diagnostic_log_directory(), DefaultLogFileName);
     }
 
+    std::wstring postlogin_trace_path()
+    {
+        return path_join(diagnostic_log_directory(), DefaultPostLoginTraceFileName);
+    }
+
     std::wstring reloaded_speech_queue_path()
     {
         std::wstring configured = read_environment_wide(L"ACCESSXI_POL_SPEECH_QUEUE");
@@ -244,6 +256,25 @@ namespace
             now.wMilliseconds,
             text);
         std::fclose(file);
+    }
+
+    bool append_postlogin_trace_lines(const std::vector<std::string>& lines)
+    {
+        if (lines.empty())
+            return true;
+
+        const std::wstring log_directory = diagnostic_log_directory();
+        CreateDirectoryW(log_directory.c_str(), nullptr);
+
+        const std::wstring log_path = postlogin_trace_path();
+        FILE* file = nullptr;
+        if (_wfopen_s(&file, log_path.c_str(), L"ab") != 0 || file == nullptr)
+            return false;
+
+        for (const std::string& line : lines)
+            std::fprintf(file, "%s\r\n", line.c_str());
+        std::fclose(file);
+        return true;
     }
 
     std::string narrow_from_wide(const wchar_t* value)
@@ -2301,6 +2332,251 @@ namespace
         return candidates.front().value;
     }
 
+    std::string read_postlogin_pml_inline_wide_text(uintptr_t object)
+    {
+        if (object < 0x10000)
+            return {};
+
+        uint32_t length = 0;
+        if (!read_u32_safely(reinterpret_cast<const void*>(object + 0x14), &length) ||
+            length == 0 ||
+            length >= 0x21)
+        {
+            return {};
+        }
+
+        wchar_t buffer[0x21]{};
+        if (!copy_memory_safely(buffer, reinterpret_cast<const void*>(object + 0x18), length * sizeof(wchar_t)))
+            return {};
+        buffer[length] = 0;
+        return clean_wide_text(buffer, static_cast<int>(length));
+    }
+
+    bool postlogin_trace_candidate_allowed(const std::string& value)
+    {
+        if (!useful_text(value))
+            return false;
+
+        const std::string lower = lower_copy(value);
+        return lower.find("http") == std::string::npos &&
+            lower.find(".pml") == std::string::npos &&
+            lower.find(".esd") == std::string::npos &&
+            lower.find(".tm2") == std::string::npos;
+    }
+
+    void add_postlogin_trace_candidate(
+        accessxi::pol_trace::Snapshot& snapshot,
+        uint32_t offset,
+        const char* source,
+        const std::string& text)
+    {
+        if (source == nullptr || !postlogin_trace_candidate_allowed(text))
+            return;
+
+        for (size_t index = 0; index < snapshot.candidate_count; ++index)
+        {
+            const auto& existing = snapshot.candidates[index];
+            if (existing.offset == offset &&
+                std::strcmp(existing.source, source) == 0 &&
+                std::strcmp(existing.text, text.c_str()) == 0)
+            {
+                return;
+            }
+        }
+
+        if (snapshot.candidate_count >= accessxi::pol_trace::TraceCandidateCapacity)
+            return;
+
+        auto& candidate = snapshot.candidates[snapshot.candidate_count++];
+        candidate.offset = offset;
+        accessxi::pol_trace::copy_utf8_bounded(candidate.source, sizeof(candidate.source), source);
+        accessxi::pol_trace::copy_utf8_bounded(candidate.text, sizeof(candidate.text), text);
+    }
+
+    void collect_postlogin_trace_candidates(accessxi::pol_trace::Snapshot& snapshot, void* object)
+    {
+        const uintptr_t base = reinterpret_cast<uintptr_t>(object);
+        if (base < 0x10000)
+            return;
+
+        add_postlogin_trace_candidate(snapshot, 0, "inline-this-w", read_postlogin_pml_inline_wide_text(base));
+
+        static constexpr uintptr_t offsets[] = {
+            0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x124u, 0x128u,
+            0x154u, 0x158u, 0x160u, 0x164u, 0x188u, 0x18Cu,
+            0x190u, 0x194u, 0x198u, 0x19Cu
+        };
+
+        for (const uintptr_t offset : offsets)
+        {
+            add_postlogin_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "field-c",
+                read_native_pml_string_field(base + offset));
+            add_postlogin_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "field-w",
+                read_native_pml_wide_string_field(base + offset));
+
+            uintptr_t pointer = 0;
+            if (!read_ptr_safely(reinterpret_cast<const void*>(base + offset), &pointer) ||
+                pointer < 0x10000 ||
+                pointer == base)
+            {
+                continue;
+            }
+
+            add_postlogin_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "ptr-c",
+                read_native_pml_c_string_pointer(pointer));
+            add_postlogin_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "ptr-w",
+                read_native_pml_wide_string_pointer(pointer));
+            add_postlogin_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "linked-inline-w",
+                read_postlogin_pml_inline_wide_text(pointer));
+        }
+    }
+
+    void capture_postlogin_snapshot(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* requested_child,
+        void* object,
+        uint32_t event_code,
+        uint32_t requested_index,
+        uint32_t stored_index)
+    {
+        if (!g_postlogin_trace_active.load(std::memory_order_acquire))
+            return;
+
+        accessxi::pol_trace::Snapshot snapshot{};
+        snapshot.tick = GetTickCount();
+        snapshot.kind = kind;
+        snapshot.event_code = event_code;
+        snapshot.manager = reinterpret_cast<uintptr_t>(manager);
+        snapshot.requested_child = reinterpret_cast<uintptr_t>(requested_child);
+        snapshot.object = reinterpret_cast<uintptr_t>(object);
+        snapshot.requested_index = requested_index;
+        snapshot.stored_index = stored_index;
+
+        if (manager != nullptr)
+        {
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x160, &snapshot.focus_160);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &snapshot.focus_164);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1C0, &snapshot.focus_1c0);
+        }
+
+        if (object != nullptr)
+        {
+            read_ptr_safely(object, &snapshot.vtable);
+            HMODULE app = GetModuleHandleA("app.dll");
+            const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+            if (app_base != 0 &&
+                snapshot.vtable >= app_base &&
+                snapshot.vtable < app_base + KnownUpdatedAppDllSize)
+            {
+                snapshot.vtable_rva = snapshot.vtable - app_base;
+            }
+
+            PreloginRect rect{};
+            if (read_prelogin_object_rect(object, &rect))
+            {
+                snapshot.has_rect = true;
+                snapshot.rect = { rect.left, rect.top, rect.right, rect.bottom };
+            }
+        }
+
+        const char* resolver_source = "semantic";
+        if (kind == accessxi::pol_trace::EventKind::selected_index)
+            resolver_source = "selected-index";
+        else if (kind == accessxi::pol_trace::EventKind::current_child)
+            resolver_source = "current-child";
+
+        std::string resolver;
+        if (object != nullptr)
+            resolver = best_native_pml_text_from_object(object, resolver_source);
+        if (resolver.empty() && manager != nullptr &&
+            (kind == accessxi::pol_trace::EventKind::focus_shared ||
+             kind == accessxi::pol_trace::EventKind::focus_select))
+        {
+            resolver = best_native_pml_text_from_object(manager, resolver_source);
+        }
+        accessxi::pol_trace::copy_utf8_bounded(
+            snapshot.resolver_text,
+            sizeof(snapshot.resolver_text),
+            resolver);
+
+        const bool relationship_verified =
+            kind == accessxi::pol_trace::EventKind::selected_index ||
+            kind == accessxi::pol_trace::EventKind::current_child ||
+            snapshot.object == snapshot.focus_160 ||
+            snapshot.object == snapshot.focus_164 ||
+            snapshot.object == snapshot.focus_1c0;
+        snapshot.trusted = !resolver.empty() &&
+            relationship_verified &&
+            prelogin_pml_focus_candidate_label_allowed(resolver_source, resolver);
+
+        collect_postlogin_trace_candidates(snapshot, object);
+        if (accessxi::pol_trace::snapshot_contains_sensitive_context(snapshot))
+            accessxi::pol_trace::redact_sensitive_snapshot(snapshot);
+
+        {
+            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
+            if (!g_postlogin_trace_active.load(std::memory_order_acquire))
+                return;
+            g_postlogin_trace.enqueue(snapshot);
+        }
+    }
+
+    void capture_postlogin_focus_event(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* event_info,
+        void* focused_object)
+    {
+        uint32_t event_code = 0;
+        if (event_info != nullptr)
+            read_u32_safely(static_cast<const uint8_t*>(event_info) + 0x24, &event_code);
+        capture_postlogin_snapshot(kind, manager, nullptr, focused_object, event_code, 0, 0);
+    }
+
+    void capture_postlogin_current_child(void* manager, void* requested_child, void* current_child)
+    {
+        capture_postlogin_snapshot(
+            accessxi::pol_trace::EventKind::current_child,
+            manager,
+            requested_child,
+            current_child,
+            0,
+            0,
+            0);
+    }
+
+    void capture_postlogin_selected_index(
+        void* model,
+        uint32_t requested_index,
+        uint32_t stored_index,
+        void* selected_child)
+    {
+        capture_postlogin_snapshot(
+            accessxi::pol_trace::EventKind::selected_index,
+            model,
+            nullptr,
+            selected_child,
+            0,
+            requested_index,
+            stored_index);
+    }
+
     void add_unique_dynamic_candidate(std::vector<std::string>* candidates, const std::string& value)
     {
         if (candidates == nullptr)
@@ -2542,6 +2818,102 @@ namespace
         return GetModuleHandleA("FFXiMain.dll") != nullptr || GetModuleHandleA("ffximain.dll") != nullptr;
     }
 
+    void drain_postlogin_trace()
+    {
+        std::vector<std::string> lines;
+        lines.reserve(64);
+
+        accessxi::pol_trace::Snapshot snapshot{};
+        while (g_postlogin_trace.try_dequeue(snapshot))
+            lines.push_back(accessxi::pol_trace::format_event(snapshot));
+
+        const uint64_t dropped = g_postlogin_trace.take_dropped_count();
+        if (dropped != 0)
+            lines.push_back(accessxi::pol_trace::format_dropped(dropped));
+
+        if (!append_postlogin_trace_lines(lines))
+            log_line("POSTLOGIN_TRACE write-failed");
+    }
+
+    void start_postlogin_trace()
+    {
+        if (g_postlogin_trace_active.load(std::memory_order_acquire))
+            return;
+
+        g_postlogin_trace.reset();
+        ++g_postlogin_trace_session;
+
+        std::vector<std::string> lines;
+        lines.push_back(accessxi::pol_trace::format_schema(
+            KnownUpdatedAppDllSize,
+            KnownUpdatedAppDllFnv64));
+        lines.push_back(accessxi::pol_trace::format_session(
+            "START",
+            g_postlogin_trace_session,
+            GetTickCount(),
+            "hotkey"));
+        if (!append_postlogin_trace_lines(lines))
+        {
+            log_line("POSTLOGIN_TRACE start-failed reason=file-open");
+            dispatch_speech_sink_v1("Post-login capture could not start", 1);
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
+            g_postlogin_trace_active.store(true, std::memory_order_release);
+        }
+        log_line("POSTLOGIN_TRACE started hotkey=Ctrl+Shift+F10");
+        dispatch_speech_sink_v1("Post-login capture started", 1);
+    }
+
+    void stop_postlogin_trace(const char* reason)
+    {
+        {
+            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
+            if (!g_postlogin_trace_active.exchange(false, std::memory_order_acq_rel))
+                return;
+        }
+
+        drain_postlogin_trace();
+        if (!append_postlogin_trace_lines({ accessxi::pol_trace::format_session(
+                "STOP",
+                g_postlogin_trace_session,
+                GetTickCount(),
+                reason == nullptr ? "" : reason) }))
+        {
+            log_line("POSTLOGIN_TRACE stop-record-write-failed");
+        }
+
+        std::string line = "POSTLOGIN_TRACE stopped reason=";
+        line += reason == nullptr ? "" : reason;
+        log_line(line.c_str());
+        dispatch_speech_sink_v1("Post-login capture stopped", 1);
+    }
+
+    void poll_postlogin_trace_hotkey()
+    {
+        if (g_postlogin_trace_active.load(std::memory_order_acquire) && native_post_login_surface_active())
+        {
+            stop_postlogin_trace("ffxi-loaded");
+            return;
+        }
+
+        const bool chord_down =
+            (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 &&
+            (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0 &&
+            (GetAsyncKeyState(VK_F10) & 0x8000) != 0;
+
+        if (chord_down && !g_postlogin_trace_hotkey_down)
+        {
+            if (g_postlogin_trace_active.load(std::memory_order_acquire))
+                stop_postlogin_trace("hotkey");
+            else
+                start_postlogin_trace();
+        }
+        g_postlogin_trace_hotkey_down = chord_down;
+    }
+
     void record_native_selection_register(void* model)
     {
         if (native_post_login_surface_active())
@@ -2614,6 +2986,7 @@ namespace
         read_u32_safely(static_cast<const uint8_t*>(model) + 0x2A4, &stored_index);
 
         void* selected_child = reinterpret_cast<void*>(selected_child_from_native_index(model, stored_index));
+        capture_postlogin_selected_index(model, requested_index, stored_index, selected_child);
         std::string label;
         const char* label_source = "selected-index";
         if (selected_child != nullptr)
@@ -2719,6 +3092,10 @@ namespace
 
         uintptr_t current_child = reinterpret_cast<uintptr_t>(requested_child);
         read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &current_child);
+        capture_postlogin_current_child(
+            manager,
+            requested_child,
+            reinterpret_cast<void*>(current_child));
 
         PreloginCurrentChildSnapshot snapshot;
         snapshot.manager = manager;
@@ -3108,7 +3485,14 @@ namespace
 
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
+        {
+            capture_postlogin_focus_event(
+                accessxi::pol_trace::EventKind::focus_shared,
+                self,
+                event_info,
+                focused_object);
             remember_focus_candidate("semantic", self, focused_object, focus_receiver_flag(self, focused_object));
+        }
     }
 
     void __fastcall hook_pml_select_focus_event(void* self, void*, void* event_info)
@@ -3119,7 +3503,14 @@ namespace
 
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
+        {
+            capture_postlogin_focus_event(
+                accessxi::pol_trace::EventKind::focus_select,
+                self,
+                event_info,
+                focused_object);
             remember_focus_candidate("semantic", self, focused_object, focus_receiver_flag(self, focused_object));
+        }
     }
 
     void install_pml_focus_event_call_hook_once()
@@ -3189,12 +3580,14 @@ namespace
 
     void run_reloaded_native_hook_iteration()
     {
+        poll_postlogin_trace_hotkey();
         install_native_focus_event_dispatch_hooks_once();
         install_pml_focus_event_call_hook_once();
         install_native_selection_truth_hooks_once();
         process_queued_current_child_candidate("reloaded-native-current-child");
         speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");
         speak_current_prelogin_native_focus("reloaded-native-focus");
+        drain_postlogin_trace();
     }
 
     void start_reloaded_native_hook_worker_once()

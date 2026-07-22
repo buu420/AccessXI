@@ -14,6 +14,9 @@ namespace accessxi::pol_pml
         constexpr size_t MaximumTokenRecordBytes = 512;
         constexpr size_t MaximumTokenStreamBytes = 4096;
         constexpr size_t MaximumLabelCharacters = 120;
+        constexpr size_t MaximumRenderedLines = 8;
+        constexpr size_t MaximumRenderedFragmentsPerLine = 32;
+        constexpr uintptr_t RenderedTextFragmentVtableRva = 0x003E4A1Cu;
 
         bool address_range_fits(uintptr_t address, size_t size) noexcept
         {
@@ -127,11 +130,301 @@ namespace accessxi::pol_pml
             return {};
         }
 
-        std::u16string read_cpml_sheet_row(
+        bool read_native_pointer_list(
             const MemoryView& memory,
-            uintptr_t sheet,
+            uintptr_t container,
+            size_t maximum_count,
+            std::vector<uintptr_t>& values) noexcept
+        {
+            values.clear();
+
+            uintptr_t head_field = 0;
+            uintptr_t count_field = 0;
+            if (!add_address(container, 4, head_field) ||
+                !add_address(container, 8, count_field))
+            {
+                return false;
+            }
+
+            uintptr_t head = 0;
+            uint32_t count = 0;
+            if (!read_value(memory, head_field, head) ||
+                !read_value(memory, count_field, count) ||
+                count == 0 || count > maximum_count || head < MinimumObjectAddress)
+            {
+                return false;
+            }
+
+            uintptr_t head_previous_field = 0;
+            uintptr_t node = 0;
+            uintptr_t head_previous = 0;
+            if (!add_address(head, 4, head_previous_field) ||
+                !read_value(memory, head, node) ||
+                !read_value(memory, head_previous_field, head_previous) ||
+                node < MinimumObjectAddress || head_previous < MinimumObjectAddress)
+            {
+                return false;
+            }
+
+            values.reserve(count);
+            uintptr_t previous = head;
+            std::vector<uintptr_t> visited_nodes;
+            visited_nodes.reserve(count);
+            for (uint32_t index = 0; index < count; ++index)
+            {
+                if (node == head || node < MinimumObjectAddress ||
+                    std::find(visited_nodes.begin(), visited_nodes.end(), node) != visited_nodes.end())
+                {
+                    return false;
+                }
+
+                uintptr_t previous_field = 0;
+                uintptr_t value_field = 0;
+                if (!add_address(node, 4, previous_field) ||
+                    !add_address(node, 8, value_field))
+                {
+                    return false;
+                }
+
+                uintptr_t next = 0;
+                uintptr_t native_previous = 0;
+                uintptr_t value = 0;
+                if (!read_value(memory, node, next) ||
+                    !read_value(memory, previous_field, native_previous) ||
+                    !read_value(memory, value_field, value) ||
+                    native_previous != previous || value < MinimumObjectAddress)
+                {
+                    return false;
+                }
+
+                visited_nodes.push_back(node);
+                values.push_back(value);
+                previous = node;
+                node = next;
+            }
+
+            return node == head && previous == head_previous;
+        }
+
+        bool append_rendered_characters(
+            const MemoryView& memory,
+            uintptr_t fragment,
+            std::u16string& output) noexcept
+        {
+            uintptr_t characters_field = 0;
+            uintptr_t length_field = 0;
+            if (!add_address(fragment, 0x28, characters_field) ||
+                !add_address(fragment, 0x2C, length_field))
+            {
+                return false;
+            }
+
+            uintptr_t characters_address = 0;
+            uint32_t length = 0;
+            if (!read_value(memory, characters_field, characters_address) ||
+                !read_value(memory, length_field, length) ||
+                characters_address < MinimumObjectAddress || length == 0 ||
+                length > MaximumLabelCharacters - output.size())
+            {
+                return false;
+            }
+
+            std::vector<char16_t> characters(length);
+            if (memory.read == nullptr ||
+                !address_range_fits(characters_address, characters.size() * sizeof(char16_t)) ||
+                !memory.read(
+                    memory.context,
+                    characters_address,
+                    characters.data(),
+                    characters.size() * sizeof(char16_t)))
+            {
+                return false;
+            }
+
+            bool saw_visible_character = false;
+            for (size_t index = 0; index < characters.size(); ++index)
+            {
+                const char16_t character = characters[index];
+                if (character == u'\0' || character < 0x20 ||
+                    (character >= 0x7F && character <= 0x9F))
+                {
+                    return false;
+                }
+                if (character >= 0xD800 && character <= 0xDBFF)
+                {
+                    if (index + 1 >= characters.size() ||
+                        characters[index + 1] < 0xDC00 || characters[index + 1] > 0xDFFF)
+                    {
+                        return false;
+                    }
+                    ++index;
+                    saw_visible_character = true;
+                    continue;
+                }
+                if (character >= 0xDC00 && character <= 0xDFFF)
+                    return false;
+                if (character != u' ' && character != 0x00A0)
+                    saw_visible_character = true;
+            }
+            if (!saw_visible_character)
+                return false;
+
+            output.append(characters.begin(), characters.end());
+            return true;
+        }
+
+        std::u16string read_native_wide_string_field(
+            const MemoryView& memory,
+            uintptr_t field) noexcept
+        {
+            uintptr_t length_field = 0;
+            uintptr_t capacity_field = 0;
+            if (!add_address(field, 0x10, length_field) ||
+                !add_address(field, 0x14, capacity_field))
+            {
+                return {};
+            }
+
+            uint32_t length = 0;
+            uint32_t capacity = 0;
+            if (!read_value(memory, length_field, length) ||
+                !read_value(memory, capacity_field, capacity) ||
+                length == 0 || length > MaximumLabelCharacters || capacity < length)
+            {
+                return {};
+            }
+
+            uintptr_t characters_address = field;
+            if (capacity >= 8)
+            {
+                if (!read_value(memory, field, characters_address) ||
+                    characters_address < MinimumObjectAddress)
+                {
+                    return {};
+                }
+            }
+
+            uintptr_t terminator_address = 0;
+            if (!add_address(characters_address, length * sizeof(char16_t), terminator_address))
+                return {};
+
+            char16_t terminator = 1;
+            if (!read_value(memory, terminator_address, terminator) || terminator != u'\0')
+                return {};
+
+            std::u16string result(length, u'\0');
+            if (memory.read == nullptr ||
+                !address_range_fits(characters_address, result.size() * sizeof(char16_t)) ||
+                !memory.read(
+                    memory.context,
+                    characters_address,
+                    result.data(),
+                    result.size() * sizeof(char16_t)))
+            {
+                return {};
+            }
+
+            bool saw_visible_character = false;
+            for (size_t index = 0; index < result.size(); ++index)
+            {
+                const char16_t character = result[index];
+                if (character == u'\0' || character < 0x20 ||
+                    (character >= 0x7F && character <= 0x9F))
+                {
+                    return {};
+                }
+                if (character >= 0xD800 && character <= 0xDBFF)
+                {
+                    if (index + 1 >= result.size() ||
+                        result[index + 1] < 0xDC00 || result[index + 1] > 0xDFFF)
+                    {
+                        return {};
+                    }
+                    ++index;
+                    saw_visible_character = true;
+                    continue;
+                }
+                if (character >= 0xDC00 && character <= 0xDFFF)
+                    return {};
+                if (character != u' ' && character != 0x00A0)
+                    saw_visible_character = true;
+            }
+            return saw_visible_character ? result : std::u16string{};
+        }
+
+        std::u16string read_cpml_image_alt(
+            const MemoryView& memory,
+            uintptr_t image) noexcept
+        {
+            uintptr_t alt_field = 0;
+            if (!add_address(image, 0x11C, alt_field))
+                return {};
+            return read_native_wide_string_field(memory, alt_field);
+        }
+
+        std::u16string read_rendered_cpml_text(
+            const MemoryView& memory,
+            uintptr_t object,
             uintptr_t app_base) noexcept
         {
+            uintptr_t lines_container = 0;
+            if (!add_address(object, 0x1CC, lines_container))
+                return {};
+
+            std::vector<uintptr_t> lines;
+            if (!read_native_pointer_list(memory, lines_container, MaximumRenderedLines, lines))
+                return {};
+
+            std::u16string result;
+            for (const uintptr_t line : lines)
+            {
+                uintptr_t fragments_container = 0;
+                if (!add_address(line, 0x20, fragments_container))
+                    return {};
+
+                std::vector<uintptr_t> fragments;
+                if (!read_native_pointer_list(
+                        memory,
+                        fragments_container,
+                        MaximumRenderedFragmentsPerLine,
+                        fragments))
+                {
+                    return {};
+                }
+
+                std::u16string line_text;
+                for (const uintptr_t fragment : fragments)
+                {
+                    uintptr_t fragment_rva = 0;
+                    if (!object_vtable_rva(memory, fragment, app_base, fragment_rva) ||
+                        fragment_rva != RenderedTextFragmentVtableRva ||
+                        !append_rendered_characters(memory, fragment, line_text))
+                    {
+                        return {};
+                    }
+                }
+
+                if (line_text.empty())
+                    return {};
+                if (!result.empty() && result.back() != u' ' && line_text.front() != u' ')
+                {
+                    if (result.size() >= MaximumLabelCharacters)
+                        return {};
+                    result.push_back(u' ');
+                }
+                if (line_text.size() > MaximumLabelCharacters - result.size())
+                    return {};
+                result.append(line_text);
+            }
+            return result;
+        }
+
+        bool read_cpml_sheet_children(
+            const MemoryView& memory,
+            uintptr_t sheet,
+            std::vector<uintptr_t>& children) noexcept
+        {
+            children.clear();
             uintptr_t begin_field = 0;
             uintptr_t end_field = 0;
             if (!add_address(sheet, 0x18C, begin_field) ||
@@ -151,27 +444,40 @@ namespace accessxi::pol_pml
 
             const uintptr_t byte_count = end - begin;
             if (byte_count == 0 || byte_count % sizeof(uintptr_t) != 0)
-                return {};
+                return false;
             const size_t child_count = static_cast<size_t>(byte_count / sizeof(uintptr_t));
             if (child_count > MaximumChildren)
+                return false;
+
+            children.reserve(child_count);
+            for (size_t index = 0; index < child_count; ++index)
+            {
+                uintptr_t child_field = 0;
+                if (!add_address(begin, index * sizeof(uintptr_t), child_field))
+                    return false;
+
+                uintptr_t child = 0;
+                if (!read_value(memory, child_field, child) || child < MinimumObjectAddress)
+                    return false;
+                children.push_back(child);
+            }
+            return true;
+        }
+
+        std::u16string read_cpml_sheet_row(
+            const MemoryView& memory,
+            uintptr_t sheet,
+            uintptr_t app_base) noexcept
+        {
+            std::vector<uintptr_t> children;
+            if (!read_cpml_sheet_children(memory, sheet, children))
                 return {};
 
             bool saw_image = false;
             bool saw_text = false;
             std::u16string unique_label;
-            for (size_t index = 0; index < child_count; ++index)
+            for (const uintptr_t child : children)
             {
-                uintptr_t child_field = 0;
-                if (!add_address(begin, index * sizeof(uintptr_t), child_field))
-                    return {};
-
-                uintptr_t child = 0;
-                if (!read_value(memory, child_field, child) ||
-                    child < MinimumObjectAddress)
-                {
-                    return {};
-                }
-
                 uintptr_t child_rva = 0;
                 if (!object_vtable_rva(memory, child, app_base, child_rva))
                     return {};
@@ -186,6 +492,8 @@ namespace accessxi::pol_pml
                 saw_text = true;
                 auto label = read_literal_cpml_text(memory, child);
                 if (label.empty())
+                    label = read_rendered_cpml_text(memory, child, app_base);
+                if (label.empty())
                     return {};
                 if (unique_label.empty())
                     unique_label = std::move(label);
@@ -196,6 +504,40 @@ namespace accessxi::pol_pml
             if (!saw_image || !saw_text)
                 return {};
             return unique_label;
+        }
+
+        std::u16string read_image_only_sheet_caption(
+            const MemoryView& memory,
+            uintptr_t sheet,
+            uintptr_t captured_nested_child,
+            uintptr_t app_base) noexcept
+        {
+            if (captured_nested_child < MinimumObjectAddress)
+                return {};
+
+            std::vector<uintptr_t> children;
+            if (!read_cpml_sheet_children(memory, sheet, children) ||
+                std::find(children.begin(), children.end(), captured_nested_child) == children.end())
+            {
+                return {};
+            }
+
+            for (const uintptr_t child : children)
+            {
+                uintptr_t child_rva = 0;
+                if (!object_vtable_rva(memory, child, app_base, child_rva))
+                    return {};
+                if (child_rva == CpmlTextVtableRva)
+                    return {};
+            }
+
+            uintptr_t nested_rva = 0;
+            if (!object_vtable_rva(memory, captured_nested_child, app_base, nested_rva) ||
+                nested_rva != CpmlImageVtableRva)
+            {
+                return {};
+            }
+            return read_cpml_image_alt(memory, captured_nested_child);
         }
 
         std::u16string read_cbutton_label(
@@ -261,16 +603,170 @@ namespace accessxi::pol_pml
         return SheetFocusEventDisposition::replace;
     }
 
+    SelectedImageInspection inspect_selected_image_path(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base,
+        uintptr_t captured_nested_child) noexcept
+    {
+        SelectedImageInspection inspection;
+        uintptr_t object_rva = 0;
+        if (!object_vtable_rva(memory, object, app_base, object_rva))
+            return inspection;
+
+        if (object_rva == CpmlImageVtableRva)
+        {
+            inspection.image = object;
+        }
+        else if (object_rva == CpmlSheetVtableRva)
+        {
+            inspection.object_is_sheet = true;
+            std::vector<uintptr_t> children;
+            if (!read_cpml_sheet_children(memory, object, children))
+                return inspection;
+
+            inspection.child_count = static_cast<uint32_t>(children.size());
+            for (const uintptr_t child : children)
+            {
+                uintptr_t child_rva = 0;
+                if (!object_vtable_rva(memory, child, app_base, child_rva))
+                {
+                    ++inspection.other_child_count;
+                    continue;
+                }
+                if (child_rva == CpmlImageVtableRva)
+                    ++inspection.image_child_count;
+                else if (child_rva == CpmlTextVtableRva)
+                    ++inspection.text_child_count;
+                else
+                    ++inspection.other_child_count;
+            }
+
+            inspection.nested_is_direct_child =
+                std::find(children.begin(), children.end(), captured_nested_child) != children.end();
+            if (!inspection.nested_is_direct_child)
+                return inspection;
+
+            uintptr_t nested_rva = 0;
+            if (!object_vtable_rva(memory, captured_nested_child, app_base, nested_rva) ||
+                nested_rva != CpmlImageVtableRva)
+            {
+                return inspection;
+            }
+            inspection.image = captured_nested_child;
+        }
+        else
+        {
+            return inspection;
+        }
+
+        inspection.image_vtable_rva = CpmlImageVtableRva;
+        inspection.matched = true;
+
+        uintptr_t field = 0;
+        if (add_address(inspection.image, 0x130, field))
+            read_value(memory, field, inspection.primary_capacity_130);
+        if (add_address(inspection.image, 0x14C, field))
+            read_value(memory, field, inspection.alternate_capacity_14c);
+        if (add_address(inspection.image, 0x154, field))
+            read_value(memory, field, inspection.linked_label_object);
+        if (inspection.linked_label_object >= MinimumObjectAddress)
+        {
+            object_vtable_rva(
+                memory,
+                inspection.linked_label_object,
+                app_base,
+                inspection.linked_label_vtable_rva);
+        }
+
+        if (add_address(inspection.image, 0x11C, field))
+            inspection.primary_alt = read_native_wide_string_field(memory, field);
+        if (add_address(inspection.image, 0x138, field))
+            inspection.alternate_alt = read_native_wide_string_field(memory, field);
+        return inspection;
+    }
+
+    std::string choose_selected_image_getter_caption(
+        const std::string& primary,
+        const std::string& alternate)
+    {
+        if (primary.empty() || primary != alternate)
+            return {};
+
+        const size_t caption_begin = primary.front() == '$' ? 1u : 0u;
+        if (caption_begin == primary.size())
+            return {};
+        return primary.substr(caption_begin);
+    }
+
+    std::u16string read_bounded_native_image_getter_text(
+        const MemoryView& memory,
+        uintptr_t characters) noexcept
+    {
+        if (memory.read == nullptr || characters < MinimumObjectAddress)
+            return {};
+
+        std::u16string result;
+        result.reserve(MaximumLabelCharacters);
+        for (size_t index = 0; index <= MaximumLabelCharacters; ++index)
+        {
+            uintptr_t character_address = 0;
+            if (!add_address(characters, index * sizeof(char16_t), character_address))
+                return {};
+
+            char16_t character = u'\0';
+            if (!read_value(memory, character_address, character))
+                return {};
+            if (character == u'\0')
+                return result.empty() ? std::u16string{} : result;
+            if (index == MaximumLabelCharacters)
+                return {};
+            result.push_back(character);
+        }
+        return {};
+    }
+
+    bool selected_image_getter_caption_allowed(const std::string& caption) noexcept
+    {
+        if (caption.size() < 2 || caption.size() > MaximumLabelCharacters)
+            return false;
+
+        std::string lower = caption;
+        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character) {
+            if (character >= 'A' && character <= 'Z')
+                return static_cast<char>(character - 'A' + 'a');
+            return static_cast<char>(character);
+        });
+        return lower.find("http") == std::string::npos &&
+            lower.find(".pml") == std::string::npos &&
+            lower.find(".esd") == std::string::npos &&
+            lower.find(".tm2") == std::string::npos &&
+            lower.find('\\') == std::string::npos &&
+            lower.find('/') == std::string::npos;
+    }
+
     std::u16string read_selected_control_text(
         const MemoryView& memory,
         uintptr_t object,
-        uintptr_t app_base) noexcept
+        uintptr_t app_base,
+        uintptr_t captured_nested_child) noexcept
     {
         uintptr_t vtable_rva = 0;
         if (!object_vtable_rva(memory, object, app_base, vtable_rva))
             return {};
         if (vtable_rva == CpmlSheetVtableRva)
-            return read_cpml_sheet_row(memory, object, app_base);
+        {
+            auto label = read_cpml_sheet_row(memory, object, app_base);
+            if (!label.empty())
+                return label;
+            return read_image_only_sheet_caption(
+                memory,
+                object,
+                captured_nested_child,
+                app_base);
+        }
+        if (vtable_rva == CpmlImageVtableRva)
+            return read_cpml_image_alt(memory, object);
         if (vtable_rva == CButtonVtableRva)
             return read_cbutton_label(memory, object);
         return {};

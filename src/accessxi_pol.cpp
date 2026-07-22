@@ -1,4 +1,5 @@
 #include <Ashita.h>
+#include "pol_accessibility/prelogin_semantics.h"
 #include "pol_pml/native_selected_text.h"
 #include "pol_trace/postlogin_trace.h"
 
@@ -149,6 +150,7 @@ namespace
     std::atomic<int> g_pml_coalesced_log_budget{ 10 };
     std::atomic<int> g_atlas_geometry_conflict_log_budget{ 10 };
     std::atomic<int> g_selected_index_no_label_log_budget{ 24 };
+    std::atomic<int> g_silent_selected_image_log_budget{ 96 };
     std::atomic<int> g_startup_member_probe_budget{ 6 };
     std::atomic<int> g_startup_member_model_probe_budget{ 12 };
 
@@ -763,6 +765,9 @@ namespace
         if (!useful_text(label))
             return false;
 
+        if (source_text != nullptr && std::strcmp(source_text, "native-image-getter") == 0)
+            return accessxi::pol_pml::selected_image_getter_caption_allowed(label);
+
         if (source_text != nullptr && std::strcmp(source_text, "native-selected-text") == 0)
             return prelogin_probe_candidate_label(label);
 
@@ -777,12 +782,6 @@ namespace
 
         if (source_text != nullptr && std::strcmp(source_text, "add-member") == 0)
             return native_prelogin_atlas_label(label) || prelogin_add_member_value_label(label);
-
-        if (source_text != nullptr && std::strcmp(source_text, "member-dynamic") == 0)
-            return prelogin_member_dynamic_label(label);
-
-        if (source_text != nullptr && std::strcmp(source_text, "startup-member-dynamic") == 0)
-            return prelogin_member_dynamic_label(label);
 
         if (source_text != nullptr && std::strcmp(source_text, "selected-member-dynamic") == 0)
             return prelogin_member_dynamic_label(label);
@@ -1453,7 +1452,8 @@ namespace
         if (std::strcmp(label_source, "atlas-geometry") == 0)
             return true;
 
-        if (std::strcmp(label_source, "native-selected-text") == 0)
+        if (std::strcmp(label_source, "native-selected-text") == 0 ||
+            std::strcmp(label_source, "native-image-getter") == 0)
             return true;
 
         if (std::strcmp(label_source, "add-member") == 0 && prelogin_add_member_value_label(label))
@@ -1911,7 +1911,7 @@ namespace
         return vtable == reinterpret_cast<uintptr_t>(app) + expected_rva;
     }
 
-    std::string read_native_selected_control_text(void* object)
+    std::string read_native_selected_control_text(void* object, uintptr_t captured_nested_child = 0)
     {
         if (object == nullptr)
             return {};
@@ -1924,7 +1924,8 @@ namespace
         const std::u16string native_text = accessxi::pol_pml::read_selected_control_text(
             memory,
             reinterpret_cast<uintptr_t>(object),
-            reinterpret_cast<uintptr_t>(app));
+            reinterpret_cast<uintptr_t>(app),
+            captured_nested_child);
         if (native_text.empty())
             return {};
 
@@ -1938,6 +1939,164 @@ namespace
         if (!prelogin_probe_candidate_label(label))
             return {};
         return label;
+    }
+
+    std::string clean_native_utf16_text(const std::u16string& text)
+    {
+        if (text.empty())
+            return {};
+
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        std::wstring wide_text;
+        wide_text.reserve(text.size());
+        for (const char16_t character : text)
+            wide_text.push_back(static_cast<wchar_t>(character));
+        return clean_wide_text(wide_text.c_str(), static_cast<int>(wide_text.size()));
+    }
+
+    using NativePmlLabelGetter_t = const wchar_t* (__thiscall*)(void*, int);
+
+    const wchar_t* call_native_selected_image_getter(
+        NativePmlLabelGetter_t getter,
+        void* image,
+        int alternate)
+    {
+        const wchar_t* native_text = nullptr;
+        __try
+        {
+            native_text = getter == nullptr ? nullptr : getter(image, alternate != 0 ? 1 : 0);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return nullptr;
+        }
+        return native_text;
+    }
+
+    std::string read_native_selected_image_getter_text(uintptr_t image, int alternate)
+    {
+        if (image < 0x10000 ||
+            !native_object_has_vtable_rva(
+                reinterpret_cast<void*>(image),
+                accessxi::pol_pml::CpmlImageVtableRva))
+        {
+            return {};
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        uintptr_t vtable = 0;
+        uintptr_t getter = 0;
+        if (!read_ptr_safely(reinterpret_cast<const void*>(image), &vtable) ||
+            !read_ptr_safely(reinterpret_cast<const void*>(vtable + 0x124), &getter))
+        {
+            return {};
+        }
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        if (getter < app_base || getter >= app_base + KnownUpdatedAppDllSize)
+            return {};
+
+        const wchar_t* native_text = call_native_selected_image_getter(
+            reinterpret_cast<NativePmlLabelGetter_t>(getter),
+            reinterpret_cast<void*>(image),
+            alternate);
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const std::u16string bounded_text =
+            accessxi::pol_pml::read_bounded_native_image_getter_text(
+                memory,
+                reinterpret_cast<uintptr_t>(native_text));
+        return clean_native_utf16_text(bounded_text);
+    }
+
+    std::string read_native_selected_image_caption(const PreloginCurrentChildSnapshot& snapshot)
+    {
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const auto inspection = accessxi::pol_pml::inspect_selected_image_path(
+            memory,
+            snapshot.current_child,
+            reinterpret_cast<uintptr_t>(app),
+            snapshot.nested_child);
+        if (!inspection.matched)
+            return {};
+
+        const std::string primary = read_native_selected_image_getter_text(inspection.image, 0);
+        const std::string alternate = read_native_selected_image_getter_text(inspection.image, 1);
+        const std::string caption = accessxi::pol_pml::choose_selected_image_getter_caption(
+            primary,
+            alternate);
+        if (!useful_text(caption) ||
+            !accessxi::pol_pml::selected_image_getter_caption_allowed(caption))
+            return {};
+        return caption;
+    }
+
+    void log_silent_selected_image_path(const PreloginCurrentChildSnapshot& snapshot)
+    {
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return;
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const auto inspection = accessxi::pol_pml::inspect_selected_image_path(
+            memory,
+            snapshot.current_child,
+            reinterpret_cast<uintptr_t>(app),
+            snapshot.nested_child);
+        if (!inspection.matched || g_silent_selected_image_log_budget.fetch_sub(1) <= 0)
+            return;
+
+        PreloginRect object_rect{};
+        PreloginRect image_rect{};
+        const bool have_object_rect = read_prelogin_object_rect(
+            reinterpret_cast<void*>(snapshot.current_child),
+            &object_rect);
+        const bool have_image_rect = read_prelogin_object_rect(
+            reinterpret_cast<void*>(inspection.image),
+            &image_rect);
+        const std::string primary_alt = clean_native_utf16_text(inspection.primary_alt);
+        const std::string alternate_alt = clean_native_utf16_text(inspection.alternate_alt);
+        const std::string getter_0 = read_native_selected_image_getter_text(inspection.image, 0);
+        const std::string getter_1 = read_native_selected_image_getter_text(inspection.image, 1);
+
+        char line[1024]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_SILENTIMAGE object=0x%p image=0x%p sheet=%d nestedDirect=%d children=%u images=%u texts=%u other=%u objectRect=%s%d,%d,%d,%d imageRect=%s%d,%d,%d,%d primaryCapacity=%u alternateCapacity=%u linked=0x%p linkedVtRva=%08IX primaryAlt=%s alternateAlt=%s getter0=%s getter1=%s",
+            reinterpret_cast<void*>(snapshot.current_child),
+            reinterpret_cast<void*>(inspection.image),
+            inspection.object_is_sheet ? 1 : 0,
+            inspection.nested_is_direct_child ? 1 : 0,
+            static_cast<unsigned>(inspection.child_count),
+            static_cast<unsigned>(inspection.image_child_count),
+            static_cast<unsigned>(inspection.text_child_count),
+            static_cast<unsigned>(inspection.other_child_count),
+            have_object_rect ? "" : "none:",
+            object_rect.left,
+            object_rect.top,
+            object_rect.right,
+            object_rect.bottom,
+            have_image_rect ? "" : "none:",
+            image_rect.left,
+            image_rect.top,
+            image_rect.right,
+            image_rect.bottom,
+            static_cast<unsigned>(inspection.primary_capacity_130),
+            static_cast<unsigned>(inspection.alternate_capacity_14c),
+            reinterpret_cast<void*>(inspection.linked_label_object),
+            static_cast<size_t>(inspection.linked_label_vtable_rva),
+            primary_alt.c_str(),
+            alternate_alt.c_str(),
+            getter_0.c_str(),
+            getter_1.c_str());
+        log_line(line);
     }
 
     void log_startup_member_model_probe(void* object)
@@ -2462,7 +2621,8 @@ namespace
         add_postlogin_trace_candidate(snapshot, 0, "inline-this-w", read_postlogin_pml_inline_wide_text(base));
 
         static constexpr uintptr_t offsets[] = {
-            0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x124u, 0x128u,
+            0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x11Cu, 0x124u, 0x128u,
+            0x138u,
             0x154u, 0x158u, 0x160u, 0x164u, 0x188u, 0x18Cu,
             0x190u, 0x194u, 0x198u, 0x19Cu
         };
@@ -3035,6 +3195,54 @@ namespace
         return selected_child;
     }
 
+    struct SelectedMemberResolution
+    {
+        uint32_t stored_index = 0;
+        void* selected_child = nullptr;
+        std::string label;
+        const char* source = "selected-index";
+    };
+
+    SelectedMemberResolution resolve_selected_member(void* model, uint32_t requested_index)
+    {
+        SelectedMemberResolution resolution;
+        resolution.stored_index = requested_index;
+        if (model == nullptr)
+            return resolution;
+
+        read_u32_safely(
+            static_cast<const uint8_t*>(model) + 0x2A4,
+            &resolution.stored_index);
+        resolution.selected_child = reinterpret_cast<void*>(
+            selected_child_from_native_index(model, resolution.stored_index));
+        if (resolution.selected_child == nullptr)
+            return resolution;
+
+        if (prelogin_member_dynamic_value_rect(resolution.selected_child))
+        {
+            const std::string candidate = best_native_pml_dynamic_text_from_object(
+                resolution.selected_child);
+            const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+                candidate,
+                true,
+                true,
+                true,
+                !candidate.empty()
+            });
+            if (decision.trusted)
+            {
+                resolution.label = decision.text;
+                resolution.source = "selected-member-dynamic";
+            }
+            return resolution;
+        }
+
+        resolution.label = best_native_pml_text_from_object(
+            resolution.selected_child,
+            "selected-index");
+        return resolution;
+    }
+
     void remember_selected_index_candidate(void* model, uint32_t requested_index)
     {
         if (native_post_login_surface_active())
@@ -3042,29 +3250,23 @@ namespace
         if (model == nullptr)
             return;
 
-        uint32_t stored_index = requested_index;
-        read_u32_safely(static_cast<const uint8_t*>(model) + 0x2A4, &stored_index);
+        const SelectedMemberResolution resolution = resolve_selected_member(
+            model,
+            requested_index);
+        capture_postlogin_selected_index(
+            model,
+            requested_index,
+            resolution.stored_index,
+            resolution.selected_child);
 
-        void* selected_child = reinterpret_cast<void*>(selected_child_from_native_index(model, stored_index));
-        capture_postlogin_selected_index(model, requested_index, stored_index, selected_child);
-        std::string label;
-        const char* label_source = "selected-index";
-        if (selected_child != nullptr)
-            label = best_native_pml_text_from_object(selected_child, "selected-index");
-
-        if (label.empty() && selected_child != nullptr && prelogin_member_dynamic_value_rect(selected_child))
-        {
-            label = best_native_pml_dynamic_text_from_object(selected_child);
-            if (!label.empty())
-                label_source = "selected-member-dynamic";
-        }
-
-        if (label.empty())
+        if (resolution.label.empty())
         {
             if (g_selected_index_no_label_log_budget.fetch_sub(1) > 0)
             {
                 PreloginRect selected_rect{};
-                const bool have_selected_rect = read_prelogin_object_rect(selected_child, &selected_rect);
+                const bool have_selected_rect = read_prelogin_object_rect(
+                    resolution.selected_child,
+                    &selected_rect);
                 char line[256]{};
                 std::snprintf(
                     line,
@@ -3072,8 +3274,8 @@ namespace
                     "PRELOGIN_SELECTEDINDEX no-label model=0x%p requested=%u stored=%u child=0x%p rect=%d,%d,%d,%d haveRect=%d",
                     model,
                     static_cast<unsigned>(requested_index),
-                    static_cast<unsigned>(stored_index),
-                    selected_child,
+                    static_cast<unsigned>(resolution.stored_index),
+                    resolution.selected_child,
                     selected_rect.left,
                     selected_rect.top,
                     selected_rect.right,
@@ -3085,7 +3287,13 @@ namespace
             return;
         }
 
-        if (!prelogin_pml_focus_can_claim_burst(label_source, model, selected_child, label, true, false))
+        if (!prelogin_pml_focus_can_claim_burst(
+                resolution.source,
+                model,
+                resolution.selected_child,
+                resolution.label,
+                true,
+                false))
         {
             char line[256]{};
             std::snprintf(
@@ -3094,9 +3302,9 @@ namespace
                 "PRELOGIN_SELECTEDINDEX rejected model=0x%p requested=%u stored=%u child=0x%p text=%s",
                 model,
                 static_cast<unsigned>(requested_index),
-                static_cast<unsigned>(stored_index),
-                selected_child,
-                label.c_str());
+                static_cast<unsigned>(resolution.stored_index),
+                resolution.selected_child,
+                resolution.label.c_str());
             log_line(line);
             clear_prelogin_duplicate_guard();
             return;
@@ -3109,16 +3317,16 @@ namespace
             "PRELOGIN_SELECTEDINDEX candidate model=0x%p requested=%u stored=%u child=0x%p text=%s",
             model,
             static_cast<unsigned>(requested_index),
-            static_cast<unsigned>(stored_index),
-            selected_child,
-            label.c_str());
+            static_cast<unsigned>(resolution.stored_index),
+            resolution.selected_child,
+            resolution.label.c_str());
         log_line(line);
 
         PreloginPmlFocusCandidate candidate;
-        candidate.source = label_source;
-        candidate.label = label;
+        candidate.source = resolution.source;
+        candidate.label = resolution.label;
         candidate.manager = model;
-        candidate.focused_object = selected_child;
+        candidate.focused_object = resolution.selected_child;
         candidate.current_child = false;
         candidate.focused_flag = true;
         candidate.tick = GetTickCount();
@@ -3226,57 +3434,38 @@ namespace
         const bool current_child_is_tiny = native_prelogin_add_member_inner_textbox_child(current_child_object);
         uint32_t label_source_offset = 0;
         uint32_t atlas_resource = 0;
-        std::string label = read_native_selected_control_text(current_child_object);
-        const bool native_selected_text_focus = !label.empty();
-        std::string member_dynamic_label;
-        if (!native_selected_text_focus && native_prelogin_member_access_context(current_child_object))
-            member_dynamic_label = best_native_pml_dynamic_text_from_object_tree(current_child_object);
-        std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
-        const bool member_dynamic_focus = !native_selected_text_focus && !member_dynamic_label.empty();
+        std::string label = read_native_selected_control_text(
+            current_child_object,
+            snapshot.nested_child);
+        const bool native_control_text_focus = !label.empty();
+        bool native_image_getter_focus = false;
         if (label.empty())
-            label = member_dynamic_label;
-        const char* label_source = native_selected_text_focus ? "native-selected-text" :
-            (member_dynamic_focus ? "member-dynamic" : "object-tree");
-        const bool startup_member_focus_rect = native_prelogin_startup_member_list_focus_rect(current_child_object);
-        if (startup_member_focus_rect)
-            log_startup_member_probe(manager, current_child_object);
-        if (label.empty() && startup_member_focus_rect)
         {
-            label = native_prelogin_startup_member_name_from_focus(manager, current_child_object);
-            if (!label.empty())
-                label_source = "startup-member-dynamic";
+            label = read_native_selected_image_caption(snapshot);
+            native_image_getter_focus = !label.empty();
         }
+        const bool native_selected_text_focus =
+            native_control_text_focus || native_image_getter_focus;
+        if (label.empty())
+            log_silent_selected_image_path(snapshot);
+        std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
+        const char* label_source = native_image_getter_focus ? "native-image-getter" :
+            (native_selected_text_focus ? "native-selected-text" : "object-tree");
+        const bool startup_member_focus_rect = native_prelogin_startup_member_list_focus_rect(current_child_object);
         const bool startup_member_atlas_focus =
             native_prelogin_startup_member_list_atlas_focus(current_child_object, geometry_label, atlas_resource);
-        if (label.empty() && startup_member_atlas_focus)
+        if ((startup_member_focus_rect || startup_member_atlas_focus) &&
+            g_postlogin_trace_active.load(std::memory_order_acquire))
         {
-            label = native_prelogin_startup_member_name_from_atlas_member_list_focus(
-                manager,
-                current_child_object,
-                geometry_label,
-                atlas_resource);
-            label_source = "startup-member-dynamic";
+            log_startup_member_probe(manager, current_child_object);
+        }
+        if (label.empty() && (startup_member_focus_rect || startup_member_atlas_focus))
+        {
+            label = "Member List";
+            label_source = "atlas-geometry";
         }
         if (label.empty() && !startup_member_atlas_focus && !startup_member_focus_rect)
             label = best_native_pml_text_from_object_tree(current_child_object, "current-child", &label_source_offset);
-        bool startup_member_static_focus = false;
-        if (!member_dynamic_focus && std::strcmp(label_source, "object-tree") == 0)
-            startup_member_static_focus = native_prelogin_startup_member_list_static_focus(current_child_object, label, label_source_offset, atlas_resource);
-        if (startup_member_static_focus)
-        {
-            std::string startup_member_label = native_prelogin_startup_member_name_from_static_member_list_focus(manager, current_child_object, label, label_source_offset, atlas_resource);
-            if (!startup_member_label.empty())
-            {
-                label = startup_member_label;
-                label_source = "startup-member-dynamic";
-                label_source_offset = 0;
-            }
-            else
-            {
-                label.clear();
-                label_source = "startup-member-dynamic";
-            }
-        }
         const bool add_member_context = native_prelogin_add_member_form_context(manager) ||
             native_prelogin_add_member_form_context(current_child_object);
         const bool add_member_field_geometry_focus = add_member_context &&
@@ -3343,7 +3532,7 @@ namespace
 
         if (!native_selected_text_focus)
         {
-            if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus && !member_dynamic_focus && !startup_member_atlas_focus)
+            if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus)
             {
                 if (!label.empty() && label != geometry_label)
                 {
@@ -3361,13 +3550,6 @@ namespace
                 label = geometry_label;
                 label_source = "atlas-geometry";
             }
-        }
-
-        if (label.empty() && prelogin_member_dynamic_value_rect(current_child_object))
-        {
-            label = best_native_pml_dynamic_text_from_object(current_child_object);
-            if (!label.empty())
-                label_source = "member-dynamic";
         }
 
         if (label.empty())
@@ -3411,10 +3593,9 @@ namespace
 
         const char* candidate_source =
             (std::strcmp(label_source, "native-selected-text") == 0 ||
+             std::strcmp(label_source, "native-image-getter") == 0 ||
              std::strcmp(label_source, "add-member") == 0 ||
-             std::strcmp(label_source, "add-member-button") == 0 ||
-             std::strcmp(label_source, "member-dynamic") == 0 ||
-             std::strcmp(label_source, "startup-member-dynamic") == 0) ? label_source : "current-child";
+             std::strcmp(label_source, "add-member-button") == 0) ? label_source : "current-child";
         if (!prelogin_pml_focus_can_claim_burst(candidate_source, manager, current_child_object, label, true, true))
         {
             log_current_child_detail(manager, requested_child, current_child_object, "rejected");

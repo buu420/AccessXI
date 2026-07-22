@@ -194,187 +194,36 @@ if ($startupMemberRect -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT")
     throw "Startup member-list focus geometry must not infer selection from keys."
 }
 
-$startupMemberFocus = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_focus"
-Assert-Contains $startupMemberFocus 'native_prelogin_startup_member_list_focus_rect\s*\(\s*current_child_object\s*\)' `
-    "Startup member-name recovery must require the native startup member-list focus rectangle."
-Assert-Contains $source 'std::string\s+native_prelogin_startup_member_name_from_child_slots\s*\(' `
-    "Startup member-name recovery must inspect the Ghidra-backed member-name child slots before falling back to stale globals."
 $startupMemberChildSlots = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_child_slots"
-Assert-Contains $startupMemberChildSlots '0x2CCu' `
-    "Startup member-name child-slot recovery must include the Ghidra-backed in_ECX[0xb3] member-name widget slot."
-Assert-Contains $startupMemberChildSlots '0x2C0u' `
-    "Startup member-name child-slot recovery must include the related in_ECX[0xb0] member-name widget slot used by member/password frames."
-Assert-Contains $startupMemberChildSlots 'read_ptr_safely' `
-    "Startup member-name child-slot recovery must read native child pointers safely."
-Assert-Contains $startupMemberChildSlots 'best_native_pml_dynamic_text_from_object' `
-    "Startup member-name child-slot recovery must read the native dynamic text from the child widget."
-Assert-Contains $startupMemberChildSlots 'prelogin_member_dynamic_label' `
-    "Startup member-name child-slot recovery must keep the dynamic-member false-positive guard."
-if ($startupMemberChildSlots -match 'return\s+label\s*;') {
-    throw "Startup member-name child-slot probing must not directly return text for speech; live proof showed these slots can expose class/control garbage like CComponent."
+if ($startupMemberChildSlots -match 'return\s+label\s*;|append_reloaded_speech_queue|speak_prelogin_label') {
+    throw "Broad startup member child-slot probes must remain diagnostic-only."
 }
-if ($startupMemberChildSlots -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Startup member-name child-slot recovery must not infer selection from keys."
-}
-Assert-Contains $source 'std::string\s+native_prelogin_startup_member_name_from_model_fields\s*\(' `
-    "Startup member-name recovery must include the native RegularMember model-field bridge proven by REGMEMBERMODEL logging."
-$startupMemberModelFields = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_model_fields"
-$startupMemberModelLink = Get-FunctionBody $source "std::string native_prelogin_dynamic_label_from_member_model_link"
-$startupMemberModelRecovery = $startupMemberModelFields + "`n" + $startupMemberModelLink
-Assert-Contains $startupMemberModelFields 'native_prelogin_startup_member_list_focus_rect\s*\(\s*object\s*\)' `
-    "Startup RegularMember model-field recovery must require the native startup member-list focus rectangle."
-Assert-Contains $startupMemberModelFields '0x2A8u' `
-    "Startup RegularMember model-field recovery must inspect the Ghidra/log-proven +0x2A8 member object slot."
-Assert-Contains $startupMemberModelFields '0x318u' `
-    "Startup RegularMember model-field recovery must cover the bounded RegularMember model field range through +0x318."
-Assert-Contains $startupMemberModelRecovery '0x0B8u' `
-    "Startup RegularMember model-field recovery must inspect the live REGMEMBERMODEL +0x0B8 linked label component."
-Assert-Contains $startupMemberModelRecovery '0x0B4u' `
-    "Startup RegularMember model-field recovery must inspect the repeatedly proven REGMEMBERMODEL +0x0B4 linked label component."
-Assert-Contains $startupMemberModelRecovery '0x124u' `
-    "Startup RegularMember model-field recovery must inspect the older working REGMEMBERMODEL +0x124 linked label component."
-Assert-Contains $startupMemberModelRecovery '0x128u' `
-    "Startup RegularMember model-field recovery must inspect the archived REGMEMBERMODEL +0x128 linked label component."
-Assert-Contains $startupMemberModelRecovery '0x18Cu' `
-    "Startup RegularMember model-field recovery must inspect the archived REGMEMBERMODEL +0x18C linked label component."
-if ($startupMemberModelLink -match 'best_native_pml_dynamic_text_from_object\s*\(\s*reinterpret_cast<void\*>\s*\(\s*object\s*\)\s*\)') {
-    throw "Startup RegularMember model-field recovery must not accept raw model-object text; live proof showed raw models expose code-symbol false positives like get_Current and le32FirstW."
-}
-Assert-Contains $startupMemberModelRecovery 'read_ptr_safely' `
-    "Startup RegularMember model-field recovery must read native model pointers safely."
-Assert-Contains $startupMemberModelRecovery 'best_native_pml_dynamic_text_from_object' `
-    "Startup RegularMember model-field recovery must decode native dynamic component text from model-linked objects."
-Assert-Contains $startupMemberModelRecovery 'prelogin_member_dynamic_label' `
-    "Startup RegularMember model-field recovery must keep the dynamic-member false-positive guard."
-Assert-Contains $source 'std::atomic<int>\s+g_startup_member_model_probe_budget\{\s*12\s*\}' `
-    "Startup RegularMember model-field probing must have a separate finite budget so root-cause logging cannot lag the startup menu."
-Assert-Contains $source 'void\s+log_startup_member_model_probe\s*\(' `
-    "Startup RegularMember model-field probing must be isolated in a logging-only helper."
+
 $startupMemberModelProbe = Get-FunctionBody $source "void log_startup_member_model_probe"
 Assert-Contains $startupMemberModelProbe 'g_startup_member_model_probe_budget\.fetch_sub' `
-    "Startup RegularMember model-field probe must spend a finite diagnostic budget."
-Assert-Contains $startupMemberModelProbe 'PRELOGIN_STARTUPMEMBER_MODEL probe' `
-    "Startup RegularMember model-field probe must leave a stable log marker for the next live arrow pass."
-Assert-Contains $startupMemberModelProbe '0x2A8u' `
-    "Startup RegularMember model-field probe must inspect the Ghidra/log-proven +0x2A8 member object slot."
-Assert-Contains $startupMemberModelProbe '0x318u' `
-    "Startup RegularMember model-field probe must cover the bounded RegularMember model field range through +0x318."
-Assert-Contains $startupMemberModelProbe '0x0B8u' `
-    "Startup RegularMember model-field probe must inspect the live REGMEMBERMODEL +0x0B8 linked label component."
-Assert-Contains $startupMemberModelProbe '0x0B4u' `
-    "Startup RegularMember model-field probe must inspect the repeatedly proven REGMEMBERMODEL +0x0B4 linked label component."
-Assert-Contains $startupMemberModelProbe '0x124u' `
-    "Startup RegularMember model-field probe must inspect the older working REGMEMBERMODEL +0x124 linked label component."
-Assert-Contains $startupMemberModelProbe '0x128u' `
-    "Startup RegularMember model-field probe must inspect the archived REGMEMBERMODEL +0x128 linked label component."
-Assert-Contains $startupMemberModelProbe '0x18Cu' `
-    "Startup RegularMember model-field probe must inspect the archived REGMEMBERMODEL +0x18C linked label component."
-Assert-Contains $startupMemberModelProbe 'prelogin_probe_candidate_label' `
-    "Startup RegularMember model-field probe must log candidate text under the broad probe filter, not the speech allowlist."
-if ($startupMemberModelProbe -match "append_reloaded_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|VK_RETURN|VK_TAB") {
-    throw "Startup RegularMember model-field probe must be logging-only and must not monitor keys or speak."
-}
-if ($startupMemberModelRecovery -match 'Brice|buu420|Tsuzee|XQDW0533') {
-    throw "Startup RegularMember model-field recovery must not hardcode live account/member names."
-}
-if ($startupMemberModelRecovery -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|VK_RETURN|VK_TAB|append_reloaded_speech_queue|speak_prelogin_label") {
-    throw "Startup RegularMember model-field recovery must be native-state extraction only, with no key monitoring or speech side effects."
-}
-Assert-Before $startupMemberFocus 'native_prelogin_startup_member_name_from_child_slots' 'read_native_prelogin_member_name' `
-    "Startup member-name recovery must prefer native member-name child slots before the stale/static global accessor."
-Assert-Before $startupMemberFocus 'native_prelogin_startup_member_name_from_model_fields' 'read_native_prelogin_member_name' `
-    "Startup member-name recovery must prefer the RegularMember model-field bridge before the stale/static global accessor."
-Assert-Contains $startupMemberFocus 'read_native_prelogin_member_name\s*\(\s*\)' `
-    "Startup member-name recovery must read the native dynamic account name only after focus proof."
-Assert-Contains $startupMemberFocus 'prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
-    "Startup member-name recovery must keep the dynamic-member false-positive guard."
-if ($startupMemberFocus -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Startup member-name recovery must not infer selection from keys."
+    "Startup model diagnostics must remain finitely budgeted."
+if ($startupMemberModelProbe -match 'append_reloaded_speech_queue|speak_prelogin_label') {
+    throw "Startup model probes must never speak."
 }
 
-Assert-Contains $source 'bool\s+native_prelogin_startup_member_list_static_focus\s*\(' `
-    "Startup member-name recovery must recognize the live current-child Member List container without using guessed order."
-$startupMemberStaticFocus = Get-FunctionBody $source "bool native_prelogin_startup_member_list_static_focus"
-Assert-Contains $startupMemberStaticFocus 'static_label\s*!=\s*"Member List"' `
-    "Startup static member focus must be limited to the native Member List current-child label."
-Assert-Contains $startupMemberStaticFocus 'label_source_offset\s*!=\s*0x114' `
-    "Startup static member focus must require the live object-tree +0x114 label offset."
-Assert-Contains $startupMemberStaticFocus 'atlas_resource\s*!=\s*0' `
-    "Startup static member focus must reject atlas-geometry Member List headers and menu rows."
-if ($startupMemberStaticFocus -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Startup static member focus must not infer selection from keys."
-}
-
-Assert-Contains $source 'bool\s+native_prelogin_startup_member_list_atlas_focus\s*\(' `
-    "Startup member-name recovery must recognize the live atlas-backed Member List current child."
-$startupMemberAtlasFocus = Get-FunctionBody $source "bool native_prelogin_startup_member_list_atlas_focus"
-Assert-Contains $startupMemberAtlasFocus 'object\s*==\s*nullptr' `
-    "Atlas Member List focus proof must require a real native current-child object."
-Assert-Contains $startupMemberAtlasFocus 'geometry_label\s*==\s*"Member List"' `
-    "Atlas Member List focus proof must be limited to the native Member List geometry label."
-Assert-Contains $startupMemberAtlasFocus 'atlas_resource\s*==\s*0x04B54740u' `
-    "Atlas Member List focus proof must use the Ghidra-backed RegularMember_LoginCommandMenu2_ resource."
-if ($startupMemberAtlasFocus -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Atlas Member List focus proof must not infer selection from keys."
-}
-
-Assert-Contains $source 'std::string\s+native_prelogin_startup_member_name_from_atlas_member_list_focus\s*\(' `
-    "Atlas Member List current-child focus must resolve through the native dynamic member-name reader."
-$startupMemberAtlasName = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_atlas_member_list_focus"
-Assert-Contains $startupMemberAtlasName 'native_prelogin_startup_member_list_atlas_focus\s*\(' `
-    "Atlas Member List name recovery must require the narrow atlas current-child proof."
-Assert-Contains $startupMemberAtlasName 'native_prelogin_startup_member_name_from_child_slots' `
-    "Atlas Member List name recovery must try native member-name child slots before the stale/static global accessor."
-Assert-Contains $startupMemberAtlasName 'native_prelogin_startup_member_name_from_model_fields' `
-    "Atlas Member List name recovery must try the RegularMember model-field bridge before the stale/static global accessor."
-Assert-Contains $startupMemberAtlasName 'read_native_prelogin_member_name\s*\(\s*\)' `
-    "Atlas Member List name recovery must call the Ghidra-backed dynamic member-name accessor."
-Assert-Contains $startupMemberAtlasName 'prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
-    "Atlas Member List name recovery must keep the dynamic-member false-positive guard."
-if ($startupMemberAtlasName -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Atlas Member List name recovery must not infer selection from keys."
-}
-
-Assert-Contains $source 'std::string\s+native_prelogin_startup_member_name_from_static_member_list_focus\s*\(' `
-    "Startup Member List current-child focus must resolve through the native dynamic member-name reader."
-$startupMemberStaticName = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_static_member_list_focus"
-Assert-Contains $startupMemberStaticName 'native_prelogin_startup_member_list_static_focus\s*\(' `
-    "Static Member List name recovery must require the narrow static current-child proof."
-Assert-Contains $startupMemberStaticName 'native_prelogin_startup_member_name_from_child_slots' `
-    "Static Member List name recovery must try native member-name child slots before the stale/static global accessor."
-Assert-Contains $startupMemberStaticName 'native_prelogin_startup_member_name_from_model_fields' `
-    "Static Member List name recovery must try the RegularMember model-field bridge before the stale/static global accessor."
-Assert-Contains $startupMemberStaticName 'read_native_prelogin_member_name\s*\(\s*\)' `
-    "Static Member List name recovery must call the native dynamic member-name accessor."
-Assert-Contains $startupMemberStaticName 'prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
-    "Static Member List name recovery must keep the dynamic-member false-positive guard."
-if ($startupMemberStaticName -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
-    throw "Static Member List name recovery must not infer selection from keys."
-}
+Assert-Contains $source '#include\s+"pol_accessibility/prelogin_semantics\.h"' `
+    "Native pre-login speech must use the unit-tested ownership semantics."
+$selectedMember = Get-FunctionBody $source "SelectedMemberResolution resolve_selected_member"
+Assert-Contains $selectedMember 'selected_child_from_native_index\s*\(' `
+    "Member resolution must use the native indexed child."
+Assert-Contains $selectedMember 'decide_member_candidate\s*\(' `
+    "Member resolution must require every unit-tested ownership link."
+Assert-Contains $selectedMember 'prelogin_member_dynamic_value_rect\s*\(' `
+    "Dynamic member text must remain limited to the verified member-value shape."
+Assert-Before $selectedMember 'prelogin_member_dynamic_value_rect(resolution.selected_child)' 'best_native_pml_text_from_object(' `
+    "A verified member-value child must enter the ownership-backed member path before generic selected-row extraction."
 
 $currentChildResolverForStartupMember = Get-FunctionBody $source "void process_current_child_candidate"
-Assert-Before $currentChildResolverForStartupMember `
-    'native_prelogin_startup_member_name_from_focus(manager, current_child_object)' `
-    'best_native_pml_text_from_object_tree(current_child_object, "current-child"' `
-    "Startup-selected member names must be tried before static object-tree labels such as Information can claim the focus."
-Assert-Before $currentChildResolverForStartupMember `
-    'native_prelogin_startup_member_name_from_static_member_list_focus(manager, current_child_object, label, label_source_offset, atlas_resource)' `
-    'if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus && !member_dynamic_focus && !startup_member_atlas_focus)' `
-    "Live static Member List current-child focus must try the dynamic member name before static geometry/object labels can speak."
-Assert-Before $currentChildResolverForStartupMember `
-    'native_prelogin_startup_member_name_from_atlas_member_list_focus(' `
-    'best_native_pml_text_from_object_tree(current_child_object, "current-child"' `
-    "Live atlas Member List current-child focus must try the dynamic member name before object-tree labels can claim the focus."
-Assert-Contains $currentChildResolverForStartupMember 'const\s+bool\s+startup_member_focus_rect\s*=\s*native_prelogin_startup_member_list_focus_rect\s*\(\s*current_child_object\s*\)' `
-    "Startup Member List focus must be tracked after the native dynamic name attempt so stale object-tree labels cannot claim the row."
-Assert-Contains $currentChildResolverForStartupMember 'label\.empty\s*\(\s*\)\s*&&\s*!startup_member_atlas_focus\s*&&\s*!startup_member_focus_rect[\s\S]{0,140}best_native_pml_text_from_object_tree' `
-    "Startup and atlas Member List focus must stay off the generic object-tree label path when the native member-name read is empty."
-Assert-Contains $currentChildResolverForStartupMember '!startup_member_atlas_focus\)' `
-    "Atlas Member List focus must not fall through to static geometry speech as Member List."
-Assert-Contains $currentChildResolverForStartupMember 'label_source\s*=\s*"startup-member-dynamic"' `
-    "Startup-selected member names must preserve a distinct native dynamic source."
-Assert-Contains $currentChildResolverForStartupMember 'startup_member_static_focus[\s\S]{0,620}label\.clear\s*\(\s*\)' `
-    "Static Member List focus must stay silent if the native dynamic member-name read is empty."
+if ($currentChildResolverForStartupMember -match 'native_prelogin_startup_member_name_from_(focus|atlas_member_list_focus|static_member_list_focus)|startup-member-dynamic|read_native_prelogin_member_name') {
+    throw "Current-child focus must not promote unowned startup member guesses to speech."
+}
+Assert-Contains $currentChildResolverForStartupMember 'startup_member_focus_rect[\s\S]{0,420}label\s*=\s*"Member List"' `
+    "A focused member-list container may expose only its verified static label until selected-child evidence arrives."
 
 $pendingPmlFocusTrusted = Get-FunctionBody $source "bool prelogin_pending_pml_focus_candidate_trusted_for_drain"
 Assert-Contains $pendingPmlFocusTrusted 'prelogin_pml_focus_candidate_label_allowed\s*\(\s*candidate\.source\.c_str\s*\(\s*\),\s*candidate\.label\s*\)' `
@@ -434,10 +283,11 @@ Assert-Contains $pmlFocusClaimGate 'if\s*\(\s*std::strcmp\s*\(\s*source_text\s*,
     "Selected dynamic member names must be claimable only through native selected-index focus, not broad current-child speech."
 Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"add-member"\s*\)\s*==\s*0[\s\S]{0,140}prelogin_add_member_value_label\s*\(\s*label\s*\)' `
     "Add Member values must be allowed only through the Add Member source-aware label path."
-Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"member-dynamic"\s*\)\s*==\s*0[\s\S]{0,140}prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
-    "Dynamic member names must be allowed only through the member-dynamic source-aware label path."
 Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"selected-member-dynamic"\s*\)\s*==\s*0[\s\S]{0,140}prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
     "Selected dynamic member names must use a distinct source-aware label path."
+if ($labelFilter -match 'std::strcmp\s*\(\s*source_text,\s*"(?:startup-)?member-dynamic"') {
+    throw "Unowned current-child member sources must not be allowed to speak."
+}
 Assert-Contains $pmlFocusClaimGate 'if\s*\(\s*!snapshot_current_child\s*&&[\s\S]{0,420}reason=different-current-child' `
     "Only non-deferred focus claims should re-read live manager +0x164; deferred snapshots already captured native current-child proof."
 Assert-Before $pmlFocusClaimGate 'reason=different-current-child' 'if (current_child || focused_flag)' `
@@ -521,19 +371,15 @@ if ($selectedIndexHook -match "GetAsyncKeyState") {
 }
 
 $selectedIndexResolver = Get-FunctionBody $source "void remember_selected_index_candidate"
-Assert-Contains $selectedIndexResolver 'selected_child_from_native_index\s*\(\s*model\s*,\s*stored_index\s*\)' `
-    "Selected-index candidate path must resolve the native child for the actual stored index."
-Assert-Contains $selectedIndexResolver 'best_native_pml_text_from_object\s*\(\s*selected_child\s*,\s*"selected-index"\s*\)' `
-    "Selected-index candidate path must extract labels from the selected native child, not from guessed menu order."
-Assert-Contains $selectedIndexResolver 'prelogin_member_dynamic_value_rect\s*\(\s*selected_child\s*\)' `
-    "Selected-index candidate path must recognize native dynamic member value rectangles."
-Assert-Contains $selectedIndexResolver 'best_native_pml_dynamic_text_from_object\s*\(\s*selected_child\s*\)' `
-    "Selected-index candidate path must extract dynamic member names from the selected native child."
-Assert-Contains $selectedIndexResolver 'label_source\s*=\s*"selected-member-dynamic"' `
+Assert-Contains $selectedIndexResolver 'resolve_selected_member\s*\(\s*model\s*,\s*requested_index\s*\)' `
+    "Selected-index candidate path must consume one relationship-backed member resolution."
+Assert-Contains $selectedIndexResolver 'resolution\.selected_child' `
+    "Selected-index capture and speech must use the exact child returned by the relationship-backed resolver."
+Assert-Contains $selectedIndexResolver 'resolution\.source' `
     "Selected-index dynamic member names must keep their narrow source through the speech gate."
-Assert-Contains $selectedIndexResolver 'prelogin_pml_focus_can_claim_burst\s*\(\s*label_source' `
+Assert-Contains $selectedIndexResolver 'prelogin_pml_focus_can_claim_burst\s*\(\s*resolution\.source' `
     "Selected-index candidate path must still pass the strict native source-aware label allowlist before speech."
-Assert-Contains $selectedIndexResolver 'candidate\.source\s*=\s*label_source' `
+Assert-Contains $selectedIndexResolver 'candidate\.source\s*=\s*resolution\.source' `
     "Queued selected-index candidates must preserve the narrowed dynamic-member source."
 Assert-Contains $selectedIndexResolver 'PRELOGIN_SELECTEDINDEX' `
     "Selected-index candidate path must keep live diagnostics for user validation."
@@ -541,7 +387,7 @@ Assert-Contains $source 'std::atomic<int>\s+g_selected_index_no_label_log_budget
     "Selected-index no-label diagnostics must be capped so dynamic member probing cannot lag arrowing."
 Assert-Contains $selectedIndexResolver 'g_selected_index_no_label_log_budget\.fetch_sub' `
     "Selected-index no-label logging must spend a finite diagnostic budget."
-Assert-Contains $selectedIndexResolver 'read_prelogin_object_rect\s*\(\s*selected_child,\s*&selected_rect\s*\)' `
+Assert-Contains $selectedIndexResolver 'read_prelogin_object_rect\s*\(\s*resolution\.selected_child,\s*&selected_rect\s*\)' `
     "Selected-index no-label diagnostics must log the native selected-child rectangle for one-pass member-name discovery."
 Assert-Contains $selectedIndexResolver 'rect=%d,%d,%d,%d' `
     "Selected-index no-label diagnostics must include native rectangle coordinates."
@@ -598,8 +444,8 @@ Assert-Contains $currentChildResolver 'best_native_pml_text_from_object_tree\s*\
     "Current-child candidate path must extract labels from the real native current child or its bounded native children."
 Assert-Contains $currentChildResolver 'native_prelogin_atlas_label_from_geometry\s*\(\s*current_child_object\s*,\s*&atlas_resource\s*\)' `
     "Current-child candidate path may only use the native atlas geometry bridge after manager +0x164 identifies the current child."
-Assert-Contains $currentChildResolver 'if\s*\(\s*!geometry_label\.empty\s*\(\s*\)\s*&&\s*!add_member_value_focus\s*&&\s*!add_member_button_focus\s*&&\s*!member_dynamic_focus\s*&&\s*!startup_member_atlas_focus\s*\)' `
-    "Exact focused geometry must keep the atlas-geometry source even when object text matches, except for proven Add Member values, buttons, or dynamic member values."
+Assert-Contains $currentChildResolver 'if\s*\(\s*!geometry_label\.empty\s*\(\s*\)\s*&&\s*!add_member_value_focus\s*&&\s*!add_member_button_focus\s*\)' `
+    "Exact focused geometry must keep the atlas-geometry source except for proven Add Member values or buttons."
 Assert-Contains $currentChildResolver 'if\s*\(\s*!label\.empty\s*\(\s*\)\s*&&\s*label\s*!=\s*geometry_label\s*\)' `
     "Focused geometry conflict logging should remain limited to real object-text disagreements."
 Assert-Contains $currentChildResolver 'PRELOGIN_ATLASGEOM prefer-focused-geometry' `
@@ -834,10 +680,10 @@ Assert-Contains $currentChildResolver 'label_source_offset\s*==\s*0x114' `
     "Tiny native Register text children must require the observed native text offset before speaking, so stale field children stay silent."
 Assert-Contains $currentChildResolver 'label_source\s*=\s*"add-member-button"' `
     "Native Add Member Register/Cancel button labels must keep a narrowed source through the speech guard."
-Assert-Contains $currentChildResolver 'if\s*\(\s*!geometry_label\.empty\s*\(\s*\)\s*&&\s*!add_member_value_focus\s*&&\s*!add_member_button_focus\s*&&\s*!member_dynamic_focus\s*&&\s*!startup_member_atlas_focus\s*\)' `
-    "Non-field focused geometry may still override object text when no proven Add Member value or dynamic member value has claimed the focus."
-Assert-Contains $currentChildResolver 'std::strcmp\s*\(\s*label_source,\s*"add-member"\s*\)\s*==\s*0[\s\S]{0,180}std::strcmp\s*\(\s*label_source,\s*"add-member-button"\s*\)\s*==\s*0[\s\S]{0,180}std::strcmp\s*\(\s*label_source,\s*"member-dynamic"\s*\)\s*==\s*0[\s\S]{0,120}\?\s*label_source\s*:\s*"current-child"' `
-    "Add Member and dynamic member labels must keep their narrowed source through the final native focus claim."
+Assert-Contains $currentChildResolver 'if\s*\(\s*!geometry_label\.empty\s*\(\s*\)\s*&&\s*!add_member_value_focus\s*&&\s*!add_member_button_focus\s*\)' `
+    "Non-field focused geometry may still override object text when no proven Add Member value or button has claimed the focus."
+Assert-Contains $currentChildResolver 'std::strcmp\s*\(\s*label_source,\s*"add-member"\s*\)\s*==\s*0[\s\S]{0,180}std::strcmp\s*\(\s*label_source,\s*"add-member-button"\s*\)\s*==\s*0[\s\S]{0,180}\?\s*label_source\s*:\s*"current-child"' `
+    "Add Member labels must keep their narrowed source through the final native focus claim."
 Assert-Contains $currentChildResolver 'candidate\.source\s*=\s*candidate_source' `
     "Queued current-child candidates must use the narrowed Add Member source when the label came from that path."
 Assert-Contains $currentChildResolver 'candidate\.snapshot_current_child\s*=\s*true' `
@@ -1034,12 +880,9 @@ Assert-Contains $dynamicMemberRect '\{\s*104,\s*114,\s*428,\s*138,\s*"member dyn
     "Dynamic member value detection must include the alternate Ghidra-confirmed regular-member dynamic value rectangle."
 
 $currentChildResolverForDynamic = Get-FunctionBody $source "void process_current_child_candidate"
-Assert-Contains $currentChildResolverForDynamic 'native_prelogin_member_access_context\s*\(\s*current_child_object\s*\)' `
-    "Current-child handling must only try tree-based dynamic member text in the proven regular-member screen context."
-Assert-Contains $currentChildResolverForDynamic 'best_native_pml_dynamic_text_from_object_tree\s*\(\s*current_child_object\s*\)' `
-    "Current-child handling must extract dynamic member names from a focused native value tree."
-Assert-Before $currentChildResolverForDynamic 'best_native_pml_dynamic_text_from_object_tree(current_child_object)' 'best_native_pml_text_from_object_tree(current_child_object, "current-child"' `
-    "Dynamic member value cells must be tried before static object-tree labels such as Member Information can claim the focus."
+if ($currentChildResolverForDynamic -match 'native_prelogin_member_access_context\s*\(|best_native_pml_dynamic_text_from_object_tree\s*\(') {
+    throw "Current-child handling must not promote broad dynamic member-tree probes to speech."
+}
 if ($selectionInstaller -match 'set_interval_target\s*=' -or
     $selectionInstaller -match 'add_interval_target\s*=' -or
     $selectionInstaller -match 'remove_interval_target\s*=') {

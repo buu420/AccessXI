@@ -68,6 +68,17 @@ namespace
     constexpr uintptr_t Children = 0x20000000;
     constexpr uintptr_t Model = 0x30000000;
     constexpr uintptr_t Stream = 0x40000000;
+    constexpr uintptr_t RenderedLine = 0x50000000;
+    constexpr uintptr_t RenderedLineHead = 0x50001000;
+    constexpr uintptr_t RenderedLineNode = 0x50002000;
+    constexpr uintptr_t RenderedFragmentHead = 0x50003000;
+    constexpr uintptr_t RenderedFragmentNode = 0x50004000;
+    constexpr uintptr_t RenderedFragment = 0x50005000;
+    constexpr uintptr_t RenderedCharacters = 0x50006000;
+    constexpr uintptr_t ImageAltHeap = 0x50007000;
+    constexpr uintptr_t ImageAlternateAltHeap = 0x50008000;
+    constexpr uintptr_t LinkedLabelObject = 0x50009000;
+    constexpr uintptr_t RenderedTextFragmentVtableRva = 0x003E4A1C;
 
     void write_literal_stream(FakeMemory& memory, uintptr_t stream, const std::u16string& text)
     {
@@ -87,6 +98,33 @@ namespace
         write_literal_stream(memory, stream, text);
     }
 
+    void write_single_rendered_text_line(
+        FakeMemory& memory,
+        uintptr_t text_object,
+        const std::u16string& text)
+    {
+        memory.write<uintptr_t>(text_object + 0x1D0, RenderedLineHead);
+        memory.write<uint32_t>(text_object + 0x1D4, 1);
+        memory.write<uintptr_t>(RenderedLineHead, RenderedLineNode);
+        memory.write<uintptr_t>(RenderedLineHead + 4, RenderedLineNode);
+        memory.write<uintptr_t>(RenderedLineNode, RenderedLineHead);
+        memory.write<uintptr_t>(RenderedLineNode + 4, RenderedLineHead);
+        memory.write<uintptr_t>(RenderedLineNode + 8, RenderedLine);
+
+        memory.write<uintptr_t>(RenderedLine + 0x24, RenderedFragmentHead);
+        memory.write<uint32_t>(RenderedLine + 0x28, 1);
+        memory.write<uintptr_t>(RenderedFragmentHead, RenderedFragmentNode);
+        memory.write<uintptr_t>(RenderedFragmentHead + 4, RenderedFragmentNode);
+        memory.write<uintptr_t>(RenderedFragmentNode, RenderedFragmentHead);
+        memory.write<uintptr_t>(RenderedFragmentNode + 4, RenderedFragmentHead);
+        memory.write<uintptr_t>(RenderedFragmentNode + 8, RenderedFragment);
+
+        memory.write<uintptr_t>(RenderedFragment, AppBase + RenderedTextFragmentVtableRva);
+        memory.write<uintptr_t>(RenderedFragment + 0x28, RenderedCharacters);
+        memory.write<uint32_t>(RenderedFragment + 0x2C, static_cast<uint32_t>(text.size()));
+        memory.write_utf16(RenderedCharacters, text, false);
+    }
+
     FakeMemory valid_sheet(const std::u16string& text)
     {
         FakeMemory memory;
@@ -100,11 +138,63 @@ namespace
         return memory;
     }
 
+    void write_native_wide_string(
+        FakeMemory& memory,
+        uintptr_t field,
+        uintptr_t heap,
+        const std::u16string& text)
+    {
+        const uint32_t capacity = text.size() < 8 ? 7u : static_cast<uint32_t>(text.size());
+        if (capacity < 8)
+            memory.write_utf16(field, text);
+        else
+        {
+            memory.write<uintptr_t>(field, heap);
+            memory.write_utf16(heap, text);
+        }
+        memory.write<uint32_t>(field + 0x10, static_cast<uint32_t>(text.size()));
+        memory.write<uint32_t>(field + 0x14, capacity);
+    }
+
     void test_selected_sheet_reads_unique_literal_text_sibling()
     {
         auto memory = valid_sheet(u"Options");
         require(read_selected_control_text(memory.view(), Sheet, AppBase) == u"Options",
             "selected CPmlSheet did not resolve its CPmlText sibling");
+    }
+
+    void test_selected_sheet_reads_live_rendered_dynamic_text()
+    {
+        auto memory = valid_sheet(u"unresolved source token");
+        memory.write<uint16_t>(Stream, 0x10);
+        write_single_rendered_text_line(memory, Text, u"Games");
+
+        require(read_selected_control_text(memory.view(), Sheet, AppBase) == u"Games",
+            "selected CPmlSheet did not resolve its live rendered dynamic caption");
+    }
+
+    void test_rendered_dynamic_text_rejects_unproven_or_inconsistent_state()
+    {
+        auto memory = valid_sheet(u"unresolved source token");
+        memory.write<uint16_t>(Stream, 0x10);
+        write_single_rendered_text_line(memory, Text, u"Games");
+        memory.write<uintptr_t>(RenderedFragment, AppBase + CpmlImageVtableRva);
+        require(read_selected_control_text(memory.view(), Sheet, AppBase).empty(),
+            "a non-text rendered fragment must stay silent");
+
+        memory = valid_sheet(u"unresolved source token");
+        memory.write<uint16_t>(Stream, 0x10);
+        write_single_rendered_text_line(memory, Text, u"Games");
+        memory.write<uintptr_t>(RenderedLineNode, RenderedLineNode);
+        require(read_selected_control_text(memory.view(), Sheet, AppBase).empty(),
+            "an inconsistent native rendered-line list must stay silent");
+
+        memory = valid_sheet(u"unresolved source token");
+        memory.write<uint16_t>(Stream, 0x10);
+        write_single_rendered_text_line(memory, Text, u"Games");
+        memory.write<uint16_t>(RenderedCharacters + 2, 0);
+        require(read_selected_control_text(memory.view(), Sheet, AppBase).empty(),
+            "rendered text containing an embedded null must stay silent");
     }
 
     void test_duplicate_text_siblings_are_safe_but_conflicts_are_silent()
@@ -132,6 +222,141 @@ namespace
         memory.write<uint16_t>(Stream, 1);
         require(read_selected_control_text(memory.view(), Sheet, AppBase).empty(),
             "dynamic or formatting token streams must not be partially spoken");
+    }
+
+    void test_selected_image_reads_only_ghidra_proven_native_alt_field()
+    {
+        FakeMemory memory;
+        memory.write<uintptr_t>(Image, AppBase + CpmlImageVtableRva);
+        write_native_wide_string(memory, Image + 0x11C, ImageAltHeap, u"Games");
+
+        require(read_selected_control_text(memory.view(), Image, AppBase) == u"Games",
+            "selected CPmlImage did not resolve its native alt property");
+
+        memory.write<uint16_t>(Image + 0x11C + 2, 0);
+        require(read_selected_control_text(memory.view(), Image, AppBase).empty(),
+            "CPmlImage alt text containing an embedded null must stay silent");
+    }
+
+    void test_image_only_sheet_requires_exact_captured_nested_image()
+    {
+        FakeMemory memory;
+        memory.write<uintptr_t>(Sheet, AppBase + CpmlSheetVtableRva);
+        memory.write<uintptr_t>(Sheet + 0x18C, Children);
+        memory.write<uintptr_t>(Sheet + 0x190, Children + sizeof(uintptr_t));
+        memory.write<uintptr_t>(Children, Image);
+        memory.write<uintptr_t>(Image, AppBase + CpmlImageVtableRva);
+        write_native_wide_string(memory, Image + 0x11C, ImageAltHeap, u"Information");
+
+        require(read_selected_control_text(memory.view(), Sheet, AppBase).empty(),
+            "an image-only sheet without nested selection proof must stay silent");
+        require(read_selected_control_text(memory.view(), Sheet, AppBase, Image) == u"Information",
+            "captured image-only sheet did not resolve its selected image alt property");
+        require(read_selected_control_text(memory.view(), Sheet, AppBase, Text).empty(),
+            "an unrelated nested object must not label an image-only sheet");
+    }
+
+    void test_selected_image_inspection_exposes_only_the_proven_label_path()
+    {
+        FakeMemory memory;
+        memory.write<uintptr_t>(Sheet, AppBase + CpmlSheetVtableRva);
+        memory.write<uintptr_t>(Sheet + 0x18C, Children);
+        memory.write<uintptr_t>(Sheet + 0x190, Children + 2 * sizeof(uintptr_t));
+        memory.write<uintptr_t>(Children, Image);
+        memory.write<uintptr_t>(Children + sizeof(uintptr_t), Text);
+        memory.write<uintptr_t>(Image, AppBase + CpmlImageVtableRva);
+        memory.write<uintptr_t>(Text, AppBase + CpmlTextVtableRva);
+        memory.write<uintptr_t>(Image + 0x154, LinkedLabelObject);
+        memory.write<uintptr_t>(LinkedLabelObject, AppBase + CpmlSheetVtableRva);
+        write_native_wide_string(memory, Image + 0x11C, ImageAltHeap, u"Primary caption");
+        write_native_wide_string(memory, Image + 0x138, ImageAlternateAltHeap, u"Alternate caption");
+
+        const auto inspection = inspect_selected_image_path(
+            memory.view(),
+            Sheet,
+            AppBase,
+            Image);
+        require(inspection.matched,
+            "the exact captured sheet-to-image selection was not inspected");
+        require(inspection.object_is_sheet && inspection.nested_is_direct_child,
+            "sheet and direct-child relationship were not preserved in the inspection");
+        require(inspection.child_count == 2 && inspection.image_child_count == 1 &&
+                inspection.text_child_count == 1 && inspection.other_child_count == 0,
+            "the inspection did not report the exact direct-child shape");
+        require(inspection.image == Image && inspection.image_vtable_rva == CpmlImageVtableRva,
+            "the inspection did not identify the selected CPmlImage");
+        require(inspection.primary_capacity_130 == std::u16string(u"Primary caption").size() &&
+                inspection.alternate_capacity_14c == std::u16string(u"Alternate caption").size(),
+            "the inspection did not retain the Ghidra-proven image string capacities");
+        require(inspection.linked_label_object == LinkedLabelObject &&
+                inspection.linked_label_vtable_rva == CpmlSheetVtableRva,
+            "the inspection did not expose the inherited native label object");
+        require(inspection.primary_alt == u"Primary caption" &&
+                inspection.alternate_alt == u"Alternate caption",
+            "the inspection did not report both native image caption fields");
+
+        const auto unrelated = inspect_selected_image_path(
+            memory.view(),
+            Sheet,
+            AppBase,
+            LinkedLabelObject);
+        require(!unrelated.matched,
+            "an unrelated nested object must not be reported as the selected image");
+    }
+
+    void test_native_image_getter_caption_requires_agreement_and_removes_pml_marker()
+    {
+        require(choose_selected_image_getter_caption(
+                    "$View the ten latest articles.",
+                    "$View the ten latest articles.") ==
+                "View the ten latest articles.",
+            "an agreeing native image caption did not remove its leading PML control marker");
+        require(choose_selected_image_getter_caption(
+                    "Visit the official forums!",
+                    "Visit the official forums!") ==
+                "Visit the official forums!",
+            "an agreeing native image caption without a control marker was changed");
+        require(choose_selected_image_getter_caption(
+                    "Read the latest topics!",
+                    "Visit the official site!").empty(),
+            "conflicting native image getter states must stay silent");
+        require(choose_selected_image_getter_caption("", "").empty(),
+            "empty native image getter states must stay silent");
+        require(choose_selected_image_getter_caption("$", "$").empty(),
+            "a bare PML control marker must stay silent");
+    }
+
+    void test_native_image_getter_text_reads_long_caption_with_existing_bound()
+    {
+        FakeMemory memory;
+        const std::u16string banner_caption(85, u'B');
+        require(banner_caption.size() == 85,
+            "the regression fixture must match the live banner's native length");
+        memory.write_utf16(ImageAltHeap, banner_caption);
+
+        require(read_bounded_native_image_getter_text(memory.view(), ImageAltHeap) == banner_caption,
+            "the native image getter reader truncated a valid 85-character banner caption");
+
+        const std::u16string oversized_caption(121, u'X');
+        memory.write_utf16(ImageAlternateAltHeap, oversized_caption);
+        require(read_bounded_native_image_getter_text(memory.view(), ImageAlternateAltHeap).empty(),
+            "a native image caption beyond the existing 120-character safety bound must stay silent");
+    }
+
+    void test_native_image_getter_caption_filter_allows_the_captured_banner_safely()
+    {
+        const std::string banner_caption =
+            "The Adventuring Primer for all adventurers returning to Vana'diel is now available!";
+        require(banner_caption.size() == 83,
+            "the caption fixture must match the native banner text captured from PlayOnline");
+        require(selected_image_getter_caption_allowed(banner_caption),
+            "the exact 83-character native banner caption was rejected");
+        require(!selected_image_getter_caption_allowed(std::string(121, 'X')),
+            "a native image caption beyond 120 characters must stay silent");
+        require(!selected_image_getter_caption_allowed("https://example.invalid/banner"),
+            "a native image getter URL must never be spoken as a caption");
+        require(!selected_image_getter_caption_allowed("main/index.pml"),
+            "a native image getter resource path must never be spoken as a caption");
     }
 
     void test_sheet_rejects_unbounded_or_unterminated_native_data()
@@ -216,8 +441,16 @@ namespace
 int main()
 {
     test_selected_sheet_reads_unique_literal_text_sibling();
+    test_selected_sheet_reads_live_rendered_dynamic_text();
+    test_rendered_dynamic_text_rejects_unproven_or_inconsistent_state();
     test_duplicate_text_siblings_are_safe_but_conflicts_are_silent();
     test_sheet_requires_image_selection_shape_and_literal_only_stream();
+    test_selected_image_reads_only_ghidra_proven_native_alt_field();
+    test_image_only_sheet_requires_exact_captured_nested_image();
+    test_selected_image_inspection_exposes_only_the_proven_label_path();
+    test_native_image_getter_caption_requires_agreement_and_removes_pml_marker();
+    test_native_image_getter_text_reads_long_caption_with_existing_bound();
+    test_native_image_getter_caption_filter_allows_the_captured_banner_safely();
     test_sheet_rejects_unbounded_or_unterminated_native_data();
     test_sheet_rejects_wrapped_object_fields();
     test_cbutton_reads_ghidra_proven_label_buffer();

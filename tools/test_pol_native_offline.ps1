@@ -17,7 +17,7 @@ cmake --build $build --config $Configuration --target pol_native_queue_tests pol
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness build failed with exit $LASTEXITCODE"
 }
-ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace|pml_selected_text)_tests' --output-on-failure
+ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace|prelogin_semantics|pml_selected_text)_tests' --output-on-failure
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness failed with exit $LASTEXITCODE"
 }
@@ -37,4 +37,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native selected-text integration regression failed with exit $LASTEXITCODE"
 }
 
-'ok: native PlayOnline offline queue, post-login trace, selected text, Prism, host, fingerprint, and hook ABI tests passed.'
+'ok: native PlayOnline offline queue, trace, pre-login semantics, selected text, Prism, host, fingerprint, and hook ABI tests passed.'

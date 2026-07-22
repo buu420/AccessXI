@@ -26,6 +26,25 @@ namespace accessxi::pol_pml
         preserve
     };
 
+    struct SelectedImageInspection
+    {
+        bool matched = false;
+        bool object_is_sheet = false;
+        bool nested_is_direct_child = false;
+        uint32_t child_count = 0;
+        uint32_t image_child_count = 0;
+        uint32_t text_child_count = 0;
+        uint32_t other_child_count = 0;
+        uintptr_t image = 0;
+        uintptr_t image_vtable_rva = 0;
+        uint32_t primary_capacity_130 = 0;
+        uint32_t alternate_capacity_14c = 0;
+        uintptr_t linked_label_object = 0;
+        uintptr_t linked_label_vtable_rva = 0;
+        std::u16string primary_alt;
+        std::u16string alternate_alt;
+    };
+
     SheetFocusEventDisposition classify_sheet_focus_event(
         bool have_pending_sheet_row,
         uintptr_t pending_sheet_row,
@@ -34,11 +53,42 @@ namespace accessxi::pol_pml
         uintptr_t incoming_manager,
         uintptr_t incoming_child) noexcept;
 
-    // Reads only the two selection shapes proven by the 2026-07-22 live trace
-    // and the matching app.dll Ghidra project. Any malformed, dynamic, or
-    // ambiguous native structure deliberately resolves to an empty string.
+    // Captures the exact CPmlImage label path proven by the current app.dll:
+    // primary/alternate native strings plus the linked object consulted by the
+    // image's virtual label getter. This is diagnostic-only and never invents
+    // or speaks a label.
+    SelectedImageInspection inspect_selected_image_path(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base,
+        uintptr_t captured_nested_child = 0) noexcept;
+
+    // Accepts a live CPmlImage caption only when both native getter states
+    // agree. A leading '$' is PlayOnline's PML control marker, not visible
+    // caption text, and is removed only at the start of an agreed caption.
+    std::string choose_selected_image_getter_caption(
+        const std::string& primary,
+        const std::string& alternate);
+
+    // Copies a null-terminated caption returned by CPmlImage's native virtual
+    // getter. The established selected-label ceiling is 120 UTF-16 code units;
+    // missing termination or any longer value stays silent.
+    std::u16string read_bounded_native_image_getter_text(
+        const MemoryView& memory,
+        uintptr_t characters) noexcept;
+
+    // Applies the caption-specific 120-character ceiling while rejecting PML,
+    // URL, and local-resource strings that are not player-facing labels.
+    bool selected_image_getter_caption_allowed(const std::string& caption) noexcept;
+
+    // Reads only the selection shapes proven by the 2026-07-22 live trace and
+    // matching app.dll Ghidra project. Dynamic CPmlText captions are accepted
+    // only from their bounded rendered-line lists. Image-only captions require
+    // the native CPmlImage alt field plus the exact captured sheet-to-image
+    // selection relationship. Malformed or ambiguous state stays silent.
     std::u16string read_selected_control_text(
         const MemoryView& memory,
         uintptr_t object,
-        uintptr_t app_base) noexcept;
+        uintptr_t app_base,
+        uintptr_t captured_nested_child = 0) noexcept;
 }

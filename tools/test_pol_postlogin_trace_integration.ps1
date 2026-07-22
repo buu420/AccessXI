@@ -103,6 +103,10 @@ $captureBase = Get-FunctionBody $source 'void capture_postlogin_snapshot('
 Assert-NotContains $captureBase '_wfopen_s|fopen\s*\(|CreateFile|fprintf|dispatch_speech|speak_prelogin' 'Capture callback helper must not perform file I/O or speech.'
 Assert-Before $captureBase 'g_postlogin_trace_state_lock' 'g_postlogin_trace.enqueue' 'Callback enqueue must occur under the short capture-state handoff lock.'
 
+$traceCandidates = Get-FunctionBody $source 'void collect_postlogin_trace_candidates('
+Assert-Contains $traceCandidates '0x11Cu' 'Opt-in capture must include the Ghidra-proven primary CPmlImage alt field.'
+Assert-Contains $traceCandidates '0x138u' 'Opt-in capture must include the paired CPmlImage alternate-state field for diagnosis.'
+
 Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability' 'Crash-prone PML text-setter hook must remain disabled.'
 Assert-NotContains $trace 'Prism|dispatch_speech|speech_sink|speak_prelogin' 'Pure trace module must never depend on speech.'
 Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_nvda[\s\S]*?src/pol_trace/postlogin_trace\.cpp' 'Native hook DLL must link the trace implementation.'

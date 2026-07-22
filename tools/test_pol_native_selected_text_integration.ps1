@@ -55,15 +55,75 @@ if ($remember -match 'GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT') {
 }
 
 $resolver = Function-Body $source "void process_current_child_candidate"
-Require-Match $resolver 'read_native_selected_control_text\s*\(\s*current_child_object\s*\)' `
-    "Current-child speech must try the exact native selected-control text first."
+Require-Match $resolver 'read_native_selected_control_text\s*\(\s*current_child_object\s*,\s*snapshot\.nested_child\s*\)' `
+    "Current-child speech must try the exact native selected-control text with its captured nested selection proof first."
 Require-Match $resolver 'native-selected-text' `
     "Exact native selected-control text must retain its strict source identity."
 Require-Match $resolver '!native_selected_text_focus[\s\S]*!geometry_label\.empty' `
     "Static geometry must not override an exact native selected-control label."
+Require-Match $source 'std::atomic<int>\s+g_silent_selected_image_log_budget\{\s*96\s*\}' `
+    "Silent image diagnostics must have a dedicated finite budget that survives the login screen."
+Require-Match $resolver 'label\.empty\(\)[\s\S]*log_silent_selected_image_path\s*\(\s*snapshot\s*\)' `
+    "A silent selected image must emit its bounded native label path before generic diagnostics are exhausted."
+Require-Match $resolver 'label\.empty\(\)[\s\S]*read_native_selected_image_caption\s*\(\s*snapshot\s*\)[\s\S]*label\.empty\(\)[\s\S]*log_silent_selected_image_path\s*\(\s*snapshot\s*\)' `
+    "Current-child speech must try the exact native image getter caption before retaining the silent diagnostic path."
+Require-Match $resolver 'native_image_getter_focus' `
+    "Native image getter captions must retain a distinct source identity through current-child resolution."
+Require-Match $resolver 'label_source[\s\S]*native-image-getter' `
+    "Native image getter captions must not be relabeled as generic native selected text."
+Require-Match $resolver 'candidate_source[\s\S]*native-image-getter' `
+    "Native image getter source identity must survive into the queued focus candidate."
+
+$imageGetter = Function-Body $source "std::string read_native_selected_image_getter_text"
+Require-Match $imageGetter 'vtable\s*\+\s*0x124' `
+    "The diagnostic getter must use the Ghidra-proven native label virtual slot."
+Require-Match $imageGetter 'call_native_selected_image_getter' `
+    "The diagnostic getter must cross the live native call boundary through its protected wrapper."
+Require-Match $imageGetter 'read_bounded_native_image_getter_text' `
+    "The native getter must use the unit-tested 120-character caption reader."
+if ($imageGetter -match 'read_wide_text_safely\s*\(\s*native_text\s*,\s*63\s*\)') {
+    throw "The native image getter must not retain the 63-character buffer that hid the live banner caption."
+}
+$imageGetterCall = Function-Body $source "const wchar_t* call_native_selected_image_getter"
+Require-Match $imageGetterCall '__try[\s\S]*__except' `
+    "The diagnostic virtual getter must be protected against invalid live objects."
+
+$imageCaption = Function-Body $source "std::string read_native_selected_image_caption"
+Require-Match $imageCaption 'inspect_selected_image_path' `
+    "Native image speech must retain the unit-tested exact sheet-to-image hierarchy proof."
+Require-Match $imageCaption 'read_native_selected_image_getter_text\s*\([^,]+,\s*0\s*\)' `
+    "Native image speech must read the primary getter state."
+Require-Match $imageCaption 'read_native_selected_image_getter_text\s*\([^,]+,\s*1\s*\)' `
+    "Native image speech must read the alternate getter state."
+Require-Match $imageCaption 'choose_selected_image_getter_caption' `
+    "Native image speech must require the unit-tested caption agreement and PML-marker cleanup."
+Require-Match $imageCaption 'selected_image_getter_caption_allowed' `
+    "Native image speech must use its unit-tested 120-character resource-safe caption filter."
+Require-Match $imageCaption 'useful_text' `
+    "Native image speech must retain the generic text-quality checks."
+if ($imageCaption -match 'prelogin_probe_candidate_label') {
+    throw "Native image captions must not be sent through the unrelated 80-character generic probe ceiling."
+}
+
+$imageDiagnostic = Function-Body $source "void log_silent_selected_image_path"
+Require-Match $imageDiagnostic 'inspect_selected_image_path' `
+    "Silent image diagnostics must use the unit-tested exact hierarchy inspection."
+Require-Match $imageDiagnostic 'PRELOGIN_SILENTIMAGE' `
+    "Silent image diagnostics need a stable searchable log identity."
+Require-Match $imageDiagnostic 'primaryAlt=.*alternateAlt=.*getter0=.*getter1=' `
+    "The diagnostic must compare both raw captions with both native getter states."
+if ($imageDiagnostic -match 'dispatch_speech|speak_prelogin|speech_sink') {
+    throw "Silent image diagnostics must never speak unverified values."
+}
 
 $filter = Function-Body $source "bool prelogin_pml_focus_candidate_label_allowed"
 Require-Match $filter 'native-selected-text[\s\S]*prelogin_probe_candidate_label' `
     "Exact selected-control labels must use the generic native text safety filter, not the old login atlas."
+Require-Match $filter 'native-image-getter[\s\S]*selected_image_getter_caption_allowed' `
+    "Native image getter captions must retain their 120-character resource-safe filter at every focus gate."
+
+$addMemberGate = Function-Body $source "bool native_prelogin_add_member_current_child_speech_allowed"
+Require-Match $addMemberGate 'native-image-getter' `
+    "Native image getter captions must be recognized as exact native evidence by add-member isolation."
 
 Write-Host "ok"

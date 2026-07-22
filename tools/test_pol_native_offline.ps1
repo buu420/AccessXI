@@ -13,11 +13,11 @@ cmake -S $repo -B $build -A Win32
 if ($LASTEXITCODE -ne 0) {
     throw "Win32 CMake configuration failed with exit $LASTEXITCODE"
 }
-cmake --build $build --config $Configuration --target pol_native_queue_tests pol_native_speech_worker_tests pol_native_host_tests
+cmake --build $build --config $Configuration --target pol_native_queue_tests pol_postlogin_trace_tests pol_native_speech_worker_tests pol_native_host_tests
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness build failed with exit $LASTEXITCODE"
 }
-ctest --test-dir $build -C $Configuration -R 'pol_native_(queue|speech_worker|host)_tests' --output-on-failure
+ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace)_tests' --output-on-failure
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness failed with exit $LASTEXITCODE"
 }
@@ -27,4 +27,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native hook ABI regression failed with exit $LASTEXITCODE"
 }
 
-'ok: native PlayOnline offline queue, Prism, host, fingerprint, and hook ABI tests passed.'
+'ok: native PlayOnline offline queue, post-login trace, Prism, host, fingerprint, and hook ABI tests passed.'

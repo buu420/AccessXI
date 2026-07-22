@@ -80,6 +80,20 @@ target_include_directories(pol_native_queue_tests PRIVATE
 
 add_test(NAME pol_native_queue_tests COMMAND pol_native_queue_tests)
 
+add_executable(pol_postlogin_trace_tests
+    src/pol_trace/postlogin_trace.cpp
+    tests/pol_postlogin_trace_tests.cpp
+)
+target_compile_features(pol_postlogin_trace_tests PRIVATE cxx_std_20)
+target_compile_definitions(pol_postlogin_trace_tests PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+target_include_directories(pol_postlogin_trace_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+add_test(NAME pol_postlogin_trace_tests COMMAND pol_postlogin_trace_tests)
+
 add_library(fake_prism SHARED
     tests/fakes/fake_prism.cpp
     tests/fakes/fake_prism.def

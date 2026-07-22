@@ -11,6 +11,7 @@ endif()
 add_library(accessxi_pol_nvda SHARED
     src/accessxi_pol.cpp
     src/accessxi_pol.def
+    src/pol_accessibility/prelogin_semantics.cpp
     src/pol_pml/native_selected_text.cpp
     src/pol_trace/postlogin_trace.cpp
 )
@@ -96,6 +97,16 @@ target_include_directories(pol_postlogin_trace_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 add_test(NAME pol_postlogin_trace_tests COMMAND pol_postlogin_trace_tests)
+
+add_executable(pol_prelogin_semantics_tests
+    src/pol_accessibility/prelogin_semantics.cpp
+    tests/pol_prelogin_semantics_tests.cpp
+)
+target_compile_features(pol_prelogin_semantics_tests PRIVATE cxx_std_20)
+target_include_directories(pol_prelogin_semantics_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+add_test(NAME pol_prelogin_semantics_tests COMMAND pol_prelogin_semantics_tests)
 
 add_executable(pol_pml_selected_text_tests
     src/pol_pml/native_selected_text.cpp

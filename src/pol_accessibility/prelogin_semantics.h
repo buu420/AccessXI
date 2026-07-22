@@ -1,0 +1,46 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <string>
+#include <string_view>
+
+namespace accessxi::pol_accessibility
+{
+    inline constexpr size_t InvalidMaskedCount = std::numeric_limits<size_t>::max();
+
+    enum class ControlRole : uint8_t
+    {
+        unknown,
+        member_list,
+        selected_member,
+        list_row,
+        button,
+        static_label,
+        editable,
+        password,
+        one_time_password
+    };
+
+    struct MemberEvidence
+    {
+        std::string_view text;
+        bool member_list_focused = false;
+        bool selected_index_resolved = false;
+        bool exact_selected_child = false;
+        bool text_owned_by_selected_child = false;
+    };
+
+    struct MemberDecision
+    {
+        bool trusted = false;
+        std::string text;
+        const char* reason = "unknown";
+    };
+
+    MemberDecision decide_member_candidate(const MemberEvidence& evidence);
+    size_t masked_display_count(std::u16string_view displayed) noexcept;
+    std::string masked_focus_speech(ControlRole role, size_t count);
+    std::string masked_delta_speech(ControlRole role, size_t before, size_t after);
+}

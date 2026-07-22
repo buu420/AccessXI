@@ -13,7 +13,7 @@ cmake -S $repo -B $build -A Win32
 if ($LASTEXITCODE -ne 0) {
     throw "Win32 CMake configuration failed with exit $LASTEXITCODE"
 }
-cmake --build $build --config $Configuration --target pol_native_queue_tests pol_postlogin_trace_tests pol_pml_selected_text_tests pol_native_speech_worker_tests pol_native_host_tests
+cmake --build $build --config $Configuration --target pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_native_speech_worker_tests pol_native_host_tests
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness build failed with exit $LASTEXITCODE"
 }

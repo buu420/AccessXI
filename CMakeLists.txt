@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(AccessXI_PolPlugin LANGUAGES CXX)
 
+enable_testing()
+
 add_library(accessxi_pol_nvda SHARED
     src/accessxi_pol.cpp
     src/accessxi_pol.def
@@ -31,4 +33,20 @@ set_target_properties(accessxi_pol_nvda PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+add_executable(pol_native_queue_tests
+    src/pol_native/speech_queue.cpp
+    tests/pol_native_queue_tests.cpp
+)
+
+target_compile_features(pol_native_queue_tests PRIVATE cxx_std_20)
+target_compile_definitions(pol_native_queue_tests PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+target_include_directories(pol_native_queue_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+add_test(NAME pol_native_queue_tests COMMAND pol_native_queue_tests)
 

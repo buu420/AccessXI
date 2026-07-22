@@ -90,7 +90,7 @@ namespace accessxi::pol_native
 
     void SpeechWorker::run() noexcept
     {
-        diagnostics_.startup("ACCESSXI_POL_NATIVE worker-start");
+        diagnostics_.startup("ACCESSXI_POL_NATIVE speech-worker-start");
         PrismRuntime runtime(diagnostics_);
         const std::filesystem::path prism_path = dependency_directory_ / L"prism.dll";
         if (!runtime.load(prism_path))

@@ -1,0 +1,4 @@
+LIBRARY fake_pol_hook
+EXPORTS
+    AccessXI_POL_SetSpeechSinkV1=_AccessXI_POL_SetSpeechSinkV1@8
+    AccessXI_POL_InitializeV2=_AccessXI_POL_InitializeV2@0

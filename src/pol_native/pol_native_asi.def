@@ -1,0 +1,3 @@
+LIBRARY AccessXI.PolNative
+EXPORTS
+    InitializeASI

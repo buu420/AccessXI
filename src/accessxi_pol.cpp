@@ -33,6 +33,17 @@ namespace
     constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0x07E88E8067FEF6CCull;
     constexpr DWORD AddMemberContextCacheTtlMs = 60000;
 
+    using AccessXiPolSpeechSinkV1 = void (__stdcall *)(
+        const char* utf8_text,
+        int interrupt,
+        void* context);
+
+    constexpr int AccessXiPolInitializeOk = 1;
+    constexpr int AccessXiPolInitializeAlreadyReady = 2;
+    constexpr int AccessXiPolInitializeAppDllMissing = -1;
+    constexpr int AccessXiPolInitializeUnsupportedBuild = -2;
+    constexpr int AccessXiPolInitializeBusy = -3;
+
     std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
     std::atomic<bool> g_reloaded_native_worker_running{ false };
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
@@ -40,6 +51,9 @@ namespace
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
     std::atomic<bool> g_appdll_fingerprint_ok_logged{ false };
     std::atomic<bool> g_appdll_fingerprint_mismatch_logged{ false };
+    std::atomic<AccessXiPolSpeechSinkV1> g_speech_sink_v1{ nullptr };
+    std::atomic<void*> g_speech_sink_context_v1{ nullptr };
+    std::atomic<int> g_native_initialize_state{ 0 };
 
     std::mutex g_log_lock;
     std::mutex g_candidate_lock;
@@ -789,6 +803,24 @@ namespace
         std::fclose(file);
     }
 
+    bool dispatch_speech_sink_v1(const std::string& text, int interrupt) noexcept
+    {
+        const auto sink = g_speech_sink_v1.load(std::memory_order_acquire);
+        if (sink == nullptr)
+            return false;
+
+        void* const context = g_speech_sink_context_v1.load(std::memory_order_acquire);
+        try
+        {
+            sink(text.c_str(), interrupt, context);
+        }
+        catch (...)
+        {
+            // Never let a consumer exception escape back through a native focus hook.
+        }
+        return true;
+    }
+
     void speak_prelogin_label(const char* reason, const std::string& label, void* focused_object)
     {
         std::lock_guard<std::mutex> guard(g_speech_lock);
@@ -811,7 +843,7 @@ namespace
         std::snprintf(line, sizeof(line) - 1, "PRELOGIN_SPEAK queue reason=%s text=%s", reason == nullptr ? "" : reason, label.c_str());
         log_line(line);
 
-        if (g_reloaded_speech_queue_enabled.load())
+        if (!dispatch_speech_sink_v1(label, 1) && g_reloaded_speech_queue_enabled.load())
             append_reloaded_speech_queue(label);
     }
 
@@ -3232,32 +3264,85 @@ extern "C" __declspec(dllexport) double __stdcall expGetInterfaceVersion(void)
     return ASHITA_INTERFACE_VERSION;
 }
 
-extern "C" __declspec(dllexport) void __stdcall AccessXI_POL_ReloadedInitialize(void)
+extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_SetSpeechSinkV1(
+    AccessXiPolSpeechSinkV1 sink,
+    void* context)
 {
-    g_reloaded_speech_queue_enabled.store(true);
+    if (sink == nullptr && context != nullptr)
+        return 0;
 
-    static volatile LONG initialized = 0;
-    if (InterlockedCompareExchange(&initialized, 1, 0) != 0)
+    if (sink == nullptr)
     {
-        log_line("AccessXI POL Reloaded native already initialized");
-        return;
+        g_speech_sink_v1.store(nullptr, std::memory_order_release);
+        g_speech_sink_context_v1.store(nullptr, std::memory_order_release);
+        return 1;
     }
 
-    log_line("AccessXI POL Reloaded native initializing");
+    g_speech_sink_context_v1.store(context, std::memory_order_release);
+    g_speech_sink_v1.store(sink, std::memory_order_release);
+    return 1;
+}
+
+extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_InitializeV2(void)
+{
+    const int current_state = g_native_initialize_state.load(std::memory_order_acquire);
+    if (current_state == 2)
+        return AccessXiPolInitializeAlreadyReady;
+    if (current_state == 3)
+        return AccessXiPolInitializeUnsupportedBuild;
+
+    int expected_state = 0;
+    if (!g_native_initialize_state.compare_exchange_strong(
+            expected_state,
+            1,
+            std::memory_order_acq_rel,
+            std::memory_order_acquire))
+    {
+        return expected_state == 2
+            ? AccessXiPolInitializeAlreadyReady
+            : AccessXiPolInitializeBusy;
+    }
+
+    HMODULE app_module = GetModuleHandleW(L"app.dll");
+    if (app_module == nullptr)
+    {
+        g_native_initialize_state.store(0, std::memory_order_release);
+        return AccessXiPolInitializeAppDllMissing;
+    }
+    if (!app_module_matches_known_updated_pol_build(app_module, "native-initialize-v2"))
+    {
+        g_native_initialize_state.store(3, std::memory_order_release);
+        return AccessXiPolInitializeUnsupportedBuild;
+    }
+
+    log_line("AccessXI POL native V2 initializing");
     {
         const std::wstring log_directory = diagnostic_log_directory();
         const std::wstring queue_path = reloaded_speech_queue_path();
-        const std::string line = "AccessXI POL Reloaded native diagnostics log_dir=\"" +
+        const std::string line = "AccessXI POL native diagnostics mode=V2 log_dir=\"" +
             narrow_from_wide(log_directory.c_str()) +
             "\" queue=\"" +
             narrow_from_wide(queue_path.c_str()) +
             "\"";
         log_line(line.c_str());
     }
-    reset_prelogin_runtime_speech_state("ReloadedInitialize");
+    reset_prelogin_runtime_speech_state("InitializeV2");
     install_native_focus_event_dispatch_hooks_once();
     install_pml_focus_event_call_hook_once();
     install_native_selection_truth_hooks_once();
     start_reloaded_native_hook_worker_once();
-    log_line("AccessXI POL Reloaded native hooks installed");
+    g_native_initialize_state.store(2, std::memory_order_release);
+    log_line("AccessXI POL native V2 hooks installed");
+    return AccessXiPolInitializeOk;
+}
+
+extern "C" __declspec(dllexport) void __stdcall AccessXI_POL_ReloadedInitialize(void)
+{
+    g_reloaded_speech_queue_enabled.store(true);
+    log_line("AccessXI POL Reloaded native initializing");
+    const int result = AccessXI_POL_InitializeV2();
+    if (result == AccessXiPolInitializeAlreadyReady)
+        log_line("AccessXI POL Reloaded native already initialized");
+    else if (result == AccessXiPolInitializeOk)
+        log_line("AccessXI POL Reloaded native hooks installed");
 }

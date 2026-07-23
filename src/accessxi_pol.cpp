@@ -31,6 +31,7 @@ namespace
     constexpr uintptr_t PmlCurrentChildSetterRva = 0x000044F1u;
     constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
+    constexpr uintptr_t CPolTableVtableRva = 0x0033219Cu;
     constexpr uintptr_t PasswordFieldVtableRva = 0x00333CD4u;
     constexpr uintptr_t PasswordTextModelVtableRva = 0x0033300Cu;
     constexpr uintptr_t PasswordTextLengthRva = 0x0000400Cu;
@@ -3597,6 +3598,25 @@ namespace
         return resolution;
     }
 
+    SelectedMemberResolution resolve_selected_member_from_focused_table(void* focused_table)
+    {
+        SelectedMemberResolution resolution;
+        if (!native_object_has_vtable_rva(focused_table, CPolTableVtableRva))
+            return resolution;
+
+        uintptr_t selection_model_pointer = 0;
+        if (!read_ptr_safely(
+                static_cast<const uint8_t*>(focused_table) + 0x218,
+                &selection_model_pointer) ||
+            selection_model_pointer < 0x10000)
+        {
+            return resolution;
+        }
+
+        void* selection_model = reinterpret_cast<void*>(selection_model_pointer);
+        return resolve_selected_member(selection_model, 0);
+    }
+
     void remember_selected_index_candidate(void* model, uint32_t requested_index)
     {
         if (native_post_login_surface_active())
@@ -3820,7 +3840,23 @@ namespace
         {
             log_startup_member_probe(manager, current_child_object);
         }
-        if (label.empty() && (startup_member_focus_rect || startup_member_atlas_focus))
+
+        if (startup_member_focus_rect)
+        {
+            // CPolTable is the focused member list container. Its visible label
+            // belongs to the selected row, reached through the table's exact
+            // selection-model ownership field; the container itself is not a
+            // member name.
+            label.clear();
+            const SelectedMemberResolution focused_member =
+                resolve_selected_member_from_focused_table(current_child_object);
+            if (!focused_member.label.empty())
+            {
+                label = focused_member.label;
+                label_source = focused_member.source;
+            }
+        }
+        else if (label.empty() && startup_member_atlas_focus)
         {
             label = "Member List";
             label_source = "atlas-geometry";
@@ -3891,7 +3927,7 @@ namespace
                 label_source = "add-member-button";
         }
 
-        if (!native_selected_text_focus)
+        if (!native_selected_text_focus && !startup_member_focus_rect)
         {
             if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus)
             {
@@ -3955,6 +3991,7 @@ namespace
         const char* candidate_source =
             (std::strcmp(label_source, "native-selected-text") == 0 ||
              std::strcmp(label_source, "native-image-getter") == 0 ||
+             std::strcmp(label_source, "selected-member-dynamic") == 0 ||
              std::strcmp(label_source, "add-member") == 0 ||
              std::strcmp(label_source, "add-member-button") == 0) ? label_source : "current-child";
         if (!prelogin_pml_focus_can_claim_burst(candidate_source, manager, current_child_object, label, true, true))

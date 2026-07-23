@@ -218,12 +218,32 @@ Assert-Contains $selectedMember 'prelogin_member_dynamic_value_rect\s*\(' `
 Assert-Before $selectedMember 'prelogin_member_dynamic_value_rect(resolution.selected_child)' 'best_native_pml_text_from_object(' `
     "A verified member-value child must enter the ownership-backed member path before generic selected-row extraction."
 
+Assert-Contains $source 'CPolTableVtableRva\s*=\s*0x0033219Cu' `
+    "Focused startup member resolution must identify the Ghidra-confirmed CPolTable type exactly."
+$focusedTableMember = Get-FunctionBody $source "SelectedMemberResolution resolve_selected_member_from_focused_table"
+Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*focused_table\s*,\s*CPolTableVtableRva\s*\)' `
+    "Focused startup member resolution must reject objects that are not the exact CPolTable type."
+Assert-Contains $focusedTableMember 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x218' `
+    "Focused startup member resolution must read only CPolTable's Ghidra-confirmed selection-model field."
+Assert-Contains $focusedTableMember 'resolve_selected_member\s*\(\s*selection_model\s*,\s*0\s*\)' `
+    "Focused startup member resolution must reuse the relationship-backed selected-row resolver."
+if ($focusedTableMember -match 'native_prelogin_startup_member_name_from_|read_native_prelogin_member_name|PreloginMemberNameAccessorRva|PreloginMemberNameWideGlobalRva') {
+    throw "Focused CPolTable resolution must not fall back to broad fields, child-slot scans, or global member-name accessors."
+}
+
 $currentChildResolverForStartupMember = Get-FunctionBody $source "void process_current_child_candidate"
 if ($currentChildResolverForStartupMember -match 'native_prelogin_startup_member_name_from_(focus|atlas_member_list_focus|static_member_list_focus)|startup-member-dynamic|read_native_prelogin_member_name') {
     throw "Current-child focus must not promote unowned startup member guesses to speech."
 }
-Assert-Contains $currentChildResolverForStartupMember 'startup_member_focus_rect[\s\S]{0,420}label\s*=\s*"Member List"' `
-    "A focused member-list container may expose only its verified static label until selected-child evidence arrives."
+Assert-Contains $currentChildResolverForStartupMember 'startup_member_focus_rect[\s\S]{0,520}resolve_selected_member_from_focused_table\s*\(\s*current_child_object\s*\)' `
+    "The focused startup member table must resolve its currently selected native row."
+Assert-Contains $currentChildResolverForStartupMember 'focused_member\.label\.empty\s*\(\s*\)[\s\S]{0,180}label\s*=\s*focused_member\.label[\s\S]{0,120}label_source\s*=\s*focused_member\.source' `
+    "Only a verified selected-row label may replace the focused member-table container."
+if ($currentChildResolverForStartupMember -match 'startup_member_focus_rect[\s\S]{0,520}label\s*=\s*"Member List"') {
+    throw "The focused CPolTable must remain silent when its selected row cannot be verified; announcing the container as the member name is misleading."
+}
+Assert-Contains $currentChildResolverForStartupMember 'std::strcmp\s*\(\s*label_source\s*,\s*"selected-member-dynamic"\s*\)\s*==\s*0' `
+    "Current-child speech must preserve the exact selected-member ownership source through the speech gate."
 
 $pendingPmlFocusTrusted = Get-FunctionBody $source "bool prelogin_pending_pml_focus_candidate_trusted_for_drain"
 Assert-Contains $pendingPmlFocusTrusted 'prelogin_pml_focus_candidate_label_allowed\s*\(\s*candidate\.source\.c_str\s*\(\s*\),\s*candidate\.label\s*\)' `

@@ -7,6 +7,7 @@
 namespace
 {
     using namespace accessxi::pol_trace;
+    using accessxi::pol_accessibility::ControlRole;
 
     void require(bool condition, const char* message)
     {
@@ -111,6 +112,56 @@ namespace
         Snapshot safe = event(EventKind::focus_select, 56, 0x2001, "Friend List");
         require(!snapshot_contains_sensitive_context(safe), "ordinary post-login label was marked sensitive");
     }
+
+    void test_structured_role_relationship_and_rejection_formatting()
+    {
+        Snapshot value = event(EventKind::selected_index, 70, 0x2200, "Actual Member");
+        value.role = ControlRole::selected_member;
+        value.relationship = Relationship::indexed_child;
+        copy_utf8_bounded(value.rejection_reason, sizeof(value.rejection_reason), "none");
+
+        const std::string line = format_event(value);
+        require(line.find("role=selected-member") != std::string::npos, "control role missing");
+        require(line.find("relationship=indexed-child") != std::string::npos, "native relationship missing");
+        require(line.find("rejection=none") != std::string::npos, "rejection reason missing");
+        require(line.find("masked_count=none") != std::string::npos, "absent masked count was not explicit");
+    }
+
+    void test_masked_snapshot_discards_all_text_before_serialization()
+    {
+        Snapshot value = event(EventKind::current_child, 80, 0x2300, "SentinelSecret42");
+        value.candidate_count = 1;
+        copy_utf8_bounded(value.candidates[0].source, sizeof(value.candidates[0].source), "ptr-w");
+        copy_utf8_bounded(value.candidates[0].text, sizeof(value.candidates[0].text), "SentinelSecret42");
+
+        set_masked_snapshot(value, ControlRole::password, 6);
+
+        require(value.redacted, "masked snapshot was not marked redacted");
+        require(value.trusted, "verified masked count was not trusted");
+        require(value.has_masked_count && value.masked_count == 6, "masked count was not retained");
+        require(value.candidate_count == 0, "masked snapshot retained text candidates");
+        require(std::string(value.resolver_text).empty(), "masked snapshot retained resolver text");
+
+        const std::string line = format_event(value);
+        require(line.find("role=password") != std::string::npos, "masked role missing");
+        require(line.find("masked_count=6") != std::string::npos, "masked count missing");
+        require(line.find("SentinelSecret42") == std::string::npos, "secret reached serialized trace");
+    }
+
+    void test_unverified_masked_display_stays_silent_and_text_free()
+    {
+        Snapshot value = event(EventKind::current_child, 90, 0x2400, "AnotherSecret");
+        set_masked_snapshot(value, ControlRole::one_time_password,
+            accessxi::pol_accessibility::InvalidMaskedCount);
+
+        require(value.redacted, "unverified secret context was not redacted");
+        require(!value.trusted, "unverified masked display was trusted");
+        require(!value.has_masked_count, "invalid masked count was retained");
+        require(std::string(value.rejection_reason) == "masked-display-unverified",
+            "unverified masked display rejection reason mismatch");
+        require(format_event(value).find("AnotherSecret") == std::string::npos,
+            "unverified secret reached serialized trace");
+    }
 }
 
 int main()
@@ -122,6 +173,9 @@ int main()
     test_tsv_escaping_and_schema();
     test_reset_starts_new_sequence();
     test_sensitive_context_redacts_every_text_field();
+    test_structured_role_relationship_and_rejection_formatting();
+    test_masked_snapshot_discards_all_text_before_serialization();
+    test_unverified_masked_display_stays_silent_and_text_free();
     std::cout << "ok: post-login PML trace bounds, ordering, dedupe, UTF-8, and TSV formatting\n";
     return 0;
 }

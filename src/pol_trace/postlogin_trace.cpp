@@ -75,6 +75,51 @@ namespace accessxi::pol_trace
         return "unknown";
     }
 
+    const char* control_role_name(accessxi::pol_accessibility::ControlRole role) noexcept
+    {
+        using accessxi::pol_accessibility::ControlRole;
+        switch (role)
+        {
+        case ControlRole::member_list:
+            return "member-list";
+        case ControlRole::selected_member:
+            return "selected-member";
+        case ControlRole::list_row:
+            return "list-row";
+        case ControlRole::button:
+            return "button";
+        case ControlRole::static_label:
+            return "static-label";
+        case ControlRole::editable:
+            return "editable";
+        case ControlRole::password:
+            return "password";
+        case ControlRole::one_time_password:
+            return "one-time-password";
+        case ControlRole::unknown:
+        default:
+            return "unknown";
+        }
+    }
+
+    const char* relationship_name(Relationship relationship) noexcept
+    {
+        switch (relationship)
+        {
+        case Relationship::focused:
+            return "focused";
+        case Relationship::current_child:
+            return "current-child";
+        case Relationship::indexed_child:
+            return "indexed-child";
+        case Relationship::nested_child:
+            return "nested-child";
+        case Relationship::none:
+        default:
+            return "none";
+        }
+    }
+
     std::string escape_tsv(std::string_view value)
     {
         std::string output;
@@ -113,7 +158,7 @@ namespace accessxi::pol_trace
 
     std::string format_schema(uint64_t app_size, uint64_t app_fnv64)
     {
-        return "SCHEMA\tversion=1\tapp_size=" + std::to_string(app_size) + "\tapp_fnv64=" + hex_value(app_fnv64, 16);
+        return "SCHEMA\tversion=2\tapp_size=" + std::to_string(app_size) + "\tapp_fnv64=" + hex_value(app_fnv64, 16);
     }
 
     std::string format_session(std::string_view action, uint64_t session, uint32_t tick, std::string_view reason)
@@ -132,6 +177,8 @@ namespace accessxi::pol_trace
                << "\tsequence=" << value.sequence
                << "\ttick=" << value.tick
                << "\tkind=" << event_kind_name(value.kind)
+               << "\trole=" << control_role_name(value.role)
+               << "\trelationship=" << relationship_name(value.relationship)
                << "\tevent_code=" << hex_value(value.event_code, 8)
                << "\tmanager=" << hex_value(value.manager, pointer_width)
                << "\trequested_child=" << hex_value(value.requested_child, pointer_width)
@@ -156,7 +203,13 @@ namespace accessxi::pol_trace
 
         output << "\ttrusted=" << (value.trusted ? 1 : 0)
                << "\tredacted=" << (value.redacted ? 1 : 0)
-               << "\tresolver=" << escape_tsv(value.resolver_text);
+               << "\trejection=" << escape_tsv(value.rejection_reason)
+               << "\tmasked_count=";
+        if (value.has_masked_count)
+            output << value.masked_count;
+        else
+            output << "none";
+        output << "\tresolver=" << escape_tsv(value.resolver_text);
 
         const size_t candidate_count = std::min<size_t>(value.candidate_count, TraceCandidateCapacity);
         for (size_t index = 0; index < candidate_count; ++index)
@@ -210,6 +263,37 @@ namespace accessxi::pol_trace
         }
     }
 
+    void set_masked_snapshot(
+        Snapshot& value,
+        accessxi::pol_accessibility::ControlRole role,
+        size_t masked_count)
+    {
+        using accessxi::pol_accessibility::ControlRole;
+        const bool secret_role =
+            role == ControlRole::password ||
+            role == ControlRole::one_time_password;
+
+        value.role = role;
+        value.redacted = true;
+        value.resolver_text[0] = 0;
+        value.candidate_count = 0;
+        for (Candidate& candidate : value.candidates)
+            candidate = {};
+
+        value.has_masked_count =
+            secret_role &&
+            masked_count != accessxi::pol_accessibility::InvalidMaskedCount &&
+            masked_count <= UINT32_MAX;
+        value.masked_count = value.has_masked_count
+            ? static_cast<uint32_t>(masked_count)
+            : 0;
+        value.trusted = value.has_masked_count;
+        copy_utf8_bounded(
+            value.rejection_reason,
+            sizeof(value.rejection_reason),
+            value.has_masked_count ? "none" : "masked-display-unverified");
+    }
+
     TraceBuffer::TraceBuffer(size_t capacity)
         : storage_(std::max<size_t>(capacity, 1))
     {
@@ -226,7 +310,15 @@ namespace accessxi::pol_trace
             value.object == last_.object &&
             value.requested_index == last_.requested_index &&
             value.stored_index == last_.stored_index &&
+            value.role == last_.role &&
+            value.relationship == last_.relationship &&
+            value.has_masked_count == last_.has_masked_count &&
+            value.masked_count == last_.masked_count &&
             value.trusted == last_.trusted &&
+            std::strncmp(
+                value.rejection_reason,
+                last_.rejection_reason,
+                TraceRejectionCapacity) == 0 &&
             same_text(value.resolver_text, last_.resolver_text);
     }
 

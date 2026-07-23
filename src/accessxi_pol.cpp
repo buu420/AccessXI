@@ -20,7 +20,7 @@ namespace
 {
     constexpr const wchar_t* DefaultLogFileName = L"pol-monitor.log";
     constexpr const wchar_t* DefaultReloadedSpeechQueueFileName = L"pol-reloaded-native-speech.queue";
-    constexpr const wchar_t* DefaultPostLoginTraceFileName = L"pol-postlogin-pml-trace.tsv";
+    constexpr const wchar_t* DefaultPolUiTraceFileName = L"pol-ui-native-trace.tsv";
 
     constexpr uintptr_t AppRuntimeBase = 0x04810000u;
     constexpr uintptr_t PmlSharedFocusEventRva = 0x0005BBF5u;
@@ -31,6 +31,9 @@ namespace
     constexpr uintptr_t PmlCurrentChildSetterRva = 0x000044F1u;
     constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
+    constexpr uintptr_t PasswordFieldVtableRva = 0x00333CD4u;
+    constexpr uintptr_t PasswordTextModelVtableRva = 0x0033300Cu;
+    constexpr uintptr_t PasswordTextLengthRva = 0x0000400Cu;
     constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
     constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
     constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
@@ -50,7 +53,7 @@ namespace
 
     std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
     std::atomic<bool> g_reloaded_native_worker_running{ false };
-    std::atomic<bool> g_postlogin_trace_active{ false };
+    std::atomic<bool> g_pol_ui_trace_active{ false };
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
@@ -59,12 +62,12 @@ namespace
     std::atomic<AccessXiPolSpeechSinkV1> g_speech_sink_v1{ nullptr };
     std::atomic<void*> g_speech_sink_context_v1{ nullptr };
     std::atomic<int> g_native_initialize_state{ 0 };
-    accessxi::pol_trace::TraceBuffer g_postlogin_trace(1024);
-    bool g_postlogin_trace_hotkey_down = false;
-    uint64_t g_postlogin_trace_session = 0;
+    accessxi::pol_trace::TraceBuffer g_pol_ui_trace(1024);
+    bool g_pol_ui_trace_hotkey_down = false;
+    uint64_t g_pol_ui_trace_session = 0;
 
     std::mutex g_log_lock;
-    std::mutex g_postlogin_trace_state_lock;
+    std::mutex g_pol_ui_trace_state_lock;
     std::mutex g_candidate_lock;
     std::mutex g_current_child_lock;
     std::mutex g_speech_lock;
@@ -218,9 +221,9 @@ namespace
         return path_join(diagnostic_log_directory(), DefaultLogFileName);
     }
 
-    std::wstring postlogin_trace_path()
+    std::wstring pol_ui_trace_path()
     {
-        return path_join(diagnostic_log_directory(), DefaultPostLoginTraceFileName);
+        return path_join(diagnostic_log_directory(), DefaultPolUiTraceFileName);
     }
 
     std::wstring reloaded_speech_queue_path()
@@ -263,7 +266,7 @@ namespace
         std::fclose(file);
     }
 
-    bool append_postlogin_trace_lines(const std::vector<std::string>& lines)
+    bool append_pol_ui_trace_lines(const std::vector<std::string>& lines)
     {
         if (lines.empty())
             return true;
@@ -271,7 +274,7 @@ namespace
         const std::wstring log_directory = diagnostic_log_directory();
         CreateDirectoryW(log_directory.c_str(), nullptr);
 
-        const std::wstring log_path = postlogin_trace_path();
+        const std::wstring log_path = pol_ui_trace_path();
         FILE* file = nullptr;
         if (_wfopen_s(&file, log_path.c_str(), L"ab") != 0 || file == nullptr)
             return false;
@@ -2551,7 +2554,298 @@ namespace
         return candidates.front().value;
     }
 
-    std::string read_postlogin_pml_inline_wide_text(uintptr_t object)
+    using PolUiControlRole = accessxi::pol_accessibility::ControlRole;
+
+    bool secret_control_role(PolUiControlRole role)
+    {
+        return role == PolUiControlRole::password ||
+            role == PolUiControlRole::one_time_password;
+    }
+
+    PolUiControlRole classify_pol_ui_control_role(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* object)
+    {
+        if (kind == accessxi::pol_trace::EventKind::selected_index)
+        {
+            return prelogin_member_dynamic_value_rect(object)
+                ? PolUiControlRole::selected_member
+                : PolUiControlRole::list_row;
+        }
+
+        uint32_t resource = 0;
+        const std::string geometry_label =
+            native_prelogin_atlas_label_from_geometry(object, &resource);
+        const bool password_field =
+            native_object_has_vtable_rva(object, PasswordFieldVtableRva);
+        if (password_field)
+        {
+            if (geometry_label == "One-Time Password")
+                return PolUiControlRole::one_time_password;
+            if (geometry_label == "Enter Member Password" ||
+                geometry_label == "PlayOnline Password" ||
+                geometry_label == "Member Password" ||
+                geometry_label == "Confirm Password" ||
+                geometry_label == "Square Enix Password")
+            {
+                return PolUiControlRole::password;
+            }
+
+            // CPasswordField proves that this is secret state, but not which
+            // sighted label owns it. Do not guess a role without the verified
+            // geometry/screen relationship needed to distinguish password
+            // from one-time password.
+            return PolUiControlRole::unknown;
+        }
+
+        if (geometry_label == "Member List")
+            return PolUiControlRole::member_list;
+        if (geometry_label == "Log In" ||
+            geometry_label == "Settings" ||
+            geometry_label == "Delete" ||
+            geometry_label == "Back" ||
+            geometry_label == "Next" ||
+            geometry_label == "Cancel" ||
+            geometry_label == "Yes" ||
+            geometry_label == "No" ||
+            geometry_label == "OK" ||
+            geometry_label == "Connect" ||
+            geometry_label == "Register")
+        {
+            return PolUiControlRole::button;
+        }
+        if (geometry_label == "Member Name" ||
+            geometry_label == "PlayOnline ID" ||
+            geometry_label == "Square Enix ID" ||
+            geometry_label == "Proxy server address" ||
+            geometry_label == "Port")
+        {
+            return PolUiControlRole::editable;
+        }
+        if (!geometry_label.empty())
+            return PolUiControlRole::static_label;
+
+        UNREFERENCED_PARAMETER(manager);
+        return PolUiControlRole::unknown;
+    }
+
+    accessxi::pol_trace::Relationship pol_ui_relationship(
+        accessxi::pol_trace::EventKind kind,
+        const accessxi::pol_trace::Snapshot& snapshot)
+    {
+        if (kind == accessxi::pol_trace::EventKind::selected_index)
+            return accessxi::pol_trace::Relationship::indexed_child;
+        if (kind == accessxi::pol_trace::EventKind::current_child)
+            return accessxi::pol_trace::Relationship::current_child;
+        if (kind == accessxi::pol_trace::EventKind::focus_shared ||
+            kind == accessxi::pol_trace::EventKind::focus_select)
+        {
+            // The focus-event payload supplies the exact object at +0x30.
+            // Manager focus fields can lag the event and are diagnostic only.
+            return accessxi::pol_trace::Relationship::focused;
+        }
+        if (snapshot.object != 0 &&
+            (snapshot.object == snapshot.focus_160 ||
+             snapshot.object == snapshot.focus_164 ||
+             snapshot.object == snapshot.focus_1c0))
+        {
+            return accessxi::pol_trace::Relationship::focused;
+        }
+        return accessxi::pol_trace::Relationship::none;
+    }
+
+    size_t read_verified_masked_display_count(void* object)
+    {
+        using namespace accessxi::pol_accessibility;
+        if (!native_object_has_vtable_rva(object, PasswordFieldVtableRva))
+            return InvalidMaskedCount;
+
+        // Ghidra: CPasswordField initializes the rendered mask template at
+        // +0x202 to 32 asterisks and a terminator at +0x242. Its paint path
+        // obtains the displayed repeat count from the exact model at +0x1BC,
+        // virtual slot +0x30 (app.dll RVA 0x400C). Validate every link before
+        // invoking that read-only getter and never copy the underlying value.
+        char16_t mask_template[33]{};
+        if (!copy_memory_safely(
+                mask_template,
+                static_cast<const uint8_t*>(object) + 0x202,
+                sizeof(mask_template)))
+        {
+            return InvalidMaskedCount;
+        }
+        if (mask_template[32] != u'\0' ||
+            masked_display_count(std::u16string_view(mask_template, 32)) != 32)
+        {
+            return InvalidMaskedCount;
+        }
+
+        uintptr_t model = 0;
+        if (!read_ptr_safely(static_cast<const uint8_t*>(object) + 0x1BC, &model) ||
+            model < 0x10000)
+        {
+            return InvalidMaskedCount;
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        uintptr_t model_vtable = 0;
+        uintptr_t length_getter = 0;
+        if (app_base == 0 ||
+            !read_ptr_safely(reinterpret_cast<const void*>(model), &model_vtable) ||
+            model_vtable != app_base + PasswordTextModelVtableRva ||
+            !read_ptr_safely(
+                reinterpret_cast<const void*>(model_vtable + 0x30),
+                &length_getter) ||
+            length_getter != app_base + PasswordTextLengthRva)
+        {
+            return InvalidMaskedCount;
+        }
+
+        using PasswordTextLength_t = uint32_t (__thiscall*)(void*);
+        uint32_t count = 0;
+        __try
+        {
+            count = reinterpret_cast<PasswordTextLength_t>(length_getter)(
+                reinterpret_cast<void*>(model));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return InvalidMaskedCount;
+        }
+
+        if (count > 256)
+            return InvalidMaskedCount;
+        char16_t displayed[257]{};
+        std::fill_n(displayed, count, u'*');
+        return masked_display_count(std::u16string_view(displayed, count));
+    }
+
+    struct MaskedFieldTracker
+    {
+        uintptr_t object = 0;
+        PolUiControlRole role = PolUiControlRole::unknown;
+        size_t count = accessxi::pol_accessibility::InvalidMaskedCount;
+    };
+
+    std::mutex g_masked_field_tracker_lock;
+    MaskedFieldTracker g_masked_field_tracker;
+
+    void reset_masked_field_tracker()
+    {
+        std::lock_guard<std::mutex> guard(g_masked_field_tracker_lock);
+        g_masked_field_tracker = {};
+    }
+
+    void speak_masked_field_state(
+        const std::string& speech,
+        PolUiControlRole role,
+        size_t count)
+    {
+        if (speech.empty())
+            return;
+
+        char line[192]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_MASKED speak role=%s count=%zu text=%s",
+            accessxi::pol_trace::control_role_name(role),
+            count,
+            speech.c_str());
+        log_line(line);
+
+        // Do not use the ordinary duplicate guard here: two independently
+        // accepted characters may both produce the intentionally identical
+        // word "star" within 100 milliseconds.
+        if (!dispatch_speech_sink_v1(speech, 1) &&
+            g_reloaded_speech_queue_enabled.load())
+        {
+            append_reloaded_speech_queue(speech);
+        }
+    }
+
+    void poll_masked_field_state()
+    {
+        using namespace accessxi::pol_accessibility;
+        if (native_post_login_surface_active())
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        uintptr_t manager_value = 0;
+        if (!read_ptr_safely(
+                reinterpret_cast<const uint8_t*>(app) + PmlGlobalFocusManagerRva,
+                &manager_value) ||
+            manager_value == 0)
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        uintptr_t focused_value = 0;
+        auto* manager = reinterpret_cast<void*>(manager_value);
+        if (!read_ptr_safely(
+                static_cast<const uint8_t*>(manager) + 0x164,
+                &focused_value) ||
+            focused_value == 0)
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        auto* focused = reinterpret_cast<void*>(focused_value);
+        const PolUiControlRole role = classify_pol_ui_control_role(
+            accessxi::pol_trace::EventKind::current_child,
+            manager,
+            focused);
+        if (!secret_control_role(role) ||
+            !native_object_has_vtable_rva(focused, PasswordFieldVtableRva))
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        const size_t count = read_verified_masked_display_count(focused);
+        if (count == InvalidMaskedCount)
+        {
+            reset_masked_field_tracker();
+            return;
+        }
+
+        std::string speech;
+        {
+            std::lock_guard<std::mutex> guard(g_masked_field_tracker_lock);
+            if (g_masked_field_tracker.object != focused_value ||
+                g_masked_field_tracker.role != role)
+            {
+                speech = masked_focus_speech(role, count);
+            }
+            else
+            {
+                speech = masked_delta_speech(
+                    role,
+                    g_masked_field_tracker.count,
+                    count);
+            }
+
+            g_masked_field_tracker.object = focused_value;
+            g_masked_field_tracker.role = role;
+            g_masked_field_tracker.count = count;
+        }
+
+        speak_masked_field_state(speech, role, count);
+    }
+
+    std::string read_pol_ui_pml_inline_wide_text(uintptr_t object)
     {
         if (object < 0x10000)
             return {};
@@ -2571,7 +2865,7 @@ namespace
         return clean_wide_text(buffer, static_cast<int>(length));
     }
 
-    bool postlogin_trace_candidate_allowed(const std::string& value)
+    bool pol_ui_trace_candidate_allowed(const std::string& value)
     {
         if (!useful_text(value))
             return false;
@@ -2583,13 +2877,13 @@ namespace
             lower.find(".tm2") == std::string::npos;
     }
 
-    void add_postlogin_trace_candidate(
+    void add_pol_ui_trace_candidate(
         accessxi::pol_trace::Snapshot& snapshot,
         uint32_t offset,
         const char* source,
         const std::string& text)
     {
-        if (source == nullptr || !postlogin_trace_candidate_allowed(text))
+        if (source == nullptr || !pol_ui_trace_candidate_allowed(text))
             return;
 
         for (size_t index = 0; index < snapshot.candidate_count; ++index)
@@ -2612,13 +2906,13 @@ namespace
         accessxi::pol_trace::copy_utf8_bounded(candidate.text, sizeof(candidate.text), text);
     }
 
-    void collect_postlogin_trace_candidates(accessxi::pol_trace::Snapshot& snapshot, void* object)
+    void collect_pol_ui_trace_candidates(accessxi::pol_trace::Snapshot& snapshot, void* object)
     {
         const uintptr_t base = reinterpret_cast<uintptr_t>(object);
         if (base < 0x10000)
             return;
 
-        add_postlogin_trace_candidate(snapshot, 0, "inline-this-w", read_postlogin_pml_inline_wide_text(base));
+        add_pol_ui_trace_candidate(snapshot, 0, "inline-this-w", read_pol_ui_pml_inline_wide_text(base));
 
         static constexpr uintptr_t offsets[] = {
             0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x11Cu, 0x124u, 0x128u,
@@ -2629,12 +2923,12 @@ namespace
 
         for (const uintptr_t offset : offsets)
         {
-            add_postlogin_trace_candidate(
+            add_pol_ui_trace_candidate(
                 snapshot,
                 static_cast<uint32_t>(offset),
                 "field-c",
                 read_native_pml_string_field(base + offset));
-            add_postlogin_trace_candidate(
+            add_pol_ui_trace_candidate(
                 snapshot,
                 static_cast<uint32_t>(offset),
                 "field-w",
@@ -2648,25 +2942,25 @@ namespace
                 continue;
             }
 
-            add_postlogin_trace_candidate(
+            add_pol_ui_trace_candidate(
                 snapshot,
                 static_cast<uint32_t>(offset),
                 "ptr-c",
                 read_native_pml_c_string_pointer(pointer));
-            add_postlogin_trace_candidate(
+            add_pol_ui_trace_candidate(
                 snapshot,
                 static_cast<uint32_t>(offset),
                 "ptr-w",
                 read_native_pml_wide_string_pointer(pointer));
-            add_postlogin_trace_candidate(
+            add_pol_ui_trace_candidate(
                 snapshot,
                 static_cast<uint32_t>(offset),
                 "linked-inline-w",
-                read_postlogin_pml_inline_wide_text(pointer));
+                read_pol_ui_pml_inline_wide_text(pointer));
         }
     }
 
-    void capture_postlogin_snapshot(
+    void capture_pol_ui_snapshot(
         accessxi::pol_trace::EventKind kind,
         void* manager,
         void* requested_child,
@@ -2675,7 +2969,7 @@ namespace
         uint32_t requested_index,
         uint32_t stored_index)
     {
-        if (!g_postlogin_trace_active.load(std::memory_order_acquire))
+        if (!g_pol_ui_trace_active.load(std::memory_order_acquire))
             return;
 
         accessxi::pol_trace::Snapshot snapshot{};
@@ -2715,49 +3009,102 @@ namespace
             }
         }
 
-        const char* resolver_source = "semantic";
-        if (kind == accessxi::pol_trace::EventKind::selected_index)
-            resolver_source = "selected-index";
-        else if (kind == accessxi::pol_trace::EventKind::current_child)
-            resolver_source = "current-child";
+        snapshot.role = classify_pol_ui_control_role(kind, manager, object);
+        snapshot.relationship = pol_ui_relationship(kind, snapshot);
 
-        std::string resolver;
-        if (object != nullptr)
-            resolver = best_native_pml_text_from_object(object, resolver_source);
-        if (resolver.empty() && manager != nullptr &&
-            (kind == accessxi::pol_trace::EventKind::focus_shared ||
-             kind == accessxi::pol_trace::EventKind::focus_select))
+        const bool exact_password_field =
+            object != nullptr &&
+            native_object_has_vtable_rva(object, PasswordFieldVtableRva);
+        if (secret_control_role(snapshot.role) || exact_password_field)
         {
-            resolver = best_native_pml_text_from_object(manager, resolver_source);
+            const size_t masked_count = secret_control_role(snapshot.role)
+                ? read_verified_masked_display_count(object)
+                : accessxi::pol_accessibility::InvalidMaskedCount;
+            accessxi::pol_trace::set_masked_snapshot(
+                snapshot,
+                snapshot.role,
+                masked_count);
         }
-        accessxi::pol_trace::copy_utf8_bounded(
-            snapshot.resolver_text,
-            sizeof(snapshot.resolver_text),
-            resolver);
+        else
+        {
+            const char* resolver_source = "semantic";
+            if (kind == accessxi::pol_trace::EventKind::selected_index)
+                resolver_source = "selected-index";
+            else if (kind == accessxi::pol_trace::EventKind::current_child)
+                resolver_source = "current-child";
 
-        const bool relationship_verified =
-            kind == accessxi::pol_trace::EventKind::selected_index ||
-            kind == accessxi::pol_trace::EventKind::current_child ||
-            snapshot.object == snapshot.focus_160 ||
-            snapshot.object == snapshot.focus_164 ||
-            snapshot.object == snapshot.focus_1c0;
-        snapshot.trusted = !resolver.empty() &&
-            relationship_verified &&
-            prelogin_pml_focus_candidate_label_allowed(resolver_source, resolver);
+            std::string resolver;
+            if (snapshot.role == PolUiControlRole::selected_member)
+            {
+                // A member name is trusted only when it belongs to the exact
+                // native child returned for the stored selected index.
+                if (object != nullptr)
+                    resolver = best_native_pml_dynamic_text_from_object(object);
+                const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+                    resolver,
+                    snapshot.relationship == accessxi::pol_trace::Relationship::indexed_child,
+                    kind == accessxi::pol_trace::EventKind::selected_index,
+                    prelogin_member_dynamic_value_rect(object),
+                    !resolver.empty()
+                });
+                snapshot.trusted = decision.trusted;
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    decision.reason);
+                if (decision.trusted)
+                    resolver = decision.text;
+                else
+                    resolver.clear();
+            }
+            else
+            {
+                if (object != nullptr)
+                    resolver = best_native_pml_text_from_object(object, resolver_source);
 
-        collect_postlogin_trace_candidates(snapshot, object);
-        if (accessxi::pol_trace::snapshot_contains_sensitive_context(snapshot))
-            accessxi::pol_trace::redact_sensitive_snapshot(snapshot);
+                const bool relationship_verified =
+                    snapshot.relationship != accessxi::pol_trace::Relationship::none;
+                snapshot.trusted = !resolver.empty() &&
+                    relationship_verified &&
+                    prelogin_pml_focus_candidate_label_allowed(resolver_source, resolver);
+
+                const char* rejection = "none";
+                if (!relationship_verified)
+                    rejection = "relationship-unverified";
+                else if (resolver.empty())
+                    rejection = "no-text";
+                else if (!snapshot.trusted)
+                    rejection = "text-untrusted";
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    rejection);
+            }
+
+            accessxi::pol_trace::copy_utf8_bounded(
+                snapshot.resolver_text,
+                sizeof(snapshot.resolver_text),
+                resolver);
+            collect_pol_ui_trace_candidates(snapshot, object);
+            if (accessxi::pol_trace::snapshot_contains_sensitive_context(snapshot))
+            {
+                accessxi::pol_trace::redact_sensitive_snapshot(snapshot);
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    "sensitive-context");
+            }
+        }
 
         {
-            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
-            if (!g_postlogin_trace_active.load(std::memory_order_acquire))
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            if (!g_pol_ui_trace_active.load(std::memory_order_acquire))
                 return;
-            g_postlogin_trace.enqueue(snapshot);
+            g_pol_ui_trace.enqueue(snapshot);
         }
     }
 
-    void capture_postlogin_focus_event(
+    void capture_pol_ui_focus_event(
         accessxi::pol_trace::EventKind kind,
         void* manager,
         void* event_info,
@@ -2766,12 +3113,12 @@ namespace
         uint32_t event_code = 0;
         if (event_info != nullptr)
             read_u32_safely(static_cast<const uint8_t*>(event_info) + 0x24, &event_code);
-        capture_postlogin_snapshot(kind, manager, nullptr, focused_object, event_code, 0, 0);
+        capture_pol_ui_snapshot(kind, manager, nullptr, focused_object, event_code, 0, 0);
     }
 
-    void capture_postlogin_current_child(void* manager, void* requested_child, void* current_child)
+    void capture_pol_ui_current_child(void* manager, void* requested_child, void* current_child)
     {
-        capture_postlogin_snapshot(
+        capture_pol_ui_snapshot(
             accessxi::pol_trace::EventKind::current_child,
             manager,
             requested_child,
@@ -2781,13 +3128,13 @@ namespace
             0);
     }
 
-    void capture_postlogin_selected_index(
+    void capture_pol_ui_selected_index(
         void* model,
         uint32_t requested_index,
         uint32_t stored_index,
         void* selected_child)
     {
-        capture_postlogin_snapshot(
+        capture_pol_ui_snapshot(
             accessxi::pol_trace::EventKind::selected_index,
             model,
             nullptr,
@@ -2971,6 +3318,13 @@ namespace
     {
         if (focused_object == nullptr)
             return;
+        if (native_object_has_vtable_rva(focused_object, PasswordFieldVtableRva))
+        {
+            // The worker-owned masked tracker speaks only the verified visible
+            // mask count. Never send a password control through generic text
+            // discovery, even when its exact field role is not yet proven.
+            return;
+        }
 
         std::string label = best_native_pml_text_from_object(focused_object, source_text);
         if (label.empty())
@@ -3038,30 +3392,30 @@ namespace
         return GetModuleHandleA("FFXiMain.dll") != nullptr || GetModuleHandleA("ffximain.dll") != nullptr;
     }
 
-    void drain_postlogin_trace()
+    void drain_pol_ui_trace()
     {
         std::vector<std::string> lines;
         lines.reserve(64);
 
         accessxi::pol_trace::Snapshot snapshot{};
-        while (g_postlogin_trace.try_dequeue(snapshot))
+        while (g_pol_ui_trace.try_dequeue(snapshot))
             lines.push_back(accessxi::pol_trace::format_event(snapshot));
 
-        const uint64_t dropped = g_postlogin_trace.take_dropped_count();
+        const uint64_t dropped = g_pol_ui_trace.take_dropped_count();
         if (dropped != 0)
             lines.push_back(accessxi::pol_trace::format_dropped(dropped));
 
-        if (!append_postlogin_trace_lines(lines))
-            log_line("POSTLOGIN_TRACE write-failed");
+        if (!append_pol_ui_trace_lines(lines))
+            log_line("POL_UI_TRACE write-failed");
     }
 
-    void start_postlogin_trace()
+    void start_pol_ui_trace()
     {
-        if (g_postlogin_trace_active.load(std::memory_order_acquire))
+        if (g_pol_ui_trace_active.load(std::memory_order_acquire))
             return;
 
-        g_postlogin_trace.reset();
-        ++g_postlogin_trace_session;
+        g_pol_ui_trace.reset();
+        ++g_pol_ui_trace_session;
 
         std::vector<std::string> lines;
         lines.push_back(accessxi::pol_trace::format_schema(
@@ -3069,53 +3423,53 @@ namespace
             KnownUpdatedAppDllFnv64));
         lines.push_back(accessxi::pol_trace::format_session(
             "START",
-            g_postlogin_trace_session,
+            g_pol_ui_trace_session,
             GetTickCount(),
             "hotkey"));
-        if (!append_postlogin_trace_lines(lines))
+        if (!append_pol_ui_trace_lines(lines))
         {
-            log_line("POSTLOGIN_TRACE start-failed reason=file-open");
-            dispatch_speech_sink_v1("Post-login capture could not start", 1);
+            log_line("POL_UI_TRACE start-failed reason=file-open");
+            dispatch_speech_sink_v1("PlayOnline capture could not start", 1);
             return;
         }
 
         {
-            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
-            g_postlogin_trace_active.store(true, std::memory_order_release);
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            g_pol_ui_trace_active.store(true, std::memory_order_release);
         }
-        log_line("POSTLOGIN_TRACE started hotkey=Ctrl+Shift+F10");
-        dispatch_speech_sink_v1("Post-login capture started", 1);
+        log_line("POL_UI_TRACE started hotkey=Ctrl+Shift+F10");
+        dispatch_speech_sink_v1("PlayOnline capture started", 1);
     }
 
-    void stop_postlogin_trace(const char* reason)
+    void stop_pol_ui_trace(const char* reason)
     {
         {
-            std::lock_guard<std::mutex> guard(g_postlogin_trace_state_lock);
-            if (!g_postlogin_trace_active.exchange(false, std::memory_order_acq_rel))
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            if (!g_pol_ui_trace_active.exchange(false, std::memory_order_acq_rel))
                 return;
         }
 
-        drain_postlogin_trace();
-        if (!append_postlogin_trace_lines({ accessxi::pol_trace::format_session(
+        drain_pol_ui_trace();
+        if (!append_pol_ui_trace_lines({ accessxi::pol_trace::format_session(
                 "STOP",
-                g_postlogin_trace_session,
+                g_pol_ui_trace_session,
                 GetTickCount(),
                 reason == nullptr ? "" : reason) }))
         {
-            log_line("POSTLOGIN_TRACE stop-record-write-failed");
+            log_line("POL_UI_TRACE stop-record-write-failed");
         }
 
-        std::string line = "POSTLOGIN_TRACE stopped reason=";
+        std::string line = "POL_UI_TRACE stopped reason=";
         line += reason == nullptr ? "" : reason;
         log_line(line.c_str());
-        dispatch_speech_sink_v1("Post-login capture stopped", 1);
+        dispatch_speech_sink_v1("PlayOnline capture stopped", 1);
     }
 
-    void poll_postlogin_trace_hotkey()
+    void poll_pol_ui_trace_hotkey()
     {
-        if (g_postlogin_trace_active.load(std::memory_order_acquire) && native_post_login_surface_active())
+        if (g_pol_ui_trace_active.load(std::memory_order_acquire) && native_post_login_surface_active())
         {
-            stop_postlogin_trace("ffxi-loaded");
+            stop_pol_ui_trace("ffxi-loaded");
             return;
         }
 
@@ -3124,14 +3478,14 @@ namespace
             (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0 &&
             (GetAsyncKeyState(VK_F10) & 0x8000) != 0;
 
-        if (chord_down && !g_postlogin_trace_hotkey_down)
+        if (chord_down && !g_pol_ui_trace_hotkey_down)
         {
-            if (g_postlogin_trace_active.load(std::memory_order_acquire))
-                stop_postlogin_trace("hotkey");
+            if (g_pol_ui_trace_active.load(std::memory_order_acquire))
+                stop_pol_ui_trace("hotkey");
             else
-                start_postlogin_trace();
+                start_pol_ui_trace();
         }
-        g_postlogin_trace_hotkey_down = chord_down;
+        g_pol_ui_trace_hotkey_down = chord_down;
     }
 
     void record_native_selection_register(void* model)
@@ -3253,7 +3607,7 @@ namespace
         const SelectedMemberResolution resolution = resolve_selected_member(
             model,
             requested_index);
-        capture_postlogin_selected_index(
+        capture_pol_ui_selected_index(
             model,
             requested_index,
             resolution.stored_index,
@@ -3360,7 +3714,7 @@ namespace
 
         uintptr_t current_child = reinterpret_cast<uintptr_t>(requested_child);
         read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &current_child);
-        capture_postlogin_current_child(
+        capture_pol_ui_current_child(
             manager,
             requested_child,
             reinterpret_cast<void*>(current_child));
@@ -3431,6 +3785,13 @@ namespace
         g_last_processed_prelogin_current_child = current_child;
         g_last_processed_prelogin_current_child_tick = now;
 
+        if (native_object_has_vtable_rva(current_child_object, PasswordFieldVtableRva))
+        {
+            // poll_masked_field_state owns both focus and edit speech for this
+            // native control, using only the sighted mask length.
+            return;
+        }
+
         const bool current_child_is_tiny = native_prelogin_add_member_inner_textbox_child(current_child_object);
         uint32_t label_source_offset = 0;
         uint32_t atlas_resource = 0;
@@ -3455,7 +3816,7 @@ namespace
         const bool startup_member_atlas_focus =
             native_prelogin_startup_member_list_atlas_focus(current_child_object, geometry_label, atlas_resource);
         if ((startup_member_focus_rect || startup_member_atlas_focus) &&
-            g_postlogin_trace_active.load(std::memory_order_acquire))
+            g_pol_ui_trace_active.load(std::memory_order_acquire))
         {
             log_startup_member_probe(manager, current_child_object);
         }
@@ -3762,7 +4123,7 @@ namespace
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
         {
-            capture_postlogin_focus_event(
+            capture_pol_ui_focus_event(
                 accessxi::pol_trace::EventKind::focus_shared,
                 self,
                 event_info,
@@ -3780,7 +4141,7 @@ namespace
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
         {
-            capture_postlogin_focus_event(
+            capture_pol_ui_focus_event(
                 accessxi::pol_trace::EventKind::focus_select,
                 self,
                 event_info,
@@ -3829,6 +4190,7 @@ namespace
 
     void reset_prelogin_runtime_speech_state(const char* reason)
     {
+        reset_masked_field_tracker();
         {
             std::lock_guard<std::mutex> guard(g_candidate_lock);
             g_pending_pml_focus_candidate_valid = false;
@@ -3856,14 +4218,15 @@ namespace
 
     void run_reloaded_native_hook_iteration()
     {
-        poll_postlogin_trace_hotkey();
+        poll_pol_ui_trace_hotkey();
         install_native_focus_event_dispatch_hooks_once();
         install_pml_focus_event_call_hook_once();
         install_native_selection_truth_hooks_once();
+        poll_masked_field_state();
         process_queued_current_child_candidate("reloaded-native-current-child");
         speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");
         speak_current_prelogin_native_focus("reloaded-native-focus");
-        drain_postlogin_trace();
+        drain_pol_ui_trace();
     }
 
     void start_reloaded_native_hook_worker_once()

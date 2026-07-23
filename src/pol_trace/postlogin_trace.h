@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pol_accessibility/prelogin_semantics.h"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -13,6 +15,7 @@ namespace accessxi::pol_trace
     constexpr size_t TraceTextCapacity = 241;
     constexpr size_t TraceSourceCapacity = 32;
     constexpr size_t TraceCandidateCapacity = 24;
+    constexpr size_t TraceRejectionCapacity = 48;
 
     enum class EventKind : uint8_t
     {
@@ -27,6 +30,15 @@ namespace accessxi::pol_trace
         queued,
         duplicate,
         full
+    };
+
+    enum class Relationship : uint8_t
+    {
+        none,
+        focused,
+        current_child,
+        indexed_child,
+        nested_child
     };
 
     struct Rect
@@ -64,6 +76,12 @@ namespace accessxi::pol_trace
         bool has_rect = false;
         bool trusted = false;
         bool redacted = false;
+        accessxi::pol_accessibility::ControlRole role =
+            accessxi::pol_accessibility::ControlRole::unknown;
+        Relationship relationship = Relationship::none;
+        uint32_t masked_count = 0;
+        bool has_masked_count = false;
+        char rejection_reason[TraceRejectionCapacity]{};
         char resolver_text[TraceTextCapacity]{};
         uint8_t candidate_count = 0;
         Candidate candidates[TraceCandidateCapacity]{};
@@ -71,6 +89,8 @@ namespace accessxi::pol_trace
 
     void copy_utf8_bounded(char* destination, size_t capacity, std::string_view value);
     const char* event_kind_name(EventKind kind) noexcept;
+    const char* control_role_name(accessxi::pol_accessibility::ControlRole role) noexcept;
+    const char* relationship_name(Relationship relationship) noexcept;
     std::string escape_tsv(std::string_view value);
     std::string format_schema(uint64_t app_size, uint64_t app_fnv64);
     std::string format_session(std::string_view action, uint64_t session, uint32_t tick, std::string_view reason);
@@ -78,6 +98,10 @@ namespace accessxi::pol_trace
     std::string format_dropped(uint64_t count);
     bool snapshot_contains_sensitive_context(const Snapshot& value);
     void redact_sensitive_snapshot(Snapshot& value);
+    void set_masked_snapshot(
+        Snapshot& value,
+        accessxi::pol_accessibility::ControlRole role,
+        size_t masked_count);
 
     class TraceBuffer
     {

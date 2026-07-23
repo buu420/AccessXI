@@ -32,6 +32,9 @@ namespace
     constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
     constexpr uintptr_t CPolTableVtableRva = 0x0033219Cu;
+    constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x003CF8E4u;
+    constexpr uintptr_t CLoginMemberDataVtableRva = 0x003CF800u;
+    constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x001AF193u;
     constexpr uintptr_t PasswordFieldVtableRva = 0x00333CD4u;
     constexpr uintptr_t PasswordTextModelVtableRva = 0x0033300Cu;
     constexpr uintptr_t PasswordTextLengthRva = 0x0000400Cu;
@@ -522,6 +525,35 @@ namespace
             return {};
 
         return clean_wide_text(buffer, -1);
+    }
+
+    std::string read_narrow_text_safely(const char* value, size_t max_bytes)
+    {
+        if (value == nullptr || max_bytes == 0)
+            return {};
+
+        char buffer[64]{};
+        const size_t capped = std::min(max_bytes, sizeof(buffer) - 1);
+        bool terminated = false;
+        for (size_t index = 0; index < capped; ++index)
+        {
+            char ch = 0;
+            if (!copy_memory_safely(&ch, value + index, sizeof(ch)))
+                return {};
+
+            if (ch == 0)
+            {
+                terminated = true;
+                break;
+            }
+
+            buffer[index] = ch;
+        }
+
+        if (!terminated || buffer[0] == 0)
+            return {};
+
+        return clean_text(buffer, -1);
     }
 
     bool useful_text(const std::string& value)
@@ -3518,6 +3550,26 @@ namespace
     }
 
     using PmlIndexedChildAt_t = uintptr_t(__thiscall*)(void*, uint32_t);
+    using CLoginMemberListGetValueAt_t = uintptr_t(__thiscall*)(void*, uint32_t, uint32_t);
+
+    uintptr_t call_login_member_get_value_at(
+        CLoginMemberListGetValueAt_t get_value_at,
+        void* data_model,
+        uint32_t column,
+        uint32_t row)
+    {
+        if (get_value_at == nullptr || data_model == nullptr)
+            return 0;
+
+        __try
+        {
+            return get_value_at(data_model, column, row);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return 0;
+        }
+    }
 
     uintptr_t selected_child_from_native_index(void* model, uint32_t stored_index)
     {
@@ -3604,17 +3656,74 @@ namespace
         if (!native_object_has_vtable_rva(focused_table, CPolTableVtableRva))
             return resolution;
 
-        uintptr_t selection_model_pointer = 0;
+        // CPolTable owns the current row directly. The +0x218 field is only an
+        // embedded CDefaultListSelectionModel and is not the application-level
+        // selected-row model.
+        int16_t selected_row = -1;
+        if (!copy_memory_safely(
+                &selected_row,
+                static_cast<const uint8_t*>(focused_table) + 0x266,
+                sizeof(selected_row)) ||
+            selected_row < 0 ||
+            selected_row > 10000)
+        {
+            return resolution;
+        }
+        resolution.stored_index = static_cast<uint32_t>(selected_row);
+
+        uintptr_t data_model_pointer = 0;
         if (!read_ptr_safely(
-                static_cast<const uint8_t*>(focused_table) + 0x218,
-                &selection_model_pointer) ||
-            selection_model_pointer < 0x10000)
+                static_cast<const uint8_t*>(focused_table) + 0x20C,
+                &data_model_pointer) ||
+            data_model_pointer < 0x10000)
         {
             return resolution;
         }
 
-        void* selection_model = reinterpret_cast<void*>(selection_model_pointer);
-        return resolve_selected_member(selection_model, 0);
+        void* data_model = reinterpret_cast<void*>(data_model_pointer);
+        if (!native_object_has_vtable_rva(data_model, CLoginMemberListDataModelVtableRva))
+            return resolution;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return resolution;
+
+        auto* app_base = reinterpret_cast<uint8_t*>(app);
+        const auto get_value_at = reinterpret_cast<CLoginMemberListGetValueAt_t>(
+            app_base + CLoginMemberListGetValueAtRva);
+        // CLoginMemberListDataModel::getValueAt receives column, then row.
+        const uintptr_t member_data_pointer = call_login_member_get_value_at(
+            get_value_at,
+            data_model,
+            0u,
+            static_cast<uint32_t>(selected_row));
+
+        if (member_data_pointer < 0x10000)
+            return resolution;
+
+        void* member_data = reinterpret_cast<void*>(member_data_pointer);
+        if (!native_object_has_vtable_rva(member_data, CLoginMemberDataVtableRva))
+            return resolution;
+        resolution.selected_child = member_data;
+
+        // CLoginMemberListFrameCellRenderer passes this exact fixed-size field
+        // to the native narrow-text setter used for the visible member name.
+        const std::string candidate = read_narrow_text_safely(
+            static_cast<const char*>(member_data) + 0x1F,
+            0x15);
+        const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+            candidate,
+            true,
+            true,
+            true,
+            !candidate.empty()
+        });
+        if (!decision.trusted || !prelogin_member_dynamic_label(decision.text))
+            return resolution;
+
+        resolution.label = decision.text;
+        resolution.source = "selected-member-dynamic";
+        return resolution;
     }
 
     void remember_selected_index_candidate(void* model, uint32_t requested_index)

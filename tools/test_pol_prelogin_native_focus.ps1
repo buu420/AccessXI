@@ -220,13 +220,46 @@ Assert-Before $selectedMember 'prelogin_member_dynamic_value_rect(resolution.sel
 
 Assert-Contains $source 'CPolTableVtableRva\s*=\s*0x0033219Cu' `
     "Focused startup member resolution must identify the Ghidra-confirmed CPolTable type exactly."
+Assert-Contains $source 'CLoginMemberListDataModelVtableRva\s*=\s*0x003CF8E4u' `
+    "Focused startup member resolution must identify the exact native login-member table model."
+Assert-Contains $source 'CLoginMemberDataVtableRva\s*=\s*0x003CF800u' `
+    "Focused startup member resolution must identify the exact CLoginMemberData row object."
+Assert-Contains $source 'CLoginMemberListGetValueAtRva\s*=\s*0x001AF193u' `
+    "Focused startup member resolution must use the Ghidra-confirmed login-member model accessor."
+Assert-Contains $source 'std::string\s+read_narrow_text_safely\s*\(' `
+    "The native member-row name must use a bounded safe narrow-string reader."
+$loginMemberAccessor = Get-FunctionBody $source "uintptr_t call_login_member_get_value_at"
+Assert-Contains $loginMemberAccessor '__try[\s\S]{0,220}get_value_at\s*\(' `
+    "The exact native login-member model accessor must be isolated behind SEH."
+Assert-Contains $loginMemberAccessor '__except\s*\(\s*EXCEPTION_EXECUTE_HANDLER\s*\)' `
+    "Native login-member model accessor faults must fail closed."
 $focusedTableMember = Get-FunctionBody $source "SelectedMemberResolution resolve_selected_member_from_focused_table"
 Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*focused_table\s*,\s*CPolTableVtableRva\s*\)' `
     "Focused startup member resolution must reject objects that are not the exact CPolTable type."
-Assert-Contains $focusedTableMember 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x218' `
-    "Focused startup member resolution must read only CPolTable's Ghidra-confirmed selection-model field."
-Assert-Contains $focusedTableMember 'resolve_selected_member\s*\(\s*selection_model\s*,\s*0\s*\)' `
-    "Focused startup member resolution must reuse the relationship-backed selected-row resolver."
+Assert-Contains $focusedTableMember 'copy_memory_safely\s*\(\s*&selected_row\s*,\s*static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x266\s*,\s*sizeof\(selected_row\)\s*\)' `
+    "Focused startup member resolution must read CPolTable's signed selected-row field at +0x266."
+Assert-Contains $focusedTableMember 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x20C' `
+    "Focused startup member resolution must follow CPolTable's exact data-model field at +0x20C."
+Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*data_model\s*,\s*CLoginMemberListDataModelVtableRva\s*\)' `
+    "Focused startup member resolution must reject any data model that is not the exact login-member model."
+Assert-Contains $focusedTableMember 'app_base\s*\+\s*CLoginMemberListGetValueAtRva' `
+    "Focused startup member resolution must bind the exact native model accessor."
+Assert-Contains $focusedTableMember 'call_login_member_get_value_at\s*\(\s*get_value_at\s*,\s*data_model\s*,\s*0u\s*,\s*static_cast<uint32_t>\s*\(\s*selected_row\s*\)\s*\)' `
+    "The native model accessor must receive column zero followed by the selected row."
+Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*member_data\s*,\s*CLoginMemberDataVtableRva\s*\)' `
+    "Focused startup member resolution must verify the exact returned CLoginMemberData object."
+Assert-Contains $focusedTableMember 'read_narrow_text_safely\s*\(\s*static_cast<const char\*>\s*\(\s*member_data\s*\)\s*\+\s*0x1F\s*,\s*0x15\s*\)' `
+    "Focused startup member resolution must read only CLoginMemberData's bounded visible-name field."
+Assert-Contains $focusedTableMember 'decide_member_candidate\s*\(' `
+    "Focused startup member resolution must retain the unit-tested ownership gate."
+Assert-Contains $focusedTableMember 'prelogin_member_dynamic_label\s*\(' `
+    "Focused startup member resolution must reject malformed native member-name text."
+if ($focusedTableMember -match 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x218|resolve_selected_member\s*\(') {
+    throw "Focused CPolTable resolution must not reinterpret its embedded generic selection model as the application-specific selected-row model."
+}
+if ($focusedTableMember -match '__try|__except') {
+    throw "Focused CPolTable resolution must keep SEH in a leaf wrapper so C++ object unwinding remains valid."
+}
 if ($focusedTableMember -match 'native_prelogin_startup_member_name_from_|read_native_prelogin_member_name|PreloginMemberNameAccessorRva|PreloginMemberNameWideGlobalRva') {
     throw "Focused CPolTable resolution must not fall back to broad fields, child-slot scans, or global member-name accessors."
 }

@@ -12,6 +12,9 @@ namespace accessxi::pol_pml
     static_assert(
         std::atomic<uint64_t>::is_always_lock_free,
         "PlayOnline constructor callbacks require lock-free owner publication");
+    static_assert(
+        alignof(PopupOwnerRegistration) >= alignof(uint64_t),
+        "x86 64-bit interlocked owner slots require eight-byte alignment");
 
     namespace
     {
@@ -24,6 +27,53 @@ namespace accessxi::pol_pml
             PopupSpeechMode mode;
             std::array<uint32_t, 3> slots;
             size_t slot_count;
+        };
+
+        constexpr std::array<uintptr_t, 10> ModalOkOwnerVtableRvas{
+            ModalOkVtableRva,
+            0x00323D24u,
+            0x00336434u,
+            0x0033829Cu,
+            0x003C816Cu,
+            0x003CA074u,
+            0x003CA2D4u,
+            0x003CB0F4u,
+            0x003D492Cu,
+            0x003E7F54u,
+        };
+        constexpr std::array<uintptr_t, 7> ModalYesNoOwnerVtableRvas{
+            ModalYesNoVtableRva,
+            0x00322394u,
+            0x00338524u,
+            0x003D3F54u,
+            0x003DCBC4u,
+            0x003E2A9Cu,
+            0x003E81BCu,
+        };
+        constexpr std::array<uintptr_t, 4>
+            ModalYesNoCancelOwnerVtableRvas{
+                ModalYesNoCancelVtableRva,
+                0x003283D4u,
+                0x003387A4u,
+                0x003E8424u,
+            };
+        constexpr std::array<uintptr_t, 2> ModalOkCancelOwnerVtableRvas{
+            ModalOkCancelVtableRva,
+            0x003E868Cu,
+        };
+        constexpr std::array<uintptr_t, 3> ModalRetryFailOwnerVtableRvas{
+            ModalRetryFailVtableRva,
+            0x00324744u,
+            0x003CA534u,
+        };
+        constexpr std::array<uintptr_t, 3> NoticeOwnerVtableRvas{
+            NoticeWindowVtableRva,
+            0x003CE96Cu,
+            0x003CF074u,
+        };
+        constexpr std::array<uintptr_t, 2> ImportantNoticeOwnerVtableRvas{
+            ImportantNoticeVtableRva,
+            0x003CF2CCu,
         };
 
         enum class ComponentVisibility : uint8_t
@@ -72,34 +122,67 @@ namespace accessxi::pol_pml
                 : ComponentVisibility::hidden;
         }
 
-        bool owner_description(uintptr_t vtable_rva, OwnerDescription& result) noexcept
+        template<size_t Size>
+        bool contains_vtable(
+            const std::array<uintptr_t, Size>& vtables,
+            uintptr_t vtable_rva) noexcept
         {
-            switch (vtable_rva)
+            return std::find(
+                vtables.begin(),
+                vtables.end(),
+                vtable_rva) != vtables.end();
+        }
+
+        bool owner_description(
+            uintptr_t vtable_rva,
+            OwnerDescription& result) noexcept
+        {
+            if (contains_vtable(ModalOkOwnerVtableRvas, vtable_rva))
             {
-            case ModalOkVtableRva:
                 result = { PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, { 0x2B8, 0, 0 }, 1 };
                 return true;
-            case ModalYesNoVtableRva:
+            }
+            if (contains_vtable(
+                    ModalYesNoOwnerVtableRvas,
+                    vtable_rva))
+            {
                 result = { PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
                 return true;
-            case ModalYesNoCancelVtableRva:
+            }
+            if (contains_vtable(
+                    ModalYesNoCancelOwnerVtableRvas,
+                    vtable_rva))
+            {
                 result = { PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, { 0x2C0, 0, 0 }, 1 };
                 return true;
-            case ModalOkCancelVtableRva:
+            }
+            if (contains_vtable(
+                    ModalOkCancelOwnerVtableRvas,
+                    vtable_rva))
+            {
                 result = { PopupOwnerKind::modal_ok_cancel, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
                 return true;
-            case ModalRetryFailVtableRva:
+            }
+            if (contains_vtable(
+                    ModalRetryFailOwnerVtableRvas,
+                    vtable_rva))
+            {
                 result = { PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
                 return true;
-            case NoticeWindowVtableRva:
+            }
+            if (contains_vtable(NoticeOwnerVtableRvas, vtable_rva))
+            {
                 result = { PopupOwnerKind::notice, PopupSpeechMode::queued, { 0x2A8, 0x2AC, 0x2B0 }, 3 };
                 return true;
-            case ImportantNoticeVtableRva:
+            }
+            if (contains_vtable(
+                    ImportantNoticeOwnerVtableRvas,
+                    vtable_rva))
+            {
                 result = { PopupOwnerKind::important_notice, PopupSpeechMode::queued, { 0x2AC, 0x2B0, 0 }, 2 };
                 return true;
-            default:
-                return false;
             }
+            return false;
         }
 
         bool append_normalized_character(
@@ -272,31 +355,54 @@ namespace accessxi::pol_pml
         }
     }
 
-    void PopupOwnerRegistration::publish(uintptr_t owner) noexcept
+    bool PopupOwnerRegistration::publish(uintptr_t owner) noexcept
     {
         if (owner == 0)
-            return;
+            return false;
 
-        uint64_t observed = state_.load(std::memory_order_relaxed);
-        for (;;)
+        for (const auto& state : states_)
         {
-            uint32_t generation =
-                static_cast<uint32_t>(observed >> 32) + 1u;
-            if (generation == 0)
-                generation = 1;
-
-            const uint64_t desired =
-                (static_cast<uint64_t>(generation) << 32) |
-                static_cast<uint32_t>(owner);
-            if (state_.compare_exchange_weak(
-                    observed,
-                    desired,
-                    std::memory_order_release,
-                    std::memory_order_relaxed))
+            const uint64_t observed =
+                state.load(std::memory_order_acquire);
+            if (static_cast<uintptr_t>(
+                    static_cast<uint32_t>(observed)) == owner)
             {
-                return;
+                return true;
             }
         }
+
+        for (auto& state : states_)
+        {
+            uint64_t observed =
+                state.load(std::memory_order_relaxed);
+            for (;;)
+            {
+                const uintptr_t current_owner =
+                    static_cast<uintptr_t>(
+                        static_cast<uint32_t>(observed));
+                if (current_owner == owner)
+                    return true;
+                if (current_owner != 0)
+                    break;
+
+                uint32_t generation =
+                    static_cast<uint32_t>(observed >> 32) + 1u;
+                if (generation == 0)
+                    generation = 1;
+                const uint64_t desired =
+                    (static_cast<uint64_t>(generation) << 32) |
+                    static_cast<uint32_t>(owner);
+                if (state.compare_exchange_weak(
+                        observed,
+                        desired,
+                        std::memory_order_release,
+                        std::memory_order_relaxed))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     void PopupOwnerRegistration::invalidate(uintptr_t owner) noexcept
@@ -304,28 +410,32 @@ namespace accessxi::pol_pml
         if (owner == 0)
             return;
 
-        uint64_t observed = state_.load(std::memory_order_relaxed);
-        for (;;)
+        for (auto& state : states_)
         {
-            if (static_cast<uintptr_t>(
-                    static_cast<uint32_t>(observed)) != owner)
+            uint64_t observed =
+                state.load(std::memory_order_relaxed);
+            for (;;)
             {
-                return;
-            }
+                if (static_cast<uintptr_t>(
+                        static_cast<uint32_t>(observed)) != owner)
+                {
+                    break;
+                }
 
-            uint32_t generation =
-                static_cast<uint32_t>(observed >> 32) + 1u;
-            if (generation == 0)
-                generation = 1;
-            const uint64_t desired =
-                static_cast<uint64_t>(generation) << 32;
-            if (state_.compare_exchange_weak(
-                    observed,
-                    desired,
-                    std::memory_order_release,
-                    std::memory_order_relaxed))
-            {
-                return;
+                uint32_t generation =
+                    static_cast<uint32_t>(observed >> 32) + 1u;
+                if (generation == 0)
+                    generation = 1;
+                const uint64_t desired =
+                    static_cast<uint64_t>(generation) << 32;
+                if (state.compare_exchange_weak(
+                        observed,
+                        desired,
+                        std::memory_order_release,
+                        std::memory_order_relaxed))
+                {
+                    break;
+                }
             }
         }
     }
@@ -333,8 +443,24 @@ namespace accessxi::pol_pml
     PopupOwnerRegistrationSnapshot
     PopupOwnerRegistration::snapshot() const noexcept
     {
-        const uint64_t state = state_.load(std::memory_order_acquire);
+        for (size_t index = 0; index < states_.size(); ++index)
+        {
+            const auto candidate = snapshot(index);
+            if (candidate.valid)
+                return candidate;
+        }
+        return snapshot(0);
+    }
+
+    PopupOwnerRegistrationSnapshot
+    PopupOwnerRegistration::snapshot(size_t index) const noexcept
+    {
         PopupOwnerRegistrationSnapshot result;
+        if (index >= states_.size())
+            return result;
+
+        const uint64_t state =
+            states_[index].load(std::memory_order_acquire);
         result.owner = static_cast<uintptr_t>(
             static_cast<uint32_t>(state));
         result.generation = static_cast<uint32_t>(state >> 32);
@@ -344,7 +470,8 @@ namespace accessxi::pol_pml
 
     void PopupOwnerRegistration::reset() noexcept
     {
-        state_.store(0, std::memory_order_release);
+        for (auto& state : states_)
+            state.store(0, std::memory_order_release);
     }
 
     PopupTextSnapshot inspect_popup_text(

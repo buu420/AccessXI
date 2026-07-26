@@ -60,19 +60,28 @@ namespace accessxi::pol_pml
         uint64_t generation = 0;
     };
 
-    // The production bridge is x86. Pack its 32-bit owner pointer and a
-    // 32-bit generation into one lock-free atomic word so a worker can never
-    // pair a newly published pointer with an older generation.
-    class PopupOwnerRegistration
+    constexpr size_t PopupOwnerRegistrationCapacity = 32;
+
+    // The production bridge is x86. Keep every live base-constructed popup in
+    // a bounded set, packing each 32-bit owner pointer and 32-bit generation
+    // into one lock-free atomic word. Capacity exhaustion fails silent.
+    class alignas(8) PopupOwnerRegistration
     {
     public:
-        void publish(uintptr_t owner) noexcept;
+        bool publish(uintptr_t owner) noexcept;
         void invalidate(uintptr_t owner) noexcept;
         PopupOwnerRegistrationSnapshot snapshot() const noexcept;
+        PopupOwnerRegistrationSnapshot snapshot(size_t index) const noexcept;
+        static constexpr size_t capacity() noexcept
+        {
+            return PopupOwnerRegistrationCapacity;
+        }
         void reset() noexcept;
 
     private:
-        std::atomic<uint64_t> state_{ 0 };
+        alignas(8) std::array<
+            std::atomic<uint64_t>,
+            PopupOwnerRegistrationCapacity> states_{};
     };
 
     struct PopupTextCandidate

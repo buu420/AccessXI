@@ -79,19 +79,23 @@ Assert-Contains $source 'PopupConstructorPatchSize\s*=\s*7' `
     'Popup constructors must steal only the two complete non-relative entry instructions.'
 
 $destructorConstants = @{
-    ModalOkDestructorRva = '000D1B29'
-    ModalYesNoDestructorRva = '000D1E42'
-    ModalYesNoCancelDestructorRva = '000D2171'
-    ModalOkCancelDestructorRva = '000D2E13'
-    ModalRetryFailDestructorRva = '000D35F8'
-    NoticeWindowDestructorRva = '000A9C77'
-    ImportantNoticeDestructorRva = '000AA015'
+    ModalOkBaseDestructorRva = '000BD4F0'
+    ModalYesNoBaseDestructorRva = '000BD55E'
+    ModalYesNoCancelBaseDestructorRva = '000BD5CC'
+    ModalOkCancelBaseDestructorRva = '000BDA4E'
+    ModalRetryFailBaseDestructorRva = '000BDB2A'
+    NoticeWindowBaseDestructorRva = '000A6668'
+    ImportantNoticeBaseDestructorRva = '000A6AC0'
 }
 foreach ($entry in $destructorConstants.GetEnumerator()) {
     Assert-Contains $source (
         [regex]::Escape($entry.Key) + '\s*=\s*0x' + $entry.Value + 'u'
-    ) "Missing Ghidra-proven popup destructor constant $($entry.Key)."
+    ) "Missing Ghidra-proven popup base-destructor constant $($entry.Key)."
 }
+Assert-Contains $source 'PopupEhBaseDestructorPatchSize\s*=\s*7' `
+    'EH-prologue popup base destructors must steal their complete seven-byte prefix.'
+Assert-Contains $source 'PopupNoticeBaseDestructorPatchSize\s*=\s*6' `
+    'The notice base destructor must steal only its complete first six-byte instruction.'
 
 Assert-Contains $source 'g_popup_notice_hooks_installed' `
     'Popup hook installation needs an idempotent state guard.'
@@ -135,13 +139,13 @@ foreach ($hook in $hooks) {
 }
 
 $destructorHooks = @(
-    @{ Signature = 'void* __fastcall hook_modal_ok_destructor'; Kind = 'modal_ok' },
-    @{ Signature = 'void* __fastcall hook_modal_yes_no_destructor'; Kind = 'modal_yes_no' },
-    @{ Signature = 'void* __fastcall hook_modal_yes_no_cancel_destructor'; Kind = 'modal_yes_no_cancel' },
-    @{ Signature = 'void* __fastcall hook_modal_ok_cancel_destructor'; Kind = 'modal_ok_cancel' },
-    @{ Signature = 'void* __fastcall hook_modal_retry_fail_destructor'; Kind = 'modal_retry_fail' },
-    @{ Signature = 'void* __fastcall hook_notice_window_destructor'; Kind = 'notice' },
-    @{ Signature = 'void* __fastcall hook_important_notice_destructor'; Kind = 'important_notice' }
+    @{ Signature = 'void __fastcall hook_modal_ok_base_destructor'; Kind = 'modal_ok' },
+    @{ Signature = 'void __fastcall hook_modal_yes_no_base_destructor'; Kind = 'modal_yes_no' },
+    @{ Signature = 'void __fastcall hook_modal_yes_no_cancel_base_destructor'; Kind = 'modal_yes_no_cancel' },
+    @{ Signature = 'void __fastcall hook_modal_ok_cancel_base_destructor'; Kind = 'modal_ok_cancel' },
+    @{ Signature = 'void __fastcall hook_modal_retry_fail_base_destructor'; Kind = 'modal_retry_fail' },
+    @{ Signature = 'void __fastcall hook_notice_window_base_destructor'; Kind = 'notice' },
+    @{ Signature = 'void __fastcall hook_important_notice_base_destructor'; Kind = 'important_notice' }
 )
 foreach ($hook in $destructorHooks) {
     $body = Function-Body $source $hook.Signature
@@ -176,7 +180,7 @@ Assert-Contains $threadQuiescence 'GetThreadContext\s*\(' `
 Assert-Contains $threadQuiescence 'ResumeThread\s*\(' `
     'Popup patching must always release threads after the bounded patch.'
 
-$retryReadiness = Function-Body $source 'bool popup_constructor_prologues_ready'
+$retryReadiness = Function-Body $source 'bool popup_lifecycle_prologues_ready'
 foreach ($trampoline in @(
     'g_modal_ok_constructor_trampoline',
     'g_modal_yes_no_constructor_trampoline',
@@ -184,7 +188,14 @@ foreach ($trampoline in @(
     'g_modal_ok_cancel_constructor_trampoline',
     'g_modal_retry_fail_constructor_trampoline',
     'g_notice_window_constructor_trampoline',
-    'g_important_notice_constructor_trampoline'
+    'g_important_notice_constructor_trampoline',
+    'g_modal_ok_base_destructor_trampoline',
+    'g_modal_yes_no_base_destructor_trampoline',
+    'g_modal_yes_no_cancel_base_destructor_trampoline',
+    'g_modal_ok_cancel_base_destructor_trampoline',
+    'g_modal_retry_fail_base_destructor_trampoline',
+    'g_notice_window_base_destructor_trampoline',
+    'g_important_notice_base_destructor_trampoline'
 )) {
     Assert-Contains $retryReadiness ([regex]::Escape($trampoline)) `
         "Popup hook retry validation does not preserve the already-installed trampoline $trampoline."
@@ -193,16 +204,20 @@ foreach ($trampoline in @(
 $installer = Function-Body $source 'void install_popup_notice_hooks_once'
 Assert-Before $installer 'app_module_matches_known_updated_pol_build' 'install_inline_jump' `
     'Popup hooks must pass the exact app.dll fingerprint gate before patching code.'
-Assert-Before $installer 'popup_constructor_prologues_ready' 'install_inline_jump' `
-    'Popup hooks must verify all unpacked constructor prologues before patching.'
+Assert-Before $installer 'popup_lifecycle_prologues_ready' 'install_inline_jump' `
+    'Popup hooks must verify all unpacked lifecycle prologues before patching.'
 Assert-Contains $installer 'PopupConstructorPatchSize' `
     'Popup hooks must use the Ghidra-verified seven-byte entry boundary.'
 Assert-Contains $installer 'install_inline_jump_atomic\s*\(' `
-    'Popup constructors must use the trampoline-first atomic installer.'
-Assert-Contains $installer 'install_vtable_hook_atomic\s*\(' `
-    'Popup owner destruction must use exact atomic vtable-slot hooks.'
-Assert-Before $installer 'if (!destructors_ready)' 'install_inline_jump_atomic' `
-    'No constructor may be hooked until every matching destructor invalidation hook is installed.'
+    'Popup constructors and base destructors must use the trampoline-first atomic installer.'
+Assert-NotContains $installer 'install_vtable_hook_atomic\s*\(' `
+    'A base-vtable slot cannot observe destruction through derived popup vtables.'
+foreach ($entry in $destructorConstants.GetEnumerator()) {
+    Assert-Before $installer ([regex]::Escape($entry.Key)) 'if (!destructors_ready)' `
+        "Base-destructor invalidation hook $($entry.Key) must be attempted before the destructor gate."
+}
+Assert-Before $installer 'if (!destructors_ready)' 'ModalOkConstructorRva' `
+    'No constructor may be hooked until every matching base-destructor hook is installed.'
 foreach ($entry in $constants.GetEnumerator()) {
     Assert-Contains $installer ([regex]::Escape($entry.Key)) `
         "Popup hook installer does not use $($entry.Key)."
@@ -219,8 +234,12 @@ Assert-Contains $processor 'inspect_popup_text\s*\(' `
     'Popup polling must use the strict exact-owner reader.'
 Assert-Contains $processor 'g_popup_text_trackers' `
     'Popup polling must use worker-side stability and deduplication.'
-Assert-Contains $processor '\.snapshot\s*\(\s*\)' `
-    'Popup polling must consume one coherent owner-and-generation publication.'
+Assert-Contains $processor 'PopupOwnerRegistration::capacity\s*\(\s*\)' `
+    'Popup polling must inspect every bounded live-owner slot.'
+Assert-Contains $processor '\.snapshot\s*\(\s*owner_slot\s*\)' `
+    'Popup polling must consume each coherent owner-and-generation publication.'
+Assert-Contains $processor 'g_popup_text_trackers\s*\[\s*index\s*\]\s*\[\s*owner_slot\s*\]' `
+    'Each simultaneous popup owner needs independent stability and deduplication state.'
 Assert-Contains $processor 'registration_after_inspection' `
     'Popup polling must revalidate the exact owner registration after native memory reads.'
 Assert-Before $processor 'registration_after_inspection' 'tracker.observe' `
@@ -261,4 +280,4 @@ Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=c
 Assert-NotContains $module 'OCR|DrawText|best_native_pml_text_from_object' `
     'The pure popup reader must not acquire guessed or rendered global text.'
 
-'ok: popup and notice speech is exact-owner gated, visible-only, stable, deduplicated, worker-read, and UI-thread safe.'
+'ok: popup and notice speech tracks exact derived owners, all bounded live instances, visible labels, stable text, and base-destructor lifetime.'

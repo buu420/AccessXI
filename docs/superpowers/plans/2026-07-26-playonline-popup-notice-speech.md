@@ -4,7 +4,14 @@
 
 **Goal:** Announce PlayOnline confirmation bodies and transient notice labels from exact Ghidra-proven native owners even when those labels never receive focus.
 
-**Architecture:** Exact-build constructor hooks publish each completed modal or notice owner pointer and generation as one lock-free atomic registry value. The existing native worker validates those owners, follows only fixed proven `CLabel*` slots, requires two identical reads, deduplicates by owner generation and slot, then sends modal bodies as interrupting speech and notice changes as queued speech. Unsupported objects and malformed state stay silent.
+**Architecture:** Exact-build base-constructor hooks retain every completed
+modal or notice owner in a bounded lock-free live-instance registry. Shared
+base-destructor hooks invalidate derived instances safely. The existing native
+worker validates exact Ghidra-proven base and derived vtables, follows only
+inherited fixed `CLabel*` slots, requires two identical reads, deduplicates per
+owner generation and slot, then sends modal bodies as interrupting speech and
+notice changes as queued speech. Unsupported objects and malformed state stay
+silent.
 
 **Tech Stack:** C++20, Win32 x86, CMake/Visual Studio 2022, existing inline trampoline hooks, Prism speech sink, PowerShell structural regression tests, Ghidra 12.0.4 evidence for `app.dll`.
 
@@ -16,15 +23,16 @@
 - Do not use OCR, guessed text, resource order, or recursive pointer scans.
 - Constructor callbacks may call their trampoline and publish atomics only. They may not read text, allocate containers, log, call Prism, or perform file I/O.
 - Publish each original-function trampoline before its patched entry can call
-  the hook, and publish owner pointer plus generation as one coherent atomic
-  value.
+  the hook, retain up to 32 simultaneous owners per kind, and publish every
+  owner pointer plus generation as one coherent atomic value.
 - Quiesce other process threads for each constructor entry patch and refuse to
   patch while a thread is executing the seven-byte entry range.
-- Invalidate registrations only through each class's Ghidra-proven scalar
-  deleting destructor vtable entry.
-- Abort before constructor patching until every matching destructor
+- Invalidate registrations through each Ghidra-proven shared non-deleting base
+  destructor so derived vtables cannot bypass lifetime tracking.
+- Abort before constructor patching until every matching base-destructor
   invalidation hook is installed.
-- Worker-side readers must require both exact owner and exact child vtables.
+- Worker-side readers must require an exact base-or-derived owner vtable and an
+  exact child vtable.
 - Password, one-time-password, and edit-field content remain outside this feature.
 - Stop and clear popup speech state when `FFXiMain.dll` loads.
 - Do not stage or commit `ACCESSXI_HANDOFF_2026-07-12_ROUTE_RECORDER.md`.
@@ -170,12 +178,13 @@ Expected: failure because runtime hooks and worker integration do not yet exist.
 - Modify: `src/accessxi_pol.cpp`
 - Modify: `CMakeLists.txt`
 
-- [ ] **Step 1: Add exact-build constructor hooks**
+- [ ] **Step 1: Add exact-build constructor and base-destructor hooks**
 
 Add one trampoline and callback per supported constructor. Each callback:
 
 1. invokes the original constructor;
-2. publishes `self`, owner kind, and an incremented generation through atomics;
+2. retains `self`, owner kind, and an incremented generation in the bounded
+   live-owner atomics;
 3. returns without any other side effect.
 
 Install the full set only after the existing `app.dll` fingerprint gate.
@@ -184,7 +193,7 @@ Install the full set only after the existing `app.dll` fingerprint gate.
 
 In the 20 ms worker:
 
-1. consume the latest owner registration;
+1. consume every live owner registration;
 2. validate/extract exact candidates through `native_popup_text`;
 3. pass each slot observation through the pure stability/dedup state;
 4. speak eligible modal text with interruption and notice text without

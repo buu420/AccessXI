@@ -1,16 +1,20 @@
 #include <Ashita.h>
 #include "pol_accessibility/prelogin_semantics.h"
+#include "pol_pml/native_popup_text.h"
 #include "pol_pml/native_selected_text.h"
 #include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
+#include <TlHelp32.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -30,6 +34,22 @@ namespace
     constexpr uintptr_t PmlIndexedChildAtRva = 0x00102B3Bu;
     constexpr uintptr_t PmlCurrentChildSetterRva = 0x000044F1u;
     constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
+    constexpr uintptr_t ModalOkConstructorRva = 0x000D1842u;
+    constexpr uintptr_t ModalYesNoConstructorRva = 0x000D1B45u;
+    constexpr uintptr_t ModalYesNoCancelConstructorRva = 0x000D1E5Eu;
+    constexpr uintptr_t ModalOkCancelConstructorRva = 0x000D2B16u;
+    constexpr uintptr_t ModalRetryFailConstructorRva = 0x000D32FBu;
+    constexpr uintptr_t NoticeWindowConstructorRva = 0x000A6485u;
+    constexpr uintptr_t ImportantNoticeConstructorRva = 0x000A9CCBu;
+    constexpr uintptr_t ModalOkDestructorRva = 0x000D1B29u;
+    constexpr uintptr_t ModalYesNoDestructorRva = 0x000D1E42u;
+    constexpr uintptr_t ModalYesNoCancelDestructorRva = 0x000D2171u;
+    constexpr uintptr_t ModalOkCancelDestructorRva = 0x000D2E13u;
+    constexpr uintptr_t ModalRetryFailDestructorRva = 0x000D35F8u;
+    constexpr uintptr_t NoticeWindowDestructorRva = 0x000A9C77u;
+    constexpr uintptr_t ImportantNoticeDestructorRva = 0x000AA015u;
+    constexpr size_t PopupConstructorPatchSize = 7;
+    constexpr size_t PopupOwnerKindCount = 8;
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
     constexpr uintptr_t CPolTableVtableRva = 0x0033219Cu;
     constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x003CF8E4u;
@@ -61,6 +81,7 @@ namespace
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
+    std::atomic<bool> g_popup_notice_hooks_installed{ false };
     std::atomic<bool> g_appdll_fingerprint_ok_logged{ false };
     std::atomic<bool> g_appdll_fingerprint_mismatch_logged{ false };
     std::atomic<AccessXiPolSpeechSinkV1> g_speech_sink_v1{ nullptr };
@@ -80,6 +101,24 @@ namespace
     void* g_pml_select_focus_event_trampoline = nullptr;
     void* g_selected_index_setter_trampoline = nullptr;
     void* g_pml_current_child_setter_trampoline = nullptr;
+    std::atomic<void*> g_modal_ok_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_cancel_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_ok_cancel_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_retry_fail_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_notice_window_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_important_notice_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_ok_destructor_original{ nullptr };
+    std::atomic<void*> g_modal_yes_no_destructor_original{ nullptr };
+    std::atomic<void*> g_modal_yes_no_cancel_destructor_original{ nullptr };
+    std::atomic<void*> g_modal_ok_cancel_destructor_original{ nullptr };
+    std::atomic<void*> g_modal_retry_fail_destructor_original{ nullptr };
+    std::atomic<void*> g_notice_window_destructor_original{ nullptr };
+    std::atomic<void*> g_important_notice_destructor_original{ nullptr };
+
+    std::array<accessxi::pol_pml::PopupOwnerRegistration, PopupOwnerKindCount>
+        g_popup_owner_registry{};
+    std::array<accessxi::pol_pml::PopupTextTracker, PopupOwnerKindCount> g_popup_text_trackers{};
 
     struct PreloginPmlFocusCandidate
     {
@@ -161,6 +200,7 @@ namespace
     std::atomic<int> g_startup_member_probe_budget{ 6 };
     std::atomic<int> g_startup_member_model_probe_budget{ 12 };
     std::atomic<int> g_focused_member_resolution_log_budget{ 12 };
+    std::atomic<int> g_popup_hook_log_budget{ 4 };
 
     std::wstring read_environment_wide(const wchar_t* name)
     {
@@ -3449,9 +3489,867 @@ namespace
         return true;
     }
 
+    class ScopedPopupPatchThreadQuiescence
+    {
+    public:
+        ScopedPopupPatchThreadQuiescence() = default;
+        ScopedPopupPatchThreadQuiescence(
+            const ScopedPopupPatchThreadQuiescence&) = delete;
+        ScopedPopupPatchThreadQuiescence& operator=(
+            const ScopedPopupPatchThreadQuiescence&) = delete;
+
+        ~ScopedPopupPatchThreadQuiescence()
+        {
+            while (suspended_count_ != 0)
+            {
+                --suspended_count_;
+                ResumeThread(thread_handles_[suspended_count_]);
+            }
+            for (HANDLE thread : thread_handles_)
+                CloseHandle(thread);
+        }
+
+        bool acquire(void* target, size_t patch_size)
+        {
+            if (target == nullptr || patch_size == 0)
+                return false;
+
+            const uintptr_t patch_begin =
+                reinterpret_cast<uintptr_t>(target);
+            if (patch_size - 1 >
+                std::numeric_limits<uintptr_t>::max() - patch_begin)
+            {
+                return false;
+            }
+            const uintptr_t patch_end = patch_begin + patch_size;
+
+            HANDLE snapshot =
+                CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+            if (snapshot == INVALID_HANDLE_VALUE)
+                return false;
+
+            const DWORD process_id = GetCurrentProcessId();
+            const DWORD current_thread_id = GetCurrentThreadId();
+            THREADENTRY32 entry{};
+            entry.dwSize = sizeof(entry);
+            BOOL have_entry = Thread32First(snapshot, &entry);
+            while (have_entry)
+            {
+                if (entry.th32OwnerProcessID == process_id &&
+                    entry.th32ThreadID != current_thread_id)
+                {
+                    HANDLE thread = OpenThread(
+                        THREAD_SUSPEND_RESUME |
+                            THREAD_GET_CONTEXT |
+                            THREAD_QUERY_INFORMATION,
+                        FALSE,
+                        entry.th32ThreadID);
+                    if (thread == nullptr)
+                    {
+                        CloseHandle(snapshot);
+                        return false;
+                    }
+                    thread_handles_.push_back(thread);
+                }
+                have_entry = Thread32Next(snapshot, &entry);
+            }
+            const DWORD enumeration_error = GetLastError();
+            CloseHandle(snapshot);
+            if (enumeration_error != ERROR_NO_MORE_FILES)
+                return false;
+
+            for (HANDLE thread : thread_handles_)
+            {
+                if (SuspendThread(thread) == static_cast<DWORD>(-1))
+                    return false;
+                ++suspended_count_;
+            }
+
+            for (size_t index = 0; index < suspended_count_; ++index)
+            {
+                CONTEXT context{};
+                context.ContextFlags = CONTEXT_CONTROL;
+                if (!GetThreadContext(thread_handles_[index], &context))
+                    return false;
+
+                const uintptr_t instruction_pointer =
+                    static_cast<uintptr_t>(context.Eip);
+                if (instruction_pointer >= patch_begin &&
+                    instruction_pointer < patch_end)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+    private:
+        std::vector<HANDLE> thread_handles_;
+        size_t suspended_count_ = 0;
+    };
+
+    bool install_inline_jump_atomic(
+        void* target,
+        void* hook,
+        size_t patch_size,
+        std::atomic<void*>& trampoline)
+    {
+        if (target == nullptr || hook == nullptr || patch_size < 5)
+            return false;
+        if (trampoline.load(std::memory_order_acquire) != nullptr)
+            return true;
+
+        auto* gateway = static_cast<uint8_t*>(VirtualAlloc(
+            nullptr,
+            patch_size + 5,
+            MEM_COMMIT | MEM_RESERVE,
+            PAGE_EXECUTE_READWRITE));
+        if (gateway == nullptr)
+            return false;
+
+        std::memcpy(gateway, target, patch_size);
+        gateway[patch_size] = 0xE9;
+        *reinterpret_cast<int32_t*>(gateway + patch_size + 1) =
+            static_cast<int32_t>(
+                (reinterpret_cast<uint8_t*>(target) + patch_size) -
+                (gateway + patch_size + 5));
+        FlushInstructionCache(
+            GetCurrentProcess(),
+            gateway,
+            patch_size + 5);
+
+        ScopedPopupPatchThreadQuiescence thread_quiescence;
+        if (!thread_quiescence.acquire(target, patch_size))
+        {
+            VirtualFree(gateway, 0, MEM_RELEASE);
+            return false;
+        }
+
+        DWORD old_protect = 0;
+        if (!VirtualProtect(
+                target,
+                patch_size,
+                PAGE_EXECUTE_READWRITE,
+                &old_protect))
+        {
+            VirtualFree(gateway, 0, MEM_RELEASE);
+            return false;
+        }
+
+        // Publish the original-call gateway before any thread can enter the
+        // replacement jump and observe a null trampoline.
+        trampoline.store(gateway, std::memory_order_release);
+
+        auto* bytes = static_cast<uint8_t*>(target);
+        bytes[0] = 0xE9;
+        *reinterpret_cast<int32_t*>(bytes + 1) =
+            static_cast<int32_t>(
+                reinterpret_cast<uint8_t*>(hook) - (bytes + 5));
+        for (size_t index = 5; index < patch_size; ++index)
+            bytes[index] = 0x90;
+
+        DWORD unused = 0;
+        VirtualProtect(target, patch_size, old_protect, &unused);
+        FlushInstructionCache(GetCurrentProcess(), target, patch_size);
+        return true;
+    }
+
+    size_t popup_owner_index(accessxi::pol_pml::PopupOwnerKind kind) noexcept
+    {
+        return static_cast<size_t>(kind);
+    }
+
+    void publish_popup_owner(
+        accessxi::pol_pml::PopupOwnerKind kind,
+        void* owner) noexcept
+    {
+        const size_t index = popup_owner_index(kind);
+        if (index == 0 || index >= g_popup_owner_registry.size() || owner == nullptr)
+            return;
+
+        g_popup_owner_registry[index].publish(
+            reinterpret_cast<uintptr_t>(owner));
+    }
+
+    void invalidate_popup_owner(
+        accessxi::pol_pml::PopupOwnerKind kind,
+        void* owner) noexcept
+    {
+        const size_t index = popup_owner_index(kind);
+        if (index == 0 || index >= g_popup_owner_registry.size() || owner == nullptr)
+            return;
+
+        g_popup_owner_registry[index].invalidate(
+            reinterpret_cast<uintptr_t>(owner));
+    }
+
+    using PopupConstructor_t = void* (__thiscall*)(void*);
+    using PopupDestructor_t = void* (__thiscall*)(void*, uint32_t);
+
+    void* __fastcall hook_modal_ok_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_ok_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_yes_no_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_yes_no_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_yes_no_cancel_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_yes_no_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no_cancel,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_ok_cancel_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_ok_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok_cancel,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_retry_fail_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_retry_fail_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_retry_fail,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_notice_window_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_notice_window_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::notice,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_important_notice_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_important_notice_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::important_notice,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_ok_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_modal_ok_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_modal_yes_no_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_modal_yes_no_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_modal_yes_no_cancel_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_modal_yes_no_cancel_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no_cancel,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_modal_ok_cancel_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_modal_ok_cancel_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok_cancel,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_modal_retry_fail_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_modal_retry_fail_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_retry_fail,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_notice_window_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_notice_window_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::notice,
+            self);
+        return original(self, flags);
+    }
+
+    void* __fastcall hook_important_notice_destructor(
+        void* self,
+        void*,
+        uint32_t flags)
+    {
+        const auto original = reinterpret_cast<PopupDestructor_t>(
+            g_important_notice_destructor_original.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::important_notice,
+            self);
+        return original(self, flags);
+    }
+
+    bool popup_constructor_prologue_ready(
+        const uint8_t* app_base,
+        uintptr_t constructor_rva,
+        uint8_t exception_frame_size) noexcept
+    {
+        if (app_base == nullptr)
+            return false;
+
+        uint8_t prefix[8]{};
+        if (!copy_memory_safely(
+                prefix,
+                app_base + constructor_rva,
+                sizeof(prefix)))
+        {
+            return false;
+        }
+
+        // Ghidra proves a seven-byte boundary before the relative EH-prologue
+        // call: push imm8; mov eax, imm32. Keeping that call outside the
+        // trampoline avoids relocating any relative instruction.
+        return prefix[0] == 0x6A &&
+            prefix[1] == exception_frame_size &&
+            prefix[2] == 0xB8 &&
+            prefix[7] == 0xE8;
+    }
+
+    bool popup_constructor_ready_or_installed(
+        const uint8_t* app_base,
+        uintptr_t constructor_rva,
+        uint8_t exception_frame_size,
+        const void* trampoline) noexcept
+    {
+        // A previous attempt can safely leave a subset installed. Their entry
+        // bytes are now jumps, so validate only constructors still awaiting a
+        // trampoline and let the worker retry the remainder.
+        return trampoline != nullptr ||
+            popup_constructor_prologue_ready(
+                app_base,
+                constructor_rva,
+                exception_frame_size);
+    }
+
+    bool popup_constructor_prologues_ready(const uint8_t* app_base) noexcept
+    {
+        return
+            popup_constructor_ready_or_installed(
+                app_base,
+                ModalOkConstructorRva,
+                0x24,
+                g_modal_ok_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                ModalYesNoConstructorRva,
+                0x24,
+                g_modal_yes_no_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                ModalYesNoCancelConstructorRva,
+                0x24,
+                g_modal_yes_no_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                ModalOkCancelConstructorRva,
+                0x24,
+                g_modal_ok_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                ModalRetryFailConstructorRva,
+                0x24,
+                g_modal_retry_fail_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                NoticeWindowConstructorRva,
+                0x08,
+                g_notice_window_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_constructor_ready_or_installed(
+                app_base,
+                ImportantNoticeConstructorRva,
+                0x20,
+                g_important_notice_constructor_trampoline.load(
+                    std::memory_order_acquire));
+    }
+
+    bool install_vtable_hook_atomic(
+        void* slot,
+        void* expected_original,
+        void* hook,
+        std::atomic<void*>& original)
+    {
+        if (slot == nullptr ||
+            expected_original == nullptr ||
+            hook == nullptr ||
+            (reinterpret_cast<uintptr_t>(slot) % alignof(void*)) != 0)
+        {
+            return false;
+        }
+        if (original.load(std::memory_order_acquire) != nullptr)
+            return true;
+
+        void* current = nullptr;
+        if (!copy_memory_safely(&current, slot, sizeof(current)) ||
+            current != expected_original)
+        {
+            return false;
+        }
+
+        DWORD old_protect = 0;
+        if (!VirtualProtect(
+                slot,
+                sizeof(void*),
+                PAGE_EXECUTE_READWRITE,
+                &old_protect))
+        {
+            return false;
+        }
+
+        // The original is visible before the one-word vtable swap can route
+        // any destructor call into its replacement.
+        original.store(expected_original, std::memory_order_release);
+        void* const previous = InterlockedCompareExchangePointer(
+            reinterpret_cast<PVOID volatile*>(slot),
+            hook,
+            expected_original);
+        if (previous != expected_original)
+            original.store(nullptr, std::memory_order_release);
+
+        DWORD unused = 0;
+        VirtualProtect(slot, sizeof(void*), old_protect, &unused);
+        return previous == expected_original;
+    }
+
+    void install_popup_notice_hooks_once()
+    {
+        if (g_popup_notice_hooks_installed.exchange(true))
+            return;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            return;
+        }
+        if (!app_module_matches_known_updated_pol_build(app, "popup-notice"))
+            return;
+
+        auto* app_base = reinterpret_cast<uint8_t*>(app);
+        if (!popup_constructor_prologues_ready(app_base))
+        {
+            g_popup_notice_hooks_installed.store(false);
+            return;
+        }
+
+        bool destructors_ready = true;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ModalOkVtableRva,
+            app_base + ModalOkDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_destructor),
+            g_modal_ok_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ModalYesNoVtableRva,
+            app_base + ModalYesNoDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_destructor),
+            g_modal_yes_no_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ModalYesNoCancelVtableRva,
+            app_base + ModalYesNoCancelDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_cancel_destructor),
+            g_modal_yes_no_cancel_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ModalOkCancelVtableRva,
+            app_base + ModalOkCancelDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_cancel_destructor),
+            g_modal_ok_cancel_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ModalRetryFailVtableRva,
+            app_base + ModalRetryFailDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_retry_fail_destructor),
+            g_modal_retry_fail_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::NoticeWindowVtableRva,
+            app_base + NoticeWindowDestructorRva,
+            reinterpret_cast<void*>(&hook_notice_window_destructor),
+            g_notice_window_destructor_original) && destructors_ready;
+        destructors_ready = install_vtable_hook_atomic(
+            app_base + accessxi::pol_pml::ImportantNoticeVtableRva,
+            app_base + ImportantNoticeDestructorRva,
+            reinterpret_cast<void*>(&hook_important_notice_destructor),
+            g_important_notice_destructor_original) && destructors_ready;
+
+        // Constructor publication is unsafe until every registered owner has
+        // a matching exact destructor invalidation hook.
+        if (!destructors_ready)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            if (g_popup_hook_log_budget.fetch_sub(1) > 0)
+                log_line("POL_POPUP destructor-hook-install-failed");
+            return;
+        }
+
+        bool constructors_ready = true;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_constructor),
+            PopupConstructorPatchSize,
+            g_modal_ok_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_constructor),
+            PopupConstructorPatchSize,
+            g_modal_yes_no_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoCancelConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_cancel_constructor),
+            PopupConstructorPatchSize,
+            g_modal_yes_no_cancel_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkCancelConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_cancel_constructor),
+            PopupConstructorPatchSize,
+            g_modal_ok_cancel_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalRetryFailConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_retry_fail_constructor),
+            PopupConstructorPatchSize,
+            g_modal_retry_fail_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + NoticeWindowConstructorRva,
+            reinterpret_cast<void*>(&hook_notice_window_constructor),
+            PopupConstructorPatchSize,
+            g_notice_window_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ImportantNoticeConstructorRva,
+            reinterpret_cast<void*>(&hook_important_notice_constructor),
+            PopupConstructorPatchSize,
+            g_important_notice_constructor_trampoline) && constructors_ready;
+
+        if (!constructors_ready)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            if (g_popup_hook_log_budget.fetch_sub(1) > 0)
+                log_line("POL_POPUP constructor-hook-install-failed");
+            return;
+        }
+
+        log_line(
+            "POL_POPUP hooks-installed "
+            "constructors=000D1842,000D1B45,000D1E5E,000D2B16,000D32FB,000A6485,000A9CCB "
+            "destructors=000D1B29,000D1E42,000D2171,000D2E13,000D35F8,000A9C77,000AA015 "
+            "patch=7");
+    }
+
     bool native_post_login_surface_active()
     {
         return GetModuleHandleA("FFXiMain.dll") != nullptr || GetModuleHandleA("ffximain.dll") != nullptr;
+    }
+
+    const char* popup_owner_kind_name(
+        accessxi::pol_pml::PopupOwnerKind kind) noexcept
+    {
+        using accessxi::pol_pml::PopupOwnerKind;
+        switch (kind)
+        {
+        case PopupOwnerKind::modal_ok:
+            return "modal-ok";
+        case PopupOwnerKind::modal_yes_no:
+            return "modal-yes-no";
+        case PopupOwnerKind::modal_yes_no_cancel:
+            return "modal-yes-no-cancel";
+        case PopupOwnerKind::modal_ok_cancel:
+            return "modal-ok-cancel";
+        case PopupOwnerKind::modal_retry_fail:
+            return "modal-retry-fail";
+        case PopupOwnerKind::notice:
+            return "notice";
+        case PopupOwnerKind::important_notice:
+            return "important-notice";
+        default:
+            return "none";
+        }
+    }
+
+    std::string popup_text_to_utf8(const std::u16string& text)
+    {
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        if (text.empty() ||
+            text.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+        {
+            return {};
+        }
+
+        const auto* wide = reinterpret_cast<const wchar_t*>(text.data());
+        const int character_count = static_cast<int>(text.size());
+        const int needed = WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            wide,
+            character_count,
+            nullptr,
+            0,
+            nullptr,
+            nullptr);
+        if (needed <= 0)
+            return {};
+
+        std::string result(static_cast<size_t>(needed), '\0');
+        const int copied = WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            wide,
+            character_count,
+            result.data(),
+            needed,
+            nullptr,
+            nullptr);
+        if (copied != needed)
+            return {};
+        return result;
+    }
+
+    void reset_popup_notice_state()
+    {
+        for (auto& tracker : g_popup_text_trackers)
+            tracker.reset();
+        for (auto& registration : g_popup_owner_registry)
+            registration.reset();
+    }
+
+    void speak_popup_notice_text(
+        accessxi::pol_pml::PopupObservation observation,
+        accessxi::pol_pml::PopupOwnerKind kind,
+        uint64_t generation,
+        uint32_t slot_offset,
+        const std::u16string& native_text)
+    {
+        using accessxi::pol_pml::PopupObservation;
+        if (observation == PopupObservation::none)
+            return;
+
+        const std::string text = popup_text_to_utf8(native_text);
+        if (text.empty())
+            return;
+
+        const bool speak_interrupt =
+            observation == PopupObservation::speak_interrupt;
+        char prefix[192]{};
+        std::snprintf(
+            prefix,
+            sizeof(prefix) - 1,
+            "POL_POPUP speak kind=%s generation=%llu slot=%03X interrupt=%d text=",
+            popup_owner_kind_name(kind),
+            static_cast<unsigned long long>(generation),
+            slot_offset,
+            speak_interrupt ? 1 : 0);
+        const std::string line = std::string(prefix) + text;
+        log_line(line.c_str());
+
+        if (!dispatch_speech_sink_v1(text, speak_interrupt ? 1 : 0) &&
+            g_reloaded_speech_queue_enabled.load())
+        {
+            append_reloaded_speech_queue(text);
+        }
+    }
+
+    void process_popup_notice_text()
+    {
+        using namespace accessxi::pol_pml;
+        if (native_post_login_surface_active())
+        {
+            reset_popup_notice_state();
+            return;
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            reset_popup_notice_state();
+            return;
+        }
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        const MemoryView memory{ &read_pol_pml_memory, nullptr };
+        for (size_t index = 1; index < g_popup_owner_registry.size(); ++index)
+        {
+            auto& registration = g_popup_owner_registry[index];
+            const auto registration_snapshot = registration.snapshot();
+            auto& tracker = g_popup_text_trackers[index];
+            if (!registration_snapshot.valid)
+            {
+                tracker.reset();
+                continue;
+            }
+            const uint64_t generation = registration_snapshot.generation;
+            const uintptr_t owner = registration_snapshot.owner;
+
+            const PopupOwnerKind registered_kind =
+                static_cast<PopupOwnerKind>(index);
+            const PopupTextSnapshot popup_snapshot =
+                inspect_popup_text(memory, owner, app_base);
+            const auto registration_after_inspection =
+                registration.snapshot();
+            if (!registration_after_inspection.valid ||
+                registration_after_inspection.owner != owner ||
+                registration_after_inspection.generation != generation)
+            {
+                continue;
+            }
+            if (popup_snapshot.owner_state ==
+                PopupOwnerInspectionState::unknown)
+            {
+                continue;
+            }
+            if (!popup_snapshot.matched ||
+                popup_snapshot.owner_kind != registered_kind)
+            {
+                tracker.reset();
+                continue;
+            }
+
+            for (size_t candidate_index = 0;
+                 candidate_index < popup_snapshot.candidate_count;
+                 ++candidate_index)
+            {
+                const auto& candidate =
+                    popup_snapshot.candidates[candidate_index];
+                const PopupObservation observation = tracker.observe(
+                    generation,
+                    registered_kind,
+                    candidate.slot_offset,
+                    candidate.state,
+                    candidate.text);
+                if (observation != PopupObservation::none)
+                {
+                    speak_popup_notice_text(
+                        observation,
+                        registered_kind,
+                        generation,
+                        candidate.slot_offset,
+                        candidate.text);
+                }
+            }
+        }
     }
 
     void drain_pol_ui_trace()
@@ -4499,6 +5397,7 @@ namespace
     void reset_prelogin_runtime_speech_state(const char* reason)
     {
         reset_masked_field_tracker();
+        reset_popup_notice_state();
         {
             std::lock_guard<std::mutex> guard(g_candidate_lock);
             g_pending_pml_focus_candidate_valid = false;
@@ -4530,7 +5429,9 @@ namespace
         install_native_focus_event_dispatch_hooks_once();
         install_pml_focus_event_call_hook_once();
         install_native_selection_truth_hooks_once();
+        install_popup_notice_hooks_once();
         poll_masked_field_state();
+        process_popup_notice_text();
         process_queued_current_child_candidate("reloaded-native-current-child");
         speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");
         speak_current_prelogin_native_focus("reloaded-native-focus");
@@ -4670,6 +5571,7 @@ extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_InitializeV2(void)
     install_native_focus_event_dispatch_hooks_once();
     install_pml_focus_event_call_hook_once();
     install_native_selection_truth_hooks_once();
+    install_popup_notice_hooks_once();
     start_reloaded_native_hook_worker_once();
     g_native_initialize_state.store(2, std::memory_order_release);
     log_line("AccessXI POL native V2 hooks installed");

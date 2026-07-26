@@ -39,7 +39,27 @@ namespace accessxi::pol_accessibility
         const char* reason = "unknown";
     };
 
+    struct FocusedMemberRowEvidence
+    {
+        int16_t pointer_hit_row = -1;
+        int16_t keyboard_selected_row = -1;
+        int16_t focus_anchor_row = -1;
+    };
+
+    struct FocusedMemberRowDecision
+    {
+        bool resolved = false;
+        uint32_t row = 0;
+        const char* reason = "unknown";
+    };
+
     MemberDecision decide_member_candidate(const MemberEvidence& evidence);
+    FocusedMemberRowDecision decide_focused_member_row(
+        const FocusedMemberRowEvidence& evidence) noexcept;
+    bool focused_member_row_still_selected(
+        uint32_t resolved_row,
+        int16_t observed_keyboard_selected_row) noexcept;
+    bool exact_owned_member_name_allowed(std::string_view text) noexcept;
     size_t masked_display_count(std::u16string_view displayed) noexcept;
     std::string masked_focus_speech(ControlRole role, size_t count);
     std::string masked_delta_speech(ControlRole role, size_t before, size_t after);

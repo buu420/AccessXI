@@ -33,6 +33,48 @@ namespace accessxi::pol_accessibility
         return { true, std::string(evidence.text), "none" };
     }
 
+    FocusedMemberRowDecision decide_focused_member_row(
+        const FocusedMemberRowEvidence& evidence) noexcept
+    {
+        if (evidence.keyboard_selected_row < 0 ||
+            evidence.keyboard_selected_row > 10000)
+        {
+            return { false, 0, "selected-row-unresolved" };
+        }
+
+        return {
+            true,
+            static_cast<uint32_t>(evidence.keyboard_selected_row),
+            "none"
+        };
+    }
+
+    bool focused_member_row_still_selected(
+        uint32_t resolved_row,
+        int16_t observed_keyboard_selected_row) noexcept
+    {
+        return observed_keyboard_selected_row >= 0 &&
+            observed_keyboard_selected_row <= 10000 &&
+            resolved_row == static_cast<uint32_t>(observed_keyboard_selected_row);
+    }
+
+    bool exact_owned_member_name_allowed(std::string_view text) noexcept
+    {
+        if (text.empty() || text.size() > 20)
+            return false;
+
+        bool have_visible_byte = false;
+        for (const char character : text)
+        {
+            const auto byte = static_cast<unsigned char>(character);
+            if (byte < 0x20 || byte == 0x7F)
+                return false;
+            if (byte != 0x20)
+                have_visible_byte = true;
+        }
+        return have_visible_byte;
+    }
+
     size_t masked_display_count(std::u16string_view displayed) noexcept
     {
         for (const char16_t character : displayed)

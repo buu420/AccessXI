@@ -160,6 +160,7 @@ namespace
     std::atomic<int> g_silent_selected_image_log_budget{ 96 };
     std::atomic<int> g_startup_member_probe_budget{ 6 };
     std::atomic<int> g_startup_member_model_probe_budget{ 12 };
+    std::atomic<int> g_focused_member_resolution_log_budget{ 12 };
 
     std::wstring read_environment_wide(const wchar_t* name)
     {
@@ -821,6 +822,9 @@ namespace
 
         if (source_text != nullptr && std::strcmp(source_text, "selected-member-dynamic") == 0)
             return prelogin_member_dynamic_label(label);
+
+        if (source_text != nullptr && std::strcmp(source_text, "selected-member-native-row") == 0)
+            return accessxi::pol_accessibility::exact_owned_member_name_allowed(label);
 
         return native_prelogin_atlas_label(label);
     }
@@ -1701,6 +1705,10 @@ namespace
         if (std::strcmp(source_text, "selected-member-dynamic") == 0)
             return focused_flag && prelogin_member_dynamic_label(label);
 
+        if (std::strcmp(source_text, "selected-member-native-row") == 0)
+            return focused_flag &&
+                accessxi::pol_accessibility::exact_owned_member_name_allowed(label);
+
         const bool current_child = snapshot_current_child || prelogin_pml_focus_current_child(manager, focused_object);
 
         if (std::strcmp(source_text, "direct-fields") == 0)
@@ -1738,6 +1746,10 @@ namespace
 
         if (std::strcmp(source_text, "selected-member-dynamic") == 0)
             return candidate.focused_flag && prelogin_member_dynamic_label(candidate.label);
+
+        if (std::strcmp(source_text, "selected-member-native-row") == 0)
+            return candidate.focused_flag &&
+                accessxi::pol_accessibility::exact_owned_member_name_allowed(candidate.label);
 
         if (std::strcmp(source_text, "direct-fields") == 0)
             return candidate.current_child && prelogin_setup_form_value_cell_label(source_text, candidate.label);
@@ -1945,6 +1957,23 @@ namespace
         if (!read_ptr_safely(object, &vtable))
             return false;
         return vtable == reinterpret_cast<uintptr_t>(app) + expected_rva;
+    }
+
+    uintptr_t native_object_vtable_rva_for_log(void* object)
+    {
+        if (object == nullptr)
+            return 0;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return 0;
+
+        uintptr_t vtable = 0;
+        if (!read_ptr_safely(object, &vtable))
+            return 0;
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        return vtable >= app_base ? vtable - app_base : 0;
     }
 
     std::string read_native_selected_control_text(void* object, uintptr_t captured_nested_child = 0)
@@ -3610,6 +3639,47 @@ namespace
         const char* source = "selected-index";
     };
 
+    void log_focused_member_resolution(
+        const char* stage,
+        void* focused_table,
+        uint32_t row_read_mask,
+        int16_t row264,
+        int16_t row266,
+        int16_t row26A,
+        int16_t row26C,
+        int16_t row1B4,
+        int16_t row1B6,
+        uintptr_t data_model,
+        uintptr_t data_model_vtable_rva,
+        uintptr_t member_data,
+        uintptr_t member_data_vtable_rva,
+        const std::string& candidate)
+    {
+        if (g_focused_member_resolution_log_budget.fetch_sub(1) <= 0)
+            return;
+
+        char line[640]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_FOCUSEDMEMBER stage=%s table=0x%p rowMask=%02X row264=%d row266=%d row26A=%d row26C=%d row1B4=%d row1B6=%d dataModel=0x%p dataVtableRva=%08llX memberData=0x%p memberVtableRva=%08llX candidate=%s",
+            stage == nullptr ? "" : stage,
+            focused_table,
+            static_cast<unsigned>(row_read_mask),
+            static_cast<int>(row264),
+            static_cast<int>(row266),
+            static_cast<int>(row26A),
+            static_cast<int>(row26C),
+            static_cast<int>(row1B4),
+            static_cast<int>(row1B6),
+            reinterpret_cast<void*>(data_model),
+            static_cast<unsigned long long>(data_model_vtable_rva),
+            reinterpret_cast<void*>(member_data),
+            static_cast<unsigned long long>(member_data_vtable_rva),
+            candidate.empty() ? "<empty>" : candidate.c_str());
+        log_line(line);
+    }
+
     SelectedMemberResolution resolve_selected_member(void* model, uint32_t requested_index)
     {
         SelectedMemberResolution resolution;
@@ -3656,61 +3726,149 @@ namespace
         if (!native_object_has_vtable_rva(focused_table, CPolTableVtableRva))
             return resolution;
 
-        // CPolTable owns the current row directly. The +0x218 field is only an
-        // embedded CDefaultListSelectionModel and is not the application-level
-        // selected-row model.
+        // CPolTable owns the row state directly. Ghidra and the live trace
+        // distinguish +0x266 (pointer hit row), +0x26A (keyboard-selected row),
+        // and +0x26C (focus-restoration anchor). The +0x218 field is only an
+        // embedded CDefaultListSelectionModel.
+        int16_t row264 = -32768;
         int16_t selected_row = -1;
-        if (!copy_memory_safely(
+        int16_t row26A = -32768;
+        int16_t row26C = -32768;
+        int16_t row1B4 = -32768;
+        int16_t row1B6 = -32768;
+        uint32_t row_read_mask = 0;
+        if (copy_memory_safely(
+                &row264,
+                static_cast<const uint8_t*>(focused_table) + 0x264,
+                sizeof(row264)))
+        {
+            row_read_mask |= 0x01u;
+        }
+        const bool selected_row_read = copy_memory_safely(
                 &selected_row,
                 static_cast<const uint8_t*>(focused_table) + 0x266,
-                sizeof(selected_row)) ||
-            selected_row < 0 ||
-            selected_row > 10000)
+                sizeof(selected_row));
+        if (selected_row_read)
+            row_read_mask |= 0x02u;
+        if (copy_memory_safely(
+                &row26A,
+                static_cast<const uint8_t*>(focused_table) + 0x26A,
+                sizeof(row26A)))
         {
-            return resolution;
+            row_read_mask |= 0x04u;
         }
-        resolution.stored_index = static_cast<uint32_t>(selected_row);
+        if (copy_memory_safely(
+                &row26C,
+                static_cast<const uint8_t*>(focused_table) + 0x26C,
+                sizeof(row26C)))
+        {
+            row_read_mask |= 0x08u;
+        }
+        if (copy_memory_safely(
+                &row1B4,
+                static_cast<const uint8_t*>(focused_table) + 0x1B4,
+                sizeof(row1B4)))
+        {
+            row_read_mask |= 0x10u;
+        }
+        if (copy_memory_safely(
+                &row1B6,
+                static_cast<const uint8_t*>(focused_table) + 0x1B6,
+                sizeof(row1B6)))
+        {
+            row_read_mask |= 0x20u;
+        }
 
         uintptr_t data_model_pointer = 0;
+        uintptr_t data_model_vtable_rva = 0;
+        uintptr_t member_data_pointer = 0;
+        uintptr_t member_data_vtable_rva = 0;
+        std::string candidate;
+        const auto finish = [&](const char* stage)
+        {
+            log_focused_member_resolution(
+                stage,
+                focused_table,
+                row_read_mask,
+                row264,
+                selected_row,
+                row26A,
+                row26C,
+                row1B4,
+                row1B6,
+                data_model_pointer,
+                data_model_vtable_rva,
+                member_data_pointer,
+                member_data_vtable_rva,
+                candidate);
+            return resolution;
+        };
+
+        const auto row_decision =
+            accessxi::pol_accessibility::decide_focused_member_row(
+                { selected_row, row26A, row26C });
+        if (!row_decision.resolved)
+        {
+            return finish("row-unresolved");
+        }
+        resolution.stored_index = row_decision.row;
+
         if (!read_ptr_safely(
                 static_cast<const uint8_t*>(focused_table) + 0x20C,
                 &data_model_pointer) ||
             data_model_pointer < 0x10000)
         {
-            return resolution;
+            return finish("data-model-pointer");
         }
 
         void* data_model = reinterpret_cast<void*>(data_model_pointer);
+        data_model_vtable_rva = native_object_vtable_rva_for_log(data_model);
         if (!native_object_has_vtable_rva(data_model, CLoginMemberListDataModelVtableRva))
-            return resolution;
+            return finish("data-model-type");
 
         HMODULE app = GetModuleHandleA("app.dll");
         if (app == nullptr)
-            return resolution;
+            return finish("app-missing");
 
         auto* app_base = reinterpret_cast<uint8_t*>(app);
         const auto get_value_at = reinterpret_cast<CLoginMemberListGetValueAt_t>(
             app_base + CLoginMemberListGetValueAtRva);
         // CLoginMemberListDataModel::getValueAt receives column, then row.
-        const uintptr_t member_data_pointer = call_login_member_get_value_at(
+        member_data_pointer = call_login_member_get_value_at(
             get_value_at,
             data_model,
             0u,
-            static_cast<uint32_t>(selected_row));
+            row_decision.row);
 
         if (member_data_pointer < 0x10000)
-            return resolution;
+            return finish("member-data-pointer");
 
         void* member_data = reinterpret_cast<void*>(member_data_pointer);
+        member_data_vtable_rva = native_object_vtable_rva_for_log(member_data);
         if (!native_object_has_vtable_rva(member_data, CLoginMemberDataVtableRva))
-            return resolution;
+            return finish("member-data-type");
         resolution.selected_child = member_data;
 
         // CLoginMemberListFrameCellRenderer passes this exact fixed-size field
         // to the native narrow-text setter used for the visible member name.
-        const std::string candidate = read_narrow_text_safely(
+        candidate = read_narrow_text_safely(
             static_cast<const char*>(member_data) + 0x1F,
             0x15);
+        if (candidate.empty())
+            return finish("name-empty");
+
+        int16_t confirmed_row = -1;
+        if (!copy_memory_safely(
+                &confirmed_row,
+                static_cast<const uint8_t*>(focused_table) + 0x26A,
+                sizeof(confirmed_row)) ||
+            !accessxi::pol_accessibility::focused_member_row_still_selected(
+                row_decision.row,
+                confirmed_row))
+        {
+            return finish("row-changed");
+        }
+
         const auto decision = accessxi::pol_accessibility::decide_member_candidate({
             candidate,
             true,
@@ -3718,12 +3876,15 @@ namespace
             true,
             !candidate.empty()
         });
-        if (!decision.trusted || !prelogin_member_dynamic_label(decision.text))
-            return resolution;
+        if (!decision.trusted ||
+            !accessxi::pol_accessibility::exact_owned_member_name_allowed(decision.text))
+        {
+            return finish("name-rejected");
+        }
 
         resolution.label = decision.text;
-        resolution.source = "selected-member-dynamic";
-        return resolution;
+        resolution.source = "selected-member-native-row";
+        return finish("resolved");
     }
 
     void remember_selected_index_candidate(void* model, uint32_t requested_index)
@@ -4101,6 +4262,7 @@ namespace
             (std::strcmp(label_source, "native-selected-text") == 0 ||
              std::strcmp(label_source, "native-image-getter") == 0 ||
              std::strcmp(label_source, "selected-member-dynamic") == 0 ||
+             std::strcmp(label_source, "selected-member-native-row") == 0 ||
              std::strcmp(label_source, "add-member") == 0 ||
              std::strcmp(label_source, "add-member-button") == 0) ? label_source : "current-child";
         if (!prelogin_pml_focus_can_claim_burst(candidate_source, manager, current_child_object, label, true, true))

@@ -236,15 +236,19 @@ Assert-Contains $loginMemberAccessor '__except\s*\(\s*EXCEPTION_EXECUTE_HANDLER\
 $focusedTableMember = Get-FunctionBody $source "SelectedMemberResolution resolve_selected_member_from_focused_table"
 Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*focused_table\s*,\s*CPolTableVtableRva\s*\)' `
     "Focused startup member resolution must reject objects that are not the exact CPolTable type."
-Assert-Contains $focusedTableMember 'copy_memory_safely\s*\(\s*&selected_row\s*,\s*static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x266\s*,\s*sizeof\(selected_row\)\s*\)' `
-    "Focused startup member resolution must read CPolTable's signed selected-row field at +0x266."
+Assert-Contains $focusedTableMember 'decide_focused_member_row\s*\(\s*\{\s*selected_row\s*,\s*row26A\s*,\s*row26C\s*\}\s*\)' `
+    "Focused startup member resolution must distinguish the mouse-hit row, keyboard-selected row, and focus anchor."
+Assert-Contains $focusedTableMember 'if\s*\(\s*!row_decision\.resolved\s*\)[\s\S]{0,160}return\s+finish\("row-unresolved"\)' `
+    "Focused startup member resolution must fail closed without an exact keyboard-selected row."
+Assert-Contains $focusedTableMember 'resolution\.stored_index\s*=\s*row_decision\.row' `
+    "Focused startup member resolution must retain the exact keyboard-selected native row."
 Assert-Contains $focusedTableMember 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x20C' `
     "Focused startup member resolution must follow CPolTable's exact data-model field at +0x20C."
 Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*data_model\s*,\s*CLoginMemberListDataModelVtableRva\s*\)' `
     "Focused startup member resolution must reject any data model that is not the exact login-member model."
 Assert-Contains $focusedTableMember 'app_base\s*\+\s*CLoginMemberListGetValueAtRva' `
     "Focused startup member resolution must bind the exact native model accessor."
-Assert-Contains $focusedTableMember 'call_login_member_get_value_at\s*\(\s*get_value_at\s*,\s*data_model\s*,\s*0u\s*,\s*static_cast<uint32_t>\s*\(\s*selected_row\s*\)\s*\)' `
+Assert-Contains $focusedTableMember 'call_login_member_get_value_at\s*\(\s*get_value_at\s*,\s*data_model\s*,\s*0u\s*,\s*row_decision\.row\s*\)' `
     "The native model accessor must receive column zero followed by the selected row."
 Assert-Contains $focusedTableMember 'native_object_has_vtable_rva\s*\(\s*member_data\s*,\s*CLoginMemberDataVtableRva\s*\)' `
     "Focused startup member resolution must verify the exact returned CLoginMemberData object."
@@ -252,10 +256,52 @@ Assert-Contains $focusedTableMember 'read_narrow_text_safely\s*\(\s*static_cast<
     "Focused startup member resolution must read only CLoginMemberData's bounded visible-name field."
 Assert-Contains $focusedTableMember 'decide_member_candidate\s*\(' `
     "Focused startup member resolution must retain the unit-tested ownership gate."
-Assert-Contains $focusedTableMember 'prelogin_member_dynamic_label\s*\(' `
-    "Focused startup member resolution must reject malformed native member-name text."
+Assert-Contains $focusedTableMember 'exact_owned_member_name_allowed\s*\(\s*decision\.text\s*\)' `
+    "The exact native member-row path must validate bounded visible text without guessing the member-name shape."
+Assert-Contains $focusedTableMember 'copy_memory_safely\s*\(\s*&confirmed_row\s*,\s*static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x26A\s*,\s*sizeof\(confirmed_row\)\s*\)' `
+    "Focused member resolution must re-read the keyboard-selected row after extracting its native text."
+Assert-Contains $focusedTableMember 'focused_member_row_still_selected\s*\(\s*row_decision\.row\s*,\s*confirmed_row\s*\)' `
+    "Focused member resolution must reject a row that changed during native text extraction."
+Assert-Contains $focusedTableMember 'return\s+finish\("row-changed"\)' `
+    "A changed keyboard-selected row must fail silent with a stable diagnostic stage."
+Assert-Contains $focusedTableMember 'resolution\.source\s*=\s*"selected-member-native-row"' `
+    "The exact CLoginMemberData path must have a source distinct from broad dynamic-member probing."
+if ($focusedTableMember -match 'prelogin_member_dynamic_label\s*\(') {
+    throw "The exact CLoginMemberData path must not reject valid user-chosen names with the broad lexical guess filter."
+}
+Assert-Contains $source 'std::atomic<int>\s+g_focused_member_resolution_log_budget\{\s*12\s*\}' `
+    "Focused member-resolution diagnostics must have a small independent budget."
+$focusedMemberDiagnostic = Get-FunctionBody $source "void log_focused_member_resolution"
+Assert-Contains $focusedMemberDiagnostic 'g_focused_member_resolution_log_budget\.fetch_sub' `
+    "Focused member-resolution diagnostics must spend their finite budget."
+Assert-Contains $focusedMemberDiagnostic 'PRELOGIN_FOCUSEDMEMBER' `
+    "Focused member-resolution diagnostics must leave a stable live-log marker."
+Assert-Contains $focusedMemberDiagnostic 'stage=%s' `
+    "Focused member-resolution diagnostics must identify the exact failing stage."
+foreach ($field in @('row264=', 'row266=', 'row26A=', 'row26C=', 'row1B4=', 'row1B6=')) {
+    Assert-Contains $focusedMemberDiagnostic ([regex]::Escape($field)) `
+        "Focused member-resolution diagnostics must preserve native row evidence: $field"
+}
+Assert-Contains $focusedMemberDiagnostic 'dataModel=' `
+    "Focused member-resolution diagnostics must identify the native data-model object."
+Assert-Contains $focusedMemberDiagnostic 'memberData=' `
+    "Focused member-resolution diagnostics must identify the returned member-row object."
+Assert-Contains $focusedMemberDiagnostic 'candidate=' `
+    "Focused member-resolution diagnostics must expose only the bounded native candidate for validation."
+if ($focusedMemberDiagnostic -match "append_reloaded_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
+    throw "Focused member-resolution diagnostics must be logging-only and must not infer selection from keys."
+}
+Assert-Contains $focusedTableMember 'log_focused_member_resolution\s*\(' `
+    "Focused member resolution must emit the finite stage trace before returning."
+foreach ($offset in @('0x264', '0x266', '0x26A', '0x26C', '0x1B4', '0x1B6')) {
+    Assert-Contains $focusedTableMember ([regex]::Escape("+ $offset")) `
+        "Focused member resolution must sample native row evidence at +$offset."
+}
 if ($focusedTableMember -match 'static_cast<const uint8_t\*>\s*\(\s*focused_table\s*\)\s*\+\s*0x218|resolve_selected_member\s*\(') {
     throw "Focused CPolTable resolution must not reinterpret its embedded generic selection model as the application-specific selected-row model."
+}
+if ($focusedTableMember -match 'call_login_member_get_value_at\s*\([\s\S]{0,180}static_cast<uint32_t>\s*\(\s*selected_row\s*\)') {
+    throw "The mouse-hit row at +0x266 must never drive focused member-name resolution."
 }
 if ($focusedTableMember -match '__try|__except') {
     throw "Focused CPolTable resolution must keep SEH in a leaf wrapper so C++ object unwinding remains valid."
@@ -275,7 +321,7 @@ Assert-Contains $currentChildResolverForStartupMember 'focused_member\.label\.em
 if ($currentChildResolverForStartupMember -match 'startup_member_focus_rect[\s\S]{0,520}label\s*=\s*"Member List"') {
     throw "The focused CPolTable must remain silent when its selected row cannot be verified; announcing the container as the member name is misleading."
 }
-Assert-Contains $currentChildResolverForStartupMember 'std::strcmp\s*\(\s*label_source\s*,\s*"selected-member-dynamic"\s*\)\s*==\s*0' `
+Assert-Contains $currentChildResolverForStartupMember 'std::strcmp\s*\(\s*label_source\s*,\s*"selected-member-native-row"\s*\)\s*==\s*0' `
     "Current-child speech must preserve the exact selected-member ownership source through the speech gate."
 
 $pendingPmlFocusTrusted = Get-FunctionBody $source "bool prelogin_pending_pml_focus_candidate_trusted_for_drain"
@@ -285,6 +331,8 @@ Assert-Contains $pendingPmlFocusTrusted 'std::strcmp\s*\(\s*source_text\s*,\s*"s
     "Selected-index labels must remain the only non-current-child PML drain path."
 Assert-Contains $pendingPmlFocusTrusted 'std::strcmp\s*\(\s*source_text\s*,\s*"selected-member-dynamic"\s*\)\s*==\s*0[\s\S]{0,120}return\s+candidate\.focused_flag\s*&&\s*prelogin_member_dynamic_label\s*\(\s*candidate\.label\s*\)' `
     "Selected dynamic member names must drain only from the native selected-index path and the dynamic-member allowlist."
+Assert-Contains $pendingPmlFocusTrusted 'std::strcmp\s*\(\s*source_text\s*,\s*"selected-member-native-row"\s*\)\s*==\s*0[\s\S]{0,220}return\s+candidate\.focused_flag\s*&&\s*(?:accessxi::pol_accessibility::)?exact_owned_member_name_allowed\s*\(\s*candidate\.label\s*\)' `
+    "Exact native member-row names must drain only with focused ownership and bounded visible text."
 Assert-Contains $pendingPmlFocusTrusted 'std::strcmp\s*\(\s*source_text\s*,\s*"direct-fields"\s*\)\s*==\s*0[\s\S]{0,180}return\s+candidate\.current_child\s*&&\s*prelogin_setup_form_value_cell_label\s*\(\s*source_text\s*,\s*candidate\.label\s*\)' `
     "Direct-fields must stay on the narrow current-child setup value-cell path."
 Assert-Contains $pendingPmlFocusTrusted 'return\s+candidate\.current_child\s*&&[\s\S]{0,520}std::strcmp\s*\(\s*source_text\s*,\s*"semantic"\s*\)\s*==\s*0' `
@@ -334,10 +382,14 @@ Assert-Contains $pmlFocusClaimGate 'if\s*\(\s*std::strcmp\s*\(\s*source_text\s*,
     "Direct-fields must not claim PML focus without current-child proof."
 Assert-Contains $pmlFocusClaimGate 'if\s*\(\s*std::strcmp\s*\(\s*source_text\s*,\s*"selected-member-dynamic"\s*\)\s*==\s*0\s*\)[\s\S]{0,160}return\s+focused_flag\s*&&\s*prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
     "Selected dynamic member names must be claimable only through native selected-index focus, not broad current-child speech."
+Assert-Contains $pmlFocusClaimGate 'if\s*\(\s*std::strcmp\s*\(\s*source_text\s*,\s*"selected-member-native-row"\s*\)\s*==\s*0\s*\)[\s\S]{0,240}return\s+focused_flag\s*&&\s*(?:accessxi::pol_accessibility::)?exact_owned_member_name_allowed\s*\(\s*label\s*\)' `
+    "Exact native member-row names must be claimable only with focused ownership and bounded visible text."
 Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"add-member"\s*\)\s*==\s*0[\s\S]{0,140}prelogin_add_member_value_label\s*\(\s*label\s*\)' `
     "Add Member values must be allowed only through the Add Member source-aware label path."
 Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"selected-member-dynamic"\s*\)\s*==\s*0[\s\S]{0,140}prelogin_member_dynamic_label\s*\(\s*label\s*\)' `
     "Selected dynamic member names must use a distinct source-aware label path."
+Assert-Contains $labelFilter 'std::strcmp\s*\(\s*source_text,\s*"selected-member-native-row"\s*\)\s*==\s*0[\s\S]{0,220}(?:accessxi::pol_accessibility::)?exact_owned_member_name_allowed\s*\(\s*label\s*\)' `
+    "Exact native member-row names must use their own ownership-backed visible-text path."
 if ($labelFilter -match 'std::strcmp\s*\(\s*source_text,\s*"(?:startup-)?member-dynamic"') {
     throw "Unowned current-child member sources must not be allowed to speak."
 }

@@ -127,9 +127,9 @@ Assert-Contains $maskedPoll 'masked_delta_speech\s*\(' 'Masked-field changes mus
 Assert-NotContains $maskedPoll 'GetAsyncKeyState|GetKeyboardState|ToUnicode' 'Secret-field speech must be derived from displayed native state, not keystrokes.'
 
 $focusCandidate = Get-FunctionBody $source 'void remember_focus_candidate'
-Assert-Contains $focusCandidate 'PasswordFieldVtableRva' 'Generic focus speech must hand verified password controls to the masked-field tracker.'
+Assert-Contains $focusCandidate 'native_object_has_password_field_vtable' 'Generic focus speech must hand exact password fields and wrappers to the masked-field tracker.'
 $currentChildResolver = Get-FunctionBody $source 'void process_current_child_candidate'
-Assert-Contains $currentChildResolver 'PasswordFieldVtableRva' 'Generic current-child speech must hand verified password controls to the masked-field tracker.'
+Assert-Contains $currentChildResolver 'native_object_has_password_field_vtable' 'Generic current-child speech must hand exact password fields and wrappers to the masked-field tracker.'
 
 $reset = Get-FunctionBody $source 'void reset_prelogin_runtime_speech_state(const char* reason)'
 Assert-Contains $reset 'reset_masked_field_tracker\s*\(' 'Runtime reset must discard masked-field identity and count.'

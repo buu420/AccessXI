@@ -75,6 +75,32 @@ namespace accessxi::pol_accessibility
         return have_visible_byte;
     }
 
+    std::string_view add_member_set_password_value(
+        uint32_t selected_index) noexcept
+    {
+        switch (selected_index)
+        {
+        case 0:
+            return "Not set";
+        case 1:
+            return "Save";
+        default:
+            return {};
+        }
+    }
+
+    std::string field_focus_speech(
+        std::string_view label,
+        std::string_view value)
+    {
+        if (label.empty())
+            return {};
+        std::string speech(label);
+        speech += ", ";
+        speech += value.empty() ? "empty" : value;
+        return speech;
+    }
+
     size_t masked_display_count(std::u16string_view displayed) noexcept
     {
         for (const char16_t character : displayed)
@@ -89,6 +115,18 @@ namespace accessxi::pol_accessibility
     {
         const char* label = masked_role_label(role);
         if (label == nullptr || count == InvalidMaskedCount)
+            return {};
+        if (count == 0)
+            return std::string(label) + ", empty";
+        return std::string(label) + ", " + std::to_string(count) +
+            (count == 1 ? " character entered" : " characters entered");
+    }
+
+    std::string masked_focus_speech(
+        std::string_view label,
+        size_t count)
+    {
+        if (label.empty() || count == InvalidMaskedCount)
             return {};
         if (count == 0)
             return std::string(label) + ", empty";

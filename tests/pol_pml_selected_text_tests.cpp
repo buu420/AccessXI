@@ -78,6 +78,10 @@ namespace
     constexpr uintptr_t ImageAltHeap = 0x50007000;
     constexpr uintptr_t ImageAlternateAltHeap = 0x50008000;
     constexpr uintptr_t LinkedLabelObject = 0x50009000;
+    constexpr uintptr_t Pulldown = 0x5000A000;
+    constexpr uintptr_t ComboBoxList = 0x5000B000;
+    constexpr uintptr_t List = 0x5000C000;
+    constexpr uintptr_t SelectionModel = 0x5000D000;
     constexpr uintptr_t RenderedTextFragmentVtableRva = 0x003E4A1C;
 
     void write_literal_stream(FakeMemory& memory, uintptr_t stream, const std::u16string& text)
@@ -411,6 +415,107 @@ namespace
             "CButton length beyond its native buffer must be rejected");
     }
 
+    void test_form_select_editor_reads_only_its_exact_native_value()
+    {
+        FakeMemory memory;
+        write_text_child(memory, Text, Model, Stream, u"Save");
+        memory.write<uintptr_t>(Text, AppBase + CpmlFormSelectEditorVtableRva);
+
+        require(read_selected_control_text(memory.view(), Text, AppBase) == u"Save",
+            "the exact CPmlFormSelectEditor did not expose its visible selected value");
+
+        memory.write<uintptr_t>(Text, AppBase + CpmlFormSelectEditorVtableRva + 4);
+        require(read_selected_control_text(memory.view(), Text, AppBase).empty(),
+            "an unverified CPmlText-derived object was treated as a form select editor");
+
+        memory.write<uintptr_t>(Text, AppBase + CpmlFormSelectEditorVtableRva);
+        memory.write<uint16_t>(Stream, 0x10);
+        require(read_selected_control_text(memory.view(), Text, AppBase).empty(),
+            "an unresolved dynamic select value was guessed from its token stream");
+    }
+
+    void test_native_pulldown_reads_only_its_exact_selected_index()
+    {
+        FakeMemory memory;
+        memory.write<uintptr_t>(
+            Pulldown,
+            AppBase + CPulldownVtableRva);
+        memory.write<uintptr_t>(
+            Pulldown + NativePulldownListOffset,
+            List);
+        memory.write<uintptr_t>(
+            Pulldown + NativePulldownComboBoxListOffset,
+            ComboBoxList);
+        memory.write<uintptr_t>(
+            ComboBoxList,
+            AppBase + CComboBoxListVtableRva);
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List);
+        memory.write<uintptr_t>(
+            List,
+            AppBase + CListVtableRva);
+        memory.write<uintptr_t>(
+            List + NativeListSelectionModelOffset,
+            SelectionModel);
+
+        const uintptr_t selection_vtable =
+            AppBase + CDefaultListSelectionModelVtableRva;
+        memory.write<uintptr_t>(SelectionModel, selection_vtable);
+        memory.write<uintptr_t>(
+            selection_vtable + NativeListSelectionMaximumSlotOffset,
+            AppBase + NativeListSelectionMaximumGetterRva);
+        memory.write<uintptr_t>(
+            selection_vtable + NativeListSelectionMinimumSlotOffset,
+            AppBase + NativeListSelectionMinimumGetterRva);
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionFirstIndexOffset,
+            1);
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionLastIndexOffset,
+            1);
+
+        auto snapshot = read_native_pulldown_selection(
+            memory.view(),
+            Pulldown,
+            AppBase);
+        require(snapshot.matched && snapshot.selected_index == 1,
+            "the exact CPulldown did not expose its native selected index");
+
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List + 0x1000);
+        require(!read_native_pulldown_selection(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "a CPulldown with a mismatched owned CList was accepted");
+
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List);
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionLastIndexOffset,
+            0);
+        require(!read_native_pulldown_selection(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "an ambiguous multi-index pulldown selection was accepted");
+
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionLastIndexOffset,
+            1);
+        memory.write<uintptr_t>(
+            selection_vtable + NativeListSelectionMinimumSlotOffset,
+            AppBase + NativeListSelectionMinimumGetterRva + 1);
+        require(!read_native_pulldown_selection(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "a pulldown with an unverified native index getter was accepted");
+    }
+
     void test_sheet_focus_coalescing_preserves_only_captured_nested_chain()
     {
         constexpr uintptr_t row = 0x70000000;
@@ -454,6 +559,8 @@ int main()
     test_sheet_rejects_unbounded_or_unterminated_native_data();
     test_sheet_rejects_wrapped_object_fields();
     test_cbutton_reads_ghidra_proven_label_buffer();
+    test_form_select_editor_reads_only_its_exact_native_value();
+    test_native_pulldown_reads_only_its_exact_selected_index();
     test_sheet_focus_coalescing_preserves_only_captured_nested_chain();
     std::cout << "ok: selected PlayOnline controls require bounded native text and unambiguous hierarchy\n";
     return 0;

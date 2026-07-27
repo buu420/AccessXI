@@ -745,6 +745,145 @@ namespace accessxi::pol_pml
             lower.find('/') == std::string::npos;
     }
 
+    NativePulldownSelectionSnapshot read_native_pulldown_selection(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base) noexcept
+    {
+        NativePulldownSelectionSnapshot snapshot;
+        constexpr int32_t MaximumSelectedIndex = 1023;
+
+        uintptr_t object_rva = 0;
+        if (!object_vtable_rva(memory, object, app_base, object_rva) ||
+            object_rva != CPulldownVtableRva)
+        {
+            return snapshot;
+        }
+
+        uintptr_t list_field = 0;
+        uintptr_t combo_box_list_field = 0;
+        uintptr_t list = 0;
+        uintptr_t combo_box_list = 0;
+        if (!add_address(object, NativePulldownListOffset, list_field) ||
+            !add_address(
+                object,
+                NativePulldownComboBoxListOffset,
+                combo_box_list_field) ||
+            !read_value(memory, list_field, list) ||
+            !read_value(memory, combo_box_list_field, combo_box_list) ||
+            list < MinimumObjectAddress ||
+            combo_box_list < MinimumObjectAddress)
+        {
+            return snapshot;
+        }
+
+        uintptr_t list_rva = 0;
+        uintptr_t combo_box_list_rva = 0;
+        if (!object_vtable_rva(memory, list, app_base, list_rva) ||
+            list_rva != CListVtableRva ||
+            !object_vtable_rva(
+                memory,
+                combo_box_list,
+                app_base,
+                combo_box_list_rva) ||
+            combo_box_list_rva != CComboBoxListVtableRva)
+        {
+            return snapshot;
+        }
+
+        uintptr_t owned_list_field = 0;
+        uintptr_t owned_list = 0;
+        if (!add_address(
+                combo_box_list,
+                NativeComboBoxListOwnedListOffset,
+                owned_list_field) ||
+            !read_value(memory, owned_list_field, owned_list) ||
+            owned_list != list)
+        {
+            return snapshot;
+        }
+
+        uintptr_t selection_model_field = 0;
+        uintptr_t selection_model = 0;
+        if (!add_address(
+                list,
+                NativeListSelectionModelOffset,
+                selection_model_field) ||
+            !read_value(memory, selection_model_field, selection_model) ||
+            selection_model < MinimumObjectAddress)
+        {
+            return snapshot;
+        }
+
+        uintptr_t selection_model_rva = 0;
+        uintptr_t selection_vtable = 0;
+        if (!object_vtable_rva(
+                memory,
+                selection_model,
+                app_base,
+                selection_model_rva) ||
+            selection_model_rva != CDefaultListSelectionModelVtableRva ||
+            !read_value(memory, selection_model, selection_vtable))
+        {
+            return snapshot;
+        }
+
+        uintptr_t maximum_slot = 0;
+        uintptr_t minimum_slot = 0;
+        uintptr_t maximum_getter = 0;
+        uintptr_t minimum_getter = 0;
+        uintptr_t expected_maximum_getter = 0;
+        uintptr_t expected_minimum_getter = 0;
+        if (!add_address(
+                selection_vtable,
+                NativeListSelectionMaximumSlotOffset,
+                maximum_slot) ||
+            !add_address(
+                selection_vtable,
+                NativeListSelectionMinimumSlotOffset,
+                minimum_slot) ||
+            !add_address(
+                app_base,
+                NativeListSelectionMaximumGetterRva,
+                expected_maximum_getter) ||
+            !add_address(
+                app_base,
+                NativeListSelectionMinimumGetterRva,
+                expected_minimum_getter) ||
+            !read_value(memory, maximum_slot, maximum_getter) ||
+            !read_value(memory, minimum_slot, minimum_getter) ||
+            maximum_getter != expected_maximum_getter ||
+            minimum_getter != expected_minimum_getter)
+        {
+            return snapshot;
+        }
+
+        uintptr_t first_index_field = 0;
+        uintptr_t last_index_field = 0;
+        int32_t first_index = -1;
+        int32_t last_index = -1;
+        if (!add_address(
+                selection_model,
+                NativeListSelectionFirstIndexOffset,
+                first_index_field) ||
+            !add_address(
+                selection_model,
+                NativeListSelectionLastIndexOffset,
+                last_index_field) ||
+            !read_value(memory, first_index_field, first_index) ||
+            !read_value(memory, last_index_field, last_index) ||
+            first_index < 0 ||
+            first_index != last_index ||
+            first_index > MaximumSelectedIndex)
+        {
+            return snapshot;
+        }
+
+        snapshot.matched = true;
+        snapshot.selected_index = static_cast<uint32_t>(first_index);
+        return snapshot;
+    }
+
     std::u16string read_selected_control_text(
         const MemoryView& memory,
         uintptr_t object,
@@ -769,6 +908,13 @@ namespace accessxi::pol_pml
             return read_cpml_image_alt(memory, object);
         if (vtable_rva == CButtonVtableRva)
             return read_cbutton_label(memory, object);
+        if (vtable_rva == CpmlFormSelectEditorVtableRva)
+        {
+            auto label = read_rendered_cpml_text(memory, object, app_base);
+            if (!label.empty())
+                return label;
+            return read_literal_cpml_text(memory, object);
+        }
         return {};
     }
 }

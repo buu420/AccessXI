@@ -36,12 +36,20 @@ function Function-Body {
 
 Require-Match $source '#include\s+"pol_pml/native_selected_text\.h"' `
     "The PlayOnline hook must use the tested native selected-text decoder."
+Require-Match $source '#include\s+"pol_pml/native_text_field\.h"' `
+    "The PlayOnline hook must use the exact native text-field decoder."
 Require-Match $cmake 'add_library\(accessxi_pol_nvda[\s\S]*src/pol_pml/native_selected_text\.cpp' `
     "The production hook DLL must link the native selected-text decoder."
+Require-Match $cmake 'add_library\(accessxi_pol_nvda[\s\S]*src/pol_pml/native_text_field\.cpp' `
+    "The production hook DLL must link the native text-field decoder."
 Require-Match $buildScript 'pol_pml_selected_text_tests' `
     "The release-stage builder must build the selected-text unit test before running CTest."
+Require-Match $buildScript 'pol_pml_text_field_tests' `
+    "The release-stage builder must build the native text-field unit test before running CTest."
 Require-Match $offlineScript 'pol_pml_selected_text_tests' `
     "The offline native harness must build the selected-text unit test from a clean tree."
+Require-Match $offlineScript 'pol_pml_text_field_tests' `
+    "The offline native harness must build the text-field unit test from a clean tree."
 Require-Match $offlineScript 'test_pol_native_selected_text_integration\.ps1' `
     "The offline native harness must run the selected-text integration contract."
 
@@ -55,12 +63,24 @@ if ($remember -match 'GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT') {
 }
 
 $resolver = Function-Body $source "void process_current_child_candidate"
+Require-Match $resolver 'read_native_text_field_snapshot\s*\(\s*current_child_object\s*\)' `
+    "Current-child speech must resolve retained Add Member values from the exact focused native field."
+Require-Match $resolver 'field_focus_speech\s*\(' `
+    "Ordinary Add Member fields must compose their geometry-owned label with the retained native value."
+$addMemberGeometry = Function-Body $source "std::string native_prelogin_add_member_label_from_geometry"
+Require-Match $addMemberGeometry '\{\s*315,\s*155,\s*461,\s*187,\s*"PlayOnline Password"' `
+    "The conditionally revealed PlayOnline Password field must retain its exact Add Member geometry label."
+Require-Match $resolver 'geometry_label\s*==\s*"Set Password"[\s\S]*read_native_pulldown_selection_snapshot[\s\S]*add_member_set_password_value[\s\S]*field_focus_speech\s*\(' `
+    "Set Password must announce its exact native pulldown selection with the owned field label."
+if ($source -match 'PasswordTextModelVtableRva|PasswordTextLengthRva') {
+    throw "The hook must not retain the stale password-model constants that silently rejected the current app.dll."
+}
 Require-Match $resolver 'read_native_selected_control_text\s*\(\s*current_child_object\s*,\s*snapshot\.nested_child\s*\)' `
     "Current-child speech must try the exact native selected-control text with its captured nested selection proof first."
 Require-Match $resolver 'native-selected-text' `
     "Exact native selected-control text must retain its strict source identity."
-Require-Match $resolver '!native_selected_text_focus[\s\S]*!geometry_label\.empty' `
-    "Static geometry must not override an exact native selected-control label."
+Require-Match $resolver '!exact_native_value_focus[\s\S]*!geometry_label\.empty' `
+    "Static geometry must not override an exact native selected-control or field value."
 Require-Match $source 'std::atomic<int>\s+g_silent_selected_image_log_budget\{\s*96\s*\}' `
     "Silent image diagnostics must have a dedicated finite budget that survives the login screen."
 Require-Match $resolver 'label\.empty\(\)[\s\S]*log_silent_selected_image_path\s*\(\s*snapshot\s*\)' `

@@ -9,7 +9,23 @@ namespace accessxi::pol_pml
     constexpr uintptr_t CpmlImageVtableRva = 0x003DB00Cu;
     constexpr uintptr_t CpmlSheetVtableRva = 0x003E177Cu;
     constexpr uintptr_t CpmlTextVtableRva = 0x003E40ECu;
+    constexpr uintptr_t CpmlFormSelectEditorVtableRva = 0x003D907Cu;
     constexpr uintptr_t CButtonVtableRva = 0x0032DC2Cu;
+    constexpr uintptr_t CPulldownVtableRva = 0x0032F0ECu;
+    constexpr uintptr_t CComboBoxListVtableRva = 0x0032EA6Cu;
+    constexpr uintptr_t CListVtableRva = 0x003306CCu;
+    constexpr uintptr_t CDefaultListSelectionModelVtableRva = 0x0031DC7Cu;
+
+    constexpr uintptr_t NativePulldownListOffset = 0x1DCu;
+    constexpr uintptr_t NativePulldownComboBoxListOffset = 0x1E0u;
+    constexpr uintptr_t NativeComboBoxListOwnedListOffset = 0x220u;
+    constexpr uintptr_t NativeListSelectionModelOffset = 0x210u;
+    constexpr uintptr_t NativeListSelectionFirstIndexOffset = 0x18u;
+    constexpr uintptr_t NativeListSelectionLastIndexOffset = 0x1Cu;
+    constexpr uintptr_t NativeListSelectionMaximumSlotOffset = 0x24u;
+    constexpr uintptr_t NativeListSelectionMinimumSlotOffset = 0x28u;
+    constexpr uintptr_t NativeListSelectionMaximumGetterRva = 0x00004740u;
+    constexpr uintptr_t NativeListSelectionMinimumGetterRva = 0x0000474Du;
 
     using ReadMemory = bool(*)(void* context, uintptr_t address, void* output, size_t size) noexcept;
 
@@ -43,6 +59,12 @@ namespace accessxi::pol_pml
         uintptr_t linked_label_vtable_rva = 0;
         std::u16string primary_alt;
         std::u16string alternate_alt;
+    };
+
+    struct NativePulldownSelectionSnapshot
+    {
+        bool matched = false;
+        uint32_t selected_index = 0;
     };
 
     SheetFocusEventDisposition classify_sheet_focus_event(
@@ -80,6 +102,16 @@ namespace accessxi::pol_pml
     // Applies the caption-specific 120-character ceiling while rejecting PML,
     // URL, and local-resource strings that are not player-facing labels.
     bool selected_image_getter_caption_allowed(const std::string& caption) noexcept;
+
+    // Reads the exact CPulldown -> CComboBoxList -> CList ->
+    // CDefaultListSelectionModel ownership chain used by the native
+    // PlayOnline registration form. The selected row is accepted only when
+    // both native selection endpoints agree and the verified min/max getter
+    // slots still match the recognized app.dll.
+    NativePulldownSelectionSnapshot read_native_pulldown_selection(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base) noexcept;
 
     // Reads only the selection shapes proven by the 2026-07-22 live trace and
     // matching app.dll Ghidra project. Dynamic CPmlText captions are accepted

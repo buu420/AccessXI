@@ -60,7 +60,15 @@ namespace accessxi::pol_accessibility
         uint32_t resolved_row,
         int16_t observed_keyboard_selected_row) noexcept;
     bool exact_owned_member_name_allowed(std::string_view text) noexcept;
+    std::string_view add_member_set_password_value(
+        uint32_t selected_index) noexcept;
+    std::string field_focus_speech(
+        std::string_view label,
+        std::string_view value);
     size_t masked_display_count(std::u16string_view displayed) noexcept;
     std::string masked_focus_speech(ControlRole role, size_t count);
+    std::string masked_focus_speech(
+        std::string_view label,
+        size_t count);
     std::string masked_delta_speech(ControlRole role, size_t before, size_t after);
 }

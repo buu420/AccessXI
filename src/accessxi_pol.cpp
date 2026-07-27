@@ -2,6 +2,7 @@
 #include "pol_accessibility/prelogin_semantics.h"
 #include "pol_pml/native_popup_text.h"
 #include "pol_pml/native_selected_text.h"
+#include "pol_pml/native_text_field.h"
 #include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
@@ -17,6 +18,7 @@
 #include <limits>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -57,9 +59,6 @@ namespace
     constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x003CF8E4u;
     constexpr uintptr_t CLoginMemberDataVtableRva = 0x003CF800u;
     constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x001AF193u;
-    constexpr uintptr_t PasswordFieldVtableRva = 0x00333CD4u;
-    constexpr uintptr_t PasswordTextModelVtableRva = 0x0033300Cu;
-    constexpr uintptr_t PasswordTextLengthRva = 0x0000400Cu;
     constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
     constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
     constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
@@ -834,11 +833,20 @@ namespace
         return label == "Member Name" ||
             label == "PlayOnline ID" ||
             label == "Set Password" ||
+            label == "PlayOnline Password" ||
             label == "Member Password" ||
             label == "Confirm Password" ||
             label == "Square Enix ID" ||
             label == "What is a Square Enix ID" ||
             label == "One-Time Password";
+    }
+
+    bool prelogin_add_member_plain_text_field_label(
+        const std::string& label)
+    {
+        return label == "Member Name" ||
+            label == "PlayOnline ID" ||
+            label == "Square Enix ID";
     }
 
     bool prelogin_probe_candidate_label(const std::string& value);
@@ -1373,6 +1381,7 @@ namespace
             { 315, 71, 461, 103, "Member Name", 0x04B59408u },
             { 315, 99, 461, 131, "PlayOnline ID", 0x04B59548u },
             { 311, 131, 495, 155, "Set Password", 0x04B59598u },
+            { 315, 155, 461, 187, "PlayOnline Password", 0x00000000u },
             { 315, 209, 461, 241, "Member Password", 0x04B59318u },
             { 315, 291, 461, 323, "Square Enix ID", 0x04B595E8u },
             { 311, 323, 495, 347, "One-Time Password", 0x04B59638u }
@@ -1568,6 +1577,7 @@ namespace
             { 315, 71, 461, 103, "Member Name", 0x04B59408u },
             { 315, 99, 461, 131, "PlayOnline ID", 0x04B59548u },
             { 311, 131, 495, 155, "Set Password", 0x04B59598u },
+            { 315, 155, 461, 187, "PlayOnline Password", 0x00000000u },
             { 315, 209, 461, 241, "Member Password", 0x04B59318u },
             { 315, 237, 461, 269, "Confirm Password", 0x00000000u },
             { 315, 291, 461, 323, "Square Enix ID", 0x04B595E8u },
@@ -2022,6 +2032,77 @@ namespace
         return vtable >= app_base ? vtable - app_base : 0;
     }
 
+    bool native_object_has_password_field_vtable(void* object)
+    {
+        if (native_object_has_vtable_rva(
+                   object,
+                   accessxi::pol_pml::CPasswordFieldVtableRva) ||
+            native_object_has_vtable_rva(
+                   object,
+                   accessxi::pol_pml::CpmlFormPasswordVtableRva))
+        {
+            return true;
+        }
+
+        if (!native_object_has_vtable_rva(
+                object,
+                accessxi::pol_pml::CScrollTextFieldVtableRva))
+        {
+            return false;
+        }
+
+        uintptr_t inner = 0;
+        return read_ptr_safely(
+                   static_cast<const uint8_t*>(object) +
+                       accessxi::pol_pml::
+                           NativeScrollTextFieldInnerControlOffset,
+                   &inner) &&
+            inner != 0 &&
+            native_object_has_vtable_rva(
+                reinterpret_cast<void*>(inner),
+                accessxi::pol_pml::CPasswordFieldVtableRva);
+    }
+
+    accessxi::pol_pml::NativeTextFieldSnapshot
+    read_native_text_field_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_text_field(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
+    accessxi::pol_pml::NativePulldownSelectionSnapshot
+    read_native_pulldown_selection_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_pulldown_selection(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
     std::string read_native_selected_control_text(void* object, uintptr_t captured_nested_child = 0)
     {
         if (object == nullptr)
@@ -2062,7 +2143,7 @@ namespace
         wide_text.reserve(text.size());
         for (const char16_t character : text)
             wide_text.push_back(static_cast<wchar_t>(character));
-        return clean_wide_text(wide_text.c_str(), static_cast<int>(wide_text.size()));
+        return trim_ascii(narrow_from_wide(wide_text.c_str()));
     }
 
     using NativePmlLabelGetter_t = const wchar_t* (__thiscall*)(void*, int);
@@ -2685,8 +2766,13 @@ namespace
         uint32_t resource = 0;
         const std::string geometry_label =
             native_prelogin_atlas_label_from_geometry(object, &resource);
+        const auto native_field = native_object_has_password_field_vtable(object)
+            ? read_native_text_field_snapshot(object)
+            : accessxi::pol_pml::NativeTextFieldSnapshot{};
         const bool password_field =
-            native_object_has_vtable_rva(object, PasswordFieldVtableRva);
+            native_field.matched &&
+            native_field.kind ==
+                accessxi::pol_pml::NativeTextFieldKind::password;
         if (password_field)
         {
             if (geometry_label == "One-Time Password")
@@ -2766,67 +2852,14 @@ namespace
     size_t read_verified_masked_display_count(void* object)
     {
         using namespace accessxi::pol_accessibility;
-        if (!native_object_has_vtable_rva(object, PasswordFieldVtableRva))
-            return InvalidMaskedCount;
-
-        // Ghidra: CPasswordField initializes the rendered mask template at
-        // +0x202 to 32 asterisks and a terminator at +0x242. Its paint path
-        // obtains the displayed repeat count from the exact model at +0x1BC,
-        // virtual slot +0x30 (app.dll RVA 0x400C). Validate every link before
-        // invoking that read-only getter and never copy the underlying value.
-        char16_t mask_template[33]{};
-        if (!copy_memory_safely(
-                mask_template,
-                static_cast<const uint8_t*>(object) + 0x202,
-                sizeof(mask_template)))
+        const auto snapshot = read_native_text_field_snapshot(object);
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password)
         {
             return InvalidMaskedCount;
         }
-        if (mask_template[32] != u'\0' ||
-            masked_display_count(std::u16string_view(mask_template, 32)) != 32)
-        {
-            return InvalidMaskedCount;
-        }
-
-        uintptr_t model = 0;
-        if (!read_ptr_safely(static_cast<const uint8_t*>(object) + 0x1BC, &model) ||
-            model < 0x10000)
-        {
-            return InvalidMaskedCount;
-        }
-
-        HMODULE app = GetModuleHandleA("app.dll");
-        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
-        uintptr_t model_vtable = 0;
-        uintptr_t length_getter = 0;
-        if (app_base == 0 ||
-            !read_ptr_safely(reinterpret_cast<const void*>(model), &model_vtable) ||
-            model_vtable != app_base + PasswordTextModelVtableRva ||
-            !read_ptr_safely(
-                reinterpret_cast<const void*>(model_vtable + 0x30),
-                &length_getter) ||
-            length_getter != app_base + PasswordTextLengthRva)
-        {
-            return InvalidMaskedCount;
-        }
-
-        using PasswordTextLength_t = uint32_t (__thiscall*)(void*);
-        uint32_t count = 0;
-        __try
-        {
-            count = reinterpret_cast<PasswordTextLength_t>(length_getter)(
-                reinterpret_cast<void*>(model));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return InvalidMaskedCount;
-        }
-
-        if (count > 256)
-            return InvalidMaskedCount;
-        char16_t displayed[257]{};
-        std::fill_n(displayed, count, u'*');
-        return masked_display_count(std::u16string_view(displayed, count));
+        return snapshot.character_count;
     }
 
     struct MaskedFieldTracker
@@ -2916,7 +2949,7 @@ namespace
             manager,
             focused);
         if (!secret_control_role(role) ||
-            !native_object_has_vtable_rva(focused, PasswordFieldVtableRva))
+            !native_object_has_password_field_vtable(focused))
         {
             reset_masked_field_tracker();
             return;
@@ -2935,7 +2968,13 @@ namespace
             if (g_masked_field_tracker.object != focused_value ||
                 g_masked_field_tracker.role != role)
             {
-                speech = masked_focus_speech(role, count);
+                const std::string geometry_label =
+                    native_prelogin_atlas_label_from_geometry(
+                        focused,
+                        nullptr);
+                speech = geometry_label.empty()
+                    ? masked_focus_speech(role, count)
+                    : masked_focus_speech(geometry_label, count);
             }
             else
             {
@@ -3122,7 +3161,7 @@ namespace
 
         const bool exact_password_field =
             object != nullptr &&
-            native_object_has_vtable_rva(object, PasswordFieldVtableRva);
+            native_object_has_password_field_vtable(object);
         if (secret_control_role(snapshot.role) || exact_password_field)
         {
             const size_t masked_count = secret_control_role(snapshot.role)
@@ -3426,7 +3465,7 @@ namespace
     {
         if (focused_object == nullptr)
             return;
-        if (native_object_has_vtable_rva(focused_object, PasswordFieldVtableRva))
+        if (native_object_has_password_field_vtable(focused_object))
         {
             // The worker-owned masked tracker speaks only the verified visible
             // mask count. Never send a password control through generic text
@@ -4999,7 +5038,12 @@ namespace
         g_last_processed_prelogin_current_child = current_child;
         g_last_processed_prelogin_current_child_tick = now;
 
-        if (native_object_has_vtable_rva(current_child_object, PasswordFieldVtableRva))
+        const auto native_field_snapshot =
+            read_native_text_field_snapshot(current_child_object);
+        if ((native_field_snapshot.matched &&
+             native_field_snapshot.kind ==
+                 accessxi::pol_pml::NativeTextFieldKind::password) ||
+            native_object_has_password_field_vtable(current_child_object))
         {
             // poll_masked_field_state owns both focus and edit speech for this
             // native control, using only the sighted mask length.
@@ -5059,10 +5103,72 @@ namespace
             label = best_native_pml_text_from_object_tree(current_child_object, "current-child", &label_source_offset);
         const bool add_member_context = native_prelogin_add_member_form_context(manager) ||
             native_prelogin_add_member_form_context(current_child_object);
+        bool native_text_field_focus = false;
+        if (add_member_context &&
+            native_field_snapshot.matched &&
+            native_field_snapshot.kind ==
+                accessxi::pol_pml::NativeTextFieldKind::text &&
+            prelogin_add_member_plain_text_field_label(geometry_label))
+        {
+            const std::string retained_value =
+                clean_native_utf16_text(native_field_snapshot.value);
+            if (native_field_snapshot.value.empty() ||
+                !retained_value.empty())
+            {
+                label = accessxi::pol_accessibility::field_focus_speech(
+                    geometry_label,
+                    retained_value);
+                label_source = "native-selected-text";
+                native_text_field_focus = !label.empty();
+            }
+        }
+
+        if (add_member_context &&
+            native_control_text_focus &&
+            native_object_has_vtable_rva(
+                current_child_object,
+                accessxi::pol_pml::CpmlFormSelectEditorVtableRva) &&
+            (geometry_label == "Set Password" ||
+             geometry_label == "One-Time Password"))
+        {
+            label = accessxi::pol_accessibility::field_focus_speech(
+                geometry_label,
+                label);
+            label_source = "native-selected-text";
+        }
+
+        bool native_pulldown_focus = false;
+        if (add_member_context && geometry_label == "Set Password")
+        {
+            const auto pulldown_selection =
+                read_native_pulldown_selection_snapshot(
+                    current_child_object);
+            if (pulldown_selection.matched)
+            {
+                const std::string_view selected_value =
+                    accessxi::pol_accessibility::
+                        add_member_set_password_value(
+                            pulldown_selection.selected_index);
+                if (!selected_value.empty())
+                {
+                    label =
+                        accessxi::pol_accessibility::field_focus_speech(
+                            geometry_label,
+                            selected_value);
+                    label_source = "native-selected-text";
+                    native_pulldown_focus = !label.empty();
+                }
+            }
+        }
+
+        const bool exact_native_value_focus =
+            native_selected_text_focus ||
+            native_text_field_focus ||
+            native_pulldown_focus;
         const bool add_member_field_geometry_focus = add_member_context &&
             !geometry_label.empty() &&
             prelogin_add_member_field_geometry_label(geometry_label) &&
-            !native_selected_text_focus;
+            !exact_native_value_focus;
 
         if (add_member_field_geometry_focus)
         {
@@ -5085,11 +5191,11 @@ namespace
 
         bool add_member_value_candidate = add_member_context &&
             prelogin_add_member_value_label(label) &&
-            !native_selected_text_focus;
+            !exact_native_value_focus;
         bool add_member_value_focus = add_member_value_candidate && !current_child_is_tiny;
         bool add_member_button_candidate = add_member_context &&
             prelogin_add_member_button_label(label) &&
-            !native_selected_text_focus;
+            !exact_native_value_focus;
         bool add_member_button_focus = add_member_button_candidate &&
             !add_member_field_geometry_focus &&
             (native_prelogin_add_member_button_object_tree_label(current_child_object, label) ||
@@ -5121,7 +5227,7 @@ namespace
                 label_source = "add-member-button";
         }
 
-        if (!native_selected_text_focus && !startup_member_focus_rect)
+        if (!exact_native_value_focus && !startup_member_focus_rect)
         {
             if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus)
             {

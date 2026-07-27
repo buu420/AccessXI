@@ -130,6 +130,42 @@ namespace
         require(masked_delta_speech(ControlRole::password, InvalidMaskedCount, 1).empty(),
             "unverified prior masked state produced delta speech");
     }
+
+    void test_labeled_field_focus_speech()
+    {
+        require(field_focus_speech("Member Name", "Zaltar") ==
+                "Member Name, Zaltar",
+            "a retained ordinary Add Member value was not composed with its label");
+        require(field_focus_speech("PlayOnline ID", "") ==
+                "PlayOnline ID, empty",
+            "an empty ordinary Add Member value was not announced");
+        require(field_focus_speech("", "Zaltar").empty(),
+            "a value without an owned field label produced speech");
+
+        require(masked_focus_speech("Member Password", 0) ==
+                "Member Password, empty",
+            "an empty labeled password field was not announced");
+        require(masked_focus_speech("Confirm Password", 1) ==
+                "Confirm Password, 1 character entered",
+            "a singular labeled password count was not announced");
+        require(masked_focus_speech("PlayOnline Password", 8) ==
+                "PlayOnline Password, 8 characters entered",
+            "a labeled password count was not announced");
+        require(masked_focus_speech("", 8).empty(),
+            "a secret count without an owned field label produced speech");
+        require(masked_focus_speech("Member Password", InvalidMaskedCount).empty(),
+            "an unverified labeled password count produced speech");
+    }
+
+    void test_set_password_native_selection_mapping()
+    {
+        require(add_member_set_password_value(0) == "Not set",
+            "the first native Set Password row was not mapped to Not set");
+        require(add_member_set_password_value(1) == "Save",
+            "the second native Set Password row was not mapped to Save");
+        require(add_member_set_password_value(2).empty(),
+            "an unverified Set Password row produced a value");
+    }
 }
 
 int main()
@@ -141,6 +177,8 @@ int main()
     test_exact_owned_member_name_accepts_visible_native_text();
     test_masked_display_accepts_only_visible_mask_glyphs();
     test_masked_focus_and_delta_speech();
+    test_labeled_field_focus_speech();
+    test_set_password_native_selection_mapping();
     std::cout << "ok: pre-login ownership and masked-state semantics\n";
     return 0;
 }

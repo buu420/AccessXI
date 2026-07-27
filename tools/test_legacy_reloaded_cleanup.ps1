@@ -72,6 +72,7 @@ function New-OwnedReloadedRoot {
     $reloadedRoot = Join-Path $InstallRoot 'Reloaded-II'
     New-Item -ItemType Directory -Force -Path `
         (Join-Path $reloadedRoot 'Mods\AccessXI.PolReloaded'), `
+        (Join-Path $reloadedRoot 'Mods\reloaded.sharedlib.hooks'), `
         (Join-Path $reloadedRoot 'Apps\AccessXI.PolPreLogin') | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $reloadedRoot 'Reloaded-II.exe'), 'legacy-reloaded')
     [System.IO.File]::WriteAllText((Join-Path $reloadedRoot 'Mods\AccessXI.PolReloaded\AccessXI.PolReloaded.dll'), 'legacy-mod')
@@ -144,6 +145,33 @@ try {
         -BackupRoot (Join-Path $testRoot 'second-backup')
     Assert-True (-not $secondResult.Detected) 'A second cleanup falsely detected an already-removed legacy installation.'
     Assert-True (@($secondResult.RemovedPaths).Count -eq 0) 'A second cleanup reported removals that did not occur.'
+
+    $sharedInstallRoot = Join-Path $testRoot 'shared-install'
+    $sharedReloadedRoot = New-OwnedReloadedRoot $sharedInstallRoot
+    New-Item -ItemType Directory -Force -Path `
+        (Join-Path $sharedReloadedRoot 'Apps\Ff7.En.Steam'), `
+        (Join-Path $sharedReloadedRoot 'Mods\ff7.accessibility.reloaded') | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $sharedReloadedRoot 'Apps\Ff7.En.Steam\AppConfig.json'), '{"AppId":"ff7_en.exe"}')
+    [System.IO.File]::WriteAllText((Join-Path $sharedReloadedRoot 'Mods\ff7.accessibility.reloaded\ModConfig.json'), '{"ModId":"ff7.accessibility.reloaded"}')
+    $sharedPolRoot = New-FakePolTree 'shared-pol'
+    Add-LegacyPolFiles -PolRoot $sharedPolRoot
+    $sharedConfigRoot = Join-Path $testRoot 'shared-config'
+    Write-TargetedReloadedConfig -ConfigRoot $sharedConfigRoot -ReloadedRoot $sharedReloadedRoot
+    $sharedResult = Remove-LegacyAccessXiReloaded `
+        -InstallRoot $sharedInstallRoot `
+        -PolExe (Join-Path $sharedPolRoot 'pol.exe') `
+        -ReloadedConfigRoot $sharedConfigRoot `
+        -BackupRoot (Join-Path $testRoot 'shared-backup')
+    Assert-True $sharedResult.Detected 'Shared Reloaded installation did not detect its AccessXI markers.'
+    Assert-True (Test-Path -LiteralPath $sharedReloadedRoot) 'Cleanup removed a Reloaded root shared with Final Fantasy VII.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $sharedReloadedRoot 'Mods\AccessXI.PolReloaded'))) 'Cleanup left the obsolete AccessXI mod in a shared Reloaded root.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $sharedReloadedRoot 'Apps\AccessXI.PolPreLogin'))) 'Cleanup left the obsolete AccessXI app in a shared Reloaded root.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $sharedReloadedRoot 'Apps\Ff7.En.Steam\AppConfig.json')) 'Cleanup removed the Final Fantasy VII Reloaded app.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $sharedReloadedRoot 'Mods\ff7.accessibility.reloaded\ModConfig.json')) 'Cleanup removed the Final Fantasy VII accessibility mod.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $sharedConfigRoot 'ReloadedII.json')) 'Cleanup removed the global config required by another Reloaded game.'
+    Assert-True (-not $sharedResult.ConfigRemoved) 'Cleanup falsely reported removing a shared Reloaded config.'
+    Assert-True (-not $sharedResult.FullReloadedRootRemoved) 'Cleanup falsely reported removing a shared Reloaded root.'
+    Assert-True $sharedResult.SharedReloadedRootPreserved 'Cleanup did not report preserving a Reloaded root shared with another game.'
 
     $partialInstallRoot = Join-Path $testRoot 'partial-install'
     $partialReloadedRoot = Join-Path $partialInstallRoot 'Reloaded-II'

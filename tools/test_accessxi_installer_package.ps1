@@ -78,6 +78,7 @@ Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative\
 
 $packageSource = Get-Content -LiteralPath $packageScript -Raw
 $installerSource = Get-Content -LiteralPath $installerScript -Raw
+$legacyCleanupSource = Get-Content -LiteralPath $legacyCleanupScript -Raw
 $polUrlRepairSource = Get-Content -LiteralPath $polUrlRepairScript -Raw
 $profileSource = Get-Content -LiteralPath $ashitaGuiProfile -Raw
 $cliProfileSource = Get-Content -LiteralPath $ashitaCliProfile -Raw
@@ -147,6 +148,9 @@ Assert-Contains $installerSource 'ddraw\.dll' 'Installer must deploy the x86 ASI
 Assert-Contains $installerSource 'Backup-ExistingFile' 'Installer must back up existing POL-side files before replacing them.'
 Assert-Contains $installerSource 'AccessXI\.PolNative\.asi' 'Installer must deploy the native AccessXI PlayOnline ASI.'
 Assert-Contains $installerSource 'Remove-LegacyAccessXiReloaded' 'Installer must run ownership-bounded cleanup for old AccessXI Reloaded files.'
+Assert-Contains $legacyCleanupSource 'SharedReloadedRootPreserved' 'Installer cleanup results must report when another game causes a Reloaded root to be preserved.'
+Assert-Contains $legacyCleanupSource 'allowedOwnedAppNames' 'Cleanup must distinguish AccessXI app markers from another game registered in Reloaded.'
+Assert-Contains $legacyCleanupSource 'allowedOwnedModNames' 'Cleanup must distinguish AccessXI mod markers from another game mod registered in Reloaded.'
 Assert-Contains $installerSource 'Assert-PlayOnlineClosed' 'Installer must refuse POL-side cleanup and native replacement while PlayOnline is running.'
 Assert-Contains $installerSource 'Get-Process\s+-Name\s+''pol''' 'Installer must detect a running PlayOnline Viewer before changing its files.'
 Assert-Contains $installerSource 'Repair-PolUrlFiles' 'Installer must repair missing PlayOnline Viewer URL key-path files before POL self-repair can pop Windows Installer.'

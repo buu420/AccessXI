@@ -166,6 +166,22 @@ function Remove-LegacyAccessXiReloaded {
     $appMarker = Join-Path $reloadedRoot 'Apps\AccessXI.PolPreLogin'
     $hasModMarker = Test-Path -LiteralPath $modMarker -PathType Container
     $hasAppMarker = Test-Path -LiteralPath $appMarker -PathType Container
+    $allowedOwnedAppNames = @('AccessXI.PolPreLogin')
+    $allowedOwnedModNames = @('AccessXI.PolReloaded', 'reloaded.sharedlib.hooks')
+    $unrelatedReloadedItems = @()
+    foreach ($contentRoot in @(
+        [pscustomobject]@{ Path = (Join-Path $reloadedRoot 'Apps'); AllowedNames = $allowedOwnedAppNames },
+        [pscustomobject]@{ Path = (Join-Path $reloadedRoot 'Mods'); AllowedNames = $allowedOwnedModNames }
+    )) {
+        if (-not (Test-Path -LiteralPath $contentRoot.Path -PathType Container)) {
+            continue
+        }
+        $unrelatedReloadedItems += @(Get-ChildItem -LiteralPath $contentRoot.Path -Force | Where-Object {
+            $_.Name -notin $contentRoot.AllowedNames
+        } | Select-Object -ExpandProperty FullName)
+    }
+    $sharedReloadedRoot = $unrelatedReloadedItems.Count -gt 0
+    $ownsEntireReloadedRoot = $hasModMarker -and $hasAppMarker -and -not $sharedReloadedRoot
 
     $legacyPolPaths = @(
         (Join-Path $scriptsDirectory 'AccessXI.PolReloadedBootstrap.asi'),
@@ -206,11 +222,13 @@ function Remove-LegacyAccessXiReloaded {
             BackupPaths = @($backupPaths)
             ConfigRemoved = $false
             FullReloadedRootRemoved = $false
+            SharedReloadedRootPreserved = $false
         })
     }
 
     if (Test-Path -LiteralPath $configPath -PathType Leaf) {
-        if (Test-AccessXiReloadedConfigTargetsRoot -ConfigPath $configPath -ReloadedRoot $reloadedRoot) {
+        if ($ownsEntireReloadedRoot -and
+            (Test-AccessXiReloadedConfigTargetsRoot -ConfigPath $configPath -ReloadedRoot $reloadedRoot)) {
             Remove-AccessXiLegacyFile `
                 -Path $configPath `
                 -BackupRoot $BackupRoot `
@@ -235,7 +253,7 @@ function Remove-LegacyAccessXiReloaded {
             -BackupPaths $backupPaths
     }
 
-    if ($hasModMarker -and $hasAppMarker) {
+    if ($ownsEntireReloadedRoot) {
         $expectedReloadedRoot = Resolve-AccessXiCleanupPath (Join-Path $resolvedInstallRoot 'Reloaded-II')
         if ($reloadedRoot -ine $expectedReloadedRoot) {
             throw "Legacy Reloaded root changed unexpectedly: $reloadedRoot"
@@ -271,5 +289,6 @@ function Remove-LegacyAccessXiReloaded {
         BackupPaths = @($backupPaths)
         ConfigRemoved = [bool]$configRemoved
         FullReloadedRootRemoved = [bool]$fullReloadedRootRemoved
+        SharedReloadedRootPreserved = [bool]$sharedReloadedRoot
     })
 }

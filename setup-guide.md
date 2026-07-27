@@ -122,7 +122,7 @@ When the AccessXI installer opens:
 
 Current AccessXI releases use a native PlayOnline accessibility component and no longer install Reloaded-II. During an upgrade, the installer checks for the exact folders and PlayOnline files created by the older AccessXI Reloaded installer. When those AccessXI ownership markers are present, it backs up and removes those obsolete files automatically.
 
-The cleanup does not remove an unrelated Reloaded-II installation or unrelated mods. If ownership is ambiguous, the installer preserves the unknown files instead of guessing. The native `ddraw.dll`, `AccessXI.PolNative.asi`, and its Prism dependency remain installed because they are the current PlayOnline accessibility path.
+The cleanup does not remove an unrelated Reloaded-II installation or unrelated mods. If the same Reloaded-II installation also contains another game's app registration or mod, the installer removes only the two AccessXI entries and preserves the shared Reloaded program and global configuration. If ownership is ambiguous, the installer preserves the unknown files instead of guessing. The native `ddraw.dll`, `AccessXI.PolNative.asi`, and its Prism dependency remain installed because they are the current PlayOnline accessibility path.
 
 ## Dependency Warning
 

@@ -17,12 +17,12 @@ Ship AccessXI's accepted native PlayOnline ASI path without installing Reloaded-
 
 The installer will package the native ASI stage instead of Reloaded-II. Before deploying the native files, it will run an ownership-bounded legacy cleanup.
 
-The cleanup may delete the complete old `<InstallRoot>\Reloaded-II` directory only when both of these AccessXI markers exist:
+The cleanup may delete the complete old `<InstallRoot>\Reloaded-II` directory only when both of these AccessXI markers exist and the `Apps` and `Mods` folders contain no unrelated game registrations or mods:
 
 - `Mods\AccessXI.PolReloaded`
 - `Apps\AccessXI.PolPreLogin`
 
-If only one marker exists, the cleanup removes only the exact AccessXI marker directory and preserves the surrounding Reloaded installation. A Reloaded directory with neither marker is unrelated and remains untouched.
+If only one marker exists, or another game or mod is registered in the same Reloaded tree, the cleanup removes only the exact AccessXI marker directories and preserves the surrounding Reloaded installation and global configuration. A Reloaded directory with neither marker is unrelated and remains untouched.
 
 The global `%APPDATA%\Reloaded-Mod-Loader-II\ReloadedII.json` file is removed only when its parsed loader and launcher paths resolve inside the detected old AccessXI Reloaded root. The file is backed up first. A missing, malformed, or differently targeted configuration remains untouched.
 

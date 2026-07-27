@@ -110,6 +110,7 @@ Assert-Contains $packageSource 'addons\\accessxi_reader\\logs\\\*' 'Package buil
 Assert-Contains $packageSource 'ffxi-menu-reader\.boot\.log' 'Package builder must exclude AccessXI addon boot logs.'
 Assert-Contains $packageSource 'pol-reloaded-native-speech\.queue|pol-reloaded-speech\.log|pol-monitor\.log' 'Package builder must know to exclude runtime logs from the installer payload.'
 Assert-Contains $packageSource 'Apps\\AccessXI\.PolPreLogin\\AppConfig\.json' 'Package builder must exclude Reloaded app configs that are generated per installed machine.'
+Assert-Contains $packageSource 'AccessibilityBackups\\\*' 'Package builder must exclude Reloaded accessibility backup snapshots from the installer payload.'
 Assert-Contains $packageSource 'AccessXI\.PolReloadedBootstrap\.asi' 'Package builder must stage the AccessXI delayed Reloaded POL bootloader.'
 Assert-Contains $packageSource 'Compress-Archive' 'Package builder must produce a redistributable zip package.'
 Assert-Contains $packageSource 'vc_redist\.x86\.exe' 'Package builder must stage the x86 Visual C++ redistributable required by the POL x86 bootstrapper.'
@@ -267,6 +268,7 @@ if (Test-Path -LiteralPath $PackageRoot) {
     $packagedReloadedTextFiles = @(Get-ChildItem -LiteralPath $payloadReloaded -Force -Recurse -File | Where-Object {
         $_.Extension -in @('.json', '.xml', '.txt', '.ini', '.config', '.toml', '.md')
     })
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadReloaded 'AccessibilityBackups'))) 'Package must not contain Reloaded accessibility backup snapshots.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadReloaded 'Apps\AccessXI.PolPreLogin\AppConfig.json'))) 'Package must not contain Reloaded AppConfig.json because install_accessxi.ps1 generates it from the selected pol.exe.'
     foreach ($textFile in $packagedReloadedTextFiles) {
         $textSource = Get-Content -LiteralPath $textFile.FullName -Raw

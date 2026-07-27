@@ -259,6 +259,8 @@ $ashitaExcludePatterns = @(
     '*~'
 )
 $reloadedExcludePatterns = @(
+    'AccessibilityBackups',
+    'AccessibilityBackups\*',
     'User\Logs',
     'User\Logs\*',
     'Logs',

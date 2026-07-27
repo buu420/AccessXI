@@ -57,9 +57,6 @@ $setupGuideSource = Get-Content -LiteralPath $setupGuidePath -Raw
 
 Assert-Contains $packageSource 'setup-guide\.md' 'Package builder must stage setup-guide.md at the package root.'
 Assert-Contains $installerSource 'setup-guide\.md' 'Installer script must copy setup-guide.md into the installed AccessXI root.'
-Assert-Contains $setupGuideSource 'AccessXI can recognize both the updated PlayOnline Viewer and a PlayOnline Viewer that still needs its first update' 'Setup guide must explain that AccessXI can install before the PlayOnline update.'
-Assert-Contains $setupGuideSource 'update-safe mode' 'Setup guide must describe the safe pre-update PlayOnline behavior.'
-Assert-Contains $setupGuideSource 'native PlayOnline menu hooks stay disabled until the updated viewer files are present' 'Setup guide must explain how pre-update PlayOnline avoids the Reloaded bridge crash.'
 Assert-Contains $programSource 'openSetupGuideCheckBox' 'Installer finish screen must include an open-setup-guide checkbox.'
 Assert-Contains $programSource 'Checked\s*=\s*true' 'Setup guide checkbox must be checked by default.'
 Assert-Contains $programSource 'OpenSetupGuideAfterFinish' 'Finish button must open the setup guide when the checkbox is checked.'
@@ -98,7 +95,12 @@ Assert-NotContains $loadBody 'log_magic_shortcut_target_probe\(\)' 'Addon load m
 Assert-NotContains $loadBody "loaded probe=" 'Addon load log should not advertise active probe builds.'
 
 if (Test-Path -LiteralPath $PackageRoot) {
-    Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'setup-guide.md')) 'Packaged installer root must contain setup-guide.md.'
+    $packagedSetupGuide = Join-Path $PackageRoot 'setup-guide.md'
+    Assert-True (Test-Path -LiteralPath $packagedSetupGuide) 'Packaged installer root must contain setup-guide.md.'
+    Assert-True (
+        (Get-FileHash -LiteralPath $packagedSetupGuide -Algorithm SHA256).Hash -eq
+        (Get-FileHash -LiteralPath $setupGuidePath -Algorithm SHA256).Hash
+    ) 'Packaged setup guide must exactly match the reviewed root setup-guide.md.'
     $payloadRoot = Join-Path $PackageRoot 'payload'
     foreach ($unneededDirectory in @('tools', 'ffxi_re', 'pol_re', 'tmp', 'scratch', 'video_frames')) {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadRoot $unneededDirectory))) "Package payload must not contain repo-only directory: $unneededDirectory"

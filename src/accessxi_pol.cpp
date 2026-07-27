@@ -849,6 +849,14 @@ namespace
             label == "Square Enix ID";
     }
 
+    bool prelogin_add_member_password_field_label(
+        const std::string& label)
+    {
+        return label == "PlayOnline Password" ||
+            label == "Member Password" ||
+            label == "Confirm Password";
+    }
+
     bool prelogin_probe_candidate_label(const std::string& value);
 
     bool prelogin_pml_focus_candidate_label_allowed(const char* source_text, const std::string& label)
@@ -2103,6 +2111,26 @@ namespace
             reinterpret_cast<uintptr_t>(app));
     }
 
+    accessxi::pol_pml::NativePulldownHighlightSnapshot
+    read_native_pulldown_highlight_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_pulldown_highlight(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
     std::string read_native_selected_control_text(void* object, uintptr_t captured_nested_child = 0)
     {
         if (object == nullptr)
@@ -2864,17 +2892,65 @@ namespace
 
     struct MaskedFieldTracker
     {
-        uintptr_t object = 0;
+        accessxi::pol_accessibility::TrackedNativeValueState state;
         PolUiControlRole role = PolUiControlRole::unknown;
-        size_t count = accessxi::pol_accessibility::InvalidMaskedCount;
+        std::string label;
     };
 
-    std::mutex g_masked_field_tracker_lock;
-    MaskedFieldTracker g_masked_field_tracker;
-
-    void reset_masked_field_tracker()
+    struct SetPasswordTracker
     {
-        std::lock_guard<std::mutex> guard(g_masked_field_tracker_lock);
+        accessxi::pol_accessibility::TrackedNativeValueState state;
+    };
+
+    std::mutex g_native_value_tracker_lock;
+    MaskedFieldTracker g_masked_field_tracker;
+    SetPasswordTracker g_set_password_tracker;
+
+    void reset_add_member_native_value_trackers()
+    {
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        g_masked_field_tracker = {};
+        g_set_password_tracker = {};
+    }
+
+    void remember_masked_field_focus(
+        const accessxi::pol_pml::NativeTextFieldSnapshot& snapshot,
+        PolUiControlRole role,
+        const std::string& label)
+    {
+        using namespace accessxi::pol_accessibility;
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password ||
+            !secret_control_role(role) ||
+            label.empty())
+        {
+            return;
+        }
+
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        observe_tracked_native_value(
+            g_masked_field_tracker.state,
+            snapshot.field,
+            snapshot.character_count);
+        g_masked_field_tracker.role = role;
+        g_masked_field_tracker.label = label;
+        g_set_password_tracker = {};
+    }
+
+    void remember_set_password_focus(
+        uintptr_t object,
+        uint32_t selected_index)
+    {
+        using namespace accessxi::pol_accessibility;
+        if (add_member_set_password_value(selected_index).empty())
+            return;
+
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        observe_tracked_native_value(
+            g_set_password_tracker.state,
+            object,
+            selected_index);
         g_masked_field_tracker = {};
     }
 
@@ -2911,85 +2987,174 @@ namespace
         using namespace accessxi::pol_accessibility;
         if (native_post_login_surface_active())
         {
-            reset_masked_field_tracker();
+            reset_add_member_native_value_trackers();
             return;
         }
 
-        HMODULE app = GetModuleHandleA("app.dll");
-        if (app == nullptr)
+        MaskedFieldTracker retained;
         {
-            reset_masked_field_tracker();
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            retained = g_masked_field_tracker;
+        }
+        if (retained.state.object < 0x10000u ||
+            retained.state.value == InvalidMaskedCount ||
+            !secret_control_role(retained.role) ||
+            retained.label.empty())
+        {
             return;
         }
 
-        uintptr_t manager_value = 0;
-        if (!read_ptr_safely(
-                reinterpret_cast<const uint8_t*>(app) + PmlGlobalFocusManagerRva,
-                &manager_value) ||
-            manager_value == 0)
+        const auto snapshot = read_native_text_field_snapshot(
+            reinterpret_cast<void*>(retained.state.object));
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password ||
+            snapshot.field != retained.state.object)
         {
-            reset_masked_field_tracker();
-            return;
-        }
-
-        uintptr_t focused_value = 0;
-        auto* manager = reinterpret_cast<void*>(manager_value);
-        if (!read_ptr_safely(
-                static_cast<const uint8_t*>(manager) + 0x164,
-                &focused_value) ||
-            focused_value == 0)
-        {
-            reset_masked_field_tracker();
-            return;
-        }
-
-        auto* focused = reinterpret_cast<void*>(focused_value);
-        const PolUiControlRole role = classify_pol_ui_control_role(
-            accessxi::pol_trace::EventKind::current_child,
-            manager,
-            focused);
-        if (!secret_control_role(role) ||
-            !native_object_has_password_field_vtable(focused))
-        {
-            reset_masked_field_tracker();
-            return;
-        }
-
-        const size_t count = read_verified_masked_display_count(focused);
-        if (count == InvalidMaskedCount)
-        {
-            reset_masked_field_tracker();
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_masked_field_tracker.state.object ==
+                retained.state.object)
+            {
+                g_masked_field_tracker = {};
+            }
             return;
         }
 
         std::string speech;
+        PolUiControlRole role = PolUiControlRole::unknown;
         {
-            std::lock_guard<std::mutex> guard(g_masked_field_tracker_lock);
-            if (g_masked_field_tracker.object != focused_value ||
-                g_masked_field_tracker.role != role)
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_masked_field_tracker.state.object !=
+                retained.state.object)
             {
-                const std::string geometry_label =
-                    native_prelogin_atlas_label_from_geometry(
-                        focused,
-                        nullptr);
-                speech = geometry_label.empty()
-                    ? masked_focus_speech(role, count)
-                    : masked_focus_speech(geometry_label, count);
-            }
-            else
-            {
-                speech = masked_delta_speech(
-                    role,
-                    g_masked_field_tracker.count,
-                    count);
+                return;
             }
 
-            g_masked_field_tracker.object = focused_value;
-            g_masked_field_tracker.role = role;
-            g_masked_field_tracker.count = count;
+            const size_t before = g_masked_field_tracker.state.value;
+            const auto update = observe_tracked_native_value(
+                g_masked_field_tracker.state,
+                snapshot.field,
+                snapshot.character_count);
+            role = g_masked_field_tracker.role;
+            if (update == TrackedNativeValueUpdate::changed)
+                speech = masked_delta_speech(
+                    g_masked_field_tracker.label,
+                    before,
+                    snapshot.character_count);
         }
 
-        speak_masked_field_state(speech, role, count);
+        speak_masked_field_state(
+            speech,
+            role,
+            snapshot.character_count);
+    }
+
+    void poll_set_password_state()
+    {
+        using namespace accessxi::pol_accessibility;
+        if (native_post_login_surface_active())
+        {
+            reset_add_member_native_value_trackers();
+            return;
+        }
+
+        SetPasswordTracker retained;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            retained = g_set_password_tracker;
+        }
+        if (retained.state.object < 0x10000u ||
+            retained.state.value == InvalidMaskedCount)
+        {
+            return;
+        }
+
+        const auto highlight = read_native_pulldown_highlight_snapshot(
+            reinterpret_cast<void*>(retained.state.object));
+        if (!highlight.matched)
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object ==
+                retained.state.object)
+            {
+                g_set_password_tracker = {};
+            }
+            return;
+        }
+
+        uint32_t observed_index = 0;
+        const char* observed_source = "highlight";
+        if (highlight.active)
+        {
+            observed_index = highlight.highlighted_index;
+        }
+        else
+        {
+            const auto committed =
+                read_native_pulldown_selection_snapshot(
+                    reinterpret_cast<void*>(retained.state.object));
+            if (!committed.matched)
+            {
+                std::lock_guard<std::mutex> guard(
+                    g_native_value_tracker_lock);
+                if (g_set_password_tracker.state.object ==
+                    retained.state.object)
+                {
+                    g_set_password_tracker = {};
+                }
+                return;
+            }
+            observed_index = committed.selected_index;
+            observed_source = "committed";
+        }
+
+        const std::string_view selected_value =
+            add_member_set_password_value(observed_index);
+        if (selected_value.empty())
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object ==
+                retained.state.object)
+            {
+                g_set_password_tracker = {};
+            }
+            return;
+        }
+
+        bool changed = false;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object !=
+                retained.state.object)
+            {
+                return;
+            }
+
+            changed = observe_tracked_native_value(
+                g_set_password_tracker.state,
+                retained.state.object,
+                observed_index) ==
+                TrackedNativeValueUpdate::changed;
+        }
+        if (!changed)
+            return;
+
+        const std::string speech = field_focus_speech(
+            "Set Password",
+            selected_value);
+        char line[192]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_SET_PASSWORD speak source=%s index=%u text=%s",
+            observed_source,
+            static_cast<unsigned>(observed_index),
+            speech.c_str());
+        log_line(line);
+        speak_prelogin_label(
+            "set-password-change",
+            speech,
+            reinterpret_cast<void*>(retained.state.object));
     }
 
     std::string read_pol_ui_pml_inline_wide_text(uintptr_t object)
@@ -5040,32 +5205,33 @@ namespace
 
         const auto native_field_snapshot =
             read_native_text_field_snapshot(current_child_object);
-        if ((native_field_snapshot.matched &&
+        const bool native_password_object =
+            (native_field_snapshot.matched &&
              native_field_snapshot.kind ==
                  accessxi::pol_pml::NativeTextFieldKind::password) ||
-            native_object_has_password_field_vtable(current_child_object))
-        {
-            // poll_masked_field_state owns both focus and edit speech for this
-            // native control, using only the sighted mask length.
-            return;
-        }
+            native_object_has_password_field_vtable(
+                current_child_object);
 
         const bool current_child_is_tiny = native_prelogin_add_member_inner_textbox_child(current_child_object);
         uint32_t label_source_offset = 0;
         uint32_t atlas_resource = 0;
-        std::string label = read_native_selected_control_text(
-            current_child_object,
-            snapshot.nested_child);
+        std::string label;
+        if (!native_password_object)
+        {
+            label = read_native_selected_control_text(
+                current_child_object,
+                snapshot.nested_child);
+        }
         const bool native_control_text_focus = !label.empty();
         bool native_image_getter_focus = false;
-        if (label.empty())
+        if (label.empty() && !native_password_object)
         {
             label = read_native_selected_image_caption(snapshot);
             native_image_getter_focus = !label.empty();
         }
         const bool native_selected_text_focus =
             native_control_text_focus || native_image_getter_focus;
-        if (label.empty())
+        if (label.empty() && !native_password_object)
             log_silent_selected_image_path(snapshot);
         std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
         const char* label_source = native_image_getter_focus ? "native-image-getter" :
@@ -5099,10 +5265,44 @@ namespace
             label = "Member List";
             label_source = "atlas-geometry";
         }
-        if (label.empty() && !startup_member_atlas_focus && !startup_member_focus_rect)
+        if (label.empty() &&
+            !native_password_object &&
+            !startup_member_atlas_focus &&
+            !startup_member_focus_rect)
+        {
             label = best_native_pml_text_from_object_tree(current_child_object, "current-child", &label_source_offset);
+        }
         const bool add_member_context = native_prelogin_add_member_form_context(manager) ||
             native_prelogin_add_member_form_context(current_child_object);
+        bool native_masked_field_focus = false;
+        PolUiControlRole native_masked_field_role =
+            PolUiControlRole::unknown;
+        if (native_password_object)
+        {
+            if (add_member_context &&
+                native_field_snapshot.matched &&
+                native_field_snapshot.kind ==
+                    accessxi::pol_pml::NativeTextFieldKind::password &&
+                prelogin_add_member_password_field_label(
+                    geometry_label))
+            {
+                native_masked_field_role =
+                    PolUiControlRole::password;
+                label =
+                    accessxi::pol_accessibility::masked_focus_speech(
+                        geometry_label,
+                        native_field_snapshot.character_count);
+                label_source = "native-selected-text";
+                native_masked_field_focus = !label.empty();
+            }
+
+            // Exact inner CPasswordField events have no verified sighted
+            // Add Member label. Keep them silent while retaining any wrapper
+            // tracker that the software keyboard temporarily displaced.
+            if (!native_masked_field_focus)
+                return;
+        }
+
         bool native_text_field_focus = false;
         if (add_member_context &&
             native_field_snapshot.matched &&
@@ -5138,6 +5338,8 @@ namespace
         }
 
         bool native_pulldown_focus = false;
+        uint32_t native_pulldown_index =
+            std::numeric_limits<uint32_t>::max();
         if (add_member_context && geometry_label == "Set Password")
         {
             const auto pulldown_selection =
@@ -5157,6 +5359,8 @@ namespace
                             selected_value);
                     label_source = "native-selected-text";
                     native_pulldown_focus = !label.empty();
+                    native_pulldown_index =
+                        pulldown_selection.selected_index;
                 }
             }
         }
@@ -5164,7 +5368,8 @@ namespace
         const bool exact_native_value_focus =
             native_selected_text_focus ||
             native_text_field_focus ||
-            native_pulldown_focus;
+            native_pulldown_focus ||
+            native_masked_field_focus;
         const bool add_member_field_geometry_focus = add_member_context &&
             !geometry_label.empty() &&
             prelogin_add_member_field_geometry_label(geometry_label) &&
@@ -5313,6 +5518,28 @@ namespace
             log_line(line);
             clear_prelogin_duplicate_guard();
             return;
+        }
+
+        if (native_masked_field_focus)
+        {
+            remember_masked_field_focus(
+                native_field_snapshot,
+                native_masked_field_role,
+                geometry_label);
+        }
+        else if (native_pulldown_focus)
+        {
+            remember_set_password_focus(
+                current_child,
+                native_pulldown_index);
+        }
+        else if (add_member_context &&
+                 ((!geometry_label.empty() &&
+                   prelogin_add_member_field_geometry_label(
+                       geometry_label)) ||
+                  add_member_button_focus))
+        {
+            reset_add_member_native_value_trackers();
         }
 
         if (g_current_child_candidate_log_budget.fetch_sub(1) > 0)
@@ -5528,7 +5755,7 @@ namespace
 
     void reset_prelogin_runtime_speech_state(const char* reason)
     {
-        reset_masked_field_tracker();
+        reset_add_member_native_value_trackers();
         reset_popup_notice_state();
         {
             std::lock_guard<std::mutex> guard(g_candidate_lock);
@@ -5563,6 +5790,7 @@ namespace
         install_native_selection_truth_hooks_once();
         install_popup_notice_hooks_once();
         poll_masked_field_state();
+        poll_set_password_state();
         process_popup_notice_text();
         process_queued_current_child_candidate("reloaded-native-current-child");
         speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");

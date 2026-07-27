@@ -155,6 +155,14 @@ namespace
             "a secret count without an owned field label produced speech");
         require(masked_focus_speech("Member Password", InvalidMaskedCount).empty(),
             "an unverified labeled password count produced speech");
+
+        require(masked_delta_speech("Member Password", 5, 6) == "star",
+            "a single accepted character in a labeled password did not speak star");
+        require(masked_delta_speech("Member Password", 2, 6) ==
+                "Member Password, 6 characters entered",
+            "a multi-character insertion lost the exact password field label");
+        require(masked_delta_speech("Member Password", 6, 5).empty(),
+            "a labeled password deletion produced insertion speech");
     }
 
     void test_set_password_native_selection_mapping()
@@ -165,6 +173,35 @@ namespace
             "the second native Set Password row was not mapped to Save");
         require(add_member_set_password_value(2).empty(),
             "an unverified Set Password row produced a value");
+    }
+
+    void test_tracked_native_values_only_report_verified_transitions()
+    {
+        TrackedNativeValueState state;
+
+        require(observe_tracked_native_value(state, 0x12345u, 0) ==
+                TrackedNativeValueUpdate::focus,
+            "the first exact native value was not treated as focus");
+        require(state.object == 0x12345u && state.value == 0,
+            "the first exact native value was not retained");
+        require(observe_tracked_native_value(state, 0x12345u, 0) ==
+                TrackedNativeValueUpdate::unchanged,
+            "an unchanged exact native value produced a transition");
+        require(observe_tracked_native_value(state, 0x12345u, 1) ==
+                TrackedNativeValueUpdate::changed,
+            "a changed value on the retained native object was not reported");
+        require(observe_tracked_native_value(state, 0x23456u, 7) ==
+                TrackedNativeValueUpdate::focus,
+            "a different exact native object inherited stale state");
+
+        require(observe_tracked_native_value(
+                    state,
+                    0,
+                    InvalidMaskedCount) ==
+                TrackedNativeValueUpdate::rejected,
+            "an invalid native value was accepted");
+        require(state.object == 0 && state.value == InvalidMaskedCount,
+            "rejected native state was not cleared");
     }
 }
 
@@ -179,6 +216,7 @@ int main()
     test_masked_focus_and_delta_speech();
     test_labeled_field_focus_speech();
     test_set_password_native_selection_mapping();
+    test_tracked_native_values_only_report_verified_transitions();
     std::cout << "ok: pre-login ownership and masked-state semantics\n";
     return 0;
 }

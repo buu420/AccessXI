@@ -142,4 +142,54 @@ namespace accessxi::pol_accessibility
             return masked_role_label(role) == nullptr ? std::string{} : std::string("star");
         return masked_focus_speech(role, after);
     }
+
+    std::string masked_delta_speech(
+        std::string_view label,
+        size_t before,
+        size_t after)
+    {
+        if (label.empty() ||
+            before == InvalidMaskedCount ||
+            after == InvalidMaskedCount ||
+            after <= before)
+        {
+            return {};
+        }
+        if (after == before + 1)
+            return "star";
+        return masked_focus_speech(label, after);
+    }
+
+    TrackedNativeValueUpdate observe_tracked_native_value(
+        TrackedNativeValueState& state,
+        uintptr_t object,
+        size_t value) noexcept
+    {
+        if (object < 0x10000u || value == InvalidMaskedCount)
+        {
+            reset_tracked_native_value(state);
+            return TrackedNativeValueUpdate::rejected;
+        }
+
+        if (state.object != object ||
+            state.value == InvalidMaskedCount)
+        {
+            state.object = object;
+            state.value = value;
+            return TrackedNativeValueUpdate::focus;
+        }
+
+        if (state.value == value)
+            return TrackedNativeValueUpdate::unchanged;
+
+        state.value = value;
+        return TrackedNativeValueUpdate::changed;
+    }
+
+    void reset_tracked_native_value(
+        TrackedNativeValueState& state) noexcept
+    {
+        state.object = 0;
+        state.value = InvalidMaskedCount;
+    }
 }

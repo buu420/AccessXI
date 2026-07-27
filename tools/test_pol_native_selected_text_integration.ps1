@@ -67,11 +67,17 @@ Require-Match $resolver 'read_native_text_field_snapshot\s*\(\s*current_child_ob
     "Current-child speech must resolve retained Add Member values from the exact focused native field."
 Require-Match $resolver 'field_focus_speech\s*\(' `
     "Ordinary Add Member fields must compose their geometry-owned label with the retained native value."
+Require-Match $resolver 'native_password_object[\s\S]*prelogin_add_member_password_field_label[\s\S]*masked_focus_speech[\s\S]*remember_masked_field_focus' `
+    "A geometry-owned Add Member password wrapper must speak its exact label and seed the safe count tracker."
+Require-Match $resolver 'if\s*\(\s*!native_password_object\s*\)[\s\S]*read_native_selected_control_text' `
+    "Password controls must bypass generic selected-text discovery."
 $addMemberGeometry = Function-Body $source "std::string native_prelogin_add_member_label_from_geometry"
 Require-Match $addMemberGeometry '\{\s*315,\s*155,\s*461,\s*187,\s*"PlayOnline Password"' `
     "The conditionally revealed PlayOnline Password field must retain its exact Add Member geometry label."
 Require-Match $resolver 'geometry_label\s*==\s*"Set Password"[\s\S]*read_native_pulldown_selection_snapshot[\s\S]*add_member_set_password_value[\s\S]*field_focus_speech\s*\(' `
     "Set Password must announce its exact native pulldown selection with the owned field label."
+Require-Match $resolver 'native_pulldown_focus[\s\S]*remember_set_password_focus' `
+    "The exact Set Password pulldown must seed live native selection tracking."
 if ($source -match 'PasswordTextModelVtableRva|PasswordTextLengthRva') {
     throw "The hook must not retain the stale password-model constants that silently rejected the current app.dll."
 }
@@ -145,5 +151,27 @@ Require-Match $filter 'native-image-getter[\s\S]*selected_image_getter_caption_a
 $addMemberGate = Function-Body $source "bool native_prelogin_add_member_current_child_speech_allowed"
 Require-Match $addMemberGate 'native-image-getter' `
     "Native image getter captions must be recognized as exact native evidence by add-member isolation."
+
+$maskedPoll = Function-Body $source "void poll_masked_field_state"
+Require-Match $maskedPoll 'retained\.state\.object[\s\S]*read_native_text_field_snapshot[\s\S]*snapshot\.field\s*!=\s*retained\.state\.object' `
+    "Password edits must reread the exact retained CPasswordField and reject a changed native owner."
+Require-Match $maskedPoll 'observe_tracked_native_value[\s\S]*masked_delta_speech' `
+    "Password edits must speak only verified count transitions."
+if ($maskedPoll -match 'PmlGlobalFocusManagerRva|manager_value|\+\s*0x164') {
+    throw "Password polling must not use the CPolWinApp global as a focus manager."
+}
+
+$setPasswordPoll = Function-Body $source "void poll_set_password_state"
+Require-Match $setPasswordPoll 'retained\.state\.object[\s\S]*read_native_pulldown_highlight_snapshot[\s\S]*highlight\.active[\s\S]*highlighted_index[\s\S]*read_native_pulldown_selection_snapshot[\s\S]*add_member_set_password_value' `
+    "Set Password changes must prefer the exact live CPulldown row and fall back to the committed value only after the dropdown closes."
+Require-Match $setPasswordPoll 'observe_tracked_native_value[\s\S]*TrackedNativeValueUpdate::changed[\s\S]*speak_prelogin_label' `
+    "Set Password must announce only a changed, accepted native selection."
+if ($setPasswordPoll -match 'GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT') {
+    throw "Set Password changes must never be inferred from keyboard input."
+}
+
+$worker = Function-Body $source "void run_reloaded_native_hook_iteration"
+Require-Match $worker 'poll_masked_field_state\s*\(\s*\)[\s\S]*poll_set_password_state\s*\(\s*\)' `
+    "The native worker must poll both retained Add Member controls while transient overlays own focus."
 
 Write-Host "ok"

@@ -53,6 +53,20 @@ namespace accessxi::pol_accessibility
         const char* reason = "unknown";
     };
 
+    enum class TrackedNativeValueUpdate : uint8_t
+    {
+        rejected,
+        focus,
+        unchanged,
+        changed
+    };
+
+    struct TrackedNativeValueState
+    {
+        uintptr_t object = 0;
+        size_t value = InvalidMaskedCount;
+    };
+
     MemberDecision decide_member_candidate(const MemberEvidence& evidence);
     FocusedMemberRowDecision decide_focused_member_row(
         const FocusedMemberRowEvidence& evidence) noexcept;
@@ -71,4 +85,14 @@ namespace accessxi::pol_accessibility
         std::string_view label,
         size_t count);
     std::string masked_delta_speech(ControlRole role, size_t before, size_t after);
+    std::string masked_delta_speech(
+        std::string_view label,
+        size_t before,
+        size_t after);
+    TrackedNativeValueUpdate observe_tracked_native_value(
+        TrackedNativeValueState& state,
+        uintptr_t object,
+        size_t value) noexcept;
+    void reset_tracked_native_value(
+        TrackedNativeValueState& state) noexcept;
 }

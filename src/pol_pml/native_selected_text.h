@@ -19,7 +19,9 @@ namespace accessxi::pol_pml
     constexpr uintptr_t NativePulldownListOffset = 0x1DCu;
     constexpr uintptr_t NativePulldownComboBoxListOffset = 0x1E0u;
     constexpr uintptr_t NativeComboBoxListOwnedListOffset = 0x220u;
+    constexpr uintptr_t NativeListDataModelOffset = 0x208u;
     constexpr uintptr_t NativeListSelectionModelOffset = 0x210u;
+    constexpr uintptr_t NativeListHighlightIndexOffset = 0x21Au;
     constexpr uintptr_t NativeListSelectionFirstIndexOffset = 0x18u;
     constexpr uintptr_t NativeListSelectionLastIndexOffset = 0x1Cu;
     constexpr uintptr_t NativeListSelectionMaximumSlotOffset = 0x24u;
@@ -67,6 +69,13 @@ namespace accessxi::pol_pml
         uint32_t selected_index = 0;
     };
 
+    struct NativePulldownHighlightSnapshot
+    {
+        bool matched = false;
+        bool active = false;
+        uint32_t highlighted_index = 0;
+    };
+
     SheetFocusEventDisposition classify_sheet_focus_event(
         bool have_pending_sheet_row,
         uintptr_t pending_sheet_row,
@@ -109,6 +118,16 @@ namespace accessxi::pol_pml
     // both native selection endpoints agree and the verified min/max getter
     // slots still match the recognized app.dll.
     NativePulldownSelectionSnapshot read_native_pulldown_selection(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base) noexcept;
+
+    // Reads the live row cursor used while the Add Member Set Password
+    // CPulldown is open. Ghidra proves CList navigation writes a signed
+    // 16-bit row at +0x21A before Enter copies that row into the separate
+    // selection model. Only the two values proven for this control are
+    // accepted; closed, malformed, or changed layouts stay silent.
+    NativePulldownHighlightSnapshot read_native_pulldown_highlight(
         const MemoryView& memory,
         uintptr_t object,
         uintptr_t app_base) noexcept;

@@ -745,6 +745,74 @@ namespace accessxi::pol_pml
             lower.find('/') == std::string::npos;
     }
 
+    namespace
+    {
+        bool read_exact_native_pulldown_list(
+            const MemoryView& memory,
+            uintptr_t object,
+            uintptr_t app_base,
+            uintptr_t& list) noexcept
+        {
+            list = 0;
+
+            uintptr_t object_rva = 0;
+            if (!object_vtable_rva(memory, object, app_base, object_rva) ||
+                object_rva != CPulldownVtableRva)
+            {
+                return false;
+            }
+
+            uintptr_t list_field = 0;
+            uintptr_t combo_box_list_field = 0;
+            uintptr_t combo_box_list = 0;
+            if (!add_address(object, NativePulldownListOffset, list_field) ||
+                !add_address(
+                    object,
+                    NativePulldownComboBoxListOffset,
+                    combo_box_list_field) ||
+                !read_value(memory, list_field, list) ||
+                !read_value(
+                    memory,
+                    combo_box_list_field,
+                    combo_box_list) ||
+                list < MinimumObjectAddress ||
+                combo_box_list < MinimumObjectAddress)
+            {
+                list = 0;
+                return false;
+            }
+
+            uintptr_t list_rva = 0;
+            uintptr_t combo_box_list_rva = 0;
+            if (!object_vtable_rva(memory, list, app_base, list_rva) ||
+                list_rva != CListVtableRva ||
+                !object_vtable_rva(
+                    memory,
+                    combo_box_list,
+                    app_base,
+                    combo_box_list_rva) ||
+                combo_box_list_rva != CComboBoxListVtableRva)
+            {
+                list = 0;
+                return false;
+            }
+
+            uintptr_t owned_list_field = 0;
+            uintptr_t owned_list = 0;
+            if (!add_address(
+                    combo_box_list,
+                    NativeComboBoxListOwnedListOffset,
+                    owned_list_field) ||
+                !read_value(memory, owned_list_field, owned_list) ||
+                owned_list != list)
+            {
+                list = 0;
+                return false;
+            }
+            return true;
+        }
+    }
+
     NativePulldownSelectionSnapshot read_native_pulldown_selection(
         const MemoryView& memory,
         uintptr_t object,
@@ -753,52 +821,12 @@ namespace accessxi::pol_pml
         NativePulldownSelectionSnapshot snapshot;
         constexpr int32_t MaximumSelectedIndex = 1023;
 
-        uintptr_t object_rva = 0;
-        if (!object_vtable_rva(memory, object, app_base, object_rva) ||
-            object_rva != CPulldownVtableRva)
-        {
-            return snapshot;
-        }
-
-        uintptr_t list_field = 0;
-        uintptr_t combo_box_list_field = 0;
         uintptr_t list = 0;
-        uintptr_t combo_box_list = 0;
-        if (!add_address(object, NativePulldownListOffset, list_field) ||
-            !add_address(
-                object,
-                NativePulldownComboBoxListOffset,
-                combo_box_list_field) ||
-            !read_value(memory, list_field, list) ||
-            !read_value(memory, combo_box_list_field, combo_box_list) ||
-            list < MinimumObjectAddress ||
-            combo_box_list < MinimumObjectAddress)
-        {
-            return snapshot;
-        }
-
-        uintptr_t list_rva = 0;
-        uintptr_t combo_box_list_rva = 0;
-        if (!object_vtable_rva(memory, list, app_base, list_rva) ||
-            list_rva != CListVtableRva ||
-            !object_vtable_rva(
+        if (!read_exact_native_pulldown_list(
                 memory,
-                combo_box_list,
+                object,
                 app_base,
-                combo_box_list_rva) ||
-            combo_box_list_rva != CComboBoxListVtableRva)
-        {
-            return snapshot;
-        }
-
-        uintptr_t owned_list_field = 0;
-        uintptr_t owned_list = 0;
-        if (!add_address(
-                combo_box_list,
-                NativeComboBoxListOwnedListOffset,
-                owned_list_field) ||
-            !read_value(memory, owned_list_field, owned_list) ||
-            owned_list != list)
+                list))
         {
             return snapshot;
         }
@@ -881,6 +909,53 @@ namespace accessxi::pol_pml
 
         snapshot.matched = true;
         snapshot.selected_index = static_cast<uint32_t>(first_index);
+        return snapshot;
+    }
+
+    NativePulldownHighlightSnapshot read_native_pulldown_highlight(
+        const MemoryView& memory,
+        uintptr_t object,
+        uintptr_t app_base) noexcept
+    {
+        NativePulldownHighlightSnapshot snapshot;
+
+        uintptr_t list = 0;
+        if (!read_exact_native_pulldown_list(
+                memory,
+                object,
+                app_base,
+                list))
+        {
+            return snapshot;
+        }
+
+        uintptr_t data_model_field = 0;
+        uintptr_t highlight_field = 0;
+        uintptr_t data_model = 0;
+        int16_t highlighted_index = -1;
+        if (!add_address(
+                list,
+                NativeListDataModelOffset,
+                data_model_field) ||
+            !add_address(
+                list,
+                NativeListHighlightIndexOffset,
+                highlight_field) ||
+            !read_value(memory, data_model_field, data_model) ||
+            data_model < MinimumObjectAddress ||
+            !read_value(memory, highlight_field, highlighted_index) ||
+            highlighted_index < -1 ||
+            highlighted_index > 1)
+        {
+            return snapshot;
+        }
+
+        snapshot.matched = true;
+        snapshot.active = highlighted_index >= 0;
+        snapshot.highlighted_index =
+            snapshot.active
+                ? static_cast<uint32_t>(highlighted_index)
+                : 0;
         return snapshot;
     }
 

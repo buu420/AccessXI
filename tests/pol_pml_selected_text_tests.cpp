@@ -516,6 +516,138 @@ namespace
             "a pulldown with an unverified native index getter was accepted");
     }
 
+    void test_native_pulldown_reads_live_highlight_before_commit()
+    {
+        FakeMemory memory;
+        memory.write<uintptr_t>(
+            Pulldown,
+            AppBase + CPulldownVtableRva);
+        memory.write<uintptr_t>(
+            Pulldown + NativePulldownListOffset,
+            List);
+        memory.write<uintptr_t>(
+            Pulldown + NativePulldownComboBoxListOffset,
+            ComboBoxList);
+        memory.write<uintptr_t>(
+            ComboBoxList,
+            AppBase + CComboBoxListVtableRva);
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List);
+        memory.write<uintptr_t>(
+            List,
+            AppBase + CListVtableRva);
+        memory.write<uintptr_t>(
+            List + NativeListDataModelOffset,
+            Model);
+        memory.write<uintptr_t>(
+            List + NativeListSelectionModelOffset,
+            SelectionModel);
+        const uintptr_t selection_vtable =
+            AppBase + CDefaultListSelectionModelVtableRva;
+        memory.write<uintptr_t>(SelectionModel, selection_vtable);
+        memory.write<uintptr_t>(
+            selection_vtable + NativeListSelectionMaximumSlotOffset,
+            AppBase + NativeListSelectionMaximumGetterRva);
+        memory.write<uintptr_t>(
+            selection_vtable + NativeListSelectionMinimumSlotOffset,
+            AppBase + NativeListSelectionMinimumGetterRva);
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionFirstIndexOffset,
+            1);
+        memory.write<int32_t>(
+            SelectionModel + NativeListSelectionLastIndexOffset,
+            1);
+
+        // The dropdown is open on "Not set" while the selection model still
+        // contains the previously committed "Save" value.
+        memory.write<int16_t>(
+            List + NativeListHighlightIndexOffset,
+            0);
+
+        const auto committed = read_native_pulldown_selection(
+            memory.view(),
+            Pulldown,
+            AppBase);
+        require(committed.matched && committed.selected_index == 1,
+            "the test fixture did not preserve the old committed row");
+
+        auto snapshot = read_native_pulldown_highlight(
+            memory.view(),
+            Pulldown,
+            AppBase);
+        require(snapshot.matched && snapshot.active &&
+                snapshot.highlighted_index == 0,
+            "the exact CPulldown did not expose its live highlighted row");
+
+        memory.write<int16_t>(
+            List + NativeListHighlightIndexOffset,
+            -1);
+        snapshot = read_native_pulldown_highlight(
+            memory.view(),
+            Pulldown,
+            AppBase);
+        require(snapshot.matched && !snapshot.active,
+            "the exact closed pulldown was not distinguished from an invalid layout");
+
+        memory.write<int16_t>(
+            List + NativeListHighlightIndexOffset,
+            2);
+        require(!read_native_pulldown_highlight(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "an unproven third Set Password row was accepted");
+
+        memory.write<int16_t>(
+            List + NativeListHighlightIndexOffset,
+            1);
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List + 0x1000);
+        require(!read_native_pulldown_highlight(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "a live row from a CList not owned by the CPulldown was accepted");
+
+        memory.write<uintptr_t>(
+            ComboBoxList + NativeComboBoxListOwnedListOffset,
+            List);
+        memory.write<uintptr_t>(
+            List + NativeListDataModelOffset,
+            0);
+        require(!read_native_pulldown_highlight(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "a live row without the CList data model was accepted");
+
+        memory.write<uintptr_t>(
+            List + NativeListDataModelOffset,
+            Model);
+        memory.write<uintptr_t>(
+            List,
+            AppBase + CListVtableRva + 4);
+        require(!read_native_pulldown_highlight(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "an object without the exact CList vtable was accepted");
+
+        memory.write<uintptr_t>(
+            List,
+            AppBase + CListVtableRva);
+        memory.write<uintptr_t>(
+            ComboBoxList,
+            AppBase + CComboBoxListVtableRva + 4);
+        require(!read_native_pulldown_highlight(
+                    memory.view(),
+                    Pulldown,
+                    AppBase).matched,
+            "an object without the exact CComboBoxList vtable was accepted");
+    }
+
     void test_sheet_focus_coalescing_preserves_only_captured_nested_chain()
     {
         constexpr uintptr_t row = 0x70000000;
@@ -561,6 +693,7 @@ int main()
     test_cbutton_reads_ghidra_proven_label_buffer();
     test_form_select_editor_reads_only_its_exact_native_value();
     test_native_pulldown_reads_only_its_exact_selected_index();
+    test_native_pulldown_reads_live_highlight_before_commit();
     test_sheet_focus_coalescing_preserves_only_captured_nested_chain();
     std::cout << "ok: selected PlayOnline controls require bounded native text and unambiguous hierarchy\n";
     return 0;

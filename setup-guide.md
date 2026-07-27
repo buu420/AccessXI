@@ -65,10 +65,9 @@ OCR references:
 - NVDA Windows OCR: focus PlayOnline and press `NVDA+R`. NVDA recognizes the current navigator object, which normally follows focus: https://download.nvaccess.org/releases/stable/documentation/en/userGuide.html#Win10Ocr
 - JAWS Convenient OCR for the current application window: press `Insert+Spacebar`, then `O`, then `W`. With the laptop keyboard layout, press `Caps Lock+Spacebar`, then `O`, then `W`: https://www.freedomscientific.com/training/jaws/hotkeys/
 
-AccessXI/Reloaded dependency links, only needed if the installer or PlayOnline fails with runtime errors:
+AccessXI native dependency link, only needed if the installer or PlayOnline fails with runtime errors:
 
 - Microsoft Visual C++ Redistributable downloads: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
-- Microsoft .NET 9 Desktop Runtime downloads: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
 
 ## Account And Game Setup Before PlayOnline
 
@@ -116,12 +115,18 @@ When the AccessXI installer opens:
 3. Click `Install`.
 4. The installer should report `Updated PlayOnline Viewer recognized`. This means the installed viewer matches the build supported by this AccessXI release.
 5. If the installer instead reports update-safe mode, PlayOnline is still old or is a build this AccessXI release does not recognize. AccessXI can remain installed, but its native PlayOnline speech will stay disabled. Finish the PlayOnline update with OCR and restart PlayOnline.
-6. If the installer detects missing Microsoft runtime dependencies, choose whether to let it run the bundled dependency installers before AccessXI installs.
+6. If the installer detects missing Microsoft Visual C++ runtimes, choose whether to let it run the bundled Microsoft installers before AccessXI installs.
 7. On the finish screen, leave `Open setup guide when I click Finish` checked if you want this guide to open after installation.
+
+### Upgrading From An Older AccessXI Installer
+
+Current AccessXI releases use a native PlayOnline accessibility component and no longer install Reloaded-II. During an upgrade, the installer checks for the exact folders and PlayOnline files created by the older AccessXI Reloaded installer. When those AccessXI ownership markers are present, it backs up and removes those obsolete files automatically.
+
+The cleanup does not remove an unrelated Reloaded-II installation or unrelated mods. If ownership is ambiguous, the installer preserves the unknown files instead of guessing. The native `ddraw.dll`, `AccessXI.PolNative.asi`, and its Prism dependency remain installed because they are the current PlayOnline accessibility path.
 
 ## Dependency Warning
 
-If PlayOnline or the AccessXI Reloaded part crashes with a dialog like this:
+If PlayOnline or the AccessXI native accessibility component crashes with a dialog like this:
 
 ```text
 Microsoft Visual C++ Runtime Library
@@ -134,9 +139,7 @@ install the runtime dependencies, then try again.
 
 Install both x86 and x64 versions of the Visual C++ Redistributable. PlayOnline is a 32-bit program, so the x86 package matters even on a 64-bit copy of Windows.
 
-Also install both x86 and x64 versions of the .NET Desktop Runtime 9. AccessXI currently packages .NET Desktop Runtime 9.0.17, but if you are installing manually from Microsoft, use the current supported .NET 9 Desktop Runtime downloads.
-
-The AccessXI installer tries to include these dependencies, but if detection fails or another computer is missing them, installing them manually is the first thing to do.
+The AccessXI installer includes these Microsoft Visual C++ dependencies. Reloaded-II and its .NET Desktop Runtime are not required by current AccessXI releases.
 
 ## First Accessible PlayOnline Launch After Installing AccessXI
 

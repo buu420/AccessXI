@@ -1,7 +1,7 @@
 param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
     [string]$StageRoot = '',
-    [string]$PrismDll = 'C:\Users\buu42\AccessXI\external\Reloaded-II\Mods\AccessXI.PolReloaded\prism.dll'
+    [string]$PrismDll = 'C:\Users\buu42\AccessXI\third_party\prism\build-win32\Release\prism.dll'
 )
 
 $ErrorActionPreference = 'Stop'

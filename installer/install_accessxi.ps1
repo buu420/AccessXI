@@ -2,9 +2,9 @@ param(
     [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'AccessXI'),
     [string]$PolExe = '',
     [string]$ReloadedConfigRoot = '',
-    [switch]$SkipPolBootloader,
+    [Alias('SkipPolBootloader')]
+    [switch]$SkipPolNativeDeployment,
     [switch]$SkipVisualCppRedistributables,
-    [switch]$SkipDotNetDesktopRuntimes,
     [switch]$NoDesktopShortcut
 )
 
@@ -184,17 +184,6 @@ function Copy-PayloadDirectory {
     Copy-Item -Path (Join-Path $Source '*') -Destination $Destination -Recurse -Force
 }
 
-function Remove-StaleAccessXiReloadedMod {
-    param([string]$ReloadedRoot)
-
-    $modDirectory = Join-Path $ReloadedRoot 'Mods\AccessXI.PolReloaded'
-    if (-not (Test-Path -LiteralPath $modDirectory)) {
-        return
-    }
-
-    Remove-Item -LiteralPath $modDirectory -Recurse -Force
-}
-
 function Assert-DeployedFileHash {
     param(
         [string]$Name,
@@ -238,94 +227,6 @@ function Disable-OldAshitaPolPlugin {
     }
 
     Move-Item -LiteralPath $active -Destination "$disabled.installer-$timestamp" -Force
-}
-
-function Write-ReloadedLoaderConfig {
-    param(
-        [string]$ReloadedRoot,
-        [string]$ReloadedConfigRoot,
-        [string]$BackupRoot
-    )
-
-    if ([string]::IsNullOrWhiteSpace($ReloadedConfigRoot)) {
-        $configRoot = Join-Path $env:APPDATA 'Reloaded-Mod-Loader-II'
-    } else {
-        $configRoot = Resolve-FullPath $ReloadedConfigRoot
-    }
-    $configPath = Join-Path $configRoot 'ReloadedII.json'
-    New-Item -ItemType Directory -Force -Path $configRoot | Out-Null
-    if (Test-Path -LiteralPath $configPath) {
-        Backup-ExistingFile -Path $configPath -BackupRoot $BackupRoot
-    }
-
-    $config = [ordered]@{
-        LoaderPath32 = Join-Path $ReloadedRoot 'Loader\x86\Reloaded.Mod.Loader.dll'
-        LoaderPath64 = Join-Path $ReloadedRoot 'Loader\x64\Reloaded.Mod.Loader.dll'
-        LauncherPath = Join-Path $ReloadedRoot 'Reloaded-II.exe'
-        Bootstrapper32Path = Join-Path $ReloadedRoot 'Loader\x86\Bootstrapper\Reloaded.Mod.Loader.Bootstrapper.dll'
-        Bootstrapper64Path = Join-Path $ReloadedRoot 'Loader\x64\Bootstrapper\Reloaded.Mod.Loader.Bootstrapper.dll'
-        ApplicationConfigDirectory = Join-Path $ReloadedRoot 'Apps'
-        ModUserConfigDirectory = Join-Path $ReloadedRoot 'User\Mods'
-        MiscConfigDirectory = Join-Path $ReloadedRoot 'User\Misc'
-        PluginConfigDirectory = Join-Path $ReloadedRoot 'Plugins'
-        ModConfigDirectory = Join-Path $ReloadedRoot 'Mods'
-        EnabledPlugins = @()
-        LanguageFile = 'en-GB.xaml'
-        ThemeFile = 'Default.xaml'
-        FirstLaunch = $false
-        ShowConsole = $false
-        LogFileCompressTimeHours = 6
-        LogFileDeleteHours = 336
-        CrashDumpDeleteHours = 24
-        NuGetFeeds = @(
-            [ordered]@{
-                Name = 'Official Repository'
-                URL = 'https://packages.sewer56.moe/v3/index.json'
-                Description = 'Package repository of Sewer56, the developer of Reloaded. Contains personal and popular community packages.'
-            }
-        )
-        ForceModPrereleases = $false
-        ReloadedProcessListRefreshInterval = 1000
-        LoaderSetupTimeout = 30000
-        LoaderSetupSleeptime = 32
-        ProcessRefreshInterval = 200
-        SkipWineLaunchWarning = $false
-        DisableDInput = $false
-    }
-
-    $config | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $configPath -Encoding UTF8
-    return $configPath
-}
-
-function Write-ReloadedPolAppConfig {
-    param(
-        [string]$ReloadedRoot,
-        [string]$PolExe
-    )
-
-    $polDirectory = Split-Path -Parent $PolExe
-    $appConfigDirectory = Join-Path $ReloadedRoot 'Apps\AccessXI.PolPreLogin'
-    $appConfigPath = Join-Path $appConfigDirectory 'AppConfig.json'
-    New-Item -ItemType Directory -Force -Path $appConfigDirectory | Out-Null
-
-    $appConfig = [ordered]@{
-        AppId = 'pol.exe'
-        AppName = 'PlayOnline Viewer'
-        AppLocation = $PolExe
-        AppArguments = ''
-        AppIcon = 'Icon.png'
-        AutoInject = $false
-        EnabledMods = @('accessxi.pol.prelogin')
-        WorkingDirectory = $polDirectory
-        PluginData = @{}
-        SortedMods = @('accessxi.pol.prelogin')
-        PreserveDisabledModOrder = $true
-        DontInject = $false
-        IsMsStore = $false
-    }
-
-    $appConfig | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $appConfigPath -Encoding UTF8
-    return $appConfigPath
 }
 
 function Repair-PolUrlFiles {
@@ -414,83 +315,105 @@ function Install-VisualCppRedistributables {
     return $results
 }
 
-function Install-DotNetDesktopRuntime {
+function Backup-ExistingDirectory {
     param(
         [string]$Path,
-        [string]$Name
+        [string]$BackupRoot
     )
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw ".NET Desktop Runtime prerequisite is missing: $Path"
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        return
     }
 
-    Write-Output "Installing Microsoft .NET Desktop Runtime prerequisite: $Name"
-    $process = Start-Process -FilePath $Path -ArgumentList @('/install', '/quiet', '/norestart') -Wait -PassThru
-    $exitCode = $process.ExitCode
-    $allowedExitCodes = @(0, 3010, 1638)
-    if ($allowedExitCodes -notcontains $exitCode) {
-        throw ".NET Desktop Runtime prerequisite failed: $Name exited with code $exitCode."
+    New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
+    $item = Get-Item -LiteralPath $Path
+    $destination = Join-Path $BackupRoot $item.Name
+    if (Test-Path -LiteralPath $destination) {
+        $destination = Join-Path $BackupRoot ($item.Name + '.previous-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
     }
-
-    $status = switch ($exitCode) {
-        0 { 'installed-or-current'; break }
-        3010 { 'installed-reboot-required'; break }
-        1638 { 'already-installed-or-newer'; break }
-        default { 'accepted' }
-    }
-
-    Write-Output ".NET Desktop Runtime prerequisite result: $Name, exit code $exitCode, $status"
-    return [pscustomobject]([ordered]@{
-        Name = $Name
-        Path = $Path
-        ExitCode = $exitCode
-        Status = $status
-    })
+    Copy-Item -LiteralPath $Path -Destination $destination -Recurse -Force
 }
 
-function Install-DotNetDesktopRuntimes {
-    param([string]$PayloadRoot)
+function Assert-InstallerChildPath {
+    param(
+        [string]$Path,
+        [string]$Parent,
+        [string]$Description
+    )
 
-    $prerequisitesRoot = Join-Path $PayloadRoot 'Prerequisites'
-    $results = @()
-    $results += Install-DotNetDesktopRuntime -Name 'windowsdesktop-runtime-9.0.17-win-x86.exe' -Path (Join-Path $prerequisitesRoot 'windowsdesktop-runtime-9.0.17-win-x86.exe')
-    $results += Install-DotNetDesktopRuntime -Name 'windowsdesktop-runtime-9.0.17-win-x64.exe' -Path (Join-Path $prerequisitesRoot 'windowsdesktop-runtime-9.0.17-win-x64.exe')
-    return $results
+    $resolvedPath = (Resolve-FullPath $Path).TrimEnd('\')
+    $resolvedParent = (Resolve-FullPath $Parent).TrimEnd('\')
+    if ($resolvedPath -eq $resolvedParent -or
+        -not $resolvedPath.StartsWith($resolvedParent + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Description escapes its intended parent: $resolvedPath"
+    }
+    return $resolvedPath
 }
 
-function Deploy-PolBootloader {
+function Deploy-PolNative {
     param(
         [string]$PayloadRoot,
-        [string]$ReloadedRoot,
         [string]$PolExe,
         [string]$BackupRoot
     )
 
-    $polDirectory = Split-Path -Parent $PolExe
+    $polDirectory = (Resolve-FullPath (Split-Path -Parent $PolExe)).TrimEnd('\')
     $scriptsDirectory = Join-Path $polDirectory 'scripts'
-    $asiLoader32 = Join-Path $ReloadedRoot '_asi_extract\ASILoader32.dll'
-    if (-not (Test-Path -LiteralPath $asiLoader32)) {
-        $asiArchive = Join-Path $ReloadedRoot 'Loader\Asi\UltimateAsiLoader.7z'
-        if (-not (Test-Path -LiteralPath $asiArchive)) {
-            throw "Missing x86 ASI loader and archive: $asiLoader32"
-        }
-        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $asiLoader32) | Out-Null
-        tar -xf $asiArchive -C (Split-Path -Parent $asiLoader32)
-        if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+    $nativeSource = Join-Path $PayloadRoot 'PlayOnlineNative'
+    $asiLoaderSource = Join-Path $nativeSource 'ddraw.dll'
+    $nativeAsiSource = Join-Path $nativeSource 'AccessXI.PolNative.asi'
+    $nativeHookSource = Join-Path $nativeSource 'AccessXI.PolNative\accessxi_pol_native.dll'
+    $nativePrismSource = Join-Path $nativeSource 'AccessXI.PolNative\prism.dll'
+    $appDll = Join-Path $polDirectory 'viewer\com\app.dll'
+
+    foreach ($required in @($PolExe, $appDll, $asiLoaderSource, $nativeAsiSource, $nativeHookSource, $nativePrismSource)) {
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+            throw "Required native PlayOnline deployment file is missing: $required"
         }
     }
 
-    $bootloaderSource = Join-Path $PayloadRoot 'pol_bootloader\AccessXI.PolReloadedBootstrap.asi'
-    $bootstrapperSource = Join-Path $ReloadedRoot 'Loader\x86\Bootstrapper\Reloaded.Mod.Loader.Bootstrapper.dll'
-    Copy-WithBackup -Source $asiLoader32 -Destination (Join-Path $polDirectory 'ddraw.dll') -BackupRoot $BackupRoot
-    Copy-WithBackup -Source $bootloaderSource -Destination (Join-Path $scriptsDirectory 'AccessXI.PolReloadedBootstrap.asi') -BackupRoot $BackupRoot
-    Copy-WithBackup -Source $bootstrapperSource -Destination (Join-Path $scriptsDirectory 'Reloaded.Mod.Loader.Bootstrapper.dll') -BackupRoot $BackupRoot
+    $polHashBefore = (Get-FileHash -LiteralPath $PolExe -Algorithm SHA256).Hash
+    $appHashBefore = (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash
+    $nativeAsiDestination = Assert-InstallerChildPath `
+        -Path (Join-Path $scriptsDirectory 'AccessXI.PolNative.asi') `
+        -Parent $scriptsDirectory `
+        -Description 'Native PlayOnline ASI destination'
+    $nativeDependencyDestination = Assert-InstallerChildPath `
+        -Path (Join-Path $scriptsDirectory 'AccessXI.PolNative') `
+        -Parent $scriptsDirectory `
+        -Description 'Native PlayOnline dependency destination'
 
-    Remove-WithBackup -Path (Join-Path $polDirectory 'winmm.dll') -BackupRoot $BackupRoot
-    Remove-WithBackup -Path (Join-Path $scriptsDirectory 'Reloaded.Mod.Loader.Bootstrapper.asi') -BackupRoot $BackupRoot
+    Copy-WithBackup -Source $asiLoaderSource -Destination (Join-Path $polDirectory 'ddraw.dll') -BackupRoot $BackupRoot
+    Copy-WithBackup -Source $nativeAsiSource -Destination $nativeAsiDestination -BackupRoot $BackupRoot
+    if (Test-Path -LiteralPath $nativeDependencyDestination -PathType Container) {
+        Backup-ExistingDirectory -Path $nativeDependencyDestination -BackupRoot $BackupRoot
+        Remove-Item -LiteralPath $nativeDependencyDestination -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $nativeDependencyDestination | Out-Null
+    Copy-Item -LiteralPath $nativeHookSource -Destination (Join-Path $nativeDependencyDestination 'accessxi_pol_native.dll') -Force
+    Copy-Item -LiteralPath $nativePrismSource -Destination (Join-Path $nativeDependencyDestination 'prism.dll') -Force
     Remove-WithBackup -Path (Join-Path $scriptsDirectory 'AccessXI.PolAsiProbe.asi') -BackupRoot $BackupRoot
-    Remove-WithBackup -Path (Join-Path $scriptsDirectory 'ReloadedPortable.txt') -BackupRoot $BackupRoot
+
+    if ((Get-FileHash -LiteralPath $PolExe -Algorithm SHA256).Hash -ne $polHashBefore -or
+        (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash -ne $appHashBefore) {
+        throw 'Native PlayOnline deployment changed a Square Enix binary.'
+    }
+
+    return [pscustomobject]([ordered]@{
+        AsiLoader = Join-Path $polDirectory 'ddraw.dll'
+        NativeAsi = $nativeAsiDestination
+        NativeHook = Join-Path $nativeDependencyDestination 'accessxi_pol_native.dll'
+        NativePrism = Join-Path $nativeDependencyDestination 'prism.dll'
+        PolSha256 = $polHashBefore
+        AppSha256 = $appHashBefore
+    })
+}
+
+function Assert-PlayOnlineClosed {
+    $running = @(Get-Process -Name 'pol' -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) {
+        throw 'Close PlayOnline Viewer before installing AccessXI so the old loader can be removed and the native accessibility files can be replaced safely.'
+    }
 }
 
 function New-AshitaShortcut {
@@ -513,13 +436,18 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $payloadRoot = Join-Path $scriptRoot 'payload'
 $setupGuideSource = Join-Path $scriptRoot 'setup-guide.md'
 $ashitaSource = Join-Path $payloadRoot 'Ashita'
-$reloadedSource = Join-Path $payloadRoot 'Reloaded-II'
+$nativeSource = Join-Path $payloadRoot 'PlayOnlineNative'
 $prerequisitesSource = Join-Path $payloadRoot 'Prerequisites'
+$legacyCleanupSource = Join-Path $scriptRoot 'legacy_reloaded_cleanup.ps1'
 $packageManifestPath = Join-Path $scriptRoot 'manifest.json'
 $packageManifest = $null
 if (Test-Path -LiteralPath $packageManifestPath) {
     $packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw | ConvertFrom-Json
 }
+if (-not (Test-Path -LiteralPath $legacyCleanupSource -PathType Leaf)) {
+    throw "Legacy Reloaded cleanup library is missing from installer payload: $legacyCleanupSource"
+}
+. $legacyCleanupSource
 
 if ($PolExe -eq '') {
     $PolExe = Find-DefaultPolExe
@@ -530,7 +458,6 @@ if ($PolExe -eq '' -or -not (Test-Path -LiteralPath $PolExe)) {
 
 $InstallRoot = Resolve-FullPath $InstallRoot
 $ashitaDest = Join-Path $InstallRoot 'Ashita'
-$reloadedDest = Join-Path $InstallRoot 'Reloaded-II'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupRoot = Join-Path $InstallRoot "backups\installer\$timestamp"
 
@@ -546,11 +473,15 @@ if (-not (Test-Path -LiteralPath (Join-Path $ashitaSource 'config\boot\accessxi-
 if (-not (Test-Path -LiteralPath (Join-Path $ashitaSource 'addons\accessxi_reader\accessxi_reader.lua'))) {
     throw "accessxi_reader addon is missing from installer payload: $ashitaSource"
 }
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedSource 'Reloaded-II.exe'))) {
-    throw "Reloaded-II.exe is missing from installer payload: $reloadedSource"
-}
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedSource 'Mods\AccessXI.PolReloaded\prism.dll'))) {
-    throw "Packaged prism.dll is missing beside the Reloaded POL mod."
+foreach ($requiredNativePath in @(
+    (Join-Path $nativeSource 'ddraw.dll'),
+    (Join-Path $nativeSource 'AccessXI.PolNative.asi'),
+    (Join-Path $nativeSource 'AccessXI.PolNative\accessxi_pol_native.dll'),
+    (Join-Path $nativeSource 'AccessXI.PolNative\prism.dll')
+)) {
+    if (-not (Test-Path -LiteralPath $requiredNativePath -PathType Leaf)) {
+        throw "Native PlayOnline accessibility payload is missing: $requiredNativePath"
+    }
 }
 if (-not (Test-Path -LiteralPath $setupGuideSource)) {
     throw "Packaged setup-guide.md is missing."
@@ -560,12 +491,6 @@ if (-not (Test-Path -LiteralPath (Join-Path $prerequisitesSource 'vc_redist.x86.
 }
 if (-not (Test-Path -LiteralPath (Join-Path $prerequisitesSource 'vc_redist.x64.exe'))) {
     throw "Packaged x64 Visual C++ redistributable prerequisite is missing."
-}
-if (-not (Test-Path -LiteralPath (Join-Path $prerequisitesSource 'windowsdesktop-runtime-9.0.17-win-x86.exe'))) {
-    throw "Packaged x86 .NET Desktop Runtime prerequisite is missing."
-}
-if (-not (Test-Path -LiteralPath (Join-Path $prerequisitesSource 'windowsdesktop-runtime-9.0.17-win-x64.exe'))) {
-    throw "Packaged x64 .NET Desktop Runtime prerequisite is missing."
 }
 
 if ($SkipVisualCppRedistributables) {
@@ -582,34 +507,27 @@ if ($SkipVisualCppRedistributables) {
     $visualCppRedistributables = Install-VisualCppRedistributables -PayloadRoot $payloadRoot
 }
 
-if ($SkipDotNetDesktopRuntimes) {
-    Write-Output 'Skipping .NET Desktop Runtime prerequisite installation because the installer wrapper already handled or skipped dependency installation.'
-    $dotNetDesktopRuntimes = @(
-        [pscustomobject]([ordered]@{
-            Name = '.NET Desktop Runtimes'
-            Path = ''
-            ExitCode = $null
-            Status = 'skipped-by-wrapper'
-        })
-    )
-} else {
-    $dotNetDesktopRuntimes = Install-DotNetDesktopRuntimes -PayloadRoot $payloadRoot
-}
 Copy-PayloadDirectory -Source $ashitaSource -Destination $ashitaDest
 New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
 Copy-Item -LiteralPath $setupGuideSource -Destination (Join-Path $InstallRoot 'setup-guide.md') -Force
 $ffxiInstallRoot = Set-AshitaCliFfxiInstallPath -AshitaRoot $ashitaDest -PolExe $PolExe
-Remove-StaleAccessXiReloadedMod -ReloadedRoot $reloadedDest
-Copy-PayloadDirectory -Source $reloadedSource -Destination $reloadedDest
 Disable-OldAshitaPolPlugin -AshitaRoot $ashitaDest
 
-$loaderConfigPath = Write-ReloadedLoaderConfig -ReloadedRoot $reloadedDest -ReloadedConfigRoot $ReloadedConfigRoot -BackupRoot $backupRoot
-$appConfigPath = Write-ReloadedPolAppConfig -ReloadedRoot $reloadedDest -PolExe $PolExe
+Assert-PlayOnlineClosed
+$legacyReloadedCleanup = Remove-LegacyAccessXiReloaded `
+    -InstallRoot $InstallRoot `
+    -PolExe $PolExe `
+    -ReloadedConfigRoot $ReloadedConfigRoot `
+    -BackupRoot $backupRoot
 $polUrlFilesRepaired = @()
+$nativeDeployment = $null
 
-if (-not $SkipPolBootloader) {
+if (-not $SkipPolNativeDeployment) {
     $polUrlFilesRepaired = Repair-PolUrlFiles -PolExe $PolExe
-    Deploy-PolBootloader -PayloadRoot $payloadRoot -ReloadedRoot $reloadedDest -PolExe $PolExe -BackupRoot $backupRoot
+    $nativeDeployment = Deploy-PolNative `
+        -PayloadRoot $payloadRoot `
+        -PolExe $PolExe `
+        -BackupRoot $backupRoot
 }
 
 $shortcutPath = ''
@@ -617,13 +535,24 @@ if (-not $NoDesktopShortcut) {
     $shortcutPath = New-AshitaShortcut -AshitaRoot $ashitaDest
 }
 
-$deployedHashes = [ordered]@{
-    PolReloadedMod = Assert-DeployedFileHash -Name 'PolReloadedMod' -Source (Join-Path $reloadedSource 'Mods\AccessXI.PolReloaded\AccessXI.PolReloaded.dll') -Destination (Join-Path $reloadedDest 'Mods\AccessXI.PolReloaded\AccessXI.PolReloaded.dll')
-    PolReloadedNative = Assert-DeployedFileHash -Name 'PolReloadedNative' -Source (Join-Path $reloadedSource 'Mods\AccessXI.PolReloaded\accessxi_pol_native.dll') -Destination (Join-Path $reloadedDest 'Mods\AccessXI.PolReloaded\accessxi_pol_native.dll')
-    PolReloadedPrism = Assert-DeployedFileHash -Name 'PolReloadedPrism' -Source (Join-Path $reloadedSource 'Mods\AccessXI.PolReloaded\prism.dll') -Destination (Join-Path $reloadedDest 'Mods\AccessXI.PolReloaded\prism.dll')
-}
-if (-not $SkipPolBootloader) {
-    $deployedHashes['PolBootloader'] = Assert-DeployedFileHash -Name 'PolBootloader' -Source (Join-Path $payloadRoot 'pol_bootloader\AccessXI.PolReloadedBootstrap.asi') -Destination (Join-Path (Split-Path -Parent $PolExe) 'scripts\AccessXI.PolReloadedBootstrap.asi')
+$deployedHashes = [ordered]@{}
+if (-not $SkipPolNativeDeployment) {
+    $deployedHashes['PolAsiLoader'] = Assert-DeployedFileHash `
+        -Name 'PolAsiLoader' `
+        -Source (Join-Path $nativeSource 'ddraw.dll') `
+        -Destination $nativeDeployment.AsiLoader
+    $deployedHashes['PolNativeAsi'] = Assert-DeployedFileHash `
+        -Name 'PolNativeAsi' `
+        -Source (Join-Path $nativeSource 'AccessXI.PolNative.asi') `
+        -Destination $nativeDeployment.NativeAsi
+    $deployedHashes['PolNativeHook'] = Assert-DeployedFileHash `
+        -Name 'PolNativeHook' `
+        -Source (Join-Path $nativeSource 'AccessXI.PolNative\accessxi_pol_native.dll') `
+        -Destination $nativeDeployment.NativeHook
+    $deployedHashes['PolNativePrism'] = Assert-DeployedFileHash `
+        -Name 'PolNativePrism' `
+        -Source (Join-Path $nativeSource 'AccessXI.PolNative\prism.dll') `
+        -Destination $nativeDeployment.NativePrism
 }
 
 $summary = [ordered]@{
@@ -635,27 +564,25 @@ $summary = [ordered]@{
     SetupGuide = Join-Path $InstallRoot 'setup-guide.md'
     AshitaCliProfile = Join-Path $ashitaDest 'config\boot\accessxi-retail.ini'
     AshitaGuiProfile = Join-Path $ashitaDest 'config\boot\AccessXI Retail.xml'
-    ReloadedRoot = $reloadedDest
-    ReloadedLoaderConfig = $loaderConfigPath
-    ReloadedPolAppConfig = $appConfigPath
     PolExe = $PolExe
     FfxiInstallRoot = $ffxiInstallRoot
-    PolBootloaderDeployed = (-not $SkipPolBootloader)
+    LegacyReloadedCleanup = $legacyReloadedCleanup
+    PolNativeDeployed = (-not $SkipPolNativeDeployment)
+    PolNativeDeployment = $nativeDeployment
     PolUrlFilesRepaired = $polUrlFilesRepaired
     VisualCppRedistributables = $visualCppRedistributables
-    DotNetDesktopRuntimes = $dotNetDesktopRuntimes
     Shortcut = $shortcutPath
     BackupRoot = $backupRoot
     PackageManifestCreatedAt = if ($null -ne $packageManifest) { $packageManifest.CreatedAt } else { '' }
-    PackagePolReloadedModHash = if ($null -ne $packageManifest) { $packageManifest.PolReloadedModHash } else { '' }
-    PackagePolBootloaderHash = if ($null -ne $packageManifest) { $packageManifest.PolBootloaderHash } else { '' }
+    PackagePolAsiLoaderHash = if ($null -ne $packageManifest) { $packageManifest.PolAsiLoaderHash } else { '' }
+    PackagePolNativeAsiHash = if ($null -ne $packageManifest) { $packageManifest.PolNativeAsiHash } else { '' }
+    PackagePolNativeHookHash = if ($null -ne $packageManifest) { $packageManifest.PolNativeHookHash } else { '' }
+    PackagePolNativePrismHash = if ($null -ne $packageManifest) { $packageManifest.PolNativePrismHash } else { '' }
     DeployedHashes = $deployedHashes
     DiagnosticLogDirectory = Join-Path $env:USERPROFILE 'AccessXI\logs'
     DiagnosticLogs = [ordered]@{
-        ReloadedStartup = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-reloaded-startup.log'
-        ReloadedSpeech = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-reloaded-speech.log'
-        NativePolMonitor = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-monitor.log'
-        NativeSpeechQueue = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-reloaded-native-speech.queue'
+        NativeStartup = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-native-startup.log'
+        NativeSpeech = Join-Path $env:USERPROFILE 'AccessXI\logs\pol-native-speech.log'
     }
 }
 

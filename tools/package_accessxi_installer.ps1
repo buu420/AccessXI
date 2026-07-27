@@ -106,10 +106,12 @@ if ($OutputDirectory -eq '') {
 }
 $OutputDirectory = Resolve-FullPath $OutputDirectory
 
-$reloadedRoot = Join-Path $RepoRoot 'external\Reloaded-II'
-$buildReloadedScript = Join-Path $RepoRoot 'tools\build_pol_reloaded.ps1'
-$buildBootloaderScript = Join-Path $RepoRoot 'tools\build_pol_reloaded_bootloader.ps1'
+$buildNativeScript = Join-Path $RepoRoot 'tools\build_pol_native_asi.ps1'
+$testNativeStructureScript = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
+$nativeStage = Join-Path $RepoRoot 'stage\pol-native'
+$asiLoaderSource = Join-Path $RepoRoot 'external\Reloaded-II\_asi_extract\ASILoader32.dll'
 $installerScript = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
+$legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_reloaded_cleanup.ps1'
 $setupGuide = Join-Path $RepoRoot 'setup-guide.md'
 $ashitaGuiProfile = Join-Path $RepoRoot 'installer\ashita_boot\AccessXI Retail.xml'
 $ashitaCliProfile = Join-Path $RepoRoot 'installer\ashita_boot\accessxi-retail.ini'
@@ -117,8 +119,6 @@ $ashitaLauncher = Join-Path $RepoRoot 'installer\ashita_launcher\AccessXI.cmd'
 $ashitaStartupScript = Join-Path $RepoRoot 'installer\ashita_scripts\default.txt'
 $vcRedistX86 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x86.exe'
 $vcRedistX64 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x64.exe'
-$dotNetDesktopRuntimeX86 = Join-Path $RepoRoot 'installer\prerequisites\windowsdesktop-runtime-9.0.17-win-x86.exe'
-$dotNetDesktopRuntimeX64 = Join-Path $RepoRoot 'installer\prerequisites\windowsdesktop-runtime-9.0.17-win-x64.exe'
 $repoDataRoot = Join-Path $RepoRoot 'data'
 $repoSoundsRoot = Join-Path $RepoRoot 'sounds'
 $repoDatIndex = Join-Path $RepoRoot 'pol_re\out\dat_index\ffxi_dat_strings.tsv'
@@ -126,9 +126,10 @@ $repoNavMeshDll = Join-Path $RepoRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.
 $repoNavMeshesRoot = Join-Path $RepoRoot 'third_party\xiNavmeshes'
 $repoLsbSqlRoot = Join-Path $RepoRoot 'third_party\LandSandBoat-server\sql'
 $windowerResourcesRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'windower\res'
-$builtBootloaderAsi = Join-Path $RepoRoot 'tools\pol_asi_probe\AccessXI.PolReloadedBootstrap.asi'
-$packageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer'
-$zipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer.zip'
+$packageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer'
+$zipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer.zip'
+$oldPackageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer'
+$oldZipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer.zip'
 
 if (-not (Test-Path -LiteralPath (Join-Path $AshitaRoot 'Ashita-cli.exe'))) {
     throw "Ashita-cli.exe is missing from AshitaRoot: $AshitaRoot"
@@ -136,11 +137,20 @@ if (-not (Test-Path -LiteralPath (Join-Path $AshitaRoot 'Ashita-cli.exe'))) {
 if (-not (Test-Path -LiteralPath (Join-Path $AshitaRoot 'addons\accessxi_reader\accessxi_reader.lua'))) {
     throw "AccessXI Ashita addon is missing from AshitaRoot: $AshitaRoot"
 }
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedRoot 'Reloaded-II.exe'))) {
-    throw "Reloaded-II is missing from repo external folder: $reloadedRoot"
-}
 if (-not (Test-Path -LiteralPath $installerScript)) {
     throw "Installer script is missing: $installerScript"
+}
+if (-not (Test-Path -LiteralPath $legacyCleanupScript)) {
+    throw "Legacy Reloaded cleanup library is missing: $legacyCleanupScript"
+}
+if (-not (Test-Path -LiteralPath $buildNativeScript)) {
+    throw "Native PlayOnline build script is missing: $buildNativeScript"
+}
+if (-not (Test-Path -LiteralPath $testNativeStructureScript)) {
+    throw "Native PlayOnline structure test is missing: $testNativeStructureScript"
+}
+if (-not (Test-Path -LiteralPath $asiLoaderSource -PathType Leaf)) {
+    throw "Reviewed x86 Ultimate ASI Loader is missing: $asiLoaderSource"
 }
 if (-not (Test-Path -LiteralPath $setupGuide)) {
     throw "Setup guide is missing: $setupGuide"
@@ -162,12 +172,6 @@ if (-not (Test-Path -LiteralPath $vcRedistX86)) {
 }
 if (-not (Test-Path -LiteralPath $vcRedistX64)) {
     throw "x64 Visual C++ redistributable prerequisite is missing: $vcRedistX64"
-}
-if (-not (Test-Path -LiteralPath $dotNetDesktopRuntimeX86)) {
-    throw "x86 .NET Desktop Runtime prerequisite is missing: $dotNetDesktopRuntimeX86"
-}
-if (-not (Test-Path -LiteralPath $dotNetDesktopRuntimeX64)) {
-    throw "x64 .NET Desktop Runtime prerequisite is missing: $dotNetDesktopRuntimeX64"
 }
 if (-not (Test-Path -LiteralPath $repoDataRoot)) {
     throw "AccessXI data folder is missing: $repoDataRoot"
@@ -192,43 +196,34 @@ if (-not (Test-Path -LiteralPath $windowerResourcesRoot)) {
 }
 
 if (-not $NoBuild) {
-    & $buildReloadedScript -RepoRoot $RepoRoot
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
-
-    & $buildBootloaderScript -RepoRoot $RepoRoot
+    & $buildNativeScript -RepoRoot $RepoRoot
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedRoot 'Mods\AccessXI.PolReloaded\AccessXI.PolReloaded.dll'))) {
-    throw 'Built AccessXI Reloaded POL mod is missing. Run build_pol_reloaded.ps1 first.'
-}
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedRoot 'Mods\AccessXI.PolReloaded\prism.dll'))) {
-    throw 'Built AccessXI Reloaded POL mod is missing package-local prism.dll. Run build_pol_reloaded.ps1 first.'
-}
-if (-not (Test-Path -LiteralPath (Join-Path $reloadedRoot 'Mods\reloaded.sharedlib.hooks\ModConfig.json'))) {
-    throw 'Reloaded shared hooks dependency is missing from the portable Reloaded-II Mods folder.'
-}
-if (-not (Test-Path -LiteralPath $builtBootloaderAsi)) {
-    throw 'Built AccessXI delayed POL bootloader is missing. Run build_pol_reloaded_bootloader.ps1 first.'
+& $testNativeStructureScript -RepoRoot $RepoRoot -StageRoot $nativeStage
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-Assert-UnderDirectory -Path $packageRoot -Parent $OutputDirectory -Message "Refusing to clean package root outside output directory: $packageRoot"
-if (Test-Path -LiteralPath $packageRoot) {
-    Remove-Item -LiteralPath $packageRoot -Recurse -Force
+foreach ($directoryToClean in @($packageRoot, $oldPackageRoot)) {
+    Assert-UnderDirectory -Path $directoryToClean -Parent $OutputDirectory -Message "Refusing to clean package root outside output directory: $directoryToClean"
+    if (Test-Path -LiteralPath $directoryToClean) {
+        Remove-Item -LiteralPath $directoryToClean -Recurse -Force
+    }
 }
-if (Test-Path -LiteralPath $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
+foreach ($archiveToClean in @($zipPath, $oldZipPath)) {
+    Assert-UnderDirectory -Path $archiveToClean -Parent $OutputDirectory -Message "Refusing to clean package archive outside output directory: $archiveToClean"
+    if (Test-Path -LiteralPath $archiveToClean) {
+        Remove-Item -LiteralPath $archiveToClean -Force
+    }
 }
 
 $payloadRoot = Join-Path $packageRoot 'payload'
 $payloadAshita = Join-Path $payloadRoot 'Ashita'
-$payloadReloaded = Join-Path $payloadRoot 'Reloaded-II'
-$payloadBootloader = Join-Path $payloadRoot 'pol_bootloader'
+$payloadNative = Join-Path $payloadRoot 'PlayOnlineNative'
 $payloadPrerequisites = Join-Path $payloadRoot 'Prerequisites'
 $payloadAddon = Join-Path $payloadAshita 'addons\accessxi_reader'
 
@@ -258,22 +253,6 @@ $ashitaExcludePatterns = @(
     '*.bak*',
     '*~'
 )
-$reloadedExcludePatterns = @(
-    'AccessibilityBackups',
-    'AccessibilityBackups\*',
-    'User\Logs',
-    'User\Logs\*',
-    'Logs',
-    'Logs\*',
-    'pol-reloaded-native-speech.queue',
-    'pol-reloaded-speech.log',
-    'pol-monitor.log',
-    'Apps\AccessXI.PolPreLogin\AppConfig.json',
-    '*.log',
-    '*.queue',
-    '*.dmp'
-)
-
 Copy-FilteredTree -Source $AshitaRoot -Destination $payloadAshita -ExcludePatterns $ashitaExcludePatterns
 $payloadWin32Types = Join-Path $payloadAshita 'addons\libs\win32types.lua'
 if (-not (Test-Path -LiteralPath $payloadWin32Types)) {
@@ -290,7 +269,6 @@ if ($win32TypesRepaired -notmatch 'typedef\s+const\s+IID\s*\*\s*REFIID' -or
 if ($win32TypesRepaired -cne $win32TypesSource) {
     [System.IO.File]::WriteAllText($payloadWin32Types, $win32TypesRepaired, (New-Object System.Text.UTF8Encoding($false)))
 }
-Copy-FilteredTree -Source $reloadedRoot -Destination $payloadReloaded -ExcludePatterns $reloadedExcludePatterns
 $payloadAshitaAddons = Join-Path $payloadAshita 'addons'
 if (Test-Path -LiteralPath $payloadAshitaAddons) {
     Get-ChildItem -LiteralPath $payloadAshitaAddons -Directory | Where-Object {
@@ -315,12 +293,14 @@ Copy-RequiredFile -Source $ashitaCliProfile -Destination (Join-Path $payloadAshi
 Copy-RequiredFile -Source $ashitaLauncher -Destination (Join-Path $payloadAshita 'AccessXI.cmd')
 Copy-RequiredFile -Source $ashitaStartupScript -Destination (Join-Path $payloadAshita 'scripts\default.txt')
 Copy-RequiredFile -Source $installerScript -Destination (Join-Path $packageRoot 'install_accessxi.ps1')
+Copy-RequiredFile -Source $legacyCleanupScript -Destination (Join-Path $packageRoot 'legacy_reloaded_cleanup.ps1')
 Copy-RequiredFile -Source $setupGuide -Destination (Join-Path $packageRoot 'setup-guide.md')
-Copy-RequiredFile -Source $builtBootloaderAsi -Destination (Join-Path $payloadBootloader 'AccessXI.PolReloadedBootstrap.asi')
+Copy-RequiredFile -Source $asiLoaderSource -Destination (Join-Path $payloadNative 'ddraw.dll')
+Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative.asi') -Destination (Join-Path $payloadNative 'AccessXI.PolNative.asi')
+Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\accessxi_pol_native.dll') -Destination (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
+Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\prism.dll') -Destination (Join-Path $payloadNative 'AccessXI.PolNative\prism.dll')
 Copy-RequiredFile -Source $vcRedistX86 -Destination (Join-Path $payloadPrerequisites 'vc_redist.x86.exe')
 Copy-RequiredFile -Source $vcRedistX64 -Destination (Join-Path $payloadPrerequisites 'vc_redist.x64.exe')
-Copy-RequiredFile -Source $dotNetDesktopRuntimeX86 -Destination (Join-Path $payloadPrerequisites 'windowsdesktop-runtime-9.0.17-win-x86.exe')
-Copy-RequiredFile -Source $dotNetDesktopRuntimeX64 -Destination (Join-Path $payloadPrerequisites 'windowsdesktop-runtime-9.0.17-win-x64.exe')
 
 $manifest = [ordered]@{
     CreatedAt = (Get-Date).ToString('o')
@@ -331,14 +311,12 @@ $manifest = [ordered]@{
     AccessXIReaderHash = Get-OptionalFileHash (Join-Path $payloadAshita 'addons\accessxi_reader\accessxi_reader.lua')
     AccessXIDataHash = Get-OptionalFileHash (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')
     AccessXIDatIndexHash = Get-OptionalFileHash (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')
-    ReloadedExeHash = Get-OptionalFileHash (Join-Path $payloadReloaded 'Reloaded-II.exe')
-    PolReloadedModHash = Get-OptionalFileHash (Join-Path $payloadReloaded 'Mods\AccessXI.PolReloaded\AccessXI.PolReloaded.dll')
-    PolReloadedPrismHash = Get-OptionalFileHash (Join-Path $payloadReloaded 'Mods\AccessXI.PolReloaded\prism.dll')
-    PolBootloaderHash = Get-OptionalFileHash (Join-Path $payloadBootloader 'AccessXI.PolReloadedBootstrap.asi')
+    PolAsiLoaderHash = Get-OptionalFileHash (Join-Path $payloadNative 'ddraw.dll')
+    PolNativeAsiHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative.asi')
+    PolNativeHookHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
+    PolNativePrismHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\prism.dll')
     VisualCppRedistX86Hash = Get-OptionalFileHash (Join-Path $payloadPrerequisites 'vc_redist.x86.exe')
     VisualCppRedistX64Hash = Get-OptionalFileHash (Join-Path $payloadPrerequisites 'vc_redist.x64.exe')
-    DotNetDesktopRuntimeX86Hash = Get-OptionalFileHash (Join-Path $payloadPrerequisites 'windowsdesktop-runtime-9.0.17-win-x86.exe')
-    DotNetDesktopRuntimeX64Hash = Get-OptionalFileHash (Join-Path $payloadPrerequisites 'windowsdesktop-runtime-9.0.17-win-x64.exe')
 }
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $packageRoot 'manifest.json') -Encoding UTF8
 

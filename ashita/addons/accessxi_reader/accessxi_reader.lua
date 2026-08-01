@@ -1489,6 +1489,7 @@ function accessxi.load_menu_code_module(name, env)
 end
 
 accessxi.debug_commands = accessxi.load_module_table('debug_commands', T{});
+accessxi.load_code_module('speech_format');
 
 local function utf8_to_wide(text)
     local needed = kernel32.MultiByteToWideChar(CP_UTF8, 0, text, #text, nil, 0);
@@ -59495,7 +59496,7 @@ accessxi.chat_reader_entries = function (category_key)
     return entries;
 end
 
-accessxi.chat_reader_entry_speech = function (category, entries, index, prefix)
+accessxi.chat_reader_entry_speech = function (category, entries, index, prefix, message_only)
     category = category or T{ key = 'all', label = 'All' };
     entries = entries or T{};
     local count = entries:len();
@@ -59507,6 +59508,9 @@ accessxi.chat_reader_entry_speech = function (category, entries, index, prefix)
     local line = accessxi.chat_entry_speech(entries[index], tostring(category.key or 'all') == 'all');
     if (line == '') then
         line = 'Blank line.';
+    end
+    if (message_only == true) then
+        return accessxi.chat_message_speech(line);
     end
     if (prefix ~= nil and prefix ~= '') then
         return ('%s. %s log. %d of %d. %s'):fmt(prefix, category.label or 'Chat', index, count, line);
@@ -59588,7 +59592,7 @@ accessxi.chat_reader_move = function (delta)
     end
 
     accessxi.chat_reader_positions[category.key] = next_pos;
-    return accessxi.chat_reader_entry_speech(category, entries, next_pos, prefix);
+    return accessxi.chat_reader_entry_speech(category, entries, next_pos, prefix, true);
 end
 
 accessxi.chat_reader_native_log_open = function ()
@@ -67327,7 +67331,7 @@ local function chat_log_menu_speech(name, suppress_initial)
             return '';
         end
         accessxi.chat_log_queue_immediate = native.chat_log_queue_immediate == true;
-        return ('Chat log. %s'):fmt(line);
+        return accessxi.chat_message_speech(line);
     end
 
     local missing_ank = -1;
@@ -71672,18 +71676,11 @@ end
 local function nav_menu_item_speech()
     local total = accessxi.nav_menu_items:len();
     local category = nav_current_category();
-    local category_label = category ~= nil and category.label or 'All';
     local category_key = category ~= nil and category.key or 'all';
     local search_query = nav_clean_field(accessxi.nav_menu_search_query or '');
-    local scope_label = category_label;
-    if (search_query ~= '' and category_key == 'search-results') then
-        scope_label = ('%s. Search %s'):fmt(category_label, search_query);
-    end
     if (total == 0) then
-        if (search_query ~= '' and category_key == 'search-results') then
-            return ('Navigation. Search %s. No search results found.'):fmt(search_query);
-        end
-        return ('Navigation. %s. No destinations found in this zone.'):fmt(scope_label);
+        return accessxi.navigation_empty_speech(
+            category_key == 'search-results' and search_query or '');
     end
 
     if (accessxi.nav_menu_index < 1) then
@@ -71709,41 +71706,31 @@ local function nav_menu_item_speech()
             route_text = 'No zone route known.';
         end
         local confidence = nav_point_confidence(item);
-        local confidence_text = confidence ~= '' and (' Confidence %s.'):fmt(confidence) or '';
-        return ('Zone search. Search %s. %d of %d. %s. NPC. %s. %s%s'):fmt(
-            search_query,
+        return accessxi.navigation_zone_search_row_speech(
+            accessxi.speech_name(item.name or 'NPC'),
             accessxi.nav_menu_index,
             total,
-            accessxi.speech_name(item.name or 'NPC'),
             zone_name ~= '' and zone_name or ('zone ' .. tostring(item.zone or 0)),
             route_text,
-            confidence_text);
+            confidence);
     end
 
     local player = nav_cached_player_position();
     local phrase = accessxi.nav_guidance_phrase(player, item, nil);
     local kind = nav_clean_field(item.kind);
-    if (kind ~= '') then
-        kind = kind .. '. ';
-    end
     local confidence = nav_point_confidence(item);
-    local confidence_text = '';
-    if (confidence ~= '') then
-        confidence_text = ('Confidence %s. '):fmt(confidence);
-    end
     local section = nav_clean_field(item.section or '');
     local section_lower = section:lower();
     local note_text = '';
     if (section_lower:startswith('requires:') or section_lower:startswith('note:')) then
-        note_text = (' %s.'):fmt(section);
+        note_text = section;
     end
-    return ('Navigation. %s. %d of %d. %s. %s%s%s%s'):fmt(
-        scope_label,
+    return accessxi.navigation_row_speech(
+        accessxi.speech_name(item.name or 'destination'),
         accessxi.nav_menu_index,
         total,
-        accessxi.speech_name(item.name or 'destination'),
         kind,
-        confidence_text,
+        confidence,
         phrase,
         note_text);
 end
@@ -71762,7 +71749,7 @@ local function nav_open_menu(search_query)
         accessxi.nav_menu_poll_key = 0;
         accessxi.nav_menu_poll_tick = 0;
         accessxi.nav_menu_open_tick = tick();
-        local text = ('Navigation. Search %s. No search results found.'):fmt(accessxi.nav_menu_search_query);
+        local text = accessxi.navigation_empty_speech(accessxi.nav_menu_search_query);
         speak(text);
         log_line(('nav browser search empty search="%s"'):fmt(accessxi.escape_probe_log_text(accessxi.nav_menu_search_query or '')));
         return;
@@ -71851,7 +71838,7 @@ local function nav_menu_move(delta)
 
     local total = accessxi.nav_menu_items:len();
     if (total == 0) then
-        speak('Navigation destinations. No destinations found in this zone.');
+        speak(accessxi.navigation_empty_speech(''));
         return;
     end
 
@@ -71863,9 +71850,9 @@ end
 
 local function nav_menu_category_move(delta)
     accessxi.nav_menu_category = accessxi.nav_menu_category + delta;
-    nav_current_category();
+    local category = nav_current_category();
     nav_menu_rebuild();
-    local text = nav_menu_item_speech();
+    local text = accessxi.navigation_category_speech(category ~= nil and category.label or '');
     speak(text);
     log_line('nav menu category ' .. text);
 end

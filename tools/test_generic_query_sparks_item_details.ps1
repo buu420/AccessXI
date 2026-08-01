@@ -98,15 +98,17 @@ end
 
 local resources = {
     ['items.lua'] = {
-        [16385] = { id = 16385, en = 'Cesti', enl = 'cesti', category = 'Weapon', level = 1 },
-        [16391] = { id = 16391, en = 'Brass Knuckles', enl = 'brass knuckles', category = 'Weapon', level = 9 },
-        [16530] = { id = 16530, en = 'Xiphos', enl = 'xiphos', category = 'Weapon', level = 7 },
-        [16624] = { id = 16624, en = 'Xiphos +1', enl = 'xiphos +1', category = 'Weapon', level = 7 },
-        [30000] = { id = 30000, en = 'Test Blade', enl = 'test blade', category = 'Weapon', level = 99, item_level = 119 },
+        [16385] = { id = 16385, en = 'Cesti', enl = 'cesti', category = 'Weapon', jobs = 527334, level = 1, races = 510, skill = 1, slots = 1 },
+        [16391] = { id = 16391, en = 'Brass Knuckles', enl = 'brass knuckles', category = 'Weapon', jobs = 525286, level = 9, races = 510, skill = 1, slots = 1 },
+        [16465] = { id = 16465, en = 'Bronze Knife', enl = 'bronze knife', category = 'Weapon', jobs = 949698, level = 1, races = 510, skill = 2, slots = 3 },
+        [16530] = { id = 16530, en = 'Xiphos', enl = 'xiphos', category = 'Weapon', jobs = 4419554, level = 7, races = 510, skill = 3, slots = 3 },
+        [16624] = { id = 16624, en = 'Xiphos +1', enl = 'xiphos +1', category = 'Weapon', jobs = 4419554, level = 7, races = 510, skill = 3, slots = 3 },
+        [30000] = { id = 30000, en = 'Test Blade', enl = 'test blade', category = 'Weapon', jobs = 8388606, level = 99, races = 510, skill = 3, slots = 3, superior_level = 5, item_level = 119 },
     },
     ['item_descriptions.lua'] = {
         [16385] = { id = 16385, en = 'DMG:+1 Delay:+48 Accuracy+3' },
         [16391] = { id = 16391, en = 'DMG:+4 Delay:+96 Accuracy+2' },
+        [16465] = { id = 16465, en = 'DMG:4 Delay:195' },
         [16530] = { id = 16530, en = 'DMG:8 Delay:228' },
         [16624] = { id = 16624, en = 'DMG:9 Delay:222' },
         [30000] = { id = 30000, en = 'DMG:200 Delay:240' },
@@ -151,25 +153,33 @@ function accessxi.generic_query_direct_label_for_child(_, _, _)
 end
 
 local brass_help = select(1, accessxi.generic_query_resource_help_for_label('Brass Knuckles'))
-if brass_help ~= 'DMG:+4 Delay:+96 Accuracy+2 Level 9.' then
-    error('required level was not added to exact item help: ' .. tostring(brass_help))
+local brass_expected = 'Hand-to-Hand. All Races. DMG:+4 Delay:+96 Accuracy+2. Level 9. WAR, MNK, RDM, THF, PLD, DRK, BST, DNC.'
+if brass_help ~= brass_expected then
+    error('full visible Brass Knuckles panel was not preserved: ' .. tostring(brass_help))
+end
+
+local knife_help = select(1, accessxi.generic_query_resource_help_for_label('Bronze Knife'))
+local knife_expected = 'Dagger. All Races. DMG:4 Delay:195. Level 1. WAR, THF, PLD, DRK, BRD, RNG, SAM, NIN, DRG, COR, PUP, DNC.'
+if knife_help ~= knife_expected then
+    error('full visible Bronze Knife panel was not preserved: ' .. tostring(knife_help))
 end
 
 local item_level_help = select(1, accessxi.generic_query_resource_help_for_label('Test Blade'))
-if item_level_help ~= 'DMG:200 Delay:240 Level 99. Item level 119.' then
-    error('item-level equipment did not preserve both visible levels: ' .. tostring(item_level_help))
+local item_level_expected = 'Sword. All Races. DMG:200 Delay:240. Level 99. All Jobs. Superior 5. Item level 119.'
+if item_level_help ~= item_level_expected then
+    error('item-level equipment did not preserve the full visible panel: ' .. tostring(item_level_help))
 end
 
 selected_label = 'Cesti Primer'
 menu_title = 'Fhelm Jobeizat'
 local speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
-if speech ~= 'Fhelm Jobeizat. Cesti. DMG:+1 Delay:+48 Accuracy+3 Level 1.' then
+if speech ~= 'Fhelm Jobeizat. Cesti. Hand-to-Hand. All Races. DMG:+1 Delay:+48 Accuracy+3. Level 1. WAR, MNK, RDM, THF, PLD, DRK, BST, RNG, DNC.' then
     error('contaminated Cesti row was not repaired from the exact item resource: ' .. tostring(speech))
 end
 
 selected_label = 'Xiphos Tale Chapter'
 speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
-if speech ~= 'Fhelm Jobeizat. Xiphos. DMG:8 Delay:228 Level 7.' then
+if speech ~= 'Fhelm Jobeizat. Xiphos. Sword. All Races. DMG:8 Delay:228. Level 7. WAR, RDM, THF, PLD, DRK, BST, BRD, RNG, NIN, DRG, BLU, COR, RUN.' then
     error('contaminated Xiphos row was not repaired from the exact item resource: ' .. tostring(speech))
 end
 

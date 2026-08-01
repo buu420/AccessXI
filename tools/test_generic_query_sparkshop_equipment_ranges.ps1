@@ -163,6 +163,26 @@ for _, title in ipairs(titles) do
         end
     end
 end
+
+-- FFXI can leave GetWindowName blank on the first Sparks opening after a
+-- process restart.  A proven Sparks target plus the exact 13-row menu must
+-- still decode immediately, without requiring the player to close/reopen it.
+accessxi.last_target_name = 'Fhelm Jobeizat'
+selected_case = cases[1]
+local cold_open_speech = accessxi.generic_query_menu_speech('menu    query', '', 0x2000)
+if cold_open_speech ~= 'Fhelm Jobeizat. Equipment level 1 through 9.' then
+    error(('cold first opening did not recover the Sparks title safely: %q'):format(tostring(cold_open_speech)))
+end
+
+-- The fallback must not turn an unrelated remembered target into a Sparks
+-- menu merely because another query happens to have the same row count.
+accessxi.last_target_name = 'Treasure Casket'
+selected_case = cases[1]
+local unrelated_speech = accessxi.generic_query_menu_speech('menu    query', '', 0x2000)
+if unrelated_speech == 'Equipment level 1 through 9.'
+    or unrelated_speech == 'Treasure Casket. Equipment level 1 through 9.' then
+    error(('cold-open Sparks recovery leaked to an unrelated target: %q'):format(tostring(unrelated_speech)))
+end
 "@
 
 $tmp = Join-Path $env:TEMP ('accessxi-generic-query-sparkshop-ranges-{0}.lua' -f ([guid]::NewGuid().ToString('N')))

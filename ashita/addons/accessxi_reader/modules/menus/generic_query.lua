@@ -246,6 +246,24 @@ function accessxi.generic_query_is_sparks_title(title)
     return sparks_titles[title] == true;
 end
 
+function accessxi.generic_query_recover_sparks_title(title, count)
+    title = accessxi.plain_native_menu_label(title or '');
+    count = tonumber(count) or 0;
+    if (title ~= '' or count ~= 13) then
+        return title, '';
+    end
+
+    -- On the first query-menu opening after an FFXI process restart,
+    -- GetWindowName can be blank even though target polling already proved the
+    -- Records of Eminence guide.  Keep this fallback intentionally narrow:
+    -- only a known guide and the exact 13-row Sparks category menu qualify.
+    local target_name = accessxi.plain_native_menu_label(accessxi.last_target_name or '');
+    if (accessxi.generic_query_is_sparks_title(target_name)) then
+        return target_name, 'last-target-sparks';
+    end
+    return '', '';
+end
+
 function accessxi.generic_query_sparkshop_context_label(title, selected, count, raw, list_label)
     title = accessxi.plain_native_menu_label(title or '');
     selected = tonumber(selected) or 0;
@@ -589,8 +607,8 @@ function accessxi.generic_query_resource_help_text(text)
     if (text:find('\\', 1, true) ~= nil or text:find('menu    ', 1, true) ~= nil or text:find('anc     ', 1, true) ~= nil) then
         return '';
     end
-    if (#text > 260) then
-        local clipped = text:sub(1, 260);
+    if (#text > 768) then
+        local clipped = text:sub(1, 768);
         local sentence_end = 0;
         for pos in clipped:gmatch('()[%.%!%?]') do
             sentence_end = pos;
@@ -607,25 +625,149 @@ function accessxi.generic_query_resource_help_text(text)
     return text;
 end
 
+local generic_query_weapon_skill_names = {
+    [1] = 'Hand-to-Hand',
+    [2] = 'Dagger',
+    [3] = 'Sword',
+    [4] = 'Great Sword',
+    [5] = 'Axe',
+    [6] = 'Great Axe',
+    [7] = 'Scythe',
+    [8] = 'Polearm',
+    [9] = 'Katana',
+    [10] = 'Great Katana',
+    [11] = 'Club',
+    [12] = 'Staff',
+    [25] = 'Archery',
+    [26] = 'Marksmanship',
+    [27] = 'Throwing',
+    [30] = 'Shield',
+};
+
+local generic_query_equipment_slot_names = {
+    [0] = 'Main',
+    [1] = 'Sub',
+    [2] = 'Range',
+    [3] = 'Ammo',
+    [4] = 'Head',
+    [5] = 'Body',
+    [6] = 'Hands',
+    [7] = 'Legs',
+    [8] = 'Feet',
+    [9] = 'Neck',
+    [10] = 'Waist',
+    [11] = 'Ear',
+    [12] = 'Ear',
+    [13] = 'Ring',
+    [14] = 'Ring',
+    [15] = 'Back',
+};
+
+local generic_query_job_names = {
+    'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK',
+    'BST', 'BRD', 'RNG', 'SAM', 'NIN', 'DRG', 'SMN', 'BLU',
+    'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN',
+};
+
+local generic_query_races = {
+    { mask = 0x0002, label = 'Hume male' },
+    { mask = 0x0004, label = 'Hume female' },
+    { mask = 0x0008, label = 'Elvaan male' },
+    { mask = 0x0010, label = 'Elvaan female' },
+    { mask = 0x0020, label = 'Tarutaru male' },
+    { mask = 0x0040, label = 'Tarutaru female' },
+    { mask = 0x0080, label = 'Mithra' },
+    { mask = 0x0100, label = 'Galka' },
+};
+
+local function generic_query_mask_has(value, mask)
+    value = math.floor(tonumber(value) or 0);
+    mask = math.floor(tonumber(mask) or 0);
+    if (value <= 0 or mask <= 0) then
+        return false;
+    end
+    return math.floor(value / mask) % 2 == 1;
+end
+
+local function generic_query_equipment_type(item)
+    local skill_name = generic_query_weapon_skill_names[math.floor(tonumber(item.skill) or 0)];
+    if (skill_name ~= nil) then
+        return skill_name;
+    end
+
+    local slots = math.floor(tonumber(item.slots) or 0);
+    local parts = {};
+    local seen = {};
+    for slot = 0, 15 do
+        local label = generic_query_equipment_slot_names[slot];
+        if (label ~= nil and generic_query_mask_has(slots, 2 ^ slot) and seen[label] ~= true) then
+            table.insert(parts, label);
+            seen[label] = true;
+        end
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_races_text(races)
+    races = math.floor(tonumber(races) or 0);
+    local parts = {};
+    for _, entry in ipairs(generic_query_races) do
+        if (generic_query_mask_has(races, entry.mask)) then
+            table.insert(parts, entry.label);
+        end
+    end
+    if (#parts == #generic_query_races) then
+        return 'All Races';
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_jobs_text(jobs)
+    jobs = math.floor(tonumber(jobs) or 0);
+    local parts = {};
+    for index, label in ipairs(generic_query_job_names) do
+        if (generic_query_mask_has(jobs, 2 ^ index)) then
+            table.insert(parts, label);
+        end
+    end
+    if (#parts == #generic_query_job_names) then
+        return 'All Jobs';
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_append_detail(parts, text)
+    text = accessxi.generic_query_resource_help_text(text or '');
+    if (text == '') then
+        return;
+    end
+    if (text:match('[%.%!%?]$') == nil) then
+        text = text .. '.';
+    end
+    parts:append(text);
+end
+
 function accessxi.generic_query_item_resource_help(item, description)
     item = type(item) == 'table' and item or {};
-    local help = accessxi.generic_query_resource_help_text(description or '');
+    local details = T{};
+    generic_query_append_detail(details, generic_query_equipment_type(item));
+    generic_query_append_detail(details, generic_query_races_text(item.races));
+    generic_query_append_detail(details, description or '');
+
     local level = math.floor(tonumber(item.level) or 0);
     local item_level = math.floor(tonumber(item.item_level) or 0);
-    local details = T{};
     if (level > 0) then
-        details:append(('Level %d.'):fmt(level));
+        generic_query_append_detail(details, ('Level %d'):fmt(level));
+    end
+    generic_query_append_detail(details, generic_query_jobs_text(item.jobs));
+    local superior_level = math.floor(tonumber(item.superior_level) or 0);
+    if (superior_level > 0) then
+        generic_query_append_detail(details, ('Superior %d'):fmt(superior_level));
     end
     if (item_level > 0) then
-        details:append(('Item level %d.'):fmt(item_level));
+        generic_query_append_detail(details, ('Item level %d'):fmt(item_level));
     end
-    if (#details <= 0) then
-        return help;
-    end
-    if (help == '') then
-        return details:concat(' ');
-    end
-    return ('%s %s'):fmt(help, details:concat(' '));
+    return details:concat(' ');
 end
 
 function accessxi.generic_query_resource_index_add(index, key, id, help, source)
@@ -1030,8 +1172,6 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
     else
         title = accessxi.plain_native_menu_label(title);
     end
-    accessxi.current_menu_speech_title = title;
-
     local selected, page, raw, child, count = accessxi.survival_guide_query_child_state_for_obj(obj);
     selected = tonumber(selected) or 0;
     count = tonumber(count) or 0;
@@ -1041,6 +1181,8 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
     if (count <= 0 or count > 64) then
         count = math.max(tonumber(accessxi.native_menu_index(0x24)) or 0, tonumber(accessxi.native_menu_index(0x28)) or 0);
     end
+    title = accessxi.generic_query_recover_sparks_title(title, count);
+    accessxi.current_menu_speech_title = title;
     if (selected <= 0 or count <= 0 or selected > count or count > 64 or not accessxi.is_probe_pointer(child)) then
         return nil;
     end

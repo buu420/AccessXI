@@ -134,6 +134,9 @@ end
 local function is_upper_door(point)
     return same_position(point, upper_north) or same_position(point, upper_south)
 end
+local function is_bastok_markets_zone_line(point)
+    return near(point.x, -6.175) and near(point.z, -0.008) and near(point.y, -2.966)
+end
 
 nav_compute_mesh_route = function(start_point, end_point)
     calls:append(T{ start_point = copy(start_point), end_point = copy(end_point) })
@@ -156,6 +159,15 @@ nav_compute_mesh_route = function(start_point, end_point)
     if continuation_enabled and start_lower and end_lower_destination then
         return T{ copy(start_point), T{ zone = 237, x = -38, z = start_point.z, y = 0 }, copy(end_point) }
     end
+    if continuation_enabled and start_lower and is_bastok_markets_zone_line(end_point) then
+        return T{
+            copy(start_point),
+            T{ zone = 237, x = -38, z = -12, y = 0 },
+            T{ zone = 237, x = -27.776, z = -8.58, y = 0 },
+            T{ zone = 237, x = -6.175, z = -0.008, y = 0 },
+            copy(end_point),
+        }
+    end
     return T{ copy(end_point) }
 end
 nav_distance = function(a, b)
@@ -168,6 +180,11 @@ speak = function(text) spoken:append(text) end
 logs = T{}
 log_line = function(text) logs:append(text) end
 tick = function() return 1000 end
+nav_point_is_zoneline = function(point)
+    return point ~= nil and (
+        string.find(string.lower(tostring(point.name or '')), 'zone line', 1, true) ~= nil
+        or string.find(string.lower(tostring(point.source or '')), 'zoneline', 1, true) ~= nil)
+end
 
 accessxi = {
     nav_route_points = T{},
@@ -195,6 +212,7 @@ setfenv(chunk, {
     T = T,
     nav_distance = nav_distance,
     nav_compute_mesh_route = nav_compute_mesh_route,
+    nav_point_is_zoneline = nav_point_is_zoneline,
     log_line = log_line,
     speak = speak,
     tick = tick,
@@ -245,6 +263,33 @@ assert(accessxi.nav_transport_transition.direction == 'down')
 for _, point in ipairs(downward) do
     assert(math.abs((tonumber(point.y) or 0) + 14) < 4.1, 'downward approach fabricated a vertical elevator edge')
 end
+
+-- An explicitly selected matching zone line may touch its own trigger only in
+-- a terminal continuation suffix that never leaves it. This is the exact live
+-- Naji return case, including FFXINAV's appended destination point.
+accessxi.nav_transport_clear('test-downward-zoneline-route')
+local markets_zone_line = T{
+    zone = 237,
+    name = 'Bastok Markets zone line',
+    x = -6.175,
+    z = -0.008,
+    y = -2.966,
+    kind = 'area',
+    source = 'lsb-zoneline-all',
+}
+local downward_zone = accessxi.nav_metalworks_elevator_route(upper_player, markets_zone_line)
+assert(downward_zone:len() > 1, 'upper-floor route to the intended outgoing zone line was rejected')
+assert(accessxi.nav_transport_transition.direction == 'down')
+local downward_state = accessxi.nav_transport_transition
+local downward_handled = accessxi.nav_transport_transition_poll(copy(downward_state.from_landing), markets_zone_line, 3500)
+assert(downward_handled == true and accessxi.nav_transport_transition.phase == 'waiting')
+local lower_arrival = copy(downward_state.to_landing)
+lower_arrival.y = 0
+downward_handled = accessxi.nav_transport_transition_poll(lower_arrival, markets_zone_line, 4500)
+assert(downward_handled == true)
+assert(accessxi.nav_transport_transition == nil, 'downward zone-line continuation did not resume')
+assert(accessxi.nav_route_points:len() > 1)
+assert(near(accessxi.nav_route_points[#accessxi.nav_route_points].x, -6.175))
 
 -- Both independently walkable halves are mandatory.
 accessxi.nav_transport_clear('test-unverified-half')

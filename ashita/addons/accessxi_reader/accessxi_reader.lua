@@ -70173,6 +70173,7 @@ accessxi.load_code_module('metalworks_elevator_navigation', T{
     T = T,
     nav_distance = nav_distance,
     nav_compute_mesh_route = nav_compute_mesh_route,
+    nav_point_is_zoneline = accessxi.nav_point_is_zoneline,
     log_line = log_line,
     speak = speak,
     tick = tick,

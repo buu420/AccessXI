@@ -135,7 +135,7 @@ local function distance_to_segment_3d(point, a, b)
     return distance_3d(point, closest);
 end
 
-local function route_crosses_zone_trigger(route)
+local function route_crosses_zone_trigger(route, allow_terminal_contact)
     local count = route ~= nil and route:len() or 0;
     if (count < 2) then
         return false;
@@ -151,12 +151,29 @@ local function route_crosses_zone_trigger(route)
                 and first_distance <= zone_trigger_radius
                 and second_distance >= (first_distance + 0.5)
                 and segment_distance >= (first_distance - 0.25);
-            if (not starts_inside_and_leaves) then
+            local intended_terminal_contact = allow_terminal_contact == true
+                and second_distance <= zone_trigger_radius;
+            if (intended_terminal_contact) then
+                for terminal_index = index + 1, count do
+                    if (distance_3d(route[terminal_index], metalworks_exit) > zone_trigger_radius) then
+                        intended_terminal_contact = false;
+                        break;
+                    end
+                end
+            end
+            if (not starts_inside_and_leaves and not intended_terminal_contact) then
                 return true, segment_distance, index;
             end
         end
     end
     return false;
+end
+
+local function destination_is_metalworks_exit(destination)
+    return destination ~= nil
+        and type(nav_point_is_zoneline) == 'function'
+        and nav_point_is_zoneline(destination)
+        and distance_3d(destination, metalworks_exit) <= 3.0;
 end
 
 local function route_length(route)
@@ -253,7 +270,10 @@ local function try_direction(player, destination, elevator, from_landing, to_lan
     if (not leg_is_verified(continuation, to_landing, destination)) then
         return nil;
     end
-    local continuation_crosses, continuation_distance, continuation_segment = route_crosses_zone_trigger(continuation);
+    local allow_terminal_contact = destination_is_metalworks_exit(destination);
+    local continuation_crosses, continuation_distance, continuation_segment = route_crosses_zone_trigger(
+        continuation,
+        allow_terminal_contact);
     if (continuation_crosses) then
         log_line(('nav transport rejected id="%s" phase=continuation reason="zone trigger" distance=%.2f segment=%d'):fmt(
             elevator.id,
@@ -419,7 +439,10 @@ local function resume_from_destination_floor(player, destination, state, now)
 
     local fresh = nav_compute_mesh_route(player, destination);
     local route = fresh;
-    local fresh_crosses = route ~= nil and route:len() > 1 and route_crosses_zone_trigger(route);
+    local allow_terminal_contact = destination_is_metalworks_exit(destination);
+    local fresh_crosses = route ~= nil
+        and route:len() > 1
+        and route_crosses_zone_trigger(route, allow_terminal_contact);
     local saved_destination_is_current = nav_distance(state.destination, destination) <= 1.5
         and vertical_distance(state.destination, destination) <= 1.0;
     if ((fresh == nil or fresh:len() <= 1 or fresh_crosses)
@@ -427,7 +450,9 @@ local function resume_from_destination_floor(player, destination, state, now)
         and point_near_landing(player, state.to_landing, 4.5, floor_vertical_tolerance)) then
         route = state.continuation;
     end
-    if (route == nil or route:len() <= 1 or route_crosses_zone_trigger(route)) then
+    if (route == nil
+        or route:len() <= 1
+        or route_crosses_zone_trigger(route, allow_terminal_contact)) then
         return false;
     end
 

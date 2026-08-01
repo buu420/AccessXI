@@ -1202,6 +1202,7 @@ local accessxi = T{
     nav_route_live_replan_last_key = '',
     nav_route_live_replan_last_tick = 0,
     nav_route_last_reject_reason = '',
+    nav_transport_transition = nil,
     nav_active = false,
     nav_destination = nil,
     nav_live_route_missing_since = 0,
@@ -67622,6 +67623,9 @@ end
 
 function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_clear_zoning_watch('zone-change');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('zone-change');
+    end
     accessxi.nav_current_position = nil;
     accessxi.nav_position_seen = false;
     accessxi.nav_active = false;
@@ -70165,6 +70169,15 @@ if (type(accessxi.nav_recorded_survey_load) == 'function') then
     accessxi.nav_recorded_survey_load();
 end
 
+accessxi.load_code_module('metalworks_elevator_navigation', T{
+    T = T,
+    nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    log_line = log_line,
+    speak = speak,
+    tick = tick,
+});
+
 function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     accessxi.nav_route_last_reject_reason = '';
     if (type(accessxi.nav_recorded_survey_route) == 'function') then
@@ -70213,11 +70226,21 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
 
     local route = nav_compute_mesh_route(player, point);
     if (route:len() > 1) then
+        if (type(accessxi.nav_transport_clear) == 'function') then
+            accessxi.nav_transport_clear('direct-route-verified');
+        end
         accessxi.nav_route_last_reject_reason = '';
         return route, nil;
     end
     if (player == nil or point == nil) then
         return route, nil;
+    end
+    if (type(accessxi.nav_metalworks_elevator_route) == 'function') then
+        local transport_route = accessxi.nav_metalworks_elevator_route(player, point);
+        if (transport_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return transport_route, nil;
+        end
     end
     if (not accessxi.nav_point_is_zoneline(point)) then
         local kind = accessxi.nav_point_effective_kind(point);
@@ -71733,6 +71756,9 @@ local function nav_menu_start_route()
     end
 
     accessxi.nav_clear_zone_search();
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('menu-route-start');
+    end
     local player = nav_cached_player_position();
     local live_item = accessxi.nav_resolve_live_entity_point(item, player);
     if (live_item ~= nil) then
@@ -71815,6 +71841,9 @@ local function nav_menu_start_route()
         else
             text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(item.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
         end
+    end
+    if (type(accessxi.nav_transport_start_suffix) == 'function') then
+        text = text .. accessxi.nav_transport_start_suffix();
     end
     accessxi.nav_last_direction_text = text;
     nav_write_route_evidence('start', player, item, accessxi.nav_route_points[accessxi.nav_route_point_index] or item, T{ reason = 'menu' });
@@ -71941,6 +71970,9 @@ function accessxi.nav_start_route_to_point(point, reason)
     end
 
     accessxi.nav_clear_zoning_watch('route-start');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('route-start');
+    end
     local player = nav_cached_player_position();
     local live_point = accessxi.nav_resolve_live_entity_point(point, player);
     if (live_point ~= nil) then
@@ -72016,6 +72048,9 @@ function accessxi.nav_start_route_to_point(point, reason)
             text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(point.name or 'destination', accessxi.nav_route_points:len());
         else
             text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(point.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
+        end
+        if (type(accessxi.nav_transport_start_suffix) == 'function') then
+            text = text .. accessxi.nav_transport_start_suffix();
         end
         accessxi.nav_last_direction_text = text;
         nav_write_route_evidence('start', player, point, first, T{ reason = reason or 'command' });
@@ -73192,6 +73227,9 @@ end
 local function nav_route_stop()
     accessxi.nav_clear_zone_search();
     accessxi.nav_clear_zoning_watch('route-stop');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('route-stop');
+    end
     accessxi.nav_active = false;
     accessxi.nav_destination = nil;
     accessxi.nav_last_key = '';
@@ -90361,15 +90399,26 @@ function accessxi.poll_nav_beacon()
     end
 
     local player = nav_cached_player_position();
-    if (accessxi.nav_door_waiting(player, now)) then
-        return;
+    local route_target = nil;
+    local transport_waiting = false;
+    if (type(accessxi.nav_transport_waiting_beacon_target) == 'function') then
+        route_target, transport_waiting = accessxi.nav_transport_waiting_beacon_target(player, now);
+        if (transport_waiting and route_target == nil) then
+            return;
+        end
     end
-    local route_target = accessxi.nav_beacon_route_target(player);
+    if (not transport_waiting) then
+        if (accessxi.nav_door_waiting(player, now)) then
+            return;
+        end
+        route_target = accessxi.nav_beacon_route_target(player);
+    end
     if (player == nil or route_target == nil) then
         return;
     end
-    local precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
-    if (not precise_override) then
+    local precise_override = (not transport_waiting)
+        and accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
+    if (not precise_override and not transport_waiting) then
         route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
         route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
     end
@@ -90471,6 +90520,11 @@ local function poll_nav_route()
         if (destination == nil) then
             return;
         end
+    end
+
+    if (type(accessxi.nav_transport_transition_poll) == 'function'
+        and accessxi.nav_transport_transition_poll(player, destination, now)) then
+        return;
     end
 
     if ((accessxi.nav_route_points:len() == 0) and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 3000)) then

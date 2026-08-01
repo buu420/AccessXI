@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$modulePath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\modules\menus\generic_query.lua'
+$modulePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\ashita\addons\accessxi_reader\modules\menus\generic_query.lua'))
 $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
 
 if (-not (Test-Path -LiteralPath $modulePath)) {
@@ -103,6 +103,7 @@ local resources = {
         [16465] = { id = 16465, en = 'Bronze Knife', enl = 'bronze knife', category = 'Weapon', jobs = 949698, level = 1, races = 510, skill = 2, slots = 3 },
         [16530] = { id = 16530, en = 'Xiphos', enl = 'xiphos', category = 'Weapon', jobs = 4419554, level = 7, races = 510, skill = 3, slots = 3 },
         [16624] = { id = 16624, en = 'Xiphos +1', enl = 'xiphos +1', category = 'Weapon', jobs = 4419554, level = 7, races = 510, skill = 3, slots = 3 },
+        [12415] = { id = 12415, en = 'Shell Shield', enl = 'shell shield', category = 'Armor', jobs = 4770, level = 7, races = 510, slots = 2 },
         [30000] = { id = 30000, en = 'Test Blade', enl = 'test blade', category = 'Weapon', jobs = 8388606, level = 99, races = 510, skill = 3, slots = 3, superior_level = 5, item_level = 119 },
     },
     ['item_descriptions.lua'] = {
@@ -111,6 +112,7 @@ local resources = {
         [16465] = { id = 16465, en = 'DMG:4 Delay:195' },
         [16530] = { id = 16530, en = 'DMG:8 Delay:228' },
         [16624] = { id = 16624, en = 'DMG:9 Delay:222' },
+        [12415] = { id = 12415, en = 'DEF:2 VIT+1 AGI-2 ' .. string.char(0xEE, 0x80, 0x85) .. '+2' },
         [30000] = { id = 30000, en = 'DMG:200 Delay:240' },
     },
 }
@@ -168,6 +170,12 @@ local item_level_help = select(1, accessxi.generic_query_resource_help_for_label
 local item_level_expected = 'Sword. All Races. DMG:200 Delay:240. Level 99. All Jobs. Superior 5. Item level 119.'
 if item_level_help ~= item_level_expected then
     error('item-level equipment did not preserve the full visible panel: ' .. tostring(item_level_help))
+end
+
+local shell_help = select(1, accessxi.generic_query_resource_help_for_label('Shell Shield'))
+local shell_expected = 'Sub. All Races. DEF:2 VIT+1 AGI-2 Water resistance +2. Level 7. WAR, RDM, PLD, BST, SAM.'
+if shell_help ~= shell_expected then
+    error('element icon was not translated into its visible stat: ' .. tostring(shell_help))
 end
 
 selected_label = 'Cesti Primer'

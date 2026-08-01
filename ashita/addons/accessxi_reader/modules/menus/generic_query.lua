@@ -264,6 +264,45 @@ function accessxi.generic_query_recover_sparks_title(title, count)
     return '', '';
 end
 
+function accessxi.generic_query_sparks_context_title(title, child, count)
+    title = accessxi.plain_native_menu_label(title or '');
+    child = tonumber(child) or 0;
+    count = tonumber(count) or 0;
+    local now = tick();
+
+    -- The Sparks category menu proves both the guide and the live query
+    -- object.  Its item submenus keep the same child pointer but expose a
+    -- blank title, so retain only that proven pairing for prefix repair.
+    if (count == 13 and accessxi.generic_query_is_sparks_title(title) and accessxi.is_probe_pointer(child)) then
+        accessxi.generic_query_sparks_context_name = title;
+        accessxi.generic_query_sparks_context_child = child;
+        accessxi.generic_query_sparks_context_until = now + 600000;
+        return title, 'sparkshop-top';
+    end
+
+    if (accessxi.generic_query_is_sparks_title(title)) then
+        return title, 'sparkshop-title';
+    end
+
+    if (title ~= '' or count < 2 or count > 18 or not accessxi.is_probe_pointer(child)) then
+        return '', '';
+    end
+
+    local context_name = accessxi.plain_native_menu_label(accessxi.generic_query_sparks_context_name or '');
+    local context_child = tonumber(accessxi.generic_query_sparks_context_child) or 0;
+    local context_until = tonumber(accessxi.generic_query_sparks_context_until) or 0;
+    local target_name = accessxi.plain_native_menu_label(accessxi.last_target_name or '');
+    if (not accessxi.generic_query_is_sparks_title(context_name)
+        or child ~= context_child
+        or now > context_until
+        or not target_name:eq(context_name, true)) then
+        return '', '';
+    end
+
+    accessxi.generic_query_sparks_context_until = now + 600000;
+    return context_name, 'sparkshop-child';
+end
+
 function accessxi.generic_query_sparkshop_context_label(title, selected, count, raw, list_label)
     title = accessxi.plain_native_menu_label(title or '');
     selected = tonumber(selected) or 0;
@@ -597,8 +636,28 @@ function accessxi.generic_query_resource_label_key(text)
     return text:gsub('[^a-z0-9]+', '');
 end
 
+local generic_query_resource_icon_names = {
+    'Fire resistance',
+    'Ice resistance',
+    'Wind resistance',
+    'Earth resistance',
+    'Lightning resistance',
+    'Water resistance',
+    'Light resistance',
+    'Dark resistance',
+};
+
+local function generic_query_expand_resource_icons(text)
+    text = tostring(text or '');
+    for index, label in ipairs(generic_query_resource_icon_names) do
+        local icon = string.char(0xEE, 0x80, 0x7F + index);
+        text = text:gsub(icon, label .. ' ');
+    end
+    return text;
+end
+
 function accessxi.generic_query_resource_help_text(text)
-    text = tostring(text or ''):gsub('[\r\n]+', ' ');
+    text = generic_query_expand_resource_icons(text):gsub('[\r\n]+', ' ');
     text = accessxi.survival_guide_text(text):gsub('^["\']+', ''):gsub('["\']+$', '');
     text = accessxi.survival_guide_text(text);
     if (text == '' or text:match('^[%p%s]+$') ~= nil) then
@@ -1182,6 +1241,7 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
         count = math.max(tonumber(accessxi.native_menu_index(0x24)) or 0, tonumber(accessxi.native_menu_index(0x28)) or 0);
     end
     title = accessxi.generic_query_recover_sparks_title(title, count);
+    local sparks_context_title, sparks_context_mode = accessxi.generic_query_sparks_context_title(title, child, count);
     accessxi.current_menu_speech_title = title;
     if (selected <= 0 or count <= 0 or selected > count or count > 64 or not accessxi.is_probe_pointer(child)) then
         return nil;
@@ -1207,10 +1267,13 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
         help = accessxi.generic_query_resource_help_text(direct_help or '');
         help_mode = tostring(direct_help_mode or '');
     else
-        local resource_label, resource_help, resource_mode = accessxi.generic_query_sparks_resource_match(title, label);
+        local resource_label, resource_help, resource_mode = accessxi.generic_query_sparks_resource_match(sparks_context_title, label);
         if (resource_label ~= '') then
             label = resource_label;
             mode = resource_mode;
+            if (sparks_context_mode ~= '') then
+                mode = ('%s:%s'):fmt(mode, sparks_context_mode);
+            end
             help = resource_help;
             help_mode = resource_mode;
         elseif (not accessxi.generic_query_label_is_clean(label)) then

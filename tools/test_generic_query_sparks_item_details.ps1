@@ -12,7 +12,8 @@ if (-not (Test-Path -LiteralPath $luaPath)) {
 
 $script = @"
 local module_path = [[$modulePath]]
-local selected_case = nil
+local selected_label = ''
+local menu_title = 'Fhelm Jobeizat'
 
 function T(init)
     init = init or {}
@@ -60,13 +61,13 @@ function accessxi.survival_guide_text(text)
 end
 function accessxi.plain_native_menu_label(label)
     label = accessxi.survival_guide_text(label or '')
-    if label == '' then
-        return ''
-    end
-    if label:match('^[%p%s]+$') then
+    if label == '' or label:match('^[%p%s]+$') then
         return ''
     end
     return label
+end
+function accessxi.plain_native_menu_help(help)
+    return accessxi.survival_guide_text(help or '')
 end
 function accessxi.sentence_fragment(text)
     text = accessxi.survival_guide_text(text or '')
@@ -81,25 +82,45 @@ end
 function accessxi.escape_probe_log_text(text)
     return tostring(text or '')
 end
-function accessxi.escape_probe_log_text_wide(text)
-    return tostring(text or '')
-end
 function accessxi.is_probe_pointer(ptr)
     return tonumber(ptr) ~= nil and tonumber(ptr) ~= 0
 end
-function accessxi.resource_path(_, name)
-    return 'missing-' .. tostring(name or '')
+function accessxi.table_count(value)
+    local count = 0
+    for _ in pairs(value or {}) do
+        count = count + 1
+    end
+    return count
 end
-function accessxi.load_module_file_table(_, _, default)
-    return default
+function accessxi.resource_path(_, name)
+    return tostring(name or '')
+end
+
+local resources = {
+    ['items.lua'] = {
+        [16385] = { id = 16385, en = 'Cesti', enl = 'cesti', category = 'Weapon', level = 1 },
+        [16391] = { id = 16391, en = 'Brass Knuckles', enl = 'brass knuckles', category = 'Weapon', level = 9 },
+        [16530] = { id = 16530, en = 'Xiphos', enl = 'xiphos', category = 'Weapon', level = 7 },
+        [16624] = { id = 16624, en = 'Xiphos +1', enl = 'xiphos +1', category = 'Weapon', level = 7 },
+        [30000] = { id = 30000, en = 'Test Blade', enl = 'test blade', category = 'Weapon', level = 99, item_level = 119 },
+    },
+    ['item_descriptions.lua'] = {
+        [16385] = { id = 16385, en = 'DMG:+1 Delay:+48 Accuracy+3' },
+        [16391] = { id = 16391, en = 'DMG:+4 Delay:+96 Accuracy+2' },
+        [16530] = { id = 16530, en = 'DMG:8 Delay:228' },
+        [16624] = { id = 16624, en = 'DMG:9 Delay:222' },
+        [30000] = { id = 30000, en = 'DMG:200 Delay:240' },
+    },
+}
+
+function accessxi.load_module_file_table(path, _, default)
+    return resources[tostring(path or '')] or default
 end
 function accessxi.survival_guide_query_child_state_for_obj(_)
-    local selected = tonumber(selected_case.selected) or 0
-    local raw = tonumber(selected_case.raw) or 0
-    return selected, selected - 3, raw, 0x1000, 13
+    return 1, 0, 0x00000000, 0x1000, 17
 end
 function accessxi.native_query_label_for_selection(_, _, _, _)
-    return selected_case.list_label or 'Equ Lv Up To', 'next+000:order'
+    return selected_label, 'next+000:order'
 end
 function accessxi.native_menu_index(_)
     return 0
@@ -126,46 +147,41 @@ generic_query_context = {
 dofile(module_path)
 
 function accessxi.generic_query_direct_label_for_child(_, _, _)
-    return selected_case.direct_label or 'Equ.', 'next+000:direct+010', '', '', 0x2000
+    return '', '', '', '', 0
 end
 
-local cases = {
-    { selected = 3, raw = 0x00000002, expected = 'Equipment level 1 through 9.' },
-    { selected = 4, raw = 0x00010003, expected = 'Equipment level 10 through 19.' },
-    { selected = 5, raw = 0x00020004, expected = 'Equipment level 20 through 29.' },
-    { selected = 6, raw = 0x00030005, expected = 'Equipment level 30 through 39.' },
-    { selected = 7, raw = 0x00040006, expected = 'Equipment level 40 through 50.' },
-    { selected = 8, raw = 0x00050007, expected = 'Equipment level 51 through 70.' },
-    { selected = 9, raw = 0x00060008, expected = 'Equipment level 71 through 98.' },
-    { selected = 10, raw = 0x00070009, expected = 'Equipment level 99.' },
-}
+local brass_help = select(1, accessxi.generic_query_resource_help_for_label('Brass Knuckles'))
+if brass_help ~= 'DMG:+4 Delay:+96 Accuracy+2 Level 9.' then
+    error('required level was not added to exact item help: ' .. tostring(brass_help))
+end
 
-local titles = { 'Rolandienne', 'Isakoth', 'Fhelm Jobeizat', 'Eternal Flame' }
-for _, title in ipairs(titles) do
-    selected_case = {
-        selected = 1,
-        raw = 0x00000000,
-        list_label = 'Items Axe',
-        direct_label = '',
-    }
-    local items_speech = accessxi.generic_query_menu_speech('menu    query', title, 0x2000)
-    local items_expected = title .. '. Items.'
-    if items_speech ~= items_expected then
-        error(('%s malformed Items row expected %q, got %q'):format(title, items_expected, tostring(items_speech)))
-    end
+local item_level_help = select(1, accessxi.generic_query_resource_help_for_label('Test Blade'))
+if item_level_help ~= 'DMG:200 Delay:240 Level 99. Item level 119.' then
+    error('item-level equipment did not preserve both visible levels: ' .. tostring(item_level_help))
+end
 
-    for _, case in ipairs(cases) do
-        selected_case = case
-        local speech = accessxi.generic_query_menu_speech('menu    query', title, 0x2000)
-        local expected = title .. '. ' .. case.expected
-        if speech ~= expected then
-            error(('%s selected %d expected %q, got %q'):format(title, case.selected, expected, tostring(speech)))
-        end
-    end
+selected_label = 'Cesti Primer'
+menu_title = 'Fhelm Jobeizat'
+local speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
+if speech ~= 'Fhelm Jobeizat. Cesti. DMG:+1 Delay:+48 Accuracy+3 Level 1.' then
+    error('contaminated Cesti row was not repaired from the exact item resource: ' .. tostring(speech))
+end
+
+selected_label = 'Xiphos Tale Chapter'
+speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
+if speech ~= 'Fhelm Jobeizat. Xiphos. DMG:8 Delay:228 Level 7.' then
+    error('contaminated Xiphos row was not repaired from the exact item resource: ' .. tostring(speech))
+end
+
+selected_label = 'Cesti Primer'
+menu_title = 'Treasure Casket'
+speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
+if speech ~= 'Treasure Casket. Cesti Primer.' then
+    error('Sparks-only label repair leaked into an unrelated query menu: ' .. tostring(speech))
 end
 "@
 
-$tmp = Join-Path $env:TEMP ('accessxi-generic-query-sparkshop-ranges-{0}.lua' -f ([guid]::NewGuid().ToString('N')))
+$tmp = Join-Path $env:TEMP ('accessxi-generic-query-sparks-details-{0}.lua' -f ([guid]::NewGuid().ToString('N')))
 try {
     Set-Content -LiteralPath $tmp -Value $script -Encoding ASCII
     & $luaPath $tmp
@@ -176,4 +192,4 @@ try {
     Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'generic query sparkshop equipment range regression ok'
+Write-Host 'generic query Sparks item details regression ok'

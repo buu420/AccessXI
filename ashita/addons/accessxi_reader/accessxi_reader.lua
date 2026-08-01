@@ -602,6 +602,8 @@ local accessxi = T{
     key_items_dat_order_load_tried = false,
     key_items_dat_details = nil,
     key_items_dat_details_load_tried = false,
+    key_items_dynamic_rows = nil,
+    key_items_dynamic_rows_load_tried = false,
     adventuring_primer_article_titles = nil,
     adventuring_primer_article_titles_load_tried = false,
     adventuring_primer_article_details = nil,
@@ -21191,6 +21193,28 @@ function accessxi.load_key_items_dat_details()
     return nil;
 end
 
+function accessxi.load_key_items_dynamic_rows()
+    if (type(accessxi.key_items_dynamic_rows) == 'table') then
+        return accessxi.key_items_dynamic_rows;
+    end
+    if (accessxi.key_items_dynamic_rows_load_tried == true) then
+        return nil;
+    end
+    accessxi.key_items_dynamic_rows_load_tried = true;
+
+    local data = accessxi.load_module_table('key_items_dynamic_rows', nil);
+    if (type(data) == 'table'
+        and type(data.build_owned_rows) == 'function'
+        and type(data.resolve_selected_row) == 'function') then
+        accessxi.key_items_dynamic_rows = data;
+        log_line('loaded dynamic key items identity resolver');
+        return accessxi.key_items_dynamic_rows;
+    end
+
+    log_line('dynamic key items identity resolver unavailable');
+    return nil;
+end
+
 function accessxi.key_items_current_item_age()
     return tick() - (tonumber(accessxi.key_items_current_item_tick) or 0);
 end
@@ -21236,6 +21260,11 @@ function accessxi.key_items_effective_category(id, category)
     -- The client displays White Card under Permanent Key Items even though
     -- Windower's generated category currently tags it as Temporary.
     if (id == 349) then
+        return 'Permanent Key Items';
+    end
+    -- Cipher bracelet is present in the live DAT and ownership packet, but is
+    -- absent from Windower's generated key-items resource.
+    if (id == 3361) then
         return 'Permanent Key Items';
     end
     return category;
@@ -21324,9 +21353,10 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
     end
 
     do
-        local dat_rows = accessxi.key_items_owned_rows_for_category(category);
-        if (dat_rows ~= nil and dat_rows:len() == native_total) then
-            accessxi.key_items_native_order_cache[cache_key] = { rows = dat_rows, mode = 'dat-order+packet-owned' };
+        local dat_rows, dat_mode = accessxi.key_items_owned_rows_for_category(category);
+        if (dat_rows ~= nil) then
+            dat_mode = tostring(dat_mode or 'packet-owned+dat-order+identity-complete');
+            accessxi.key_items_native_order_cache[cache_key] = { rows = dat_rows, mode = dat_mode };
             local sample = T{};
             for i = 1, math.min(dat_rows:len(), 8) do
                 local row = dat_rows[i];
@@ -21337,7 +21367,7 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
                 child,
                 native_total,
                 accessxi.escape_probe_log_text(sample:concat(' | '))));
-            return dat_rows, 'dat-order+packet-owned';
+            return dat_rows, dat_mode;
         end
 
         local probe_active = ((tonumber(accessxi.key_items_order_probe_until) or 0) >= tick());
@@ -21349,273 +21379,87 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
                 native_total,
                 dat_count));
         end
-        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = 'dat-order-count-mismatch' };
-        return nil, 'dat-order-count-mismatch';
+        dat_mode = tostring(dat_mode or 'unresolved-owned-identity');
+        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = dat_mode };
+        return nil, dat_mode;
     end
 
-    local resource = accessxi.load_key_items_resource();
-    if (type(resource) ~= 'table') then
-        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = 'no-resource' };
-        return nil, 'no-resource';
-    end
-
-    local function classify_id(id)
-        id = tonumber(id) or -1;
-        local entry = resource[id];
-        if (type(entry) ~= 'table') then
-            return nil, false, false;
-        end
-        local effective_category = accessxi.key_items_effective_category(id, entry.category or '');
-        local category_ok = effective_category:eq(category, true);
-        local owned = accessxi.key_items_packet_has_id(id);
-        local label = accessxi.key_items_resource_label(entry);
-        if (label == '') then
-            return nil, owned, category_ok;
-        end
-        return {
-            id = id,
-            label = label,
-            order = accessxi.key_items_display_order(effective_category, id),
-        }, owned, category_ok;
-    end
-
-    local function scan_layout(base_ptr, base_name, offset, stride, sample_total)
-        base_ptr = tonumber(base_ptr) or 0;
-        if (not accessxi.is_probe_pointer(base_ptr)) then
-            return nil;
-        end
-        local total = math.max(1, math.min(tonumber(sample_total) or native_total, native_total));
-        local stats = {
-            base = tostring(base_name or 'ptr'),
-            ptr = base_ptr,
-            offset = tonumber(offset) or 0,
-            stride = tonumber(stride) or 0,
-            any = 0,
-            owned = 0,
-            category = 0,
-            duplicate = 0,
-            invalid = 0,
-            score = 0,
-            sample = T{},
-        };
-        local rows = T{};
-        local seen = {};
-        local ok = true;
-        for i = 0, total - 1 do
-            local id = read_u16(base_ptr + offset + (i * stride));
-            local row, owned, category_ok = classify_id(id);
-            local id_key = tonumber(id) or -1;
-            if (row ~= nil) then
-                stats.any = stats.any + 1;
-            end
-            if (owned == true) then
-                stats.owned = stats.owned + 1;
-            end
-            if (row ~= nil and owned == true and category_ok == true) then
-                stats.category = stats.category + 1;
-            end
-            if (id_key >= 0 and seen[id_key] == true) then
-                stats.duplicate = stats.duplicate + 1;
-            end
-            if (row == nil or owned ~= true or category_ok ~= true or seen[id_key] == true) then
-                ok = false;
-                stats.invalid = stats.invalid + 1;
-            else
-                seen[id_key] = true;
-                rows:append(row);
-            end
-            if (stats.sample:len() < 8) then
-                local label = row ~= nil and tostring(row.label or '') or '';
-                local marker = (row ~= nil and owned == true and category_ok == true) and 'ok' or 'no';
-                stats.sample:append(('%d:%s:%s'):fmt(id_key, marker, label:gsub('"', "'")));
-            end
-        end
-        stats.score = (stats.category * 10000) + (stats.owned * 100) + stats.any - (stats.duplicate * 2000) - (stats.invalid * 50);
-        if (ok and rows:len() == total) then
-            stats.rows = rows;
-        end
-        return stats;
-    end
-
-    local function add_top_candidate(top, stats)
-        if (stats == nil) then
-            return;
-        end
-        top:append(stats);
-        table.sort(top, function (a, b)
-            local ascore = tonumber(a.score) or 0;
-            local bscore = tonumber(b.score) or 0;
-            if (ascore == bscore) then
-                local acat = tonumber(a.category) or 0;
-                local bcat = tonumber(b.category) or 0;
-                if (acat == bcat) then
-                    return (tonumber(a.offset) or 0) < (tonumber(b.offset) or 0);
-                end
-                return acat > bcat;
-            end
-            return ascore > bscore;
-        end);
-        while (top:len() > 10) do
-            table.remove(top);
-        end
-    end
-
-    local probe_active = ((tonumber(accessxi.key_items_order_probe_until) or 0) >= tick());
-    local sample_total = math.min(native_total, probe_active and 16 or 8);
-    local top_candidates = T{};
-    local bases = T{};
-    local seen_bases = {};
-    local function add_base(ptr, name)
-        ptr = tonumber(ptr) or 0;
-        if (accessxi.is_probe_pointer(ptr) and seen_bases[ptr] ~= true) then
-            seen_bases[ptr] = true;
-            bases:append({ ptr = ptr, name = tostring(name or 'ptr') });
-        end
-    end
-    add_base(child, 'child');
-    if (probe_active == true) then
-        for off = 0x40, 0x140, 4 do
-            add_base(read_u32(child + off) or 0, ('child+%03X*'):fmt(off));
-        end
-    end
-
-    local best_rows = nil;
-    local best_mode = 'native-id-layout-missing';
-    local best_score = -1;
-    local strides = probe_active == true
-        and T{ 2, 4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 64, 80, 0x70 }
-        or T{ 2, 0x14, 0x20, 0x70 };
-    for _, base in ipairs(bases) do
-        local max_offset = (base.ptr == child) and 0x300 or 0x120;
-        local offsets = T{};
-        for off = 0, max_offset, 2 do
-            offsets:append(off);
-        end
-        table.sort(offsets, function (a, b)
-            local ap = (base.ptr == child) and math.abs(a - 0x48) or math.abs(a);
-            local bp = (base.ptr == child) and math.abs(b - 0x48) or math.abs(b);
-            if (ap == bp) then
-                return a < b;
-            end
-            return ap < bp;
-        end);
-
-        for _, stride in ipairs(strides) do
-            for _, offset in ipairs(offsets) do
-                local stats = scan_layout(base.ptr, base.name, offset, stride, sample_total);
-                if (probe_active == true) then
-                    add_top_candidate(top_candidates, stats);
-                end
-                if (stats ~= nil and stats.category == sample_total and stats.duplicate == 0) then
-                    local full = scan_layout(base.ptr, base.name, offset, stride, native_total);
-                    if (full ~= nil and full.rows ~= nil and full.rows:len() == native_total and (tonumber(full.score) or 0) > best_score) then
-                        best_rows = full.rows;
-                        best_mode = ('native-id-layout+%s+%03X/%03X'):fmt(tostring(base.name or 'ptr'), offset, stride);
-                        best_score = tonumber(full.score) or 0;
-                    elseif (probe_active == true) then
-                        add_top_candidate(top_candidates, full);
-                    end
-                end
-            end
-        end
-    end
-
-    if (probe_active == true) then
-        local probe_key = ('%s:%08X:%d:%s'):fmt(category, child, native_total, cache_key);
-        if (probe_key ~= tostring(accessxi.last_key_items_native_scan_probe_key or '')) then
-            accessxi.last_key_items_native_scan_probe_key = probe_key;
-            for i = 1, math.min(top_candidates:len(), 8) do
-                local s = top_candidates[i];
-                log_state(('state key-items native-layout-scan category="%s" child=0x%08X total=%d rank=%d base="%s" ptr=0x%08X offset=0x%03X stride=0x%03X any=%d owned=%d category=%d dup=%d invalid=%d score=%d sample="%s"'):fmt(
-                    accessxi.escape_probe_log_text(category),
-                    child,
-                    native_total,
-                    i,
-                    accessxi.escape_probe_log_text(tostring(s.base or '')),
-                    tonumber(s.ptr) or 0,
-                    tonumber(s.offset) or 0,
-                    tonumber(s.stride) or 0,
-                    tonumber(s.any) or 0,
-                    tonumber(s.owned) or 0,
-                    tonumber(s.category) or 0,
-                    tonumber(s.duplicate) or 0,
-                    tonumber(s.invalid) or 0,
-                    tonumber(s.score) or 0,
-                    accessxi.escape_probe_log_text((s.sample or T{}):concat(' | '))));
-            end
-        end
-    end
-
-    local mode = best_rows ~= nil and best_mode or 'native-id-layout-missing';
-    accessxi.key_items_native_order_cache[cache_key] = { rows = best_rows, mode = mode };
-    if (best_rows ~= nil) then
-        local sample = T{};
-        for i = 1, math.min(best_rows:len(), 8) do
-            local row = best_rows[i];
-            sample:append(('%d:%d:%s'):fmt(i, tonumber(row.id) or 0, tostring(row.label or ''):gsub('"', "'")));
-        end
-        log_line(('key items native id order category="%s" child=0x%08X total=%d mode="%s" sample="%s"'):fmt(
-            accessxi.escape_probe_log_text(category),
-            child,
-            native_total,
-            mode,
-            accessxi.escape_probe_log_text(sample:concat(' | '))));
-    end
-    return best_rows, mode;
 end
 
 function accessxi.key_items_owned_rows_for_category(category)
     category = tostring(category or '');
     if (category == '') then
-        return nil;
+        return nil, 'category-missing';
     end
     accessxi.restore_key_items_packet_cache_if_needed();
     if (next(accessxi.key_items_packet_tables or {}) == nil) then
-        return nil;
+        return nil, 'no-packet-cache';
     end
 
     local cache_key = accessxi.key_items_packet_cache_key();
     local memo_key = ('%s:%s'):fmt(category, cache_key);
     accessxi.key_items_owned_cache = accessxi.key_items_owned_cache or {};
     if (accessxi.key_items_owned_cache[memo_key] ~= nil) then
-        return accessxi.key_items_owned_cache[memo_key];
+        return accessxi.key_items_owned_cache[memo_key], 'packet-owned+dat-order+identity-complete';
     end
 
     local resource = accessxi.load_key_items_resource();
-    if (type(resource) ~= 'table') then
-        return nil;
+    local details = accessxi.load_key_items_dat_details();
+    local order = accessxi.load_key_items_dat_order();
+    local dynamic = accessxi.load_key_items_dynamic_rows();
+    if (type(resource) ~= 'table' or type(details) ~= 'table'
+        or type(order) ~= 'table' or type(dynamic) ~= 'table') then
+        return nil, 'key-item-identity-source-missing';
+    end
+
+    local owned_ids = T{};
+    for id = 0, 4095 do
+        if (accessxi.key_items_packet_has_id(id)) then
+            owned_ids:append(id);
+        end
+    end
+    local category_overrides = T{
+        [349] = 'Permanent Key Items',
+        [3361] = 'Permanent Key Items',
+    };
+    local built_rows, unresolved = dynamic.build_owned_rows(
+        owned_ids,
+        resource,
+        details,
+        order,
+        category_overrides,
+        category);
+    local _, safety_mode = dynamic.resolve_selected_row(built_rows, 0, unresolved);
+    if (tostring(safety_mode or ''):eq('unresolved-owned-identity', true)) then
+        local ids = T{};
+        for _, row in ipairs(unresolved or {}) do
+            ids:append(tostring(tonumber(row.id) or -1));
+        end
+        local unresolved_key = ('%s:%s'):fmt(cache_key, ids:concat(','));
+        if (unresolved_key ~= tostring(accessxi.last_key_items_unresolved_identity_key or '')) then
+            accessxi.last_key_items_unresolved_identity_key = unresolved_key;
+            log_state(('state key-items unresolved-owned-identities ids="%s" safety="silence-without-row-shift"'):fmt(
+                accessxi.escape_probe_log_text(ids:concat(','))));
+        end
+        return nil, 'unresolved-owned-identity';
     end
 
     local rows = T{};
-    for id, entry in pairs(resource) do
-        id = tonumber(id) or tonumber(type(entry) == 'table' and entry.id or -1) or -1;
-        if (id >= 0 and type(entry) == 'table' and accessxi.key_items_packet_has_id(id)) then
-            local effective_category = accessxi.key_items_effective_category(id, entry.category or '');
-            if (effective_category:eq(category, true)) then
-                local label = accessxi.key_items_resource_label(entry);
-                local order = accessxi.key_items_display_order(effective_category, id);
-                if (label ~= '' and order ~= nil) then
-                    rows:append({
-                        id = id,
-                        label = label,
-                        order = order,
-                    });
-                end
-            end
+    for _, row in ipairs(built_rows or {}) do
+        local label = accessxi.key_items_resource_label({ en = tostring(row.label or '') });
+        if (label == '') then
+            return nil, 'key-item-label-missing';
         end
+        rows:append({
+            id = tonumber(row.id) or 0,
+            label = label,
+            order = tonumber(row.order),
+        });
     end
-    table.sort(rows, function (a, b)
-        local ao = tonumber(a.order) or 0;
-        local bo = tonumber(b.order) or 0;
-        if (ao == bo) then
-            return (tonumber(a.id) or 0) < (tonumber(b.id) or 0);
-        end
-        return ao < bo;
-    end);
 
     accessxi.key_items_owned_cache[memo_key] = rows;
-    return rows;
-end
+    return rows, 'packet-owned+dat-order+identity-complete';
+end -- key_items_owned_rows_for_category
 
 function accessxi.key_items_native_total(child)
     child = tonumber(child) or 0;
@@ -21867,7 +21711,7 @@ function accessxi.key_items_sublist_speech(menu_name, title, selected, count, pa
         probe_rows = accessxi.key_items_owned_rows_for_category(category);
     end
     accessxi.log_key_items_order_probe(menu_name, category, selected, count, page, index, child, entry, native_total, probe_rows, probe_rows ~= nil and probe_rows[index + 1] or nil);
-    if (rows ~= nil and native_total > 0 and rows:len() == native_total and index < rows:len()) then
+    if (rows ~= nil and index < rows:len()) then
         local row = rows[index + 1];
         local label = row ~= nil and tostring(row.label or '') or '';
         local key_item_id = row ~= nil and (tonumber(row.id) or 0) or 0;

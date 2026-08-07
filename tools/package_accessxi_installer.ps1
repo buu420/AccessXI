@@ -117,7 +117,7 @@ $asiLoaderSource = Join-Path $RepoRoot "third_party\Ultimate-ASI-Loader\$ultimat
 $asiLoaderLicense = Join-Path $RepoRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt'
 $installerScript = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
 $legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
-$setupGuide = Join-Path $RepoRoot 'setup-guide.md'
+$publicGuide = Join-Path $RepoRoot 'README.md'
 $ashitaGuiProfile = Join-Path $RepoRoot 'installer\ashita_boot\AccessXI Retail.xml'
 $ashitaCliProfile = Join-Path $RepoRoot 'installer\ashita_boot\accessxi-retail.ini'
 $ashitaLauncher = Join-Path $RepoRoot 'installer\ashita_launcher\AccessXI.cmd'
@@ -170,8 +170,8 @@ if ($actualAsiLoaderHash -ne $ultimateAsiLoaderDllSha256) {
 if (-not (Test-Path -LiteralPath $repoAddonRoot)) {
     throw "Canonical AccessXI addon source is missing: $repoAddonRoot"
 }
-if (-not (Test-Path -LiteralPath $setupGuide)) {
-    throw "Setup guide is missing: $setupGuide"
+if (-not (Test-Path -LiteralPath $publicGuide)) {
+    throw "Public setup guide is missing: $publicGuide"
 }
 if (-not (Test-Path -LiteralPath $ashitaGuiProfile)) {
     throw "Clean Ashita GUI profile is missing: $ashitaGuiProfile"
@@ -316,7 +316,7 @@ Copy-RequiredFile -Source $ashitaLauncher -Destination (Join-Path $payloadAshita
 Copy-RequiredFile -Source $ashitaStartupScript -Destination (Join-Path $payloadAshita 'scripts\default.txt')
 Copy-RequiredFile -Source $installerScript -Destination (Join-Path $packageRoot 'install_accessxi.ps1')
 Copy-RequiredFile -Source $legacyCleanupScript -Destination (Join-Path $packageRoot 'legacy_accessxi_cleanup.ps1')
-Copy-RequiredFile -Source $setupGuide -Destination (Join-Path $packageRoot 'setup-guide.md')
+Copy-RequiredFile -Source $publicGuide -Destination (Join-Path $packageRoot 'setup-guide.md')
 Copy-RequiredFile -Source $asiLoaderLicense -Destination (Join-Path $packageRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')
 Copy-RequiredFile -Source $asiLoaderSource -Destination (Join-Path $payloadNative 'ddraw.dll')
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative.asi') -Destination (Join-Path $payloadNative 'AccessXI.PolNative.asi')

@@ -45,13 +45,14 @@ $OutputDirectory = Resolve-FullPath $OutputDirectory
 
 $packageScript = Join-Path $RepoRoot 'tools\package_accessxi_installer.ps1'
 $packageTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_package.ps1'
+$publicReadmeTest = Join-Path $RepoRoot 'tools\test_accessxi_public_readme.ps1'
 $nativeStructureTest = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
 $legacyCleanupTest = Join-Path $RepoRoot 'tools\test_legacy_accessxi_cleanup.ps1'
 $nativeMigrationTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_native_migration.ps1'
 $exeTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_exe.ps1'
 $publicReleaseTest = Join-Path $RepoRoot 'tools\test_public_release_hygiene.ps1'
 $projectFile = Join-Path $RepoRoot 'installer\AccessXIInstaller\AccessXIInstaller.csproj'
-$setupGuide = Join-Path $RepoRoot 'setup-guide.md'
+$publicGuide = Join-Path $RepoRoot 'README.md'
 $publishDirectory = Join-Path $OutputDirectory 'AccessXIInstallerExe'
 $publishedSource = Join-Path $publishDirectory 'AccessXIInstaller.exe'
 $publishedExe = Join-Path $OutputDirectory 'AccessXI Installer.exe'
@@ -63,8 +64,8 @@ if (-not (Test-Path -LiteralPath $packageScript)) {
 if (-not (Test-Path -LiteralPath $projectFile)) {
     throw "Missing installer exe project: $projectFile"
 }
-if (-not (Test-Path -LiteralPath $setupGuide)) {
-    throw "Missing setup guide: $setupGuide"
+if (-not (Test-Path -LiteralPath $publicGuide)) {
+    throw "Missing public setup guide: $publicGuide"
 }
 
 if ($NoPayloadBuild) {
@@ -74,6 +75,7 @@ if ($NoPayloadBuild) {
 }
 
 Invoke-PowerShellScript -Name $packageTest -Command { & $packageTest -RepoRoot $RepoRoot -PackageRoot (Join-Path $OutputDirectory 'AccessXI-Ashita-Installer') }
+Invoke-PowerShellScript -Name $publicReadmeTest -Command { & $publicReadmeTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $nativeStructureTest -Command { & $nativeStructureTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $legacyCleanupTest -Command { & $legacyCleanupTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $nativeMigrationTest -Command { & $nativeMigrationTest -RepoRoot $RepoRoot }
@@ -86,7 +88,7 @@ if (-not (Test-Path -LiteralPath $publishedSource)) {
 }
 
 Copy-Item -LiteralPath $publishedSource -Destination $publishedExe -Force
-Copy-Item -LiteralPath $setupGuide -Destination $publishedSetupGuide -Force
+Copy-Item -LiteralPath $publicGuide -Destination $publishedSetupGuide -Force
 
 Invoke-PowerShellScript -Name $exeTest -Command { & $exeTest -RepoRoot $RepoRoot -PublishedExe $publishedExe }
 Invoke-PowerShellScript -Name $publicReleaseTest -Command { & $publicReleaseTest -RepoRoot $RepoRoot -PackageRoot (Join-Path $OutputDirectory 'AccessXI-Ashita-Installer') }

@@ -78,11 +78,9 @@ $appHashBefore = (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash
 
 $nativeAsi = Assert-ChildPath (Join-Path $scriptsDirectory 'AccessXI.PolNative.asi') $scriptsDirectory 'Native ASI path'
 $nativeDependencies = Assert-ChildPath (Join-Path $scriptsDirectory 'AccessXI.PolNative') $scriptsDirectory 'Native dependency path'
-$reloadedAsi = Assert-ChildPath (Join-Path $scriptsDirectory 'AccessXI.PolReloadedBootstrap.asi') $scriptsDirectory 'Reloaded ASI path'
-$disabledReloadedAsi = Assert-ChildPath "$reloadedAsi.disabled" $scriptsDirectory 'Disabled Reloaded ASI path'
 
 if ($WhatIfPreference) {
-    Write-Output "What if: disable $reloadedAsi, deploy $nativeAsi, and replace $nativeDependencies from $stageDirectory"
+    Write-Output "What if: deploy $nativeAsi and replace $nativeDependencies from $stageDirectory"
     return
 }
 
@@ -97,19 +95,7 @@ if (Test-Path -LiteralPath $nativeAsi -PathType Leaf) {
 if (Test-Path -LiteralPath $nativeDependencies -PathType Container) {
     Copy-Item -LiteralPath $nativeDependencies -Destination (Join-Path $previousDirectory 'AccessXI.PolNative') -Recurse -Force
 }
-if (Test-Path -LiteralPath $reloadedAsi -PathType Leaf) {
-    Copy-Item -LiteralPath $reloadedAsi -Destination (Join-Path $previousDirectory 'AccessXI.PolReloadedBootstrap.asi') -Force
-}
-if (Test-Path -LiteralPath $disabledReloadedAsi -PathType Leaf) {
-    Copy-Item -LiteralPath $disabledReloadedAsi -Destination (Join-Path $previousDirectory 'AccessXI.PolReloadedBootstrap.asi.disabled') -Force
-}
 
-if (Test-Path -LiteralPath $reloadedAsi -PathType Leaf) {
-    if (Test-Path -LiteralPath $disabledReloadedAsi -PathType Leaf) {
-        Remove-Item -LiteralPath $disabledReloadedAsi -Force
-    }
-    Move-Item -LiteralPath $reloadedAsi -Destination $disabledReloadedAsi
-}
 
 if (Test-Path -LiteralPath $nativeAsi -PathType Leaf) {
     Remove-Item -LiteralPath $nativeAsi -Force
@@ -135,7 +121,6 @@ $manifest = [ordered]@{
     nativeAsiSha256 = (Get-FileHash -LiteralPath $nativeAsi -Algorithm SHA256).Hash
     nativeHookSha256 = (Get-FileHash -LiteralPath (Join-Path $nativeDependencies 'accessxi_pol_native.dll') -Algorithm SHA256).Hash
     prismSha256 = (Get-FileHash -LiteralPath (Join-Path $nativeDependencies 'prism.dll') -Algorithm SHA256).Hash
-    reloadedBootstrapDisabled = (Test-Path -LiteralPath $disabledReloadedAsi -PathType Leaf)
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $backupSession 'manifest.json') -Encoding UTF8
 

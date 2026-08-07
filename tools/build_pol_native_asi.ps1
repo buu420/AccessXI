@@ -20,7 +20,7 @@ $build = Join-Path $repo 'build'
 $stage = Join-Path $repo 'stage\pol-native'
 $dependencyStage = Join-Path $stage 'AccessXI.PolNative'
 $builtAsi = Join-Path $build "bin\$Configuration\AccessXI.PolNative.asi"
-$builtHook = Join-Path $build "bin\$Configuration\accessxi_pol_nvda.dll"
+$builtHook = Join-Path $build "bin\$Configuration\accessxi_pol_native.dll"
 
 if (-not (Test-Path -LiteralPath (Join-Path $repo 'CMakeLists.txt'))) {
     throw "AccessXI repository root is invalid: $repo"
@@ -35,7 +35,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $AshitaSdk 'Ashita.h') -PathType Lea
 $env:ASHITA4_SDK_PATH = [System.IO.Path]::GetFullPath($AshitaSdk)
 Invoke-Checked { cmake -S $repo -B $build -A Win32 } 'Win32 CMake configuration failed'
 Invoke-Checked {
-    cmake --build $build --config $Configuration --target accessxi_pol_nvda accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_native_speech_worker_tests pol_native_host_tests
+    cmake --build $build --config $Configuration --target accessxi_pol_hook accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_native_speech_worker_tests pol_native_host_tests
 } 'Native PlayOnline build failed'
 Invoke-Checked { ctest --test-dir $build -C $Configuration --output-on-failure } 'Native PlayOnline tests failed'
 

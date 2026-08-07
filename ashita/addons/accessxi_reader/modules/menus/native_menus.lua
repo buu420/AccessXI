@@ -129,6 +129,7 @@ data.fixed_titles = T{
     { menus = T{ 'menu    map0', 'menu    mapv3', 'menu    mapframe' }, title = 'Map' },
     { menus = T{ 'menu    scanlist' }, title = 'Wide Scan' },
     { menus = T{ 'menu    scresult' }, title = 'Search Results' },
+    { menus = T{ 'menu    scoption' }, title = 'Search' },
     { menus = T{ 'menu    evitem' }, title = 'Currencies' },
     { menus = T{ 'menu    evitem01' }, title = 'Key item' },
     { menus = T{ 'menu    faqsub', 'menu    faqmain' }, title = 'Help Desk' },

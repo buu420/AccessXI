@@ -1,5 +1,48 @@
 local dynamic = {};
 
+function dynamic.classify_native_view(native_state)
+    native_state = tonumber(native_state);
+    if (native_state == 1) then
+        return 'categories';
+    end
+    if (native_state == 2) then
+        return 'items';
+    end
+    return nil;
+end
+
+function dynamic.build_category_rows(resource, order)
+    resource = type(resource) == 'table' and resource or {};
+    order = type(order) == 'table' and order or {};
+
+    local categories = {};
+    for id, entry in pairs(resource) do
+        local category = type(entry) == 'table' and tostring(entry.category or '') or '';
+        local display_order = tonumber(order[id]);
+        if (category ~= '' and display_order ~= nil) then
+            local current = categories[category];
+            if (current == nil or display_order < current) then
+                categories[category] = display_order;
+            end
+        end
+    end
+
+    local rows = {};
+    for category, display_order in pairs(categories) do
+        rows[#rows + 1] = {
+            label = category,
+            order = display_order,
+        };
+    end
+    table.sort(rows, function (a, b)
+        if (a.order == b.order) then
+            return a.label < b.label;
+        end
+        return a.order < b.order;
+    end);
+    return rows;
+end
+
 local function identity_label(entry, detail)
     if (type(entry) == 'table') then
         local label = tostring(entry.en or entry.english or entry.name or '');

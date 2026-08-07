@@ -73,3 +73,14 @@ function accessxi.chat_message_speech(line)
     end
     return line;
 end
+
+function accessxi.menu_selection_speech(label)
+    return sentence(label);
+end
+
+function accessxi.menu_selection_detail_speech(label, description)
+    local parts = {};
+    append_sentence(parts, label);
+    append_sentence(parts, description);
+    return table.concat(parts, ' ');
+end

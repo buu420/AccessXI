@@ -169,7 +169,7 @@ $startRouteBody = $source.Substring($copyPointEnd, $source.IndexOf('function acc
 Assert-Match -Text $startRouteBody -Pattern 'nav_resolve_live_entity_point\(point,\s*player\)' -Message 'Command-started live enemy routes should resolve the current entity position before route creation.'
 
 $menuStartRouteStart = $source.IndexOf('local function nav_menu_start_route')
-$menuStartRouteEnd = $source.IndexOf('local function nav_menu_handle_key', $menuStartRouteStart)
+$menuStartRouteEnd = $source.IndexOf('local function nav_menu_handle_action', $menuStartRouteStart)
 if ($menuStartRouteStart -lt 0 -or $menuStartRouteEnd -lt 0) {
     throw 'Could not locate nav_menu_start_route block.'
 }

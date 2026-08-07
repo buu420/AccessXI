@@ -6,6 +6,35 @@ local dynamic = chunk()
 assert(type(dynamic) == 'table', 'Expected dynamic key-items module table.')
 assert(type(dynamic.build_owned_rows) == 'function', 'Expected build_owned_rows function.')
 assert(type(dynamic.resolve_selected_row) == 'function', 'Expected resolve_selected_row function.')
+assert(type(dynamic.build_category_rows) == 'function', 'Expected native-data category row builder.')
+assert(type(dynamic.classify_native_view) == 'function', 'Expected native evitem view classifier.')
+
+assert(dynamic.classify_native_view(1) == 'categories', 'Expected native evitem state 1 to identify category headers.')
+assert(dynamic.classify_native_view(2) == 'items', 'Expected native evitem state 2 to identify key-item rows.')
+assert(dynamic.classify_native_view(0) == nil, 'Expected an inactive evitem state to stay silent.')
+assert(dynamic.classify_native_view(3) == nil, 'Expected a transitional evitem state to stay silent.')
+
+local category_resource = {
+    [1] = { en = 'temporary one', category = 'Temporary Key Items' },
+    [2] = { en = 'permanent one', category = 'Permanent Key Items' },
+    [3] = { en = 'map one', category = 'Magical Maps' },
+}
+local category_order = {
+    [1] = 10,
+    [2] = 30,
+    [3] = 20,
+}
+local category_rows = dynamic.build_category_rows(category_resource, category_order)
+assert(#category_rows == 3, 'Expected categories to be derived from current native resources, not a fixed count.')
+assert(category_rows[1].label == 'Temporary Key Items', 'Expected category order to follow native DAT order.')
+assert(category_rows[2].label == 'Magical Maps', 'Expected the second native-data category.')
+assert(category_rows[3].label == 'Permanent Key Items', 'Expected the third native-data category.')
+
+category_resource[4] = { en = 'future one', category = 'Future Key Items' }
+category_order[4] = 40
+local grown_category_rows = dynamic.build_category_rows(category_resource, category_order)
+assert(#grown_category_rows == 4, 'Expected a newly added native category to appear without changing code.')
+assert(grown_category_rows[4].label == 'Future Key Items', 'Expected the new native-data category in DAT order.')
 
 local resource = {
     [8] = { en = 'airship pass', category = 'Permanent Key Items' },

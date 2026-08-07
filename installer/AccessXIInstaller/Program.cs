@@ -106,7 +106,7 @@ internal sealed class InstallerForm : Form
         {
             AutoSize = true,
             MaximumSize = new Size(760, 0),
-            Text = "Choose where AccessXI should be installed. The installer will place Ashita there, remove AccessXI's obsolete Reloaded files when safely detected, and deploy the native PlayOnline accessibility files beside pol.exe.",
+            Text = "Choose where AccessXI should be installed. The installer will place Ashita there, remove files from older AccessXI installations when safely detected, and deploy the native PlayOnline accessibility files beside pol.exe.",
             Margin = new Padding(0, 0, 0, 12),
         };
         root.Controls.Add(intro, 0, 1);
@@ -467,7 +467,7 @@ internal sealed class InstallerForm : Form
         startInfo.ArgumentList.Add(polExe);
         startInfo.ArgumentList.Add("-SkipVisualCppRedistributables");
 
-        SetStepThreadSafe("Installing Ashita, cleaning old AccessXI Reloaded files, and deploying native PlayOnline accessibility.", 35);
+        SetStepThreadSafe("Installing Ashita, cleaning files from older AccessXI installations, and deploying native PlayOnline accessibility.", 35);
         AppendLogThreadSafe("Running packaged installer script.");
         using var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, e) => { if (e.Data != null) AppendLogThreadSafe(e.Data); };

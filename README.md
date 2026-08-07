@@ -1,56 +1,45 @@
 # AccessXI
 
-AccessXI adds accessibility support for Final Fantasy XI and PlayOnline. It includes an Ashita v4 in-game reader addon, Reloaded-II PlayOnline support, installer/setup tooling, route data, navigation sounds, and documentation for blind players.
+AccessXI adds accessibility support for Final Fantasy XI and PlayOnline. It includes an Ashita v4 in-game reader addon, native PlayOnline speech through Prism, installer and setup tooling, navigation data, sounds, and documentation for blind players.
 
-This repository is for AccessXI project files. It does not include Ashita itself, PlayOnline, Final Fantasy XI, Microsoft redistributables, generated installer payloads, reverse-engineering workspaces, or generated build artifacts.
+## Download and setup
 
-This repository is private while the project is being cleaned up for broader distribution.
+Download the newest installer from the repository's GitHub Releases page. Before running it, install Final Fantasy XI and finish the PlayOnline Viewer update. The first update screen may require screen-reader OCR.
 
-## Player Setup Guide
+For the complete first-time setup, account, update, and login walkthrough, see [setup-guide.md](setup-guide.md).
 
-For a detailed first-time setup walkthrough, including account creation, dependencies, PlayOnline registration, PlayOnline updates, and the first Final Fantasy XI launch flow, see [setup-guide.md](setup-guide.md).
+## Repository layout
 
-## Repository Layout
-
-- `ashita/addons/accessxi_reader`: the addon folder that should be copied into an Ashita v4 `addons` directory.
-- `src`: Reloaded-II and PlayOnline support source.
-- `installer`: installer scripts, profiles, and installer source.
+- `ashita/addons/accessxi_reader`: the canonical addon source copied into an Ashita v4 `addons` directory and embedded by the installer.
+- `src`: native PlayOnline accessibility source.
+- `installer`: installer scripts, boot profiles, and installer application source.
 - `tools`: build, package, validation, and diagnostic scripts.
-- `data`, `sounds`, `docs`: project data, sound assets, setup material, and notes.
+- `data`, `sounds`, and `docs`: navigation data, audio assets, setup material, and development notes.
+- `third-party-notices`: notices for third-party components used in release packages.
 
-Generated installers, logs, reverse-engineering dumps, local Ghidra projects, Microsoft runtime installers, and large third-party payload mirrors are intentionally ignored.
+Generated installers, logs, captures, reverse-engineering workspaces, local Ghidra projects, Microsoft redistributables, and large third-party build inputs are intentionally ignored.
 
-See [docs/ashita-addon-distribution-notes.md](docs/ashita-addon-distribution-notes.md) for the current Ashita addon packaging notes and release boundary.
+## Release boundary
 
-## Release Boundary
+AccessXI does not modify `pol.exe`, `app.dll`, or Final Fantasy XI executables. Native PlayOnline accessibility is loaded by the x86 [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader), then uses the private `AccessXI.PolNative` folder and Prism for speech. The installer backs up files before replacing its own loader-side deployment.
 
-Install Ashita v4 separately from the official Ashita project. The AccessXI addon folder belongs here:
+Ashita v4, PlayOnline, Final Fantasy XI, Microsoft runtime installers, navigation meshes, Prism build inputs, Windower resource tables, and other large dependencies are not stored in this repository. The release builder validates and packages locally reviewed copies. Ultimate ASI Loader is downloaded from a pinned official release and verified by SHA-256.
 
-```text
-Ashita\addons\accessxi_reader
-```
+## Building
 
-The AccessXI release may also include the Reloaded/PlayOnline support and installer/setup tooling needed to make PlayOnline and Final Fantasy XI accessible enough to launch. It should not bundle Ashita, Final Fantasy XI, PlayOnline, generated local logs, reversing workspaces, or redistributable installers unless their license and packaging requirements are reviewed.
+Native PlayOnline components must be built for 32-bit x86. Configure `ASHITA4_SDK_PATH` for the local Ashita v4 SDK and provide the reviewed x86 Prism build expected by `tools/build_pol_native_asi.ps1`.
 
-## Build Notes
-
-Native Ashita/POL support binaries must be built for 32-bit x86 where they load into PlayOnline or Final Fantasy XI.
-
-Set `ASHITA4_SDK_PATH` to:
+Build and validate the complete installer with:
 
 ```powershell
-C:\Users\buu42\Ashita\plugins\sdk
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build_accessxi_installer_exe.ps1
 ```
 
-The output DLL should be copied to:
+The build produces `dist\AccessXI Installer.exe`, `dist\AccessXI-Ashita-Installer.zip`, and `dist\setup-guide.md`. The package builder takes the addon from `ashita\addons\accessxi_reader`, not from a character-specific runtime cache.
 
-```powershell
-C:\Users\buu42\Ashita\polplugins\accessxi_pol.dll
-```
+See [docs/ashita-addon-distribution-notes.md](docs/ashita-addon-distribution-notes.md) for the source and packaging boundary.
 
-The current machine does not have CMake, `cl`, or MSBuild on PATH yet, so installing Visual Studio Build Tools and CMake is the next build step.
+## Known limitations
 
-## Known Limitations
-
-- Help Desk > Adventuring Primer: the category list, article titles, and short detail lines are readable from native/DAT-backed data, but the full article body pages are texture-backed resources (`cntguidecg_*`) rather than live text. AccessXI intentionally does not OCR or invent those paragraphs. The full primer is available online at https://www.playonline.com/ff11us/contguide/index.html.
-- Communications > Friend List > Edit Friend List: native friend names are visible inside POL PML vectors, but no reliable native selected-row signal has been found. AccessXI intentionally leaves this list silent rather than guessing from visible vector slots or speaking the wrong friend name.
+- Help Desk > Adventuring Primer: category and article titles and short detail lines are native/DAT-backed. The long article body pages are texture-backed, so AccessXI leaves them silent rather than inventing text.
+- Communications > Friend List > Edit Friend List: friend names are visible in native data, but no reliable selected-row signal has been verified. AccessXI leaves that list silent rather than announce the wrong person.

@@ -8,7 +8,7 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "AccessXI PlayOnline in-process targets must be configured as 32-bit Win32.")
 endif()
 
-add_library(accessxi_pol_nvda SHARED
+add_library(accessxi_pol_hook SHARED
     src/accessxi_pol.cpp
     src/accessxi_pol.def
     src/pol_accessibility/prelogin_semantics.cpp
@@ -18,8 +18,8 @@ add_library(accessxi_pol_nvda SHARED
     src/pol_trace/postlogin_trace.cpp
 )
 
-target_compile_features(accessxi_pol_nvda PRIVATE cxx_std_20)
-target_compile_definitions(accessxi_pol_nvda PRIVATE
+target_compile_features(accessxi_pol_hook PRIVATE cxx_std_20)
+target_compile_definitions(accessxi_pol_hook PRIVATE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
 )
@@ -28,18 +28,18 @@ if(NOT DEFINED ENV{ASHITA4_SDK_PATH})
     message(FATAL_ERROR "ASHITA4_SDK_PATH must point to Ashita v4 plugins/sdk, for example C:/Users/buu42/Ashita/plugins/sdk")
 endif()
 
-target_include_directories(accessxi_pol_nvda PRIVATE
+target_include_directories(accessxi_pol_hook PRIVATE
     "$ENV{ASHITA4_SDK_PATH}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(accessxi_pol_nvda PRIVATE
+target_link_libraries(accessxi_pol_hook PRIVATE
     oleacc
     oleaut32
 )
 
-set_target_properties(accessxi_pol_nvda PROPERTIES
-    OUTPUT_NAME "accessxi_pol_nvda"
+set_target_properties(accessxi_pol_hook PROPERTIES
+    OUTPUT_NAME "accessxi_pol_native"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )

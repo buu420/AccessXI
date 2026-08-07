@@ -1,7 +1,7 @@
 param(
     [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'AccessXI'),
     [string]$PolExe = '',
-    [string]$ReloadedConfigRoot = '',
+    [string]$LegacyAccessXiConfigRoot = '',
     [Alias('SkipPolBootloader')]
     [switch]$SkipPolNativeDeployment,
     [switch]$SkipVisualCppRedistributables,
@@ -438,14 +438,14 @@ $setupGuideSource = Join-Path $scriptRoot 'setup-guide.md'
 $ashitaSource = Join-Path $payloadRoot 'Ashita'
 $nativeSource = Join-Path $payloadRoot 'PlayOnlineNative'
 $prerequisitesSource = Join-Path $payloadRoot 'Prerequisites'
-$legacyCleanupSource = Join-Path $scriptRoot 'legacy_reloaded_cleanup.ps1'
+$legacyCleanupSource = Join-Path $scriptRoot 'legacy_accessxi_cleanup.ps1'
 $packageManifestPath = Join-Path $scriptRoot 'manifest.json'
 $packageManifest = $null
 if (Test-Path -LiteralPath $packageManifestPath) {
     $packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw | ConvertFrom-Json
 }
 if (-not (Test-Path -LiteralPath $legacyCleanupSource -PathType Leaf)) {
-    throw "Legacy Reloaded cleanup library is missing from installer payload: $legacyCleanupSource"
+    throw "Legacy AccessXI cleanup library is missing from installer payload: $legacyCleanupSource"
 }
 . $legacyCleanupSource
 
@@ -514,10 +514,10 @@ $ffxiInstallRoot = Set-AshitaCliFfxiInstallPath -AshitaRoot $ashitaDest -PolExe 
 Disable-OldAshitaPolPlugin -AshitaRoot $ashitaDest
 
 Assert-PlayOnlineClosed
-$legacyReloadedCleanup = Remove-LegacyAccessXiReloaded `
+$legacyAccessXiCleanup = Remove-LegacyAccessXiInstall `
     -InstallRoot $InstallRoot `
     -PolExe $PolExe `
-    -ReloadedConfigRoot $ReloadedConfigRoot `
+    -LegacyAccessXiConfigRoot $LegacyAccessXiConfigRoot `
     -BackupRoot $backupRoot
 $polUrlFilesRepaired = @()
 $nativeDeployment = $null
@@ -566,7 +566,7 @@ $summary = [ordered]@{
     AshitaGuiProfile = Join-Path $ashitaDest 'config\boot\AccessXI Retail.xml'
     PolExe = $PolExe
     FfxiInstallRoot = $ffxiInstallRoot
-    LegacyReloadedCleanup = $legacyReloadedCleanup
+    LegacyAccessXiCleanup = $legacyAccessXiCleanup
     PolNativeDeployed = (-not $SkipPolNativeDeployment)
     PolNativeDeployment = $nativeDeployment
     PolUrlFilesRepaired = $polUrlFilesRepaired

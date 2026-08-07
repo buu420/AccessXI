@@ -136,7 +136,7 @@ diff has no whitespace errors.
 
 **Files:**
 - Deploy: `build\Release\accessxi_pol_native.asi`
-- Deploy: `build\Release\accessxi_pol_nvda.dll`
+- Deploy: `build\Release\accessxi_pol_hook.dll`
 - Deploy: Prism runtime dependencies through the existing deployment script
 
 **Interfaces:**

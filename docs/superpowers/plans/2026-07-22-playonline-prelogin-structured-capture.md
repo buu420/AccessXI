@@ -240,7 +240,7 @@ Run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test_pol_prelogin_native_focus.ps1
-cmake --build build --config Release --target accessxi_pol_nvda pol_prelogin_semantics_tests pol_pml_selected_text_tests
+cmake --build build --config Release --target accessxi_pol_hook pol_prelogin_semantics_tests pol_pml_selected_text_tests
 ctest --test-dir build -C Release -R 'pol_prelogin_semantics_tests|pol_pml_selected_text_tests' --output-on-failure
 ```
 
@@ -347,7 +347,7 @@ Do not infer accepted input from keyboard state. A rejected key must not speak b
 Run:
 
 ```powershell
-cmake --build build --config Release --target accessxi_pol_nvda pol_postlogin_trace_tests pol_prelogin_semantics_tests
+cmake --build build --config Release --target accessxi_pol_hook pol_postlogin_trace_tests pol_prelogin_semantics_tests
 ctest --test-dir build -C Release -R 'pol_postlogin_trace_tests|pol_prelogin_semantics_tests' --output-on-failure
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test_pol_postlogin_trace_integration.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test_pol_prelogin_native_focus.ps1

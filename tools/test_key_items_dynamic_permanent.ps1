@@ -21,5 +21,17 @@ if ($source -match 'dat_rows:len\(\)\s*==\s*native_total') {
 if ($source -match 'rows:len\(\)\s*==\s*native_total') {
     throw 'Selected key-item speech must not depend on a fixed or exact total row count.'
 }
+if ($source -match 'if \(count ~= 10') {
+    throw 'Key Items category detection must not assume ten visible rows means the category screen.'
+}
+if ($source -match 'index > 9') {
+    throw 'Key Items category selection must not assume a fixed last category index.'
+}
+if ($source -notmatch 'read_i32\(child \+ 0x90\)') {
+    throw 'Expected Key Items view identity to use the native evitem state field.'
+}
+if ($source -notmatch 'classify_native_view') {
+    throw 'Expected Key Items dispatch to use the native evitem view classifier.'
+}
 
 Write-Host 'Dynamic permanent key-items integration checks passed'

@@ -46,9 +46,10 @@ $OutputDirectory = Resolve-FullPath $OutputDirectory
 $packageScript = Join-Path $RepoRoot 'tools\package_accessxi_installer.ps1'
 $packageTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_package.ps1'
 $nativeStructureTest = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
-$legacyCleanupTest = Join-Path $RepoRoot 'tools\test_legacy_reloaded_cleanup.ps1'
+$legacyCleanupTest = Join-Path $RepoRoot 'tools\test_legacy_accessxi_cleanup.ps1'
 $nativeMigrationTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_native_migration.ps1'
 $exeTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_exe.ps1'
+$publicReleaseTest = Join-Path $RepoRoot 'tools\test_public_release_hygiene.ps1'
 $projectFile = Join-Path $RepoRoot 'installer\AccessXIInstaller\AccessXIInstaller.csproj'
 $setupGuide = Join-Path $RepoRoot 'setup-guide.md'
 $publishDirectory = Join-Path $OutputDirectory 'AccessXIInstallerExe'
@@ -88,6 +89,7 @@ Copy-Item -LiteralPath $publishedSource -Destination $publishedExe -Force
 Copy-Item -LiteralPath $setupGuide -Destination $publishedSetupGuide -Force
 
 Invoke-PowerShellScript -Name $exeTest -Command { & $exeTest -RepoRoot $RepoRoot -PublishedExe $publishedExe }
+Invoke-PowerShellScript -Name $publicReleaseTest -Command { & $publicReleaseTest -RepoRoot $RepoRoot -PackageRoot (Join-Path $OutputDirectory 'AccessXI-Ashita-Installer') }
 
 [pscustomobject]@{
     InstallerExe = $publishedExe

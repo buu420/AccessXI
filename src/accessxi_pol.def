@@ -1,8 +1,7 @@
-LIBRARY accessxi_pol_nvda
+LIBRARY accessxi_pol_native
 EXPORTS
     expCreatePolPlugin=_expCreatePolPlugin@4
     expDestroyPlugin=_expDestroyPlugin@4
     expGetInterfaceVersion=_expGetInterfaceVersion@0
     AccessXI_POL_SetSpeechSinkV1=_AccessXI_POL_SetSpeechSinkV1@8
     AccessXI_POL_InitializeV2=_AccessXI_POL_InitializeV2@0
-    AccessXI_POL_ReloadedInitialize=_AccessXI_POL_ReloadedInitialize@0

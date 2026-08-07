@@ -227,7 +227,7 @@ PowerShell guard to the offline test script.
 Run:
 
 ```powershell
-cmake --build build --config Release --target accessxi_pol_nvda pol_pml_popup_text_tests pol_pml_selected_text_tests pol_prelogin_semantics_tests pol_postlogin_trace_tests
+cmake --build build --config Release --target accessxi_pol_hook pol_pml_popup_text_tests pol_pml_selected_text_tests pol_prelogin_semantics_tests pol_postlogin_trace_tests
 ctest --test-dir build -C Release --output-on-failure -R "pol_pml_popup_text_tests|pol_pml_selected_text_tests|pol_prelogin_semantics_tests|pol_postlogin_trace_tests"
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\test_pol_popup_notice_integration.ps1 -RepoRoot .
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\test_pol_native_offline.ps1
@@ -239,7 +239,7 @@ Expected: all commands exit zero.
 
 **Files:**
 
-- Build: `build\bin\Release\accessxi_pol_nvda.dll`
+- Build: `build\bin\Release\accessxi_pol_hook.dll`
 - Deploy through: `tools/deploy_pol_native_asi.ps1`
 
 - [ ] **Step 1: Confirm PlayOnline is closed**

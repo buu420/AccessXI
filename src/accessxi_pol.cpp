@@ -25,7 +25,6 @@
 namespace
 {
     constexpr const wchar_t* DefaultLogFileName = L"pol-monitor.log";
-    constexpr const wchar_t* DefaultReloadedSpeechQueueFileName = L"pol-reloaded-native-speech.queue";
     constexpr const wchar_t* DefaultPolUiTraceFileName = L"pol-ui-native-trace.tsv";
 
     constexpr uintptr_t AppRuntimeBase = 0x04810000u;
@@ -76,8 +75,7 @@ namespace
     constexpr int AccessXiPolInitializeUnsupportedBuild = -2;
     constexpr int AccessXiPolInitializeBusy = -3;
 
-    std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
-    std::atomic<bool> g_reloaded_native_worker_running{ false };
+    std::atomic<bool> g_native_hook_worker_running{ false };
     std::atomic<bool> g_pol_ui_trace_active{ false };
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
@@ -274,15 +272,6 @@ namespace
     std::wstring pol_ui_trace_path()
     {
         return path_join(diagnostic_log_directory(), DefaultPolUiTraceFileName);
-    }
-
-    std::wstring reloaded_speech_queue_path()
-    {
-        std::wstring configured = read_environment_wide(L"ACCESSXI_POL_SPEECH_QUEUE");
-        if (!configured.empty())
-            return configured;
-
-        return path_join(diagnostic_log_directory(), DefaultReloadedSpeechQueueFileName);
     }
 
     void log_line(const char* text)
@@ -923,31 +912,6 @@ namespace
         return false;
     }
 
-    void append_reloaded_speech_queue(const std::string& text)
-    {
-        if (text.empty())
-            return;
-
-        const std::wstring queue_path = reloaded_speech_queue_path();
-        const std::wstring queue_directory = parent_directory(queue_path);
-        if (!queue_directory.empty())
-            CreateDirectoryW(queue_directory.c_str(), nullptr);
-
-        FILE* file = nullptr;
-        if (_wfopen_s(&file, queue_path.c_str(), L"ab") != 0 || file == nullptr)
-            return;
-
-        std::string line = text;
-        for (char& ch : line)
-        {
-            if (ch == '\r' || ch == '\n')
-                ch = ' ';
-        }
-
-        std::fprintf(file, "%s\r\n", line.c_str());
-        std::fclose(file);
-    }
-
     bool dispatch_speech_sink_v1(const std::string& text, int interrupt) noexcept
     {
         const auto sink = g_speech_sink_v1.load(std::memory_order_acquire);
@@ -988,8 +952,7 @@ namespace
         std::snprintf(line, sizeof(line) - 1, "PRELOGIN_SPEAK queue reason=%s text=%s", reason == nullptr ? "" : reason, label.c_str());
         log_line(line);
 
-        if (!dispatch_speech_sink_v1(label, 1) && g_reloaded_speech_queue_enabled.load())
-            append_reloaded_speech_queue(label);
+        (void)dispatch_speech_sink_v1(label, 1);
     }
 
     void clear_prelogin_duplicate_guard(void)
@@ -2975,11 +2938,7 @@ namespace
         // Do not use the ordinary duplicate guard here: two independently
         // accepted characters may both produce the intentionally identical
         // word "star" within 100 milliseconds.
-        if (!dispatch_speech_sink_v1(speech, 1) &&
-            g_reloaded_speech_queue_enabled.load())
-        {
-            append_reloaded_speech_queue(speech);
-        }
+        (void)dispatch_speech_sink_v1(speech, 1);
     }
 
     void poll_masked_field_state()
@@ -4486,11 +4445,7 @@ namespace
         const std::string line = std::string(prefix) + text;
         log_line(line.c_str());
 
-        if (!dispatch_speech_sink_v1(text, speak_interrupt ? 1 : 0) &&
-            g_reloaded_speech_queue_enabled.load())
-        {
-            append_reloaded_speech_queue(text);
-        }
+        (void)dispatch_speech_sink_v1(text, speak_interrupt ? 1 : 0);
     }
 
     void process_popup_notice_text()
@@ -5782,7 +5737,7 @@ namespace
         log_line(line);
     }
 
-    void run_reloaded_native_hook_iteration()
+    void run_native_hook_iteration()
     {
         poll_pol_ui_trace_hotkey();
         install_native_focus_event_dispatch_hooks_once();
@@ -5792,23 +5747,23 @@ namespace
         poll_masked_field_state();
         poll_set_password_state();
         process_popup_notice_text();
-        process_queued_current_child_candidate("reloaded-native-current-child");
-        speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");
-        speak_current_prelogin_native_focus("reloaded-native-focus");
+        process_queued_current_child_candidate("native-current-child");
+        speak_pending_prelogin_pml_focus_candidate("native-focus");
+        speak_current_prelogin_native_focus("native-focus");
         drain_pol_ui_trace();
     }
 
-    void start_reloaded_native_hook_worker_once()
+    void start_native_hook_worker_once()
     {
         bool expected = false;
-        if (!g_reloaded_native_worker_running.compare_exchange_strong(expected, true))
+        if (!g_native_hook_worker_running.compare_exchange_strong(expected, true))
             return;
 
         std::thread([] {
-            log_line("AccessXI POL Reloaded native hook worker started");
-            while (g_reloaded_native_worker_running.load())
+            log_line("AccessXI POL native hook worker started");
+            while (g_native_hook_worker_running.load())
             {
-                run_reloaded_native_hook_iteration();
+                run_native_hook_iteration();
                 Sleep(20);
             }
         }).detach();
@@ -5818,7 +5773,7 @@ namespace
 class AccessXiPolPlugin final : public IPolPlugin
 {
 public:
-    const char* GetName(void) const override { return "accessxi_pol_nvda"; }
+    const char* GetName(void) const override { return "accessxi_pol_native"; }
     const char* GetAuthor(void) const override { return "buu42 and Codex"; }
     const char* GetDescription(void) const override { return "PlayOnline accessibility native focus bridge."; }
     const char* GetLink(void) const override { return "local"; }
@@ -5831,7 +5786,7 @@ public:
         UNREFERENCED_PARAMETER(core);
         UNREFERENCED_PARAMETER(logger);
         UNREFERENCED_PARAMETER(id);
-        log_line("AccessXI POL plugin initialized; Reloaded path owns pre-login speech.");
+        log_line("AccessXI POL native plugin initialized.");
         return true;
     }
 
@@ -5917,34 +5872,13 @@ extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_InitializeV2(void)
     }
 
     log_line("AccessXI POL native V2 initializing");
-    {
-        const std::wstring log_directory = diagnostic_log_directory();
-        const std::wstring queue_path = reloaded_speech_queue_path();
-        const std::string line = "AccessXI POL native diagnostics mode=V2 log_dir=\"" +
-            narrow_from_wide(log_directory.c_str()) +
-            "\" queue=\"" +
-            narrow_from_wide(queue_path.c_str()) +
-            "\"";
-        log_line(line.c_str());
-    }
     reset_prelogin_runtime_speech_state("InitializeV2");
     install_native_focus_event_dispatch_hooks_once();
     install_pml_focus_event_call_hook_once();
     install_native_selection_truth_hooks_once();
     install_popup_notice_hooks_once();
-    start_reloaded_native_hook_worker_once();
+    start_native_hook_worker_once();
     g_native_initialize_state.store(2, std::memory_order_release);
     log_line("AccessXI POL native V2 hooks installed");
     return AccessXiPolInitializeOk;
-}
-
-extern "C" __declspec(dllexport) void __stdcall AccessXI_POL_ReloadedInitialize(void)
-{
-    g_reloaded_speech_queue_enabled.store(true);
-    log_line("AccessXI POL Reloaded native initializing");
-    const int result = AccessXI_POL_InitializeV2();
-    if (result == AccessXiPolInitializeAlreadyReady)
-        log_line("AccessXI POL Reloaded native already initialized");
-    else if (result == AccessXiPolInitializeOk)
-        log_line("AccessXI POL Reloaded native hooks installed");
 }

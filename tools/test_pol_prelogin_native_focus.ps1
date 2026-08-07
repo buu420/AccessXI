@@ -106,15 +106,15 @@ $labelFilter = Get-FunctionBody $source "bool prelogin_pml_focus_candidate_label
 Assert-Before $labelFilter 'lower == "play"' 'return native_prelogin_atlas_label(label)' `
     "Broad direct/body labels such as Play must be rejected before atlas-backed focus speech."
 
-$reloadedWorker = Get-FunctionBody $source "void run_reloaded_native_hook_iteration"
-Assert-Contains $reloadedWorker 'speak_pending_prelogin_pml_focus_candidate\s*\(\s*"reloaded-native-focus"\s*\)' `
-    "Reloaded native worker must drain the strict PML focus candidate path."
-Assert-Contains $reloadedWorker 'speak_current_prelogin_native_focus\s*\(\s*"reloaded-native-focus"\s*\)' `
-    "Reloaded native worker must retain the current native focus fallback after strict PML drain."
-Assert-Before $reloadedWorker 'speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus")' 'speak_current_prelogin_native_focus("reloaded-native-focus")' `
-    "Reloaded worker must try strict PML focus before broader cached focus fallback."
-if ($reloadedWorker -match "GetAsyncKeyState") {
-    throw "Reloaded native worker must not monitor arrows, Tab, Enter, or any other keyboard state."
+$nativeWorker = Get-FunctionBody $source "void run_native_hook_iteration"
+Assert-Contains $nativeWorker 'speak_pending_prelogin_pml_focus_candidate\s*\(\s*"native-focus"\s*\)' `
+    "Native hook worker must drain the strict PML focus candidate path."
+Assert-Contains $nativeWorker 'speak_current_prelogin_native_focus\s*\(\s*"native-focus"\s*\)' `
+    "Native hook worker must retain the current native focus fallback after strict PML drain."
+Assert-Before $nativeWorker 'speak_pending_prelogin_pml_focus_candidate("native-focus")' 'speak_current_prelogin_native_focus("native-focus")' `
+    "Native worker must try strict PML focus before broader cached focus fallback."
+if ($nativeWorker -match "GetAsyncKeyState") {
+    throw "Native hook worker must not monitor arrows, Tab, Enter, or any other keyboard state."
 }
 
 $currentFocusSampler = Get-FunctionBody $source "bool speak_current_prelogin_native_focus"
@@ -195,14 +195,14 @@ if ($startupMemberRect -match "GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT")
 }
 
 $startupMemberChildSlots = Get-FunctionBody $source "std::string native_prelogin_startup_member_name_from_child_slots"
-if ($startupMemberChildSlots -match 'return\s+label\s*;|append_reloaded_speech_queue|speak_prelogin_label') {
+if ($startupMemberChildSlots -match 'return\s+label\s*;|append_legacy_speech_queue|speak_prelogin_label') {
     throw "Broad startup member child-slot probes must remain diagnostic-only."
 }
 
 $startupMemberModelProbe = Get-FunctionBody $source "void log_startup_member_model_probe"
 Assert-Contains $startupMemberModelProbe 'g_startup_member_model_probe_budget\.fetch_sub' `
     "Startup model diagnostics must remain finitely budgeted."
-if ($startupMemberModelProbe -match 'append_reloaded_speech_queue|speak_prelogin_label') {
+if ($startupMemberModelProbe -match 'append_legacy_speech_queue|speak_prelogin_label') {
     throw "Startup model probes must never speak."
 }
 
@@ -288,7 +288,7 @@ Assert-Contains $focusedMemberDiagnostic 'memberData=' `
     "Focused member-resolution diagnostics must identify the returned member-row object."
 Assert-Contains $focusedMemberDiagnostic 'candidate=' `
     "Focused member-resolution diagnostics must expose only the bounded native candidate for validation."
-if ($focusedMemberDiagnostic -match "append_reloaded_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
+if ($focusedMemberDiagnostic -match "append_legacy_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
     throw "Focused member-resolution diagnostics must be logging-only and must not infer selection from keys."
 }
 Assert-Contains $focusedTableMember 'log_focused_member_resolution\s*\(' `
@@ -527,7 +527,7 @@ Assert-Contains $currentChildRecorder 'g_pending_current_child_snapshot_valid\s*
 if ($currentChildRecorder -match 'native_prelogin_add_member_inner_textbox_child[\s\S]{0,160}return') {
     throw "Current-child hook path must not discard focused Add Member textbox children before worker-side native geometry can classify them."
 }
-if ($currentChildRecorder -match 'native_prelogin_atlas_label_from_geometry|best_native_pml_text_from_object_tree|native_prelogin_add_member_form_context|log_current_child_detail|speak_pending_prelogin_pml_focus_candidate|speak_prelogin_label|append_reloaded_speech_queue') {
+if ($currentChildRecorder -match 'native_prelogin_atlas_label_from_geometry|best_native_pml_text_from_object_tree|native_prelogin_add_member_form_context|log_current_child_detail|speak_pending_prelogin_pml_focus_candidate|speak_prelogin_label|append_legacy_speech_queue') {
     throw "Current-child hook path must not perform native label extraction, form-tree scans, logging, or speech on POL's UI thread."
 }
 
@@ -664,7 +664,7 @@ Assert-Contains $currentChildDetail 'g_current_child_detail_budget\.fetch_sub' `
     "Current-child diagnostics must be capped so probing does not create live POL lag."
 Assert-Contains $currentChildDetail 'PRELOGIN_CURRENTCHILDDETAIL' `
     "Current-child diagnostics must leave a stable marker for live log validation."
-if ($currentChildDetail -match "append_reloaded_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
+if ($currentChildDetail -match "append_legacy_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT") {
     throw "Current-child diagnostics must be logging-only and must not monitor keys."
 }
 Assert-Contains $source 'std::atomic<int>\s+g_current_child_no_label_budget\{\s*2\s*\}' `
@@ -704,7 +704,7 @@ Assert-Contains $startupMemberProbe 'child_text_budget' `
     "Startup member-name probe must reserve a child text budget so noisy parent widgets cannot starve the candidate child object."
 Assert-Contains $currentChildResolver 'startup_member_focus_rect[\s\S]{0,260}log_startup_member_probe\s*\(\s*manager,\s*current_child_object\s*\)' `
     "Startup member-name probe must run only after native startup member-list focus proof."
-if ($startupMemberProbe -match "append_reloaded_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|VK_RETURN|VK_TAB") {
+if ($startupMemberProbe -match "append_legacy_speech_queue|speak_prelogin_label|GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|VK_RETURN|VK_TAB") {
     throw "Startup member-name probe must be logging-only and must not monitor keys or speak."
 }
 
@@ -798,19 +798,19 @@ Assert-Before $currentChildResolver 'const bool add_member_field_geometry_focus'
 Assert-Before $currentChildResolver 'native_prelogin_add_member_current_child_speech_allowed(manager, current_child_object, label_source, label, current_child_is_tiny)' 'prelogin_pml_focus_can_claim_burst(candidate_source' `
     "Add Member inner-child guard must run before the broad current-child burst claim."
 Assert-Contains $source 'bool\s+process_queued_current_child_candidate\s*\(' `
-    "Reloaded worker must drain deferred current-child snapshots outside POL's focus setter."
+    "Native worker must drain deferred current-child snapshots outside POL's focus setter."
 $queuedCurrentChild = Get-FunctionBody $source "bool process_queued_current_child_candidate"
 Assert-Contains $queuedCurrentChild 'g_pending_current_child_snapshot_valid\s*=\s*false' `
     "Deferred current-child processing must consume the latest snapshot exactly once."
 Assert-Contains $queuedCurrentChild 'process_current_child_candidate\s*\(\s*snapshot,\s*reason\s*\)' `
     "Deferred current-child processing must route through the same strict native focus resolver."
-$reloadedWorker = Get-FunctionBody $source "void run_reloaded_native_hook_iteration"
-Assert-Before $reloadedWorker 'process_queued_current_child_candidate("reloaded-native-current-child")' 'speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus")' `
-    "Reloaded worker must resolve deferred current-child snapshots before draining speech candidates."
-if ($addMemberCurrentChildGuard -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_reloaded_speech_queue|speak_prelogin_label") {
+$nativeWorker = Get-FunctionBody $source "void run_native_hook_iteration"
+Assert-Before $nativeWorker 'process_queued_current_child_candidate("native-current-child")' 'speak_pending_prelogin_pml_focus_candidate("native-focus")' `
+    "Native worker must resolve deferred current-child snapshots before draining speech candidates."
+if ($addMemberCurrentChildGuard -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_legacy_speech_queue|speak_prelogin_label") {
     throw "Add Member current-child spam guard must be native-state filtering only, with no key monitoring or speech side effects."
 }
-if ($addMemberButtonGuard -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_reloaded_speech_queue|speak_prelogin_label") {
+if ($addMemberButtonGuard -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_legacy_speech_queue|speak_prelogin_label") {
     throw "Add Member button object-tree guard must be native-state filtering only, with no key monitoring or speech side effects."
 }
 Assert-Contains $source 'std::atomic<int>\s+g_current_child_candidate_log_budget\{\s*10\s*\}' `
@@ -861,7 +861,7 @@ Assert-Contains $ambiguousCommandCluster 'source_rank\s*!=\s*best_source_rank' `
     "Command-cluster ambiguity must ignore lower-confidence sibling/body labels so focused Connect is not silenced by stale Cancel text."
 Assert-Contains $ambiguousCommandCluster '>\s*1' `
     "Ambiguous command cluster detection must require more than one cluster label before rejecting speech."
-if ($ambiguousCommandCluster -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_reloaded_speech_queue|speak_prelogin_label") {
+if ($ambiguousCommandCluster -match "GetAsyncKeyState|arrow|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT|append_legacy_speech_queue|speak_prelogin_label") {
     throw "Ambiguous command cluster detection must be native text-set filtering only, with no key monitoring or speech side effects."
 }
 Assert-Contains $objectTextResolver 'std::vector<PreloginNativeTextCandidate>\s+candidates' `

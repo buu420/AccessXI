@@ -74,10 +74,10 @@ if ($source -notmatch 'accessxi\.navigation_zone_search_row_speech\(') {
     throw 'Zone-search results are not using name-first speech.'
 }
 if ($source -notmatch 'nav_menu_category_move[\s\S]*?accessxi\.navigation_category_speech\(') {
-    throw 'Control Numpad 7/9 category changes do not announce the new category.'
+    throw 'U/O category changes do not announce the new category.'
 }
 $categoryMoveStart = $source.IndexOf('local function nav_menu_category_move(delta)')
-$categoryMoveEnd = $source.IndexOf('function accessxi.nav_keypad_control_down()', $categoryMoveStart)
+$categoryMoveEnd = $source.IndexOf('local function nav_menu_start_route()', $categoryMoveStart)
 if ($categoryMoveStart -lt 0 -or $categoryMoveEnd -le $categoryMoveStart) {
     throw 'Could not isolate nav category movement.'
 }

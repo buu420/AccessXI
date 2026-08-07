@@ -38,9 +38,9 @@ Require-Match $source '#include\s+"pol_pml/native_selected_text\.h"' `
     "The PlayOnline hook must use the tested native selected-text decoder."
 Require-Match $source '#include\s+"pol_pml/native_text_field\.h"' `
     "The PlayOnline hook must use the exact native text-field decoder."
-Require-Match $cmake 'add_library\(accessxi_pol_nvda[\s\S]*src/pol_pml/native_selected_text\.cpp' `
+Require-Match $cmake 'add_library\(accessxi_pol_hook[\s\S]*src/pol_pml/native_selected_text\.cpp' `
     "The production hook DLL must link the native selected-text decoder."
-Require-Match $cmake 'add_library\(accessxi_pol_nvda[\s\S]*src/pol_pml/native_text_field\.cpp' `
+Require-Match $cmake 'add_library\(accessxi_pol_hook[\s\S]*src/pol_pml/native_text_field\.cpp' `
     "The production hook DLL must link the native text-field decoder."
 Require-Match $buildScript 'pol_pml_selected_text_tests' `
     "The release-stage builder must build the selected-text unit test before running CTest."
@@ -170,7 +170,7 @@ if ($setPasswordPoll -match 'GetAsyncKeyState|VK_UP|VK_DOWN|VK_LEFT|VK_RIGHT') {
     throw "Set Password changes must never be inferred from keyboard input."
 }
 
-$worker = Function-Body $source "void run_reloaded_native_hook_iteration"
+$worker = Function-Body $source "void run_native_hook_iteration"
 Require-Match $worker 'poll_masked_field_state\s*\(\s*\)[\s\S]*poll_set_password_state\s*\(\s*\)' `
     "The native worker must poll both retained Add Member controls while transient overlays own focus."
 

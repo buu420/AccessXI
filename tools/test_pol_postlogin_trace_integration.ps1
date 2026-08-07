@@ -112,9 +112,9 @@ Assert-Contains $traceCandidates '0x138u' 'Opt-in capture must include the paire
 
 Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability' 'Crash-prone PML text-setter hook must remain disabled.'
 Assert-NotContains $trace 'Prism|dispatch_speech|speech_sink|speak_prelogin' 'Pure trace module must never depend on speech.'
-Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_nvda[\s\S]*?src/pol_trace/postlogin_trace\.cpp' 'Native hook DLL must link the trace implementation.'
+Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_hook[\s\S]*?src/pol_trace/postlogin_trace\.cpp' 'Native hook DLL must link the trace implementation.'
 
-$iteration = Get-FunctionBody $source 'void run_reloaded_native_hook_iteration()'
+$iteration = Get-FunctionBody $source 'void run_native_hook_iteration()'
 Assert-Contains $iteration 'poll_pol_ui_trace_hotkey\s*\(' 'Native worker must poll the capture hotkey.'
 Assert-Contains $iteration 'poll_masked_field_state\s*\(' 'Native worker must poll the displayed masked-field state.'
 Assert-Contains $iteration 'poll_set_password_state\s*\(' 'Native worker must poll the retained Set Password choice.'

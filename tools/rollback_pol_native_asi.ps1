@@ -34,11 +34,9 @@ $polHashBefore = (Get-FileHash -LiteralPath $polExe -Algorithm SHA256).Hash
 $appHashBefore = (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash
 $nativeAsi = Assert-ChildPath (Join-Path $scriptsDirectory 'AccessXI.PolNative.asi') $scriptsDirectory 'Native ASI path'
 $disabledNativeAsi = Assert-ChildPath "$nativeAsi.disabled" $scriptsDirectory 'Disabled native ASI path'
-$reloadedAsi = Assert-ChildPath (Join-Path $scriptsDirectory 'AccessXI.PolReloadedBootstrap.asi') $scriptsDirectory 'Reloaded ASI path'
-$disabledReloadedAsi = Assert-ChildPath "$reloadedAsi.disabled" $scriptsDirectory 'Disabled Reloaded ASI path'
 
 if ($WhatIfPreference) {
-    Write-Output "What if: disable $nativeAsi and restore $reloadedAsi from $disabledReloadedAsi"
+    Write-Output "What if: disable $nativeAsi"
     return
 }
 
@@ -50,14 +48,10 @@ if (Test-Path -LiteralPath $nativeAsi -PathType Leaf) {
     Move-Item -LiteralPath $nativeAsi -Destination $disabledNativeAsi
 }
 
-if (-not (Test-Path -LiteralPath $reloadedAsi -PathType Leaf) -and
-    (Test-Path -LiteralPath $disabledReloadedAsi -PathType Leaf)) {
-    Move-Item -LiteralPath $disabledReloadedAsi -Destination $reloadedAsi
-}
 
 if ((Get-FileHash -LiteralPath $polExe -Algorithm SHA256).Hash -ne $polHashBefore -or
     (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash -ne $appHashBefore) {
     throw 'Rollback changed a Square Enix binary.'
 }
 
-Write-Output 'Native PlayOnline accessibility prototype is disabled; the Reloaded bootstrap is restored when its disabled copy was present.'
+Write-Output 'Native PlayOnline accessibility is disabled.'

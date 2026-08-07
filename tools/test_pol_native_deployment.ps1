@@ -47,7 +47,6 @@ function New-FakePolTree {
     Copy-Item -LiteralPath (Join-Path $InstalledPolRoot 'pol.exe') -Destination (Join-Path $root 'pol.exe')
     Copy-Item -LiteralPath (Join-Path $InstalledPolRoot 'viewer\com\app.dll') -Destination (Join-Path $root 'viewer\com\app.dll')
     Copy-Item -LiteralPath (Join-Path $InstalledPolRoot 'ddraw.dll') -Destination (Join-Path $root 'ddraw.dll')
-    [System.IO.File]::WriteAllText((Join-Path $scripts 'AccessXI.PolReloadedBootstrap.asi'), 'legacy-reloaded-bootstrap')
     [System.IO.File]::WriteAllText((Join-Path $scripts 'AccessXI.PolNative.asi'), 'older-native-prototype')
     New-Item -ItemType Directory -Force -Path (Join-Path $scripts 'AccessXI.PolNative') | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $scripts 'AccessXI.PolNative\old.txt'), 'older dependency')
@@ -62,12 +61,9 @@ try {
 
     & $deployScript -PolRoot $root -StageRoot $stage -BackupRoot $backupRoot -WhatIf
     Assert-True ((Get-Content -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative.asi') -Raw) -eq 'older-native-prototype') '-WhatIf changed the existing native ASI.'
-    Assert-True (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolReloadedBootstrap.asi')) '-WhatIf disabled Reloaded.'
     Assert-True (-not (Test-Path -LiteralPath $backupRoot)) '-WhatIf created a backup directory.'
 
     & $deployScript -PolRoot $root -StageRoot $stage -BackupRoot $backupRoot
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolReloadedBootstrap.asi'))) 'Deployment left the Reloaded bootstrap active.'
-    Assert-True (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolReloadedBootstrap.asi.disabled')) 'Deployment did not preserve the disabled Reloaded bootstrap.'
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative.asi') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $stage 'AccessXI.PolNative.asi') -Algorithm SHA256).Hash) 'Deployed native ASI hash mismatch.'
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative\accessxi_pol_native.dll') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $stage 'AccessXI.PolNative\accessxi_pol_native.dll') -Algorithm SHA256).Hash) 'Deployed hook DLL hash mismatch.'
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative\prism.dll') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $stage 'AccessXI.PolNative\prism.dll') -Algorithm SHA256).Hash) 'Deployed Prism hash mismatch.'
@@ -89,18 +85,15 @@ try {
     & $rollbackScript -PolRoot $root
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative.asi'))) 'Rollback left native ASI active.'
     Assert-True (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolNative.asi.disabled')) 'Rollback did not preserve disabled native ASI.'
-    Assert-True (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolReloadedBootstrap.asi')) 'Rollback did not restore Reloaded bootstrap.'
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $root 'pol.exe') -Algorithm SHA256).Hash -eq $polHashBefore) 'Rollback changed pol.exe.'
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $root 'viewer\com\app.dll') -Algorithm SHA256).Hash -eq $appHashBefore) 'Rollback changed app.dll.'
     & $rollbackScript -PolRoot $root
-    Assert-True (Test-Path -LiteralPath (Join-Path $root 'scripts\AccessXI.PolReloadedBootstrap.asi')) 'Second rollback was not idempotent.'
 
     $badRoot = New-FakePolTree 'bad-fingerprint'
     Add-Content -LiteralPath (Join-Path $badRoot 'viewer\com\app.dll') -Value 'corrupt'
     Invoke-ExpectFailure {
         & $deployScript -PolRoot $badRoot -StageRoot $stage -BackupRoot (Join-Path $testRoot 'bad-backups')
     } 'fingerprint|supported' 'Deployment accepted an unreviewed app.dll.'
-    Assert-True (Test-Path -LiteralPath (Join-Path $badRoot 'scripts\AccessXI.PolReloadedBootstrap.asi')) 'Rejected deployment changed Reloaded state.'
 
     $blocker = Join-Path $testRoot 'pol.exe'
     Copy-Item -LiteralPath "$env:SystemRoot\System32\cmd.exe" -Destination $blocker

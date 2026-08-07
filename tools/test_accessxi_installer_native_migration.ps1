@@ -25,7 +25,7 @@ function Write-TestFile {
 }
 
 $sourceInstaller = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
-$sourceCleanup = Join-Path $RepoRoot 'installer\legacy_reloaded_cleanup.ps1'
+$sourceCleanup = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
 Assert-True (Test-Path -LiteralPath $sourceInstaller -PathType Leaf) "Installer source is missing: $sourceInstaller"
 Assert-True (Test-Path -LiteralPath $sourceCleanup -PathType Leaf) "Cleanup source is missing: $sourceCleanup"
 
@@ -53,7 +53,7 @@ try {
 
     New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
     Copy-Item -LiteralPath $sourceInstaller -Destination (Join-Path $packageRoot 'install_accessxi.ps1') -Force
-    Copy-Item -LiteralPath $sourceCleanup -Destination (Join-Path $packageRoot 'legacy_reloaded_cleanup.ps1') -Force
+    Copy-Item -LiteralPath $sourceCleanup -Destination (Join-Path $packageRoot 'legacy_accessxi_cleanup.ps1') -Force
     Write-TestFile -Path (Join-Path $packageRoot 'setup-guide.md') -Content 'test setup guide'
     Write-TestFile -Path (Join-Path $payloadAshita 'Ashita-cli.exe') -Content 'ashita-cli'
     Write-TestFile -Path (Join-Path $payloadAshita 'AccessXI.cmd') -Content 'launcher'
@@ -96,7 +96,7 @@ try {
     & $packagedInstaller `
         -InstallRoot $installRoot `
         -PolExe $polExe `
-        -ReloadedConfigRoot $configRoot `
+        -LegacyAccessXiConfigRoot $configRoot `
         -SkipVisualCppRedistributables `
         -NoDesktopShortcut | Out-Null
 
@@ -115,18 +115,18 @@ try {
     $summaryPath = Join-Path $installRoot 'install_summary.json'
     Assert-True (Test-Path -LiteralPath $summaryPath -PathType Leaf) 'Installer did not write install_summary.json.'
     $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
-    Assert-True $summary.LegacyReloadedCleanup.Detected 'Install summary did not report the detected legacy AccessXI installation.'
-    Assert-True $summary.LegacyReloadedCleanup.FullReloadedRootRemoved 'Install summary did not report full removal of the owned Reloaded root.'
+    Assert-True $summary.LegacyAccessXiCleanup.Detected 'Install summary did not report the detected legacy AccessXI installation.'
+    Assert-True $summary.LegacyAccessXiCleanup.FullLegacyRootRemoved 'Install summary did not report full removal of the owned Reloaded root.'
     Assert-True $summary.PolNativeDeployed 'Install summary did not report native PlayOnline deployment.'
 
     & $packagedInstaller `
         -InstallRoot $installRoot `
         -PolExe $polExe `
-        -ReloadedConfigRoot $configRoot `
+        -LegacyAccessXiConfigRoot $configRoot `
         -SkipVisualCppRedistributables `
         -NoDesktopShortcut | Out-Null
     $secondSummary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
-    Assert-True (-not $secondSummary.LegacyReloadedCleanup.Detected) 'Second install falsely detected already-removed legacy Reloaded state.'
+    Assert-True (-not $secondSummary.LegacyAccessXiCleanup.Detected) 'Second install falsely detected already-removed legacy Reloaded state.'
     Assert-Equal (Get-Content -LiteralPath (Join-Path $scriptsRoot 'UnrelatedAccessibility.asi') -Raw) 'preserve-me' 'Second install changed an unrelated ASI.'
 
     'ok: installer migrates an owned AccessXI Reloaded install to native PlayOnline accessibility and is idempotent.'

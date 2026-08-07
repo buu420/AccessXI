@@ -56,6 +56,15 @@ function string.fmt(self, ...)
 end
 
 accessxi = {}
+local captured_gear = nil
+function accessxi.capture_current_gear_detail(menu_name, info, options)
+    captured_gear = {
+        menu = tostring(menu_name or ''),
+        info = info,
+        source = type(options) == 'table' and tostring(options.source or '') or '',
+    }
+    return true
+end
 function accessxi.survival_guide_text(text)
     return tostring(text or ''):gsub('%s+', ' '):trim()
 end
@@ -184,6 +193,15 @@ local speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0
 if speech ~= 'Fhelm Jobeizat. Cesti. Hand-to-Hand. All Races. DMG:+1 Delay:+48 Accuracy+3. Level 1. WAR, MNK, RDM, THF, PLD, DRK, BST, RNG, DNC.' then
     error('contaminated Cesti row was not repaired from the exact item resource: ' .. tostring(speech))
 end
+if captured_gear == nil
+    or captured_gear.menu ~= 'menu    query'
+    or captured_gear.source ~= 'generic-query'
+    or tonumber(captured_gear.info.id) ~= 16385
+    or tostring(captured_gear.info.name or '') ~= 'Cesti'
+    or type(captured_gear.info.detail_parts) ~= 'table'
+    or #captured_gear.info.detail_parts ~= 5 then
+    error('verified Sparks gear was not handed to the dynamic line reader')
+end
 
 selected_label = 'Xiphos Tale Chapter'
 speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
@@ -193,9 +211,13 @@ end
 
 selected_label = 'Cesti Primer'
 menu_title = 'Treasure Casket'
+captured_gear = nil
 speech = accessxi.generic_query_menu_speech('menu    query', menu_title, 0x2000)
 if speech ~= 'Treasure Casket. Cesti Primer.' then
     error('Sparks-only label repair leaked into an unrelated query menu: ' .. tostring(speech))
+end
+if captured_gear ~= nil then
+    error('gear line reader activated from an unrelated query label without a verified item panel')
 end
 "@
 

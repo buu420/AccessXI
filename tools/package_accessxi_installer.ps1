@@ -109,9 +109,14 @@ $OutputDirectory = Resolve-FullPath $OutputDirectory
 $buildNativeScript = Join-Path $RepoRoot 'tools\build_pol_native_asi.ps1'
 $testNativeStructureScript = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
 $nativeStage = Join-Path $RepoRoot 'stage\pol-native'
-$asiLoaderSource = Join-Path $RepoRoot 'external\Reloaded-II\_asi_extract\ASILoader32.dll'
+$fetchAsiLoaderScript = Join-Path $RepoRoot 'tools\fetch_ultimate_asi_loader.ps1'
+$ultimateAsiLoaderVersion = 'v9.7.2'
+$ultimateAsiLoaderArchiveSha256 = '0F34758B30EAA0EFB59F7AE04100DB789914E1A08891B89878B8FDB189C2A7C5'
+$ultimateAsiLoaderDllSha256 = 'C7277E832F6F07AF64903A99ECEBAB2936260CBF55EDA70787C5D7B2D5B9FE60'
+$asiLoaderSource = Join-Path $RepoRoot "third_party\Ultimate-ASI-Loader\$ultimateAsiLoaderVersion\x86\dinput8.dll"
+$asiLoaderLicense = Join-Path $RepoRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt'
 $installerScript = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
-$legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_reloaded_cleanup.ps1'
+$legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
 $setupGuide = Join-Path $RepoRoot 'setup-guide.md'
 $ashitaGuiProfile = Join-Path $RepoRoot 'installer\ashita_boot\AccessXI Retail.xml'
 $ashitaCliProfile = Join-Path $RepoRoot 'installer\ashita_boot\accessxi-retail.ini'
@@ -119,6 +124,7 @@ $ashitaLauncher = Join-Path $RepoRoot 'installer\ashita_launcher\AccessXI.cmd'
 $ashitaStartupScript = Join-Path $RepoRoot 'installer\ashita_scripts\default.txt'
 $vcRedistX86 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x86.exe'
 $vcRedistX64 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x64.exe'
+$repoAddonRoot = Join-Path $RepoRoot 'ashita\addons\accessxi_reader'
 $repoDataRoot = Join-Path $RepoRoot 'data'
 $repoSoundsRoot = Join-Path $RepoRoot 'sounds'
 $repoDatIndex = Join-Path $RepoRoot 'pol_re\out\dat_index\ffxi_dat_strings.tsv'
@@ -128,8 +134,6 @@ $repoLsbSqlRoot = Join-Path $RepoRoot 'third_party\LandSandBoat-server\sql'
 $windowerResourcesRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'windower\res'
 $packageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer'
 $zipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer.zip'
-$oldPackageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer'
-$oldZipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Reloaded-Installer.zip'
 
 if (-not (Test-Path -LiteralPath (Join-Path $AshitaRoot 'Ashita-cli.exe'))) {
     throw "Ashita-cli.exe is missing from AshitaRoot: $AshitaRoot"
@@ -141,7 +145,7 @@ if (-not (Test-Path -LiteralPath $installerScript)) {
     throw "Installer script is missing: $installerScript"
 }
 if (-not (Test-Path -LiteralPath $legacyCleanupScript)) {
-    throw "Legacy Reloaded cleanup library is missing: $legacyCleanupScript"
+    throw "Legacy AccessXI cleanup library is missing: $legacyCleanupScript"
 }
 if (-not (Test-Path -LiteralPath $buildNativeScript)) {
     throw "Native PlayOnline build script is missing: $buildNativeScript"
@@ -149,8 +153,22 @@ if (-not (Test-Path -LiteralPath $buildNativeScript)) {
 if (-not (Test-Path -LiteralPath $testNativeStructureScript)) {
     throw "Native PlayOnline structure test is missing: $testNativeStructureScript"
 }
+if (-not (Test-Path -LiteralPath $fetchAsiLoaderScript -PathType Leaf)) {
+    throw "Ultimate ASI Loader fetch script is missing: $fetchAsiLoaderScript"
+}
+if (-not (Test-Path -LiteralPath $asiLoaderLicense -PathType Leaf)) {
+    throw "Ultimate ASI Loader license notice is missing: $asiLoaderLicense"
+}
 if (-not (Test-Path -LiteralPath $asiLoaderSource -PathType Leaf)) {
-    throw "Reviewed x86 Ultimate ASI Loader is missing: $asiLoaderSource"
+    & $fetchAsiLoaderScript -RepoRoot $RepoRoot -Version $ultimateAsiLoaderVersion -ArchiveSha256 $ultimateAsiLoaderArchiveSha256 -DllSha256 $ultimateAsiLoaderDllSha256
+    if (-not $?) { throw 'Unable to fetch the pinned official x86 Ultimate ASI Loader.' }
+}
+$actualAsiLoaderHash = (Get-FileHash -LiteralPath $asiLoaderSource -Algorithm SHA256).Hash
+if ($actualAsiLoaderHash -ne $ultimateAsiLoaderDllSha256) {
+    throw "Ultimate ASI Loader cache hash mismatch. Expected $ultimateAsiLoaderDllSha256, got $actualAsiLoaderHash."
+}
+if (-not (Test-Path -LiteralPath $repoAddonRoot)) {
+    throw "Canonical AccessXI addon source is missing: $repoAddonRoot"
 }
 if (-not (Test-Path -LiteralPath $setupGuide)) {
     throw "Setup guide is missing: $setupGuide"
@@ -208,13 +226,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-foreach ($directoryToClean in @($packageRoot, $oldPackageRoot)) {
+foreach ($directoryToClean in @($packageRoot)) {
     Assert-UnderDirectory -Path $directoryToClean -Parent $OutputDirectory -Message "Refusing to clean package root outside output directory: $directoryToClean"
     if (Test-Path -LiteralPath $directoryToClean) {
         Remove-Item -LiteralPath $directoryToClean -Recurse -Force
     }
 }
-foreach ($archiveToClean in @($zipPath, $oldZipPath)) {
+foreach ($archiveToClean in @($zipPath)) {
     Assert-UnderDirectory -Path $archiveToClean -Parent $OutputDirectory -Message "Refusing to clean package archive outside output directory: $archiveToClean"
     if (Test-Path -LiteralPath $archiveToClean) {
         Remove-Item -LiteralPath $archiveToClean -Force
@@ -246,8 +264,7 @@ $ashitaExcludePatterns = @(
     'addons\accessxi_reader\logs\*',
     'addons\accessxi_reader\ffxi-menu-reader.boot.log',
     'addons\accessxi_reader\*.boot.log',
-    'polplugins\accessxi_pol_nvda.dll',
-    'polplugins\accessxi_pol_nvda.dll*',
+    'polplugins\accessxi_pol*.dll*',
     '*.bak',
     '*.bak.*',
     '*.bak*',
@@ -277,6 +294,11 @@ if (Test-Path -LiteralPath $payloadAshitaAddons) {
         Remove-Item -LiteralPath $_.FullName -Recurse -Force
     }
 }
+if (Test-Path -LiteralPath $payloadAddon) {
+    Assert-UnderDirectory -Path $payloadAddon -Parent $payloadAshita -Message "Refusing to replace addon outside packaged Ashita: $payloadAddon"
+    Remove-Item -LiteralPath $payloadAddon -Recurse -Force
+}
+Copy-FilteredTree -Source $repoAddonRoot -Destination $payloadAddon -ExcludePatterns @('logs', 'logs\*', '*.boot.log', '*.bak*', '*.tmp')
 Copy-FilteredTree -Source $repoDataRoot -Destination (Join-Path $payloadAddon 'data')
 Copy-FilteredTree -Source $repoSoundsRoot -Destination (Join-Path $payloadAddon 'sounds') -ExcludePatterns @('*.bak*', '*.log', '*.tmp')
 Copy-FilteredTree -Source $repoNavMeshesRoot -Destination (Join-Path $payloadAddon 'third_party\xiNavmeshes')
@@ -293,8 +315,9 @@ Copy-RequiredFile -Source $ashitaCliProfile -Destination (Join-Path $payloadAshi
 Copy-RequiredFile -Source $ashitaLauncher -Destination (Join-Path $payloadAshita 'AccessXI.cmd')
 Copy-RequiredFile -Source $ashitaStartupScript -Destination (Join-Path $payloadAshita 'scripts\default.txt')
 Copy-RequiredFile -Source $installerScript -Destination (Join-Path $packageRoot 'install_accessxi.ps1')
-Copy-RequiredFile -Source $legacyCleanupScript -Destination (Join-Path $packageRoot 'legacy_reloaded_cleanup.ps1')
+Copy-RequiredFile -Source $legacyCleanupScript -Destination (Join-Path $packageRoot 'legacy_accessxi_cleanup.ps1')
 Copy-RequiredFile -Source $setupGuide -Destination (Join-Path $packageRoot 'setup-guide.md')
+Copy-RequiredFile -Source $asiLoaderLicense -Destination (Join-Path $packageRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')
 Copy-RequiredFile -Source $asiLoaderSource -Destination (Join-Path $payloadNative 'ddraw.dll')
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative.asi') -Destination (Join-Path $payloadNative 'AccessXI.PolNative.asi')
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\accessxi_pol_native.dll') -Destination (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
@@ -311,7 +334,9 @@ $manifest = [ordered]@{
     AccessXIReaderHash = Get-OptionalFileHash (Join-Path $payloadAshita 'addons\accessxi_reader\accessxi_reader.lua')
     AccessXIDataHash = Get-OptionalFileHash (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')
     AccessXIDatIndexHash = Get-OptionalFileHash (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')
+    UltimateAsiLoaderVersion = $ultimateAsiLoaderVersion
     PolAsiLoaderHash = Get-OptionalFileHash (Join-Path $payloadNative 'ddraw.dll')
+    PolAsiLoaderLicenseHash = Get-OptionalFileHash (Join-Path $packageRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')
     PolNativeAsiHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative.asi')
     PolNativeHookHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
     PolNativePrismHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\prism.dll')

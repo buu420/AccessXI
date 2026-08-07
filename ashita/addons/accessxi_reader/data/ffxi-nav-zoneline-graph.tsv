@@ -341,14 +341,14 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 880292474	105	Batallia Downs	z2x4	491.918	-159.982	1.171	244	Upper Jeuno	z6s1	-104.576	187.365	-2.286	lsb-zonelines	untested	
 1668887162	106	North Gustaberg	z2yc	580.986	695.899	-17.809	11	Oldton Movalpolos	z0b1	-322.031	-259.946	6.251	lsb-zonelines	untested	
 1702441594	106	North Gustaberg	z2ye	461.255	736.063	-8.139	11	Oldton Movalpolos	z0b3	-304.061	-99.272	-8.651	lsb-zonelines	untested	
-846803578	106	North Gustaberg	z2y2	0.735	-79.065	-5.555	107	South Gustaberg	z2z5	0.840	76.838	-5.027	lsb-zonelines	untested	
-880358010	106	North Gustaberg	z2y4	-440.639	-276.308	33.094	107	South Gustaberg	z2z7	-440.502	-121.753	35.486	lsb-zonelines	untested	
+846803578	106	North Gustaberg	z2y2	0.735	-79.065	-5.555	107	South Gustaberg	z2z5	0.840	76.838	-5.027	lsb-zonelines	proven	live route evidence 2026-08-03
+880358010	106	North Gustaberg	z2y4	-440.639	-276.308	33.094	107	South Gustaberg	z2z7	-440.502	-121.753	35.486	lsb-zonelines	proven	live route evidence 2026-06-20
 913912442	106	North Gustaberg	z2y6	-518.828	592.074	33.034	108	Konschtat Highlands	z301	101.543	-607.531	-75.453	lsb-zonelines	untested	
 947466874	106	North Gustaberg	z2y8	497.899	1174.924	-37.517	143	Palborough Mines	z3z1	4.923	59.551	-2.383	lsb-zonelines	untested	
 1635332730	106	North Gustaberg	z2ya	-697.012	311.829	92.175	191	Dangruf Wadi	z5b3	2.871	619.342	-2.986	lsb-zonelines	untested	
 813249146	106	North Gustaberg	z2y0	660.046	302.725	-3.085	236	Port Bastok	z6k1	142.002	-2.008	4.969	lsb-zonelines	untested	
-880423546	107	South Gustaberg	z2z4	0.877	80.156	-6.763	106	North Gustaberg	z2y3	0.020	-75.405	-4.409	lsb-zonelines	untested	
-913977978	107	South Gustaberg	z2z6	-440.465	-118.436	33.268	106	North Gustaberg	z2y5	-440.792	-272.901	35.531	lsb-zonelines	untested	
+880423546	107	South Gustaberg	z2z4	0.877	80.156	-6.763	106	North Gustaberg	z2y3	0.020	-75.405	-4.409	lsb-zonelines	proven	live route evidence 2026-08-03
+913977978	107	South Gustaberg	z2z6	-440.465	-118.436	33.268	106	North Gustaberg	z2y5	-440.792	-272.901	35.531	lsb-zonelines	proven	paired live route evidence 2026-06-20
 947532410	107	South Gustaberg	z2z8	-605.340	-520.223	33.826	191	Dangruf Wadi	z5b1	-4.025	0.016	-4.449	lsb-zonelines	untested	
 813314682	107	South Gustaberg	z2z0	580.030	-301.760	-3.225	234	Bastok Mines	z6i1	-16.039	-132.804	-4.217	lsb-zonelines	untested	
 846869114	107	South Gustaberg	z2z2	260.000	-180.000	-3.225	235	Bastok Markets	z6j5	-363.536	-183.525	-12.108	lsb-zonelines	untested	

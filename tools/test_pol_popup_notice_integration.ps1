@@ -58,7 +58,7 @@ function Function-Body {
 
 Assert-Contains $source '#include\s+"pol_pml/native_popup_text\.h"' `
     'The PlayOnline hook must use the unit-tested strict popup reader.'
-Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_nvda[\s\S]*?src/pol_pml/native_popup_text\.cpp' `
+Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_hook[\s\S]*?src/pol_pml/native_popup_text\.cpp' `
     'The production hook DLL must link the strict popup reader.'
 
 $constants = @{
@@ -254,8 +254,8 @@ Assert-Contains $speaker 'dispatch_speech_sink_v1\s*\(' `
     'Popup text must use the active Prism-compatible speech sink.'
 Assert-Contains $speaker 'speak_interrupt' `
     'Modal bodies and notices must retain their distinct interruption policy.'
-Assert-Contains $speaker 'g_reloaded_speech_queue_enabled' `
-    'Popup text must preserve the existing Reloaded queue fallback.'
+
+
 
 $reset = Function-Body $source 'void reset_popup_notice_state'
 Assert-Contains $reset 'g_popup_text_trackers' `
@@ -267,7 +267,7 @@ $runtimeReset = Function-Body $source 'void reset_prelogin_runtime_speech_state'
 Assert-Contains $runtimeReset 'reset_popup_notice_state\s*\(' `
     'The existing PlayOnline runtime reset must clear popup state.'
 
-$iteration = Function-Body $source 'void run_reloaded_native_hook_iteration'
+$iteration = Function-Body $source 'void run_native_hook_iteration'
 Assert-Contains $iteration 'install_popup_notice_hooks_once\s*\(' `
     'The native worker must install exact popup constructor hooks.'
 Assert-Contains $iteration 'process_popup_notice_text\s*\(' `

@@ -2,6 +2,8 @@ local data = {};
 
 data.menu_categories = T{
     T{ key = 'all', label = 'All' },
+    T{ key = 'mission', label = 'Missions' },
+    T{ key = 'quest', label = 'Quests' },
     T{ key = 'area', label = 'Areas' },
     T{ key = 'npc', label = 'NPCs' },
     T{ key = 'object', label = 'Objects' },

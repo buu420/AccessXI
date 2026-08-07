@@ -1,0 +1,363 @@
+local objectives_path = assert(arg[1], 'missing objectives module path')
+local module_path = assert(arg[2], 'missing navigation module path')
+
+local list_methods = {}
+function list_methods:len() return #self end
+function list_methods:append(value) self[#self + 1] = value; return self end
+function list_methods:clear() for index = #self, 1, -1 do self[index] = nil end end
+T = function(values) return setmetatable(values or {}, { __index = list_methods }) end
+
+string.fmt = function(self, ...) return string.format(self, ...) end
+string.trim = function(self) return (self:gsub('^%s+', ''):gsub('%s+$', '')) end
+string.eq = function(self, other, insensitive)
+    if insensitive then return self:lower() == tostring(other or ''):lower() end
+    return self == tostring(other or '')
+end
+string.contains = function(self, value) return self:find(value, 1, true) ~= nil end
+
+bit = {}
+function bit.lshift(value, shift) return (tonumber(value) or 0) * (2 ^ (tonumber(shift) or 0)) end
+function bit.band(a, b)
+    a = tonumber(a) or 0
+    b = tonumber(b) or 0
+    local result = 0
+    local place = 1
+    for _ = 0, 31 do
+        local aa = a % 2
+        local bb = b % 2
+        if aa == 1 and bb == 1 then result = result + place end
+        a = math.floor(a / 2)
+        b = math.floor(b / 2)
+        place = place * 2
+    end
+    return result
+end
+
+local current_player = 'Alpha'
+local current_identity = 'alpha:1001'
+local cancelled_objective_routes = 0
+local owned_key_items = {}
+local mission_values = {
+    Bastok = 1,
+    ['Rise of the Zilart'] = 2,
+    ['Chains of Promathia'] = 0,
+    Assault = 0,
+    ['Treasures of Aht Urhgan'] = 0,
+    ['Wings of the Goddess'] = 0,
+    ['Seekers of Adoulin'] = 0,
+    ["Rhapsodies of Vana'diel"] = 65535,
+    ['The Voracious Resurgence'] = 188,
+    ['A Crystalline Prophecy'] = 15,
+    ["A Moogle Kupo d'Etat"] = 15,
+    ['A Shantotto Ascension'] = 15,
+}
+
+local mission_rows = {
+    Bastok = T{
+        { label = 'The Zeruhn Report', mission_id = 0, next_mission_id = 1 },
+        { label = 'A Geological Survey', mission_id = 1, next_mission_id = 2 },
+        { label = 'Fetichism', mission_id = 2, next_mission_id = 3 },
+    },
+    ['Rise of the Zilart'] = T{
+        { label = 'The New Frontier', mission_id = 1, next_mission_id = 2 },
+        { label = "Welcome t'Norg", mission_id = 2, next_mission_id = 3 },
+    },
+    ['The Voracious Resurgence'] = T{
+        { label = 'False TVR mission from TalesBeginning bits', mission_id = 188, next_mission_id = 189 },
+    },
+}
+for _, rows in pairs(mission_rows) do
+    rows.count = #rows
+    rows.by_mission_id = {}
+    for _, row in ipairs(rows) do rows.by_mission_id[row.mission_id] = row end
+end
+
+local quest_rows = {
+    sandoria = {
+        [2] = { id = 2, label = 'The Pickpocket', area = "San d'Oria", source = 'ROM test row 2' },
+        [200] = { id = 200, label = 'A Long Current Quest', area = "San d'Oria", source = 'ROM test row 200' },
+    },
+    aht_urhgan = {
+        [100] = { id = 100, label = 'Safe Aht Urhgan Quest', area = 'Aht Urhgan', source = 'ROM test row 100' },
+        [180] = { id = 180, label = 'Overlaid Mission Word', area = 'Aht Urhgan', source = 'ROM test row 180' },
+    },
+}
+
+local function words_with(...)
+    local words = T{ 0, 0, 0, 0, 0, 0, 0, 0 }
+    for _, id in ipairs({ ... }) do
+        local word_index = math.floor(id / 32) + 1
+        local bit_index = id % 32
+        words[word_index] = words[word_index] + (2 ^ bit_index)
+    end
+    return words
+end
+
+local quest_entries = {
+    ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(2, 200), source = 'packet_in_056', identity = current_identity },
+    ['aht_urhgan:current'] = { area_key = 'aht_urhgan', mode = 'current', words = words_with(100, 180), source = 'packet_in_056', identity = current_identity },
+}
+
+local logs = T{}
+accessxi = {
+    mission_quest_nav_player = 'Alpha',
+    mission_quest_nav_identity = current_identity,
+    mission_packet_player = 'Alpha',
+    mission_packet_identity = current_identity,
+    mission_packet_source = 'packet_in_056',
+    mission_packet_ahturghan = {},
+    mission_packet_ahturghan_identity = current_identity,
+    mission_packet_ahturghan_source = 'packet_in_056',
+    mission_packet_ahturghan_complete = {},
+    mission_packet_main = { nation = 1, nation_mission = 1, port = 0xFFFF },
+    quest_packet_player = 'Alpha',
+    quest_packet_identity = current_identity,
+    quest_packet_source = 'packet_in_056',
+    mission_packet_cache_loaded = true,
+    mission_packet_tick = 100,
+    quest_packet_logs = quest_entries,
+    quest_packet_cache_loaded = true,
+    quest_packet_tick = 100,
+    key_items_packet_player = 'Alpha',
+    key_items_packet_identity = current_identity,
+    key_items_packet_tables = { [0] = { flags = string.rep('\0', 64), source = 'packet_in_055', identity = current_identity } },
+    key_items_packet_cache_loaded = true,
+    nav_points = T{
+        T{ zone = 237, name = 'Cid', x = -12.598, z = 2.430, y = -10.988, kind = 'npc', source = 'current-nav-data' },
+    },
+    quests_menu_data = {
+        quest_log_order = T{ 'sandoria', 'aht_urhgan' },
+        quest_log_resources = {
+            sandoria = { label = "San d'Oria" },
+            aht_urhgan = { label = 'Aht Urhgan' },
+        },
+    },
+    missions_menu_category_labels = T{
+        "San d'Oria", 'Bastok', 'Windurst', 'Rise of the Zilart', 'Chains of Promathia',
+        'Assault', 'Treasures of Aht Urhgan', 'Campaign', 'Wings of the Goddess',
+        'Seekers of Adoulin', "Rhapsodies of Vana'diel", 'The Voracious Resurgence',
+        'A Crystalline Prophecy', "A Moogle Kupo d'Etat", 'A Shantotto Ascension',
+    },
+    current_player_name = function() return current_player end,
+    current_player_identity = function() return current_identity end,
+    nav_cancel_mission_quest_route = function()
+        local destination = accessxi.nav_destination
+        local pending = accessxi.nav_zone_search_target
+        local objective = (type(destination) == 'table' and (destination.objective_kind == 'mission' or destination.objective_kind == 'quest'))
+            or (type(pending) == 'table' and (pending.objective_kind == 'mission' or pending.objective_kind == 'quest'))
+        if not objective then return false end
+        cancelled_objective_routes = cancelled_objective_routes + 1
+        accessxi.nav_active = false
+        accessxi.nav_destination = nil
+        accessxi.nav_zone_search_target = nil
+        return true
+    end,
+    restore_mission_packet_cache_if_needed = function() end,
+    restore_quest_packet_cache_if_needed = function() end,
+    restore_key_items_packet_cache_if_needed = function() end,
+    load_mission_rom_rows = function(context) return mission_rows[context] end,
+    current_mission_value_for_context = function(context) return mission_values[context], 10 end,
+    mission_rom_current_row = function(rows, value)
+        local best = nil
+        for _, row in ipairs(rows or {}) do
+            if value >= row.mission_id and (row.next_mission_id == nil or value < row.next_mission_id) then return row end
+            if value >= row.mission_id then best = row end
+        end
+        return best
+    end,
+    cop_mission_rom_current_row = function(rows, value) return accessxi.mission_rom_current_row(rows, value) end,
+    missions_menu_nation_context_id = function(context)
+        if context == "San d'Oria" then return 0 end
+        if context == 'Bastok' then return 1 end
+        if context == 'Windurst' then return 2 end
+        return nil
+    end,
+    mission_rom_table_for_context = function(context)
+        if context == 'Campaign' then return { packet = '' } end
+        if context == 'The Voracious Resurgence' then return { packet = 'tales' } end
+        return { packet = context }
+    end,
+    quest_packet_entry = function(area, mode) return quest_entries[area .. ':' .. mode] end,
+    quest_packet_has_id = function(entry, id)
+        if entry == nil then return false end
+        local word = entry.words[math.floor(id / 32) + 1] or 0
+        return bit.band(word, 2 ^ (id % 32)) ~= 0
+    end,
+    quest_rom_rows_for_area = function(area) return quest_rows[area] end,
+    key_items_packet_has_id = function(id) return owned_key_items[id] == true end,
+    nav_point_effective_kind = function(point) return tostring(point.kind or ''):lower() end,
+    speech_name = function(value) return tostring(value or '') end,
+    sentence_fragment = function(value) return tostring(value or '') end,
+    escape_probe_log_text = function(value) return tostring(value or '') end,
+}
+
+local function load_with_env(path, env)
+    local chunk = assert(loadfile(path))
+    setfenv(chunk, setmetatable(env or {}, { __index = _G }))
+    return chunk()
+end
+
+accessxi.mission_quest_objectives = load_with_env(objectives_path, { accessxi = accessxi, T = T })
+assert(type(accessxi.mission_quest_objectives) == 'table')
+assert(load_with_env(module_path, {
+    accessxi = accessxi,
+    T = T,
+    bit = bit,
+    log_line = function(text) logs:append(text) end,
+}))
+
+local function find(items, name)
+    for _, item in ipairs(items or {}) do
+        if item.name == name then return item end
+    end
+    return nil
+end
+
+-- Native active mission rows, including exact nation mission ID zero.
+local missions = accessxi.nav_mission_quest_active_items('mission')
+assert(find(missions, 'A Geological Survey') ~= nil)
+assert(find(missions, "Welcome t'Norg") ~= nil)
+assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
+accessxi.mission_packet_source = 'cache'
+assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
+accessxi.mission_packet_source = 'packet_in_056'
+accessxi.mission_packet_identity = 'alpha:9999'
+assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
+accessxi.mission_packet_identity = current_identity
+mission_values.Bastok = 0
+accessxi.mission_packet_main.nation_mission = 0
+missions = accessxi.nav_mission_quest_active_items('mission')
+assert(find(missions, 'The Zeruhn Report') ~= nil)
+mission_values.Bastok = 1
+accessxi.mission_packet_main.nation_mission = 1
+
+-- Quest rows come from every set current bit and change with packet state.
+local quests = accessxi.nav_mission_quest_active_items('quest')
+assert(#quests == 3)
+assert(quests[1].name == 'The Pickpocket')
+assert(quests[2].name == 'A Long Current Quest')
+assert(quests[3].name == 'Safe Aht Urhgan Quest')
+assert(find(quests, 'Overlaid Mission Word') == nil)
+quest_entries['sandoria:current'].source = 'cache'
+assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
+quest_entries['sandoria:current'].source = 'packet_in_056'
+quest_entries['sandoria:current'].identity = 'alpha:9999'
+assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
+quest_entries['sandoria:current'].identity = current_identity
+quest_entries['sandoria:current'].words = words_with(2)
+quests = accessxi.nav_mission_quest_active_items('quest')
+assert(#quests == 2 and find(quests, 'A Long Current Quest') == nil)
+quest_entries['sandoria:current'].words = words_with(2, 200)
+assert(#accessxi.nav_mission_quest_active_items('all') == 0)
+
+-- Geological Survey: no tester -> Cid; Blue -> precise I-8 geyser; Red -> Cid.
+missions = accessxi.nav_mission_quest_active_items('mission')
+local survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_available == true)
+assert(survey.objective_stage == 'obtain-blue-tester')
+assert(survey.objective_target.zone == 237 and survey.objective_target.name == 'Cid')
+assert(survey.objective_instruction:find('Blue acidity tester', 1, true) ~= nil)
+local row_speech = accessxi.nav_mission_quest_item_speech(survey, 1, #missions)
+assert(row_speech:find('Current objective', 1, true) ~= nil)
+
+owned_key_items[3] = true
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_stage == 'charge-blue-tester')
+assert(survey.objective_target.zone == 191)
+assert(math.abs(survey.objective_target.x - -133.1) < 0.01)
+assert(math.abs(survey.objective_target.z - 133.2) < 0.01)
+assert(math.abs(survey.objective_target.y - 3.0) < 0.01)
+assert(survey.objective_target.arrival_radius == 1.0)
+assert(survey.objective_instruction:lower():find('stand on the geyser', 1, true) ~= nil)
+assert(survey.objective_instruction:lower():find('launch', 1, true) ~= nil)
+local target, message, mode = accessxi.nav_mission_quest_prepare_route(survey, { zone = 106 })
+assert(mode == 'ready' and target ~= nil and message == '')
+assert(accessxi.nav_mission_quest_start_suffix(target):find('stand on the geyser', 1, true) ~= nil)
+assert(accessxi.nav_mission_quest_arrival_suffix(target):lower():find('stand on the geyser', 1, true) ~= nil)
+assert(accessxi.nav_mission_quest_route_context(target) == 'Mission objective')
+assert(target.objective_character_identity == current_identity)
+accessxi.nav_destination = target
+assert(accessxi.nav_mission_quest_route_owner_mismatch() == false)
+current_identity = 'alpha:9999'
+assert(accessxi.nav_mission_quest_route_owner_mismatch() == true)
+current_identity = 'alpha:1001'
+accessxi.nav_destination = nil
+
+owned_key_items[3] = nil
+owned_key_items[4] = true
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_stage == 'return-red-tester')
+assert(survey.objective_target.zone == 237 and survey.objective_target.name == 'Cid')
+
+-- Contradictory or unavailable ownership and missing nav points never guess.
+owned_key_items[3] = true
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
+target, message, mode = accessxi.nav_mission_quest_prepare_route(survey, { zone = 191 })
+assert(target == nil and mode == 'blocked' and message:find('No verified route objective', 1, true) ~= nil)
+
+owned_key_items[3] = nil
+owned_key_items[4] = nil
+accessxi.key_items_packet_tables = {}
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
+
+-- A persisted same-character key-item cache may be stale after reload and must
+-- never choose an objective stage before a live-session 0x055 snapshot arrives.
+accessxi.key_items_packet_tables = { [0] = { flags = string.rep('\0', 64), source = 'cache', identity = current_identity } }
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
+
+accessxi.key_items_packet_tables[0].source = 'packet_in_055'
+accessxi.key_items_packet_tables[0].identity = current_identity
+accessxi.nav_points = T{}
+missions = accessxi.nav_mission_quest_active_items('mission')
+survey = assert(find(missions, 'A Geological Survey'))
+assert(survey.objective_available == false and survey.objective_status == 'destination-unavailable')
+
+local unsupported = find(missions, "Welcome t'Norg")
+target, message, mode = accessxi.nav_mission_quest_prepare_route(unsupported, { zone = 191 })
+assert(target == nil and mode == 'blocked')
+
+-- A same-name character with another server ID clears state and cancels only
+-- the copied mission/quest route before any prior-character target can run.
+accessxi.nav_active = true
+accessxi.nav_destination = { objective_kind = 'mission', objective_character_identity = current_identity }
+current_identity = 'alpha:2002'
+assert(accessxi.nav_mission_quest_sync_character('test-switch') == true)
+assert(accessxi.mission_quest_nav_player == 'Alpha')
+assert(accessxi.mission_quest_nav_identity == 'alpha:2002')
+assert(cancelled_objective_routes == 1)
+assert(accessxi.nav_active == false and accessxi.nav_destination == nil)
+assert(next(accessxi.mission_packet_main) == nil)
+assert(next(accessxi.quest_packet_logs) == nil)
+assert(accessxi.mission_packet_player == '')
+assert(accessxi.mission_packet_identity == '')
+assert(accessxi.quest_packet_player == '')
+assert(accessxi.quest_packet_identity == '')
+assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
+assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
+
+-- Ordinary navigation must survive the same character-state boundary.
+accessxi.nav_active = true
+accessxi.nav_destination = { kind = 'npc', name = 'Ordinary destination' }
+current_identity = 'alpha:3003'
+assert(accessxi.nav_mission_quest_sync_character('test-ordinary-switch') == true)
+assert(cancelled_objective_routes == 1)
+assert(accessxi.nav_active == true and accessxi.nav_destination.name == 'Ordinary destination')
+
+-- A pending cross-zone objective with no active leg must also be torn down.
+accessxi.nav_active = false
+accessxi.nav_destination = nil
+accessxi.nav_zone_search_target = { objective_kind = 'quest', objective_character_identity = current_identity }
+current_identity = 'alpha:4004'
+assert(accessxi.nav_mission_quest_sync_character('test-pending-switch') == true)
+assert(cancelled_objective_routes == 2)
+assert(accessxi.nav_zone_search_target == nil)
+
+return true

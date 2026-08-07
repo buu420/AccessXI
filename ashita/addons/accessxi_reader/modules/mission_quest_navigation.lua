@@ -1,0 +1,592 @@
+local objectives = accessxi.mission_quest_objectives or { missions = {}, quests = {} };
+
+local function clean(value)
+    return tostring(value or ''):gsub('[\t\r\n]', ' '):gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '');
+end
+
+local function player_name()
+    if (type(accessxi.current_player_name) ~= 'function') then
+        return '';
+    end
+    return clean(accessxi.current_player_name());
+end
+
+local function character_identity()
+    if (type(accessxi.current_player_identity) ~= 'function') then
+        return '';
+    end
+    return clean(accessxi.current_player_identity()):lower();
+end
+
+local function has_entries(value)
+    return type(value) == 'table' and next(value) ~= nil;
+end
+
+local function point_copy(point)
+    if (type(point) ~= 'table') then
+        return nil;
+    end
+    return T{
+        zone = tonumber(point.zone) or 0,
+        name = clean(point.name),
+        x = tonumber(point.x) or 0,
+        z = tonumber(point.z) or 0,
+        y = tonumber(point.y) or 0,
+        kind = clean(point.kind),
+        source = clean(point.source),
+        confidence = clean(point.confidence),
+        section = clean(point.section),
+        arrival_radius = tonumber(point.arrival_radius),
+        objective_kind = clean(point.objective_kind),
+        objective_context = clean(point.objective_context),
+        objective_area = clean(point.objective_area),
+        objective_id = tonumber(point.objective_id),
+        objective_stage = clean(point.objective_stage),
+        objective_title = clean(point.objective_title),
+        objective_instruction = clean(point.objective_instruction),
+        arrival_instruction = clean(point.arrival_instruction),
+        objective_source = clean(point.objective_source),
+        objective_character_identity = clean(point.objective_character_identity),
+        route_context_label = clean(point.route_context_label),
+    };
+end
+
+local function clear_character_state(reason)
+    if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
+        accessxi.nav_cancel_mission_quest_route(reason or 'character-state-cleared');
+    end
+    accessxi.mission_packet_main = {};
+    accessxi.mission_packet_tick = 0;
+    accessxi.mission_packet_hex = '';
+    accessxi.mission_packet_ahturghan = {};
+    accessxi.mission_packet_ahturghan_tick = 0;
+    accessxi.mission_packet_ahturghan_complete = {};
+    accessxi.mission_packet_ahturghan_complete_tick = 0;
+    accessxi.mission_packet_cache_loaded = false;
+    accessxi.mission_packet_player = '';
+    accessxi.mission_packet_identity = '';
+    accessxi.mission_packet_source = '';
+    accessxi.mission_packet_ahturghan_identity = '';
+    accessxi.mission_packet_ahturghan_source = '';
+    accessxi.mission_packet_ahturghan_complete_identity = '';
+    accessxi.mission_packet_ahturghan_complete_source = '';
+    accessxi.last_mission_packet_key = '';
+
+    accessxi.quest_packet_logs = {};
+    accessxi.quest_packet_tick = 0;
+    accessxi.quest_packet_key = '';
+    accessxi.quest_packet_cache_loaded = false;
+    accessxi.quest_packet_player = '';
+    accessxi.quest_packet_identity = '';
+    accessxi.quest_packet_source = '';
+    accessxi.last_quest_packet_key = '';
+
+    -- Key-item state already has character ownership. Clear it at the same
+    -- boundary so a stale tester bit cannot choose an objective stage.
+    accessxi.key_items_packet_tables = {};
+    accessxi.key_items_packet_key = '';
+    accessxi.key_items_packet_cache_loaded = false;
+    accessxi.key_items_packet_player = '';
+    accessxi.key_items_packet_identity = '';
+    accessxi.key_items_packet_source = '';
+    accessxi.key_items_owned_cache = {};
+
+    if (type(log_line) == 'function') then
+        log_line(('mission quest nav state cleared reason="%s"'):fmt(clean(reason)));
+    end
+end
+
+function accessxi.nav_mission_quest_sync_character(reason)
+    local current_player = player_name();
+    local current_identity = character_identity();
+    if (current_player == '' or current_identity == '') then
+        return false;
+    end
+
+    local tracked_identity = clean(accessxi.mission_quest_nav_identity):lower();
+    if (tracked_identity == '') then
+        local mission_owner = clean(accessxi.mission_packet_identity):lower();
+        local quest_owner = clean(accessxi.quest_packet_identity):lower();
+        local key_item_owner = clean(accessxi.key_items_packet_identity):lower();
+        local stale = (has_entries(accessxi.mission_packet_main) and mission_owner ~= current_identity)
+            or (has_entries(accessxi.quest_packet_logs) and quest_owner ~= current_identity)
+            or (has_entries(accessxi.key_items_packet_tables) and key_item_owner ~= current_identity);
+        if (stale) then
+            clear_character_state(reason or 'initial-owner-mismatch');
+        end
+        accessxi.mission_quest_nav_player = current_player;
+        accessxi.mission_quest_nav_identity = current_identity;
+        return stale;
+    end
+
+    if (tracked_identity == current_identity) then
+        accessxi.mission_quest_nav_player = current_player;
+        return false;
+    end
+
+    clear_character_state(reason or 'character-changed');
+    accessxi.mission_quest_nav_player = current_player;
+    accessxi.mission_quest_nav_identity = current_identity;
+    return true;
+end
+
+local function mission_state_ready()
+    accessxi.nav_mission_quest_sync_character('mission-category');
+    local current_player = player_name();
+    local current_identity = character_identity();
+    if (current_player == '' or current_identity == '') then
+        return false;
+    end
+    if (type(accessxi.restore_mission_packet_cache_if_needed) == 'function') then
+        accessxi.restore_mission_packet_cache_if_needed();
+    end
+    local packet = accessxi.mission_packet_main or {};
+    return clean(accessxi.mission_packet_player) == current_player
+        and clean(accessxi.mission_packet_identity):lower() == current_identity
+        and clean(accessxi.mission_packet_source) == 'packet_in_056'
+        and (tonumber(packet.port) or 0) == 0xFFFF;
+end
+
+local function auxiliary_mission_state_ready(context)
+    context = clean(context);
+    if (context ~= 'Assault' and context ~= 'Treasures of Aht Urhgan'
+        and context ~= 'Campaign' and context ~= 'Wings of the Goddess') then
+        return true;
+    end
+    local current_identity = character_identity();
+    return current_identity ~= ''
+        and clean(accessxi.mission_packet_ahturghan_identity):lower() == current_identity
+        and clean(accessxi.mission_packet_ahturghan_source) == 'packet_in_056';
+end
+
+local function quest_state_ready()
+    accessxi.nav_mission_quest_sync_character('quest-category');
+    local current_player = player_name();
+    local current_identity = character_identity();
+    if (current_player == '' or current_identity == '') then
+        return false;
+    end
+    if (type(accessxi.restore_quest_packet_cache_if_needed) == 'function') then
+        accessxi.restore_quest_packet_cache_if_needed();
+    end
+    if (clean(accessxi.quest_packet_player) ~= current_player
+        or clean(accessxi.quest_packet_identity):lower() ~= current_identity
+        or clean(accessxi.quest_packet_source) ~= 'packet_in_056') then
+        return false;
+    end
+    for _, area_key in ipairs((accessxi.quests_menu_data or {}).quest_log_order or T{}) do
+        local entry = type(accessxi.quest_packet_entry) == 'function'
+            and accessxi.quest_packet_entry(area_key, 'current') or nil;
+        if (type(entry) ~= 'table' or clean(entry.source) ~= 'packet_in_056'
+            or clean(entry.identity):lower() ~= current_identity) then
+            return false;
+        end
+    end
+    return true;
+end
+
+local function key_item_state_available(id)
+    if (type(accessxi.restore_key_items_packet_cache_if_needed) == 'function') then
+        accessxi.restore_key_items_packet_cache_if_needed();
+    end
+    local current_player = player_name();
+    local current_identity = character_identity();
+    if (current_player == '' or current_identity == ''
+        or clean(accessxi.key_items_packet_player) ~= current_player
+        or clean(accessxi.key_items_packet_identity):lower() ~= current_identity) then
+        return false;
+    end
+    id = tonumber(id) or -1;
+    local table_index = math.floor(id / 512);
+    local entry = (accessxi.key_items_packet_tables or {})[table_index];
+    return type(entry) == 'table'
+        and #tostring(entry.flags or '') >= 64
+        and clean(entry.source) == 'packet_in_055'
+        and clean(entry.identity):lower() == current_identity;
+end
+
+local function owns_key_item(id)
+    return type(accessxi.key_items_packet_has_id) == 'function'
+        and accessxi.key_items_packet_has_id(id) == true;
+end
+
+local function effective_kind(point)
+    if (type(accessxi.nav_point_effective_kind) == 'function') then
+        return clean(accessxi.nav_point_effective_kind(point)):lower();
+    end
+    return clean(point ~= nil and point.kind or ''):lower();
+end
+
+local function referenced_target(reference)
+    if (type(reference) ~= 'table') then
+        return nil;
+    end
+    local wanted_zone = tonumber(reference.zone) or 0;
+    local wanted_name = clean(reference.name):lower();
+    local wanted_kind = clean(reference.kind):lower();
+    if (wanted_zone <= 0 or wanted_name == '') then
+        return nil;
+    end
+    for _, point in ipairs(accessxi.nav_points or T{}) do
+        if ((tonumber(point.zone) or 0) == wanted_zone
+            and clean(point.name):lower() == wanted_name
+            and (wanted_kind == '' or effective_kind(point) == wanted_kind)) then
+            return point_copy(point);
+        end
+    end
+    return nil;
+end
+
+local function objective_target(definition, stage, item)
+    local target_info = stage ~= nil and stage.target or nil;
+    if (type(target_info) ~= 'table') then
+        return nil;
+    end
+    local target = nil;
+    if (type(target_info.reference) == 'table') then
+        target = referenced_target(target_info.reference);
+    elseif (type(target_info.point) == 'table') then
+        target = point_copy(target_info.point);
+    end
+    if (target == nil or (tonumber(target.zone) or 0) <= 0 or clean(target.name) == '') then
+        return nil;
+    end
+
+    target.objective_kind = clean(item.objective_kind or item.kind);
+    target.objective_context = clean(item.mission_context);
+    target.objective_area = clean(item.quest_area);
+    target.objective_id = tonumber(item.mission_id or item.quest_id);
+    target.objective_stage = clean(stage.key);
+    target.objective_title = clean(item.name);
+    target.objective_instruction = clean(stage.instruction);
+    target.arrival_instruction = clean(stage.arrival_instruction or stage.instruction);
+    target.objective_source = clean(definition.source);
+    target.objective_character_identity = character_identity();
+    if (target.objective_character_identity == '') then
+        return nil;
+    end
+    target.route_context_label = target.objective_kind == 'quest' and 'Quest objective' or 'Mission objective';
+    target.section = target.objective_instruction;
+    return target;
+end
+
+local function set_unavailable(item, status)
+    item.objective_available = false;
+    item.objective_status = clean(status ~= '' and status or 'unsupported');
+    item.objective_stage = '';
+    item.objective_instruction = '';
+    item.objective_target = nil;
+end
+
+local function apply_objective(item)
+    local kind = clean(item.objective_kind or item.kind):lower();
+    local registry = kind == 'quest' and objectives.quests or objectives.missions;
+    local context = kind == 'quest' and clean(item.quest_area_key) or clean(item.mission_context);
+    local id = tonumber(item.quest_id or item.mission_id) or -1;
+    local definition = type(registry) == 'table' and registry[context .. ':' .. tostring(id)] or nil;
+    if (type(definition) ~= 'table') then
+        set_unavailable(item, 'unsupported');
+        return item;
+    end
+
+    local required = definition.required_key_items or T{};
+    for _, key_item_id in ipairs(required) do
+        if (not key_item_state_available(key_item_id)) then
+            set_unavailable(item, 'stage-unverified');
+            return item;
+        end
+    end
+
+    local owned_count = 0;
+    for _, key_item_id in ipairs(required) do
+        if (owns_key_item(key_item_id)) then
+            owned_count = owned_count + 1;
+        end
+    end
+    if (#required > 1 and owned_count > 1) then
+        set_unavailable(item, 'stage-unverified');
+        return item;
+    end
+
+    local stage = nil;
+    for _, candidate in ipairs(definition.stages or T{}) do
+        local condition = clean(candidate.when):lower();
+        if (condition == 'owns' and owns_key_item(candidate.key_item)) then
+            stage = candidate;
+            break;
+        elseif (condition == 'owns-none' and owned_count == 0) then
+            stage = candidate;
+            break;
+        end
+    end
+    if (stage == nil) then
+        set_unavailable(item, 'stage-unverified');
+        return item;
+    end
+
+    local target = objective_target(definition, stage, item);
+    if (target == nil) then
+        set_unavailable(item, 'destination-unavailable');
+        return item;
+    end
+
+    item.objective_available = true;
+    item.objective_status = 'verified';
+    item.objective_stage = clean(stage.key);
+    item.objective_instruction = clean(stage.instruction);
+    item.objective_source = clean(definition.source);
+    item.objective_target = target;
+    return item;
+end
+
+local function exact_mission_row(rows, value)
+    if (type(rows) ~= 'table') then
+        return nil;
+    end
+    value = tonumber(value);
+    if (value == nil) then
+        return nil;
+    end
+    if (type(rows.by_mission_id) == 'table' and rows.by_mission_id[value] ~= nil) then
+        return rows.by_mission_id[value];
+    end
+    for index = 1, tonumber(rows.count) or #rows do
+        local row = rows[index];
+        if (type(row) == 'table' and tonumber(row.mission_id) == value) then
+            return row;
+        end
+    end
+    return nil;
+end
+
+local function valid_mission_row(row)
+    if (type(row) ~= 'table' or clean(row.label) == '') then
+        return false;
+    end
+    if (type(accessxi.missions_menu_rom_placeholder_label) == 'function'
+        and accessxi.missions_menu_rom_placeholder_label(row.label)) then
+        return false;
+    end
+    return true;
+end
+
+local function mission_row_for_context(context, value)
+    if (type(accessxi.load_mission_rom_rows) ~= 'function') then
+        return nil;
+    end
+    local rows = accessxi.load_mission_rom_rows(context);
+    local row = exact_mission_row(rows, value);
+    if (row == nil and context == 'Chains of Promathia'
+        and type(accessxi.cop_mission_rom_current_row) == 'function') then
+        row = accessxi.cop_mission_rom_current_row(rows, value);
+    elseif (row == nil and type(accessxi.mission_rom_current_row) == 'function') then
+        row = accessxi.mission_rom_current_row(rows, value);
+    end
+    return valid_mission_row(row) and row or nil;
+end
+
+local function append_mission(items, context, value)
+    local row = mission_row_for_context(context, value);
+    if (row == nil) then
+        return;
+    end
+    local item = T{
+        zone = 0,
+        name = clean(row.label),
+        kind = 'mission',
+        objective_kind = 'mission',
+        mission_context = clean(context),
+        mission_id = tonumber(row.mission_id) or 0,
+        mission_current_value = tonumber(value) or 0,
+        source = ('native-active-mission:%s:%d:%s'):fmt(clean(context), tonumber(value) or 0, clean(row.source)),
+        confidence = 'native',
+        section = clean(context),
+    };
+    items:append(apply_objective(item));
+end
+
+local function active_missions()
+    local items = T{};
+    if (not mission_state_ready()) then
+        return items;
+    end
+    local packet = accessxi.mission_packet_main or {};
+    local nation = tonumber(packet.nation);
+    local nation_contexts = T{ [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
+    local nation_context = nation_contexts[nation];
+    local nation_value = tonumber(packet.nation_mission);
+    if (nation_context ~= nil and nation_value ~= nil and nation_value ~= 65535) then
+        append_mission(items, nation_context, nation_value);
+    end
+
+    for _, context in ipairs(accessxi.missions_menu_category_labels or T{}) do
+        local context_id = type(accessxi.missions_menu_nation_context_id) == 'function'
+            and accessxi.missions_menu_nation_context_id(context) or nil;
+        local info = type(accessxi.mission_rom_table_for_context) == 'function'
+            and accessxi.mission_rom_table_for_context(context) or nil;
+        local packet_key = type(info) == 'table' and clean(info.packet) or '';
+        -- The main packet's `tales` byte is the TalesBeginning expansion-start
+        -- bitfield, not the current Voracious Resurgence mission. TVR stays
+        -- silent until its separate native mission packet is captured.
+        if (context_id == nil and clean(context) ~= 'Campaign'
+            and packet_key ~= '' and packet_key ~= 'tales'
+            and auxiliary_mission_state_ready(context)
+            and type(accessxi.current_mission_value_for_context) == 'function') then
+            local value = tonumber(accessxi.current_mission_value_for_context(context));
+            local terminal = value == nil or value <= 0 or value == 65535
+                or ((packet_key == 'acp' or packet_key == 'mkd' or packet_key == 'asa') and value >= 15);
+            if (not terminal) then
+                append_mission(items, context, value);
+            end
+        end
+    end
+    return items;
+end
+
+local function valid_quest_row(row)
+    local label = clean(type(row) == 'table' and row.label or '');
+    if (label == '' or label:lower():find('^client:') ~= nil
+        or label:lower():find('^summary:') ~= nil) then
+        return false;
+    end
+    return true;
+end
+
+local function active_quests()
+    local items = T{};
+    if (not quest_state_ready()) then
+        return items;
+    end
+    for _, area_key in ipairs((accessxi.quests_menu_data or {}).quest_log_order or T{}) do
+        local entry = type(accessxi.quest_packet_entry) == 'function'
+            and accessxi.quest_packet_entry(area_key, 'current') or nil;
+        local rows = type(accessxi.quest_rom_rows_for_area) == 'function'
+            and accessxi.quest_rom_rows_for_area(area_key) or nil;
+        local resource = ((accessxi.quests_menu_data or {}).quest_log_resources or {})[area_key] or {};
+        local max_id = clean(area_key) == 'aht_urhgan' and 127 or 255;
+        if (type(entry) == 'table' and type(rows) == 'table') then
+            for quest_id = 0, max_id do
+                if (type(accessxi.quest_packet_has_id) == 'function'
+                    and accessxi.quest_packet_has_id(entry, quest_id)) then
+                    local row = rows[quest_id];
+                    if (valid_quest_row(row)) then
+                        local item = T{
+                            zone = 0,
+                            name = clean(row.label),
+                            kind = 'quest',
+                            objective_kind = 'quest',
+                            quest_area_key = clean(area_key),
+                            quest_area = clean(resource.label or row.area or area_key),
+                            quest_id = quest_id,
+                            source = ('native-active-quest:%s:%d:%s'):fmt(clean(area_key), quest_id, clean(row.source)),
+                            confidence = 'native',
+                            section = clean(resource.label or row.area or area_key),
+                        };
+                        items:append(apply_objective(item));
+                    end
+                end
+            end
+        end
+    end
+    return items;
+end
+
+function accessxi.nav_mission_quest_active_items(category_key)
+    category_key = clean(category_key):lower();
+    if (category_key == 'mission') then
+        return active_missions();
+    elseif (category_key == 'quest') then
+        return active_quests();
+    end
+    return T{};
+end
+
+function accessxi.nav_mission_quest_item_speech(item, index, total)
+    if (type(item) ~= 'table') then
+        return '';
+    end
+    local title = clean(item.name);
+    local kind = clean(item.objective_kind or item.kind):lower();
+    local location = kind == 'quest' and clean(item.quest_area) or clean(item.mission_context);
+    local status = kind == 'quest' and 'Active quest.' or 'Active mission.';
+    local prefix = ('%s. %d of %d. %s'):fmt(title ~= '' and title or 'Objective', tonumber(index) or 1, tonumber(total) or 1, status);
+    if (location ~= '') then
+        prefix = prefix .. ' ' .. location .. '.';
+    end
+    if (item.objective_available == true and clean(item.objective_instruction) ~= '') then
+        return prefix .. ' Current objective: ' .. clean(item.objective_instruction);
+    end
+    return prefix .. ' No verified route objective is available for this stage.';
+end
+
+local function same_item(a, b)
+    local kind = clean(a ~= nil and (a.objective_kind or a.kind) or ''):lower();
+    if (kind ~= clean(b ~= nil and (b.objective_kind or b.kind) or ''):lower()) then
+        return false;
+    end
+    if (kind == 'mission') then
+        return clean(a.mission_context) == clean(b.mission_context)
+            and tonumber(a.mission_id) == tonumber(b.mission_id);
+    elseif (kind == 'quest') then
+        return clean(a.quest_area_key) == clean(b.quest_area_key)
+            and tonumber(a.quest_id) == tonumber(b.quest_id);
+    end
+    return false;
+end
+
+function accessxi.nav_mission_quest_prepare_route(item, player)
+    local kind = clean(item ~= nil and (item.objective_kind or item.kind) or ''):lower();
+    if (kind ~= 'mission' and kind ~= 'quest') then
+        return nil, '', 'not-objective';
+    end
+
+    local fresh = nil;
+    for _, candidate in ipairs(accessxi.nav_mission_quest_active_items(kind)) do
+        if (same_item(item, candidate)) then
+            fresh = candidate;
+            break;
+        end
+    end
+    local title = clean(item ~= nil and item.name or 'objective');
+    if (fresh == nil) then
+        return nil, ('%s is no longer present in the current character\'s active %s list.'):fmt(title, kind == 'quest' and 'quest' or 'mission'), 'blocked';
+    end
+    if (fresh.objective_available ~= true or type(fresh.objective_target) ~= 'table') then
+        return nil, ('No verified route objective is available for this stage of %s.'):fmt(title), 'blocked';
+    end
+    return point_copy(fresh.objective_target), '', 'ready';
+end
+
+function accessxi.nav_mission_quest_start_suffix(point)
+    local instruction = clean(point ~= nil and point.objective_instruction or '');
+    return instruction ~= '' and (' Objective: ' .. instruction) or '';
+end
+
+function accessxi.nav_mission_quest_arrival_suffix(point)
+    local instruction = clean(point ~= nil and point.arrival_instruction or '');
+    return instruction ~= '' and (' ' .. instruction) or '';
+end
+
+function accessxi.nav_mission_quest_route_context(point)
+    return clean(point ~= nil and point.route_context_label or '');
+end
+
+local function route_point_owner_mismatch(point, current_identity)
+    local kind = clean(type(point) == 'table' and (point.objective_kind or point.kind) or ''):lower();
+    if (kind ~= 'mission' and kind ~= 'quest') then
+        return false;
+    end
+    local owner = clean(point.objective_character_identity):lower();
+    return owner == '' or owner ~= current_identity;
+end
+
+function accessxi.nav_mission_quest_route_owner_mismatch()
+    local current_identity = character_identity();
+    if (current_identity == '') then
+        return false;
+    end
+    return route_point_owner_mismatch(accessxi.nav_destination, current_identity)
+        or route_point_owner_mismatch(accessxi.nav_zone_search_target, current_identity);
+end
+
+return true;

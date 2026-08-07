@@ -63,9 +63,9 @@ Assert-Contains $programSource 'OpenSetupGuideAfterFinish' 'Finish button must o
 Assert-Contains $programSource 'setup-guide\.md' 'Installer exe must know the installed setup-guide.md path.'
 Assert-Contains $programSource 'AskPrerequisiteInstallChoice' 'Installer must ask to run missing dependency installers after Install is clicked.'
 Assert-Contains $programSource 'RunPrerequisiteInstallers' 'Installer must run bundled dependency installers before install_accessxi.ps1.'
-Assert-Contains $programSource 'RunInstaller\(installRoot,\s*polExe,\s*installMissingPrerequisites,\s*missingVisualCppRedistributables\)' 'Installer must pass missing Visual C++ dependency information into the actual install run.'
+Assert-Contains $programSource 'RunInstaller\(installRoot,\s*polExe,\s*installMissingPrerequisites,\s*missingVisualCppRedistributables,\s*payloadSelection\.DownloadedZipPath,\s*payloadSelection\.VerifiedSha256Hex\)' 'Installer must pass dependency state and the selected verified payload into the actual install run.'
 Assert-NotContains $programSource 'missingDotNetDesktopRuntimes|windowsdesktop-runtime-' 'Native installer must not carry Reloaded-only .NET Desktop Runtime state.'
-Assert-NotContains $programSource 'HttpClient' 'Installer must not download dependencies during setup; it should run bundled installers.'
+
 Assert-NotContains $programSource 'DownloadPrerequisitesAsync|CopyDownloadedPrerequisites|Use bundled offline installers' 'Installer must not ask users to choose between downloading and bundled dependencies.'
 
 $presentStart = $addonSource.IndexOf("ashita.events.register('d3d_present'")

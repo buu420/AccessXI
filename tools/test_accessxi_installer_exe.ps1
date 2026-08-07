@@ -40,18 +40,21 @@ function Assert-NotContains {
 $projectRoot = Join-Path $RepoRoot 'installer\AccessXIInstaller'
 $projectFile = Join-Path $projectRoot 'AccessXIInstaller.csproj'
 $programFile = Join-Path $projectRoot 'Program.cs'
+$updaterFile = Join-Path $projectRoot 'ReleasePayloadUpdater.cs'
 $manifestFile = Join-Path $projectRoot 'app.manifest'
 $buildScript = Join-Path $RepoRoot 'tools\build_accessxi_installer_exe.ps1'
 $publicGuide = Join-Path $RepoRoot 'README.md'
 
 Assert-True (Test-Path -LiteralPath $projectFile) "Missing installer exe project: $projectFile"
 Assert-True (Test-Path -LiteralPath $programFile) "Missing installer exe Program.cs: $programFile"
+Assert-True (Test-Path -LiteralPath $updaterFile) "Missing installer release payload updater: $updaterFile"
 Assert-True (Test-Path -LiteralPath $manifestFile) "Missing installer exe manifest: $manifestFile"
 Assert-True (Test-Path -LiteralPath $buildScript) "Missing installer exe build script: $buildScript"
 Assert-True (Test-Path -LiteralPath $publicGuide) "Missing public setup guide: $publicGuide"
 
 $projectSource = Get-Content -LiteralPath $projectFile -Raw
 $programSource = Get-Content -LiteralPath $programFile -Raw
+$updaterSource = Get-Content -LiteralPath $updaterFile -Raw
 $manifestSource = Get-Content -LiteralPath $manifestFile -Raw
 $buildSource = Get-Content -LiteralPath $buildScript -Raw
 
@@ -106,8 +109,20 @@ Assert-Contains $programSource 'RunPrerequisiteInstallers' 'Installer exe must r
 Assert-Contains $programSource 'openSetupGuideCheckBox' 'Installer exe must show a checked setup-guide option on the finish screen.'
 Assert-Contains $programSource 'OpenSetupGuideAfterFinish' 'Installer exe Finish button must open the setup guide when requested.'
 Assert-Contains $programSource 'setup-guide\.md' 'Installer exe must open the installed setup guide.'
-Assert-NotContains $programSource 'HttpClient' 'Installer exe must not download dependency installers during setup.'
+
 Assert-NotContains $programSource 'DownloadPrerequisitesAsync|CopyDownloadedPrerequisites|Use bundled offline installers' 'Installer exe must not offer the old download-versus-bundled dependency flow.'
+Assert-Contains $programSource 'ReleasePayloadUpdater' 'Installer exe must select the current verified release payload before extraction.'
+Assert-Contains $programSource 'SelectPayloadAsync' 'Installer exe must asynchronously check for AccessXI payload updates.'
+Assert-Contains $programSource 'DownloadedZipPath' 'Installer exe must pass a verified downloaded payload into the existing installer flow.'
+Assert-Contains $programSource 'using\s+var\s+payloadSelection' 'Installer exe must clean temporary update files after installation.'
+Assert-Contains $updaterSource ([regex]::Escape('https://api.github.com/repos/buu420/AccessXI/releases/latest')) 'Updater must use only the official AccessXI latest-release API endpoint.'
+Assert-Contains $updaterSource 'AccessXI-Ashita-Installer\.zip' 'Updater must select the exact public AccessXI package asset.'
+Assert-Contains $updaterSource 'SHA256|SHA-256' 'Updater must verify the release package with SHA-256.'
+Assert-Contains $updaterSource 'CryptographicOperations\.FixedTimeEquals' 'Updater must compare downloaded digests without loose string matching.'
+Assert-Contains $updaterSource 'ValidatePackageArchive' 'Updater must validate ZIP paths and required package structure before use.'
+Assert-Contains $updaterSource 'EmbeddedFallback' 'Updater must retain a complete embedded offline fallback.'
+Assert-Contains $updaterSource 'github\.com' 'Updater must enforce the official GitHub download host.'
+Assert-NotContains $updaterSource 'windowsdesktop-runtime-|DownloadPrerequisites|DownloadVisualCpp|DownloadRedistributable' 'Payload updater must never become a dependency downloader.'
 Assert-Contains $programSource '-SkipVisualCppRedistributables' 'Installer exe must tell the script the wrapper handled or skipped redist installation.'
 Assert-NotContains $programSource '-SkipDotNetDesktopRuntimes' 'Native installer exe must not pass the obsolete Reloaded .NET runtime switch.'
 Assert-Contains $programSource 'cleaning files from older AccessXI installations' 'Installer progress must disclose ownership-bounded migration cleanup.'
@@ -124,6 +139,7 @@ Assert-Contains $buildSource 'dotnet publish' 'Exe build must publish the instal
 Assert-Contains $buildSource 'test_pol_native_asi_structure\.ps1' 'Exe build must validate the native PlayOnline ASI payload before embedding it.'
 Assert-Contains $buildSource 'test_legacy_accessxi_cleanup\.ps1' 'Exe build must validate ownership-bounded legacy cleanup before embedding it.'
 Assert-Contains $buildSource 'test_accessxi_installer_native_migration\.ps1' 'Exe build must run the end-to-end legacy-to-native installer migration test before embedding the payload.'
+Assert-Contains $buildSource 'test_accessxi_installer_auto_update\.ps1' 'Exe build must run the verified payload updater behavior tests.'
 Assert-Contains $buildSource 'PublishSingleFile=true' 'Exe build must produce a single runnable installer exe.'
 Assert-Contains $buildSource 'AccessXI Installer\.exe' 'Exe build must publish a user-facing AccessXI Installer.exe.'
 Assert-Contains $buildSource 'setup-guide\.md' 'Exe build must publish setup-guide.md beside AccessXI Installer.exe.'

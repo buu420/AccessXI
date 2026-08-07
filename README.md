@@ -70,6 +70,10 @@ The [official PlayOnline Viewer manual](https://support.na.square-enix.com/docum
 7. Confirm that the installer reports `Updated PlayOnline Viewer recognized`. If it reports update-safe mode, close the installer, finish step 3, and run the newest AccessXI installer again.
 8. Select `Finish`. The checked option can open an offline copy of this guide.
 
+Whenever you select `Install`, the installer automatically checks the public GitHub release for the current `AccessXI-Ashita-Installer.zip`. It compares the embedded package with GitHub's SHA-256 release digest. If the release package is different, the installer downloads it, verifies its size, digest, and ZIP structure, and only then extracts it. If the check or download is unavailable, the installer clearly reports that it is using the complete embedded package, so installation still works offline. It never installs a partial or mismatched download.
+
+This automatic check updates the AccessXI payload, including the addon, navigation data, Ashita files, native PlayOnline accessibility files, prerequisites, and offline guide. It does not replace the running installer EXE. If a future release changes the installer program itself, download that newer EXE once; rerunning an updater-enabled installer is enough for normal AccessXI payload updates.
+
 The installer creates an `AccessXI Ashita` desktop shortcut. Use that shortcut to start the game from now on.
 
 When upgrading an older AccessXI installation, the installer removes only obsolete files carrying exact AccessXI ownership markers. It preserves unrelated mods, launchers, and games. Current releases do not require Reloaded or a .NET Desktop Runtime.

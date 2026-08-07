@@ -42,13 +42,13 @@ $projectFile = Join-Path $projectRoot 'AccessXIInstaller.csproj'
 $programFile = Join-Path $projectRoot 'Program.cs'
 $manifestFile = Join-Path $projectRoot 'app.manifest'
 $buildScript = Join-Path $RepoRoot 'tools\build_accessxi_installer_exe.ps1'
-$setupGuide = Join-Path $RepoRoot 'setup-guide.md'
+$publicGuide = Join-Path $RepoRoot 'README.md'
 
 Assert-True (Test-Path -LiteralPath $projectFile) "Missing installer exe project: $projectFile"
 Assert-True (Test-Path -LiteralPath $programFile) "Missing installer exe Program.cs: $programFile"
 Assert-True (Test-Path -LiteralPath $manifestFile) "Missing installer exe manifest: $manifestFile"
 Assert-True (Test-Path -LiteralPath $buildScript) "Missing installer exe build script: $buildScript"
-Assert-True (Test-Path -LiteralPath $setupGuide) "Missing setup guide: $setupGuide"
+Assert-True (Test-Path -LiteralPath $publicGuide) "Missing public setup guide: $publicGuide"
 
 $projectSource = Get-Content -LiteralPath $projectFile -Raw
 $programSource = Get-Content -LiteralPath $programFile -Raw

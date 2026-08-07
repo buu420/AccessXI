@@ -41,9 +41,9 @@ $programPath = Join-Path $RepoRoot 'installer\AccessXIInstaller\Program.cs'
 $packageScriptPath = Join-Path $RepoRoot 'tools\package_accessxi_installer.ps1'
 $installerScriptPath = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
 $addonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
-$setupGuidePath = Join-Path $RepoRoot 'setup-guide.md'
+$publicGuidePath = Join-Path $RepoRoot 'README.md'
 
-Assert-True (Test-Path -LiteralPath $setupGuidePath) "Setup guide must live at the AccessXI root: $setupGuidePath"
+Assert-True (Test-Path -LiteralPath $publicGuidePath) "Public setup guide must be the AccessXI README: $publicGuidePath"
 Assert-True (Test-Path -LiteralPath $programPath) "Missing installer Program.cs: $programPath"
 Assert-True (Test-Path -LiteralPath $packageScriptPath) "Missing package script: $packageScriptPath"
 Assert-True (Test-Path -LiteralPath $installerScriptPath) "Missing installer script: $installerScriptPath"
@@ -53,7 +53,7 @@ $programSource = Get-Content -LiteralPath $programPath -Raw
 $packageSource = Get-Content -LiteralPath $packageScriptPath -Raw
 $installerSource = Get-Content -LiteralPath $installerScriptPath -Raw
 $addonSource = Get-Content -LiteralPath $addonPath -Raw
-$setupGuideSource = Get-Content -LiteralPath $setupGuidePath -Raw
+$publicGuideSource = Get-Content -LiteralPath $publicGuidePath -Raw
 
 Assert-Contains $packageSource 'setup-guide\.md' 'Package builder must stage setup-guide.md at the package root.'
 Assert-Contains $installerSource 'setup-guide\.md' 'Installer script must copy setup-guide.md into the installed AccessXI root.'
@@ -100,8 +100,8 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True (Test-Path -LiteralPath $packagedSetupGuide) 'Packaged installer root must contain setup-guide.md.'
     Assert-True (
         (Get-FileHash -LiteralPath $packagedSetupGuide -Algorithm SHA256).Hash -eq
-        (Get-FileHash -LiteralPath $setupGuidePath -Algorithm SHA256).Hash
-    ) 'Packaged setup guide must exactly match the reviewed root setup-guide.md.'
+        (Get-FileHash -LiteralPath $publicGuidePath -Algorithm SHA256).Hash
+    ) 'Packaged setup guide must exactly match the public README.md.'
     $packagedCleanup = Join-Path $PackageRoot 'legacy_accessxi_cleanup.ps1'
     $sourceCleanup = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
     Assert-True (Test-Path -LiteralPath $packagedCleanup) 'Packaged installer root must contain the legacy Reloaded cleanup library.'

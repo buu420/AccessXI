@@ -51,7 +51,7 @@ function Assert-NotContainsLiteral {
 $packageScript = Join-Path $RepoRoot 'tools\package_accessxi_installer.ps1'
 $installerScript = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
 $legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
-$setupGuide = Join-Path $RepoRoot 'setup-guide.md'
+$publicGuide = Join-Path $RepoRoot 'README.md'
 $polUrlRepairScript = Join-Path $RepoRoot 'tools\repair_pol_url_cert_db.ps1'
 $ashitaGuiProfile = Join-Path $RepoRoot 'installer\ashita_boot\AccessXI Retail.xml'
 $ashitaCliProfile = Join-Path $RepoRoot 'installer\ashita_boot\accessxi-retail.ini'
@@ -64,7 +64,7 @@ $nativeStage = Join-Path $RepoRoot 'stage\pol-native'
 Assert-True (Test-Path -LiteralPath $packageScript) "Missing package builder: $packageScript"
 Assert-True (Test-Path -LiteralPath $installerScript) "Missing installer script: $installerScript"
 Assert-True (Test-Path -LiteralPath $legacyCleanupScript) "Missing legacy cleanup library: $legacyCleanupScript"
-Assert-True (Test-Path -LiteralPath $setupGuide) "Missing root setup guide: $setupGuide"
+Assert-True (Test-Path -LiteralPath $publicGuide) "Missing public setup guide: $publicGuide"
 Assert-True (Test-Path -LiteralPath $polUrlRepairScript) "Missing POL URL repair helper: $polUrlRepairScript"
 Assert-True (Test-Path -LiteralPath $ashitaGuiProfile) "Missing AccessXI Ashita GUI boot profile: $ashitaGuiProfile"
 Assert-True (Test-Path -LiteralPath $ashitaCliProfile) "Missing AccessXI Ashita CLI boot profile: $ashitaCliProfile"

@@ -93,4 +93,14 @@ Assert-Match `
     -Pattern "(?s)category_label:eq\('Blue Magic', true\).*?'mix-magic-category-range'" `
     -Message 'Blue Magic should stay silent if mix.dat category order cannot verify the selected row.'
 
+Assert-Match `
+    -Text $source `
+    -Pattern "local\s+dynamic_title\s*=\s*accessxi\.plain_native_menu_label\(dynamic_category\s+or\s+''\)" `
+    -Message 'Dynamic category spell lists should speak their verified category name, such as Blue Magic, instead of the generic Magic window title.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern "(?s)current_speech_key\s*=\s*\('native-dynamic-magic-row:.*?tonumber\(dynamic_known_total\)\s+or\s+0.*?return\s+\('%s\. %s'\):fmt\(dynamic_title," `
+    -Message 'Dynamic Magic speech identity should include the verified full category total and return the verified category title.'
+
 Write-Host 'magic mix.dat category order static checks ok'

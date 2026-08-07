@@ -28,7 +28,7 @@ The AccessXI Ashita profile normally loads the addon automatically.
 4. Open the Records of Eminence tutorial path in-game: Quests, Records of Eminence, Tutorial, Basics.
 5. When an objective or guide tells you to find an NPC in your current zone, type `/axi nav search <name>`.
 6. When an NPC is in another mapped zone, type `/axi zonesearch <name>`.
-7. In navigation search results, use `Ctrl+Numpad1` and `Ctrl+Numpad3` to choose a result, then `Ctrl+Numpad Plus` to start the route.
+7. In navigation search results, use `J` and `L` to choose a result, then `I` to start the route. Press `I` again to stop navigation.
 
 Final Fantasy XI changes over time, and AccessXI should follow the live in-game text whenever possible. Treat the in-game Records of Eminence objective list as the source of truth when it disagrees with an old guide.
 
@@ -51,7 +51,7 @@ Use `/axi nav search <name>` when you are already in the same area. If the NPC i
 /axi zonesearch Rolandienne
 ```
 
-The zone search command opens selectable results. It should not immediately start running. Review the result with `Ctrl+Numpad1` and `Ctrl+Numpad3`, then press `Ctrl+Numpad Plus` when you want the route.
+The zone search command opens selectable results. It should not immediately start running. Review the result with `J` and `L`, then press `I` when you want the route. Press `I` again to stop navigation.
 
 Good early priorities:
 
@@ -128,7 +128,7 @@ Searches the navigation browser. Use this for destinations in your current zone 
 /axi zsearch <npc name>
 ```
 
-Searches mapped NPCs across zones. This is the command to try when a guide names an NPC but the NPC is not in your current zone. It opens a selectable result list. Choose the result, then start routing with `Ctrl+Numpad Plus`.
+Searches mapped NPCs across zones. This is the command to try when a guide names an NPC but the NPC is not in your current zone. It opens a selectable result list. Choose the result, then start or stop routing with `I`.
 
 ```text
 /axi nav route <name>
@@ -177,6 +177,16 @@ Speaks known destinations for the current navigation data.
 Speaks your current position.
 
 ```text
+/axi record start <route name>
+/axi route record start <route name>
+/axi nav record start <route name>
+/axi record mark <note>
+/axi record stop
+```
+
+Records your live position to `logs\ffxi-nav-route-recordings.tsv` so broken routes can be repaired from a walked path. The recorder samples your own character, so it works while following another player as long as your character is physically moving along behind them.
+
+```text
 /axi nav clearance
 /axi clearance
 /axi wall
@@ -202,15 +212,17 @@ Speaks visible nearby enemies or configures enemy warning speech.
 
 ## Navigation Browser Keys
 
-These keys work when the game is in focus and chat input is closed.
+These keys work when the game is in focus and chat input is closed. They pass
+through normally while chat is open or a modifier is held.
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+Numpad7` | Previous navigation category |
-| `Ctrl+Numpad9` | Next navigation category |
-| `Ctrl+Numpad1` | Previous destination or search result |
-| `Ctrl+Numpad3` | Next destination or search result |
-| `Ctrl+Numpad Plus` | Start route to the selected destination or result |
+| `I` | Start the selected route, or stop active navigation |
+| `U` | Previous navigation category |
+| `O` | Next navigation category |
+| `J` | Previous destination or search result |
+| `K` | Repeat the selected destination or search result |
+| `L` | Next destination or search result |
 
 Navigation categories are All, Areas, NPCs, Objects, Enemies, NM Spawns, Live NM, and Players.
 
@@ -225,7 +237,7 @@ These keys work when the game is in focus and chat input is closed.
 | `Page Up` | Read one older chat line |
 | `Page Down` | Read one newer chat line |
 
-Chat categories are All, Tell, Linkshell, Party, Say, Shout and Yell, Unity, Combat, System, and Other.
+Chat categories follow FFXI's rendered chat modes: All, Say, Tell, Party, Linkshell, Linkshell 2, Assist J, Assist E, Unity, Emotes, Message, NPC, Shout, Yell, Combat, System, and Other. Each key press moves exactly one category or line; release the key before moving again.
 
 ## Ashita Settings Reader Keys
 
@@ -256,12 +268,21 @@ While the accessible settings reader is open:
 
 ## Status Keys
 
-These keys work when the relevant status, equipment, or inspect menu is open.
+The quick checks work whenever FFXI is in focus and chat input is closed. They
+read the current character's live state and do not require a menu.
 
 | Key | Action |
 | --- | --- |
+| `D` | Speak current debuffs |
+| `B` | Speak current buffs |
+| `H` | Speak current and maximum HP |
+| `M` | Speak current and maximum MP |
+| `X` | Speak current experience and experience to next level |
 | `Alt+I` | Speak status, equipment, or inspect overview |
 | `Alt+Shift+I` | Speak selected status detail |
+
+`Alt+I` and `Alt+Shift+I` require the relevant status, equipment, or inspect
+menu to be open.
 
 ## Bundled Profile Binds
 
@@ -307,12 +328,12 @@ Use these only when intentionally capturing, correcting, or auditing navigation 
 
 ## Repository Notes
 
-This folder is the repository copy of the live AccessXI Ashita addon.
+This folder contains the AccessXI Ashita addon.
 
 The live test copy currently lives at:
 
 ```text
-C:\Users\buu42\Ashita\addons\accessxi_reader
+Ashita\addons\accessxi_reader
 ```
 
 Before committing release work, sync the live `accessxi_reader.lua`, `modules`, `data`, `resources`, and `sounds` folders into this folder. Do not commit live logs, backup Lua files, generated DLLs, or the large third-party navmesh payloads here.

@@ -1,25 +1,23 @@
-# Ashita Addon Distribution Notes
+# Ashita addon distribution notes
 
-Last reviewed: 2026-06-29
+Last reviewed: 2026-08-07
 
-AccessXI should be distributed as its own project files, not as edits to Ashita's bundled addon sources or as a repackaged Ashita install.
+AccessXI is distributed as its own project rather than as edits to Ashita's bundled addon sources.
 
-Relevant Ashita guidance:
+Repository policy:
 
-- Ashita v4 includes a core `Addons` plugin that lets developers extend Ashita with Lua scripting.
-- The official Ashita v4 beta repository includes first-party addon source under an `addons` folder, so addon source living in a repository is a normal Ashita distribution model.
-- Ashita's install/update documentation warns users not to directly edit bundled configuration files, default scripts, or included addon source. If edits are needed, users should make their own copy and rename it.
+- Keep the canonical addon in `ashita/addons/accessxi_reader` and use that tree as the installer input.
+- Keep installer scripts, tests, native PlayOnline source, navigation data, sounds, and player documentation in Git.
+- Keep runtime logs, screenshots, generated installers, build outputs, reverse-engineering workspaces, local Ghidra projects, redistributable installers, and machine-specific profiles out of Git.
+- Keep large third-party payloads local unless their license and repository size have been reviewed.
+- Prefer live/native state and verified walked navigation data. False positive menu labels and unsafe routes are worse than silence.
 
-AccessXI repository policy:
-
-- Keep AccessXI source, setup docs, installer scripts, tests, Reloaded/PlayOnline support source, and the repo copy of `accessxi_reader` in Git.
-- Keep runtime logs, generated installers, build outputs, screenshots, reverse-engineering project dumps, local Ghidra output, and Microsoft redistributable installers out of Git.
-- Keep the live installed addon under `C:\Users\buu42\Ashita\addons\accessxi_reader` as the runtime test copy. Sync it into `ashita/addons/accessxi_reader` before committing release work.
-- Treat Ashita itself, third-party payloads, navmesh packs, Reloaded-II framework binaries, generated installer packages, and redistributables as local build/package dependencies unless their licenses and size are reviewed for repository inclusion.
+The release package contains the current AccessXI addon, controlled Ashita boot profiles, native PlayOnline components, prerequisites, navigation resources, and the setup guide. It excludes runtime logs, backups, screenshots, update caches, unrelated addons, and machine-specific boot profiles.
 
 Sources:
 
-- Ashita feature documentation: https://docs.ashitaxi.com/features/
-- Ashita Git install/update documentation: https://docs.ashitaxi.com/installation/install_git/
-- Ashita Zip install/update documentation: https://docs.ashitaxi.com/installation/install_zip/
-- Ashita v4 beta repository: https://github.com/AshitaXI/Ashita-v4beta
+- [Ashita features](https://docs.ashitaxi.com/features/)
+- [Ashita Git installation](https://docs.ashitaxi.com/installation/install_git/)
+- [Ashita ZIP installation](https://docs.ashitaxi.com/installation/install_zip/)
+- [Ashita v4 beta repository](https://github.com/AshitaXI/Ashita-v4beta)
+- [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)

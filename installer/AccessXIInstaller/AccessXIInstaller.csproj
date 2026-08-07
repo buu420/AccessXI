@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\..\dist\AccessXI-Ashita-Reloaded-Installer.zip">
-      <LogicalName>Payload.AccessXI-Ashita-Reloaded-Installer.zip</LogicalName>
+    <EmbeddedResource Include="..\..\dist\AccessXI-Ashita-Installer.zip">
+      <LogicalName>Payload.AccessXI-Ashita-Installer.zip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>

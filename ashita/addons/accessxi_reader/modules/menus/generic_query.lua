@@ -235,13 +235,81 @@ function accessxi.generic_query_direct_label_should_override(list_label, direct_
     return true;
 end
 
-function accessxi.generic_query_rolandienne_sparkshop_equipment_label(title, selected, count, raw, list_label)
+function accessxi.generic_query_is_sparks_title(title)
+    title = accessxi.plain_native_menu_label(title or ''):lower();
+    local sparks_titles = {
+        ['rolandienne'] = true,
+        ['isakoth'] = true,
+        ['fhelm jobeizat'] = true,
+        ['eternal flame'] = true,
+    };
+    return sparks_titles[title] == true;
+end
+
+function accessxi.generic_query_recover_sparks_title(title, count)
+    title = accessxi.plain_native_menu_label(title or '');
+    count = tonumber(count) or 0;
+    if (title ~= '' or count ~= 13) then
+        return title, '';
+    end
+
+    -- On the first query-menu opening after an FFXI process restart,
+    -- GetWindowName can be blank even though target polling already proved the
+    -- Records of Eminence guide.  Keep this fallback intentionally narrow:
+    -- only a known guide and the exact 13-row Sparks category menu qualify.
+    local target_name = accessxi.plain_native_menu_label(accessxi.last_target_name or '');
+    if (accessxi.generic_query_is_sparks_title(target_name)) then
+        return target_name, 'last-target-sparks';
+    end
+    return '', '';
+end
+
+function accessxi.generic_query_sparks_context_title(title, child, count)
+    title = accessxi.plain_native_menu_label(title or '');
+    child = tonumber(child) or 0;
+    count = tonumber(count) or 0;
+    local now = tick();
+
+    -- The Sparks category menu proves both the guide and the live query
+    -- object.  Its item submenus keep the same child pointer but expose a
+    -- blank title, so retain only that proven pairing for prefix repair.
+    if (count == 13 and accessxi.generic_query_is_sparks_title(title) and accessxi.is_probe_pointer(child)) then
+        accessxi.generic_query_sparks_context_name = title;
+        accessxi.generic_query_sparks_context_child = child;
+        accessxi.generic_query_sparks_context_until = now + 600000;
+        return title, 'sparkshop-top';
+    end
+
+    if (accessxi.generic_query_is_sparks_title(title)) then
+        return title, 'sparkshop-title';
+    end
+
+    if (title ~= '' or count < 2 or count > 18 or not accessxi.is_probe_pointer(child)) then
+        return '', '';
+    end
+
+    local context_name = accessxi.plain_native_menu_label(accessxi.generic_query_sparks_context_name or '');
+    local context_child = tonumber(accessxi.generic_query_sparks_context_child) or 0;
+    local context_until = tonumber(accessxi.generic_query_sparks_context_until) or 0;
+    local target_name = accessxi.plain_native_menu_label(accessxi.last_target_name or '');
+    if (not accessxi.generic_query_is_sparks_title(context_name)
+        or child ~= context_child
+        or now > context_until
+        or not target_name:eq(context_name, true)) then
+        return '', '';
+    end
+
+    accessxi.generic_query_sparks_context_until = now + 600000;
+    return context_name, 'sparkshop-child';
+end
+
+function accessxi.generic_query_sparkshop_context_label(title, selected, count, raw, list_label)
     title = accessxi.plain_native_menu_label(title or '');
     selected = tonumber(selected) or 0;
     count = tonumber(count) or 0;
     raw = tonumber(raw) or 0;
     local list_key = accessxi.generic_query_match_key(list_label or '');
-    if (count ~= 13 or not title:eq('Rolandienne', true) or list_key ~= 'equlvupto') then
+    if (count ~= 13 or not accessxi.generic_query_is_sparks_title(title)) then
         return '', '';
     end
 
@@ -249,6 +317,15 @@ function accessxi.generic_query_rolandienne_sparkshop_equipment_label(title, sel
     -- The live query raw low byte is the zero-based selected category.
     local category = selected;
     local raw_category = math.floor(raw % 0x100) + 1;
+    -- Category 1 is Items.  The live list reader can retain the first item type
+    -- after returning from a submenu (for example, "Items Axe"), while the
+    -- raw category and the clean prefix remain stable.
+    if (selected == 1 and raw_category == 1 and list_key:sub(1, 5) == 'items') then
+        return 'Items', 'sparkshop-category:1';
+    end
+    if (list_key ~= 'equlvupto') then
+        return '', '';
+    end
     if (raw_category >= 3 and raw_category <= 10) then
         category = raw_category;
     end
@@ -559,8 +636,28 @@ function accessxi.generic_query_resource_label_key(text)
     return text:gsub('[^a-z0-9]+', '');
 end
 
+local generic_query_resource_icon_names = {
+    'Fire resistance',
+    'Ice resistance',
+    'Wind resistance',
+    'Earth resistance',
+    'Lightning resistance',
+    'Water resistance',
+    'Light resistance',
+    'Dark resistance',
+};
+
+local function generic_query_expand_resource_icons(text)
+    text = tostring(text or '');
+    for index, label in ipairs(generic_query_resource_icon_names) do
+        local icon = string.char(0xEE, 0x80, 0x7F + index);
+        text = text:gsub(icon, label .. ' ');
+    end
+    return text;
+end
+
 function accessxi.generic_query_resource_help_text(text)
-    text = tostring(text or ''):gsub('[\r\n]+', ' ');
+    text = generic_query_expand_resource_icons(text):gsub('[\r\n]+', ' ');
     text = accessxi.survival_guide_text(text):gsub('^["\']+', ''):gsub('["\']+$', '');
     text = accessxi.survival_guide_text(text);
     if (text == '' or text:match('^[%p%s]+$') ~= nil) then
@@ -569,8 +666,8 @@ function accessxi.generic_query_resource_help_text(text)
     if (text:find('\\', 1, true) ~= nil or text:find('menu    ', 1, true) ~= nil or text:find('anc     ', 1, true) ~= nil) then
         return '';
     end
-    if (#text > 260) then
-        local clipped = text:sub(1, 260);
+    if (#text > 768) then
+        local clipped = text:sub(1, 768);
         local sentence_end = 0;
         for pos in clipped:gmatch('()[%.%!%?]') do
             sentence_end = pos;
@@ -587,7 +684,156 @@ function accessxi.generic_query_resource_help_text(text)
     return text;
 end
 
-function accessxi.generic_query_resource_index_add(index, key, id, help, source)
+local generic_query_weapon_skill_names = {
+    [1] = 'Hand-to-Hand',
+    [2] = 'Dagger',
+    [3] = 'Sword',
+    [4] = 'Great Sword',
+    [5] = 'Axe',
+    [6] = 'Great Axe',
+    [7] = 'Scythe',
+    [8] = 'Polearm',
+    [9] = 'Katana',
+    [10] = 'Great Katana',
+    [11] = 'Club',
+    [12] = 'Staff',
+    [25] = 'Archery',
+    [26] = 'Marksmanship',
+    [27] = 'Throwing',
+    [30] = 'Shield',
+};
+
+local generic_query_equipment_slot_names = {
+    [0] = 'Main',
+    [1] = 'Sub',
+    [2] = 'Range',
+    [3] = 'Ammo',
+    [4] = 'Head',
+    [5] = 'Body',
+    [6] = 'Hands',
+    [7] = 'Legs',
+    [8] = 'Feet',
+    [9] = 'Neck',
+    [10] = 'Waist',
+    [11] = 'Ear',
+    [12] = 'Ear',
+    [13] = 'Ring',
+    [14] = 'Ring',
+    [15] = 'Back',
+};
+
+local generic_query_job_names = {
+    'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK',
+    'BST', 'BRD', 'RNG', 'SAM', 'NIN', 'DRG', 'SMN', 'BLU',
+    'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN',
+};
+
+local generic_query_races = {
+    { mask = 0x0002, label = 'Hume male' },
+    { mask = 0x0004, label = 'Hume female' },
+    { mask = 0x0008, label = 'Elvaan male' },
+    { mask = 0x0010, label = 'Elvaan female' },
+    { mask = 0x0020, label = 'Tarutaru male' },
+    { mask = 0x0040, label = 'Tarutaru female' },
+    { mask = 0x0080, label = 'Mithra' },
+    { mask = 0x0100, label = 'Galka' },
+};
+
+local function generic_query_mask_has(value, mask)
+    value = math.floor(tonumber(value) or 0);
+    mask = math.floor(tonumber(mask) or 0);
+    if (value <= 0 or mask <= 0) then
+        return false;
+    end
+    return math.floor(value / mask) % 2 == 1;
+end
+
+local function generic_query_equipment_type(item)
+    local skill_name = generic_query_weapon_skill_names[math.floor(tonumber(item.skill) or 0)];
+    if (skill_name ~= nil) then
+        return skill_name;
+    end
+
+    local slots = math.floor(tonumber(item.slots) or 0);
+    local parts = {};
+    local seen = {};
+    for slot = 0, 15 do
+        local label = generic_query_equipment_slot_names[slot];
+        if (label ~= nil and generic_query_mask_has(slots, 2 ^ slot) and seen[label] ~= true) then
+            table.insert(parts, label);
+            seen[label] = true;
+        end
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_races_text(races)
+    races = math.floor(tonumber(races) or 0);
+    local parts = {};
+    for _, entry in ipairs(generic_query_races) do
+        if (generic_query_mask_has(races, entry.mask)) then
+            table.insert(parts, entry.label);
+        end
+    end
+    if (#parts == #generic_query_races) then
+        return 'All Races';
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_jobs_text(jobs)
+    jobs = math.floor(tonumber(jobs) or 0);
+    local parts = {};
+    for index, label in ipairs(generic_query_job_names) do
+        if (generic_query_mask_has(jobs, 2 ^ index)) then
+            table.insert(parts, label);
+        end
+    end
+    if (#parts == #generic_query_job_names) then
+        return 'All Jobs';
+    end
+    return table.concat(parts, ', ');
+end
+
+local function generic_query_append_detail(parts, text)
+    text = accessxi.generic_query_resource_help_text(text or '');
+    if (text == '') then
+        return;
+    end
+    if (text:match('[%.%!%?]$') == nil) then
+        text = text .. '.';
+    end
+    parts:append(text);
+end
+
+function accessxi.generic_query_item_resource_detail_parts(item, description)
+    item = type(item) == 'table' and item or {};
+    local details = T{};
+    generic_query_append_detail(details, generic_query_equipment_type(item));
+    generic_query_append_detail(details, generic_query_races_text(item.races));
+    generic_query_append_detail(details, description or '');
+
+    local level = math.floor(tonumber(item.level) or 0);
+    local item_level = math.floor(tonumber(item.item_level) or 0);
+    if (level > 0) then
+        generic_query_append_detail(details, ('Level %d'):fmt(level));
+    end
+    generic_query_append_detail(details, generic_query_jobs_text(item.jobs));
+    local superior_level = math.floor(tonumber(item.superior_level) or 0);
+    if (superior_level > 0) then
+        generic_query_append_detail(details, ('Superior %d'):fmt(superior_level));
+    end
+    if (item_level > 0) then
+        generic_query_append_detail(details, ('Item level %d'):fmt(item_level));
+    end
+    return details;
+end
+
+function accessxi.generic_query_item_resource_help(item, description)
+    return accessxi.generic_query_item_resource_detail_parts(item, description):concat(' ');
+end
+
+function accessxi.generic_query_resource_index_add(index, key, id, help, source, detail)
     key = tostring(key or '');
     id = tonumber(id) or 0;
     help = accessxi.generic_query_resource_help_text(help or '');
@@ -597,9 +843,46 @@ function accessxi.generic_query_resource_index_add(index, key, id, help, source)
 
     local existing = index[key];
     if (existing == nil) then
-        index[key] = { id = id, help = help, source = tostring(source or '') };
+        index[key] = {
+            id = id,
+            help = help,
+            source = tostring(source or ''),
+            name = type(detail) == 'table' and tostring(detail.name or '') or '',
+            is_gear = type(detail) == 'table' and detail.is_gear == true or false,
+            detail_parts = type(detail) == 'table' and detail.detail_parts or nil,
+            description = type(detail) == 'table' and tostring(detail.description or '') or '',
+        };
     elseif (tonumber(existing.id) ~= id or tostring(existing.help or '') ~= help) then
         existing.ambiguous = true;
+    end
+end
+
+function accessxi.generic_query_resource_prefix_index_add(index, label, id, help, source, detail)
+    label = accessxi.plain_native_menu_label(label or '');
+    id = tonumber(id) or 0;
+    help = accessxi.generic_query_resource_help_text(help or '');
+    local first_word = label:lower():match('^([a-z0-9]+)') or '';
+    if (#first_word < 4 or id <= 0 or help == '') then
+        return;
+    end
+
+    local bucket = index[first_word];
+    if type(bucket) ~= 'table' then
+        bucket = {};
+        index[first_word] = bucket;
+    end
+    local key = ('%s:%d'):fmt(accessxi.generic_query_resource_label_key(label), id);
+    if bucket[key] == nil then
+        bucket[key] = {
+            id = id,
+            label = label,
+            help = help,
+            source = tostring(source or ''),
+            name = type(detail) == 'table' and tostring(detail.name or '') or '',
+            is_gear = type(detail) == 'table' and detail.is_gear == true or false,
+            detail_parts = type(detail) == 'table' and detail.detail_parts or nil,
+            description = type(detail) == 'table' and tostring(detail.description or '') or '',
+        };
     end
 end
 
@@ -621,27 +904,37 @@ function accessxi.generic_query_resource_index()
     end
 
     local index = {};
-    local add_label = function (label, id, help, source)
+    local prefix_index = {};
+    local add_label = function (label, id, help, source, detail)
         label = accessxi.plain_native_menu_label(label or '');
         local key = accessxi.generic_query_resource_label_key(label);
-        accessxi.generic_query_resource_index_add(index, key, id, help, source);
+        accessxi.generic_query_resource_index_add(index, key, id, help, source, detail);
+        accessxi.generic_query_resource_prefix_index_add(prefix_index, label, id, help, source, detail);
     end;
 
     for id, item in pairs(items) do
         local numeric_id = tonumber(id) or tonumber(type(item) == 'table' and item.id) or 0;
         local desc = type(descriptions[numeric_id]) == 'table' and descriptions[numeric_id] or nil;
-        local help = desc ~= nil and tostring(desc.en or '') or '';
+        local detail_parts = accessxi.generic_query_item_resource_detail_parts(item, desc ~= nil and tostring(desc.en or '') or '');
+        local help = detail_parts:concat(' ');
+        local detail = {
+            name = type(item) == 'table' and tostring(item.en or item.enl or '') or '',
+            is_gear = type(item) == 'table' and (tonumber(item.slots) or 0) > 0 or false,
+            detail_parts = detail_parts,
+            description = '',
+        };
         if (numeric_id > 0 and type(item) == 'table' and help ~= '') then
-            add_label(item.en, numeric_id, help, ('item:%d:en'):fmt(numeric_id));
-            add_label(item.enl, numeric_id, help, ('item:%d:enl'):fmt(numeric_id));
+            add_label(item.en, numeric_id, help, ('item:%d:en'):fmt(numeric_id), detail);
+            add_label(item.enl, numeric_id, help, ('item:%d:enl'):fmt(numeric_id), detail);
             local without_prefix = tostring(item.en or ''):gsub('^[^A-Za-z0-9]+', '');
-            add_label(without_prefix, numeric_id, help, ('item:%d:en-clean'):fmt(numeric_id));
+            add_label(without_prefix, numeric_id, help, ('item:%d:en-clean'):fmt(numeric_id), detail);
             without_prefix = tostring(item.enl or ''):gsub('^[^A-Za-z0-9]+', '');
-            add_label(without_prefix, numeric_id, help, ('item:%d:enl-clean'):fmt(numeric_id));
+            add_label(without_prefix, numeric_id, help, ('item:%d:enl-clean'):fmt(numeric_id), detail);
         end
     end
 
     accessxi.generic_query_item_resource_index = index;
+    accessxi.generic_query_item_resource_prefix_index = prefix_index;
     log_line(('loaded generic query item resource index items="%s" descriptions="%s" keys=%d'):fmt(
         items_path,
         descriptions_path,
@@ -649,29 +942,82 @@ function accessxi.generic_query_resource_index()
     return index;
 end
 
+function accessxi.generic_query_resource_prefix_match(label)
+    label = accessxi.plain_native_menu_label(label or '');
+    local lower = label:lower();
+    local first_word = lower:match('^([a-z0-9]+)') or '';
+    if (#first_word < 4) then
+        return '', '', '', nil;
+    end
+
+    accessxi.generic_query_resource_index();
+    local prefix_index = accessxi.generic_query_item_resource_prefix_index;
+    local bucket = type(prefix_index) == 'table' and prefix_index[first_word] or nil;
+    if type(bucket) ~= 'table' then
+        return '', '', '', nil;
+    end
+
+    local best = nil;
+    local best_length = 0;
+    local ambiguous = false;
+    for _, candidate in pairs(bucket) do
+        local candidate_label = accessxi.plain_native_menu_label(candidate.label or '');
+        local candidate_lower = candidate_label:lower();
+        local next_char = lower:sub(#candidate_lower + 1, #candidate_lower + 1);
+        if (candidate_lower ~= ''
+            and lower:sub(1, #candidate_lower) == candidate_lower
+            and next_char:match('[%s%p]') ~= nil) then
+            if (#candidate_lower > best_length) then
+                best = candidate;
+                best_length = #candidate_lower;
+                ambiguous = false;
+            elseif (#candidate_lower == best_length
+                and best ~= nil
+                and tonumber(candidate.id) ~= tonumber(best.id)) then
+                ambiguous = true;
+            end
+        end
+    end
+
+    if best == nil or ambiguous then
+        return '', '', '', nil;
+    end
+    return accessxi.plain_native_menu_label(best.label or ''),
+        accessxi.generic_query_resource_help_text(best.help or ''),
+        ('%s:prefix-repair'):fmt(tostring(best.source or 'item-resource')),
+        best;
+end
+
+function accessxi.generic_query_sparks_resource_match(title, label)
+    if not accessxi.generic_query_is_sparks_title(title) then
+        return '', '', '';
+    end
+    return accessxi.generic_query_resource_prefix_match(label);
+end
+
 function accessxi.generic_query_resource_help_for_label(label)
     label = accessxi.plain_native_menu_label(label or '');
     if (label == '') then
-        return '', '';
+        return '', '', nil;
     end
 
     local index = accessxi.generic_query_resource_index();
     if (type(index) ~= 'table') then
-        return '', '';
+        return '', '', nil;
     end
 
     local key = accessxi.generic_query_resource_label_key(label);
     local entry = index[key];
     if (type(entry) ~= 'table' or entry.ambiguous == true) then
-        return '', '';
+        return '', '', nil;
     end
 
     local help = accessxi.generic_query_resource_help_text(entry.help or '');
     if (help == '') then
-        return '', '';
+        return '', '', nil;
     end
 
-    return help, tostring(entry.source or 'item-resource');
+    return help, tostring(entry.source or 'item-resource'), entry;
 end
 
 function accessxi.generic_query_resource_label_from_ptr(ptr)
@@ -833,7 +1179,7 @@ function accessxi.generic_query_equipment_category_probe(title, selected, count,
     child = tonumber(child) or 0;
     node = tonumber(node) or 0;
 
-    if (count ~= 13 or not title:eq('Rolandienne', true) or not accessxi.is_probe_pointer(node)) then
+    if (count ~= 13 or not accessxi.generic_query_is_sparks_title(title) or not accessxi.is_probe_pointer(node)) then
         return;
     end
 
@@ -909,8 +1255,6 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
     else
         title = accessxi.plain_native_menu_label(title);
     end
-    accessxi.current_menu_speech_title = title;
-
     local selected, page, raw, child, count = accessxi.survival_guide_query_child_state_for_obj(obj);
     selected = tonumber(selected) or 0;
     count = tonumber(count) or 0;
@@ -920,6 +1264,9 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
     if (count <= 0 or count > 64) then
         count = math.max(tonumber(accessxi.native_menu_index(0x24)) or 0, tonumber(accessxi.native_menu_index(0x28)) or 0);
     end
+    title = accessxi.generic_query_recover_sparks_title(title, count);
+    local sparks_context_title, sparks_context_mode = accessxi.generic_query_sparks_context_title(title, child, count);
+    accessxi.current_menu_speech_title = title;
     if (selected <= 0 or count <= 0 or selected > count or count > 64 or not accessxi.is_probe_pointer(child)) then
         return nil;
     end
@@ -928,10 +1275,11 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
     label = accessxi.plain_native_menu_label(label or '');
     local direct_label, direct_mode, direct_help, direct_help_mode, direct_node = accessxi.generic_query_direct_label_for_child(child, selected, count);
     accessxi.generic_query_equipment_category_probe(title, selected, count, page, raw, child, label, mode, direct_label, direct_mode, direct_node);
-    local context_label, context_mode = accessxi.generic_query_rolandienne_sparkshop_equipment_label(title, selected, count, raw, label);
+    local context_label, context_mode = accessxi.generic_query_sparkshop_context_label(title, selected, count, raw, label);
     local dat_label, dat_mode = accessxi.generic_query_dat_label_for_context(title, selected, count, label, direct_label);
     local help = '';
     local help_mode = '';
+    local gear_entry = nil;
     if (context_label ~= '') then
         label = context_label;
         mode = context_mode;
@@ -943,14 +1291,30 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
         mode = direct_mode;
         help = accessxi.generic_query_resource_help_text(direct_help or '');
         help_mode = tostring(direct_help_mode or '');
-    elseif (not accessxi.generic_query_label_is_clean(label)) then
-        label = '';
+    else
+        local resource_label, resource_help, resource_mode, resource_entry = accessxi.generic_query_sparks_resource_match(sparks_context_title, label);
+        if (resource_label ~= '') then
+            label = resource_label;
+            mode = resource_mode;
+            if (sparks_context_mode ~= '') then
+                mode = ('%s:%s'):fmt(mode, sparks_context_mode);
+            end
+            help = resource_help;
+            help_mode = resource_mode;
+            gear_entry = resource_entry;
+        elseif (not accessxi.generic_query_label_is_clean(label)) then
+            label = '';
+        end
     end
     local speech_label = accessxi.generic_query_label_for_speech(label);
     local speech_help = accessxi.generic_query_resource_help_text(help or '');
     if (speech_help ~= '' and (speech_label == '' or speech_help:eq(speech_label, true))) then
         speech_help = '';
         help_mode = '';
+    end
+    if (gear_entry == nil and speech_help ~= '') then
+        local _, _, exact_entry = accessxi.generic_query_resource_help_for_label(speech_label);
+        gear_entry = exact_entry;
     end
     local speech_text = accessxi.sentence_fragment(speech_label);
     if (speech_help ~= '') then
@@ -1000,6 +1364,24 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
         count,
         speech_label,
         speech_help);
+    if (speech_help ~= ''
+        and type(gear_entry) == 'table'
+        and gear_entry.is_gear == true
+        and type(accessxi.capture_current_gear_detail) == 'function') then
+        local gear_info = T{
+            id = tonumber(gear_entry.id) or 0,
+            index = selected,
+            name = speech_label,
+            count = 0,
+            detail_parts = gear_entry.detail_parts,
+            description = tostring(gear_entry.description or ''),
+            empty = false,
+        };
+        accessxi.capture_current_gear_detail(menu_name, gear_info, T{
+            index = selected,
+            source = 'generic-query',
+        });
+    end
     if (title ~= '') then
         return ('%s. %s'):fmt(title, speech_text);
     end

@@ -39,26 +39,36 @@ $helperBody = $source.Substring($helperStart, $helperEnd - $helperStart)
 
 Assert-Match `
     -Text $helperBody `
-    -Pattern 'if\s*\(wanted_type\s*==\s*8\)\s*then' `
+    -Pattern 'magic_append_known_spells_missing_from_mix\(spells,\s*seen,\s*player,\s*label,\s*wanted_type\s*==\s*8\)' `
     -Message 'Trust Magic should have a dynamic append path for newly learned Trusts missing from mix.dat.'
 
+$appendStart = $source.IndexOf('function accessxi.magic_append_known_spells_missing_from_mix')
+if ($appendStart -lt 0) {
+    throw 'Missing magic_append_known_spells_missing_from_mix.'
+}
+$appendEnd = $source.IndexOf("`nfunction accessxi.magic_mix_category_spell_list", $appendStart)
+if ($appendEnd -lt 0) {
+    throw 'Could not locate end of magic_append_known_spells_missing_from_mix.'
+}
+$appendBody = $source.Substring($appendStart, $appendEnd - $appendStart)
+
 Assert-Match `
-    -Text $helperBody `
+    -Text $appendBody `
     -Pattern 'magic_known_spell_list_for_category\(label\)' `
     -Message 'Trust Magic append path should use live known Trust spells, not a static list.'
 
 Assert-Match `
-    -Text $helperBody `
+    -Text $appendBody `
     -Pattern '(?s)magic_known_spell_list_for_category\(label\).*?seen\[id\]\s*~=\s*true.*?spells:append\(info\)' `
     -Message 'Newly learned Trusts absent from mix.dat should be appended after verified mix.dat rows.'
 
 Assert-Match `
-    -Text $helperBody `
+    -Text $appendBody `
     -Pattern 'player:HasSpell\(id\)' `
     -Message 'Trust Magic append path should still verify live player spell knowledge.'
 
 Assert-NotMatch `
-    -Text $helperBody `
+    -Text $appendBody `
     -Pattern 'spells:sort|for id = 0,\s*2048|for id = 1,\s*2048' `
     -Message 'Trust Magic append path must not rebuild the whole row order as a sorted/static list.'
 

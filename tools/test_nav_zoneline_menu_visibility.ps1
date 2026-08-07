@@ -487,7 +487,7 @@ Assert-Match `
 
 $menuStart = $source.IndexOf('local function nav_menu_start_route')
 $routeStart = $source.IndexOf('local function nav_route_start', $menuStart)
-$routeStop = $source.IndexOf('local function nav_route_stop', $routeStart)
+$routeStop = $source.IndexOf('nav_route_stop = function', $routeStart)
 if ($menuStart -lt 0 -or $routeStart -lt 0 -or $routeStop -lt 0) {
     throw 'Could not locate nav route start blocks.'
 }

@@ -1,22 +1,31 @@
 #include <Ashita.h>
+#include "pol_accessibility/prelogin_semantics.h"
+#include "pol_pml/native_popup_text.h"
+#include "pol_pml/native_selected_text.h"
+#include "pol_pml/native_text_field.h"
+#include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
+#include <TlHelp32.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 namespace
 {
     constexpr const wchar_t* DefaultLogFileName = L"pol-monitor.log";
-    constexpr const wchar_t* DefaultReloadedSpeechQueueFileName = L"pol-reloaded-native-speech.queue";
+    constexpr const wchar_t* DefaultPolUiTraceFileName = L"pol-ui-native-trace.tsv";
 
     constexpr uintptr_t AppRuntimeBase = 0x04810000u;
     constexpr uintptr_t PmlSharedFocusEventRva = 0x0005BBF5u;
@@ -26,18 +35,63 @@ namespace
     constexpr uintptr_t PmlIndexedChildAtRva = 0x00102B3Bu;
     constexpr uintptr_t PmlCurrentChildSetterRva = 0x000044F1u;
     constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
+    constexpr uintptr_t ModalOkConstructorRva = 0x000D1842u;
+    constexpr uintptr_t ModalYesNoConstructorRva = 0x000D1B45u;
+    constexpr uintptr_t ModalYesNoCancelConstructorRva = 0x000D1E5Eu;
+    constexpr uintptr_t ModalOkCancelConstructorRva = 0x000D2B16u;
+    constexpr uintptr_t ModalRetryFailConstructorRva = 0x000D32FBu;
+    constexpr uintptr_t NoticeWindowConstructorRva = 0x000A6485u;
+    constexpr uintptr_t ImportantNoticeConstructorRva = 0x000A9CCBu;
+    constexpr uintptr_t ModalOkBaseDestructorRva = 0x000BD4F0u;
+    constexpr uintptr_t ModalYesNoBaseDestructorRva = 0x000BD55Eu;
+    constexpr uintptr_t ModalYesNoCancelBaseDestructorRva = 0x000BD5CCu;
+    constexpr uintptr_t ModalOkCancelBaseDestructorRva = 0x000BDA4Eu;
+    constexpr uintptr_t ModalRetryFailBaseDestructorRva = 0x000BDB2Au;
+    constexpr uintptr_t NoticeWindowBaseDestructorRva = 0x000A6668u;
+    constexpr uintptr_t ImportantNoticeBaseDestructorRva = 0x000A6AC0u;
+    constexpr size_t PopupConstructorPatchSize = 7;
+    constexpr size_t PopupEhBaseDestructorPatchSize = 7;
+    constexpr size_t PopupNoticeBaseDestructorPatchSize = 6;
+    constexpr size_t PopupOwnerKindCount = 8;
     constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
+    constexpr uintptr_t CPolTableVtableRva = 0x0033219Cu;
+    constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x003CF8E4u;
+    constexpr uintptr_t CLoginMemberDataVtableRva = 0x003CF800u;
+    constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x001AF193u;
     constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
     constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
+    constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
+    constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0x07E88E8067FEF6CCull;
     constexpr DWORD AddMemberContextCacheTtlMs = 60000;
 
-    std::atomic<bool> g_reloaded_speech_queue_enabled{ false };
-    std::atomic<bool> g_reloaded_native_worker_running{ false };
+    using AccessXiPolSpeechSinkV1 = void (__stdcall *)(
+        const char* utf8_text,
+        int interrupt,
+        void* context);
+
+    constexpr int AccessXiPolInitializeOk = 1;
+    constexpr int AccessXiPolInitializeAlreadyReady = 2;
+    constexpr int AccessXiPolInitializeAppDllMissing = -1;
+    constexpr int AccessXiPolInitializeUnsupportedBuild = -2;
+    constexpr int AccessXiPolInitializeBusy = -3;
+
+    std::atomic<bool> g_native_hook_worker_running{ false };
+    std::atomic<bool> g_pol_ui_trace_active{ false };
     std::atomic<bool> g_pml_focus_event_hook_installed{ false };
     std::atomic<bool> g_native_focus_dispatch_hooks_installed{ false };
     std::atomic<bool> g_native_selection_truth_hooks_installed{ false };
+    std::atomic<bool> g_popup_notice_hooks_installed{ false };
+    std::atomic<bool> g_appdll_fingerprint_ok_logged{ false };
+    std::atomic<bool> g_appdll_fingerprint_mismatch_logged{ false };
+    std::atomic<AccessXiPolSpeechSinkV1> g_speech_sink_v1{ nullptr };
+    std::atomic<void*> g_speech_sink_context_v1{ nullptr };
+    std::atomic<int> g_native_initialize_state{ 0 };
+    accessxi::pol_trace::TraceBuffer g_pol_ui_trace(1024);
+    bool g_pol_ui_trace_hotkey_down = false;
+    uint64_t g_pol_ui_trace_session = 0;
 
     std::mutex g_log_lock;
+    std::mutex g_pol_ui_trace_state_lock;
     std::mutex g_candidate_lock;
     std::mutex g_current_child_lock;
     std::mutex g_speech_lock;
@@ -46,6 +100,28 @@ namespace
     void* g_pml_select_focus_event_trampoline = nullptr;
     void* g_selected_index_setter_trampoline = nullptr;
     void* g_pml_current_child_setter_trampoline = nullptr;
+    std::atomic<void*> g_modal_ok_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_cancel_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_ok_cancel_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_retry_fail_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_notice_window_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_important_notice_constructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_ok_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_yes_no_cancel_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_ok_cancel_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_modal_retry_fail_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_notice_window_base_destructor_trampoline{ nullptr };
+    std::atomic<void*> g_important_notice_base_destructor_trampoline{ nullptr };
+
+    std::array<accessxi::pol_pml::PopupOwnerRegistration, PopupOwnerKindCount>
+        g_popup_owner_registry{};
+    std::array<
+        std::array<
+            accessxi::pol_pml::PopupTextTracker,
+            accessxi::pol_pml::PopupOwnerRegistration::capacity()>,
+        PopupOwnerKindCount> g_popup_text_trackers{};
 
     struct PreloginPmlFocusCandidate
     {
@@ -64,6 +140,8 @@ namespace
         void* manager = nullptr;
         void* requested_child = nullptr;
         uintptr_t current_child = 0;
+        bool captured_sheet_row = false;
+        uintptr_t nested_child = 0;
         DWORD tick = 0;
     };
 
@@ -121,8 +199,11 @@ namespace
     std::atomic<int> g_pml_coalesced_log_budget{ 10 };
     std::atomic<int> g_atlas_geometry_conflict_log_budget{ 10 };
     std::atomic<int> g_selected_index_no_label_log_budget{ 24 };
+    std::atomic<int> g_silent_selected_image_log_budget{ 96 };
     std::atomic<int> g_startup_member_probe_budget{ 6 };
     std::atomic<int> g_startup_member_model_probe_budget{ 12 };
+    std::atomic<int> g_focused_member_resolution_log_budget{ 12 };
+    std::atomic<int> g_popup_hook_log_budget{ 4 };
 
     std::wstring read_environment_wide(const wchar_t* name)
     {
@@ -188,13 +269,9 @@ namespace
         return path_join(diagnostic_log_directory(), DefaultLogFileName);
     }
 
-    std::wstring reloaded_speech_queue_path()
+    std::wstring pol_ui_trace_path()
     {
-        std::wstring configured = read_environment_wide(L"ACCESSXI_POL_SPEECH_QUEUE");
-        if (!configured.empty())
-            return configured;
-
-        return path_join(diagnostic_log_directory(), DefaultReloadedSpeechQueueFileName);
+        return path_join(diagnostic_log_directory(), DefaultPolUiTraceFileName);
     }
 
     void log_line(const char* text)
@@ -228,6 +305,25 @@ namespace
         std::fclose(file);
     }
 
+    bool append_pol_ui_trace_lines(const std::vector<std::string>& lines)
+    {
+        if (lines.empty())
+            return true;
+
+        const std::wstring log_directory = diagnostic_log_directory();
+        CreateDirectoryW(log_directory.c_str(), nullptr);
+
+        const std::wstring log_path = pol_ui_trace_path();
+        FILE* file = nullptr;
+        if (_wfopen_s(&file, log_path.c_str(), L"ab") != 0 || file == nullptr)
+            return false;
+
+        for (const std::string& line : lines)
+            std::fprintf(file, "%s\r\n", line.c_str());
+        std::fclose(file);
+        return true;
+    }
+
     std::string narrow_from_wide(const wchar_t* value)
     {
         if (value == nullptr || value[0] == 0)
@@ -240,6 +336,118 @@ namespace
         std::string output(static_cast<size_t>(needed - 1), '\0');
         WideCharToMultiByte(CP_UTF8, 0, value, -1, output.data(), needed, nullptr, nullptr);
         return output;
+    }
+
+    bool file_fnv64(const wchar_t* path, unsigned long long* size, unsigned long long* fingerprint)
+    {
+        if (path == nullptr || path[0] == 0 || size == nullptr || fingerprint == nullptr)
+            return false;
+
+        HANDLE file = CreateFileW(
+            path,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            nullptr,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr);
+        if (file == INVALID_HANDLE_VALUE)
+            return false;
+
+        LARGE_INTEGER file_size{};
+        if (!GetFileSizeEx(file, &file_size) || file_size.QuadPart < 0)
+        {
+            CloseHandle(file);
+            return false;
+        }
+
+        unsigned long long hash = 14695981039346656037ull;
+        uint8_t buffer[32768]{};
+        DWORD read = 0;
+        BOOL read_ok = FALSE;
+        while ((read_ok = ReadFile(file, buffer, static_cast<DWORD>(sizeof(buffer)), &read, nullptr)) && read > 0)
+        {
+            for (DWORD i = 0; i < read; ++i)
+            {
+                hash ^= static_cast<unsigned long long>(buffer[i]);
+                hash *= 1099511628211ull;
+            }
+        }
+
+        CloseHandle(file);
+        if (!read_ok)
+            return false;
+
+        *size = static_cast<unsigned long long>(file_size.QuadPart);
+        *fingerprint = hash;
+        return true;
+    }
+
+    bool app_module_matches_known_updated_pol_build(HMODULE app, const char* reason)
+    {
+        if (app == nullptr)
+            return false;
+
+        wchar_t path[MAX_PATH]{};
+        const DWORD copied = GetModuleFileNameW(app, path, MAX_PATH);
+        if (copied == 0 || copied >= MAX_PATH)
+        {
+            if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+                log_line("PRELOGIN_APPDLL fingerprint-unavailable reason=module-path");
+            return false;
+        }
+
+        unsigned long long size = 0;
+        unsigned long long fingerprint = 0;
+        if (!file_fnv64(path, &size, &fingerprint))
+        {
+            if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+            {
+                std::string line = std::string("PRELOGIN_APPDLL fingerprint-unavailable reason=file-read hook=") +
+                    (reason == nullptr ? "" : reason) +
+                    " path=\"" +
+                    narrow_from_wide(path) +
+                    "\"";
+                log_line(line.c_str());
+            }
+            return false;
+        }
+
+        const bool matches = size == KnownUpdatedAppDllSize && fingerprint == KnownUpdatedAppDllFnv64;
+        if (matches)
+        {
+            if (!g_appdll_fingerprint_ok_logged.exchange(true))
+            {
+                char line[256]{};
+                std::snprintf(
+                    line,
+                    sizeof(line) - 1,
+                    "PRELOGIN_APPDLL fingerprint-ok hook=%s size=%llu fnv64=%016llX",
+                    reason == nullptr ? "" : reason,
+                    size,
+                    fingerprint);
+                log_line(line);
+            }
+            return true;
+        }
+
+        if (!g_appdll_fingerprint_mismatch_logged.exchange(true))
+        {
+            std::string line = std::string("PRELOGIN_APPDLL fingerprint-mismatch hook=") +
+                (reason == nullptr ? "" : reason) +
+                " size=" +
+                std::to_string(size) +
+                " fnv64=";
+            char hash_text[17]{};
+            std::snprintf(hash_text, sizeof(hash_text), "%016llX", fingerprint);
+            line += hash_text;
+            line += " expectedSize=" + std::to_string(KnownUpdatedAppDllSize);
+            line += " expectedFnv64=07E88E8067FEF6CC path=\"";
+            line += narrow_from_wide(path);
+            line += "\" action=skip-native-hooks update=finish-playonline-update";
+            log_line(line.c_str());
+        }
+        return false;
     }
 
     std::string lower_copy(std::string value)
@@ -306,6 +514,11 @@ namespace
         }
     }
 
+    bool read_pol_pml_memory(void*, uintptr_t address, void* output, size_t size) noexcept
+    {
+        return copy_memory_safely(output, reinterpret_cast<const void*>(address), size);
+    }
+
     bool read_ptr_safely(const void* address, uintptr_t* value)
     {
         if (value == nullptr)
@@ -347,6 +560,35 @@ namespace
             return {};
 
         return clean_wide_text(buffer, -1);
+    }
+
+    std::string read_narrow_text_safely(const char* value, size_t max_bytes)
+    {
+        if (value == nullptr || max_bytes == 0)
+            return {};
+
+        char buffer[64]{};
+        const size_t capped = std::min(max_bytes, sizeof(buffer) - 1);
+        bool terminated = false;
+        for (size_t index = 0; index < capped; ++index)
+        {
+            char ch = 0;
+            if (!copy_memory_safely(&ch, value + index, sizeof(ch)))
+                return {};
+
+            if (ch == 0)
+            {
+                terminated = true;
+                break;
+            }
+
+            buffer[index] = ch;
+        }
+
+        if (!terminated || buffer[0] == 0)
+            return {};
+
+        return clean_text(buffer, -1);
     }
 
     bool useful_text(const std::string& value)
@@ -580,6 +822,7 @@ namespace
         return label == "Member Name" ||
             label == "PlayOnline ID" ||
             label == "Set Password" ||
+            label == "PlayOnline Password" ||
             label == "Member Password" ||
             label == "Confirm Password" ||
             label == "Square Enix ID" ||
@@ -587,10 +830,34 @@ namespace
             label == "One-Time Password";
     }
 
+    bool prelogin_add_member_plain_text_field_label(
+        const std::string& label)
+    {
+        return label == "Member Name" ||
+            label == "PlayOnline ID" ||
+            label == "Square Enix ID";
+    }
+
+    bool prelogin_add_member_password_field_label(
+        const std::string& label)
+    {
+        return label == "PlayOnline Password" ||
+            label == "Member Password" ||
+            label == "Confirm Password";
+    }
+
+    bool prelogin_probe_candidate_label(const std::string& value);
+
     bool prelogin_pml_focus_candidate_label_allowed(const char* source_text, const std::string& label)
     {
         if (!useful_text(label))
             return false;
+
+        if (source_text != nullptr && std::strcmp(source_text, "native-image-getter") == 0)
+            return accessxi::pol_pml::selected_image_getter_caption_allowed(label);
+
+        if (source_text != nullptr && std::strcmp(source_text, "native-selected-text") == 0)
+            return prelogin_probe_candidate_label(label);
 
         const std::string lower = lower_copy(label);
         if (lower == "play" || lower == "pla" || lower == "pol" || lower == "online")
@@ -604,14 +871,11 @@ namespace
         if (source_text != nullptr && std::strcmp(source_text, "add-member") == 0)
             return native_prelogin_atlas_label(label) || prelogin_add_member_value_label(label);
 
-        if (source_text != nullptr && std::strcmp(source_text, "member-dynamic") == 0)
-            return prelogin_member_dynamic_label(label);
-
-        if (source_text != nullptr && std::strcmp(source_text, "startup-member-dynamic") == 0)
-            return prelogin_member_dynamic_label(label);
-
         if (source_text != nullptr && std::strcmp(source_text, "selected-member-dynamic") == 0)
             return prelogin_member_dynamic_label(label);
+
+        if (source_text != nullptr && std::strcmp(source_text, "selected-member-native-row") == 0)
+            return accessxi::pol_accessibility::exact_owned_member_name_allowed(label);
 
         return native_prelogin_atlas_label(label);
     }
@@ -648,29 +912,22 @@ namespace
         return false;
     }
 
-    void append_reloaded_speech_queue(const std::string& text)
+    bool dispatch_speech_sink_v1(const std::string& text, int interrupt) noexcept
     {
-        if (text.empty())
-            return;
+        const auto sink = g_speech_sink_v1.load(std::memory_order_acquire);
+        if (sink == nullptr)
+            return false;
 
-        const std::wstring queue_path = reloaded_speech_queue_path();
-        const std::wstring queue_directory = parent_directory(queue_path);
-        if (!queue_directory.empty())
-            CreateDirectoryW(queue_directory.c_str(), nullptr);
-
-        FILE* file = nullptr;
-        if (_wfopen_s(&file, queue_path.c_str(), L"ab") != 0 || file == nullptr)
-            return;
-
-        std::string line = text;
-        for (char& ch : line)
+        void* const context = g_speech_sink_context_v1.load(std::memory_order_acquire);
+        try
         {
-            if (ch == '\r' || ch == '\n')
-                ch = ' ';
+            sink(text.c_str(), interrupt, context);
         }
-
-        std::fprintf(file, "%s\r\n", line.c_str());
-        std::fclose(file);
+        catch (...)
+        {
+            // Never let a consumer exception escape back through a native focus hook.
+        }
+        return true;
     }
 
     void speak_prelogin_label(const char* reason, const std::string& label, void* focused_object)
@@ -695,8 +952,7 @@ namespace
         std::snprintf(line, sizeof(line) - 1, "PRELOGIN_SPEAK queue reason=%s text=%s", reason == nullptr ? "" : reason, label.c_str());
         log_line(line);
 
-        if (g_reloaded_speech_queue_enabled.load())
-            append_reloaded_speech_queue(label);
+        (void)dispatch_speech_sink_v1(label, 1);
     }
 
     void clear_prelogin_duplicate_guard(void)
@@ -1096,6 +1352,7 @@ namespace
             { 315, 71, 461, 103, "Member Name", 0x04B59408u },
             { 315, 99, 461, 131, "PlayOnline ID", 0x04B59548u },
             { 311, 131, 495, 155, "Set Password", 0x04B59598u },
+            { 315, 155, 461, 187, "PlayOnline Password", 0x00000000u },
             { 315, 209, 461, 241, "Member Password", 0x04B59318u },
             { 315, 291, 461, 323, "Square Enix ID", 0x04B595E8u },
             { 311, 323, 495, 347, "One-Time Password", 0x04B59638u }
@@ -1261,6 +1518,10 @@ namespace
         if (std::strcmp(label_source, "atlas-geometry") == 0)
             return true;
 
+        if (std::strcmp(label_source, "native-selected-text") == 0 ||
+            std::strcmp(label_source, "native-image-getter") == 0)
+            return true;
+
         if (std::strcmp(label_source, "add-member") == 0 && prelogin_add_member_value_label(label))
             return !current_child_is_tiny;
 
@@ -1287,6 +1548,7 @@ namespace
             { 315, 71, 461, 103, "Member Name", 0x04B59408u },
             { 315, 99, 461, 131, "PlayOnline ID", 0x04B59548u },
             { 311, 131, 495, 155, "Set Password", 0x04B59598u },
+            { 315, 155, 461, 187, "PlayOnline Password", 0x00000000u },
             { 315, 209, 461, 241, "Member Password", 0x04B59318u },
             { 315, 237, 461, 269, "Confirm Password", 0x00000000u },
             { 315, 291, 461, 323, "Square Enix ID", 0x04B595E8u },
@@ -1470,6 +1732,10 @@ namespace
         if (std::strcmp(source_text, "selected-member-dynamic") == 0)
             return focused_flag && prelogin_member_dynamic_label(label);
 
+        if (std::strcmp(source_text, "selected-member-native-row") == 0)
+            return focused_flag &&
+                accessxi::pol_accessibility::exact_owned_member_name_allowed(label);
+
         const bool current_child = snapshot_current_child || prelogin_pml_focus_current_child(manager, focused_object);
 
         if (std::strcmp(source_text, "direct-fields") == 0)
@@ -1507,6 +1773,10 @@ namespace
 
         if (std::strcmp(source_text, "selected-member-dynamic") == 0)
             return candidate.focused_flag && prelogin_member_dynamic_label(candidate.label);
+
+        if (std::strcmp(source_text, "selected-member-native-row") == 0)
+            return candidate.focused_flag &&
+                accessxi::pol_accessibility::exact_owned_member_name_allowed(candidate.label);
 
         if (std::strcmp(source_text, "direct-fields") == 0)
             return candidate.current_child && prelogin_setup_form_value_cell_label(source_text, candidate.label);
@@ -1699,6 +1969,317 @@ namespace
         }
 
         return true;
+    }
+
+    bool native_object_has_vtable_rva(void* object, uintptr_t expected_rva)
+    {
+        if (object == nullptr)
+            return false;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return false;
+
+        uintptr_t vtable = 0;
+        if (!read_ptr_safely(object, &vtable))
+            return false;
+        return vtable == reinterpret_cast<uintptr_t>(app) + expected_rva;
+    }
+
+    uintptr_t native_object_vtable_rva_for_log(void* object)
+    {
+        if (object == nullptr)
+            return 0;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return 0;
+
+        uintptr_t vtable = 0;
+        if (!read_ptr_safely(object, &vtable))
+            return 0;
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        return vtable >= app_base ? vtable - app_base : 0;
+    }
+
+    bool native_object_has_password_field_vtable(void* object)
+    {
+        if (native_object_has_vtable_rva(
+                   object,
+                   accessxi::pol_pml::CPasswordFieldVtableRva) ||
+            native_object_has_vtable_rva(
+                   object,
+                   accessxi::pol_pml::CpmlFormPasswordVtableRva))
+        {
+            return true;
+        }
+
+        if (!native_object_has_vtable_rva(
+                object,
+                accessxi::pol_pml::CScrollTextFieldVtableRva))
+        {
+            return false;
+        }
+
+        uintptr_t inner = 0;
+        return read_ptr_safely(
+                   static_cast<const uint8_t*>(object) +
+                       accessxi::pol_pml::
+                           NativeScrollTextFieldInnerControlOffset,
+                   &inner) &&
+            inner != 0 &&
+            native_object_has_vtable_rva(
+                reinterpret_cast<void*>(inner),
+                accessxi::pol_pml::CPasswordFieldVtableRva);
+    }
+
+    accessxi::pol_pml::NativeTextFieldSnapshot
+    read_native_text_field_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_text_field(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
+    accessxi::pol_pml::NativePulldownSelectionSnapshot
+    read_native_pulldown_selection_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_pulldown_selection(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
+    accessxi::pol_pml::NativePulldownHighlightSnapshot
+    read_native_pulldown_highlight_snapshot(void* object)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{
+            read_pol_pml_memory,
+            nullptr
+        };
+        return accessxi::pol_pml::read_native_pulldown_highlight(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app));
+    }
+
+    std::string read_native_selected_control_text(void* object, uintptr_t captured_nested_child = 0)
+    {
+        if (object == nullptr)
+            return {};
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const std::u16string native_text = accessxi::pol_pml::read_selected_control_text(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app),
+            captured_nested_child);
+        if (native_text.empty())
+            return {};
+
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        std::wstring wide_text;
+        wide_text.reserve(native_text.size());
+        for (char16_t character : native_text)
+            wide_text.push_back(static_cast<wchar_t>(character));
+
+        const std::string label = clean_wide_text(wide_text.c_str(), static_cast<int>(wide_text.size()));
+        if (!prelogin_probe_candidate_label(label))
+            return {};
+        return label;
+    }
+
+    std::string clean_native_utf16_text(const std::u16string& text)
+    {
+        if (text.empty())
+            return {};
+
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        std::wstring wide_text;
+        wide_text.reserve(text.size());
+        for (const char16_t character : text)
+            wide_text.push_back(static_cast<wchar_t>(character));
+        return trim_ascii(narrow_from_wide(wide_text.c_str()));
+    }
+
+    using NativePmlLabelGetter_t = const wchar_t* (__thiscall*)(void*, int);
+
+    const wchar_t* call_native_selected_image_getter(
+        NativePmlLabelGetter_t getter,
+        void* image,
+        int alternate)
+    {
+        const wchar_t* native_text = nullptr;
+        __try
+        {
+            native_text = getter == nullptr ? nullptr : getter(image, alternate != 0 ? 1 : 0);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return nullptr;
+        }
+        return native_text;
+    }
+
+    std::string read_native_selected_image_getter_text(uintptr_t image, int alternate)
+    {
+        if (image < 0x10000 ||
+            !native_object_has_vtable_rva(
+                reinterpret_cast<void*>(image),
+                accessxi::pol_pml::CpmlImageVtableRva))
+        {
+            return {};
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        uintptr_t vtable = 0;
+        uintptr_t getter = 0;
+        if (!read_ptr_safely(reinterpret_cast<const void*>(image), &vtable) ||
+            !read_ptr_safely(reinterpret_cast<const void*>(vtable + 0x124), &getter))
+        {
+            return {};
+        }
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        if (getter < app_base || getter >= app_base + KnownUpdatedAppDllSize)
+            return {};
+
+        const wchar_t* native_text = call_native_selected_image_getter(
+            reinterpret_cast<NativePmlLabelGetter_t>(getter),
+            reinterpret_cast<void*>(image),
+            alternate);
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const std::u16string bounded_text =
+            accessxi::pol_pml::read_bounded_native_image_getter_text(
+                memory,
+                reinterpret_cast<uintptr_t>(native_text));
+        return clean_native_utf16_text(bounded_text);
+    }
+
+    std::string read_native_selected_image_caption(const PreloginCurrentChildSnapshot& snapshot)
+    {
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return {};
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const auto inspection = accessxi::pol_pml::inspect_selected_image_path(
+            memory,
+            snapshot.current_child,
+            reinterpret_cast<uintptr_t>(app),
+            snapshot.nested_child);
+        if (!inspection.matched)
+            return {};
+
+        const std::string primary = read_native_selected_image_getter_text(inspection.image, 0);
+        const std::string alternate = read_native_selected_image_getter_text(inspection.image, 1);
+        const std::string caption = accessxi::pol_pml::choose_selected_image_getter_caption(
+            primary,
+            alternate);
+        if (!useful_text(caption) ||
+            !accessxi::pol_pml::selected_image_getter_caption_allowed(caption))
+            return {};
+        return caption;
+    }
+
+    void log_silent_selected_image_path(const PreloginCurrentChildSnapshot& snapshot)
+    {
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return;
+
+        const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const auto inspection = accessxi::pol_pml::inspect_selected_image_path(
+            memory,
+            snapshot.current_child,
+            reinterpret_cast<uintptr_t>(app),
+            snapshot.nested_child);
+        if (!inspection.matched || g_silent_selected_image_log_budget.fetch_sub(1) <= 0)
+            return;
+
+        PreloginRect object_rect{};
+        PreloginRect image_rect{};
+        const bool have_object_rect = read_prelogin_object_rect(
+            reinterpret_cast<void*>(snapshot.current_child),
+            &object_rect);
+        const bool have_image_rect = read_prelogin_object_rect(
+            reinterpret_cast<void*>(inspection.image),
+            &image_rect);
+        const std::string primary_alt = clean_native_utf16_text(inspection.primary_alt);
+        const std::string alternate_alt = clean_native_utf16_text(inspection.alternate_alt);
+        const std::string getter_0 = read_native_selected_image_getter_text(inspection.image, 0);
+        const std::string getter_1 = read_native_selected_image_getter_text(inspection.image, 1);
+
+        char line[1024]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_SILENTIMAGE object=0x%p image=0x%p sheet=%d nestedDirect=%d children=%u images=%u texts=%u other=%u objectRect=%s%d,%d,%d,%d imageRect=%s%d,%d,%d,%d primaryCapacity=%u alternateCapacity=%u linked=0x%p linkedVtRva=%08IX primaryAlt=%s alternateAlt=%s getter0=%s getter1=%s",
+            reinterpret_cast<void*>(snapshot.current_child),
+            reinterpret_cast<void*>(inspection.image),
+            inspection.object_is_sheet ? 1 : 0,
+            inspection.nested_is_direct_child ? 1 : 0,
+            static_cast<unsigned>(inspection.child_count),
+            static_cast<unsigned>(inspection.image_child_count),
+            static_cast<unsigned>(inspection.text_child_count),
+            static_cast<unsigned>(inspection.other_child_count),
+            have_object_rect ? "" : "none:",
+            object_rect.left,
+            object_rect.top,
+            object_rect.right,
+            object_rect.bottom,
+            have_image_rect ? "" : "none:",
+            image_rect.left,
+            image_rect.top,
+            image_rect.right,
+            image_rect.bottom,
+            static_cast<unsigned>(inspection.primary_capacity_130),
+            static_cast<unsigned>(inspection.alternate_capacity_14c),
+            reinterpret_cast<void*>(inspection.linked_label_object),
+            static_cast<size_t>(inspection.linked_label_vtable_rva),
+            primary_alt.c_str(),
+            alternate_alt.c_str(),
+            getter_0.c_str(),
+            getter_1.c_str());
+        log_line(line);
     }
 
     void log_startup_member_model_probe(void* object)
@@ -2153,6 +2734,687 @@ namespace
         return candidates.front().value;
     }
 
+    using PolUiControlRole = accessxi::pol_accessibility::ControlRole;
+
+    bool secret_control_role(PolUiControlRole role)
+    {
+        return role == PolUiControlRole::password ||
+            role == PolUiControlRole::one_time_password;
+    }
+
+    PolUiControlRole classify_pol_ui_control_role(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* object)
+    {
+        if (kind == accessxi::pol_trace::EventKind::selected_index)
+        {
+            return prelogin_member_dynamic_value_rect(object)
+                ? PolUiControlRole::selected_member
+                : PolUiControlRole::list_row;
+        }
+
+        uint32_t resource = 0;
+        const std::string geometry_label =
+            native_prelogin_atlas_label_from_geometry(object, &resource);
+        const auto native_field = native_object_has_password_field_vtable(object)
+            ? read_native_text_field_snapshot(object)
+            : accessxi::pol_pml::NativeTextFieldSnapshot{};
+        const bool password_field =
+            native_field.matched &&
+            native_field.kind ==
+                accessxi::pol_pml::NativeTextFieldKind::password;
+        if (password_field)
+        {
+            if (geometry_label == "One-Time Password")
+                return PolUiControlRole::one_time_password;
+            if (geometry_label == "Enter Member Password" ||
+                geometry_label == "PlayOnline Password" ||
+                geometry_label == "Member Password" ||
+                geometry_label == "Confirm Password" ||
+                geometry_label == "Square Enix Password")
+            {
+                return PolUiControlRole::password;
+            }
+
+            // CPasswordField proves that this is secret state, but not which
+            // sighted label owns it. Do not guess a role without the verified
+            // geometry/screen relationship needed to distinguish password
+            // from one-time password.
+            return PolUiControlRole::unknown;
+        }
+
+        if (geometry_label == "Member List")
+            return PolUiControlRole::member_list;
+        if (geometry_label == "Log In" ||
+            geometry_label == "Settings" ||
+            geometry_label == "Delete" ||
+            geometry_label == "Back" ||
+            geometry_label == "Next" ||
+            geometry_label == "Cancel" ||
+            geometry_label == "Yes" ||
+            geometry_label == "No" ||
+            geometry_label == "OK" ||
+            geometry_label == "Connect" ||
+            geometry_label == "Register")
+        {
+            return PolUiControlRole::button;
+        }
+        if (geometry_label == "Member Name" ||
+            geometry_label == "PlayOnline ID" ||
+            geometry_label == "Square Enix ID" ||
+            geometry_label == "Proxy server address" ||
+            geometry_label == "Port")
+        {
+            return PolUiControlRole::editable;
+        }
+        if (!geometry_label.empty())
+            return PolUiControlRole::static_label;
+
+        UNREFERENCED_PARAMETER(manager);
+        return PolUiControlRole::unknown;
+    }
+
+    accessxi::pol_trace::Relationship pol_ui_relationship(
+        accessxi::pol_trace::EventKind kind,
+        const accessxi::pol_trace::Snapshot& snapshot)
+    {
+        if (kind == accessxi::pol_trace::EventKind::selected_index)
+            return accessxi::pol_trace::Relationship::indexed_child;
+        if (kind == accessxi::pol_trace::EventKind::current_child)
+            return accessxi::pol_trace::Relationship::current_child;
+        if (kind == accessxi::pol_trace::EventKind::focus_shared ||
+            kind == accessxi::pol_trace::EventKind::focus_select)
+        {
+            // The focus-event payload supplies the exact object at +0x30.
+            // Manager focus fields can lag the event and are diagnostic only.
+            return accessxi::pol_trace::Relationship::focused;
+        }
+        if (snapshot.object != 0 &&
+            (snapshot.object == snapshot.focus_160 ||
+             snapshot.object == snapshot.focus_164 ||
+             snapshot.object == snapshot.focus_1c0))
+        {
+            return accessxi::pol_trace::Relationship::focused;
+        }
+        return accessxi::pol_trace::Relationship::none;
+    }
+
+    size_t read_verified_masked_display_count(void* object)
+    {
+        using namespace accessxi::pol_accessibility;
+        const auto snapshot = read_native_text_field_snapshot(object);
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password)
+        {
+            return InvalidMaskedCount;
+        }
+        return snapshot.character_count;
+    }
+
+    struct MaskedFieldTracker
+    {
+        accessxi::pol_accessibility::TrackedNativeValueState state;
+        PolUiControlRole role = PolUiControlRole::unknown;
+        std::string label;
+    };
+
+    struct SetPasswordTracker
+    {
+        accessxi::pol_accessibility::TrackedNativeValueState state;
+    };
+
+    std::mutex g_native_value_tracker_lock;
+    MaskedFieldTracker g_masked_field_tracker;
+    SetPasswordTracker g_set_password_tracker;
+
+    void reset_add_member_native_value_trackers()
+    {
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        g_masked_field_tracker = {};
+        g_set_password_tracker = {};
+    }
+
+    void remember_masked_field_focus(
+        const accessxi::pol_pml::NativeTextFieldSnapshot& snapshot,
+        PolUiControlRole role,
+        const std::string& label)
+    {
+        using namespace accessxi::pol_accessibility;
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password ||
+            !secret_control_role(role) ||
+            label.empty())
+        {
+            return;
+        }
+
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        observe_tracked_native_value(
+            g_masked_field_tracker.state,
+            snapshot.field,
+            snapshot.character_count);
+        g_masked_field_tracker.role = role;
+        g_masked_field_tracker.label = label;
+        g_set_password_tracker = {};
+    }
+
+    void remember_set_password_focus(
+        uintptr_t object,
+        uint32_t selected_index)
+    {
+        using namespace accessxi::pol_accessibility;
+        if (add_member_set_password_value(selected_index).empty())
+            return;
+
+        std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+        observe_tracked_native_value(
+            g_set_password_tracker.state,
+            object,
+            selected_index);
+        g_masked_field_tracker = {};
+    }
+
+    void speak_masked_field_state(
+        const std::string& speech,
+        PolUiControlRole role,
+        size_t count)
+    {
+        if (speech.empty())
+            return;
+
+        char line[192]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_MASKED speak role=%s count=%zu text=%s",
+            accessxi::pol_trace::control_role_name(role),
+            count,
+            speech.c_str());
+        log_line(line);
+
+        // Do not use the ordinary duplicate guard here: two independently
+        // accepted characters may both produce the intentionally identical
+        // word "star" within 100 milliseconds.
+        (void)dispatch_speech_sink_v1(speech, 1);
+    }
+
+    void poll_masked_field_state()
+    {
+        using namespace accessxi::pol_accessibility;
+        if (native_post_login_surface_active())
+        {
+            reset_add_member_native_value_trackers();
+            return;
+        }
+
+        MaskedFieldTracker retained;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            retained = g_masked_field_tracker;
+        }
+        if (retained.state.object < 0x10000u ||
+            retained.state.value == InvalidMaskedCount ||
+            !secret_control_role(retained.role) ||
+            retained.label.empty())
+        {
+            return;
+        }
+
+        const auto snapshot = read_native_text_field_snapshot(
+            reinterpret_cast<void*>(retained.state.object));
+        if (!snapshot.matched ||
+            snapshot.kind !=
+                accessxi::pol_pml::NativeTextFieldKind::password ||
+            snapshot.field != retained.state.object)
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_masked_field_tracker.state.object ==
+                retained.state.object)
+            {
+                g_masked_field_tracker = {};
+            }
+            return;
+        }
+
+        std::string speech;
+        PolUiControlRole role = PolUiControlRole::unknown;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_masked_field_tracker.state.object !=
+                retained.state.object)
+            {
+                return;
+            }
+
+            const size_t before = g_masked_field_tracker.state.value;
+            const auto update = observe_tracked_native_value(
+                g_masked_field_tracker.state,
+                snapshot.field,
+                snapshot.character_count);
+            role = g_masked_field_tracker.role;
+            if (update == TrackedNativeValueUpdate::changed)
+                speech = masked_delta_speech(
+                    g_masked_field_tracker.label,
+                    before,
+                    snapshot.character_count);
+        }
+
+        speak_masked_field_state(
+            speech,
+            role,
+            snapshot.character_count);
+    }
+
+    void poll_set_password_state()
+    {
+        using namespace accessxi::pol_accessibility;
+        if (native_post_login_surface_active())
+        {
+            reset_add_member_native_value_trackers();
+            return;
+        }
+
+        SetPasswordTracker retained;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            retained = g_set_password_tracker;
+        }
+        if (retained.state.object < 0x10000u ||
+            retained.state.value == InvalidMaskedCount)
+        {
+            return;
+        }
+
+        const auto highlight = read_native_pulldown_highlight_snapshot(
+            reinterpret_cast<void*>(retained.state.object));
+        if (!highlight.matched)
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object ==
+                retained.state.object)
+            {
+                g_set_password_tracker = {};
+            }
+            return;
+        }
+
+        uint32_t observed_index = 0;
+        const char* observed_source = "highlight";
+        if (highlight.active)
+        {
+            observed_index = highlight.highlighted_index;
+        }
+        else
+        {
+            const auto committed =
+                read_native_pulldown_selection_snapshot(
+                    reinterpret_cast<void*>(retained.state.object));
+            if (!committed.matched)
+            {
+                std::lock_guard<std::mutex> guard(
+                    g_native_value_tracker_lock);
+                if (g_set_password_tracker.state.object ==
+                    retained.state.object)
+                {
+                    g_set_password_tracker = {};
+                }
+                return;
+            }
+            observed_index = committed.selected_index;
+            observed_source = "committed";
+        }
+
+        const std::string_view selected_value =
+            add_member_set_password_value(observed_index);
+        if (selected_value.empty())
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object ==
+                retained.state.object)
+            {
+                g_set_password_tracker = {};
+            }
+            return;
+        }
+
+        bool changed = false;
+        {
+            std::lock_guard<std::mutex> guard(g_native_value_tracker_lock);
+            if (g_set_password_tracker.state.object !=
+                retained.state.object)
+            {
+                return;
+            }
+
+            changed = observe_tracked_native_value(
+                g_set_password_tracker.state,
+                retained.state.object,
+                observed_index) ==
+                TrackedNativeValueUpdate::changed;
+        }
+        if (!changed)
+            return;
+
+        const std::string speech = field_focus_speech(
+            "Set Password",
+            selected_value);
+        char line[192]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_SET_PASSWORD speak source=%s index=%u text=%s",
+            observed_source,
+            static_cast<unsigned>(observed_index),
+            speech.c_str());
+        log_line(line);
+        speak_prelogin_label(
+            "set-password-change",
+            speech,
+            reinterpret_cast<void*>(retained.state.object));
+    }
+
+    std::string read_pol_ui_pml_inline_wide_text(uintptr_t object)
+    {
+        if (object < 0x10000)
+            return {};
+
+        uint32_t length = 0;
+        if (!read_u32_safely(reinterpret_cast<const void*>(object + 0x14), &length) ||
+            length == 0 ||
+            length >= 0x21)
+        {
+            return {};
+        }
+
+        wchar_t buffer[0x21]{};
+        if (!copy_memory_safely(buffer, reinterpret_cast<const void*>(object + 0x18), length * sizeof(wchar_t)))
+            return {};
+        buffer[length] = 0;
+        return clean_wide_text(buffer, static_cast<int>(length));
+    }
+
+    bool pol_ui_trace_candidate_allowed(const std::string& value)
+    {
+        if (!useful_text(value))
+            return false;
+
+        const std::string lower = lower_copy(value);
+        return lower.find("http") == std::string::npos &&
+            lower.find(".pml") == std::string::npos &&
+            lower.find(".esd") == std::string::npos &&
+            lower.find(".tm2") == std::string::npos;
+    }
+
+    void add_pol_ui_trace_candidate(
+        accessxi::pol_trace::Snapshot& snapshot,
+        uint32_t offset,
+        const char* source,
+        const std::string& text)
+    {
+        if (source == nullptr || !pol_ui_trace_candidate_allowed(text))
+            return;
+
+        for (size_t index = 0; index < snapshot.candidate_count; ++index)
+        {
+            const auto& existing = snapshot.candidates[index];
+            if (existing.offset == offset &&
+                std::strcmp(existing.source, source) == 0 &&
+                std::strcmp(existing.text, text.c_str()) == 0)
+            {
+                return;
+            }
+        }
+
+        if (snapshot.candidate_count >= accessxi::pol_trace::TraceCandidateCapacity)
+            return;
+
+        auto& candidate = snapshot.candidates[snapshot.candidate_count++];
+        candidate.offset = offset;
+        accessxi::pol_trace::copy_utf8_bounded(candidate.source, sizeof(candidate.source), source);
+        accessxi::pol_trace::copy_utf8_bounded(candidate.text, sizeof(candidate.text), text);
+    }
+
+    void collect_pol_ui_trace_candidates(accessxi::pol_trace::Snapshot& snapshot, void* object)
+    {
+        const uintptr_t base = reinterpret_cast<uintptr_t>(object);
+        if (base < 0x10000)
+            return;
+
+        add_pol_ui_trace_candidate(snapshot, 0, "inline-this-w", read_pol_ui_pml_inline_wide_text(base));
+
+        static constexpr uintptr_t offsets[] = {
+            0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x11Cu, 0x124u, 0x128u,
+            0x138u,
+            0x154u, 0x158u, 0x160u, 0x164u, 0x188u, 0x18Cu,
+            0x190u, 0x194u, 0x198u, 0x19Cu
+        };
+
+        for (const uintptr_t offset : offsets)
+        {
+            add_pol_ui_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "field-c",
+                read_native_pml_string_field(base + offset));
+            add_pol_ui_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "field-w",
+                read_native_pml_wide_string_field(base + offset));
+
+            uintptr_t pointer = 0;
+            if (!read_ptr_safely(reinterpret_cast<const void*>(base + offset), &pointer) ||
+                pointer < 0x10000 ||
+                pointer == base)
+            {
+                continue;
+            }
+
+            add_pol_ui_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "ptr-c",
+                read_native_pml_c_string_pointer(pointer));
+            add_pol_ui_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "ptr-w",
+                read_native_pml_wide_string_pointer(pointer));
+            add_pol_ui_trace_candidate(
+                snapshot,
+                static_cast<uint32_t>(offset),
+                "linked-inline-w",
+                read_pol_ui_pml_inline_wide_text(pointer));
+        }
+    }
+
+    void capture_pol_ui_snapshot(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* requested_child,
+        void* object,
+        uint32_t event_code,
+        uint32_t requested_index,
+        uint32_t stored_index)
+    {
+        if (!g_pol_ui_trace_active.load(std::memory_order_acquire))
+            return;
+
+        accessxi::pol_trace::Snapshot snapshot{};
+        snapshot.tick = GetTickCount();
+        snapshot.kind = kind;
+        snapshot.event_code = event_code;
+        snapshot.manager = reinterpret_cast<uintptr_t>(manager);
+        snapshot.requested_child = reinterpret_cast<uintptr_t>(requested_child);
+        snapshot.object = reinterpret_cast<uintptr_t>(object);
+        snapshot.requested_index = requested_index;
+        snapshot.stored_index = stored_index;
+
+        if (manager != nullptr)
+        {
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x160, &snapshot.focus_160);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &snapshot.focus_164);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1C0, &snapshot.focus_1c0);
+        }
+
+        if (object != nullptr)
+        {
+            read_ptr_safely(object, &snapshot.vtable);
+            HMODULE app = GetModuleHandleA("app.dll");
+            const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+            if (app_base != 0 &&
+                snapshot.vtable >= app_base &&
+                snapshot.vtable < app_base + KnownUpdatedAppDllSize)
+            {
+                snapshot.vtable_rva = snapshot.vtable - app_base;
+            }
+
+            PreloginRect rect{};
+            if (read_prelogin_object_rect(object, &rect))
+            {
+                snapshot.has_rect = true;
+                snapshot.rect = { rect.left, rect.top, rect.right, rect.bottom };
+            }
+        }
+
+        snapshot.role = classify_pol_ui_control_role(kind, manager, object);
+        snapshot.relationship = pol_ui_relationship(kind, snapshot);
+
+        const bool exact_password_field =
+            object != nullptr &&
+            native_object_has_password_field_vtable(object);
+        if (secret_control_role(snapshot.role) || exact_password_field)
+        {
+            const size_t masked_count = secret_control_role(snapshot.role)
+                ? read_verified_masked_display_count(object)
+                : accessxi::pol_accessibility::InvalidMaskedCount;
+            accessxi::pol_trace::set_masked_snapshot(
+                snapshot,
+                snapshot.role,
+                masked_count);
+        }
+        else
+        {
+            const char* resolver_source = "semantic";
+            if (kind == accessxi::pol_trace::EventKind::selected_index)
+                resolver_source = "selected-index";
+            else if (kind == accessxi::pol_trace::EventKind::current_child)
+                resolver_source = "current-child";
+
+            std::string resolver;
+            if (snapshot.role == PolUiControlRole::selected_member)
+            {
+                // A member name is trusted only when it belongs to the exact
+                // native child returned for the stored selected index.
+                if (object != nullptr)
+                    resolver = best_native_pml_dynamic_text_from_object(object);
+                const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+                    resolver,
+                    snapshot.relationship == accessxi::pol_trace::Relationship::indexed_child,
+                    kind == accessxi::pol_trace::EventKind::selected_index,
+                    prelogin_member_dynamic_value_rect(object),
+                    !resolver.empty()
+                });
+                snapshot.trusted = decision.trusted;
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    decision.reason);
+                if (decision.trusted)
+                    resolver = decision.text;
+                else
+                    resolver.clear();
+            }
+            else
+            {
+                if (object != nullptr)
+                    resolver = best_native_pml_text_from_object(object, resolver_source);
+
+                const bool relationship_verified =
+                    snapshot.relationship != accessxi::pol_trace::Relationship::none;
+                snapshot.trusted = !resolver.empty() &&
+                    relationship_verified &&
+                    prelogin_pml_focus_candidate_label_allowed(resolver_source, resolver);
+
+                const char* rejection = "none";
+                if (!relationship_verified)
+                    rejection = "relationship-unverified";
+                else if (resolver.empty())
+                    rejection = "no-text";
+                else if (!snapshot.trusted)
+                    rejection = "text-untrusted";
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    rejection);
+            }
+
+            accessxi::pol_trace::copy_utf8_bounded(
+                snapshot.resolver_text,
+                sizeof(snapshot.resolver_text),
+                resolver);
+            collect_pol_ui_trace_candidates(snapshot, object);
+            if (accessxi::pol_trace::snapshot_contains_sensitive_context(snapshot))
+            {
+                accessxi::pol_trace::redact_sensitive_snapshot(snapshot);
+                accessxi::pol_trace::copy_utf8_bounded(
+                    snapshot.rejection_reason,
+                    sizeof(snapshot.rejection_reason),
+                    "sensitive-context");
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            if (!g_pol_ui_trace_active.load(std::memory_order_acquire))
+                return;
+            g_pol_ui_trace.enqueue(snapshot);
+        }
+    }
+
+    void capture_pol_ui_focus_event(
+        accessxi::pol_trace::EventKind kind,
+        void* manager,
+        void* event_info,
+        void* focused_object)
+    {
+        uint32_t event_code = 0;
+        if (event_info != nullptr)
+            read_u32_safely(static_cast<const uint8_t*>(event_info) + 0x24, &event_code);
+        capture_pol_ui_snapshot(kind, manager, nullptr, focused_object, event_code, 0, 0);
+    }
+
+    void capture_pol_ui_current_child(void* manager, void* requested_child, void* current_child)
+    {
+        capture_pol_ui_snapshot(
+            accessxi::pol_trace::EventKind::current_child,
+            manager,
+            requested_child,
+            current_child,
+            0,
+            0,
+            0);
+    }
+
+    void capture_pol_ui_selected_index(
+        void* model,
+        uint32_t requested_index,
+        uint32_t stored_index,
+        void* selected_child)
+    {
+        capture_pol_ui_snapshot(
+            accessxi::pol_trace::EventKind::selected_index,
+            model,
+            nullptr,
+            selected_child,
+            0,
+            requested_index,
+            stored_index);
+    }
+
     void add_unique_dynamic_candidate(std::vector<std::string>* candidates, const std::string& value)
     {
         if (candidates == nullptr)
@@ -2327,6 +3589,13 @@ namespace
     {
         if (focused_object == nullptr)
             return;
+        if (native_object_has_password_field_vtable(focused_object))
+        {
+            // The worker-owned masked tracker speaks only the verified visible
+            // mask count. Never send a password control through generic text
+            // discovery, even when its exact field role is not yet proven.
+            return;
+        }
 
         std::string label = best_native_pml_text_from_object(focused_object, source_text);
         if (label.empty())
@@ -2389,9 +3658,979 @@ namespace
         return true;
     }
 
+    class ScopedPopupPatchThreadQuiescence
+    {
+    public:
+        ScopedPopupPatchThreadQuiescence() = default;
+        ScopedPopupPatchThreadQuiescence(
+            const ScopedPopupPatchThreadQuiescence&) = delete;
+        ScopedPopupPatchThreadQuiescence& operator=(
+            const ScopedPopupPatchThreadQuiescence&) = delete;
+
+        ~ScopedPopupPatchThreadQuiescence()
+        {
+            while (suspended_count_ != 0)
+            {
+                --suspended_count_;
+                ResumeThread(thread_handles_[suspended_count_]);
+            }
+            for (HANDLE thread : thread_handles_)
+                CloseHandle(thread);
+        }
+
+        bool acquire(void* target, size_t patch_size)
+        {
+            if (target == nullptr || patch_size == 0)
+                return false;
+
+            const uintptr_t patch_begin =
+                reinterpret_cast<uintptr_t>(target);
+            if (patch_size - 1 >
+                std::numeric_limits<uintptr_t>::max() - patch_begin)
+            {
+                return false;
+            }
+            const uintptr_t patch_end = patch_begin + patch_size;
+
+            HANDLE snapshot =
+                CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+            if (snapshot == INVALID_HANDLE_VALUE)
+                return false;
+
+            const DWORD process_id = GetCurrentProcessId();
+            const DWORD current_thread_id = GetCurrentThreadId();
+            THREADENTRY32 entry{};
+            entry.dwSize = sizeof(entry);
+            BOOL have_entry = Thread32First(snapshot, &entry);
+            while (have_entry)
+            {
+                if (entry.th32OwnerProcessID == process_id &&
+                    entry.th32ThreadID != current_thread_id)
+                {
+                    HANDLE thread = OpenThread(
+                        THREAD_SUSPEND_RESUME |
+                            THREAD_GET_CONTEXT |
+                            THREAD_QUERY_INFORMATION,
+                        FALSE,
+                        entry.th32ThreadID);
+                    if (thread == nullptr)
+                    {
+                        CloseHandle(snapshot);
+                        return false;
+                    }
+                    thread_handles_.push_back(thread);
+                }
+                have_entry = Thread32Next(snapshot, &entry);
+            }
+            const DWORD enumeration_error = GetLastError();
+            CloseHandle(snapshot);
+            if (enumeration_error != ERROR_NO_MORE_FILES)
+                return false;
+
+            for (HANDLE thread : thread_handles_)
+            {
+                if (SuspendThread(thread) == static_cast<DWORD>(-1))
+                    return false;
+                ++suspended_count_;
+            }
+
+            for (size_t index = 0; index < suspended_count_; ++index)
+            {
+                CONTEXT context{};
+                context.ContextFlags = CONTEXT_CONTROL;
+                if (!GetThreadContext(thread_handles_[index], &context))
+                    return false;
+
+                const uintptr_t instruction_pointer =
+                    static_cast<uintptr_t>(context.Eip);
+                if (instruction_pointer >= patch_begin &&
+                    instruction_pointer < patch_end)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+    private:
+        std::vector<HANDLE> thread_handles_;
+        size_t suspended_count_ = 0;
+    };
+
+    bool install_inline_jump_atomic(
+        void* target,
+        void* hook,
+        size_t patch_size,
+        std::atomic<void*>& trampoline)
+    {
+        if (target == nullptr || hook == nullptr || patch_size < 5)
+            return false;
+        if (trampoline.load(std::memory_order_acquire) != nullptr)
+            return true;
+
+        auto* gateway = static_cast<uint8_t*>(VirtualAlloc(
+            nullptr,
+            patch_size + 5,
+            MEM_COMMIT | MEM_RESERVE,
+            PAGE_EXECUTE_READWRITE));
+        if (gateway == nullptr)
+            return false;
+
+        std::memcpy(gateway, target, patch_size);
+        gateway[patch_size] = 0xE9;
+        *reinterpret_cast<int32_t*>(gateway + patch_size + 1) =
+            static_cast<int32_t>(
+                (reinterpret_cast<uint8_t*>(target) + patch_size) -
+                (gateway + patch_size + 5));
+        FlushInstructionCache(
+            GetCurrentProcess(),
+            gateway,
+            patch_size + 5);
+
+        ScopedPopupPatchThreadQuiescence thread_quiescence;
+        if (!thread_quiescence.acquire(target, patch_size))
+        {
+            VirtualFree(gateway, 0, MEM_RELEASE);
+            return false;
+        }
+
+        DWORD old_protect = 0;
+        if (!VirtualProtect(
+                target,
+                patch_size,
+                PAGE_EXECUTE_READWRITE,
+                &old_protect))
+        {
+            VirtualFree(gateway, 0, MEM_RELEASE);
+            return false;
+        }
+
+        // Publish the original-call gateway before any thread can enter the
+        // replacement jump and observe a null trampoline.
+        trampoline.store(gateway, std::memory_order_release);
+
+        auto* bytes = static_cast<uint8_t*>(target);
+        bytes[0] = 0xE9;
+        *reinterpret_cast<int32_t*>(bytes + 1) =
+            static_cast<int32_t>(
+                reinterpret_cast<uint8_t*>(hook) - (bytes + 5));
+        for (size_t index = 5; index < patch_size; ++index)
+            bytes[index] = 0x90;
+
+        DWORD unused = 0;
+        VirtualProtect(target, patch_size, old_protect, &unused);
+        FlushInstructionCache(GetCurrentProcess(), target, patch_size);
+        return true;
+    }
+
+    size_t popup_owner_index(accessxi::pol_pml::PopupOwnerKind kind) noexcept
+    {
+        return static_cast<size_t>(kind);
+    }
+
+    void publish_popup_owner(
+        accessxi::pol_pml::PopupOwnerKind kind,
+        void* owner) noexcept
+    {
+        const size_t index = popup_owner_index(kind);
+        if (index == 0 || index >= g_popup_owner_registry.size() || owner == nullptr)
+            return;
+
+        g_popup_owner_registry[index].publish(
+            reinterpret_cast<uintptr_t>(owner));
+    }
+
+    void invalidate_popup_owner(
+        accessxi::pol_pml::PopupOwnerKind kind,
+        void* owner) noexcept
+    {
+        const size_t index = popup_owner_index(kind);
+        if (index == 0 || index >= g_popup_owner_registry.size() || owner == nullptr)
+            return;
+
+        g_popup_owner_registry[index].invalidate(
+            reinterpret_cast<uintptr_t>(owner));
+    }
+
+    using PopupConstructor_t = void* (__thiscall*)(void*);
+    using PopupBaseDestructor_t = void (__thiscall*)(void*);
+
+    void* __fastcall hook_modal_ok_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_ok_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_yes_no_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_yes_no_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_yes_no_cancel_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_yes_no_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no_cancel,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_ok_cancel_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_ok_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok_cancel,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_modal_retry_fail_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_modal_retry_fail_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_retry_fail,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_notice_window_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_notice_window_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::notice,
+            self);
+        return constructed;
+    }
+
+    void* __fastcall hook_important_notice_constructor(void* self, void*)
+    {
+        const auto original =
+            reinterpret_cast<PopupConstructor_t>(
+                g_important_notice_constructor_trampoline.load(
+                    std::memory_order_acquire));
+        if (original == nullptr)
+            return self;
+        void* const constructed = original(self);
+        publish_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::important_notice,
+            self);
+        return constructed;
+    }
+
+    void __fastcall hook_modal_ok_base_destructor(void* self, void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_modal_ok_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_modal_yes_no_base_destructor(void* self, void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_modal_yes_no_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_modal_yes_no_cancel_base_destructor(
+        void* self,
+        void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_modal_yes_no_cancel_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_yes_no_cancel,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_modal_ok_cancel_base_destructor(
+        void* self,
+        void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_modal_ok_cancel_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_ok_cancel,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_modal_retry_fail_base_destructor(
+        void* self,
+        void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_modal_retry_fail_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::modal_retry_fail,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_notice_window_base_destructor(
+        void* self,
+        void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_notice_window_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::notice,
+            self);
+        original(self);
+    }
+
+    void __fastcall hook_important_notice_base_destructor(
+        void* self,
+        void*)
+    {
+        const auto original = reinterpret_cast<PopupBaseDestructor_t>(
+            g_important_notice_base_destructor_trampoline.load(
+                std::memory_order_acquire));
+        if (original == nullptr)
+            return;
+        invalidate_popup_owner(
+            accessxi::pol_pml::PopupOwnerKind::important_notice,
+            self);
+        original(self);
+    }
+
+    bool popup_eh_prologue_ready(
+        const uint8_t* app_base,
+        uintptr_t target_rva,
+        uint8_t exception_frame_size) noexcept
+    {
+        if (app_base == nullptr)
+            return false;
+
+        uint8_t prefix[8]{};
+        if (!copy_memory_safely(
+                prefix,
+                app_base + target_rva,
+                sizeof(prefix)))
+        {
+            return false;
+        }
+
+        // Ghidra proves a seven-byte boundary before the relative EH-prologue
+        // call: push imm8; mov eax, imm32. Keeping that call outside the
+        // trampoline avoids relocating any relative instruction.
+        return prefix[0] == 0x6A &&
+            prefix[1] == exception_frame_size &&
+            prefix[2] == 0xB8 &&
+            prefix[7] == 0xE8;
+    }
+
+    bool popup_eh_target_ready_or_installed(
+        const uint8_t* app_base,
+        uintptr_t target_rva,
+        uint8_t exception_frame_size,
+        const void* trampoline) noexcept
+    {
+        // A previous attempt can safely leave a subset installed. Their entry
+        // bytes are now jumps, so validate only targets still awaiting a
+        // trampoline and let the worker retry the remainder.
+        return trampoline != nullptr ||
+            popup_eh_prologue_ready(
+                app_base,
+                target_rva,
+                exception_frame_size);
+    }
+
+    bool popup_notice_base_destructor_ready_or_installed(
+        const uint8_t* app_base,
+        const void* trampoline) noexcept
+    {
+        if (trampoline != nullptr)
+            return true;
+        if (app_base == nullptr)
+            return false;
+
+        uint8_t prefix[13]{};
+        if (!copy_memory_safely(
+                prefix,
+                app_base + NoticeWindowBaseDestructorRva,
+                sizeof(prefix)))
+        {
+            return false;
+        }
+
+        // Ghidra proves two complete vtable-reset instructions at this entry.
+        // The six-byte first instruction is sufficient for a relative jump.
+        return prefix[0] == 0xC7 &&
+            prefix[1] == 0x01 &&
+            prefix[6] == 0xC7 &&
+            prefix[7] == 0x41 &&
+            prefix[8] == 0x20;
+    }
+
+    bool popup_lifecycle_prologues_ready(const uint8_t* app_base) noexcept
+    {
+        return
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalOkConstructorRva,
+                0x24,
+                g_modal_ok_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalYesNoConstructorRva,
+                0x24,
+                g_modal_yes_no_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalYesNoCancelConstructorRva,
+                0x24,
+                g_modal_yes_no_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalOkCancelConstructorRva,
+                0x24,
+                g_modal_ok_cancel_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalRetryFailConstructorRva,
+                0x24,
+                g_modal_retry_fail_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                NoticeWindowConstructorRva,
+                0x08,
+                g_notice_window_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ImportantNoticeConstructorRva,
+                0x20,
+                g_important_notice_constructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalOkBaseDestructorRva,
+                0x04,
+                g_modal_ok_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalYesNoBaseDestructorRva,
+                0x04,
+                g_modal_yes_no_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalYesNoCancelBaseDestructorRva,
+                0x04,
+                g_modal_yes_no_cancel_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalOkCancelBaseDestructorRva,
+                0x04,
+                g_modal_ok_cancel_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ModalRetryFailBaseDestructorRva,
+                0x04,
+                g_modal_retry_fail_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_notice_base_destructor_ready_or_installed(
+                app_base,
+                g_notice_window_base_destructor_trampoline.load(
+                    std::memory_order_acquire)) &&
+            popup_eh_target_ready_or_installed(
+                app_base,
+                ImportantNoticeBaseDestructorRva,
+                0x04,
+                g_important_notice_base_destructor_trampoline.load(
+                    std::memory_order_acquire));
+    }
+
+    void install_popup_notice_hooks_once()
+    {
+        if (g_popup_notice_hooks_installed.exchange(true))
+            return;
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            return;
+        }
+        if (!app_module_matches_known_updated_pol_build(app, "popup-notice"))
+            return;
+
+        auto* app_base = reinterpret_cast<uint8_t*>(app);
+        if (!popup_lifecycle_prologues_ready(app_base))
+        {
+            g_popup_notice_hooks_installed.store(false);
+            return;
+        }
+
+        bool destructors_ready = true;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_modal_ok_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_modal_yes_no_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoCancelBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_cancel_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_modal_yes_no_cancel_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkCancelBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_cancel_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_modal_ok_cancel_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ModalRetryFailBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_modal_retry_fail_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_modal_retry_fail_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + NoticeWindowBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_notice_window_base_destructor),
+            PopupNoticeBaseDestructorPatchSize,
+            g_notice_window_base_destructor_trampoline) && destructors_ready;
+        destructors_ready = install_inline_jump_atomic(
+            app_base + ImportantNoticeBaseDestructorRva,
+            reinterpret_cast<void*>(&hook_important_notice_base_destructor),
+            PopupEhBaseDestructorPatchSize,
+            g_important_notice_base_destructor_trampoline) && destructors_ready;
+
+        // Every derived owner reaches one of these base destructors. Do not
+        // publish constructors until that lifetime boundary is covered.
+        if (!destructors_ready)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            if (g_popup_hook_log_budget.fetch_sub(1) > 0)
+                log_line("POL_POPUP destructor-hook-install-failed");
+            return;
+        }
+
+        bool constructors_ready = true;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_constructor),
+            PopupConstructorPatchSize,
+            g_modal_ok_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_constructor),
+            PopupConstructorPatchSize,
+            g_modal_yes_no_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalYesNoCancelConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_yes_no_cancel_constructor),
+            PopupConstructorPatchSize,
+            g_modal_yes_no_cancel_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalOkCancelConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_ok_cancel_constructor),
+            PopupConstructorPatchSize,
+            g_modal_ok_cancel_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ModalRetryFailConstructorRva,
+            reinterpret_cast<void*>(&hook_modal_retry_fail_constructor),
+            PopupConstructorPatchSize,
+            g_modal_retry_fail_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + NoticeWindowConstructorRva,
+            reinterpret_cast<void*>(&hook_notice_window_constructor),
+            PopupConstructorPatchSize,
+            g_notice_window_constructor_trampoline) && constructors_ready;
+        constructors_ready = install_inline_jump_atomic(
+            app_base + ImportantNoticeConstructorRva,
+            reinterpret_cast<void*>(&hook_important_notice_constructor),
+            PopupConstructorPatchSize,
+            g_important_notice_constructor_trampoline) && constructors_ready;
+
+        if (!constructors_ready)
+        {
+            g_popup_notice_hooks_installed.store(false);
+            if (g_popup_hook_log_budget.fetch_sub(1) > 0)
+                log_line("POL_POPUP constructor-hook-install-failed");
+            return;
+        }
+
+        log_line(
+            "POL_POPUP hooks-installed "
+            "constructors=000D1842,000D1B45,000D1E5E,000D2B16,000D32FB,000A6485,000A9CCB "
+            "base-destructors=000BD4F0,000BD55E,000BD5CC,000BDA4E,000BDB2A,000A6668,000A6AC0 "
+            "patch=7,6");
+    }
+
     bool native_post_login_surface_active()
     {
         return GetModuleHandleA("FFXiMain.dll") != nullptr || GetModuleHandleA("ffximain.dll") != nullptr;
+    }
+
+    const char* popup_owner_kind_name(
+        accessxi::pol_pml::PopupOwnerKind kind) noexcept
+    {
+        using accessxi::pol_pml::PopupOwnerKind;
+        switch (kind)
+        {
+        case PopupOwnerKind::modal_ok:
+            return "modal-ok";
+        case PopupOwnerKind::modal_yes_no:
+            return "modal-yes-no";
+        case PopupOwnerKind::modal_yes_no_cancel:
+            return "modal-yes-no-cancel";
+        case PopupOwnerKind::modal_ok_cancel:
+            return "modal-ok-cancel";
+        case PopupOwnerKind::modal_retry_fail:
+            return "modal-retry-fail";
+        case PopupOwnerKind::notice:
+            return "notice";
+        case PopupOwnerKind::important_notice:
+            return "important-notice";
+        default:
+            return "none";
+        }
+    }
+
+    std::string popup_text_to_utf8(const std::u16string& text)
+    {
+        static_assert(sizeof(wchar_t) == sizeof(char16_t));
+        if (text.empty() ||
+            text.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+        {
+            return {};
+        }
+
+        const auto* wide = reinterpret_cast<const wchar_t*>(text.data());
+        const int character_count = static_cast<int>(text.size());
+        const int needed = WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            wide,
+            character_count,
+            nullptr,
+            0,
+            nullptr,
+            nullptr);
+        if (needed <= 0)
+            return {};
+
+        std::string result(static_cast<size_t>(needed), '\0');
+        const int copied = WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            wide,
+            character_count,
+            result.data(),
+            needed,
+            nullptr,
+            nullptr);
+        if (copied != needed)
+            return {};
+        return result;
+    }
+
+    void reset_popup_notice_state()
+    {
+        for (auto& kind_trackers : g_popup_text_trackers)
+        {
+            for (auto& tracker : kind_trackers)
+                tracker.reset();
+        }
+        for (auto& registration : g_popup_owner_registry)
+            registration.reset();
+    }
+
+    void speak_popup_notice_text(
+        accessxi::pol_pml::PopupObservation observation,
+        accessxi::pol_pml::PopupOwnerKind kind,
+        uint64_t generation,
+        uint32_t slot_offset,
+        const std::u16string& native_text)
+    {
+        using accessxi::pol_pml::PopupObservation;
+        if (observation == PopupObservation::none)
+            return;
+
+        const std::string text = popup_text_to_utf8(native_text);
+        if (text.empty())
+            return;
+
+        const bool speak_interrupt =
+            observation == PopupObservation::speak_interrupt;
+        char prefix[192]{};
+        std::snprintf(
+            prefix,
+            sizeof(prefix) - 1,
+            "POL_POPUP speak kind=%s generation=%llu slot=%03X interrupt=%d text=",
+            popup_owner_kind_name(kind),
+            static_cast<unsigned long long>(generation),
+            slot_offset,
+            speak_interrupt ? 1 : 0);
+        const std::string line = std::string(prefix) + text;
+        log_line(line.c_str());
+
+        (void)dispatch_speech_sink_v1(text, speak_interrupt ? 1 : 0);
+    }
+
+    void process_popup_notice_text()
+    {
+        using namespace accessxi::pol_pml;
+        if (native_post_login_surface_active())
+        {
+            reset_popup_notice_state();
+            return;
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            reset_popup_notice_state();
+            return;
+        }
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        const MemoryView memory{ &read_pol_pml_memory, nullptr };
+        for (size_t index = 1; index < g_popup_owner_registry.size(); ++index)
+        {
+            auto& registration = g_popup_owner_registry[index];
+            const PopupOwnerKind registered_kind =
+                static_cast<PopupOwnerKind>(index);
+            for (size_t owner_slot = 0;
+                 owner_slot < PopupOwnerRegistration::capacity();
+                 ++owner_slot)
+            {
+                const auto registration_snapshot =
+                    registration.snapshot(owner_slot);
+                auto& tracker =
+                    g_popup_text_trackers[index][owner_slot];
+                if (!registration_snapshot.valid)
+                {
+                    tracker.reset();
+                    continue;
+                }
+                const uint64_t generation =
+                    registration_snapshot.generation;
+                const uintptr_t owner =
+                    registration_snapshot.owner;
+
+                const PopupTextSnapshot popup_snapshot =
+                    inspect_popup_text(memory, owner, app_base);
+                const auto registration_after_inspection =
+                    registration.snapshot(owner_slot);
+                if (!registration_after_inspection.valid ||
+                    registration_after_inspection.owner != owner ||
+                    registration_after_inspection.generation != generation)
+                {
+                    continue;
+                }
+                if (popup_snapshot.owner_state ==
+                    PopupOwnerInspectionState::unknown)
+                {
+                    continue;
+                }
+                if (!popup_snapshot.matched ||
+                    popup_snapshot.owner_kind != registered_kind)
+                {
+                    tracker.reset();
+                    continue;
+                }
+
+                for (size_t candidate_index = 0;
+                     candidate_index < popup_snapshot.candidate_count;
+                     ++candidate_index)
+                {
+                    const auto& candidate =
+                        popup_snapshot.candidates[candidate_index];
+                    const PopupObservation observation = tracker.observe(
+                        generation,
+                        registered_kind,
+                        candidate.slot_offset,
+                        candidate.state,
+                        candidate.text);
+                    if (observation != PopupObservation::none)
+                    {
+                        speak_popup_notice_text(
+                            observation,
+                            registered_kind,
+                            generation,
+                            candidate.slot_offset,
+                            candidate.text);
+                    }
+                }
+            }
+        }
+    }
+
+    void drain_pol_ui_trace()
+    {
+        std::vector<std::string> lines;
+        lines.reserve(64);
+
+        accessxi::pol_trace::Snapshot snapshot{};
+        while (g_pol_ui_trace.try_dequeue(snapshot))
+            lines.push_back(accessxi::pol_trace::format_event(snapshot));
+
+        const uint64_t dropped = g_pol_ui_trace.take_dropped_count();
+        if (dropped != 0)
+            lines.push_back(accessxi::pol_trace::format_dropped(dropped));
+
+        if (!append_pol_ui_trace_lines(lines))
+            log_line("POL_UI_TRACE write-failed");
+    }
+
+    void start_pol_ui_trace()
+    {
+        if (g_pol_ui_trace_active.load(std::memory_order_acquire))
+            return;
+
+        g_pol_ui_trace.reset();
+        ++g_pol_ui_trace_session;
+
+        std::vector<std::string> lines;
+        lines.push_back(accessxi::pol_trace::format_schema(
+            KnownUpdatedAppDllSize,
+            KnownUpdatedAppDllFnv64));
+        lines.push_back(accessxi::pol_trace::format_session(
+            "START",
+            g_pol_ui_trace_session,
+            GetTickCount(),
+            "hotkey"));
+        if (!append_pol_ui_trace_lines(lines))
+        {
+            log_line("POL_UI_TRACE start-failed reason=file-open");
+            dispatch_speech_sink_v1("PlayOnline capture could not start", 1);
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            g_pol_ui_trace_active.store(true, std::memory_order_release);
+        }
+        log_line("POL_UI_TRACE started hotkey=Ctrl+Shift+F10");
+        dispatch_speech_sink_v1("PlayOnline capture started", 1);
+    }
+
+    void stop_pol_ui_trace(const char* reason)
+    {
+        {
+            std::lock_guard<std::mutex> guard(g_pol_ui_trace_state_lock);
+            if (!g_pol_ui_trace_active.exchange(false, std::memory_order_acq_rel))
+                return;
+        }
+
+        drain_pol_ui_trace();
+        if (!append_pol_ui_trace_lines({ accessxi::pol_trace::format_session(
+                "STOP",
+                g_pol_ui_trace_session,
+                GetTickCount(),
+                reason == nullptr ? "" : reason) }))
+        {
+            log_line("POL_UI_TRACE stop-record-write-failed");
+        }
+
+        std::string line = "POL_UI_TRACE stopped reason=";
+        line += reason == nullptr ? "" : reason;
+        log_line(line.c_str());
+        dispatch_speech_sink_v1("PlayOnline capture stopped", 1);
+    }
+
+    void poll_pol_ui_trace_hotkey()
+    {
+        if (g_pol_ui_trace_active.load(std::memory_order_acquire) && native_post_login_surface_active())
+        {
+            stop_pol_ui_trace("ffxi-loaded");
+            return;
+        }
+
+        const bool chord_down =
+            (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 &&
+            (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0 &&
+            (GetAsyncKeyState(VK_F10) & 0x8000) != 0;
+
+        if (chord_down && !g_pol_ui_trace_hotkey_down)
+        {
+            if (g_pol_ui_trace_active.load(std::memory_order_acquire))
+                stop_pol_ui_trace("hotkey");
+            else
+                start_pol_ui_trace();
+        }
+        g_pol_ui_trace_hotkey_down = chord_down;
     }
 
     void record_native_selection_register(void* model)
@@ -2423,6 +4662,26 @@ namespace
     }
 
     using PmlIndexedChildAt_t = uintptr_t(__thiscall*)(void*, uint32_t);
+    using CLoginMemberListGetValueAt_t = uintptr_t(__thiscall*)(void*, uint32_t, uint32_t);
+
+    uintptr_t call_login_member_get_value_at(
+        CLoginMemberListGetValueAt_t get_value_at,
+        void* data_model,
+        uint32_t column,
+        uint32_t row)
+    {
+        if (get_value_at == nullptr || data_model == nullptr)
+            return 0;
+
+        __try
+        {
+            return get_value_at(data_model, column, row);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return 0;
+        }
+    }
 
     uintptr_t selected_child_from_native_index(void* model, uint32_t stored_index)
     {
@@ -2455,6 +4714,262 @@ namespace
         return selected_child;
     }
 
+    struct SelectedMemberResolution
+    {
+        uint32_t stored_index = 0;
+        void* selected_child = nullptr;
+        std::string label;
+        const char* source = "selected-index";
+    };
+
+    void log_focused_member_resolution(
+        const char* stage,
+        void* focused_table,
+        uint32_t row_read_mask,
+        int16_t row264,
+        int16_t row266,
+        int16_t row26A,
+        int16_t row26C,
+        int16_t row1B4,
+        int16_t row1B6,
+        uintptr_t data_model,
+        uintptr_t data_model_vtable_rva,
+        uintptr_t member_data,
+        uintptr_t member_data_vtable_rva,
+        const std::string& candidate)
+    {
+        if (g_focused_member_resolution_log_budget.fetch_sub(1) <= 0)
+            return;
+
+        char line[640]{};
+        std::snprintf(
+            line,
+            sizeof(line) - 1,
+            "PRELOGIN_FOCUSEDMEMBER stage=%s table=0x%p rowMask=%02X row264=%d row266=%d row26A=%d row26C=%d row1B4=%d row1B6=%d dataModel=0x%p dataVtableRva=%08llX memberData=0x%p memberVtableRva=%08llX candidate=%s",
+            stage == nullptr ? "" : stage,
+            focused_table,
+            static_cast<unsigned>(row_read_mask),
+            static_cast<int>(row264),
+            static_cast<int>(row266),
+            static_cast<int>(row26A),
+            static_cast<int>(row26C),
+            static_cast<int>(row1B4),
+            static_cast<int>(row1B6),
+            reinterpret_cast<void*>(data_model),
+            static_cast<unsigned long long>(data_model_vtable_rva),
+            reinterpret_cast<void*>(member_data),
+            static_cast<unsigned long long>(member_data_vtable_rva),
+            candidate.empty() ? "<empty>" : candidate.c_str());
+        log_line(line);
+    }
+
+    SelectedMemberResolution resolve_selected_member(void* model, uint32_t requested_index)
+    {
+        SelectedMemberResolution resolution;
+        resolution.stored_index = requested_index;
+        if (model == nullptr)
+            return resolution;
+
+        read_u32_safely(
+            static_cast<const uint8_t*>(model) + 0x2A4,
+            &resolution.stored_index);
+        resolution.selected_child = reinterpret_cast<void*>(
+            selected_child_from_native_index(model, resolution.stored_index));
+        if (resolution.selected_child == nullptr)
+            return resolution;
+
+        if (prelogin_member_dynamic_value_rect(resolution.selected_child))
+        {
+            const std::string candidate = best_native_pml_dynamic_text_from_object(
+                resolution.selected_child);
+            const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+                candidate,
+                true,
+                true,
+                true,
+                !candidate.empty()
+            });
+            if (decision.trusted)
+            {
+                resolution.label = decision.text;
+                resolution.source = "selected-member-dynamic";
+            }
+            return resolution;
+        }
+
+        resolution.label = best_native_pml_text_from_object(
+            resolution.selected_child,
+            "selected-index");
+        return resolution;
+    }
+
+    SelectedMemberResolution resolve_selected_member_from_focused_table(void* focused_table)
+    {
+        SelectedMemberResolution resolution;
+        if (!native_object_has_vtable_rva(focused_table, CPolTableVtableRva))
+            return resolution;
+
+        // CPolTable owns the row state directly. Ghidra and the live trace
+        // distinguish +0x266 (pointer hit row), +0x26A (keyboard-selected row),
+        // and +0x26C (focus-restoration anchor). The +0x218 field is only an
+        // embedded CDefaultListSelectionModel.
+        int16_t row264 = -32768;
+        int16_t selected_row = -1;
+        int16_t row26A = -32768;
+        int16_t row26C = -32768;
+        int16_t row1B4 = -32768;
+        int16_t row1B6 = -32768;
+        uint32_t row_read_mask = 0;
+        if (copy_memory_safely(
+                &row264,
+                static_cast<const uint8_t*>(focused_table) + 0x264,
+                sizeof(row264)))
+        {
+            row_read_mask |= 0x01u;
+        }
+        const bool selected_row_read = copy_memory_safely(
+                &selected_row,
+                static_cast<const uint8_t*>(focused_table) + 0x266,
+                sizeof(selected_row));
+        if (selected_row_read)
+            row_read_mask |= 0x02u;
+        if (copy_memory_safely(
+                &row26A,
+                static_cast<const uint8_t*>(focused_table) + 0x26A,
+                sizeof(row26A)))
+        {
+            row_read_mask |= 0x04u;
+        }
+        if (copy_memory_safely(
+                &row26C,
+                static_cast<const uint8_t*>(focused_table) + 0x26C,
+                sizeof(row26C)))
+        {
+            row_read_mask |= 0x08u;
+        }
+        if (copy_memory_safely(
+                &row1B4,
+                static_cast<const uint8_t*>(focused_table) + 0x1B4,
+                sizeof(row1B4)))
+        {
+            row_read_mask |= 0x10u;
+        }
+        if (copy_memory_safely(
+                &row1B6,
+                static_cast<const uint8_t*>(focused_table) + 0x1B6,
+                sizeof(row1B6)))
+        {
+            row_read_mask |= 0x20u;
+        }
+
+        uintptr_t data_model_pointer = 0;
+        uintptr_t data_model_vtable_rva = 0;
+        uintptr_t member_data_pointer = 0;
+        uintptr_t member_data_vtable_rva = 0;
+        std::string candidate;
+        const auto finish = [&](const char* stage)
+        {
+            log_focused_member_resolution(
+                stage,
+                focused_table,
+                row_read_mask,
+                row264,
+                selected_row,
+                row26A,
+                row26C,
+                row1B4,
+                row1B6,
+                data_model_pointer,
+                data_model_vtable_rva,
+                member_data_pointer,
+                member_data_vtable_rva,
+                candidate);
+            return resolution;
+        };
+
+        const auto row_decision =
+            accessxi::pol_accessibility::decide_focused_member_row(
+                { selected_row, row26A, row26C });
+        if (!row_decision.resolved)
+        {
+            return finish("row-unresolved");
+        }
+        resolution.stored_index = row_decision.row;
+
+        if (!read_ptr_safely(
+                static_cast<const uint8_t*>(focused_table) + 0x20C,
+                &data_model_pointer) ||
+            data_model_pointer < 0x10000)
+        {
+            return finish("data-model-pointer");
+        }
+
+        void* data_model = reinterpret_cast<void*>(data_model_pointer);
+        data_model_vtable_rva = native_object_vtable_rva_for_log(data_model);
+        if (!native_object_has_vtable_rva(data_model, CLoginMemberListDataModelVtableRva))
+            return finish("data-model-type");
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+            return finish("app-missing");
+
+        auto* app_base = reinterpret_cast<uint8_t*>(app);
+        const auto get_value_at = reinterpret_cast<CLoginMemberListGetValueAt_t>(
+            app_base + CLoginMemberListGetValueAtRva);
+        // CLoginMemberListDataModel::getValueAt receives column, then row.
+        member_data_pointer = call_login_member_get_value_at(
+            get_value_at,
+            data_model,
+            0u,
+            row_decision.row);
+
+        if (member_data_pointer < 0x10000)
+            return finish("member-data-pointer");
+
+        void* member_data = reinterpret_cast<void*>(member_data_pointer);
+        member_data_vtable_rva = native_object_vtable_rva_for_log(member_data);
+        if (!native_object_has_vtable_rva(member_data, CLoginMemberDataVtableRva))
+            return finish("member-data-type");
+        resolution.selected_child = member_data;
+
+        // CLoginMemberListFrameCellRenderer passes this exact fixed-size field
+        // to the native narrow-text setter used for the visible member name.
+        candidate = read_narrow_text_safely(
+            static_cast<const char*>(member_data) + 0x1F,
+            0x15);
+        if (candidate.empty())
+            return finish("name-empty");
+
+        int16_t confirmed_row = -1;
+        if (!copy_memory_safely(
+                &confirmed_row,
+                static_cast<const uint8_t*>(focused_table) + 0x26A,
+                sizeof(confirmed_row)) ||
+            !accessxi::pol_accessibility::focused_member_row_still_selected(
+                row_decision.row,
+                confirmed_row))
+        {
+            return finish("row-changed");
+        }
+
+        const auto decision = accessxi::pol_accessibility::decide_member_candidate({
+            candidate,
+            true,
+            true,
+            true,
+            !candidate.empty()
+        });
+        if (!decision.trusted ||
+            !accessxi::pol_accessibility::exact_owned_member_name_allowed(decision.text))
+        {
+            return finish("name-rejected");
+        }
+
+        resolution.label = decision.text;
+        resolution.source = "selected-member-native-row";
+        return finish("resolved");
+    }
+
     void remember_selected_index_candidate(void* model, uint32_t requested_index)
     {
         if (native_post_login_surface_active())
@@ -2462,28 +4977,23 @@ namespace
         if (model == nullptr)
             return;
 
-        uint32_t stored_index = requested_index;
-        read_u32_safely(static_cast<const uint8_t*>(model) + 0x2A4, &stored_index);
+        const SelectedMemberResolution resolution = resolve_selected_member(
+            model,
+            requested_index);
+        capture_pol_ui_selected_index(
+            model,
+            requested_index,
+            resolution.stored_index,
+            resolution.selected_child);
 
-        void* selected_child = reinterpret_cast<void*>(selected_child_from_native_index(model, stored_index));
-        std::string label;
-        const char* label_source = "selected-index";
-        if (selected_child != nullptr)
-            label = best_native_pml_text_from_object(selected_child, "selected-index");
-
-        if (label.empty() && selected_child != nullptr && prelogin_member_dynamic_value_rect(selected_child))
-        {
-            label = best_native_pml_dynamic_text_from_object(selected_child);
-            if (!label.empty())
-                label_source = "selected-member-dynamic";
-        }
-
-        if (label.empty())
+        if (resolution.label.empty())
         {
             if (g_selected_index_no_label_log_budget.fetch_sub(1) > 0)
             {
                 PreloginRect selected_rect{};
-                const bool have_selected_rect = read_prelogin_object_rect(selected_child, &selected_rect);
+                const bool have_selected_rect = read_prelogin_object_rect(
+                    resolution.selected_child,
+                    &selected_rect);
                 char line[256]{};
                 std::snprintf(
                     line,
@@ -2491,8 +5001,8 @@ namespace
                     "PRELOGIN_SELECTEDINDEX no-label model=0x%p requested=%u stored=%u child=0x%p rect=%d,%d,%d,%d haveRect=%d",
                     model,
                     static_cast<unsigned>(requested_index),
-                    static_cast<unsigned>(stored_index),
-                    selected_child,
+                    static_cast<unsigned>(resolution.stored_index),
+                    resolution.selected_child,
                     selected_rect.left,
                     selected_rect.top,
                     selected_rect.right,
@@ -2504,7 +5014,13 @@ namespace
             return;
         }
 
-        if (!prelogin_pml_focus_can_claim_burst(label_source, model, selected_child, label, true, false))
+        if (!prelogin_pml_focus_can_claim_burst(
+                resolution.source,
+                model,
+                resolution.selected_child,
+                resolution.label,
+                true,
+                false))
         {
             char line[256]{};
             std::snprintf(
@@ -2513,9 +5029,9 @@ namespace
                 "PRELOGIN_SELECTEDINDEX rejected model=0x%p requested=%u stored=%u child=0x%p text=%s",
                 model,
                 static_cast<unsigned>(requested_index),
-                static_cast<unsigned>(stored_index),
-                selected_child,
-                label.c_str());
+                static_cast<unsigned>(resolution.stored_index),
+                resolution.selected_child,
+                resolution.label.c_str());
             log_line(line);
             clear_prelogin_duplicate_guard();
             return;
@@ -2528,16 +5044,16 @@ namespace
             "PRELOGIN_SELECTEDINDEX candidate model=0x%p requested=%u stored=%u child=0x%p text=%s",
             model,
             static_cast<unsigned>(requested_index),
-            static_cast<unsigned>(stored_index),
-            selected_child,
-            label.c_str());
+            static_cast<unsigned>(resolution.stored_index),
+            resolution.selected_child,
+            resolution.label.c_str());
         log_line(line);
 
         PreloginPmlFocusCandidate candidate;
-        candidate.source = label_source;
-        candidate.label = label;
+        candidate.source = resolution.source;
+        candidate.label = resolution.label;
         candidate.manager = model;
-        candidate.focused_object = selected_child;
+        candidate.focused_object = resolution.selected_child;
         candidate.current_child = false;
         candidate.focused_flag = true;
         candidate.tick = GetTickCount();
@@ -2571,15 +5087,41 @@ namespace
 
         uintptr_t current_child = reinterpret_cast<uintptr_t>(requested_child);
         read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &current_child);
+        capture_pol_ui_current_child(
+            manager,
+            requested_child,
+            reinterpret_cast<void*>(current_child));
 
         PreloginCurrentChildSnapshot snapshot;
         snapshot.manager = manager;
         snapshot.requested_child = requested_child;
         snapshot.current_child = current_child;
+        snapshot.captured_sheet_row = native_object_has_vtable_rva(
+            reinterpret_cast<void*>(current_child),
+            accessxi::pol_pml::CpmlSheetVtableRva);
         snapshot.tick = GetTickCount();
 
         {
             std::lock_guard<std::mutex> guard(g_current_child_lock);
+            const auto disposition = accessxi::pol_pml::classify_sheet_focus_event(
+                g_pending_current_child_snapshot_valid && g_pending_current_child_snapshot.captured_sheet_row,
+                g_pending_current_child_snapshot.current_child,
+                g_pending_current_child_snapshot.nested_child,
+                snapshot.captured_sheet_row,
+                reinterpret_cast<uintptr_t>(manager),
+                current_child);
+            if (disposition == accessxi::pol_pml::SheetFocusEventDisposition::capture_nested_child)
+            {
+                g_pending_current_child_snapshot.nested_child = current_child;
+                g_pending_current_child_snapshot.tick = snapshot.tick;
+                return;
+            }
+            if (disposition == accessxi::pol_pml::SheetFocusEventDisposition::preserve)
+            {
+                g_pending_current_child_snapshot.tick = snapshot.tick;
+                return;
+            }
+
             g_pending_current_child_snapshot = snapshot;
             g_pending_current_child_snapshot_valid = true;
         }
@@ -2616,61 +5158,177 @@ namespace
         g_last_processed_prelogin_current_child = current_child;
         g_last_processed_prelogin_current_child_tick = now;
 
+        const auto native_field_snapshot =
+            read_native_text_field_snapshot(current_child_object);
+        const bool native_password_object =
+            (native_field_snapshot.matched &&
+             native_field_snapshot.kind ==
+                 accessxi::pol_pml::NativeTextFieldKind::password) ||
+            native_object_has_password_field_vtable(
+                current_child_object);
+
         const bool current_child_is_tiny = native_prelogin_add_member_inner_textbox_child(current_child_object);
         uint32_t label_source_offset = 0;
         uint32_t atlas_resource = 0;
-        std::string member_dynamic_label;
-        if (native_prelogin_member_access_context(current_child_object))
-            member_dynamic_label = best_native_pml_dynamic_text_from_object_tree(current_child_object);
-        std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
-        std::string label = member_dynamic_label;
-        const bool member_dynamic_focus = !member_dynamic_label.empty();
-        const char* label_source = member_dynamic_focus ? "member-dynamic" : "object-tree";
-        const bool startup_member_focus_rect = native_prelogin_startup_member_list_focus_rect(current_child_object);
-        if (startup_member_focus_rect)
-            log_startup_member_probe(manager, current_child_object);
-        if (label.empty() && startup_member_focus_rect)
+        std::string label;
+        if (!native_password_object)
         {
-            label = native_prelogin_startup_member_name_from_focus(manager, current_child_object);
-            if (!label.empty())
-                label_source = "startup-member-dynamic";
+            label = read_native_selected_control_text(
+                current_child_object,
+                snapshot.nested_child);
         }
+        const bool native_control_text_focus = !label.empty();
+        bool native_image_getter_focus = false;
+        if (label.empty() && !native_password_object)
+        {
+            label = read_native_selected_image_caption(snapshot);
+            native_image_getter_focus = !label.empty();
+        }
+        const bool native_selected_text_focus =
+            native_control_text_focus || native_image_getter_focus;
+        if (label.empty() && !native_password_object)
+            log_silent_selected_image_path(snapshot);
+        std::string geometry_label = native_prelogin_atlas_label_from_geometry(current_child_object, &atlas_resource);
+        const char* label_source = native_image_getter_focus ? "native-image-getter" :
+            (native_selected_text_focus ? "native-selected-text" : "object-tree");
+        const bool startup_member_focus_rect = native_prelogin_startup_member_list_focus_rect(current_child_object);
         const bool startup_member_atlas_focus =
             native_prelogin_startup_member_list_atlas_focus(current_child_object, geometry_label, atlas_resource);
-        if (label.empty() && startup_member_atlas_focus)
+        if ((startup_member_focus_rect || startup_member_atlas_focus) &&
+            g_pol_ui_trace_active.load(std::memory_order_acquire))
         {
-            label = native_prelogin_startup_member_name_from_atlas_member_list_focus(
-                manager,
-                current_child_object,
-                geometry_label,
-                atlas_resource);
-            label_source = "startup-member-dynamic";
+            log_startup_member_probe(manager, current_child_object);
         }
-        if (label.empty() && !startup_member_atlas_focus && !startup_member_focus_rect)
-            label = best_native_pml_text_from_object_tree(current_child_object, "current-child", &label_source_offset);
-        bool startup_member_static_focus = false;
-        if (!member_dynamic_focus && std::strcmp(label_source, "object-tree") == 0)
-            startup_member_static_focus = native_prelogin_startup_member_list_static_focus(current_child_object, label, label_source_offset, atlas_resource);
-        if (startup_member_static_focus)
+
+        if (startup_member_focus_rect)
         {
-            std::string startup_member_label = native_prelogin_startup_member_name_from_static_member_list_focus(manager, current_child_object, label, label_source_offset, atlas_resource);
-            if (!startup_member_label.empty())
+            // CPolTable is the focused member list container. Its visible label
+            // belongs to the selected row, reached through the table's exact
+            // selection-model ownership field; the container itself is not a
+            // member name.
+            label.clear();
+            const SelectedMemberResolution focused_member =
+                resolve_selected_member_from_focused_table(current_child_object);
+            if (!focused_member.label.empty())
             {
-                label = startup_member_label;
-                label_source = "startup-member-dynamic";
-                label_source_offset = 0;
+                label = focused_member.label;
+                label_source = focused_member.source;
             }
-            else
-            {
-                label.clear();
-                label_source = "startup-member-dynamic";
-            }
+        }
+        else if (label.empty() && startup_member_atlas_focus)
+        {
+            label = "Member List";
+            label_source = "atlas-geometry";
+        }
+        if (label.empty() &&
+            !native_password_object &&
+            !startup_member_atlas_focus &&
+            !startup_member_focus_rect)
+        {
+            label = best_native_pml_text_from_object_tree(current_child_object, "current-child", &label_source_offset);
         }
         const bool add_member_context = native_prelogin_add_member_form_context(manager) ||
             native_prelogin_add_member_form_context(current_child_object);
+        bool native_masked_field_focus = false;
+        PolUiControlRole native_masked_field_role =
+            PolUiControlRole::unknown;
+        if (native_password_object)
+        {
+            if (add_member_context &&
+                native_field_snapshot.matched &&
+                native_field_snapshot.kind ==
+                    accessxi::pol_pml::NativeTextFieldKind::password &&
+                prelogin_add_member_password_field_label(
+                    geometry_label))
+            {
+                native_masked_field_role =
+                    PolUiControlRole::password;
+                label =
+                    accessxi::pol_accessibility::masked_focus_speech(
+                        geometry_label,
+                        native_field_snapshot.character_count);
+                label_source = "native-selected-text";
+                native_masked_field_focus = !label.empty();
+            }
+
+            // Exact inner CPasswordField events have no verified sighted
+            // Add Member label. Keep them silent while retaining any wrapper
+            // tracker that the software keyboard temporarily displaced.
+            if (!native_masked_field_focus)
+                return;
+        }
+
+        bool native_text_field_focus = false;
+        if (add_member_context &&
+            native_field_snapshot.matched &&
+            native_field_snapshot.kind ==
+                accessxi::pol_pml::NativeTextFieldKind::text &&
+            prelogin_add_member_plain_text_field_label(geometry_label))
+        {
+            const std::string retained_value =
+                clean_native_utf16_text(native_field_snapshot.value);
+            if (native_field_snapshot.value.empty() ||
+                !retained_value.empty())
+            {
+                label = accessxi::pol_accessibility::field_focus_speech(
+                    geometry_label,
+                    retained_value);
+                label_source = "native-selected-text";
+                native_text_field_focus = !label.empty();
+            }
+        }
+
+        if (add_member_context &&
+            native_control_text_focus &&
+            native_object_has_vtable_rva(
+                current_child_object,
+                accessxi::pol_pml::CpmlFormSelectEditorVtableRva) &&
+            (geometry_label == "Set Password" ||
+             geometry_label == "One-Time Password"))
+        {
+            label = accessxi::pol_accessibility::field_focus_speech(
+                geometry_label,
+                label);
+            label_source = "native-selected-text";
+        }
+
+        bool native_pulldown_focus = false;
+        uint32_t native_pulldown_index =
+            std::numeric_limits<uint32_t>::max();
+        if (add_member_context && geometry_label == "Set Password")
+        {
+            const auto pulldown_selection =
+                read_native_pulldown_selection_snapshot(
+                    current_child_object);
+            if (pulldown_selection.matched)
+            {
+                const std::string_view selected_value =
+                    accessxi::pol_accessibility::
+                        add_member_set_password_value(
+                            pulldown_selection.selected_index);
+                if (!selected_value.empty())
+                {
+                    label =
+                        accessxi::pol_accessibility::field_focus_speech(
+                            geometry_label,
+                            selected_value);
+                    label_source = "native-selected-text";
+                    native_pulldown_focus = !label.empty();
+                    native_pulldown_index =
+                        pulldown_selection.selected_index;
+                }
+            }
+        }
+
+        const bool exact_native_value_focus =
+            native_selected_text_focus ||
+            native_text_field_focus ||
+            native_pulldown_focus ||
+            native_masked_field_focus;
         const bool add_member_field_geometry_focus = add_member_context &&
             !geometry_label.empty() &&
-            prelogin_add_member_field_geometry_label(geometry_label);
+            prelogin_add_member_field_geometry_label(geometry_label) &&
+            !exact_native_value_focus;
 
         if (add_member_field_geometry_focus)
         {
@@ -2691,9 +5349,13 @@ namespace
             label_source = "atlas-geometry";
         }
 
-        bool add_member_value_candidate = add_member_context && prelogin_add_member_value_label(label);
+        bool add_member_value_candidate = add_member_context &&
+            prelogin_add_member_value_label(label) &&
+            !exact_native_value_focus;
         bool add_member_value_focus = add_member_value_candidate && !current_child_is_tiny;
-        bool add_member_button_candidate = add_member_context && prelogin_add_member_button_label(label);
+        bool add_member_button_candidate = add_member_context &&
+            prelogin_add_member_button_label(label) &&
+            !exact_native_value_focus;
         bool add_member_button_focus = add_member_button_candidate &&
             !add_member_field_geometry_focus &&
             (native_prelogin_add_member_button_object_tree_label(current_child_object, label) ||
@@ -2725,30 +5387,26 @@ namespace
                 label_source = "add-member-button";
         }
 
-        if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus && !member_dynamic_focus && !startup_member_atlas_focus)
+        if (!exact_native_value_focus && !startup_member_focus_rect)
         {
-            if (!label.empty() && label != geometry_label)
+            if (!geometry_label.empty() && !add_member_value_focus && !add_member_button_focus)
             {
-                char conflict[256]{};
-                std::snprintf(
-                    conflict,
-                    sizeof(conflict) - 1,
-                    "PRELOGIN_ATLASGEOM prefer-focused-geometry resource=%08X objectText=%s geometryText=%s",
-                    static_cast<unsigned>(atlas_resource),
-                    label.c_str(),
-                    geometry_label.c_str());
-            if (g_atlas_geometry_conflict_log_budget.fetch_sub(1) > 0)
-                log_line(conflict);
+                if (!label.empty() && label != geometry_label)
+                {
+                    char conflict[256]{};
+                    std::snprintf(
+                        conflict,
+                        sizeof(conflict) - 1,
+                        "PRELOGIN_ATLASGEOM prefer-focused-geometry resource=%08X objectText=%s geometryText=%s",
+                        static_cast<unsigned>(atlas_resource),
+                        label.c_str(),
+                        geometry_label.c_str());
+                    if (g_atlas_geometry_conflict_log_budget.fetch_sub(1) > 0)
+                        log_line(conflict);
+                }
+                label = geometry_label;
+                label_source = "atlas-geometry";
             }
-            label = geometry_label;
-            label_source = "atlas-geometry";
-        }
-
-        if (label.empty() && prelogin_member_dynamic_value_rect(current_child_object))
-        {
-            label = best_native_pml_dynamic_text_from_object(current_child_object);
-            if (!label.empty())
-                label_source = "member-dynamic";
         }
 
         if (label.empty())
@@ -2791,10 +5449,12 @@ namespace
         }
 
         const char* candidate_source =
-            (std::strcmp(label_source, "add-member") == 0 ||
-             std::strcmp(label_source, "add-member-button") == 0 ||
-             std::strcmp(label_source, "member-dynamic") == 0 ||
-             std::strcmp(label_source, "startup-member-dynamic") == 0) ? label_source : "current-child";
+            (std::strcmp(label_source, "native-selected-text") == 0 ||
+             std::strcmp(label_source, "native-image-getter") == 0 ||
+             std::strcmp(label_source, "selected-member-dynamic") == 0 ||
+             std::strcmp(label_source, "selected-member-native-row") == 0 ||
+             std::strcmp(label_source, "add-member") == 0 ||
+             std::strcmp(label_source, "add-member-button") == 0) ? label_source : "current-child";
         if (!prelogin_pml_focus_can_claim_burst(candidate_source, manager, current_child_object, label, true, true))
         {
             log_current_child_detail(manager, requested_child, current_child_object, "rejected");
@@ -2813,6 +5473,28 @@ namespace
             log_line(line);
             clear_prelogin_duplicate_guard();
             return;
+        }
+
+        if (native_masked_field_focus)
+        {
+            remember_masked_field_focus(
+                native_field_snapshot,
+                native_masked_field_role,
+                geometry_label);
+        }
+        else if (native_pulldown_focus)
+        {
+            remember_set_password_focus(
+                current_child,
+                native_pulldown_index);
+        }
+        else if (add_member_context &&
+                 ((!geometry_label.empty() &&
+                   prelogin_add_member_field_geometry_label(
+                       geometry_label)) ||
+                  add_member_button_focus))
+        {
+            reset_add_member_native_value_trackers();
         }
 
         if (g_current_child_candidate_log_budget.fetch_sub(1) > 0)
@@ -2889,6 +5571,9 @@ namespace
             return;
         }
 
+        if (!app_module_matches_known_updated_pol_build(app, "selection-truth"))
+            return;
+
         auto* app_base = reinterpret_cast<uint8_t*>(app);
         auto* register_target = app_base + 0x00009E62u;
         UNREFERENCED_PARAMETER(register_target);
@@ -2957,7 +5642,14 @@ namespace
 
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
+        {
+            capture_pol_ui_focus_event(
+                accessxi::pol_trace::EventKind::focus_shared,
+                self,
+                event_info,
+                focused_object);
             remember_focus_candidate("semantic", self, focused_object, focus_receiver_flag(self, focused_object));
+        }
     }
 
     void __fastcall hook_pml_select_focus_event(void* self, void*, void* event_info)
@@ -2968,7 +5660,14 @@ namespace
 
         void* focused_object = nullptr;
         if (focus_event_matches(self, event_info, &focused_object))
+        {
+            capture_pol_ui_focus_event(
+                accessxi::pol_trace::EventKind::focus_select,
+                self,
+                event_info,
+                focused_object);
             remember_focus_candidate("semantic", self, focused_object, focus_receiver_flag(self, focused_object));
+        }
     }
 
     void install_pml_focus_event_call_hook_once()
@@ -2982,6 +5681,9 @@ namespace
             g_pml_focus_event_hook_installed.store(false);
             return;
         }
+
+        if (!app_module_matches_known_updated_pol_build(app, "focus-event"))
+            return;
 
         auto* app_base = reinterpret_cast<uint8_t*>(app);
         bool ok = true;
@@ -3008,6 +5710,8 @@ namespace
 
     void reset_prelogin_runtime_speech_state(const char* reason)
     {
+        reset_add_member_native_value_trackers();
+        reset_popup_notice_state();
         {
             std::lock_guard<std::mutex> guard(g_candidate_lock);
             g_pending_pml_focus_candidate_valid = false;
@@ -3033,27 +5737,33 @@ namespace
         log_line(line);
     }
 
-    void run_reloaded_native_hook_iteration()
+    void run_native_hook_iteration()
     {
+        poll_pol_ui_trace_hotkey();
         install_native_focus_event_dispatch_hooks_once();
         install_pml_focus_event_call_hook_once();
         install_native_selection_truth_hooks_once();
-        process_queued_current_child_candidate("reloaded-native-current-child");
-        speak_pending_prelogin_pml_focus_candidate("reloaded-native-focus");
-        speak_current_prelogin_native_focus("reloaded-native-focus");
+        install_popup_notice_hooks_once();
+        poll_masked_field_state();
+        poll_set_password_state();
+        process_popup_notice_text();
+        process_queued_current_child_candidate("native-current-child");
+        speak_pending_prelogin_pml_focus_candidate("native-focus");
+        speak_current_prelogin_native_focus("native-focus");
+        drain_pol_ui_trace();
     }
 
-    void start_reloaded_native_hook_worker_once()
+    void start_native_hook_worker_once()
     {
         bool expected = false;
-        if (!g_reloaded_native_worker_running.compare_exchange_strong(expected, true))
+        if (!g_native_hook_worker_running.compare_exchange_strong(expected, true))
             return;
 
         std::thread([] {
-            log_line("AccessXI POL Reloaded native hook worker started");
-            while (g_reloaded_native_worker_running.load())
+            log_line("AccessXI POL native hook worker started");
+            while (g_native_hook_worker_running.load())
             {
-                run_reloaded_native_hook_iteration();
+                run_native_hook_iteration();
                 Sleep(20);
             }
         }).detach();
@@ -3063,7 +5773,7 @@ namespace
 class AccessXiPolPlugin final : public IPolPlugin
 {
 public:
-    const char* GetName(void) const override { return "accessxi_pol_nvda"; }
+    const char* GetName(void) const override { return "accessxi_pol_native"; }
     const char* GetAuthor(void) const override { return "buu42 and Codex"; }
     const char* GetDescription(void) const override { return "PlayOnline accessibility native focus bridge."; }
     const char* GetLink(void) const override { return "local"; }
@@ -3076,7 +5786,7 @@ public:
         UNREFERENCED_PARAMETER(core);
         UNREFERENCED_PARAMETER(logger);
         UNREFERENCED_PARAMETER(id);
-        log_line("AccessXI POL plugin initialized; Reloaded path owns pre-login speech.");
+        log_line("AccessXI POL native plugin initialized.");
         return true;
     }
 
@@ -3110,32 +5820,65 @@ extern "C" __declspec(dllexport) double __stdcall expGetInterfaceVersion(void)
     return ASHITA_INTERFACE_VERSION;
 }
 
-extern "C" __declspec(dllexport) void __stdcall AccessXI_POL_ReloadedInitialize(void)
+extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_SetSpeechSinkV1(
+    AccessXiPolSpeechSinkV1 sink,
+    void* context)
 {
-    g_reloaded_speech_queue_enabled.store(true);
+    if (sink == nullptr && context != nullptr)
+        return 0;
 
-    static volatile LONG initialized = 0;
-    if (InterlockedCompareExchange(&initialized, 1, 0) != 0)
+    if (sink == nullptr)
     {
-        log_line("AccessXI POL Reloaded native already initialized");
-        return;
+        g_speech_sink_v1.store(nullptr, std::memory_order_release);
+        g_speech_sink_context_v1.store(nullptr, std::memory_order_release);
+        return 1;
     }
 
-    log_line("AccessXI POL Reloaded native initializing");
+    g_speech_sink_context_v1.store(context, std::memory_order_release);
+    g_speech_sink_v1.store(sink, std::memory_order_release);
+    return 1;
+}
+
+extern "C" __declspec(dllexport) int __stdcall AccessXI_POL_InitializeV2(void)
+{
+    const int current_state = g_native_initialize_state.load(std::memory_order_acquire);
+    if (current_state == 2)
+        return AccessXiPolInitializeAlreadyReady;
+    if (current_state == 3)
+        return AccessXiPolInitializeUnsupportedBuild;
+
+    int expected_state = 0;
+    if (!g_native_initialize_state.compare_exchange_strong(
+            expected_state,
+            1,
+            std::memory_order_acq_rel,
+            std::memory_order_acquire))
     {
-        const std::wstring log_directory = diagnostic_log_directory();
-        const std::wstring queue_path = reloaded_speech_queue_path();
-        const std::string line = "AccessXI POL Reloaded native diagnostics log_dir=\"" +
-            narrow_from_wide(log_directory.c_str()) +
-            "\" queue=\"" +
-            narrow_from_wide(queue_path.c_str()) +
-            "\"";
-        log_line(line.c_str());
+        return expected_state == 2
+            ? AccessXiPolInitializeAlreadyReady
+            : AccessXiPolInitializeBusy;
     }
-    reset_prelogin_runtime_speech_state("ReloadedInitialize");
+
+    HMODULE app_module = GetModuleHandleW(L"app.dll");
+    if (app_module == nullptr)
+    {
+        g_native_initialize_state.store(0, std::memory_order_release);
+        return AccessXiPolInitializeAppDllMissing;
+    }
+    if (!app_module_matches_known_updated_pol_build(app_module, "native-initialize-v2"))
+    {
+        g_native_initialize_state.store(3, std::memory_order_release);
+        return AccessXiPolInitializeUnsupportedBuild;
+    }
+
+    log_line("AccessXI POL native V2 initializing");
+    reset_prelogin_runtime_speech_state("InitializeV2");
     install_native_focus_event_dispatch_hooks_once();
     install_pml_focus_event_call_hook_once();
     install_native_selection_truth_hooks_once();
-    start_reloaded_native_hook_worker_once();
-    log_line("AccessXI POL Reloaded native hooks installed");
+    install_popup_notice_hooks_once();
+    start_native_hook_worker_once();
+    g_native_initialize_state.store(2, std::memory_order_release);
+    log_line("AccessXI POL native V2 hooks installed");
+    return AccessXiPolInitializeOk;
 }

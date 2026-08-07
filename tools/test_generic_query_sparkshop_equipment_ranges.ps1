@@ -87,13 +87,19 @@ end
 function accessxi.is_probe_pointer(ptr)
     return tonumber(ptr) ~= nil and tonumber(ptr) ~= 0
 end
+function accessxi.resource_path(_, name)
+    return 'missing-' .. tostring(name or '')
+end
+function accessxi.load_module_file_table(_, _, default)
+    return default
+end
 function accessxi.survival_guide_query_child_state_for_obj(_)
     local selected = tonumber(selected_case.selected) or 0
     local raw = tonumber(selected_case.raw) or 0
     return selected, selected - 3, raw, 0x1000, 13
 end
 function accessxi.native_query_label_for_selection(_, _, _, _)
-    return 'Equ Lv Up To', 'next+000:order'
+    return selected_case.list_label or 'Equ Lv Up To', 'next+000:order'
 end
 function accessxi.native_menu_index(_)
     return 0
@@ -120,26 +126,62 @@ generic_query_context = {
 dofile(module_path)
 
 function accessxi.generic_query_direct_label_for_child(_, _, _)
-    return 'Equ.', 'next+000:direct+010', '', '', 0x2000
+    return selected_case.direct_label or 'Equ.', 'next+000:direct+010', '', '', 0x2000
 end
 
 local cases = {
-    { selected = 3, raw = 0x00000002, expected = 'Rolandienne. Equipment level 1 through 9.' },
-    { selected = 4, raw = 0x00010003, expected = 'Rolandienne. Equipment level 10 through 19.' },
-    { selected = 5, raw = 0x00020004, expected = 'Rolandienne. Equipment level 20 through 29.' },
-    { selected = 6, raw = 0x00030005, expected = 'Rolandienne. Equipment level 30 through 39.' },
-    { selected = 7, raw = 0x00040006, expected = 'Rolandienne. Equipment level 40 through 50.' },
-    { selected = 8, raw = 0x00050007, expected = 'Rolandienne. Equipment level 51 through 70.' },
-    { selected = 9, raw = 0x00060008, expected = 'Rolandienne. Equipment level 71 through 98.' },
-    { selected = 10, raw = 0x00070009, expected = 'Rolandienne. Equipment level 99.' },
+    { selected = 3, raw = 0x00000002, expected = 'Equipment level 1 through 9.' },
+    { selected = 4, raw = 0x00010003, expected = 'Equipment level 10 through 19.' },
+    { selected = 5, raw = 0x00020004, expected = 'Equipment level 20 through 29.' },
+    { selected = 6, raw = 0x00030005, expected = 'Equipment level 30 through 39.' },
+    { selected = 7, raw = 0x00040006, expected = 'Equipment level 40 through 50.' },
+    { selected = 8, raw = 0x00050007, expected = 'Equipment level 51 through 70.' },
+    { selected = 9, raw = 0x00060008, expected = 'Equipment level 71 through 98.' },
+    { selected = 10, raw = 0x00070009, expected = 'Equipment level 99.' },
 }
 
-for _, case in ipairs(cases) do
-    selected_case = case
-    local speech = accessxi.generic_query_menu_speech('menu    query', 'Rolandienne', 0x2000)
-    if speech ~= case.expected then
-        error(('selected %d expected %q, got %q'):format(case.selected, case.expected, tostring(speech)))
+local titles = { 'Rolandienne', 'Isakoth', 'Fhelm Jobeizat', 'Eternal Flame' }
+for _, title in ipairs(titles) do
+    selected_case = {
+        selected = 1,
+        raw = 0x00000000,
+        list_label = 'Items Axe',
+        direct_label = '',
+    }
+    local items_speech = accessxi.generic_query_menu_speech('menu    query', title, 0x2000)
+    local items_expected = title .. '. Items.'
+    if items_speech ~= items_expected then
+        error(('%s malformed Items row expected %q, got %q'):format(title, items_expected, tostring(items_speech)))
     end
+
+    for _, case in ipairs(cases) do
+        selected_case = case
+        local speech = accessxi.generic_query_menu_speech('menu    query', title, 0x2000)
+        local expected = title .. '. ' .. case.expected
+        if speech ~= expected then
+            error(('%s selected %d expected %q, got %q'):format(title, case.selected, expected, tostring(speech)))
+        end
+    end
+end
+
+-- FFXI can leave GetWindowName blank on the first Sparks opening after a
+-- process restart.  A proven Sparks target plus the exact 13-row menu must
+-- still decode immediately, without requiring the player to close/reopen it.
+accessxi.last_target_name = 'Fhelm Jobeizat'
+selected_case = cases[1]
+local cold_open_speech = accessxi.generic_query_menu_speech('menu    query', '', 0x2000)
+if cold_open_speech ~= 'Fhelm Jobeizat. Equipment level 1 through 9.' then
+    error(('cold first opening did not recover the Sparks title safely: %q'):format(tostring(cold_open_speech)))
+end
+
+-- The fallback must not turn an unrelated remembered target into a Sparks
+-- menu merely because another query happens to have the same row count.
+accessxi.last_target_name = 'Treasure Casket'
+selected_case = cases[1]
+local unrelated_speech = accessxi.generic_query_menu_speech('menu    query', '', 0x2000)
+if unrelated_speech == 'Equipment level 1 through 9.'
+    or unrelated_speech == 'Treasure Casket. Equipment level 1 through 9.' then
+    error(('cold-open Sparks recovery leaked to an unrelated target: %q'):format(tostring(unrelated_speech)))
 end
 "@
 

@@ -78,6 +78,41 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
+    -Pattern 'nav_collision_input_intent_ms\s*=' `
+    -Message 'Expected a bounded forward-input intent window for wall contact while held against geometry.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'nav_collision_forward_hold_ms\s*=' `
+    -Message 'Expected held-forward collision intent to persist until key-up or a bounded stale-key timeout.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'nav_collision_route_contact_sound_ms\s*=\s*[5-9][0-9][0-9]' `
+    -Message 'Expected a short route-contact bump interval so hard wall contact feels continuous.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'nav_route_poll_ms\s*=\s*[5-9][0-9][0-9]' `
+    -Message 'Expected route polling to be fast enough for steady route-contact bump feedback.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_collision_forward_key\(key\)' `
+    -Message 'Expected a narrow forward-key classifier for collision intent.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_collision_note_movement_key\(key,\s*down\)' `
+    -Message 'Expected key event handler to latch forward movement intent without polling.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_collision_forward_input_intent\(now\)' `
+    -Message 'Expected bounded forward-input intent helper for collision detection.'
+
+Assert-Match `
+    -Text $source `
     -Pattern 'function accessxi\.nav_player_movement_signal\(player,\s*now\)' `
     -Message 'Expected a native movement-signal helper for collision detection.'
 
@@ -108,6 +143,21 @@ Assert-Match `
     -Pattern 'nav_movement_recent_tick' `
     -Message 'Movement signal should remember recent real movement briefly for wall-impact detection.'
 
+Assert-Match `
+    -Text $signalBody `
+    -Pattern 'nav_collision_forward_input_intent\(now\)' `
+    -Message 'Movement signal should include the bounded forward-key intent latch for held-against-wall cases.'
+
+Assert-Match `
+    -Text $signalBody `
+    -Pattern 'input_intent\s*=\s*input_intent' `
+    -Message 'Movement signal should expose forward-key input intent to collision classifiers.'
+
+Assert-Match `
+    -Text $signalBody `
+    -Pattern "reason\s*=\s*'input-forward'" `
+    -Message 'Movement signal should label forward-key-only collision intent distinctly.'
+
 Assert-NotMatch `
     -Text $signalBody `
     -Pattern 'GetAsyncKeyState|VK_LEFT|VK_RIGHT|VK_UP|VK_DOWN|VK_RETURN|VK_NUMPAD' `
@@ -127,8 +177,8 @@ $stateBody = $source.Substring($stateStart, $stateEnd - $stateStart)
 
 Assert-Match `
     -Text $stateBody `
-    -Pattern 'movement_signal\.active\s*~=*\s*true' `
-    -Message 'Classifier should require a native movement signal before considering collision.'
+    -Pattern 'nav_collision_current_movement_intent\(movement_signal\)' `
+    -Message 'Classifier should require current native movement intent before considering collision.'
 
 Assert-Match `
     -Text $stateBody `
@@ -189,13 +239,13 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
-    -Pattern 'nav_collision_freewalk_sound_ms\s*=\s*2[0-9][0-9]' `
-    -Message 'Free-walk wall bump interval should be faster than the previous 320ms cadence.'
+    -Pattern 'nav_collision_freewalk_sound_ms\s*=\s*([7-9][0-9][0-9]|[1-9][0-9]{3,})' `
+    -Message 'Free-walk wall bump interval should be steady enough to avoid jitter false positives.'
 
 Assert-Match `
     -Text $source `
-    -Pattern 'nav_collision_freewalk_hold_ms\s*=\s*2[0-9][0-9]' `
-    -Message 'Free-walk wall bump hold should be short enough for a quicker tactile cadence.'
+    -Pattern 'nav_collision_freewalk_hold_ms\s*=\s*([7-9][0-9][0-9]|[1-9][0-9]{3,})' `
+    -Message 'Free-walk wall bump hold should require sustained contact instead of sub-second jitter.'
 
 Assert-Match `
     -Text $source `
@@ -236,6 +286,11 @@ Assert-Match `
 
 Assert-Match `
     -Text $quietBody `
+    -Pattern 'nav_collision_forward_intent_tick\s*=\s*0' `
+    -Message 'Collision quiet windows should clear stale forward-key intent.'
+
+Assert-Match `
+    -Text $quietBody `
     -Pattern 'nav_collision_require_fresh_movement\s*=\s*true' `
     -Message 'Zoning/loading quiet windows should require one fresh real movement sample before wall bumps resume.'
 
@@ -261,8 +316,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $watchBody `
-    -Pattern 'accessxi\.nav_collision_state\(player,\s*destination,\s*route_target,\s*destination_distance,\s*now,\s*accessxi\.nav_player_movement_signal\(player,\s*now\)\)' `
-    -Message 'Collision watch should pass the richer movement signal into the classifier.'
+    -Pattern 'accessxi\.nav_collision_state\(player,\s*destination,\s*route_target,\s*destination_distance,\s*now,\s*movement_signal\)' `
+    -Message 'Collision watch should pass the shared movement signal into the classifier.'
 
 Assert-Match `
     -Text $watchBody `
@@ -368,7 +423,7 @@ Assert-Match `
 
 Assert-Match `
     -Text $freeBody `
-    -Pattern 'movement_signal\.moving\s*~=*\s*true.*?movement_signal\.autorun\s*~=*\s*true.*?movement_signal\.move_count_recent\s*~=*\s*true' `
+    -Pattern '(?s)movement_signal\.moving\s*~=*\s*true.*?movement_signal\.autorun\s*~=*\s*true.*?movement_signal\.move_count_recent\s*~=*\s*true' `
     -Message 'Free-walk collision detection should not trigger from stale recent movement alone.'
 
 Assert-NotMatch `
@@ -432,9 +487,48 @@ Assert-Match `
     -Message 'Free-walk collision polling should keep zoning quiet active until fresh real movement is observed.'
 
 Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_collision_fresh_movement_intent\(movement_signal\)' `
+    -Message 'Collision quiet release should use a dedicated native fresh-intent helper.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_collision_current_movement_intent\(movement_signal\)' `
+    -Message 'Collision/progress warnings should use a current movement-intent helper so standing still is not treated as wall contact.'
+
+$freshStart = $source.IndexOf('function accessxi.nav_collision_fresh_movement_intent')
+$freshEnd = $source.IndexOf('function accessxi.nav_collision_current_movement_intent', $freshStart)
+if ($freshStart -lt 0 -or $freshEnd -lt 0) {
+    throw 'Could not locate fresh movement-intent helper block.'
+}
+$freshBody = $source.Substring($freshStart, $freshEnd - $freshStart)
+
+Assert-Match `
+    -Text $freshBody `
+    -Pattern 'movement_signal\.input_intent' `
+    -Message 'Fresh movement intent should release quiet latches when the user deliberately presses forward after zoning/control return.'
+
+$currentStart = $source.IndexOf('function accessxi.nav_collision_current_movement_intent')
+$currentEnd = $source.IndexOf('function accessxi.nav_collision_reset', $currentStart)
+if ($currentStart -lt 0 -or $currentEnd -lt 0) {
+    throw 'Could not locate current movement-intent helper block.'
+}
+$currentBody = $source.Substring($currentStart, $currentEnd - $currentStart)
+
+Assert-Match `
+    -Text $currentBody `
+    -Pattern 'movement_signal\.input_intent' `
+    -Message 'Current movement intent should include held-forward wall contact intent.'
+
+Assert-NotMatch `
+    -Text $signalBody `
+    -Pattern 'local\s+active\s*=\s*[^\r\n]*recent_movement' `
+    -Message 'Recent movement history must not make the player actively moving; standing after movement should stay quiet.'
+
+Assert-Match `
     -Text $freePollBody `
-    -Pattern '(?s)movement_signal\.actual_moved\s*==\s*true.*?nav_collision_require_fresh_movement\s*=\s*false' `
-    -Message 'Fresh actual movement should release the post-zone collision quiet latch.'
+    -Pattern '(?s)nav_collision_fresh_movement_intent\(movement_signal\).*?nav_collision_require_fresh_movement\s*=\s*false' `
+    -Message 'Fresh native movement intent should release the post-zone collision quiet latch.'
 
 Assert-Match `
     -Text $freePollBody `
@@ -487,6 +581,11 @@ Assert-Match `
 
 Assert-Match `
     -Text $freePollBody `
+    -Pattern '(?s)accessxi\.nav_active\s*==\s*true.*?nav_freewalk_collision_reset\(nil,\s*now\).*?return false' `
+    -Message 'Free-walk collision sounds should stay quiet while route navigation owns collision handling.'
+
+Assert-Match `
+    -Text $freePollBody `
     -Pattern 'accessxi\.nav_player_movement_signal\(player,\s*now\)' `
     -Message 'Free-walk collision poll should use the same native movement signal.'
 
@@ -504,6 +603,102 @@ Assert-NotMatch `
     -Text $freePollBody `
     -Pattern 'speak\(' `
     -Message 'Free-walk collision poll should not speak announcements.'
+
+Assert-Match `
+    -Text $source `
+    -Pattern 'function accessxi\.nav_route_contact_sound\(player,\s*route_target,\s*now,\s*movement_signal\)' `
+    -Message 'Expected route collision contact sound loop independent of blocked-route speech.'
+
+$routeContactStart = $source.IndexOf('function accessxi.nav_route_contact_sound')
+$routeContactEnd = $source.IndexOf('function accessxi.nav_current_route_instruction', $routeContactStart)
+if ($routeContactStart -lt 0 -or $routeContactEnd -lt 0) {
+    throw 'Could not locate route contact sound helper block.'
+}
+$routeContactBody = $source.Substring($routeContactStart, $routeContactEnd - $routeContactStart)
+
+Assert-Match `
+    -Text $routeContactBody `
+    -Pattern 'nav_collision_current_movement_intent\(movement_signal\)' `
+    -Message 'Route contact bump should require current movement intent.'
+
+Assert-Match `
+    -Text $routeContactBody `
+    -Pattern 'nav_wall_distance\(player\)' `
+    -Message 'Route contact bump should require actual wall clearance evidence.'
+
+Assert-Match `
+    -Text $routeContactBody `
+    -Pattern 'movement_signal\.actual_moved\s*==\s*true' `
+    -Message 'Route contact bump should stay quiet when the player is still making real movement.'
+
+Assert-Match `
+    -Text $routeContactBody `
+    -Pattern 'nav_collision_route_contact_sound_ms' `
+    -Message 'Route contact bump should use its own short interval rather than the 9-second blocked-route timer.'
+
+Assert-Match `
+    -Text $routeContactBody `
+    -Pattern "nav_collision_play_sound\('blocked',\s*now\)" `
+    -Message 'Route contact bump should play the wall-bump cue.'
+
+Assert-NotMatch `
+    -Text $routeContactBody `
+    -Pattern 'speak\(' `
+    -Message 'Route contact bump should not speak announcements.'
+
+$inputStart = $source.IndexOf('function accessxi.nav_collision_forward_key')
+$inputEnd = $source.IndexOf('function accessxi.nav_collision_state', $inputStart)
+if ($inputStart -lt 0 -or $inputEnd -lt 0) {
+    throw 'Could not locate forward-input collision helper block.'
+}
+$inputBody = $source.Substring($inputStart, $inputEnd - $inputStart)
+
+Assert-Match `
+    -Text $inputBody `
+    -Pattern 'VK_UP' `
+    -Message 'Forward collision intent should include the arrow-up movement key.'
+
+Assert-Match `
+    -Text $inputBody `
+    -Pattern 'VK_W' `
+    -Message 'Forward collision intent should include the W movement key.'
+
+Assert-Match `
+    -Text $inputBody `
+    -Pattern 'VK_NUMPAD8' `
+    -Message 'Forward collision intent should include the numpad-8 movement key.'
+
+Assert-Match `
+    -Text $inputBody `
+    -Pattern 'nav_collision_forward_hold_ms' `
+    -Message 'Held-forward collision intent should last longer than the short initial keydown window.'
+
+Assert-Match `
+    -Text $inputBody `
+    -Pattern 'nav_collision_forward_intent_key' `
+    -Message 'Held-forward collision intent should remain latched to the current forward key until key-up or reset.'
+
+Assert-NotMatch `
+    -Text $inputBody `
+    -Pattern 'GetAsyncKeyState' `
+    -Message 'Forward collision intent should be event latched, not polled.'
+
+$keyStart = $source.IndexOf("ashita.events.register('key'")
+$keyEnd = $source.IndexOf("ashita.events.register('d3d_present'", $keyStart)
+if ($keyStart -lt 0 -or $keyEnd -lt 0) {
+    throw 'Could not locate key event handler block.'
+}
+$keyBody = $source.Substring($keyStart, $keyEnd - $keyStart)
+
+Assert-Match `
+    -Text $keyBody `
+    -Pattern 'nav_collision_note_movement_key\(key,\s*false\)' `
+    -Message 'Key-up handling should clear forward collision intent.'
+
+Assert-Match `
+    -Text $keyBody `
+    -Pattern 'nav_collision_note_movement_key\(key,\s*true\)' `
+    -Message 'Key-down handling should latch forward collision intent.'
 
 $presentStart = $source.IndexOf("ashita.events.register('d3d_present'")
 $presentEnd = $source.IndexOf('end);', $presentStart)
@@ -531,8 +726,18 @@ Assert-Match `
 
 Assert-Match `
     -Text $routeBody `
-    -Pattern 'accessxi\.nav_collision_watch\(player,\s*destination,\s*route_target,\s*destination_distance,\s*now\)' `
-    -Message 'Route polling should run the collision watch before the slower progress watchdog.'
+    -Pattern 'nav_route_poll_ms' `
+    -Message 'Route polling should use the configurable short poll interval used by route-contact bump feedback.'
+
+Assert-Match `
+    -Text $routeBody `
+    -Pattern '(?s)local\s+movement_signal\s*=\s*accessxi\.nav_player_movement_signal\(player,\s*now\).*?accessxi\.nav_collision_watch\(player,\s*destination,\s*route_target,\s*destination_distance,\s*now,\s*movement_signal\).*?accessxi\.nav_progress_watch\(player,\s*destination,\s*route_target,\s*destination_distance,\s*now,\s*movement_signal\)' `
+    -Message 'Route polling should sample native movement once and pass it to both collision and progress watchers.'
+
+Assert-Match `
+    -Text $routeBody `
+    -Pattern 'accessxi\.nav_route_contact_sound\(player,\s*route_target,\s*now,\s*movement_signal\)' `
+    -Message 'Route polling should play repeated hard-contact bump sounds between blocked-route watchdog events.'
 
 Assert-Match `
     -Text $source `
@@ -585,7 +790,27 @@ Assert-Match `
 
 Assert-Match `
     -Text $progressBody `
+    -Pattern 'nav_collision_current_movement_intent\(movement_signal\)' `
+    -Message 'Route progress watchdog should not speak no-progress warnings unless current movement intent is present.'
+
+Assert-Match `
+    -Text $progressBody `
+    -Pattern 'nav_reset_progress_watch\(player,\s*destination_distance,\s*now\)' `
+    -Message 'Idle route progress polling should reset its anchor instead of accumulating a stale no-progress warning.'
+
+Assert-Match `
+    -Text $progressBody `
     -Pattern 'nav_reset_progress_watch\(nil,\s*0,\s*now\)' `
     -Message 'Quieted route progress watchdog should clear stale progress anchors.'
+
+Assert-Match `
+    -Text $progressBody `
+    -Pattern "nav_collision_play_sound\('blocked',\s*now\)" `
+    -Message 'Route progress watchdog should play the wall-bump cue when it detects no progress near a wall.'
+
+Assert-Match `
+    -Text $progressBody `
+    -Pattern "sound=%s" `
+    -Message 'Route progress watchdog should log whether the wall-bump cue was attempted.'
 
 Write-Host 'nav collision detection checks ok'

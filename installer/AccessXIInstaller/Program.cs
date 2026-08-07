@@ -18,8 +18,11 @@ internal static class Program
 
 internal sealed class InstallerForm : Form
 {
-    private const string PayloadResourceName = "Payload.AccessXI-Ashita-Reloaded-Installer.zip";
+    private const string PayloadResourceName = "Payload.AccessXI-Ashita-Installer.zip";
     private const string CompletionMessage = "AccessXI was installed. Use the AccessXI Ashita desktop shortcut to start the game. Advanced: from the Ashita folder, run Ashita-cli.exe accessxi-retail.ini. PlayOnline diagnostics are written to %USERPROFILE%\\AccessXI\\logs.";
+    private const long KnownUpdatedPlayOnlineAppDllSize = 4335104;
+    private const ulong KnownUpdatedPlayOnlineAppDllFnv64 = 0x07E88E8067FEF6CCUL;
+    private const string UpdatedPlayOnlineAppDllRelativePathForDiagnostics = @"PlayOnlineViewer\viewer\com\app.dll";
 
     private readonly TextBox installRootText;
     private readonly TextBox polExeText;
@@ -37,12 +40,15 @@ internal sealed class InstallerForm : Form
 
     private sealed record RuntimePrerequisite(string Name, string FileName);
 
-    private sealed record VisualCppPrerequisite(string Name, string Architecture, string FileName)
+    private enum PlayOnlineViewerStateKind
     {
-        public RuntimePrerequisite ToRuntimePrerequisite() => new(Name, FileName);
+        Updated,
+        UpdateSafe,
     }
 
-    private sealed record DotNetDesktopRuntimePrerequisite(string Name, string Architecture, string FileName)
+    private sealed record PlayOnlineViewerState(PlayOnlineViewerStateKind Kind, string Message);
+
+    private sealed record VisualCppPrerequisite(string Name, string Architecture, string FileName)
     {
         public RuntimePrerequisite ToRuntimePrerequisite() => new(Name, FileName);
     }
@@ -52,14 +58,6 @@ internal sealed class InstallerForm : Form
         new("Microsoft Visual C++ Runtime (x86)", "x86", "vc_redist.x86.exe"),
         new("Microsoft Visual C++ Runtime (x64)", "x64", "vc_redist.x64.exe"),
     ];
-
-    private static readonly DotNetDesktopRuntimePrerequisite[] DotNetDesktopRuntimePrerequisites =
-    [
-        new("Microsoft .NET Desktop Runtime 9 (x86)", "x86", "windowsdesktop-runtime-9.0.17-win-x86.exe"),
-        new("Microsoft .NET Desktop Runtime 9 (x64)", "x64", "windowsdesktop-runtime-9.0.17-win-x64.exe"),
-    ];
-
-    private static readonly Version MinimumDotNetDesktopRuntimeVersion = new(9, 0, 8);
 
     private enum InstallState
     {
@@ -108,7 +106,7 @@ internal sealed class InstallerForm : Form
         {
             AutoSize = true,
             MaximumSize = new Size(760, 0),
-            Text = "Choose where AccessXI should be installed. The installer will place Ashita and Reloaded-II there, then deploy the small required PlayOnline loader files beside pol.exe.",
+            Text = "Choose where AccessXI should be installed. The installer will place Ashita there, remove files from older AccessXI installations when safely detected, and deploy the native PlayOnline accessibility files beside pol.exe.",
             Margin = new Padding(0, 0, 0, 12),
         };
         root.Controls.Add(intro, 0, 1);
@@ -344,13 +342,18 @@ internal sealed class InstallerForm : Form
             return;
         }
 
+        var playOnlineViewerState = DetectPlayOnlineViewerVersion(polExe);
+        AppendLog(playOnlineViewerState.Message);
+        if (playOnlineViewerState.Kind == PlayOnlineViewerStateKind.UpdateSafe)
+        {
+            MessageBox.Show(this, playOnlineViewerState.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         try
         {
             var missingVisualCppRedistributables = DetectMissingVisualCppRedistributables();
-            var missingDotNetDesktopRuntimes = DetectMissingDotNetDesktopRuntimes();
             var missingPrerequisites = missingVisualCppRedistributables
                 .Select(prerequisite => prerequisite.ToRuntimePrerequisite())
-                .Concat(missingDotNetDesktopRuntimes.Select(prerequisite => prerequisite.ToRuntimePrerequisite()))
                 .ToList();
             var installMissingPrerequisites = false;
 
@@ -384,7 +387,7 @@ internal sealed class InstallerForm : Form
             AppendLog("Install destination: " + installRoot);
             AppendLog("PlayOnline executable: " + polExe);
 
-            var summary = await Task.Run(() => RunInstaller(installRoot, polExe, installMissingPrerequisites, missingVisualCppRedistributables, missingDotNetDesktopRuntimes));
+            var summary = await Task.Run(() => RunInstaller(installRoot, polExe, installMissingPrerequisites, missingVisualCppRedistributables));
             AppendLog("Installation finished.");
             AppendLog("Launcher: " + Path.Combine(installRoot, "Ashita", "Ashita-cli.exe") + " accessxi-retail.ini");
             AppendLog("Desktop shortcut: AccessXI Ashita");
@@ -406,13 +409,13 @@ internal sealed class InstallerForm : Form
         }
     }
 
-    private string RunInstaller(string installRoot, string polExe, bool installMissingPrerequisites, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables, IReadOnlyCollection<DotNetDesktopRuntimePrerequisite> missingDotNetDesktopRuntimes)
+    private string RunInstaller(string installRoot, string polExe, bool installMissingPrerequisites, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables)
     {
         var extractionRoot = Path.Combine(Path.GetTempPath(), "AccessXIInstaller", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
         Directory.CreateDirectory(extractionRoot);
 
         SetStepThreadSafe("Extracting embedded AccessXI payload.", 15);
-        var zipPath = Path.Combine(extractionRoot, "AccessXI-Ashita-Reloaded-Installer.zip");
+        var zipPath = Path.Combine(extractionRoot, "AccessXI-Ashita-Installer.zip");
         using (var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
         {
             if (payload == null)
@@ -430,9 +433,9 @@ internal sealed class InstallerForm : Form
         if (installMissingPrerequisites)
         {
             SetStepThreadSafe("Installing missing Microsoft runtime prerequisites.", 25);
-            RunPrerequisiteInstallers(prerequisitesRoot, missingVisualCppRedistributables, missingDotNetDesktopRuntimes);
+            RunPrerequisiteInstallers(prerequisitesRoot, missingVisualCppRedistributables);
         }
-        else if (missingVisualCppRedistributables.Count > 0 || missingDotNetDesktopRuntimes.Count > 0)
+        else if (missingVisualCppRedistributables.Count > 0)
         {
             AppendLogThreadSafe("Missing runtime prerequisite installation was skipped by user choice.");
         }
@@ -463,9 +466,8 @@ internal sealed class InstallerForm : Form
         startInfo.ArgumentList.Add("-PolExe");
         startInfo.ArgumentList.Add(polExe);
         startInfo.ArgumentList.Add("-SkipVisualCppRedistributables");
-        startInfo.ArgumentList.Add("-SkipDotNetDesktopRuntimes");
 
-        SetStepThreadSafe("Installing Ashita, Reloaded-II, and POL loader files.", 35);
+        SetStepThreadSafe("Installing Ashita, cleaning files from older AccessXI installations, and deploying native PlayOnline accessibility.", 35);
         AppendLogThreadSafe("Running packaged installer script.");
         using var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, e) => { if (e.Data != null) AppendLogThreadSafe(e.Data); };
@@ -490,6 +492,69 @@ internal sealed class InstallerForm : Form
         return File.Exists(summaryPath) ? File.ReadAllText(summaryPath) : string.Empty;
     }
 
+    private static PlayOnlineViewerState DetectPlayOnlineViewerVersion(string polExe)
+    {
+        var polDirectory = Path.GetDirectoryName(polExe);
+        if (string.IsNullOrWhiteSpace(polDirectory))
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The selected pol.exe path could not be classified, so native PlayOnline menu hooks will stay disabled until the updated viewer files are present.");
+        }
+
+        var appDll = Path.Combine(polDirectory, "viewer", "com", "app.dll");
+        if (!File.Exists(appDll))
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The updated PlayOnline app.dll was not found at " + UpdatedPlayOnlineAppDllRelativePathForDiagnostics + "; start PlayOnline through AccessXI and finish the PlayOnline update. Native PlayOnline menu hooks stay disabled until the updated viewer files are present.");
+        }
+
+        try
+        {
+            var fingerprint = ComputeFileFnv64(appDll, out var size);
+            if (size == KnownUpdatedPlayOnlineAppDllSize && fingerprint == KnownUpdatedPlayOnlineAppDllFnv64)
+            {
+                return new(
+                    PlayOnlineViewerStateKind.Updated,
+                    "Updated PlayOnline Viewer recognized. AccessXI can enable native PlayOnline menu hooks after installation.");
+            }
+
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. This PlayOnline Viewer appears to be pre-update or an unrecognized build; start PlayOnline through AccessXI and finish the PlayOnline update. Native PlayOnline menu hooks stay disabled until the updated viewer files are present. Detected size=" + size + ", fnv64=0x" + fingerprint.ToString("X16") + ".");
+        }
+        catch (Exception ex)
+        {
+            return new(
+                PlayOnlineViewerStateKind.UpdateSafe,
+                "AccessXI will install in update-safe mode. The PlayOnline Viewer version could not be fingerprinted (" + ex.GetType().Name + "), so native PlayOnline menu hooks will stay disabled until the updated viewer files are present.");
+        }
+    }
+
+    private static ulong ComputeFileFnv64(string path, out long size)
+    {
+        const ulong offsetBasis = 14695981039346656037UL;
+        const ulong prime = 1099511628211UL;
+
+        var hash = offsetBasis;
+        size = 0;
+        var buffer = new byte[32768];
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            size += read;
+            for (var index = 0; index < read; index++)
+            {
+                hash ^= buffer[index];
+                hash *= prime;
+            }
+        }
+
+        return hash;
+    }
+
     private DialogResult AskPrerequisiteInstallChoice(IReadOnlyCollection<RuntimePrerequisite> missingPrerequisites)
     {
         var missingNames = string.Join(Environment.NewLine, missingPrerequisites.Select(prerequisite => " - " + prerequisite.Name));
@@ -506,7 +571,7 @@ internal sealed class InstallerForm : Form
         return MessageBox.Show(this, message, "Install dependencies", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
     }
 
-    private void RunPrerequisiteInstallers(string prerequisitesRoot, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables, IReadOnlyCollection<DotNetDesktopRuntimePrerequisite> missingDotNetDesktopRuntimes)
+    private void RunPrerequisiteInstallers(string prerequisitesRoot, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables)
     {
         if (!Directory.Exists(prerequisitesRoot))
         {
@@ -515,7 +580,6 @@ internal sealed class InstallerForm : Form
 
         var prerequisites = missingVisualCppRedistributables
             .Select(prerequisite => prerequisite.ToRuntimePrerequisite())
-            .Concat(missingDotNetDesktopRuntimes.Select(prerequisite => prerequisite.ToRuntimePrerequisite()))
             .ToList();
         if (prerequisites.Count == 0)
         {
@@ -570,13 +634,6 @@ internal sealed class InstallerForm : Form
             .ToList();
     }
 
-    private static List<DotNetDesktopRuntimePrerequisite> DetectMissingDotNetDesktopRuntimes()
-    {
-        return DotNetDesktopRuntimePrerequisites
-            .Where(prerequisite => !IsDotNetDesktopRuntimeInstalled(prerequisite.Architecture))
-            .ToList();
-    }
-
     private static bool IsVisualCppRuntimeInstalled(string architecture)
     {
         foreach (var registryView in new[] { RegistryView.Registry64, RegistryView.Registry32 })
@@ -597,53 +654,6 @@ internal sealed class InstallerForm : Form
         }
 
         return false;
-    }
-
-    private static bool IsDotNetDesktopRuntimeInstalled(string architecture)
-    {
-        foreach (var dotNetRoot in GetDotNetRootCandidates(architecture))
-        {
-            var runtimeRoot = Path.Combine(dotNetRoot, "shared", "Microsoft.WindowsDesktop.App");
-            if (!Directory.Exists(runtimeRoot))
-            {
-                continue;
-            }
-
-            foreach (var versionDirectory in Directory.EnumerateDirectories(runtimeRoot))
-            {
-                var versionText = Path.GetFileName(versionDirectory);
-                if (!Version.TryParse(versionText, out var version))
-                {
-                    continue;
-                }
-
-                if (version.Major == MinimumDotNetDesktopRuntimeVersion.Major && version.CompareTo(MinimumDotNetDesktopRuntimeVersion) >= 0)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static IEnumerable<string> GetDotNetRootCandidates(string architecture)
-    {
-        var roots = architecture.Equals("x86", StringComparison.OrdinalIgnoreCase)
-            ? new[]
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"),
-                Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles(x86)") ?? string.Empty, "dotnet"),
-            }
-            : new[]
-            {
-                Path.Combine(Environment.GetEnvironmentVariable("ProgramW6432") ?? string.Empty, "dotnet"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"),
-            };
-
-        return roots
-            .Where(root => !string.IsNullOrWhiteSpace(root))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private static string FindDefaultPolExe()

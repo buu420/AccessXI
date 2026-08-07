@@ -36,7 +36,12 @@ Assert-Contains "static volatile LONG g_module_pinned = 0;" "missing module pin 
 Assert-Contains "struct HookCallGuard" "missing hook call guard"
 Assert-Contains "InterlockedIncrement(&g_inflight_hooks)" "hook guard must increment in-flight counter"
 Assert-Contains "InterlockedDecrement(&g_inflight_hooks)" "hook guard must decrement in-flight counter"
+Assert-Matches "static std::string searchhook_module_dir\(\)[\s\S]*GetModuleHandleExA\([\s\S]*accessxi_searchhook_init[\s\S]*GetModuleFileNameA" "searchhook logs must be rooted from the loaded DLL module path, not a user-specific development path"
+Assert-Matches "static std::string searchhook_log_dir\(\)[\s\S]*logs\\\\searchhook" "searchhook log directory should live under the addon-local logs\\searchhook folder"
+Assert-Matches "static HANDLE create_searchhook_log_file\([\s\S]*searchhook_log_dir\(\)" "searchhook file writes should go through the relative log path helper"
 Assert-Matches "static void pin_searchhook_module\(\)[\s\S]*GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS \| GET_MODULE_HANDLE_EX_FLAG_PIN[\s\S]*GetModuleHandleExA\([\s\S]*accessxi_searchhook_init" "searchhook must pin its own DLL by function address so patched POL imports cannot jump into an unloaded module"
+Assert-Matches "has_auction_rows[\s\S]*data\[0x0B\]\s*==\s*0x95[\s\S]*latest_auction_rows_bundle\.bin" "searchhook must publish AH 0x95 row bundles separately from player-search row bundles"
+Assert-Matches "const char magic\[8\]\s*=\s*\{\s*'A',\s*'X',\s*'A',\s*'H',\s*'B',\s*'0',\s*'0',\s*'1'\s*\}" "auction row bundles must use their own magic header"
 
 Assert-Matches "hook_send[\s\S]*auto original = g_send;[\s\S]*if \(original == nullptr\)[\s\S]*return SOCKET_ERROR;[\s\S]*HookCallGuard guard;[\s\S]*if \(!searchhook_is_shutting_down\(\)" "send hook must snapshot original, guard in-flight, and skip processing during shutdown"
 Assert-Matches "hook_recv[\s\S]*auto original = g_recv;[\s\S]*if \(original == nullptr\)[\s\S]*return SOCKET_ERROR;[\s\S]*HookCallGuard guard;[\s\S]*const int ret = original\(s, buf, len, flags\);[\s\S]*if \(!searchhook_is_shutting_down\(\) && ret > 0" "recv hook must use local original and suppress processing during shutdown"
@@ -59,6 +64,9 @@ if ($source.Contains('write_iat_slot(g_recvfrom_slot, reinterpret_cast<ULONG_PTR
 }
 if ($source.Contains('write_iat_slot(g_wsarecv_slot, reinterpret_cast<ULONG_PTR>(&hook_wsarecv))')) {
     throw "WSARecv must not be patched for searchhook; keep the packet hook surface to recv/send only"
+}
+if ($source -match "C:\\\\Users\\\\buu42") {
+    throw "searchhook source must not contain user-specific hardcoded paths"
 }
 
 Write-Host "ok"

@@ -105,7 +105,7 @@ Assert-Match `
 
 Assert-Match `
     -Text $zoneOpenBody `
-    -Pattern 'Control numpad 7 and 9 change categories\. Control numpad 1 and 3 move destinations\. Control numpad plus starts route\.' `
+    -Pattern 'U selects the previous category\..*?O selects the next category\..*?J selects the previous destination\..*?K repeats\..*?L selects the next destination\..*?I starts the selected route or stops active navigation\.' `
     -Message '/axi zonesearch should announce browser controls instead of immediately starting a route.'
 
 Assert-NotMatch `
@@ -114,14 +114,14 @@ Assert-NotMatch `
     -Message '/axi zonesearch should not immediately start routing before the user selects a result.'
 
 $zoneStartIndex = $source.IndexOf('function accessxi.nav_zone_search_start_next_leg')
-$zoneEndIndex = $source.IndexOf('local function nav_route_stop', $zoneStartIndex)
+$zoneEndIndex = $source.IndexOf('nav_route_stop = function', $zoneStartIndex)
 if ($zoneStartIndex -lt 0 -or $zoneEndIndex -lt 0) {
     throw 'Could not locate zone search start block.'
 }
 $zoneSearchBody = $source.Substring($zoneStartIndex, $zoneEndIndex - $zoneStartIndex)
 
 $menuStartIndex = $source.IndexOf('local function nav_menu_start_route')
-$menuStartEndIndex = $source.IndexOf('local function nav_menu_handle_key', $menuStartIndex)
+$menuStartEndIndex = $source.IndexOf('local function nav_menu_handle_action', $menuStartIndex)
 if ($menuStartIndex -lt 0 -or $menuStartEndIndex -lt 0) {
     throw 'Could not locate nav menu route start block.'
 }
@@ -187,7 +187,7 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
-    -Pattern "local function nav_route_stop\(\)[\s\S]*?accessxi\.nav_clear_zone_search\(\)" `
+    -Pattern "nav_route_stop = function\s*\(\)[\s\S]*?accessxi\.nav_clear_zone_search\(\)" `
     -Message 'Stopping a route should cancel pending zone search.'
 
 Write-Host 'nav zone search command checks ok'

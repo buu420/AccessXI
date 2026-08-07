@@ -27,21 +27,10 @@ function Assert-NotMatch {
     }
 }
 
-Assert-Match -Text $source -Pattern "VK_NUMPAD1\s*=\s*0x61[;,]" -Message 'Expected Control+Numpad1 nav destination-back hotkey constant.'
-Assert-Match -Text $source -Pattern "VK_NUMPAD3\s*=\s*0x63[;,]" -Message 'Expected Control+Numpad3 nav destination-forward hotkey constant.'
-Assert-Match -Text $source -Pattern "VK_NUMPAD7\s*=\s*0x67[;,]" -Message 'Expected Control+Numpad7 nav category-back hotkey constant.'
-Assert-Match -Text $source -Pattern "VK_NUMPAD9\s*=\s*0x69[;,]" -Message 'Expected Control+Numpad9 nav category-forward hotkey constant.'
-Assert-Match -Text $source -Pattern "VK_ADD\s*=\s*0x6B[;,]" -Message 'Expected Control+NumpadPlus nav route-start hotkey constant.'
-
 Assert-Match `
     -Text $source `
-    -Pattern "(?s)function accessxi\.nav_keypad_control_down\(\).*?GetAsyncKeyState\(VK_CONTROL\)" `
-    -Message 'Nav browser should require Control before accepting numpad controls.'
-
-Assert-Match `
-    -Text $source `
-    -Pattern "Control numpad 7 and 9 change categories\. Control numpad 1 and 3 move destinations\. Control numpad plus starts route\." `
-    -Message 'Nav browser prompt should describe the keypad-only controls.'
+    -Pattern "U selects the previous category\..*?O selects the next category\..*?J selects the previous destination\..*?K repeats\..*?L selects the next destination\..*?I starts the selected route or stops active navigation\." `
+    -Message 'Nav browser prompt should describe the bare-letter controls with I as the only route start and stop key.'
 
 Assert-Match `
     -Text $source `
@@ -73,7 +62,7 @@ Assert-NotMatch `
     -Pattern "function accessxi\.nav_menu_control_key" `
     -Message 'AXI nav should not expose a native-menu-style key callback control helper.'
 
-$navHandleStart = $source.IndexOf('local function nav_menu_handle_key')
+$navHandleStart = $source.IndexOf('local function nav_menu_handle_action')
 $navHandleEnd = $source.IndexOf('accessxi.poll_nav_browser_hotkeys', $navHandleStart)
 if ($navHandleStart -lt 0 -or $navHandleEnd -lt 0) {
     throw 'Could not locate nav browser key handler.'
@@ -85,11 +74,13 @@ Assert-NotMatch `
     -Pattern "VK_RETURN|VK_LEFT|VK_RIGHT|VK_UP|VK_DOWN|VK_N(?!UMPAD)" `
     -Message 'Nav browser handler should not use FFXI menu keys or Control+N.'
 
-Assert-Match -Text $navHandleBody -Pattern "(?s)VK_NUMPAD7.*?nav_menu_category_move\(-1\)" -Message 'Control+Numpad7 should move nav categories backward.'
-Assert-Match -Text $navHandleBody -Pattern "(?s)VK_NUMPAD9.*?nav_menu_category_move\(1\)" -Message 'Control+Numpad9 should move nav categories forward.'
-Assert-Match -Text $navHandleBody -Pattern "(?s)VK_NUMPAD1.*?nav_menu_move\(-1\)" -Message 'Control+Numpad1 should move nav destinations backward.'
-Assert-Match -Text $navHandleBody -Pattern "(?s)VK_NUMPAD3.*?nav_menu_move\(1\)" -Message 'Control+Numpad3 should move nav destinations forward.'
-Assert-Match -Text $navHandleBody -Pattern "(?s)VK_ADD.*?nav_menu_start_route\(\)" -Message 'Control+NumpadPlus should start the selected nav route.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'previous_category'.*?nav_menu_category_move\(-1\)" -Message 'U should move nav categories backward.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'next_category'.*?nav_menu_category_move\(1\)" -Message 'O should move nav categories forward.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'previous_item'.*?nav_menu_move\(-1\)" -Message 'J should move nav destinations backward.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'repeat_item'.*?nav_menu_move\(0\)" -Message 'K should repeat the current nav destination.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'next_item'.*?nav_menu_move\(1\)" -Message 'L should move nav destinations forward.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'start_route'.*?nav_menu_start_route\(\)" -Message 'I should start the selected route when navigation is inactive.'
+Assert-Match -Text $navHandleBody -Pattern "(?s)action == 'stop_route'.*?nav_route_stop\(\)" -Message 'I should stop active or pending navigation.'
 
 $navPollStart = $source.IndexOf('accessxi.poll_nav_browser_hotkeys')
 $navPollEnd = $source.IndexOf('local function nav_find_point', $navPollStart)
@@ -103,11 +94,8 @@ Assert-NotMatch `
     -Pattern "VK_RETURN|VK_LEFT|VK_RIGHT|VK_UP|VK_DOWN|VK_N(?!UMPAD)" `
     -Message 'Nav browser polling should not watch Enter, arrows, or Control+N.'
 
-Assert-Match -Text $navPollBody -Pattern "GetAsyncKeyState\(accessxi\.VK_NUMPAD7\)" -Message 'Nav browser should poll Control+Numpad7.'
-Assert-Match -Text $navPollBody -Pattern "GetAsyncKeyState\(accessxi\.VK_NUMPAD9\)" -Message 'Nav browser should poll Control+Numpad9.'
-Assert-Match -Text $navPollBody -Pattern "GetAsyncKeyState\(accessxi\.VK_NUMPAD1\)" -Message 'Nav browser should poll Control+Numpad1.'
-Assert-Match -Text $navPollBody -Pattern "GetAsyncKeyState\(accessxi\.VK_NUMPAD3\)" -Message 'Nav browser should poll Control+Numpad3.'
-Assert-Match -Text $navPollBody -Pattern "GetAsyncKeyState\(accessxi\.VK_ADD\)" -Message 'Nav browser should poll Control+NumpadPlus.'
+Assert-Match -Text $navPollBody -Pattern "navigation_hotkeys\.poll" -Message 'Nav browser should poll the tested bare-letter input policy.'
+Assert-NotMatch -Text $navPollBody -Pattern "VK_NUMPAD1|VK_NUMPAD3|VK_NUMPAD7|VK_NUMPAD9|VK_ADD|nav_keypad_control_down" -Message 'All old numpad navigation controls, including duplicate route start, should be removed.'
 
 $navOpenStart = $source.IndexOf('local function nav_open_menu')
 $navOpenEnd = $source.IndexOf('local function nav_close_menu', $navOpenStart)
@@ -169,7 +157,7 @@ Assert-Match `
     -Message 'Search Results category should return cached results rather than filtering the current category.'
 
 $navStartStart = $source.IndexOf('local function nav_menu_start_route')
-$navStartEnd = $source.IndexOf('local function nav_menu_handle_key', $navStartStart)
+$navStartEnd = $source.IndexOf('local function nav_menu_handle_action', $navStartStart)
 if ($navStartStart -lt 0 -or $navStartEnd -lt 0) {
     throw 'Could not locate nav selected-route start helper.'
 }
@@ -246,8 +234,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $presentBody `
-    -Pattern "(?s)if \(accessxi\.nav_zoning_watch_active\(now\) or accessxi\.nav_zone_load_settle_active\(now\)\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*return;\s*end\s*poll_nav_position\(\);.*?accessxi\.poll_compass_hotkey\(\)" `
-    -Message 'Present loop should stop normal addon polling and avoid player/entity position reads while a zone-line loading handoff or post-zone settle is pending.'
+    -Pattern "(?s)if \(accessxi\.nav_zoning_watch_active\(now\) or accessxi\.nav_zone_load_settle_active\(now\)\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*return;\s*end\s*poll_nav_position\(\);.*?accessxi\.poll_compass_hotkey\(\)" `
+    -Message 'Present loop should preserve explicit route recording but stop normal addon polling while a zone-line loading handoff or post-zone settle is pending.'
 
 Assert-Match `
     -Text $source `

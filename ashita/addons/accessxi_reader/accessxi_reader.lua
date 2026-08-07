@@ -134,6 +134,7 @@ ffi.cdef[[
     BOOL __stdcall GetFileTime(void* hFile, FILETIME* lpCreationTime, FILETIME* lpLastAccessTime, FILETIME* lpLastWriteTime);
     BOOL __stdcall ReadFile(void* hFile, void* lpBuffer, DWORD nNumberOfBytesToRead, DWORD* lpNumberOfBytesRead, void* lpOverlapped);
     BOOL __stdcall CloseHandle(void* hObject);
+    BOOL __stdcall MoveFileExW(LPCWCH lpExistingFileName, LPCWCH lpNewFileName, DWORD dwFlags);
     BOOL __stdcall PlaySoundW(LPCWCH pszSound, void* hmod, DWORD fdwSound);
     short GetAsyncKeyState(int vKey);
     typedef struct MEMORY_BASIC_INFORMATION {
@@ -381,7 +382,7 @@ local accessxi = T{
     VK_NUMPAD7 = 0x67,
     VK_NUMPAD8 = 0x68,
     VK_NUMPAD9 = 0x69,
-    VK_ADD = 0x6B,
+    VK_W = 0x57,
     ptrs = T{
         license     = 0,
         lobby       = 0,
@@ -406,12 +407,16 @@ local accessxi = T{
     menu_title_prefix_spoken_title = '',
     menu_title_prefix_spoken_tick = 0,
     log_path = accessxi_paths.addon_path('logs', 'ffxi-menu-reader.log'),
-    chat_history_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history.tsv'),
+    chat_history_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history-v2.tsv'),
+    chat_history_legacy_path = accessxi_paths.addon_path('logs', 'ffxi-chat-history.tsv'),
     prism_dll_path = accessxi_paths.ashita_path('polplugins', 'prism.dll'),
     prism_last_error = '',
     prism_last_error_log = '',
     prism_retry_after = 0,
     searchhook_dll_path = accessxi_paths.addon_path('accessxi_searchhook.dll'),
+    searchhook_latest_plain_path = accessxi_paths.addon_path('logs', 'searchhook', 'latest_server_plain.bin'),
+    searchhook_auction_bundle_path = accessxi_paths.addon_path('logs', 'searchhook', 'latest_auction_rows_bundle.bin'),
+    searchhook_auction_plain_path = accessxi_paths.addon_path('logs', 'searchhook', 'latest_auction_rows_plain.bin'),
     searchhook_plain_path = accessxi_paths.addon_path('logs', 'searchhook', 'latest_server_rows_plain.bin'),
     searchhook_bundle_path = accessxi_paths.addon_path('logs', 'searchhook', 'latest_server_rows_bundle.bin'),
     searchhook = nil,
@@ -506,6 +511,42 @@ local accessxi = T{
     delivery_box_packet_trace_limit = 0,
     delivery_box_packet_trace_key = '',
     delivery_box_packet_capture_key = '',
+    auction_packet_trace_until = 0,
+    auction_packet_trace_count = 0,
+    auction_packet_trace_limit = 0,
+    auction_packet_trace_key = '',
+    auction_packet_trace_reason = '',
+    auction_packet_trace_fields_logged = false,
+    auction_packet_trace_variant_count = 0,
+    auction_packet_trace_variant_limit = 0,
+    last_auction_item_list_memory_probe_key = '',
+    last_auction_item_list_memory_probe_tick = 0,
+    last_auction_item_list_pointer_probe_key = '',
+    last_auction_item_list_pointer_probe_tick = 0,
+    auction_last_bid_category = '',
+    auction_last_weapon_category = '',
+    auction_current_ah_category_id = 0,
+    auction_current_ah_category_label = '',
+    auction_selected_item_context = nil,
+    auction_price_history_rows = {},
+    auction_price_history_context_key = '',
+    auction_price_history_context_item = '',
+    auction_price_history_context_item_id = 0,
+    auction_price_history_context_tick = 0,
+    auction_item_packet_rows = {},
+    auction_item_packet_total = 0,
+    auction_item_packet_tick = 0,
+    auction_item_packet_key = '',
+    auction_item_packet_capture_key = '',
+    auction_item_packet_chunks = 0,
+    auction_item_packet_category_id = 0,
+    auction_sales_status_rows = {},
+    auction_sales_status_tick = 0,
+    auction_sales_status_key = '',
+    auction_sales_status_capture_key = '',
+    auction_sales_status_change_key = '',
+    auction_sales_status_context_tick = 0,
+    auction_sales_status_empty_key = '',
     last_currency_menu_probe_key = '',
     last_currency_menu_probe_tick = 0,
     last_currency_resource_key = '',
@@ -560,6 +601,8 @@ local accessxi = T{
     key_items_dat_order_load_tried = false,
     key_items_dat_details = nil,
     key_items_dat_details_load_tried = false,
+    key_items_dynamic_rows = nil,
+    key_items_dynamic_rows_load_tried = false,
     adventuring_primer_article_titles = nil,
     adventuring_primer_article_titles_load_tried = false,
     adventuring_primer_article_details = nil,
@@ -995,7 +1038,10 @@ local accessxi = T{
     chat_reader_category_index = 1,
     chat_reader_positions = T{},
     chat_reader_last_key = 0,
-    chat_reader_last_key_tick = 0,
+    chat_reader_keys_armed = true,
+    chat_history_cache_ready = false,
+    chat_history_cache_load_handled = false,
+    chat_history_cache_write_blocked = false,
     last_npc_text_key = '',
     last_npc_text_tick = 0,
     npc_text_hold_until = 0,
@@ -1049,13 +1095,40 @@ local accessxi = T{
     nav_points_path = accessxi_paths.addon_path('data', 'ffxi-nav-points.tsv'),
     nav_discoveries_path = accessxi_paths.addon_path('data', 'ffxi-nav-discoveries.tsv'),
     nav_database_path = accessxi_paths.addon_path('data', 'ffxi-nav-destinations.tsv'),
+    nav_recorded_marks_path = accessxi_paths.addon_path('data', 'ffxi-nav-recorded-marks.tsv'),
+    nav_recorded_survey_path = accessxi_paths.addon_path('data', 'ffxi-nav-recorded-survey.tsv'),
     nav_zoneline_graph_path = accessxi_paths.addon_path('data', 'ffxi-nav-zoneline-graph.tsv'),
     nav_zoneline_edges = T{},
     nav_zoneline_edges_loaded = false,
     nav_route_overrides_path = accessxi_paths.addon_path('data', 'ffxi-nav-route-overrides.tsv'),
     nav_route_overrides = T{},
     nav_route_overrides_loaded = false,
+    nav_recorded_survey_loaded = false,
+    nav_recorded_survey_load_error = '',
+    nav_recorded_survey_nodes = T{},
     nav_route_evidence_path = accessxi_paths.addon_path('data', 'ffxi-nav-route-evidence.tsv'),
+    nav_route_recorder_path = accessxi_paths.addon_path('logs', 'ffxi-nav-route-recordings.tsv'),
+    axi_external_control_path = accessxi_paths.addon_path('logs', 'ffxi-accessxi-control.txt'),
+    axi_external_control_poll_tick = 0,
+    axi_external_control_poll_ms = 150,
+    axi_drive_directinput_key = 0,
+    axi_drive_until = 0,
+    axi_drive_direction = '',
+    axi_drive_min_ms = 50,
+    axi_drive_max_ms = 500,
+    nav_route_recorder_active = false,
+    nav_route_recorder_name = '',
+    nav_route_recorder_session = '',
+    nav_route_recorder_sample_count = 0,
+    nav_route_recorder_min_interval_ms = 500,
+    nav_route_recorder_min_distance = 1.0,
+    nav_route_recorder_last_tick = 0,
+    nav_route_recorder_last_write_tick = 0,
+    nav_route_recorder_last_x = nil,
+    nav_route_recorder_last_z = nil,
+    nav_route_recorder_last_y = nil,
+    nav_route_recorder_last_zone = 0,
+    nav_route_recorder_last_unavailable_tick = 0,
     nav_mesh_dll_path = accessxi_paths.addon_path('third_party', 'FFXI-NavMesh-Builder', 'FFXINAV.dll'),
     nav_mesh_dir = accessxi_paths.addon_path('third_party', 'xiNavmeshes'),
     nav_mesh_name_cache = {},
@@ -1066,13 +1139,29 @@ local accessxi = T{
     nav_beacon_winmm = nil,
     nav_beacon_last_tick = 0,
     nav_beacon_last_key = '',
+    nav_route_poll_ms = 850,
+    nav_precise_route_track_tick = 0,
+    nav_precise_return_target = nil,
+    nav_precise_return_points = nil,
+    nav_precise_return_segment = 0,
     nav_collision_sound_dir = accessxi_paths.addon_path('sounds', 'nav_collision'),
     nav_collision_sounds_ready = false,
     nav_collision_recent_movement_ms = 4200,
+    nav_collision_input_intent_ms = 1200,
+    nav_collision_forward_hold_ms = 30000,
+    nav_collision_route_contact_sound_ms = 850,
+    nav_door_wait_until = 0,
+    nav_door_pause_until = 0,
+    nav_door_x = nil,
+    nav_door_z = nil,
+    nav_door_route_unit_x = nil,
+    nav_door_route_unit_z = nil,
+    nav_door_wait_key = '',
+    nav_door_wait_name = '',
     nav_collision_freewalk_recent_ms = 1800,
     nav_collision_freewalk_poll_ms = 90,
-    nav_collision_freewalk_hold_ms = 240,
-    nav_collision_freewalk_sound_ms = 260,
+    nav_collision_freewalk_hold_ms = 850,
+    nav_collision_freewalk_sound_ms = 850,
     nav_collision_freewalk_turn_radians = 0.18,
     nav_collision_quiet_until = 0,
     nav_collision_quiet_reason = '',
@@ -1085,6 +1174,8 @@ local accessxi = T{
     nav_collision_control_interrupt_reason = '',
     nav_collision_control_interrupt_tick = 0,
     nav_collision_control_last_log_key = '',
+    nav_collision_forward_intent_tick = 0,
+    nav_collision_forward_intent_key = 0,
     nav_movement_blocking_menu_last_key = '',
     nav_movement_blocking_menu_last_tick = 0,
     beacon_audio_busy_until = 0,
@@ -1107,6 +1198,11 @@ local accessxi = T{
     nav_route_points = T{},
     nav_route_point_index = 1,
     nav_route_last_recalc_tick = 0,
+    nav_route_live_replan_last_key = '',
+    nav_route_live_replan_last_tick = 0,
+    nav_route_last_reject_reason = '',
+    nav_transport_transition = nil,
+    nav_dangruf_fount_drop_transition = nil,
     nav_active = false,
     nav_destination = nil,
     nav_live_route_missing_since = 0,
@@ -1115,6 +1211,10 @@ local accessxi = T{
     nav_zone_search_waiting_zone = 0,
     nav_zone_search_waiting_from_zone = 0,
     nav_zone_search_last_replan_tick = 0,
+    nav_same_zone_reentry_edges = T{},
+    nav_same_zone_reentry_index = 0,
+    nav_same_zone_reentry_origin_zone = 0,
+    nav_same_zone_reentry_neighbor_zone = 0,
     nav_route_start_point = nil,
     nav_route_start_tick = 0,
     nav_last_key = '',
@@ -1141,6 +1241,8 @@ local accessxi = T{
     nav_collision_freewalk_last_poll_tick = 0,
     nav_collision_freewalk_last_sound_tick = 0,
     nav_collision_freewalk_last_log_key = '',
+    nav_collision_route_contact_last_sound_tick = 0,
+    nav_collision_route_contact_last_log_key = '',
     nav_movement_last_x = nil,
     nav_movement_last_z = nil,
     nav_movement_last_tick = 0,
@@ -1394,6 +1496,35 @@ function accessxi.load_menu_code_module(name, env)
 end
 
 accessxi.debug_commands = accessxi.load_module_table('debug_commands', T{});
+accessxi.load_code_module('speech_format');
+accessxi.synthesis_slots = accessxi.load_module_table('synthesis_slots', T{});
+accessxi.quick_status_hotkeys = accessxi.load_module_table('quick_status_hotkeys', T{});
+if (type(accessxi.quick_status_hotkeys.new_state) == 'function') then
+    accessxi.quick_status_hotkey_state = accessxi.quick_status_hotkeys.new_state();
+else
+    accessxi.quick_status_hotkey_state = {};
+end
+accessxi.navigation_hotkeys = accessxi.load_module_table('navigation_hotkeys', T{});
+if (type(accessxi.navigation_hotkeys.new_state) == 'function') then
+    accessxi.navigation_hotkey_state = accessxi.navigation_hotkeys.new_state();
+else
+    accessxi.navigation_hotkey_state = {};
+end
+accessxi.gear_detail_hotkeys = accessxi.load_module_table('gear_detail_hotkeys', T{});
+if (type(accessxi.gear_detail_hotkeys.new_state) == 'function') then
+    accessxi.gear_detail_hotkey_state = accessxi.gear_detail_hotkeys.new_state();
+else
+    accessxi.gear_detail_hotkey_state = {};
+end
+accessxi.detail_summary_navigation = accessxi.load_menu_module_table('detail_summary_navigation', T{});
+accessxi.records_of_eminence_detail_navigation = accessxi.load_menu_module_table('records_of_eminence_detail_navigation', T{});
+if (type(accessxi.detail_summary_navigation.new_state) == 'function') then
+    accessxi.quest_detail_summary_state = accessxi.detail_summary_navigation.new_state();
+    accessxi.mission_detail_summary_state = accessxi.detail_summary_navigation.new_state();
+else
+    accessxi.quest_detail_summary_state = {};
+    accessxi.mission_detail_summary_state = {};
+end
 
 local function utf8_to_wide(text)
     local needed = kernel32.MultiByteToWideChar(CP_UTF8, 0, text, #text, nil, 0);
@@ -4479,7 +4610,7 @@ end
 
 function accessxi.mission_rom_order_text_from_runs(runs)
     if (type(runs) ~= 'table') then
-        return '', '';
+        return '', '', T{};
     end
 
     local heading = '';
@@ -4512,13 +4643,13 @@ function accessxi.mission_rom_order_text_from_runs(runs)
     end
 
     if (heading == '' and body:len() == 0 and headingless_body:len() > 0) then
-        return '', accessxi.survival_guide_text(headingless_body:concat(' '));
+        return '', accessxi.survival_guide_text(headingless_body:concat(' ')), headingless_body;
     end
     if (heading == '' or body:len() == 0) then
-        return '', '';
+        return '', '', T{};
     end
 
-    return heading, accessxi.survival_guide_text(body:concat(' '));
+    return heading, accessxi.survival_guide_text(body:concat(' ')), body;
 end
 
 accessxi.mission_rom_tables = T{
@@ -5023,7 +5154,7 @@ function accessxi.load_mission_rom_rows(context)
         local rec = base + ((ordinal - 1) * stride);
         local label = accessxi.cop_rom_decoded_text(data, rec + 0x3C, stride - 0x3C);
         local text_runs = accessxi.cop_rom_decoded_text_runs(data, rec + 0x3C, stride - 0x3C);
-        local orders_heading, orders = accessxi.mission_rom_order_text_from_runs(text_runs);
+        local orders_heading, orders, orders_lines = accessxi.mission_rom_order_text_from_runs(text_runs);
         local mission_id = accessxi.cop_rom_decoded_u32(data, rec + 0x1C);
         if (label ~= '') then
             local row = {
@@ -5033,6 +5164,7 @@ function accessxi.load_mission_rom_rows(context)
                 rom_ordinal = ordinal,
                 orders_heading = orders_heading,
                 orders = orders,
+                orders_lines = orders_lines,
                 orders_source = orders ~= '' and ('%s _msg xor row %d mission orders'):fmt(rows.relpath, ordinal) or '',
             };
             rows[ordinal] = row;
@@ -5098,7 +5230,7 @@ function accessxi.load_cop_mission_rom_rows()
         local rec = base + ((ordinal - 1) * stride);
         local label = accessxi.cop_rom_decoded_text(data, rec + 0x3C, stride - 0x3C);
         local text_runs = accessxi.cop_rom_decoded_text_runs(data, rec + 0x3C, stride - 0x3C);
-        local orders_heading, orders = accessxi.mission_rom_order_text_from_runs(text_runs);
+        local orders_heading, orders, orders_lines = accessxi.mission_rom_order_text_from_runs(text_runs);
         local mission_id = accessxi.cop_rom_decoded_u32(data, rec + 0x1C);
         if (label ~= '') then
             local row = {
@@ -5108,6 +5240,7 @@ function accessxi.load_cop_mission_rom_rows()
                 rom_ordinal = ordinal,
                 orders_heading = orders_heading,
                 orders = orders,
+                orders_lines = orders_lines,
                 orders_source = orders ~= '' and ('ROM\\176\\71.DAT _msg xor row %d mission orders'):fmt(ordinal) or '',
             };
             rows[ordinal] = row;
@@ -5620,6 +5753,92 @@ function accessxi.missions_menu_detail_speech(title, context, row)
     end
     parts:append(orders);
     return accessxi.sentence_fragment(parts:concat('. '));
+end
+
+function accessxi.mission_detail_summary_lines(row)
+    if (type(row) ~= 'table' or type(row.orders_lines) ~= 'table') then
+        return nil, 'missing-mission-order-lines';
+    end
+
+    local label = tostring(row.label or ''):trim();
+    if (label == '') then
+        return nil, 'missing-mission-label';
+    end
+
+    local lines = T{};
+    lines:append(label);
+    local heading = tostring(row.orders_heading or ''):gsub(':%s*$', ''):trim();
+    if (heading ~= '') then
+        lines:append(heading);
+    end
+    for _, value in ipairs(row.orders_lines) do
+        local text = tostring(value or ''):trim();
+        if (text ~= '') then
+            lines:append(text);
+        end
+    end
+    if (#lines <= 1) then
+        return nil, 'empty-mission-order-lines';
+    end
+    return lines, 'mission-rom-order-lines';
+end
+
+function accessxi.mission_detail_summary_surface_key(menu_name, context, row, obj)
+    if (type(row) ~= 'table') then
+        return '';
+    end
+    obj = tonumber(obj) or 0;
+    if (not accessxi.is_probe_pointer(obj)) then
+        return '';
+    end
+    local label = tostring(row.label or ''):trim();
+    if (label == '') then
+        return '';
+    end
+    return ('mission-summary:%s:0x%08X:%s:%d:%d:%s'):fmt(
+        tostring(menu_name or ''),
+        obj,
+        tostring(context or ''),
+        tonumber(row.mission_id) or 0,
+        tonumber(row.rom_ordinal) or 0,
+        label);
+end
+
+function accessxi.reset_mission_detail_summary_surface()
+    if (type(accessxi.detail_summary_navigation) == 'table'
+        and type(accessxi.detail_summary_navigation.reset) == 'function') then
+        accessxi.detail_summary_navigation.reset(accessxi.mission_detail_summary_state);
+    end
+    accessxi.last_missions_menu_detail_summary_surface_key = '';
+    accessxi.last_missions_menu_detail_row = nil;
+    accessxi.last_missions_menu_detail_summary_tick = 0;
+    accessxi.last_missions_menu_detail_summary_obj = 0;
+    accessxi.last_missions_menu_detail_summary_context = '';
+end
+
+function accessxi.begin_mission_detail_summary_surface(menu_name, context, row, obj, desc_id)
+    if (type(accessxi.detail_summary_navigation) ~= 'table'
+        or type(accessxi.detail_summary_navigation.begin_surface) ~= 'function') then
+        return '';
+    end
+    obj = tonumber(obj) or get_current_menu_object_ptr();
+    local position = tonumber(read_current_native_menu_index(0x4C)) or 0;
+    local surface_key = accessxi.mission_detail_summary_surface_key(menu_name, context, row, obj);
+    if (surface_key == '' or position <= 0) then
+        return '';
+    end
+
+    if (surface_key ~= tostring(accessxi.last_missions_menu_detail_summary_surface_key or '')) then
+        accessxi.detail_summary_navigation.begin_surface(
+            accessxi.mission_detail_summary_state, surface_key, position);
+    end
+    accessxi.last_missions_menu_detail_summary_surface_key = surface_key;
+    accessxi.last_missions_menu_detail_row = row;
+    accessxi.last_missions_menu_detail_summary_tick = tick();
+    accessxi.last_missions_menu_detail_summary_obj = obj;
+    accessxi.last_missions_menu_detail_summary_context = tostring(context or '');
+    accessxi.last_missions_menu_detail_summary_desc_id = tonumber(desc_id) or 0;
+    return surface_key;
 end
 
 function accessxi.missions_menu_detail_hold_ms(text)
@@ -9752,6 +9971,7 @@ function accessxi.home_point_query_normalize_phrase(phrase)
         T{ 'Bastok Markets', 'Bastok Markets' },
         T{ 'Port Bastok', 'Port Bastok' },
         T{ 'Metalworks', 'Metalworks' },
+        T{ 'Windurst Waters', 'Windurst Waters' },
         T{ 'Windurst Walls', 'Windurst Walls' },
         T{ 'Port Windurst', 'Port Windurst' },
         T{ 'Windurst Woods', 'Windurst Woods' },
@@ -20952,22 +21172,6 @@ function accessxi.log_key_items_parent_probe(menu_name, title, selected, count, 
         accessxi.escape_probe_log_text(accessxi.status_menu_probe_pointer_fields(entry))));
 end
 
-accessxi.key_items_parent_categories = T{
-    -- Category names are from Windower's generated key_items.lua category
-    -- field. Order follows the live Key Items parent menu verified against the
-    -- native row index and the in-game screenshot.
-    [0] = 'Temporary Key Items',
-    [1] = 'Permanent Key Items',
-    [2] = 'Abyssea',
-    [3] = 'Voidwatch',
-    [4] = 'Geas Fete',
-    [5] = 'Mounts',
-    [6] = 'Mog Garden',
-    [7] = 'Magical Maps',
-    [8] = 'Claim Slips',
-    [9] = 'Active Effects',
-};
-
 function accessxi.key_items_context_active()
     local now = tick();
     if ((tonumber(accessxi.key_items_context_until) or 0) < now) then
@@ -20980,27 +21184,39 @@ function accessxi.key_items_context_active()
     return true;
 end
 
-function accessxi.key_items_parent_native_shape(child, count)
-    count = tonumber(count) or 0;
+function accessxi.key_items_native_view_kind(child)
     child = tonumber(child) or 0;
-    if (count ~= 10 or not accessxi.is_probe_pointer(child)) then
-        return false;
+    if (not accessxi.is_probe_pointer(child)) then
+        return nil, -1;
     end
-    local range_start = tonumber(read_u32(child + 0x3C)) or -1;
-    local range_end = tonumber(read_u32(child + 0x40)) or -1;
-    return range_start == 2 and range_end == 10;
+    -- Ghidra: FFXiMain FUN_102292d0 builds native category headers and stores
+    -- state 1 at +0x90. FUN_10229ec0 builds the selected category's item rows,
+    -- and FUN_1022a600 stores state 2. Counts and scroll ranges can be identical
+    -- in the two views, so they must never be used as the view identity.
+    local native_state = tonumber(read_i32(child + 0x90)) or -1;
+    local dynamic = accessxi.load_key_items_dynamic_rows();
+    if (type(dynamic) ~= 'table' or type(dynamic.classify_native_view) ~= 'function') then
+        return nil, native_state;
+    end
+    return dynamic.classify_native_view(native_state), native_state;
+end
+
+function accessxi.key_items_parent_native_shape(child, count)
+    local view_kind = accessxi.key_items_native_view_kind(child);
+    return tostring(view_kind or ''):eq('categories', true);
 end
 
 function accessxi.key_items_sublist_context_active(count, child)
     count = tonumber(count) or 0;
     child = tonumber(child) or 0;
-    if (count <= 0 or count > 64 or not accessxi.is_probe_pointer(child)) then
+    if (count <= 0 or not accessxi.is_probe_pointer(child)) then
         return false;
     end
     if (not accessxi.key_items_context_active()) then
         return false;
     end
-    if (accessxi.key_items_parent_native_shape(child, count)) then
+    local view_kind = accessxi.key_items_native_view_kind(child);
+    if (not tostring(view_kind or ''):eq('items', true)) then
         return false;
     end
     if (tostring(accessxi.key_items_current_category_label or '') == '') then
@@ -21094,6 +21310,64 @@ function accessxi.load_key_items_dat_details()
     return nil;
 end
 
+function accessxi.load_key_items_dynamic_rows()
+    if (type(accessxi.key_items_dynamic_rows) == 'table') then
+        return accessxi.key_items_dynamic_rows;
+    end
+    if (accessxi.key_items_dynamic_rows_load_tried == true) then
+        return nil;
+    end
+    accessxi.key_items_dynamic_rows_load_tried = true;
+
+    local data = accessxi.load_module_table('key_items_dynamic_rows', nil);
+    if (type(data) == 'table'
+        and type(data.build_owned_rows) == 'function'
+        and type(data.resolve_selected_row) == 'function'
+        and type(data.build_category_rows) == 'function'
+        and type(data.classify_native_view) == 'function') then
+        accessxi.key_items_dynamic_rows = data;
+        log_line('loaded dynamic key items identity resolver');
+        return accessxi.key_items_dynamic_rows;
+    end
+
+    log_line('dynamic key items identity resolver unavailable');
+    return nil;
+end
+
+function accessxi.key_items_parent_category_rows()
+    if (type(accessxi.key_items_parent_category_rows_cache) == 'table') then
+        return accessxi.key_items_parent_category_rows_cache;
+    end
+
+    local resource = accessxi.load_key_items_resource();
+    local order = accessxi.load_key_items_dat_order();
+    local dynamic = accessxi.load_key_items_dynamic_rows();
+    if (type(resource) ~= 'table' or type(order) ~= 'table' or type(dynamic) ~= 'table'
+        or type(dynamic.build_category_rows) ~= 'function') then
+        return nil;
+    end
+
+    local built_rows = dynamic.build_category_rows(resource, order);
+    if (type(built_rows) ~= 'table' or #built_rows <= 0) then
+        return nil;
+    end
+
+    local rows = T{};
+    for _, row in ipairs(built_rows) do
+        local label = accessxi.plain_native_menu_label(tostring(row.label or ''));
+        local display_order = tonumber(row.order);
+        if (label == '' or display_order == nil) then
+            return nil;
+        end
+        rows:append({
+            label = label,
+            order = display_order,
+        });
+    end
+    accessxi.key_items_parent_category_rows_cache = rows;
+    return rows;
+end
+
 function accessxi.key_items_current_item_age()
     return tick() - (tonumber(accessxi.key_items_current_item_tick) or 0);
 end
@@ -21139,6 +21413,11 @@ function accessxi.key_items_effective_category(id, category)
     -- The client displays White Card under Permanent Key Items even though
     -- Windower's generated category currently tags it as Temporary.
     if (id == 349) then
+        return 'Permanent Key Items';
+    end
+    -- Cipher bracelet is present in the live DAT and ownership packet, but is
+    -- absent from Windower's generated key-items resource.
+    if (id == 3361) then
         return 'Permanent Key Items';
     end
     return category;
@@ -21227,9 +21506,10 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
     end
 
     do
-        local dat_rows = accessxi.key_items_owned_rows_for_category(category);
-        if (dat_rows ~= nil and dat_rows:len() == native_total) then
-            accessxi.key_items_native_order_cache[cache_key] = { rows = dat_rows, mode = 'dat-order+packet-owned' };
+        local dat_rows, dat_mode = accessxi.key_items_owned_rows_for_category(category);
+        if (dat_rows ~= nil) then
+            dat_mode = tostring(dat_mode or 'packet-owned+dat-order+identity-complete');
+            accessxi.key_items_native_order_cache[cache_key] = { rows = dat_rows, mode = dat_mode };
             local sample = T{};
             for i = 1, math.min(dat_rows:len(), 8) do
                 local row = dat_rows[i];
@@ -21240,7 +21520,7 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
                 child,
                 native_total,
                 accessxi.escape_probe_log_text(sample:concat(' | '))));
-            return dat_rows, 'dat-order+packet-owned';
+            return dat_rows, dat_mode;
         end
 
         local probe_active = ((tonumber(accessxi.key_items_order_probe_until) or 0) >= tick());
@@ -21252,273 +21532,87 @@ function accessxi.key_items_native_id_rows_for_category(category, child, native_
                 native_total,
                 dat_count));
         end
-        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = 'dat-order-count-mismatch' };
-        return nil, 'dat-order-count-mismatch';
+        dat_mode = tostring(dat_mode or 'unresolved-owned-identity');
+        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = dat_mode };
+        return nil, dat_mode;
     end
 
-    local resource = accessxi.load_key_items_resource();
-    if (type(resource) ~= 'table') then
-        accessxi.key_items_native_order_cache[cache_key] = { rows = nil, mode = 'no-resource' };
-        return nil, 'no-resource';
-    end
-
-    local function classify_id(id)
-        id = tonumber(id) or -1;
-        local entry = resource[id];
-        if (type(entry) ~= 'table') then
-            return nil, false, false;
-        end
-        local effective_category = accessxi.key_items_effective_category(id, entry.category or '');
-        local category_ok = effective_category:eq(category, true);
-        local owned = accessxi.key_items_packet_has_id(id);
-        local label = accessxi.key_items_resource_label(entry);
-        if (label == '') then
-            return nil, owned, category_ok;
-        end
-        return {
-            id = id,
-            label = label,
-            order = accessxi.key_items_display_order(effective_category, id),
-        }, owned, category_ok;
-    end
-
-    local function scan_layout(base_ptr, base_name, offset, stride, sample_total)
-        base_ptr = tonumber(base_ptr) or 0;
-        if (not accessxi.is_probe_pointer(base_ptr)) then
-            return nil;
-        end
-        local total = math.max(1, math.min(tonumber(sample_total) or native_total, native_total));
-        local stats = {
-            base = tostring(base_name or 'ptr'),
-            ptr = base_ptr,
-            offset = tonumber(offset) or 0,
-            stride = tonumber(stride) or 0,
-            any = 0,
-            owned = 0,
-            category = 0,
-            duplicate = 0,
-            invalid = 0,
-            score = 0,
-            sample = T{},
-        };
-        local rows = T{};
-        local seen = {};
-        local ok = true;
-        for i = 0, total - 1 do
-            local id = read_u16(base_ptr + offset + (i * stride));
-            local row, owned, category_ok = classify_id(id);
-            local id_key = tonumber(id) or -1;
-            if (row ~= nil) then
-                stats.any = stats.any + 1;
-            end
-            if (owned == true) then
-                stats.owned = stats.owned + 1;
-            end
-            if (row ~= nil and owned == true and category_ok == true) then
-                stats.category = stats.category + 1;
-            end
-            if (id_key >= 0 and seen[id_key] == true) then
-                stats.duplicate = stats.duplicate + 1;
-            end
-            if (row == nil or owned ~= true or category_ok ~= true or seen[id_key] == true) then
-                ok = false;
-                stats.invalid = stats.invalid + 1;
-            else
-                seen[id_key] = true;
-                rows:append(row);
-            end
-            if (stats.sample:len() < 8) then
-                local label = row ~= nil and tostring(row.label or '') or '';
-                local marker = (row ~= nil and owned == true and category_ok == true) and 'ok' or 'no';
-                stats.sample:append(('%d:%s:%s'):fmt(id_key, marker, label:gsub('"', "'")));
-            end
-        end
-        stats.score = (stats.category * 10000) + (stats.owned * 100) + stats.any - (stats.duplicate * 2000) - (stats.invalid * 50);
-        if (ok and rows:len() == total) then
-            stats.rows = rows;
-        end
-        return stats;
-    end
-
-    local function add_top_candidate(top, stats)
-        if (stats == nil) then
-            return;
-        end
-        top:append(stats);
-        table.sort(top, function (a, b)
-            local ascore = tonumber(a.score) or 0;
-            local bscore = tonumber(b.score) or 0;
-            if (ascore == bscore) then
-                local acat = tonumber(a.category) or 0;
-                local bcat = tonumber(b.category) or 0;
-                if (acat == bcat) then
-                    return (tonumber(a.offset) or 0) < (tonumber(b.offset) or 0);
-                end
-                return acat > bcat;
-            end
-            return ascore > bscore;
-        end);
-        while (top:len() > 10) do
-            table.remove(top);
-        end
-    end
-
-    local probe_active = ((tonumber(accessxi.key_items_order_probe_until) or 0) >= tick());
-    local sample_total = math.min(native_total, probe_active and 16 or 8);
-    local top_candidates = T{};
-    local bases = T{};
-    local seen_bases = {};
-    local function add_base(ptr, name)
-        ptr = tonumber(ptr) or 0;
-        if (accessxi.is_probe_pointer(ptr) and seen_bases[ptr] ~= true) then
-            seen_bases[ptr] = true;
-            bases:append({ ptr = ptr, name = tostring(name or 'ptr') });
-        end
-    end
-    add_base(child, 'child');
-    if (probe_active == true) then
-        for off = 0x40, 0x140, 4 do
-            add_base(read_u32(child + off) or 0, ('child+%03X*'):fmt(off));
-        end
-    end
-
-    local best_rows = nil;
-    local best_mode = 'native-id-layout-missing';
-    local best_score = -1;
-    local strides = probe_active == true
-        and T{ 2, 4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 64, 80, 0x70 }
-        or T{ 2, 0x14, 0x20, 0x70 };
-    for _, base in ipairs(bases) do
-        local max_offset = (base.ptr == child) and 0x300 or 0x120;
-        local offsets = T{};
-        for off = 0, max_offset, 2 do
-            offsets:append(off);
-        end
-        table.sort(offsets, function (a, b)
-            local ap = (base.ptr == child) and math.abs(a - 0x48) or math.abs(a);
-            local bp = (base.ptr == child) and math.abs(b - 0x48) or math.abs(b);
-            if (ap == bp) then
-                return a < b;
-            end
-            return ap < bp;
-        end);
-
-        for _, stride in ipairs(strides) do
-            for _, offset in ipairs(offsets) do
-                local stats = scan_layout(base.ptr, base.name, offset, stride, sample_total);
-                if (probe_active == true) then
-                    add_top_candidate(top_candidates, stats);
-                end
-                if (stats ~= nil and stats.category == sample_total and stats.duplicate == 0) then
-                    local full = scan_layout(base.ptr, base.name, offset, stride, native_total);
-                    if (full ~= nil and full.rows ~= nil and full.rows:len() == native_total and (tonumber(full.score) or 0) > best_score) then
-                        best_rows = full.rows;
-                        best_mode = ('native-id-layout+%s+%03X/%03X'):fmt(tostring(base.name or 'ptr'), offset, stride);
-                        best_score = tonumber(full.score) or 0;
-                    elseif (probe_active == true) then
-                        add_top_candidate(top_candidates, full);
-                    end
-                end
-            end
-        end
-    end
-
-    if (probe_active == true) then
-        local probe_key = ('%s:%08X:%d:%s'):fmt(category, child, native_total, cache_key);
-        if (probe_key ~= tostring(accessxi.last_key_items_native_scan_probe_key or '')) then
-            accessxi.last_key_items_native_scan_probe_key = probe_key;
-            for i = 1, math.min(top_candidates:len(), 8) do
-                local s = top_candidates[i];
-                log_state(('state key-items native-layout-scan category="%s" child=0x%08X total=%d rank=%d base="%s" ptr=0x%08X offset=0x%03X stride=0x%03X any=%d owned=%d category=%d dup=%d invalid=%d score=%d sample="%s"'):fmt(
-                    accessxi.escape_probe_log_text(category),
-                    child,
-                    native_total,
-                    i,
-                    accessxi.escape_probe_log_text(tostring(s.base or '')),
-                    tonumber(s.ptr) or 0,
-                    tonumber(s.offset) or 0,
-                    tonumber(s.stride) or 0,
-                    tonumber(s.any) or 0,
-                    tonumber(s.owned) or 0,
-                    tonumber(s.category) or 0,
-                    tonumber(s.duplicate) or 0,
-                    tonumber(s.invalid) or 0,
-                    tonumber(s.score) or 0,
-                    accessxi.escape_probe_log_text((s.sample or T{}):concat(' | '))));
-            end
-        end
-    end
-
-    local mode = best_rows ~= nil and best_mode or 'native-id-layout-missing';
-    accessxi.key_items_native_order_cache[cache_key] = { rows = best_rows, mode = mode };
-    if (best_rows ~= nil) then
-        local sample = T{};
-        for i = 1, math.min(best_rows:len(), 8) do
-            local row = best_rows[i];
-            sample:append(('%d:%d:%s'):fmt(i, tonumber(row.id) or 0, tostring(row.label or ''):gsub('"', "'")));
-        end
-        log_line(('key items native id order category="%s" child=0x%08X total=%d mode="%s" sample="%s"'):fmt(
-            accessxi.escape_probe_log_text(category),
-            child,
-            native_total,
-            mode,
-            accessxi.escape_probe_log_text(sample:concat(' | '))));
-    end
-    return best_rows, mode;
 end
 
 function accessxi.key_items_owned_rows_for_category(category)
     category = tostring(category or '');
     if (category == '') then
-        return nil;
+        return nil, 'category-missing';
     end
     accessxi.restore_key_items_packet_cache_if_needed();
     if (next(accessxi.key_items_packet_tables or {}) == nil) then
-        return nil;
+        return nil, 'no-packet-cache';
     end
 
     local cache_key = accessxi.key_items_packet_cache_key();
     local memo_key = ('%s:%s'):fmt(category, cache_key);
     accessxi.key_items_owned_cache = accessxi.key_items_owned_cache or {};
     if (accessxi.key_items_owned_cache[memo_key] ~= nil) then
-        return accessxi.key_items_owned_cache[memo_key];
+        return accessxi.key_items_owned_cache[memo_key], 'packet-owned+dat-order+identity-complete';
     end
 
     local resource = accessxi.load_key_items_resource();
-    if (type(resource) ~= 'table') then
-        return nil;
+    local details = accessxi.load_key_items_dat_details();
+    local order = accessxi.load_key_items_dat_order();
+    local dynamic = accessxi.load_key_items_dynamic_rows();
+    if (type(resource) ~= 'table' or type(details) ~= 'table'
+        or type(order) ~= 'table' or type(dynamic) ~= 'table') then
+        return nil, 'key-item-identity-source-missing';
+    end
+
+    local owned_ids = T{};
+    for id = 0, 4095 do
+        if (accessxi.key_items_packet_has_id(id)) then
+            owned_ids:append(id);
+        end
+    end
+    local category_overrides = T{
+        [349] = 'Permanent Key Items',
+        [3361] = 'Permanent Key Items',
+    };
+    local built_rows, unresolved = dynamic.build_owned_rows(
+        owned_ids,
+        resource,
+        details,
+        order,
+        category_overrides,
+        category);
+    local _, safety_mode = dynamic.resolve_selected_row(built_rows, 0, unresolved);
+    if (tostring(safety_mode or ''):eq('unresolved-owned-identity', true)) then
+        local ids = T{};
+        for _, row in ipairs(unresolved or {}) do
+            ids:append(tostring(tonumber(row.id) or -1));
+        end
+        local unresolved_key = ('%s:%s'):fmt(cache_key, ids:concat(','));
+        if (unresolved_key ~= tostring(accessxi.last_key_items_unresolved_identity_key or '')) then
+            accessxi.last_key_items_unresolved_identity_key = unresolved_key;
+            log_state(('state key-items unresolved-owned-identities ids="%s" safety="silence-without-row-shift"'):fmt(
+                accessxi.escape_probe_log_text(ids:concat(','))));
+        end
+        return nil, 'unresolved-owned-identity';
     end
 
     local rows = T{};
-    for id, entry in pairs(resource) do
-        id = tonumber(id) or tonumber(type(entry) == 'table' and entry.id or -1) or -1;
-        if (id >= 0 and type(entry) == 'table' and accessxi.key_items_packet_has_id(id)) then
-            local effective_category = accessxi.key_items_effective_category(id, entry.category or '');
-            if (effective_category:eq(category, true)) then
-                local label = accessxi.key_items_resource_label(entry);
-                local order = accessxi.key_items_display_order(effective_category, id);
-                if (label ~= '' and order ~= nil) then
-                    rows:append({
-                        id = id,
-                        label = label,
-                        order = order,
-                    });
-                end
-            end
+    for _, row in ipairs(built_rows or {}) do
+        local label = accessxi.key_items_resource_label({ en = tostring(row.label or '') });
+        if (label == '') then
+            return nil, 'key-item-label-missing';
         end
+        rows:append({
+            id = tonumber(row.id) or 0,
+            label = label,
+            order = tonumber(row.order),
+        });
     end
-    table.sort(rows, function (a, b)
-        local ao = tonumber(a.order) or 0;
-        local bo = tonumber(b.order) or 0;
-        if (ao == bo) then
-            return (tonumber(a.id) or 0) < (tonumber(b.id) or 0);
-        end
-        return ao < bo;
-    end);
 
     accessxi.key_items_owned_cache[memo_key] = rows;
-    return rows;
-end
+    return rows, 'packet-owned+dat-order+identity-complete';
+end -- key_items_owned_rows_for_category
 
 function accessxi.key_items_native_total(child)
     child = tonumber(child) or 0;
@@ -21703,10 +21797,12 @@ function accessxi.key_items_parent_category_speech(menu_name, selected, count, r
     end
 
     local index = tonumber(raw);
-    if (index == nil or index < 0 or index > 9) then
+    if (index == nil or index < 0) then
         return nil;
     end
-    local label = tostring(accessxi.key_items_parent_categories[index] or '');
+    local category_rows = accessxi.key_items_parent_category_rows();
+    local category_row = category_rows ~= nil and category_rows[index + 1] or nil;
+    local label = category_row ~= nil and tostring(category_row.label or '') or '';
     if (label == '') then
         return nil;
     end
@@ -21741,7 +21837,7 @@ function accessxi.key_items_parent_category_speech(menu_name, selected, count, r
             tonumber(child) or 0,
             accessxi.escape_probe_log_text(label)));
     end
-    return ('Key Items. %s.'):fmt(accessxi.sentence_fragment(label));
+    return accessxi.menu_selection_speech(label);
 end
 
 function accessxi.key_items_sublist_speech(menu_name, title, selected, count, page, raw, child, entry)
@@ -21770,7 +21866,7 @@ function accessxi.key_items_sublist_speech(menu_name, title, selected, count, pa
         probe_rows = accessxi.key_items_owned_rows_for_category(category);
     end
     accessxi.log_key_items_order_probe(menu_name, category, selected, count, page, index, child, entry, native_total, probe_rows, probe_rows ~= nil and probe_rows[index + 1] or nil);
-    if (rows ~= nil and native_total > 0 and rows:len() == native_total and index < rows:len()) then
+    if (rows ~= nil and index < rows:len()) then
         local row = rows[index + 1];
         local label = row ~= nil and tostring(row.label or '') or '';
         local key_item_id = row ~= nil and (tonumber(row.id) or 0) or 0;
@@ -21833,9 +21929,7 @@ function accessxi.key_items_sublist_speech(menu_name, title, selected, count, pa
                             accessxi.escape_probe_log_text(description),
                             entry_detail and 'entry-change' or 'selected-offset'));
                     end
-                    return ('Key item. %s. %s'):fmt(
-                        accessxi.sentence_fragment(label),
-                        accessxi.sentence_fragment(description));
+                    return accessxi.menu_selection_detail_speech(label, description);
                 end
             end
             if (absolute_detail_selected) then
@@ -21884,9 +21978,7 @@ function accessxi.key_items_sublist_speech(menu_name, title, selected, count, pa
                     native_total,
                     accessxi.escape_probe_log_text(row_mode or 'native-id-array')));
             end
-            return ('Key Items. %s. %s.'):fmt(
-                accessxi.sentence_fragment(category),
-                accessxi.sentence_fragment(label));
+            return accessxi.menu_selection_speech(label);
         end
     elseif (native_total > 0) then
         local row_count = rows ~= nil and rows:len() or 0;
@@ -21918,7 +22010,7 @@ function accessxi.key_items_menu_native_label_speech(menu_name, title, selected,
     count = tonumber(count) or 0;
     local raw_index = tonumber(raw);
     local absolute_detail_selected = (raw_index ~= nil and count > 0 and selected > count and selected == (raw_index + 1));
-    if (selected <= 0 or count <= 0 or (selected > count and not absolute_detail_selected) or count > 64 or not accessxi.is_probe_pointer(child)) then
+    if (selected <= 0 or count <= 0 or (selected > count and not absolute_detail_selected) or not accessxi.is_probe_pointer(child)) then
         return nil;
     end
 
@@ -21969,7 +22061,7 @@ function accessxi.key_items_menu_native_label_speech(menu_name, title, selected,
         tonumber(child) or 0,
         tostring(mode or ''),
         accessxi.escape_probe_log_text(label)));
-    return ('Key Items. %s.'):fmt(accessxi.sentence_fragment(label));
+    return accessxi.menu_selection_speech(label);
 end
 
 function accessxi.key_items_detail_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
@@ -22027,9 +22119,7 @@ function accessxi.key_items_detail_menu_speech(menu_name, title, obj, selected, 
                 tonumber(entry) or 0,
                 label,
                 description);
-            return ('Key item. %s. %s'):fmt(
-                accessxi.sentence_fragment(label),
-                accessxi.sentence_fragment(description));
+            return accessxi.menu_selection_detail_speech(label, description);
         end
         return nil;
     end
@@ -22076,7 +22166,7 @@ function accessxi.key_items_detail_menu_speech(menu_name, title, obj, selected, 
             accessxi.escape_probe_log_text(text)));
     end
 
-    return ('Key item. %s'):fmt(accessxi.sentence_fragment(text));
+    return accessxi.menu_selection_speech(text);
 end
 
 function accessxi.key_items_inline_detail_speech(menu_name, previous_menu_name)
@@ -22167,9 +22257,7 @@ function accessxi.key_items_inline_detail_speech(menu_name, previous_menu_name)
             accessxi.escape_probe_log_text(label),
             accessxi.escape_probe_log_text(description)));
     end
-    return ('Key item. %s. %s'):fmt(
-        accessxi.sentence_fragment(label),
-        accessxi.sentence_fragment(description));
+    return accessxi.menu_selection_detail_speech(label, description);
 end
 
 function accessxi.poll_key_items_inline_detail_speech(menu_name)
@@ -22765,9 +22853,13 @@ function accessxi.quest_rom_rows_for_area(area_key)
     return rows, 'loaded';
 end
 
-function accessxi.quest_rom_detail_for_row(row)
+function accessxi.quest_rom_detail_parts_for_row(row)
     if (type(row) ~= 'table') then
         return nil, 'missing-row';
+    end
+
+    if (type(row.detail_parts) == 'table' and #row.detail_parts > 0) then
+        return row.detail_parts, 'quest-rom-detail-parts-cache';
     end
 
     local path = tostring(row.path or '');
@@ -22808,7 +22900,16 @@ function accessxi.quest_rom_detail_for_row(row)
         return nil, 'missing-detail-text';
     end
 
-    return parts:concat('. '), 'quest-rom-detail';
+    row.detail_parts = parts;
+    return parts, 'quest-rom-detail-parts';
+end
+
+function accessxi.quest_rom_detail_for_row(row)
+    local parts, reason = accessxi.quest_rom_detail_parts_for_row(row);
+    if (type(parts) ~= 'table' or #parts <= 0) then
+        return nil, tostring(reason or 'missing-detail-text');
+    end
+    return parts:concat('. '), 'quest-rom-detail', parts;
 end
 
 function accessxi.quests_menu_resource_candidates(quest_id)
@@ -26975,7 +27076,7 @@ function accessxi.poll_records_of_eminence_summary_open_speech(menu_name)
         return true;
     end
 
-    return type(row) == 'table' and type(record) == 'table' and tostring(reason or '') ~= '';
+    return false;
 end
 
 function accessxi.records_of_eminence_surface_dat_summary_speech(menu_name, row, record, reason, detail_index, native_pos_text, miss_reason)
@@ -26983,65 +27084,101 @@ function accessxi.records_of_eminence_surface_dat_summary_speech(menu_name, row,
     reason = tostring(reason or '');
     miss_reason = tostring(miss_reason or '');
     if (not (menu_name:eq('menu    quest01', true) or menu_name:eq('menu    quest00', true) or menu_name:eq('menu    comyn', true))) then
-        return nil;
+        return nil, false;
     end
     if (reason ~= 'direct-detail' and reason ~= 'confirm-return' and reason ~= 'confirm-return-quest00' and reason ~= 'comyn-detail') then
-        return nil;
+        return nil, false;
     end
     if ((menu_name:eq('menu    quest01', true) or menu_name:eq('menu    quest00', true))
         and not accessxi.records_of_eminence_quest01_detail_surface_active(menu_name)) then
-        return nil;
+        return nil, false;
     end
     if (type(row) ~= 'table' or type(record) ~= 'table') then
-        return nil;
+        return nil, false;
     end
 
     local row_record_id = tonumber(row.record_id) or 0;
     local row_selected = tonumber(row.selected) or 0;
     if (row_record_id <= 0 or row_selected <= 0) then
-        return nil;
+        return nil, false;
     end
-    if (menu_name:eq('menu    quest01', true)) then
-        local signal = accessxi.records_of_eminence_quest01_row_signal();
-        if (type(signal) ~= 'table'
-            or (tonumber(signal.record_id) or 0) ~= row_record_id
-            or (tonumber(signal.selected) or 0) ~= row_selected
-            or (tonumber(signal.visible_count) or 0) < 20
-            or (tonumber(signal.slot_id) or 0) < 0xE001) then
-            return nil;
+
+    local is_quest01 = menu_name:eq('menu    quest01', true);
+    local quest01_signal;
+    if (is_quest01) then
+        quest01_signal = accessxi.records_of_eminence_quest01_row_signal();
+        local navigation = accessxi.records_of_eminence_detail_navigation;
+        local signal_matches;
+        if (type(navigation) == 'table' and type(navigation.signal_matches_row) == 'function') then
+            signal_matches = navigation.signal_matches_row(quest01_signal, row) == true;
+        else
+            -- Safe fallback: same dynamic rules as the module, no fixed row count.
+            signal_matches = type(quest01_signal) == 'table'
+                and (tonumber(quest01_signal.record_id) or 0) == row_record_id
+                and (tonumber(quest01_signal.selected) or 0) == row_selected
+                and (tonumber(quest01_signal.visible_count) or 0) > 0
+                and (tonumber(quest01_signal.slot_id) or 0) >= 0xE001;
+        end
+        if (not signal_matches) then
+            return nil, false;
         end
     end
 
     local source = tostring(record.source or '');
     if (not accessxi.records_of_eminence_record_source_is_roe_dat(source)) then
-        return nil;
+        return nil, false;
     end
     local parts, detail = accessxi.records_of_eminence_record_display_detail_parts(row, record);
     if (type(parts) ~= 'table' or #parts <= 0 or type(detail) ~= 'table') then
-        return nil;
+        return nil, false;
     end
 
     detail_index = tonumber(detail_index) or 0;
-    local display_index = accessxi.records_of_eminence_native_detail_display_line_index(detail_index, row);
     local kinds = type(detail.kinds) == 'table' and detail.kinds or T{};
-    local bottom_start = 0;
-    for index, kind in ipairs(kinds) do
-        kind = tostring(kind or '');
-        if (kind == 'number-required' or kind == 'rewards') then
-            bottom_start = index;
-            break;
-        end
-    end
-    local effective_display_index = display_index;
-    if (bottom_start > 0 and bottom_start >= 5 and display_index >= 3) then
-        effective_display_index = bottom_start + (display_index - 3);
-    end
+    local effective_display_index = 0;
     local text = '';
-    if (effective_display_index >= 1 and effective_display_index <= #parts) then
-        text = tostring(parts[effective_display_index] or '');
-    elseif (detail_index <= 0 and #parts > 0) then
-        text = parts:concat('. ');
+    local handled = false;
+
+    local navigation = accessxi.records_of_eminence_detail_navigation;
+    if (is_quest01) then
+        local resolved_text, resolved_index, resolve_reason, resolved_handled;
+        if (type(navigation) == 'table' and type(navigation.resolve_dat_line) == 'function') then
+            resolved_text, resolved_index, resolve_reason, resolved_handled =
+                navigation.resolve_dat_line(detail_index, parts, kinds, quest01_signal, row);
+        end
+        handled = resolved_handled == true;
+        if (not handled) then
+            return nil, false;
+        end
+        effective_display_index = tonumber(resolved_index) or 0;
+        if (resolved_text ~= nil) then
+            text = tostring(resolved_text);
+        else
+            miss_reason = tostring(resolve_reason or miss_reason);
+        end
+    else
+        local display_index = accessxi.records_of_eminence_native_detail_display_line_index(detail_index, row);
+        local bottom_start = 0;
+        for index, kind in ipairs(kinds) do
+            kind = tostring(kind or '');
+            if (kind == 'number-required' or kind == 'rewards') then
+                bottom_start = index;
+                break;
+            end
+        end
+        effective_display_index = display_index;
+        if (bottom_start > 0 and bottom_start >= 5 and display_index >= 3) then
+            effective_display_index = bottom_start + (display_index - 3);
+        end
+        if (effective_display_index >= 1 and effective_display_index <= #parts) then
+            text = tostring(parts[effective_display_index] or '');
+        elseif (detail_index <= 0 and #parts > 0) then
+            text = parts:concat('. ');
+        end
+        -- quest00/comyn: verified DAT mapping attempt has occurred regardless of outcome.
+        handled = true;
     end
+
     text = accessxi.plain_native_menu_help(text);
     if (text == '') then
         local refused_key = ('%s:%s:%d:%d:%d:%d:%d'):fmt(
@@ -27066,7 +27203,7 @@ function accessxi.records_of_eminence_surface_dat_summary_speech(menu_name, row,
                 accessxi.escape_probe_log_text(source),
                 accessxi.escape_probe_log_text(tostring(native_pos_text or ''))));
         end
-        return nil;
+        return nil, handled;
     end
 
     local kind = tostring(kinds[effective_display_index] or '');
@@ -27100,7 +27237,7 @@ function accessxi.records_of_eminence_surface_dat_summary_speech(menu_name, row,
             accessxi.escape_probe_log_text(source),
             accessxi.escape_probe_log_text(tostring(native_pos_text or ''))));
     end
-    return text;
+    return text, handled;
 end
 
 function accessxi.records_of_eminence_row_detail_speech(menu_name, row, record, reason)
@@ -27183,7 +27320,10 @@ function accessxi.records_of_eminence_native_detail_surface_speech(menu_name, ro
     local function surface_dat_summary(miss_reason)
         return accessxi.records_of_eminence_surface_dat_summary_speech(menu_name, row, record, reason, detail_index, native_pos_text, miss_reason);
     end
-    local structured_dat_text = surface_dat_summary('native-structured-detail');
+    local structured_dat_text, structured_dat_handled = surface_dat_summary('native-structured-detail');
+    if (structured_dat_handled == true) then
+        return structured_dat_text or '';
+    end
     if (structured_dat_text ~= nil and structured_dat_text ~= '') then
         return structured_dat_text;
     end
@@ -29179,6 +29319,7 @@ function accessxi.quests_menu_detail_resource_speech(menu_name, title, selected,
             accessxi.escape_probe_log_text(detail),
             accessxi.escape_probe_log_text(tostring(detail_row.source or ''))));
     end
+    accessxi.begin_quest_detail_summary_surface(menu_name, detail_row);
     return speech;
 end
 
@@ -29202,6 +29343,194 @@ function accessxi.quests_menu_cached_detail_speech(title)
         tonumber(row.id) or -1,
         label);
     return speech, key, detail, label, row, 'quest-rom-detail';
+end
+
+function accessxi.quest_detail_summary_lines(row)
+    if (type(row) ~= 'table') then
+        return nil, 'missing-quest-row';
+    end
+    local label = tostring(row.label or ''):trim();
+    if (label == '') then
+        return nil, 'missing-quest-label';
+    end
+
+    local parts, reason = accessxi.quest_rom_detail_parts_for_row(row);
+    if (type(parts) ~= 'table' or #parts <= 0) then
+        return nil, tostring(reason or 'missing-quest-detail-parts');
+    end
+
+    local lines = T{};
+    lines:append(label);
+    for _, value in ipairs(parts) do
+        local text = tostring(value or ''):trim();
+        if (text ~= '') then
+            lines:append(text);
+        end
+    end
+    if (#lines <= 1) then
+        return nil, 'empty-quest-detail-parts';
+    end
+    return lines, tostring(reason or 'quest-rom-detail-parts');
+end
+
+function accessxi.quest_detail_summary_surface_key(menu_name, row, obj)
+    if (type(row) ~= 'table') then
+        return '';
+    end
+    obj = tonumber(obj) or 0;
+    if (not accessxi.is_probe_pointer(obj)) then
+        return '';
+    end
+    local label = tostring(row.label or ''):trim();
+    if (label == '') then
+        return '';
+    end
+    return ('quest-summary:%s:0x%08X:%s:%d:%d:%s'):fmt(
+        tostring(menu_name or ''),
+        obj,
+        tostring(row.area_key or ''),
+        tonumber(row.slot) or -1,
+        tonumber(row.id) or -1,
+        label);
+end
+
+function accessxi.reset_quest_detail_summary_surface()
+    if (type(accessxi.detail_summary_navigation) == 'table'
+        and type(accessxi.detail_summary_navigation.reset) == 'function') then
+        accessxi.detail_summary_navigation.reset(accessxi.quest_detail_summary_state);
+    end
+    accessxi.last_quests_menu_detail_summary_surface_key = '';
+end
+
+function accessxi.begin_quest_detail_summary_surface(menu_name, row)
+    if (type(accessxi.detail_summary_navigation) ~= 'table'
+        or type(accessxi.detail_summary_navigation.begin_surface) ~= 'function') then
+        return '';
+    end
+    local obj = get_current_menu_object_ptr();
+    local position = tonumber(read_current_native_menu_index(0x4C)) or 0;
+    local surface_key = accessxi.quest_detail_summary_surface_key(menu_name, row, obj);
+    if (surface_key == '' or position <= 0) then
+        return '';
+    end
+
+    if (surface_key ~= tostring(accessxi.last_quests_menu_detail_summary_surface_key or '')) then
+        accessxi.detail_summary_navigation.begin_surface(
+            accessxi.quest_detail_summary_state, surface_key, position);
+    end
+    accessxi.last_quests_menu_detail_summary_surface_key = surface_key;
+    return surface_key;
+end
+
+function accessxi.speak_detail_summary_position_line(kind, menu_name, surface_key, position, line_index, text)
+    kind = tostring(kind or 'detail');
+    menu_name = tostring(menu_name or '');
+    surface_key = tostring(surface_key or '');
+    position = tonumber(position) or 0;
+    line_index = tonumber(line_index) or 0;
+    text = tostring(text or ''):trim();
+    if (surface_key == '' or position <= 0 or line_index <= 0 or text == '') then
+        return false;
+    end
+
+    local key = ('native-%s-summary-position:%s:%s:%d:%d:%s'):fmt(
+        kind, menu_name, surface_key, position, line_index, text);
+    if (key == tostring(accessxi.last_key or '')) then
+        return true;
+    end
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = text;
+    accessxi.last_native_menu_selected = position;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = key;
+    accessxi.last = text;
+    accessxi.last_key = key;
+    local speak_result = speak(text, false);
+    log_state(('state %s summary-position-speak menu="%s" position=%d line=%d result="%s" key="%s" text="%s"'):fmt(
+        kind,
+        accessxi.escape_probe_log_text(menu_name),
+        position,
+        line_index,
+        accessxi.escape_probe_log_text(speak_result or ''),
+        accessxi.escape_probe_log_text(key),
+        accessxi.escape_probe_log_text(text)));
+    if (text ~= accessxi.last_log or key ~= accessxi.last_log_key) then
+        accessxi.last_log = text;
+        accessxi.last_log_key = key;
+        log_line(text);
+    end
+    return true;
+end
+
+function accessxi.poll_quests_menu_detail_position_speech(menu_name)
+    menu_name = tostring(menu_name or get_menu_name() or '');
+    if (not menu_name:eq('menu    quest01', true)) then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+
+    local mode = accessxi.quests_menu_effective_mode();
+    local row = accessxi.last_quests_menu_detail_row;
+    local row_age = (tonumber(accessxi.last_quests_menu_detail_tick) or 0) > 0
+        and (tick() - (tonumber(accessxi.last_quests_menu_detail_tick) or 0))
+        or 999999;
+    if ((mode ~= 'current' and mode ~= 'completed') or type(row) ~= 'table' or row_age > 30000) then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+
+    local obj = get_current_menu_object_ptr();
+    if (not accessxi.is_probe_pointer(obj)) then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+    local entry = read_u32(obj + 0x08);
+    if (not accessxi.is_probe_pointer(entry)) then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+    local detail_flags = read_u32(entry + 0x48);
+    if (detail_flags == nil or bit.band(detail_flags, 0x00010000) ~= 0) then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+
+    local position = tonumber(read_current_native_menu_index(0x4C)) or 0;
+    local lines, lines_reason = accessxi.quest_detail_summary_lines(row);
+    local surface_key = accessxi.quest_detail_summary_surface_key(menu_name, row, obj);
+    if (position <= 0 or type(lines) ~= 'table' or #lines <= 0 or surface_key == '') then
+        accessxi.reset_quest_detail_summary_surface();
+        return false;
+    end
+    accessxi.last_quests_menu_detail_tick = tick();
+
+    if (surface_key ~= tostring(accessxi.last_quests_menu_detail_summary_surface_key or '')) then
+        accessxi.detail_summary_navigation.begin_surface(
+            accessxi.quest_detail_summary_state, surface_key, position);
+        accessxi.quests_menu_detail_speech_protect_until = 0;
+        return false;
+    end
+
+    local text, line_index, reason = accessxi.detail_summary_navigation.current_line(
+        accessxi.quest_detail_summary_state, surface_key, position, lines);
+    if (text == nil or text == '') then
+        if (reason ~= 'unchanged-position') then
+            local quiet_key = ('%s:%d:%s:%s'):fmt(surface_key, position, tostring(reason or ''), tostring(lines_reason or ''));
+            if (quiet_key ~= tostring(accessxi.last_quest_detail_summary_quiet_key or '')) then
+                accessxi.last_quest_detail_summary_quiet_key = quiet_key;
+                log_state(('state quest summary-position-quiet menu="%s" position=%d lines=%d reason="%s" source="%s"'):fmt(
+                    accessxi.escape_probe_log_text(menu_name),
+                    position,
+                    #lines,
+                    accessxi.escape_probe_log_text(tostring(reason or '')),
+                    accessxi.escape_probe_log_text(tostring(lines_reason or ''))));
+            end
+        end
+        return true;
+    end
+
+    return accessxi.speak_detail_summary_position_line(
+        'quest', menu_name, surface_key, position, line_index, text);
 end
 
 function accessxi.clear_quests_menu_detail_deferred_speech()
@@ -31681,6 +32010,38 @@ function accessxi.magic_spell_is_active_trust(info, active_keys)
     return key ~= '' and active_keys[key] == true;
 end
 
+function accessxi.magic_append_known_spells_missing_from_mix(spells, seen, player, label, allow_trust_magic)
+    spells = spells or T{};
+    seen = seen or {};
+    if (player == nil) then
+        return spells;
+    end
+
+    label = tostring(label or '');
+    local known_spells = nil;
+    local wanted_type = 0;
+    if (label ~= '') then
+        known_spells, wanted_type = accessxi.magic_known_spell_list_for_category(label);
+    else
+        known_spells = accessxi.magic_known_spell_list_all();
+    end
+
+    for _, info in ipairs(known_spells or T{}) do
+        local id = tonumber(info ~= nil and info.id or nil) or 0;
+        local info_type = tonumber(info ~= nil and info.type or nil) or 0;
+        if (id > 0
+            and seen[id] ~= true
+            and (wanted_type <= 0 or info_type == wanted_type)
+            and not (allow_trust_magic ~= true and info_type == 8)
+            and safe_call(function () return player:HasSpell(id); end, false) == true) then
+            seen[id] = true;
+            spells:append(info);
+        end
+    end
+
+    return spells;
+end
+
 function accessxi.magic_mix_category_spell_list(label)
     label = tostring(label or '');
     local wanted_type = accessxi.magic_category_type(label);
@@ -31730,18 +32091,8 @@ function accessxi.magic_mix_category_spell_list(label)
         end
     end
 
-    if (wanted_type == 8) then
-        local known_spells = accessxi.magic_known_spell_list_for_category(label);
-        for _, info in ipairs(known_spells or T{}) do
-            local id = tonumber(info ~= nil and info.id or nil) or 0;
-            if (id > 0
-                and seen[id] ~= true
-                and tonumber(info.type) == wanted_type
-                and safe_call(function () return player:HasSpell(id); end, false) == true) then
-                seen[id] = true;
-                spells:append(info);
-            end
-        end
+    if (wanted_type ~= 6) then
+        accessxi.magic_append_known_spells_missing_from_mix(spells, seen, player, label, wanted_type == 8);
     end
 
     if (wanted_type ~= 8) then
@@ -31921,6 +32272,8 @@ function accessxi.magic_mix_direct_spell_list(allow_trust_magic)
             end
         end
     end
+
+    accessxi.magic_append_known_spells_missing_from_mix(spells, seen, player, nil, allow_trust_magic);
 
     return spells, order, '';
 end
@@ -33594,6 +33947,37 @@ function accessxi.ability_aix_weapon_skill_for_selected(selected, child)
         return nil, '', order.ids:len(), ('type=%d'):fmt(menu_type);
     end
 
+    local live_count, count_source = accessxi.ability_direct_live_count(0, child);
+    if (live_count <= 0 or order.ids:len() ~= live_count) then
+        return nil, '', order.ids:len(), ('count live=%d aix=%d source=%s'):fmt(
+            live_count,
+            order.ids:len(),
+            tostring(count_source or ''));
+    end
+
+    local known_list = accessxi.ability_known_list_for_category('Weapon Skills');
+    if (known_list == nil or known_list:len() ~= order.ids:len()) then
+        return nil, '', order.ids:len(), ('known-count live=%d aix=%d'):fmt(
+            known_list ~= nil and known_list:len() or 0,
+            order.ids:len());
+    end
+
+    local known_set = {};
+    for _, known_ability in ipairs(known_list) do
+        local known_id = tonumber(known_ability.id) or 0;
+        if (known_id > 0) then
+            known_set[known_id] = true;
+        end
+    end
+    local covered = {};
+    for i = 1, order.ids:len() do
+        local ordered_id = tonumber(order.ids[i]) or 0;
+        if (known_set[ordered_id] ~= true or covered[ordered_id] == true) then
+            return nil, '', order.ids:len(), ('known-set row=%d id=%d'):fmt(i, ordered_id);
+        end
+        covered[ordered_id] = true;
+    end
+
     local anchor = tonumber(read_u16(child + 0x7C)) or 0;
     local anchor_index = 0;
     for i = 1, order.ids:len() do
@@ -33602,8 +33986,13 @@ function accessxi.ability_aix_weapon_skill_for_selected(selected, child)
             break;
         end
     end
+    local validation = 'anchor';
     if (anchor_index <= 0) then
-        return nil, '', order.ids:len(), ('anchor=%d not-in-aix'):fmt(anchor);
+        if (anchor == 0 or anchor == 0xFFFF) then
+            validation = 'live-count-known-set';
+        else
+            return nil, '', order.ids:len(), ('anchor=%d not-in-aix'):fmt(anchor);
+        end
     end
 
     local raw_index = tonumber(read_u32(child + 0x60)) or -1;
@@ -33627,12 +34016,16 @@ function accessxi.ability_aix_weapon_skill_for_selected(selected, child)
         return nil, '', order.ids:len(), 'known';
     end
 
-    local summary = ('aix path=%s offset=0x%X bytes=%d rawIndex=%d row=%d anchor=child+7C:%d anchorIndex=%d window="%s"'):fmt(
+    local summary = ('aix path=%s offset=0x%X bytes=%d rawIndex=%d row=%d liveCount=%d countSource=%s knownCount=%d validation=%s anchor=child+7C:%d anchorIndex=%d window="%s"'):fmt(
         tostring(order.path or ''),
         tonumber(order.offset) or 0,
         tonumber(order.bytes) or 0,
         raw_index,
         row,
+        live_count,
+        tostring(count_source or ''),
+        known_list:len(),
+        validation,
         anchor,
         anchor_index,
         accessxi.escape_probe_log_text(accessxi.ability_aix_order_window(order.ids, row)));
@@ -36306,6 +36699,34 @@ function accessxi.magic_dynamic_spell_from_entry(entry, selected, child)
         accessxi.escape_probe_log_text(help_text or ''));
     if (help_spell ~= nil and (category_label == '' or tonumber(help_spell.type) == tonumber(category_type))) then
         return help_spell, desc, row0, row1, tonumber(help_spell.id) or 0, tonumber(help_count) or 1, tostring(help_source or 'window-help-exact'), rendered_label, category_label, tonumber(help_spell.type) or 0, 1;
+    end
+
+    if (category_label:eq('Blue Magic', true)) then
+        local cast_spell, cast_spells, cast_order, cast_reason, set_count, extra_count, extra_reason = accessxi.blue_magic_current_cast_spell_for_selected(selected);
+        local cast_total = cast_spells ~= nil and cast_spells:len() or 0;
+        accessxi.last_magic_known_type_auto_probe = ('blueCast category="%s" set=%d extra=%d total=%d selected=%d reason="%s" extraReason="%s" path="%s"'):fmt(
+            accessxi.escape_probe_log_text(category_label),
+            tonumber(set_count) or 0,
+            tonumber(extra_count) or 0,
+            cast_total,
+            selected,
+            accessxi.escape_probe_log_text(cast_reason or ''),
+            accessxi.escape_probe_log_text(extra_reason or ''),
+            accessxi.escape_probe_log_text(cast_order ~= nil and tostring(cast_order.path or '') or ''));
+        if (cast_spell ~= nil) then
+            return cast_spell,
+                desc,
+                row0,
+                row1,
+                tonumber(cast_spell.id) or 0,
+                1,
+                selected <= (tonumber(set_count) or 0) and 'native-blue-set-mix' or 'native-blue-unbridled-mix',
+                rendered_label,
+                category_label,
+                tonumber(cast_spell.type) or 6,
+                cast_total;
+        end
+        return nil, desc, row0, row1, 0, 0, 'native-blue-cast-range', rendered_label, category_label, 6, cast_total;
     end
 
     if (category_label ~= '') then
@@ -39494,6 +39915,25 @@ function accessxi.search_result_rendered_cell_text(cell)
     end
     return text;
 end
+
+function accessxi.search_player_options_module_context()
+    return {
+        is_pointer = accessxi.is_probe_pointer,
+        read_u32 = read_u32,
+        read_string = function (ptr) return read_probe_string(ptr, 260); end,
+        clean_help = accessxi.plain_native_menu_help,
+        escape_log_text = function (text)
+            if type(accessxi.escape_probe_log_text) == 'function' then
+                return accessxi.escape_probe_log_text(text);
+            end
+            return tostring(text or ''):gsub('\\', '\\\\'):gsub('"', '\\"');
+        end,
+        log_state = log_state,
+        tick = tick,
+    };
+end
+
+accessxi.load_menu_code_module('search_player_options', accessxi.search_player_options_module_context());
 
 function accessxi.search_result_rendered_label_looks_useful(label)
     label = tostring(label or ''):gsub('%s+', ' '):trim();
@@ -46886,53 +47326,6 @@ function accessxi.playermo_menu_speech(menu_name, title, obj, selected, count, p
         end
     end
 
-    local label = '';
-    local mode = 'not-run';
-    if (accessxi.is_probe_pointer(child) and selected > 0 and count > 0 and count <= 64) then
-        label, mode = accessxi.native_query_label_for_selection(child, selected, count, 'plain');
-        label = accessxi.plain_native_menu_label(label or '');
-        if (label ~= '' and not accessxi.playermo_label_looks_safe(label)) then
-            mode = tostring(mode or '') .. ':unsafe-label';
-            label = '';
-        end
-    end
-
-    if (label ~= '') then
-        accessxi.last_playermo_command_label = label;
-        accessxi.last_playermo_command_tick = tick();
-        accessxi.last_native_menu_name = menu_name;
-        accessxi.last_native_menu_label = label;
-        accessxi.last_native_menu_selected = selected;
-        accessxi.last_native_menu_tick = tick();
-        accessxi.current_speech_key = ('native-playermo:%s:%d:%d:%s:%s'):fmt(
-            menu_name,
-            selected,
-            count,
-            tostring(mode or ''),
-            label);
-        log_state(('state playermo native-row menu="%s" title="%s" select=%d count=%d page=%d mode="%s" targetKind="%s" source="%s" targetIndex=%d targetType=%d flags=0x%04X hp=%d raw=0x%08X child=0x%08X entry=0x%08X label="%s"'):fmt(
-            menu_name,
-            accessxi.escape_probe_log_text(title),
-            selected,
-            count,
-            page,
-            accessxi.escape_probe_log_text(tostring(mode or '')),
-            accessxi.escape_probe_log_text(target_context.kind or 'unknown'),
-            accessxi.escape_probe_log_text(target_context.source or ''),
-            tonumber(target_context.index) or -1,
-            tonumber(target_context.type) or -1,
-            tonumber(target_context.spawn_flags) or 0,
-            tonumber(target_context.hp) or -1,
-            raw,
-            child,
-            entry,
-            accessxi.escape_probe_log_text(label)));
-        if (title ~= '') then
-            return ('%s. %s'):fmt(title, accessxi.sentence_fragment(label));
-        end
-        return accessxi.sentence_fragment(label);
-    end
-
     local dynamic_visible_count = count;
     if (obj_visible_count_word > 0 and obj_visible_count_word <= 16) then
         dynamic_visible_count = obj_visible_count_word;
@@ -47004,6 +47397,54 @@ function accessxi.playermo_menu_speech(menu_name, title, obj, selected, count, p
                 accessxi.escape_probe_log_text(command_help)));
             return speech;
         end
+    end
+
+    local label = '';
+    local mode = 'not-run';
+    if (not tostring(target_context.kind or ''):eq('self', true)
+        and accessxi.is_probe_pointer(child) and selected > 0 and count > 0 and count <= 64) then
+        label, mode = accessxi.native_query_label_for_selection(child, selected, count, 'plain');
+        label = accessxi.plain_native_menu_label(label or '');
+        if (label ~= '' and not accessxi.playermo_label_looks_safe(label)) then
+            mode = tostring(mode or '') .. ':unsafe-label';
+            label = '';
+        end
+    end
+
+    if (label ~= '') then
+        accessxi.last_playermo_command_label = label;
+        accessxi.last_playermo_command_tick = tick();
+        accessxi.last_native_menu_name = menu_name;
+        accessxi.last_native_menu_label = label;
+        accessxi.last_native_menu_selected = selected;
+        accessxi.last_native_menu_tick = tick();
+        accessxi.current_speech_key = ('native-playermo:%s:%d:%d:%s:%s'):fmt(
+            menu_name,
+            selected,
+            count,
+            tostring(mode or ''),
+            label);
+        log_state(('state playermo native-row menu="%s" title="%s" select=%d count=%d page=%d mode="%s" targetKind="%s" source="%s" targetIndex=%d targetType=%d flags=0x%04X hp=%d raw=0x%08X child=0x%08X entry=0x%08X label="%s"'):fmt(
+            menu_name,
+            accessxi.escape_probe_log_text(title),
+            selected,
+            count,
+            page,
+            accessxi.escape_probe_log_text(tostring(mode or '')),
+            accessxi.escape_probe_log_text(target_context.kind or 'unknown'),
+            accessxi.escape_probe_log_text(target_context.source or ''),
+            tonumber(target_context.index) or -1,
+            tonumber(target_context.type) or -1,
+            tonumber(target_context.spawn_flags) or 0,
+            tonumber(target_context.hp) or -1,
+            raw,
+            child,
+            entry,
+            accessxi.escape_probe_log_text(label)));
+        if (title ~= '') then
+            return ('%s. %s'):fmt(title, accessxi.sentence_fragment(label));
+        end
+        return accessxi.sentence_fragment(label);
     end
 
     if (not tostring(target_context.kind or ''):eq('self', true)) then
@@ -47456,9 +47897,10 @@ function accessxi.inspect_menu_equipment_speech(menu_name, native_cursor)
     local slot_name = accessxi.inspect_equipment_slot_names[slot] or ('Slot %d'):fmt(slot + 1);
     local label = accessxi.inspect_check_item_label(item_id);
     local speech = '';
+    local info = nil;
     if (label ~= '') then
         if (type(accessxi.inspect_check_item_detail_speech) == 'function') then
-            speech = accessxi.inspect_check_item_detail_speech(slot_name, item_id, check_item);
+            speech, info = accessxi.inspect_check_item_detail_speech(slot_name, item_id, check_item);
         end
         if (speech == nil or speech == '') then
             speech = ('Check. %s. %s.'):fmt(slot_name, label);
@@ -47470,6 +47912,13 @@ function accessxi.inspect_menu_equipment_speech(menu_name, native_cursor)
     end
 
     accessxi.current_speech_key = ('inspect-equipment:%d:%d:%d:%s'):fmt(native_cursor, grid, item_id, label);
+    if (info ~= nil) then
+        accessxi.capture_current_gear_detail(menu_name, info, T{
+            index = slot,
+            slot_name = slot_name,
+            source = 'inspect',
+        });
+    end
     log_state(('state inspect equipment-row menu="%s" native4c=%d grid=%d slot=%d slotName="%s" itemId=%d label="%s" extraLen=%d'):fmt(
         menu_name,
         native_cursor,
@@ -50004,6 +50453,179 @@ function accessxi.blue_magic_set_current_spell_for_slot(slot)
     return spell, raw_id, offset, base, base_source;
 end
 
+function accessxi.blue_magic_current_set_spell_list()
+    local set_ids = {};
+    local slots = T{};
+    local set_count = 0;
+    local native_offset = 0;
+    local native_base = 0;
+    local native_source = '';
+    for slot = 1, 20 do
+        local spell, raw_id, offset, base, source = accessxi.blue_magic_set_current_spell_for_slot(slot);
+        if (slot == 1) then
+            native_offset = tonumber(offset) or 0;
+            native_base = tonumber(base) or 0;
+            native_source = tostring(source or '');
+        end
+        if (spell ~= nil and (tonumber(spell.id) or 0) > 0) then
+            local spell_id = tonumber(spell.id) or 0;
+            set_ids[spell_id] = true;
+            set_count = set_count + 1;
+            slots:append(('%d:%d:%s'):fmt(
+                slot,
+                spell_id,
+                accessxi.escape_probe_log_text(spell.name or '')));
+        elseif ((tonumber(raw_id) or 0) > 0) then
+            slots:append(('%d:raw%d:%s'):fmt(
+                slot,
+                tonumber(raw_id) or 0,
+                accessxi.escape_probe_log_text(source or '')));
+        end
+    end
+
+    local mix_order = accessxi.magic_mix_read_order();
+    local spells = T{};
+    if (mix_order ~= nil and mix_order.ids ~= nil) then
+        for _, id in ipairs(mix_order.ids) do
+            id = tonumber(id) or 0;
+            if (set_ids[id] == true) then
+                local spell = accessxi.magic_spell_resource_info(id);
+                if (spell ~= nil and tonumber(spell.type) == 6 and tostring(spell.name or '') ~= '') then
+                    spells:append(spell);
+                end
+            end
+        end
+    end
+
+    local reason = '';
+    if (set_count <= 0) then
+        reason = 'set-empty';
+    elseif (mix_order == nil or mix_order.ids == nil or mix_order.ids:len() <= 0) then
+        reason = 'mix-order-missing';
+    elseif (spells:len() ~= set_count) then
+        reason = ('set-mix-mismatch-%d-%d'):fmt(set_count, spells:len());
+    end
+
+    if (reason ~= '') then
+        return T{}, mix_order, set_count, reason, slots, native_base, native_offset, native_source;
+    end
+    return spells, mix_order, set_count, '', slots, native_base, native_offset, native_source;
+end
+
+function accessxi.blue_magic_current_set_spell_for_selected(selected)
+    selected = tonumber(selected) or 0;
+    local spells, mix_order, set_count, reason = accessxi.blue_magic_current_set_spell_list();
+    if (reason ~= '') then
+        return nil, spells, mix_order, reason, set_count;
+    end
+    if (selected <= 0 or selected > spells:len()) then
+        return nil, spells, mix_order, ('range-%d-of-%d'):fmt(selected, spells:len()), set_count;
+    end
+    return spells[selected], spells, mix_order, '', set_count;
+end
+
+function accessxi.blue_magic_spell_is_unbridled(spell)
+    local spell_id = spell ~= nil and (tonumber(spell.id) or 0) or 0;
+    return spell ~= nil
+        and tonumber(spell.type) == 6
+        and spell_id >= 736
+        and spell_id <= 753;
+end
+
+function accessxi.blue_magic_current_cast_spell_list()
+    local set_spells, set_order, set_count, set_reason = accessxi.blue_magic_current_set_spell_list();
+    if (set_reason ~= '') then
+        return T{}, set_order, set_count, 0, set_reason, '';
+    end
+
+    local spells = T{};
+    local seen = {};
+    for _, spell in ipairs(set_spells) do
+        local spell_id = tonumber(spell.id) or 0;
+        if (spell_id > 0 and seen[spell_id] ~= true) then
+            seen[spell_id] = true;
+            spells:append(spell);
+        end
+    end
+
+    local learned_spells, learned_type, learned_order, learned_reason = accessxi.magic_mix_category_spell_list('Blue Magic');
+    if (learned_reason ~= '') then
+        return spells, set_order, set_count, 0, '', learned_reason;
+    end
+    if (tonumber(learned_type) ~= 6) then
+        return spells, learned_order or set_order, set_count, 0, '', ('learned-type-%d'):fmt(tonumber(learned_type) or 0);
+    end
+
+    local extra_count = 0;
+    for _, spell in ipairs(learned_spells) do
+        local spell_id = tonumber(spell.id) or 0;
+        if (accessxi.blue_magic_spell_is_unbridled(spell) and seen[spell_id] ~= true) then
+            seen[spell_id] = true;
+            spells:append(spell);
+            extra_count = extra_count + 1;
+        end
+    end
+
+    return spells, learned_order or set_order, set_count, extra_count, '', '';
+end
+
+function accessxi.blue_magic_current_cast_spell_for_selected(selected)
+    selected = tonumber(selected) or 0;
+    local spells, mix_order, set_count, extra_count, reason, extra_reason = accessxi.blue_magic_current_cast_spell_list();
+    if (reason ~= '') then
+        return nil, spells, mix_order, reason, set_count, extra_count, extra_reason;
+    end
+    if (selected <= 0 or selected > spells:len()) then
+        local range_reason = ('range-%d-of-%d'):fmt(selected, spells:len());
+        if (extra_reason ~= '') then
+            range_reason = ('%s;extra-%s'):fmt(range_reason, extra_reason);
+        end
+        return nil, spells, mix_order, range_reason, set_count, extra_count, extra_reason;
+    end
+    return spells[selected], spells, mix_order, '', set_count, extra_count, extra_reason;
+end
+
+function accessxi.blue_magic_current_cast_probe_text()
+    local spells, mix_order, set_count, extra_count, reason, extra_reason = accessxi.blue_magic_current_cast_spell_list();
+    local extra_rows = T{};
+    for index, spell in ipairs(spells or T{}) do
+        if index > (tonumber(set_count) or 0) then
+            extra_rows:append(('%d:%s'):fmt(
+                tonumber(spell.id) or 0,
+                accessxi.escape_probe_log_text(spell.name or '')));
+        end
+    end
+    return ('setCount=%d extraCount=%d total=%d reason="%s" extraReason="%s" mixPath="%s" extras="%s"'):fmt(
+        tonumber(set_count) or 0,
+        tonumber(extra_count) or 0,
+        spells:len(),
+        accessxi.escape_probe_log_text(reason or ''),
+        accessxi.escape_probe_log_text(extra_reason or ''),
+        accessxi.escape_probe_log_text(mix_order ~= nil and mix_order.path or ''),
+        accessxi.escape_probe_log_text(extra_rows:concat(' | ')));
+end
+
+function accessxi.blue_magic_current_set_probe_text()
+    local spells, mix_order, set_count, reason, slots, native_base, native_offset, native_source = accessxi.blue_magic_current_set_spell_list();
+    local filtered = T{};
+    for _, spell in ipairs(spells or T{}) do
+        filtered:append(('%d:%s'):fmt(
+            tonumber(spell.id) or 0,
+            accessxi.escape_probe_log_text(spell.name or '')));
+    end
+
+    return ('setCount=%d filteredCount=%d reason="%s" base=0x%08X offset=0x%08X source="%s" mixPath="%s" slots="%s" filtered="%s"'):fmt(
+        set_count,
+        filtered:len(),
+        accessxi.escape_probe_log_text(reason),
+        native_base,
+        native_offset,
+        accessxi.escape_probe_log_text(native_source),
+        accessxi.escape_probe_log_text(mix_order ~= nil and mix_order.path or ''),
+        accessxi.escape_probe_log_text(slots:concat(' | ')),
+        accessxi.escape_probe_log_text(filtered:concat(' | ')));
+end
+
 function accessxi.blue_magic_inventory_record_anchor(native_slot, selected, spell)
     native_slot = tonumber(native_slot) or 0;
     selected = tonumber(selected) or 0;
@@ -52175,6 +52797,13 @@ function accessxi.native_known_menu_speech(name)
         or menu_name:eq('menu    friend', true)
         or menu_name:eq('menu    emote', true)
         or menu_name:eq('menu    bazaar', true)
+        or menu_name:eq('menu    auclist', true)
+        or menu_name:eq('menu    auc3', true)
+        or menu_name:eq('menu    auchisto', true)
+        or menu_name:eq('menu    aucmater', true)
+        or menu_name:eq('menu    aucfood', true)
+        or menu_name:eq('menu    aucmeals', true)
+        or menu_name:eq('menu    aucitem', true)
         or menu_name:eq('menu    shopmain', true)
         or menu_name:eq('menu    shopsell', true)
         or accessxi.is_config_menu_name(menu_name)
@@ -52196,7 +52825,8 @@ function accessxi.native_known_menu_speech(name)
         or menu_name:eq('menu    abiselec', true)
         or menu_name:eq('menu    chatctrl', true)
         or menu_name:eq('menu    bluequip', true)
-        or menu_name:eq('menu    bluinven', true)) then
+        or menu_name:eq('menu    bluinven', true)
+        or menu_name:eq('menu    scoption', true)) then
         selected = read_current_native_menu_index(0x4C);
     end
     if (menu_name:eq('menu    itmsort2', true)
@@ -52325,6 +52955,97 @@ function accessxi.native_known_menu_speech(name)
         local shopbuy_speech = accessxi.shopbuy_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
         if (shopbuy_speech ~= nil) then
             return shopbuy_speech;
+        end
+        return nil;
+    end
+
+    if (menu_name:eq('menu    auc1', true)) then
+        local auction_speech = accessxi.auction_counter_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_speech ~= nil) then
+            return auction_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    auc2', true)) then
+        local auction_category_speech = accessxi.auction_bid_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_category_speech ~= nil) then
+            return auction_category_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucweapo', true)) then
+        local auction_weapon_speech = accessxi.auction_weapon_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_weapon_speech ~= nil) then
+            return auction_weapon_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucarmor', true)) then
+        local auction_armor_speech = accessxi.auction_armor_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_armor_speech ~= nil) then
+            return auction_armor_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucmagic', true)) then
+        local auction_magic_speech = accessxi.auction_magic_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_magic_speech ~= nil) then
+            return auction_magic_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucmater', true)) then
+        local auction_material_speech = accessxi.auction_material_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_material_speech ~= nil) then
+            return auction_material_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucfood', true)) then
+        local auction_food_speech = accessxi.auction_food_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_food_speech ~= nil) then
+            return auction_food_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucmeals', true)) then
+        local auction_meal_speech = accessxi.auction_meal_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_meal_speech ~= nil) then
+            return auction_meal_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    aucitem', true)) then
+        local auction_other_speech = accessxi.auction_other_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_other_speech ~= nil) then
+            return auction_other_speech;
+        end
+    end
+
+    if (menu_name:eq('menu    auclist', true)) then
+        local auction_sales_status_speech = accessxi.auction_sales_status_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_sales_status_speech ~= nil) then
+            return auction_sales_status_speech;
+        end
+        local auction_item_speech = accessxi.auction_item_list_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_item_speech ~= nil) then
+            return auction_item_speech;
+        end
+        return nil;
+    end
+
+    if (menu_name:eq('menu    auc3', true)) then
+        local auction_action_speech = accessxi.auction_action_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_action_speech ~= nil) then
+            return auction_action_speech;
+        end
+        return nil;
+    end
+
+    if (menu_name:eq('menu    auchisto', true)) then
+        local auction_history_speech = accessxi.auction_price_history_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
+        if (auction_history_speech ~= nil) then
+            return auction_history_speech;
         end
         return nil;
     end
@@ -52475,6 +53196,10 @@ function accessxi.native_known_menu_speech(name)
             return search_speech;
         end
         return nil;
+    end
+
+    if (menu_name:eq('menu    scoption', true)) then
+        return accessxi.search_player_option_menu_speech(menu_name, selected, entry);
     end
 
     if (accessxi.is_search_condition_family_menu(menu_name)) then
@@ -52647,6 +53372,8 @@ function accessxi.native_known_menu_speech(name)
             if (accessxi.missions_menu_detail_section_active(desc_id, context_row, entry)) then
                 local detail_speech = accessxi.missions_menu_detail_speech(title, context, context_row);
                 if (detail_speech ~= nil and detail_speech ~= '') then
+                    accessxi.begin_mission_detail_summary_surface(
+                        menu_name, context, context_row, obj, desc_id);
                     accessxi.last_native_menu_name = menu_name;
                     accessxi.last_native_menu_label = detail_speech;
                     accessxi.last_native_menu_selected = selected;
@@ -53286,21 +54013,26 @@ function accessxi.native_known_menu_speech(name)
 
         local dynamic_spell, dynamic_desc, dynamic_row0, dynamic_row1, dynamic_id, dynamic_known_count, dynamic_source, dynamic_rendered_label, dynamic_category, dynamic_type, dynamic_known_total = accessxi.magic_dynamic_spell_from_entry(entry, selected, child);
         if (dynamic_spell ~= nil) then
+            local dynamic_title = accessxi.plain_native_menu_label(dynamic_category or '');
+            if (dynamic_title == '') then
+                dynamic_title = title;
+            end
             accessxi.last_native_menu_name = menu_name;
             accessxi.last_native_menu_label = dynamic_spell.name;
             accessxi.last_native_menu_selected = selected;
             accessxi.last_native_menu_tick = tick();
-            accessxi.current_speech_key = ('native-dynamic-magic-row:%s:%d:%d:0x%08X:0x%08X:%s:%s'):fmt(
+            accessxi.current_speech_key = ('native-dynamic-magic-row:%s:%d:%d:0x%08X:0x%08X:%d:%s:%s'):fmt(
                 menu_name,
                 selected,
                 tonumber(dynamic_spell.id) or 0,
                 tonumber(entry) or 0,
                 tonumber(dynamic_row1) or 0,
+                tonumber(dynamic_known_total) or 0,
                 tostring(dynamic_source or ''),
                 dynamic_spell.name);
             log_state(('state nativemenu magic-dynamic-row menu="%s" title="%s" select=%d rawSelect=%d page=%d raw=0x%08X unwrapBase=%d count=%d entry=0x%08X desc=0x%08X row0=0x%08X row1=0x%08X id=%d skill=%d element=%d mp=%d known=%d source="%s" category="%s" rendered="%s" label="%s" descLen=%d'):fmt(
                 menu_name,
-                title,
+                dynamic_title,
                 selected,
                 tonumber(raw_selected) or 0,
                 tonumber(page) or 0,
@@ -53340,7 +54072,7 @@ function accessxi.native_known_menu_speech(name)
             if (tostring(dynamic_spell.description or '') ~= '') then
                 spoken_parts:append(accessxi.sentence_fragment(dynamic_spell.description));
             end
-            return ('%s. %s'):fmt(title, spoken_parts:concat(' '));
+            return ('%s. %s'):fmt(dynamic_title, spoken_parts:concat(' '));
         end
 
         local missing_key = ('%s:%d:0x%08X:0x%08X:%d:%d:%s'):fmt(
@@ -58601,6 +59333,58 @@ accessxi.chat_history_unescape = function (text)
     return text;
 end
 
+-- These are the rendered text_in low-byte modes, not the packet chat-channel
+-- ids. Keep the native client line intact; its punctuation carries direction,
+-- speaker, linkshell number, yell zone, and Assist metadata that should not be
+-- reconstructed from a static format guess.
+accessxi.chat_mode_metadata = T{
+    [1] = T{ label = 'Say', category = 'say' },
+    [9] = T{ label = 'Say', category = 'say' },
+    [2] = T{ label = 'Shout', category = 'shout' },
+    [10] = T{ label = 'Shout', category = 'shout' },
+    [3] = T{ label = 'Yell', category = 'yell' },
+    [11] = T{ label = 'Yell', category = 'yell' },
+    [4] = T{ label = 'Tell', category = 'tell' },
+    [12] = T{ label = 'Tell', category = 'tell' },
+    [5] = T{ label = 'Party', category = 'party' },
+    [13] = T{ label = 'Party', category = 'party' },
+    [6] = T{ label = 'Linkshell', category = 'linkshell' },
+    [14] = T{ label = 'Linkshell', category = 'linkshell' },
+    [7] = T{ label = 'Emote', category = 'emote' },
+    [15] = T{ label = 'Emote', category = 'emote' },
+    [8] = T{ label = 'Call for help', category = 'system' },
+    [17] = T{ label = 'Message', category = 'message' },
+    [20] = T{ label = 'Combat', category = 'combat' },
+    [21] = T{ label = 'Combat', category = 'combat' },
+    [22] = T{ label = 'Combat', category = 'combat' },
+    [28] = T{ label = 'Combat', category = 'combat' },
+    [29] = T{ label = 'Combat', category = 'combat' },
+    [30] = T{ label = 'Combat', category = 'combat' },
+    [36] = T{ label = 'Combat', category = 'combat' },
+    [37] = T{ label = 'Combat', category = 'combat' },
+    [38] = T{ label = 'Combat', category = 'combat' },
+    [50] = T{ label = 'Combat', category = 'combat' },
+    [56] = T{ label = 'Combat', category = 'combat' },
+    [57] = T{ label = 'Combat', category = 'combat' },
+    [59] = T{ label = 'Combat', category = 'combat' },
+    [60] = T{ label = 'Combat', category = 'combat' },
+    [61] = T{ label = 'Combat', category = 'combat' },
+    [63] = T{ label = 'Combat', category = 'combat' },
+    [121] = T{ label = 'System', category = 'system' },
+    [142] = T{ label = 'NPC', category = 'npc' },
+    [150] = T{ label = 'NPC', category = 'npc' },
+    [151] = T{ label = 'NPC', category = 'npc' },
+    [200] = T{ label = 'System', category = 'system' },
+    [211] = T{ label = 'Unity', category = 'unity' },
+    [212] = T{ label = 'Unity', category = 'unity' },
+    [213] = T{ label = 'Linkshell 2', category = 'linkshell2' },
+    [214] = T{ label = 'Linkshell 2', category = 'linkshell2' },
+    [219] = T{ label = 'Assist J', category = 'assistj' },
+    [220] = T{ label = 'Assist J', category = 'assistj' },
+    [221] = T{ label = 'Assist E', category = 'assiste' },
+    [222] = T{ label = 'Assist E', category = 'assiste' },
+};
+
 accessxi.chat_history_entry = function (mode_text, label, text)
     text = accessxi.clean_incoming_text(text or '');
     if (text == '') then
@@ -58611,7 +59395,7 @@ accessxi.chat_history_entry = function (mode_text, label, text)
     return T{
         tick = tick(),
         mode = mode,
-        label = tostring(label or '') ~= '' and tostring(label or '') or accessxi.chat_mode_label(mode),
+        label = accessxi.chat_mode_label(mode),
         category = accessxi.chat_reader_category_key(mode, text),
         text = text,
     };
@@ -58633,23 +59417,118 @@ accessxi.chat_history_rebuild_positions = function ()
     end
 end
 
-accessxi.chat_history_write_cache = function ()
-    local f = io.open(accessxi.chat_history_path, 'w');
+accessxi.chat_history_validate_cache_file = function (path, expected_count)
+    local f = io.open(path, 'r');
     if (f == nil) then
         return false;
     end
 
-    for _, entry in ipairs(accessxi.chat_history or T{}) do
-        f:write(tostring(entry.mode or 0), '\t',
-            accessxi.chat_history_escape(entry.label or ''), '\t',
-            accessxi.chat_history_escape(entry.text or ''), '\n');
+    local header = f:read('*l');
+    local count = 0;
+    local valid = header == '#accessxi-chat-history-v2-native-only';
+    if (valid) then
+        for line in f:lines() do
+            local row = tostring(line or '');
+            if (row:match('^(%-?%d+)\t.*$') == nil) then
+                valid = false;
+                break;
+            end
+            count = count + 1;
+        end
     end
-    f:close();
+    local closed = f:close();
+    return valid and closed ~= nil and count == (tonumber(expected_count) or 0);
+end
+
+accessxi.chat_history_replace_cache_file = function (temporary_path)
+    if (accessxi.chat_history_cache_write_blocked == true) then
+        return false;
+    end
+
+    local source_wide = utf8_to_wide(temporary_path);
+    local destination_wide = utf8_to_wide(accessxi.chat_history_path);
+    if (source_wide == nil or destination_wide == nil) then
+        return false;
+    end
+
+    local ok, moved = pcall(function ()
+        -- MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH
+        return kernel32.MoveFileExW(source_wide, destination_wide, 0x00000009) ~= 0;
+    end);
+    return ok and moved == true;
+end
+
+accessxi.chat_history_preserve_invalid_cache = function ()
+    local invalid_path = accessxi.chat_history_path .. '.invalid';
+    local existing = io.open(invalid_path, 'r');
+    if (existing ~= nil) then
+        existing:close();
+        invalid_path = invalid_path .. ('-%d-%d'):fmt(os.time(), tick());
+    end
+
+    local renamed, rename_error = os.rename(accessxi.chat_history_path, invalid_path);
+    if (renamed == nil) then
+        accessxi.chat_history_cache_write_blocked = true;
+        log_state(('state chatlog cache-invalid-preserve-failed path="%s" error="%s"'):fmt(
+            accessxi.escape_probe_log_text(accessxi.chat_history_path),
+            accessxi.escape_probe_log_text(rename_error or 'unknown')));
+        return false;
+    end
+
+    log_state(('state chatlog cache-invalid-preserved path="%s"'):fmt(
+        accessxi.escape_probe_log_text(invalid_path)));
+    return true;
+end
+
+accessxi.chat_history_write_cache = function ()
+    if (accessxi.chat_history_cache_write_blocked == true) then
+        return false;
+    end
+
+    local temporary_path = accessxi.chat_history_path .. '.tmp';
+    local f = io.open(temporary_path, 'w');
+    if (f == nil) then
+        return false;
+    end
+
+    local wrote, write_error = pcall(function ()
+        assert(f:write('#accessxi-chat-history-v2-native-only\n'));
+        for _, entry in ipairs(accessxi.chat_history or T{}) do
+            assert(f:write(tostring(entry.mode or 0), '\t',
+                accessxi.chat_history_escape(entry.text or ''), '\n'));
+        end
+        assert(f:close());
+    end);
+    if (not wrote) then
+        pcall(function () f:close(); end);
+        os.remove(temporary_path);
+        log_state(('state chatlog cache-write-failed error="%s"'):fmt(
+            accessxi.escape_probe_log_text(write_error or 'unknown')));
+        return false;
+    end
+
+    local expected_count = accessxi.chat_history ~= nil and accessxi.chat_history:len() or 0;
+    if (not accessxi.chat_history_validate_cache_file(temporary_path, expected_count)) then
+        os.remove(temporary_path);
+        log_state('state chatlog cache-write-failed error="validation"');
+        return false;
+    end
+    if (not accessxi.chat_history_replace_cache_file(temporary_path)) then
+        os.remove(temporary_path);
+        log_state('state chatlog cache-write-failed error="replace"');
+        return false;
+    end
+
+    accessxi.chat_history_cache_ready = true;
     return true;
 end
 
 accessxi.chat_history_append_cache = function (entry)
     if (entry == nil) then
+        return;
+    end
+    if (accessxi.chat_history_cache_ready ~= true) then
+        accessxi.chat_history_write_cache();
         return;
     end
 
@@ -58658,36 +59537,122 @@ accessxi.chat_history_append_cache = function (entry)
         return;
     end
 
-    f:write(tostring(entry.mode or 0), '\t',
-        accessxi.chat_history_escape(entry.label or ''), '\t',
-        accessxi.chat_history_escape(entry.text or ''), '\n');
-    f:close();
+    local appended, append_error = pcall(function ()
+        assert(f:write(tostring(entry.mode or 0), '\t',
+            accessxi.chat_history_escape(entry.text or ''), '\n'));
+        assert(f:close());
+    end);
+    if (not appended) then
+        pcall(function () f:close(); end);
+        accessxi.chat_history_cache_ready = false;
+        log_state(('state chatlog cache-append-failed error="%s"'):fmt(
+            accessxi.escape_probe_log_text(append_error or 'unknown')));
+    end
+end
+
+function accessxi.chat_history_legacy_entry_reliable(mode_text, text)
+    local mid = bit.band(tonumber(mode_text) or 0, 0xFF);
+    -- Old AccessXI/Ashita output used 0 and 1, colliding with the real Say
+    -- echo mode. The old cache did not preserve e.injected, so silence is
+    -- safer than assigning those rows a native chat category.
+    if (mid == 0 or mid == 1) then
+        return false;
+    end
+    return accessxi.clean_incoming_text(text or '') ~= '';
 end
 
 accessxi.chat_history_load_cache = function ()
-    local f = io.open(accessxi.chat_history_path, 'r');
-    if (f == nil) then
-        return 0;
-    end
-
     local max_history = math.max(100, tonumber(accessxi.chat_history_max) or 1000);
-    local parsed = {};
-    local added = 0;
-    for line in f:lines() do
-        line = tostring(line or ''):gsub('^\239\187\191', '');
-        local mode_text, label, text = line:match('^(%-?%d+)\t([^\t]*)\t(.*)$');
-        if (text ~= nil) then
-            local entry = accessxi.chat_history_entry(mode_text, accessxi.chat_history_unescape(label), accessxi.chat_history_unescape(text));
-            if (entry ~= nil) then
-                added = added + 1;
-                parsed[((added - 1) % max_history) + 1] = entry;
-                if (accessxi.chat_log_remember_apururu_defeated_line ~= nil) then
-                    accessxi.chat_log_remember_apururu_defeated_line(entry.text);
+    local function parse_cache_file(f, legacy)
+        local parsed = {};
+        local added = 0;
+        local valid = true;
+        local first_line = true;
+        for line in f:lines() do
+            line = tostring(line or ''):gsub('^\239\187\191', '');
+            if (first_line and not legacy) then
+                first_line = false;
+                if (line ~= '#accessxi-chat-history-v2-native-only') then
+                    valid = false;
+                    break;
+                end
+            else
+                first_line = false;
+                local mode_text = nil;
+                local label = '';
+                local text = nil;
+                if (legacy) then
+                    mode_text, label, text = line:match('^(%-?%d+)\t([^\t]*)\t(.*)$');
+                else
+                    mode_text, text = line:match('^(%-?%d+)\t(.*)$');
+                end
+
+                if (text == nil) then
+                    if (not legacy) then
+                        valid = false;
+                        break;
+                    end
+                else
+                    text = accessxi.chat_history_unescape(text);
+                    local reliable = not legacy or accessxi.chat_history_legacy_entry_reliable(mode_text, text);
+                    if (reliable) then
+                        local entry = accessxi.chat_history_entry(mode_text, label, text);
+                        if (entry == nil and not legacy) then
+                            valid = false;
+                            break;
+                        elseif (entry ~= nil) then
+                            added = added + 1;
+                            parsed[((added - 1) % max_history) + 1] = entry;
+                            if (accessxi.chat_log_remember_apururu_defeated_line ~= nil) then
+                                accessxi.chat_log_remember_apururu_defeated_line(entry.text);
+                            end
+                        end
+                    end
                 end
             end
         end
+        if (first_line) then
+            valid = legacy;
+        end
+        local closed = f:close();
+        if (closed == nil) then
+            valid = false;
+        end
+        return added, parsed, valid;
     end
-    f:close();
+
+    accessxi.chat_history_cache_load_handled = true;
+    local legacy = false;
+    local added = 0;
+    local parsed = {};
+    local valid = false;
+    local needs_write = false;
+    local f = io.open(accessxi.chat_history_path, 'r');
+    if (f ~= nil) then
+        added, parsed, valid = parse_cache_file(f, false);
+        if (not valid) then
+            needs_write = true;
+            local preserved = accessxi.chat_history_preserve_invalid_cache();
+            local legacy_file = io.open(accessxi.chat_history_legacy_path, 'r');
+            if (legacy_file ~= nil) then
+                legacy = true;
+                added, parsed, valid = parse_cache_file(legacy_file, true);
+            else
+                added = 0;
+                parsed = {};
+                valid = preserved;
+            end
+        end
+    else
+        needs_write = true;
+        local legacy_file = io.open(accessxi.chat_history_legacy_path, 'r');
+        if (legacy_file ~= nil) then
+            legacy = true;
+            added, parsed, valid = parse_cache_file(legacy_file, true);
+        else
+            valid = true;
+        end
+    end
 
     local keep = math.min(added, max_history);
     local start = added - keep + 1;
@@ -58697,8 +59662,10 @@ accessxi.chat_history_load_cache = function ()
             accessxi.chat_history:append(entry);
         end
     end
-    if (added > max_history) then
-        accessxi.chat_history_write_cache();
+
+    accessxi.chat_history_cache_ready = not legacy and valid;
+    if (needs_write or legacy or not valid or added > max_history) then
+        accessxi.chat_history_cache_ready = accessxi.chat_history_write_cache();
     end
     return added;
 end
@@ -58710,7 +59677,7 @@ accessxi.seed_chat_history_from_log = function ()
     accessxi.chat_history_seeded = true;
 
     local cached = accessxi.chat_history_load_cache();
-    if (cached > 0) then
+    if (accessxi.chat_history_cache_load_handled == true) then
         accessxi.chat_history_rebuild_positions();
         log_state(('state chatlog history-cache-seeded lines=%d total=%d'):fmt(cached, accessxi.chat_history:len()));
         return;
@@ -58755,19 +59722,10 @@ end
 
 accessxi.chat_mode_label = function (mode)
     local mid = bit.band(tonumber(mode) or 0, 0xFF);
-    if (mid == 0) then return 'Say'; end
-    if (mid == 1) then return 'Shout'; end
-    if (mid == 2) then return 'Tell'; end
-    if (mid == 3) then return 'Party'; end
-    if (mid == 4) then return 'Linkshell'; end
-    if (mid == 5) then return 'Emote'; end
-    if (mid == 6) then return 'Yell'; end
-    if (mid == 7) then return 'Unity'; end
-    if (mid == 8) then return 'System'; end
-    if (mid == 121) then return 'Combat'; end
-    if (mid == 122) then return 'Combat'; end
-    if (mid == 123) then return 'Combat'; end
-    if (mid == 150 or mid == 151) then return 'Dialogue'; end
+    local info = accessxi.chat_mode_metadata[mid];
+    if (info ~= nil) then
+        return tostring(info.label or 'Chat');
+    end
     return 'Chat';
 end
 
@@ -58776,22 +59734,10 @@ accessxi.chat_reader_categories = accessxi.chat_reader_data.categories or T{};
 
 accessxi.chat_reader_category_key = function (mode, text)
     local mid = bit.band(tonumber(mode) or 0, 0xFF);
-    text = tostring(text or '');
-
-    if (mid == 0) then return 'say'; end
-    if (mid == 1 or mid == 6) then return 'shout'; end
-    if (mid == 2) then return 'tell'; end
-    if (mid == 3) then return 'party'; end
-    if (mid == 4) then return 'linkshell'; end
-    if (mid == 7 or mid == 212 or text:find('^{Apururu}', 1, false) ~= nil) then return 'unity'; end
-    if (mid == 121 or mid == 122 or mid == 123) then return 'combat'; end
-    if (mid == 150 or mid == 151) then return 'dialogue'; end
-    if (mid == 8 or mid == 52 or mid == 56 or mid == 136 or mid == 148
-        or mid == 157 or mid == 161 or mid == 190 or mid == 191
-        or mid == 200 or mid == 205 or mid == 206) then
-        return 'system';
+    local info = accessxi.chat_mode_metadata[mid];
+    if (info ~= nil) then
+        return tostring(info.category or 'other');
     end
-
     return 'other';
 end
 
@@ -58816,7 +59762,7 @@ accessxi.chat_reader_entries = function (category_key)
     return entries;
 end
 
-accessxi.chat_reader_entry_speech = function (category, entries, index, prefix)
+accessxi.chat_reader_entry_speech = function (category, entries, index, prefix, message_only)
     category = category or T{ key = 'all', label = 'All' };
     entries = entries or T{};
     local count = entries:len();
@@ -58825,9 +59771,12 @@ accessxi.chat_reader_entry_speech = function (category, entries, index, prefix)
     end
 
     index = math.max(1, math.min(tonumber(index) or count, count));
-    local line = accessxi.chat_entry_speech(entries[index]);
+    local line = accessxi.chat_entry_speech(entries[index], tostring(category.key or 'all') == 'all');
     if (line == '') then
         line = 'Blank line.';
+    end
+    if (message_only == true) then
+        return accessxi.chat_message_speech(line);
     end
     if (prefix ~= nil and prefix ~= '') then
         return ('%s. %s log. %d of %d. %s'):fmt(prefix, category.label or 'Chat', index, count, line);
@@ -58909,7 +59858,14 @@ accessxi.chat_reader_move = function (delta)
     end
 
     accessxi.chat_reader_positions[category.key] = next_pos;
-    return accessxi.chat_reader_entry_speech(category, entries, next_pos, prefix);
+    return accessxi.chat_reader_entry_speech(category, entries, next_pos, prefix, true);
+end
+
+accessxi.chat_reader_native_log_open = function ()
+    local menu_name = tostring(get_menu_name() or '');
+    return menu_name:eq('menu    logwindo', true)
+        or menu_name:eq('menu    fulllog', true)
+        or menu_name:find('menu    logwin2', 1, true) == 1;
 end
 
 accessxi.chat_reader_handle_key = function (key)
@@ -58918,8 +59874,15 @@ accessxi.chat_reader_handle_key = function (key)
         return false;
     end
 
+    if (accessxi.chat_reader_keys_armed ~= true) then
+        return true;
+    end
+    -- One press owns the complete four-key chord until every reader key is up.
+    -- Suppression gates must not re-arm a key that is still physically held.
+    accessxi.chat_reader_keys_armed = false;
+    accessxi.chat_reader_last_key = key;
+
     if (not accessxi.is_foreground_process()) then
-        accessxi.chat_reader_last_key = 0;
         return false;
     end
 
@@ -58927,13 +59890,9 @@ accessxi.chat_reader_handle_key = function (key)
         return false;
     end
 
-    local now = tick();
-    if (key == (tonumber(accessxi.chat_reader_last_key) or 0)
-        and ((now - (tonumber(accessxi.chat_reader_last_key_tick) or 0)) < 90)) then
-        return true;
+    if (accessxi.chat_reader_native_log_open()) then
+        return false;
     end
-    accessxi.chat_reader_last_key = key;
-    accessxi.chat_reader_last_key_tick = now;
 
     local text = '';
     if (key == 0x24) then
@@ -58954,16 +59913,6 @@ accessxi.chat_reader_handle_key = function (key)
 end
 
 accessxi.poll_chat_reader_hotkeys = function ()
-    if (not accessxi.is_foreground_process()) then
-        accessxi.chat_reader_last_key = 0;
-        return;
-    end
-
-    if (is_chat_input_open()) then
-        accessxi.chat_reader_last_key = 0;
-        return;
-    end
-
     local key = 0;
     if (bit.band(kernel32.GetAsyncKeyState(0x24), 0x8000) ~= 0) then
         key = 0x24;
@@ -58977,6 +59926,15 @@ accessxi.poll_chat_reader_hotkeys = function ()
 
     if (key == 0) then
         accessxi.chat_reader_last_key = 0;
+        accessxi.chat_reader_keys_armed = true;
+        return;
+    end
+
+    if (not accessxi.is_foreground_process()
+        or is_chat_input_open()
+        or accessxi.chat_reader_native_log_open()) then
+        accessxi.chat_reader_last_key = key;
+        accessxi.chat_reader_keys_armed = false;
         return;
     end
 
@@ -59000,7 +59958,10 @@ accessxi.chat_should_speak = function (mode, text)
     return true;
 end
 
-accessxi.chat_add_history = function (mode, text)
+accessxi.chat_add_history = function (mode, text, injected)
+    if (injected == true) then
+        return nil;
+    end
     text = accessxi.clean_incoming_text(text);
     if (text == '') then
         return nil;
@@ -59027,14 +59988,14 @@ accessxi.chat_add_history = function (mode, text)
     return entry;
 end
 
-accessxi.chat_entry_speech = function (entry)
+accessxi.chat_entry_speech = function (entry, include_label)
     if (entry == nil or entry.text == nil or entry.text == '') then
         return '';
     end
 
     local label = clean_login_text(entry.label or 'Chat');
     local text = accessxi.speech_name(entry.text);
-    if (label == '' or label == 'Chat') then
+    if (include_label == false or label == '' or label == 'Chat') then
         return text;
     end
     return ('%s. %s'):fmt(label, text);
@@ -59726,11 +60687,12 @@ function accessxi.capture_combat_action_packet(e)
     accessxi.queue_combat_action_feedback(speech, detail, action);
 end
 
-accessxi.handle_chat_text = function (mode, text)
-    local entry = accessxi.chat_add_history(mode, text);
+accessxi.handle_chat_text = function (mode, text, injected)
+    local entry = accessxi.chat_add_history(mode, text, injected);
     if (entry == nil) then
         return;
     end
+    accessxi.auction_price_history_remember_chat_text(entry);
 
     local speech = accessxi.combat_damage_speech(entry) or accessxi.chat_entry_speech(entry);
     local now = tick();
@@ -66635,7 +67597,7 @@ local function chat_log_menu_speech(name, suppress_initial)
             return '';
         end
         accessxi.chat_log_queue_immediate = native.chat_log_queue_immediate == true;
-        return ('Chat log. %s'):fmt(line);
+        return accessxi.chat_message_speech(line);
     end
 
     local missing_ank = -1;
@@ -66958,6 +67920,10 @@ function accessxi.nav_collision_quiet(reason, duration_ms, now)
     accessxi.nav_collision_freewalk_tick = 0;
     accessxi.nav_collision_freewalk_last_sound_tick = 0;
     accessxi.nav_collision_freewalk_last_log_key = '';
+    accessxi.nav_collision_route_contact_last_sound_tick = 0;
+    accessxi.nav_collision_route_contact_last_log_key = '';
+    accessxi.nav_collision_forward_intent_tick = 0;
+    accessxi.nav_collision_forward_intent_key = 0;
     accessxi.nav_movement_recent_tick = 0;
     accessxi.nav_movement_last_move_count_tick = 0;
     accessxi.nav_movement_last_x = nil;
@@ -67078,6 +68044,12 @@ end
 
 function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_clear_zoning_watch('zone-change');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('zone-change');
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+        accessxi.nav_dangruf_fount_drop_clear('zone-change');
+    end
     accessxi.nav_current_position = nil;
     accessxi.nav_position_seen = false;
     accessxi.nav_active = false;
@@ -67115,6 +68087,14 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_collision_tick = 0;
     accessxi.nav_collision_last_sound_tick = 0;
     accessxi.nav_collision_last_key = '';
+    accessxi.nav_door_wait_until = 0;
+    accessxi.nav_door_pause_until = 0;
+    accessxi.nav_door_x = nil;
+    accessxi.nav_door_z = nil;
+    accessxi.nav_door_route_unit_x = nil;
+    accessxi.nav_door_route_unit_z = nil;
+    accessxi.nav_door_wait_key = '';
+    accessxi.nav_door_wait_name = '';
     accessxi.nav_collision_quiet('zone-change', accessxi.nav_collision_zone_quiet_ms, tick());
     accessxi.nav_last_failure_key = '';
     accessxi.nav_last_failure_tick = 0;
@@ -67347,11 +68327,10 @@ function accessxi.nav_guidance_phrase(from_pos, route_target, next_target, allow
         end
         if (next_target ~= nil) then
             local next_distance = nav_distance(from_pos, next_target);
-            if (next_distance <= 30) then
+            if (next_distance <= 30
+                and accessxi.nav_precise_beacon_lookahead_allowed(from_pos, route_target, next_target)) then
                 route_target = next_target;
                 distance, dx, dz = nav_distance(from_pos, route_target);
-            else
-                return 'Continue.', distance, dx, dz;
             end
         else
             return 'Continue.', distance, dx, dz;
@@ -67513,6 +68492,203 @@ function accessxi.nav_project_to_segment(pos, a, b)
     return point, t, math.sqrt((dx * dx) + (dz * dz));
 end
 
+function accessxi.nav_route_live_match(pos, points, preferred_segment)
+    local count = points ~= nil and points:len() or 0;
+    if (pos == nil or count < 2) then
+        return nil;
+    end
+
+    local py = tonumber(pos.y) or 0;
+    local best = nil;
+    local forward_best = nil;
+    local preferred = nil;
+    preferred_segment = math.floor(tonumber(preferred_segment) or 0);
+    for i = 1, count - 1 do
+        local projected, t, horizontal = accessxi.nav_project_to_segment(pos, points[i], points[i + 1]);
+        if (projected ~= nil) then
+            local vertical = math.abs(py - (tonumber(projected.y) or 0));
+            local score = math.sqrt((horizontal * horizontal) + (vertical * vertical * 4));
+            local candidate = T{
+                segment = i,
+                point = projected,
+                t = t,
+                horizontal = horizontal,
+                vertical = vertical,
+                score = score,
+            };
+            if (i == preferred_segment) then
+                preferred = candidate;
+            end
+            if (best == nil
+                or score < (best.score - 0.05)
+                or (math.abs(score - best.score) <= 0.05 and i > best.segment)) then
+                best = candidate;
+            end
+            if (preferred_segment > 0 and i >= preferred_segment
+                and (forward_best == nil
+                    or score < (forward_best.score - 0.05)
+                    or (math.abs(score - forward_best.score) <= 0.05 and i > forward_best.segment))) then
+                forward_best = candidate;
+            end
+        end
+    end
+    if (forward_best ~= nil
+        and (tonumber(forward_best.horizontal) or 999999) <= 3.25
+        and (tonumber(forward_best.vertical) or 999999) <= 2.0) then
+        best = forward_best;
+    end
+    if (preferred ~= nil and best ~= nil and preferred.score <= (best.score + 0.5)) then
+        return preferred;
+    end
+    return best;
+end
+
+function accessxi.nav_route_target_from_match(player, points, match, lookahead, smooth_lookahead)
+    local count = points ~= nil and points:len() or 0;
+    if (player == nil or match == nil or match.point == nil or count < 2) then
+        return nil;
+    end
+    if ((tonumber(match.horizontal) or 999999) > 6.0
+        or (tonumber(match.vertical) or 999999) > 4.5) then
+        return nil;
+    end
+
+    local segment = math.max(1, math.min(tonumber(match.segment) or 1, count - 1));
+    local match_t = tonumber(match.t) or 0;
+    if (not smooth_lookahead
+        and (tonumber(match.horizontal) or 0) > 0.75
+        and (match_t <= 0.05 or match_t >= 0.95)) then
+        local exit_target = nil;
+        if (match_t <= 0.05) then
+            exit_target = points[segment + 1];
+        else
+            exit_target = points[segment + 2];
+        end
+        if (exit_target ~= nil) then
+            local approach_x = (tonumber(match.point.x) or 0) - (tonumber(player.x) or 0);
+            local approach_z = (tonumber(match.point.z) or 0) - (tonumber(player.z) or 0);
+            local exit_x = (tonumber(exit_target.x) or 0) - (tonumber(match.point.x) or 0);
+            local exit_z = (tonumber(exit_target.z) or 0) - (tonumber(match.point.z) or 0);
+            local approach_length = math.sqrt((approach_x * approach_x) + (approach_z * approach_z));
+            local exit_length = math.sqrt((exit_x * exit_x) + (exit_z * exit_z));
+            if (approach_length > 0.001 and exit_length > 0.001) then
+                local join_cosine = ((approach_x * exit_x) + (approach_z * exit_z))
+                    / (approach_length * exit_length);
+                local minimum_join_cosine = (tonumber(match.horizontal) or 0) > 3.25 and 0 or 0.70710678;
+                if (join_cosine <= minimum_join_cosine) then
+                    match.point.name = 'Recorded route join';
+                    match.point.source = 'live-route-return';
+                    return match.point;
+                end
+            end
+        end
+    end
+
+    local remaining = math.max(0.5, tonumber(lookahead) or 5);
+    local current = match.point;
+    for i = segment, count - 1 do
+        local target = points[i + 1];
+        local start_point = (i == segment) and current or points[i];
+        local distance = nav_distance(start_point, target);
+        if (distance >= remaining and distance > 0.001) then
+            local ratio = remaining / distance;
+            return T{
+                zone = player.zone,
+                name = 'Recorded route steering target',
+                x = (tonumber(start_point.x) or 0) + (ratio * ((tonumber(target.x) or 0) - (tonumber(start_point.x) or 0))),
+                z = (tonumber(start_point.z) or 0) + (ratio * ((tonumber(target.z) or 0) - (tonumber(start_point.z) or 0))),
+                y = (tonumber(start_point.y) or 0) + (ratio * ((tonumber(target.y) or 0) - (tonumber(start_point.y) or 0))),
+                kind = 'route',
+                source = 'live-route-lookahead',
+                route_override_id = target.route_override_id,
+            };
+        end
+
+        remaining = remaining - distance;
+        local next_target = points[i + 2];
+        if (not smooth_lookahead and next_target ~= nil and nav_distance(player, target) > 0.75) then
+            local in_x = (tonumber(target.x) or 0) - (tonumber(start_point.x) or 0);
+            local in_z = (tonumber(target.z) or 0) - (tonumber(start_point.z) or 0);
+            local out_x = (tonumber(next_target.x) or 0) - (tonumber(target.x) or 0);
+            local out_z = (tonumber(next_target.z) or 0) - (tonumber(target.z) or 0);
+            local in_length = math.sqrt((in_x * in_x) + (in_z * in_z));
+            local out_length = math.sqrt((out_x * out_x) + (out_z * out_z));
+            if (in_length > 0.001 and out_length > 0.001) then
+                local turn_cosine = ((in_x * out_x) + (in_z * out_z)) / (in_length * out_length);
+                if (turn_cosine < 0.70710678) then
+                    return target;
+                end
+            end
+        end
+        current = target;
+    end
+    return points[count];
+end
+
+function accessxi.nav_precise_route_waypoint_passed(player, current_target, next_target)
+    if (player == nil or current_target == nil or next_target == nil) then
+        return false;
+    end
+
+    local projected, t, horizontal = accessxi.nav_project_to_segment(player, current_target, next_target);
+    if (projected == nil or (tonumber(t) or 0) < 0.5 or (tonumber(horizontal) or 999999) > 1.5) then
+        return false;
+    end
+
+    local vertical = math.abs((tonumber(player.y) or 0) - (tonumber(projected.y) or 0));
+    if (vertical > 2.0) then
+        return false;
+    end
+
+    return nav_distance(player, next_target) < nav_distance(player, current_target);
+end
+
+function accessxi.nav_precise_route_track_index(player, now)
+    local count = accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() or 0;
+    local index = tonumber(accessxi.nav_route_point_index) or 1;
+    if (player == nil or count < 2 or index < 1 or index >= count
+        or not accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
+        return false;
+    end
+
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_precise_route_track_tick) or 0)) < 50) then
+        return false;
+    end
+    accessxi.nav_precise_route_track_tick = now;
+
+    local match = accessxi.nav_route_live_match(
+        player, accessxi.nav_route_points, math.max(1, index - 1));
+    if (match == nil
+        or (tonumber(match.horizontal) or 999999) > 6.0
+        or (tonumber(match.vertical) or 999999) > 4.5) then
+        return false;
+    end
+
+    local desired = math.min((tonumber(match.segment) or 1) + 1, count);
+    if (desired < index) then
+        return false;
+    end
+    if desired == index then
+        return false;
+    end
+
+    accessxi.nav_route_point_index = desired;
+    local target = accessxi.nav_route_points[accessxi.nav_route_point_index];
+    log_line(('nav precise match %d/%d player=(%.3f,%.3f,%.3f) target=(%.3f,%.3f,%.3f) off=%.2f vertical=%.2f'):fmt(
+        accessxi.nav_route_point_index,
+        count,
+        tonumber(player.x) or 0,
+        tonumber(player.z) or 0,
+        tonumber(player.y) or 0,
+        tonumber(target ~= nil and target.x) or 0,
+        tonumber(target ~= nil and target.z) or 0,
+        tonumber(target ~= nil and target.y) or 0,
+        tonumber(match.horizontal) or 0,
+        tonumber(match.vertical) or 0));
+    return true;
+end
+
 function accessxi.nav_distance_to_route(pos, points)
     local count = points ~= nil and points:len() or 0;
     if (count == 0) then
@@ -67530,6 +68706,91 @@ function accessxi.nav_distance_to_route(pos, points)
         end
     end
     return best;
+end
+
+function accessxi.nav_route_position_delta(pos, points)
+    local count = points ~= nil and points:len() or 0;
+    if (pos == nil or count == 0) then
+        return nil;
+    end
+
+    local py = tonumber(pos.y) or 0;
+    if (count == 1) then
+        local point = points[1];
+        local horizontal = nav_distance(pos, point);
+        local signed_vertical = py - (tonumber(point.y) or 0);
+        return T{
+            horizontal = horizontal,
+            vertical = math.abs(signed_vertical),
+            signed_vertical = signed_vertical,
+            below = math.max(0, -signed_vertical),
+            segment = 0,
+            point = point,
+        };
+    end
+
+    local best = nil;
+    for i = 1, count - 1 do
+        local projected, _, horizontal = accessxi.nav_project_to_segment(pos, points[i], points[i + 1]);
+        if (projected ~= nil and (best == nil or horizontal < best.horizontal)) then
+            local signed_vertical = py - (tonumber(projected.y) or 0);
+            best = T{
+                horizontal = horizontal,
+                vertical = math.abs(signed_vertical),
+                signed_vertical = signed_vertical,
+                below = math.max(0, -signed_vertical),
+                segment = i,
+                point = projected,
+            };
+        end
+    end
+
+    return best;
+end
+
+function accessxi.nav_lathine_lower_ravine_position(pos)
+    if (pos == nil or (tonumber(pos.zone) or 0) ~= 102) then
+        return false;
+    end
+
+    local px = tonumber(pos.x) or 0;
+    local pz = tonumber(pos.z) or 0;
+    local py = tonumber(pos.y);
+    if (py == nil) then
+        return false;
+    end
+    return px >= -670 and px <= -585 and pz >= 200 and pz <= 350 and py <= 12.5;
+end
+
+function accessxi.nav_route_live_replan_reason(player, destination, points, delta)
+    if (player == nil or destination == nil) then
+        return '';
+    end
+
+    local route_id = accessxi.nav_route_points_override_id(points);
+    if (route_id:startswith('lathine-recorded-survey-')) then
+        return '';
+    end
+    local destination_name = tostring(destination.name or ''):lower();
+    local destination_is_west = ((tonumber(destination.zone) or 0) == 102)
+        and (destination_name:contains('west ronfaure') or nav_distance(destination, T{ x = -558.569, z = 688.049, y = -7.049, zone = 102 }) <= 6);
+
+    if (destination_is_west and accessxi.nav_lathine_lower_ravine_position(player)
+        and route_id ~= 'lathine-fallen-ravine-to-west-ronfaure-zoneline') then
+        return 'lathine lower ravine live position';
+    end
+
+    local horizontal = delta ~= nil and (tonumber(delta.horizontal) or 0) or 0;
+    local vertical = delta ~= nil and (tonumber(delta.vertical) or 0) or 0;
+    if (horizontal > 18.0) then
+        return 'route drift from live position';
+    end
+
+    if (vertical > 7.0 and horizontal <= 28.0) then
+        return 'route layer changed';
+    end
+
+    return '';
 end
 
 function accessxi.nav_nearest_route_segment(pos, points)
@@ -67638,6 +68899,10 @@ end
 function accessxi.nav_sync_route_index(pos)
     local count = accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() or 0;
     if (pos == nil or count < 2) then
+        return;
+    end
+
+    if (accessxi.nav_route_precise_override_active(pos, accessxi.nav_route_points)) then
         return;
     end
 
@@ -67846,7 +69111,78 @@ local function nav_compute_mesh_route(start_pos, end_pos)
             source = 'navmesh',
         });
     end
+
+    local quarantine = accessxi.nav_route_quarantine_reason(points, end_pos);
+    if (quarantine ~= '') then
+        accessxi.nav_route_last_reject_reason = quarantine;
+        log_line(('navmesh route rejected zone=%d destination="%s" quarantine="%s" count=%d'):fmt(
+            start_pos.zone or 0,
+            end_pos.name or '',
+            accessxi.escape_probe_log_text(quarantine),
+            points:len()));
+        points:clear();
+        return points;
+    end
     return points;
+end
+
+function accessxi.nav_compute_mesh_endpoint_approach(player, point)
+    local empty = T{};
+    if (player == nil or point == nil or (tonumber(player.zone) or 0) ~= (tonumber(point.zone) or 0)) then
+        return empty, nil;
+    end
+
+    local arrival_radius = tonumber(accessxi.nav_arrival_radius(point)) or 0;
+    local radii = { 1.5, 2.5, 4.0, 6.0 };
+    for _, radius in ipairs(radii) do
+        if (radius < arrival_radius) then
+            local best_route = nil;
+            local best_approach = nil;
+            local best_length = nil;
+            for direction = 0, 7 do
+                local angle = (-math.pi / 2) + (direction * (math.pi / 4));
+                local candidate = T{
+                    zone = tonumber(point.zone) or 0,
+                    name = ('%s approach'):fmt(point.name or 'Destination'),
+                    x = (tonumber(point.x) or 0) + (math.cos(angle) * radius),
+                    z = (tonumber(point.z) or 0) + (math.sin(angle) * radius),
+                    y = tonumber(point.y) or 0,
+                    kind = point.kind,
+                    source = 'navmesh-endpoint-approach',
+                };
+                local candidate_route = nav_compute_mesh_route(player, candidate);
+                if (candidate_route:len() > 1) then
+                    local route_length = 0;
+                    for i = 2, candidate_route:len() do
+                        route_length = route_length + nav_distance(candidate_route[i - 1], candidate_route[i]);
+                    end
+                    if (best_route == nil or route_length < best_length) then
+                        best_route = candidate_route;
+                        best_approach = candidate;
+                        best_length = route_length;
+                    end
+                end
+            end
+
+            if (best_route ~= nil) then
+                for _, route_point in ipairs(best_route) do
+                    route_point.source = 'navmesh-endpoint-approach';
+                    route_point.endpoint_approach_name = point.name or '';
+                end
+                accessxi.nav_route_last_reject_reason = '';
+                log_line(('navmesh endpoint approach destination="%s" radius=%.1f approach=(%.3f,%.3f,%.3f) count=%d'):fmt(
+                    point.name or '',
+                    radius,
+                    best_approach.x or 0,
+                    best_approach.z or 0,
+                    best_approach.y or 0,
+                    best_route:len()));
+                return best_route, best_approach;
+            end
+        end
+    end
+
+    return empty, nil;
 end
 
 function accessxi.nav_area_point_reachable(player, point)
@@ -68009,6 +69345,12 @@ function accessxi.nav_route_override_matches(player, point, override)
         return false;
     end
 
+    local route_id = tostring(override.id or '');
+    if (route_id == 'lathine-fallen-ravine-to-west-ronfaure-zoneline'
+        and not accessxi.nav_lathine_lower_ravine_position(player)) then
+        return false;
+    end
+
     if (nav_distance(point, override.destination) > (tonumber(override.match_radius) or 3)) then
         return false;
     end
@@ -68018,27 +69360,295 @@ function accessxi.nav_route_override_matches(player, point, override)
     return expected_name == '' or point_name == '' or point_name:contains(expected_name) or expected_name:contains(point_name);
 end
 
+function accessxi.nav_route_points_override_id(points)
+    local count = points ~= nil and points:len() or 0;
+    if (count <= 0) then
+        return '';
+    end
+
+    for _, point in ipairs(points) do
+        if (point ~= nil) then
+            local route_id = tostring(point.route_override_id or ''):lower();
+            if (route_id ~= '') then
+                return route_id;
+            end
+            local source = tostring(point.source or ''):lower();
+            local source_id = source:match('route%-override:([^:]+)');
+            if (source_id ~= nil and source_id ~= '') then
+                return source_id;
+            end
+        end
+    end
+
+    return '';
+end
+
+accessxi.nav_route_quarantine_rules = T{
+    T{
+        zone = 102,
+        x = -592.951,
+        y = 13.765,
+        z = 392.547,
+        radius = 4.0,
+        y_radius = 3.0,
+        destination = '',
+        except_destination = "Ordelle's Caves zone line z2u6",
+        reason = 'live-disproved lower shelf descent -592.951,392.547 from La Theine pocket on 2026-07-02',
+    },
+    T{
+        zone = 102,
+        destination = "Ordelle's Caves zone line z2u6",
+        x = -597.806,
+        y = 15.582,
+        z = 392.732,
+        radius = 5.0,
+        y_radius = 3.0,
+        reason = 'live-disproved La Theine shelf shortcut to Ordelle z2u6; use the F-6 ravine entry before F-7',
+    },
+    T{
+        zone = 102,
+        destination = "Ordelle's Caves zone line z2u6",
+        x = -592.951,
+        y = 13.765,
+        z = 392.547,
+        radius = 5.0,
+        y_radius = 3.0,
+        reason = 'live-disproved La Theine shelf descent to Ordelle z2u6; use the F-6 ravine entry before F-7',
+    },
+    T{
+        zone = 102,
+        destination = 'west ronfaure zone line',
+        x = -621.600,
+        z = 460.800,
+        radius = 6.0,
+        reason = 'live collision at -621.600,460.800 on 2026-07-02',
+    },
+    T{
+        zone = 102,
+        destination = 'west ronfaure zone line',
+        x = -614.961,
+        z = 417.745,
+        radius = 5.0,
+        reason = 'navmesh internal wall leg -614.961,417.745 live-blocked on 2026-07-01',
+    },
+    T{
+        zone = 102,
+        destination = 'west ronfaure zone line',
+        x = -672.342,
+        z = 484.567,
+        radius = 5.0,
+        reason = 'live repeated wall block at -672.342,484.567 on 2026-07-01',
+    },
+};
+
+function accessxi.nav_route_quarantine_destination_matches(destination, rule)
+    local excepted = tostring(rule ~= nil and rule.except_destination or ''):lower();
+    local expected = tostring(rule ~= nil and rule.destination or ''):lower();
+    local name = tostring(destination ~= nil and destination.name or ''):lower();
+    if (excepted ~= '' and name ~= '' and (name:contains(excepted) or excepted:contains(name))) then
+        return false;
+    end
+    if (expected == '') then
+        return true;
+    end
+
+    if (name == '') then
+        return false;
+    end
+    return name:contains(expected) or expected:contains(name);
+end
+
+function accessxi.nav_route_quarantine_match(point, destination)
+    if (point == nil) then
+        return nil;
+    end
+
+    local zone = tonumber(point.zone) or 0;
+    for _, rule in ipairs(accessxi.nav_route_quarantine_rules) do
+        if (zone == (tonumber(rule.zone) or 0) and accessxi.nav_route_quarantine_destination_matches(destination, rule)) then
+            local dx = (tonumber(point.x) or 0) - (tonumber(rule.x) or 0);
+            local dz = (tonumber(point.z) or 0) - (tonumber(rule.z) or 0);
+            local radius = tonumber(rule.radius) or 3.0;
+            local rule_y = tonumber(rule.y);
+            local y_matches = true;
+            if (rule_y ~= nil) then
+                local y_radius = tonumber(rule.y_radius) or 3.0;
+                y_matches = math.abs((tonumber(point.y) or 0) - rule_y) <= y_radius;
+            end
+            if (y_matches and math.sqrt((dx * dx) + (dz * dz)) <= radius) then
+                return rule;
+            end
+        end
+    end
+
+    return nil;
+end
+
+function accessxi.nav_route_quarantine_reason(points, destination)
+    local count = points ~= nil and points:len() or 0;
+    if (count <= 0) then
+        return '';
+    end
+
+    for _, point in ipairs(points) do
+        local source = tostring(point ~= nil and point.source or ''):lower();
+        if (source:sub(-6) ~= ':start') then
+            local rule = accessxi.nav_route_quarantine_match(point, destination);
+            if (rule ~= nil) then
+                return tostring(rule.reason or 'quarantine');
+            end
+        end
+    end
+
+    return '';
+end
+
+function accessxi.nav_lathine_recorded_ravine_escape_required(player, point)
+    if (player == nil or point == nil) then
+        return false, nil;
+    end
+    if ((tonumber(player.zone) or 0) ~= 102 or (tonumber(point.zone) or 0) ~= 102) then
+        return false, nil;
+    end
+
+    accessxi.nav_load_route_overrides();
+
+    for _, override in ipairs(accessxi.nav_route_overrides) do
+        if (tostring(override.id or ''):startswith('lathine-recorded-ravine-escape-')
+            and override.waypoints ~= nil and override.waypoints:len() > 1) then
+            local min_x = tonumber(override.min_x) or -999999;
+            local max_x = tonumber(override.max_x) or 999999;
+            local min_z = tonumber(override.min_z) or -999999;
+            local max_z = tonumber(override.max_z) or 999999;
+            local player_x = tonumber(player.x) or 0;
+            local player_z = tonumber(player.z) or 0;
+            if player_x >= min_x and player_x <= max_x
+                and player_z >= min_z and player_z <= max_z then
+                local point_x = tonumber(point.x) or 0;
+                local point_z = tonumber(point.z) or 0;
+                if point_x >= min_x and point_x <= max_x
+                    and point_z >= min_z and point_z <= max_z then
+                    return false, override;
+                end
+                return true, override;
+            end
+        end
+    end
+
+    return false, nil;
+end
+
+function accessxi.nav_route_direct_fallback_block_reason(player, point)
+    if (player == nil or point == nil) then
+        return '';
+    end
+
+    local reject_reason = tostring(accessxi.nav_route_last_reject_reason or '');
+    if (reject_reason:contains('navmesh returned no verified walkable path')) then
+        return ('No verified walkable route to %s from here.'):fmt(point.name or 'the requested destination');
+    end
+
+    if (accessxi.nav_lathine_recorded_corridor_required(player, point)) then
+        local reason = tostring(accessxi.nav_route_last_reject_reason or '');
+        if (reason == '') then
+            reason = 'the recorded walked corridor could not build a verified safe tail';
+        end
+        return ('No verified safe route from this La Theine corridor to %s. %s.'):fmt(
+            point.name or 'the requested destination',
+            reason);
+    end
+
+    if (accessxi.nav_lathine_recorded_ravine_escape_required(player, point)) then
+        local reason = tostring(accessxi.nav_route_last_reject_reason or '');
+        if (reason == '') then
+            reason = 'the recorded ravine escape could not build a verified safe tail';
+        end
+        return ('No verified safe route from this La Theine ravine to %s. %s.'):fmt(
+            point.name or 'the requested destination',
+            reason);
+    end
+
+    if ((tonumber(player.zone) or 0) ~= 102 or (tonumber(point.zone) or 0) ~= 102) then
+        return '';
+    end
+    if (not accessxi.nav_route_quarantine_destination_matches(point, T{ destination = 'west ronfaure zone line' })) then
+        return '';
+    end
+
+    local reason = tostring(accessxi.nav_route_last_reject_reason or '');
+    if (reason == '') then
+        return '';
+    end
+    return ('No verified safe route from here. The La Theine route was rejected because %s.'):fmt(reason);
+end
+
+function accessxi.nav_route_precise_override_active(player, points)
+    if (player == nil) then
+        return false;
+    end
+
+    local route_id = accessxi.nav_route_points_override_id(points);
+    local px = tonumber(player.x) or 0;
+    local pz = tonumber(player.z) or 0;
+    if (route_id:startswith('lathine-recorded-survey-')) then
+        return true;
+    end
+    if (route_id:startswith('lathine-recorded-corridor-')) then
+        return true;
+    end
+    if (route_id:startswith('lathine-recorded-ravine-escape-')) then
+        return true;
+    end
+    if (route_id == 'lathine-open-shelf-via-f6-to-ordelle-z2u6') then
+        return px >= -585 and px <= -550 and pz >= 405 and pz <= 520;
+    end
+    if (route_id == 'lathine-fallen-ravine-to-west-ronfaure-zoneline') then
+        return px >= -670 and px <= -585 and pz >= 200 and pz <= 410;
+    end
+    if (route_id == 'lathine-fallen-pocket-to-west-ronfaure-zoneline') then
+        return px >= -690 and px <= -570 and pz >= 360 and pz <= 500;
+    end
+    if (route_id == 'lathine-corridor-shoulder-to-west-ronfaure-zoneline') then
+        return px >= -655 and px <= -625 and pz >= 420 and pz <= 455;
+    end
+    if (route_id == 'lathine-lower-corridor-to-west-ronfaure-zoneline') then
+        return px >= -635 and px <= -585 and pz >= 350 and pz <= 535;
+    end
+
+    local pocket_route = route_id == 'lathine-wall-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-lower-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-mid-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-exit-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-upper-west-pocket-to-west-ronfaure-zoneline';
+    if (not pocket_route) then
+        return false;
+    end
+
+    return px >= -705 and px <= -640 and pz >= 450 and pz <= 535;
+end
+
 function accessxi.nav_route_override_requires_full_start(points)
     local count = points ~= nil and points:len() or 0;
     if (count <= 0) then
         return false;
     end
 
-    local first = points[1];
-    local route_id = tostring(first ~= nil and first.route_override_id or ''):lower();
-    return route_id == 'lathine-crag-to-telepoint';
+    local route_id = accessxi.nav_route_points_override_id(points);
+    return route_id == 'lathine-crag-to-telepoint'
+        or route_id == 'lathine-open-shelf-via-f6-to-ordelle-z2u6'
+        or route_id == 'lathine-fallen-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-corridor-shoulder-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-lower-corridor-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-wall-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-lower-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-mid-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-exit-pocket-to-west-ronfaure-zoneline'
+        or route_id == 'lathine-upper-west-pocket-to-west-ronfaure-zoneline';
 end
 
 function accessxi.nav_route_override_start_index(player, points)
     local count = points ~= nil and points:len() or 0;
     if (player == nil or count <= 1) then
-        return 1;
-    end
-    if (accessxi.nav_route_override_requires_full_start(points)) then
-        return 1;
-    end
-    local wall = (type(accessxi.nav_wall_distance) == 'function') and accessxi.nav_wall_distance(player) or nil;
-    if (wall ~= nil and wall <= 1.2) then
         return 1;
     end
 
@@ -68062,6 +69672,13 @@ function accessxi.nav_route_override_start_index(player, points)
             return math.min(count, best_segment + 2);
         end
         return math.min(count, best_segment + 1);
+    end
+    if (accessxi.nav_route_override_requires_full_start(points)) then
+        return 1;
+    end
+    local wall = (type(accessxi.nav_wall_distance) == 'function') and accessxi.nav_wall_distance(player) or nil;
+    if (wall ~= nil and wall <= 1.2) then
+        return 1;
     end
     return 1;
 end
@@ -68116,15 +69733,139 @@ function accessxi.nav_route_override_points(player, point)
             end
 
             if (points:len() > 1) then
-                log_line(('nav route override destination="%s" id="%s" count=%d'):fmt(
-                    point.name or '',
-                    override.id or '',
-                    points:len()));
-                return points;
+                local quarantine = accessxi.nav_route_quarantine_reason(points, point);
+                if (quarantine ~= '') then
+                    accessxi.nav_route_last_reject_reason = quarantine;
+                    log_line(('nav route override rejected destination="%s" id="%s" quarantine="%s" count=%d'):fmt(
+                        point.name or '',
+                        override.id or '',
+                        accessxi.escape_probe_log_text(quarantine),
+                        points:len()));
+                    points = T{};
+                else
+                    accessxi.nav_route_last_reject_reason = '';
+                    log_line(('nav route override destination="%s" id="%s" count=%d'):fmt(
+                        point.name or '',
+                        override.id or '',
+                        points:len()));
+                    return points;
+                end
             end
         end
     end
 
+    return points;
+end
+
+function accessxi.nav_lathine_lower_ravine_recovery_route(player, point)
+    local points = T{};
+    if (player == nil or point == nil) then
+        return points;
+    end
+    if ((tonumber(player.zone) or 0) ~= 102 or (tonumber(point.zone) or 0) ~= 102) then
+        return points;
+    end
+    if (not accessxi.nav_lathine_lower_ravine_position(player)) then
+        return points;
+    end
+
+    accessxi.nav_load_route_overrides();
+
+    local recovery = nil;
+    for _, override in ipairs(accessxi.nav_route_overrides) do
+        if (tostring(override.id or '') == 'lathine-fallen-ravine-to-west-ronfaure-zoneline') then
+            recovery = override;
+            break;
+        end
+    end
+    if (recovery == nil or recovery.waypoints == nil or recovery.waypoints:len() <= 0) then
+        return points;
+    end
+
+    local corridor = T{};
+    for _, waypoint in ipairs(recovery.waypoints) do
+        corridor:append(waypoint);
+    end
+
+    points:append(T{
+        zone = player.zone,
+        name = 'Lower ravine recovery start',
+        x = player.x,
+        z = player.z,
+        y = player.y,
+        kind = 'route',
+        source = 'route-override:lathine-fallen-ravine-to-west-ronfaure-zoneline:start',
+        route_override_id = 'lathine-fallen-ravine-to-west-ronfaure-zoneline',
+    });
+
+    local handoff = nil;
+    local start_index = accessxi.nav_route_override_start_index(player, corridor);
+    for i = start_index, corridor:len() do
+        local waypoint = corridor[i];
+        local is_handoff = waypoint ~= nil
+            and math.abs((tonumber(waypoint.x) or 0) - -634.132) <= 0.35
+            and math.abs((tonumber(waypoint.z) or 0) - 269.628) <= 0.35;
+        if (waypoint ~= nil and (is_handoff or nav_distance(player, waypoint) > 1.5 or i == corridor:len())) then
+            points:append(T{
+                zone = waypoint.zone,
+                name = waypoint.name,
+                x = waypoint.x,
+                z = waypoint.z,
+                y = waypoint.y,
+                kind = waypoint.kind,
+                source = waypoint.source,
+                route_override_id = waypoint.route_override_id,
+            });
+        end
+        if (is_handoff) then
+            handoff = points[points:len()];
+            break;
+        end
+    end
+
+    if (handoff == nil or points:len() <= 1) then
+        return T{};
+    end
+
+    local tail = nav_compute_mesh_route(handoff, point);
+    if (tail:len() <= 1 and accessxi.nav_point_is_zoneline(point)) then
+        for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
+            tail = nav_compute_mesh_route(handoff, approach);
+            if (tail:len() > 1) then
+                accessxi.nav_append_final_zoneline_point(tail, point);
+                break;
+            end
+        end
+    end
+    if (tail:len() <= 1) then
+        return T{};
+    end
+
+    for i = 2, tail:len() do
+        local waypoint = tail[i];
+        points:append(T{
+            zone = waypoint.zone,
+            name = waypoint.name,
+            x = waypoint.x,
+            z = waypoint.z,
+            y = waypoint.y,
+            kind = waypoint.kind,
+            source = waypoint.source,
+        });
+    end
+
+    local quarantine = accessxi.nav_route_quarantine_reason(points, point);
+    if (quarantine ~= '') then
+        accessxi.nav_route_last_reject_reason = quarantine;
+        log_line(('nav lower ravine recovery rejected destination="%s" quarantine="%s" count=%d'):fmt(
+            point.name or '',
+            accessxi.escape_probe_log_text(quarantine),
+            points:len()));
+        return T{};
+    end
+
+    accessxi.nav_route_last_reject_reason = '';
+    log_line(('nav lower ravine recovery route destination="%s" count=%d'):fmt(point.name or '', points:len()));
     return points;
 end
 
@@ -68395,9 +70136,518 @@ function accessxi.nav_append_final_zoneline_point(points, destination)
     return points;
 end
 
+function accessxi.nav_lathine_recorded_ravine_escape_route(player, point)
+    local points = T{};
+    local required, escape = accessxi.nav_lathine_recorded_ravine_escape_required(player, point);
+    if not required or escape == nil then
+        return points;
+    end
+
+    local route_id = tostring(escape.id or '');
+    local corridor = T{};
+    for _, waypoint in ipairs(escape.waypoints) do
+        corridor:append(waypoint);
+    end
+
+    local handoff = corridor[corridor:len()];
+    if (handoff == nil) then
+        return points;
+    end
+
+    points:append(T{
+        zone = player.zone,
+        name = 'Recorded ravine escape start',
+        x = player.x,
+        z = player.z,
+        y = player.y,
+        kind = 'route',
+        source = 'route-override:' .. route_id .. ':start',
+        route_override_id = route_id,
+    });
+
+    local start_index = accessxi.nav_route_override_start_index(player, corridor);
+    for i = start_index, corridor:len() do
+        local waypoint = corridor[i];
+        if waypoint ~= nil and (nav_distance(player, waypoint) > 1.5 or i == corridor:len()) then
+            points:append(T{
+                zone = waypoint.zone,
+                name = waypoint.name,
+                x = waypoint.x,
+                z = waypoint.z,
+                y = waypoint.y,
+                kind = waypoint.kind,
+                source = waypoint.source,
+                route_override_id = waypoint.route_override_id,
+            });
+        end
+    end
+
+    local tail = accessxi.nav_route_override_points(handoff, point);
+    if (tail:len() <= 1) then
+        tail = nav_compute_mesh_route(handoff, point);
+    end
+    if (tail:len() <= 1 and accessxi.nav_point_is_zoneline(point)) then
+        for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
+            tail = nav_compute_mesh_route(handoff, approach);
+            if (tail:len() > 1) then
+                accessxi.nav_append_final_zoneline_point(tail, point);
+                break;
+            end
+        end
+    end
+    if (tail:len() <= 1) then
+        accessxi.nav_route_last_reject_reason = 'recorded ravine escape has no verified safe tail';
+        log_line(('nav recorded ravine escape unavailable destination="%s" reason="no safe tail"'):fmt(point.name or ''));
+        return T{};
+    end
+
+    for i = 2, tail:len() do
+        local waypoint = tail[i];
+        points:append(T{
+            zone = waypoint.zone,
+            name = waypoint.name,
+            x = waypoint.x,
+            z = waypoint.z,
+            y = waypoint.y,
+            kind = waypoint.kind,
+            source = waypoint.source,
+            route_override_id = waypoint.route_override_id,
+        });
+    end
+
+    local quarantine = accessxi.nav_route_quarantine_reason(points, point);
+    if (quarantine ~= '') then
+        accessxi.nav_route_last_reject_reason = quarantine;
+        log_line(('nav recorded ravine escape rejected destination="%s" quarantine="%s" count=%d'):fmt(
+            point.name or '',
+            accessxi.escape_probe_log_text(quarantine),
+            points:len()));
+        return T{};
+    end
+
+    accessxi.nav_route_last_reject_reason = '';
+    log_line(('nav recorded ravine escape route destination="%s" count=%d'):fmt(point.name or '', points:len()));
+    return points;
+end
+
+function accessxi.nav_lathine_recorded_corridor_nearest(pos, corridor)
+    if (pos == nil or corridor == nil or corridor.waypoints == nil or corridor.waypoints:len() <= 0) then
+        return 0, 999999, 999999, 999999;
+    end
+
+    local best_index = 0;
+    local best_horizontal = 999999;
+    local best_vertical = 999999;
+    local best_distance = 999999;
+    for i, waypoint in ipairs(corridor.waypoints) do
+        local dx = (tonumber(pos.x) or 0) - (tonumber(waypoint.x) or 0);
+        local dz = (tonumber(pos.z) or 0) - (tonumber(waypoint.z) or 0);
+        local dy = (tonumber(pos.y) or 0) - (tonumber(waypoint.y) or 0);
+        local horizontal = math.sqrt((dx * dx) + (dz * dz));
+        local vertical = math.abs(dy);
+        local distance = math.sqrt((horizontal * horizontal) + (vertical * vertical));
+        if (distance < best_distance) then
+            best_index = i;
+            best_horizontal = horizontal;
+            best_vertical = vertical;
+            best_distance = distance;
+        end
+    end
+    return best_index, best_horizontal, best_vertical, best_distance;
+end
+
+function accessxi.nav_lathine_recorded_corridor_required(player, point)
+    if (player == nil or point == nil
+        or (tonumber(player.zone) or 0) ~= 102
+        or (tonumber(point.zone) or 0) ~= 102) then
+        return false, nil;
+    end
+
+    local destination_name = tostring(point.name or ''):lower();
+    local destination_is_west = destination_name:contains('west ronfaure')
+        or nav_distance(point, T{ x = -558.569, z = 688.049, y = -7.049, zone = 102 }) <= 6;
+
+    accessxi.nav_load_route_overrides();
+    for _, corridor in ipairs(accessxi.nav_route_overrides) do
+        if (tostring(corridor.id or ''):startswith('lathine-recorded-corridor-')
+            and corridor.waypoints ~= nil and corridor.waypoints:len() > 1) then
+            local route_id = tostring(corridor.id or '');
+            local west_safe = route_id:startswith('lathine-recorded-corridor-20260712-west-via-');
+            local player_horizontal_limit = 6.0;
+            local player_vertical_limit = 4.5;
+            local destination_horizontal_limit = 6.0;
+            local destination_vertical_limit = 4.5;
+            local _, horizontal_distance, vertical_distance = accessxi.nav_lathine_recorded_corridor_nearest(player, corridor);
+            if (horizontal_distance <= player_horizontal_limit and vertical_distance <= player_vertical_limit) then
+                if (west_safe) then
+                    return not destination_is_west, corridor;
+                end
+                local _, destination_horizontal, destination_vertical = accessxi.nav_lathine_recorded_corridor_nearest(point, corridor);
+                local destination_on_corridor = destination_horizontal <= destination_horizontal_limit
+                    and destination_vertical <= destination_vertical_limit;
+                if (destination_on_corridor) then
+                    return false, corridor;
+                end
+                return true, corridor;
+            end
+        end
+    end
+    return false, nil;
+end
+
+function accessxi.nav_lathine_recorded_corridor_append(points, waypoint, route_id, suffix)
+    if (points == nil or waypoint == nil) then
+        return;
+    end
+    points:append(T{
+        zone = tonumber(waypoint.zone) or 102,
+        name = waypoint.name or 'Recorded La Theine corridor',
+        x = tonumber(waypoint.x) or 0,
+        z = tonumber(waypoint.z) or 0,
+        y = tonumber(waypoint.y) or 0,
+        kind = 'route',
+        source = 'route-override:' .. tostring(route_id or '') .. tostring(suffix or ''),
+        route_override_id = route_id,
+    });
+end
+
+function accessxi.nav_lathine_recorded_corridor_length(points)
+    local length = 0;
+    if (points == nil) then
+        return length;
+    end
+    for i = 2, points:len() do
+        length = length + nav_distance(points[i - 1], points[i]);
+    end
+    return length;
+end
+
+function accessxi.nav_lathine_recorded_corridor_start_connector(player, corridor, route_id, preferred_index)
+    local connector = T{};
+    if (player == nil or corridor == nil or corridor.waypoints == nil
+        or corridor.waypoints:len() < 2) then
+        return connector, 0;
+    end
+
+    local preferred_segment = math.max(1, (tonumber(preferred_index) or 2) - 1);
+    local match = accessxi.nav_route_live_match(player, corridor.waypoints, preferred_segment);
+    if (match == nil
+        or (tonumber(match.horizontal) or 999999) > 3.25
+        or (tonumber(match.vertical) or 999999) > 2.5) then
+        accessxi.nav_route_last_reject_reason = 'recorded corridor start has no verified connector';
+        log_line(('nav recorded corridor start rejected id="%s" reason="%s" horizontal=%.1f vertical=%.1f'):fmt(
+            tostring(route_id or ''),
+            accessxi.escape_probe_log_text(accessxi.nav_route_last_reject_reason),
+            match ~= nil and (tonumber(match.horizontal) or 0) or 999999,
+            match ~= nil and (tonumber(match.vertical) or 0) or 999999));
+        return connector, 0;
+    end
+
+    accessxi.nav_lathine_recorded_corridor_append(connector, match.point, route_id, ':live-projection');
+    local start_index = math.min((tonumber(match.segment) or 1) + 1, corridor.waypoints:len());
+    local quarantine = accessxi.nav_route_quarantine_reason(connector, corridor.waypoints[start_index]);
+    if (quarantine ~= '') then
+        accessxi.nav_route_last_reject_reason = quarantine;
+        connector:clear();
+        return connector, 0;
+    end
+    return connector, start_index;
+end
+
+function accessxi.nav_lathine_recorded_corridor_tail(handoff, point)
+    local tail = accessxi.nav_route_override_points(handoff, point);
+    if (tail:len() <= 1) then
+        tail = nav_compute_mesh_route(handoff, point);
+    end
+    if (tail:len() <= 1 and accessxi.nav_point_is_zoneline(point)) then
+        for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
+            tail = nav_compute_mesh_route(handoff, approach);
+            if (tail:len() > 1) then
+                accessxi.nav_append_final_zoneline_point(tail, point);
+                break;
+            end
+        end
+    end
+    return tail;
+end
+
+function accessxi.nav_lathine_recorded_corridor_candidate(player, point, corridor, player_index, direction)
+    local candidate = T{};
+    if (player == nil or point == nil or corridor == nil or corridor.waypoints == nil) then
+        return candidate;
+    end
+
+    local route_id = tostring(corridor.id or '');
+    local start_index = 0;
+    candidate, start_index = accessxi.nav_lathine_recorded_corridor_start_connector(
+        player, corridor, route_id, player_index);
+    if (candidate:len() <= 0) then
+        return candidate;
+    end
+    player_index = start_index;
+    if direction < 0 then
+        for i = player_index, 1, -1 do
+            local waypoint = corridor.waypoints[i];
+            if waypoint ~= nil and (nav_distance(candidate[candidate:len()], waypoint) > 0.05 or i == 1) then
+                accessxi.nav_lathine_recorded_corridor_append(candidate, waypoint, route_id, '');
+            end
+        end
+    else
+        for i = player_index, corridor.waypoints:len() do
+            local waypoint = corridor.waypoints[i];
+            if waypoint ~= nil and (nav_distance(candidate[candidate:len()], waypoint) > 0.05 or i == corridor.waypoints:len()) then
+                accessxi.nav_lathine_recorded_corridor_append(candidate, waypoint, route_id, '');
+            end
+        end
+    end
+
+    local handoff = candidate[candidate:len()];
+    if (handoff == nil) then
+        return T{};
+    end
+    local tail = accessxi.nav_lathine_recorded_corridor_tail(handoff, point);
+    if (tail:len() <= 1) then
+        return T{};
+    end
+    for i = 2, tail:len() do
+        local waypoint = tail[i];
+        if waypoint ~= nil then
+            candidate:append(T{
+                zone = waypoint.zone,
+                name = waypoint.name,
+                x = waypoint.x,
+                z = waypoint.z,
+                y = waypoint.y,
+                kind = waypoint.kind,
+                source = waypoint.source,
+                route_override_id = waypoint.route_override_id,
+            });
+        end
+    end
+
+    local quarantine = accessxi.nav_route_quarantine_reason(candidate, point);
+    if (quarantine ~= '') then
+        accessxi.nav_route_last_reject_reason = quarantine;
+        return T{};
+    end
+    return candidate;
+end
+
+function accessxi.nav_lathine_recorded_corridor_slice(player, point, corridor, player_index, destination_index)
+    local candidate = T{};
+    local route_id = tostring(corridor ~= nil and corridor.id or '');
+    if (player == nil or point == nil or corridor == nil or corridor.waypoints == nil
+        or player_index <= 0 or destination_index <= 0) then
+        return candidate;
+    end
+
+    local start_index = 0;
+    candidate, start_index = accessxi.nav_lathine_recorded_corridor_start_connector(
+        player, corridor, route_id, player_index);
+    if (candidate:len() <= 0) then
+        return candidate;
+    end
+    player_index = start_index;
+    local step = destination_index >= player_index and 1 or -1;
+    local i = player_index;
+    while true do
+        local waypoint = corridor.waypoints[i];
+        if waypoint ~= nil and (nav_distance(candidate[candidate:len()], waypoint) > 0.05 or i == destination_index) then
+            accessxi.nav_lathine_recorded_corridor_append(candidate, waypoint, route_id, '');
+        end
+        if i == destination_index then
+            break;
+        end
+        i = i + step;
+    end
+    if (candidate:len() > 0 and nav_distance(candidate[candidate:len()], point) > 1.5) then
+        accessxi.nav_lathine_recorded_corridor_append(candidate, point, route_id, ':final');
+    end
+    if (accessxi.nav_route_quarantine_reason(candidate, point) ~= '') then
+        return T{};
+    end
+    return candidate;
+end
+
+function accessxi.nav_lathine_recorded_corridor_route(player, point)
+    local best = T{};
+    local best_length = 999999;
+    local best_priority = 999;
+    local matched = false;
+    if (player == nil or point == nil
+        or (tonumber(player.zone) or 0) ~= 102
+        or (tonumber(point.zone) or 0) ~= 102) then
+        return best, false;
+    end
+
+    local destination_name = tostring(point.name or ''):lower();
+    local destination_is_west = destination_name:contains('west ronfaure')
+        or nav_distance(point, T{ x = -558.569, z = 688.049, y = -7.049, zone = 102 }) <= 6;
+
+    accessxi.nav_load_route_overrides();
+    for _, corridor in ipairs(accessxi.nav_route_overrides) do
+        if (tostring(corridor.id or ''):startswith('lathine-recorded-corridor-')
+            and corridor.waypoints ~= nil and corridor.waypoints:len() > 1) then
+            local route_id = tostring(corridor.id or '');
+            local west_safe = route_id:startswith('lathine-recorded-corridor-20260712-west-via-');
+            local player_horizontal_limit = 6.0;
+            local player_vertical_limit = 4.5;
+            local destination_horizontal_limit = 6.0;
+            local destination_vertical_limit = 4.5;
+            local player_index, horizontal_distance, vertical_distance = accessxi.nav_lathine_recorded_corridor_nearest(player, corridor);
+            if (player_index > 0
+                and horizontal_distance <= player_horizontal_limit
+                and vertical_distance <= player_vertical_limit) then
+                local destination_index, destination_horizontal, destination_vertical = accessxi.nav_lathine_recorded_corridor_nearest(point, corridor);
+                local destination_on_corridor = destination_index > 0
+                    and destination_horizontal <= destination_horizontal_limit
+                    and destination_vertical <= destination_vertical_limit;
+                local candidates = T{};
+                if (west_safe and not destination_is_west) then
+                    matched = true;
+                    candidates = T{};
+                elseif (west_safe and destination_is_west) then
+                    matched = true;
+                    candidates:append(accessxi.nav_lathine_recorded_corridor_candidate(
+                        player, point, corridor, player_index, 1));
+                elseif (destination_on_corridor) then
+                    matched = true;
+                    candidates:append(accessxi.nav_lathine_recorded_corridor_slice(
+                        player, point, corridor, player_index, destination_index));
+                else
+                    matched = true;
+                    candidates:append(accessxi.nav_lathine_recorded_corridor_candidate(
+                        player, point, corridor, player_index, -1));
+                    candidates:append(accessxi.nav_lathine_recorded_corridor_candidate(
+                        player, point, corridor, player_index, 1));
+                end
+
+                for _, candidate in ipairs(candidates) do
+                    if (candidate ~= nil and candidate:len() > 1) then
+                        local length = accessxi.nav_lathine_recorded_corridor_length(candidate);
+                        local candidate_priority = west_safe and 0 or 1;
+                        if (candidate_priority < best_priority
+                            or (candidate_priority == best_priority and length < best_length)) then
+                            best = candidate;
+                            best_length = length;
+                            best_priority = candidate_priority;
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if (best:len() > 1) then
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded corridor route destination="%s" id="%s" count=%d length=%.1f'):fmt(
+            point.name or '',
+            accessxi.nav_route_points_override_id(best),
+            best:len(),
+            best_length));
+        return best, true;
+    end
+    if (matched) then
+        if (tostring(accessxi.nav_route_last_reject_reason or '') == '') then
+            accessxi.nav_route_last_reject_reason = 'recorded walked corridor has no verified safe tail';
+        end
+        log_line(('nav recorded corridor unavailable destination="%s" reason="%s"'):fmt(
+            point.name or '',
+            accessxi.escape_probe_log_text(accessxi.nav_route_last_reject_reason)));
+    end
+    return T{}, matched;
+end
+
+function accessxi.nav_lathine_live_recorded_corridor_handoff(player, point, current_points)
+    local empty = T{};
+    if (player == nil or point == nil
+        or (tonumber(player.zone) or 0) ~= 102
+        or (tonumber(point.zone) or 0) ~= 102) then
+        return empty;
+    end
+
+    local current_id = accessxi.nav_route_points_override_id(current_points);
+    if (current_id:startswith('lathine-recorded-survey-')) then
+        return empty;
+    end
+    if (current_id:startswith('lathine-recorded-corridor-')) then
+        return empty;
+    end
+
+    local recorded = accessxi.nav_lathine_recorded_corridor_route(player, point);
+    local recorded_id = accessxi.nav_route_points_override_id(recorded);
+    if (recorded:len() > 1 and recorded_id:startswith('lathine-recorded-corridor-')) then
+        return recorded;
+    end
+    return empty;
+end
+
+accessxi.load_code_module('recorded_survey_navigation', T{
+    T = T,
+    nav_distance = nav_distance,
+    nav_split_tsv = nav_split_tsv,
+    nav_clean_field = nav_clean_field,
+    log_line = log_line,
+});
+if (type(accessxi.nav_recorded_survey_load) == 'function') then
+    accessxi.nav_recorded_survey_load();
+end
+
+accessxi.load_code_module('metalworks_elevator_navigation', T{
+    T = T,
+    nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    nav_point_is_zoneline = accessxi.nav_point_is_zoneline,
+    log_line = log_line,
+    speak = speak,
+    tick = tick,
+});
+
+accessxi.load_code_module('dangruf_fount_drop_navigation', T{
+    T = T,
+    nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    log_line = log_line,
+    speak = speak,
+    tick = tick,
+});
+
 function accessxi.nav_compute_route_with_zoneline_approach(player, point)
+    accessxi.nav_route_last_reject_reason = '';
+    if (type(accessxi.nav_recorded_survey_route) == 'function') then
+        local recorded_survey, survey_required = accessxi.nav_recorded_survey_route(player, point);
+        if (recorded_survey:len() > 1) then
+            return recorded_survey, nil;
+        end
+        if (survey_required) then
+            return T{}, nil;
+        end
+    end
+
+    local recorded_corridor, corridor_required = accessxi.nav_lathine_recorded_corridor_route(player, point);
+    if (recorded_corridor:len() > 1) then
+        return recorded_corridor, nil;
+    end
+    if (corridor_required) then
+        return T{}, nil;
+    end
+
+    local recorded_ravine_escape = accessxi.nav_lathine_recorded_ravine_escape_route(player, point);
+    if (recorded_ravine_escape:len() > 1) then
+        return recorded_ravine_escape, nil;
+    end
+    if (accessxi.nav_lathine_recorded_ravine_escape_required(player, point)) then
+        return T{}, nil;
+    end
+
+    local lower_ravine_recovery = accessxi.nav_lathine_lower_ravine_recovery_route(player, point);
+    if (lower_ravine_recovery:len() > 1) then
+        return lower_ravine_recovery, nil;
+    end
+
     local override_route = accessxi.nav_route_override_points(player, point);
     if (override_route:len() > 1) then
+        accessxi.nav_route_last_reject_reason = '';
         return override_route, nil;
     end
 
@@ -68409,13 +70659,56 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     end
 
     local route = nav_compute_mesh_route(player, point);
-    if (route:len() > 1 or player == nil or point == nil or not accessxi.nav_point_is_zoneline(point)) then
+    if (route:len() > 1) then
+        if (type(accessxi.nav_transport_clear) == 'function') then
+            accessxi.nav_transport_clear('direct-route-verified');
+        end
+        if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+            accessxi.nav_dangruf_fount_drop_clear('direct-route-verified');
+        end
+        accessxi.nav_route_last_reject_reason = '';
+        return route, nil;
+    end
+    if (player == nil or point == nil) then
+        return route, nil;
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_route) == 'function') then
+        local drop_route = accessxi.nav_dangruf_fount_drop_route(player, point);
+        if (drop_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return drop_route, nil;
+        end
+    end
+    if (type(accessxi.nav_metalworks_elevator_route) == 'function') then
+        local transport_route = accessxi.nav_metalworks_elevator_route(player, point);
+        if (transport_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return transport_route, nil;
+        end
+    end
+    if (not accessxi.nav_point_is_zoneline(point)) then
+        local kind = accessxi.nav_point_effective_kind(point);
+        if (route:len() == 1
+            and kind ~= 'area'
+            and nav_distance(player, point) > accessxi.nav_arrival_radius(point)) then
+            local approach_route, approach = accessxi.nav_compute_mesh_endpoint_approach(player, point);
+            if (approach_route:len() > 1) then
+                return approach_route, approach;
+            end
+            accessxi.nav_route_last_reject_reason = 'navmesh returned no verified walkable path';
+            log_line(('navmesh incomplete route rejected destination="%s" distance=%.1f count=%d'):fmt(
+                point.name or '',
+                nav_distance(player, point),
+                route:len()));
+            route:clear();
+        end
         return route, nil;
     end
 
     for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
         local approach_route = nav_compute_mesh_route(player, approach);
         if (approach_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
             accessxi.nav_append_final_zoneline_point(approach_route, point);
             log_line(('nav zoneline approach route destination="%s" approach=(%.3f,%.3f,%.3f) count=%d'):fmt(
                 point.name or '',
@@ -68496,14 +70789,17 @@ local function nav_load_points()
 
     local db_count = nav_load_points_file(accessxi.nav_database_path, 'database');
     local discovery_count = nav_load_points_file(accessxi.nav_discoveries_path, 'discoveries');
+    local recorded_count = nav_load_points_file(accessxi.nav_recorded_marks_path, 'live-route-recording');
     local user_count = nav_load_points_file(accessxi.nav_points_path, 'manual');
-    log_line(('nav loaded database=%d discoveries=%d user=%d total=%d db="%s" discoveries="%s" user="%s"'):fmt(
+    log_line(('nav loaded database=%d discoveries=%d recorded=%d user=%d total=%d db="%s" discoveries="%s" recorded_path="%s" user="%s"'):fmt(
         db_count,
         discovery_count,
+        recorded_count,
         user_count,
         accessxi.nav_points:len(),
         accessxi.nav_database_path,
         accessxi.nav_discoveries_path,
+        accessxi.nav_recorded_marks_path,
         accessxi.nav_points_path));
 end
 
@@ -68648,6 +70944,222 @@ local function nav_position_speech(pos)
         nav_round(pos.y, 1));
 end
 
+function accessxi.nav_route_recorder_display_name(name, pos)
+    local clean = nav_tsv_field(name or ''):trim();
+    if (clean ~= '') then
+        return clean;
+    end
+    return ('zone-%d-route'):fmt(tonumber(pos ~= nil and pos.zone or 0) or 0);
+end
+
+function accessxi.nav_route_recorder_write(event_name, pos, label, now, distance)
+    event_name = nav_tsv_field(event_name or 'point'):lower();
+    pos = pos or nav_cached_player_position();
+    now = tonumber(now) or tick();
+    if (pos == nil) then
+        return false;
+    end
+
+    local needs_header = false;
+    local existing = io.open(accessxi.nav_route_recorder_path, 'r');
+    if (existing == nil) then
+        needs_header = true;
+    else
+        local first = existing:read(1);
+        needs_header = first == nil;
+        existing:close();
+    end
+
+    local f = io.open(accessxi.nav_route_recorder_path, 'a');
+    if (f == nil) then
+        log_line(('nav route recorder write failed path="%s"'):fmt(accessxi.escape_probe_log_text(accessxi.nav_route_recorder_path or '')));
+        return false;
+    end
+    if (needs_header) then
+        f:write('timestamp\tsession\tname\tevent\tseq\tzone\tx\tz\ty\tyaw\tindex\tdistance\tlabel\n');
+    end
+
+    if (event_name == 'point' or event_name == 'zone-change' or event_name == 'mark' or event_name == 'start' or event_name == 'stop') then
+        accessxi.nav_route_recorder_sample_count = (tonumber(accessxi.nav_route_recorder_sample_count) or 0) + 1;
+    end
+
+    f:write(('%s\t%s\t%s\t%s\t%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.3f\t%s\n'):fmt(
+        os.date('%Y-%m-%d %H:%M:%S'),
+        nav_tsv_field(accessxi.nav_route_recorder_session or ''),
+        nav_tsv_field(accessxi.nav_route_recorder_name or ''),
+        nav_tsv_field(event_name),
+        tonumber(accessxi.nav_route_recorder_sample_count) or 0,
+        tonumber(pos.zone) or 0,
+        tonumber(pos.x) or 0,
+        tonumber(pos.z) or 0,
+        tonumber(pos.y) or 0,
+        tonumber(pos.yaw) or 0,
+        tonumber(pos.index) or -1,
+        tonumber(distance) or 0,
+        nav_tsv_field(label or '')));
+    f:close();
+
+    accessxi.nav_route_recorder_last_write_tick = now;
+    accessxi.nav_route_recorder_last_x = tonumber(pos.x) or 0;
+    accessxi.nav_route_recorder_last_z = tonumber(pos.z) or 0;
+    accessxi.nav_route_recorder_last_y = tonumber(pos.y) or 0;
+    accessxi.nav_route_recorder_last_zone = tonumber(pos.zone) or 0;
+    return true;
+end
+
+function accessxi.nav_route_recorder_status()
+    if (accessxi.nav_route_recorder_active ~= true) then
+        return 'Route recorder is not running.';
+    end
+    return ('Route recorder running. %s. %d points.'):fmt(
+        accessxi.nav_route_recorder_name ~= '' and accessxi.nav_route_recorder_name or 'unnamed route',
+        tonumber(accessxi.nav_route_recorder_sample_count) or 0);
+end
+
+function accessxi.nav_route_recorder_start(name)
+    if (accessxi.nav_route_recorder_active == true) then
+        return accessxi.nav_route_recorder_status();
+    end
+
+    local pos = nav_cached_player_position();
+    if (pos == nil) then
+        return 'Position unavailable. Route recorder not started.';
+    end
+
+    accessxi.nav_route_recorder_active = true;
+    accessxi.nav_route_recorder_name = accessxi.nav_route_recorder_display_name(name, pos);
+    accessxi.nav_route_recorder_session = ('%s-z%d'):fmt(os.date('%Y%m%d-%H%M%S'), tonumber(pos.zone) or 0);
+    accessxi.nav_route_recorder_sample_count = 0;
+    accessxi.nav_route_recorder_last_tick = 0;
+    accessxi.nav_route_recorder_last_write_tick = 0;
+    accessxi.nav_route_recorder_last_x = nil;
+    accessxi.nav_route_recorder_last_z = nil;
+    accessxi.nav_route_recorder_last_y = nil;
+    accessxi.nav_route_recorder_last_zone = 0;
+
+    if (not accessxi.nav_route_recorder_write('start', pos, 'start', tick(), 0)) then
+        accessxi.nav_route_recorder_active = false;
+        return 'Route recorder could not write the log file.';
+    end
+
+    local text = ('Route recorder started. %s. Follow works if your character moves along the route.'):fmt(accessxi.nav_route_recorder_name);
+    log_line(('nav route recorder start session="%s" name="%s" path="%s" %s'):fmt(
+        accessxi.escape_probe_log_text(accessxi.nav_route_recorder_session or ''),
+        accessxi.escape_probe_log_text(accessxi.nav_route_recorder_name or ''),
+        accessxi.escape_probe_log_text(accessxi.nav_route_recorder_path or ''),
+        nav_position_speech(pos)));
+    return text;
+end
+
+function accessxi.nav_route_recorder_stop()
+    if (accessxi.nav_route_recorder_active ~= true) then
+        return 'Route recorder is not running.';
+    end
+
+    local pos = nav_cached_player_position();
+    if (pos ~= nil) then
+        accessxi.nav_route_recorder_write('stop', pos, 'stop', tick(), 0);
+    end
+
+    local name = accessxi.nav_route_recorder_name ~= '' and accessxi.nav_route_recorder_name or 'route';
+    local count = tonumber(accessxi.nav_route_recorder_sample_count) or 0;
+    local path = accessxi.nav_route_recorder_path or '';
+    accessxi.nav_route_recorder_active = false;
+    accessxi.nav_route_recorder_name = '';
+    accessxi.nav_route_recorder_session = '';
+    accessxi.nav_route_recorder_last_tick = 0;
+    accessxi.nav_route_recorder_last_x = nil;
+    accessxi.nav_route_recorder_last_z = nil;
+    accessxi.nav_route_recorder_last_y = nil;
+    accessxi.nav_route_recorder_last_zone = 0;
+
+    local text = ('Route recorder stopped. %s. %d points saved.'):fmt(name, count);
+    log_line(('nav route recorder stop name="%s" points=%d path="%s"'):fmt(
+        accessxi.escape_probe_log_text(name),
+        count,
+        accessxi.escape_probe_log_text(path)));
+    return text;
+end
+
+function accessxi.nav_route_recorder_mark(label)
+    if (accessxi.nav_route_recorder_active ~= true) then
+        return 'Route recorder is not running.';
+    end
+
+    local pos = nav_cached_player_position();
+    if (pos == nil) then
+        return 'Position unavailable. Route mark not saved.';
+    end
+
+    local clean_label = nav_tsv_field(label or ''):trim();
+    if (clean_label == '') then
+        clean_label = 'mark';
+    end
+    accessxi.nav_route_recorder_write('mark', pos, clean_label, tick(), 0);
+    return ('Route mark saved. %s.'):fmt(clean_label);
+end
+
+function accessxi.nav_route_recorder_poll(now)
+    if (accessxi.nav_route_recorder_active ~= true) then
+        return false;
+    end
+
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_route_recorder_last_tick) or 0)) < (tonumber(accessxi.nav_route_recorder_min_interval_ms) or 500)) then
+        return false;
+    end
+    accessxi.nav_route_recorder_last_tick = now;
+
+    local pos = nav_cached_player_position();
+    if (pos == nil) then
+        if ((now - (tonumber(accessxi.nav_route_recorder_last_unavailable_tick) or 0)) >= 3000) then
+            accessxi.nav_route_recorder_last_unavailable_tick = now;
+            log_line('nav route recorder position unavailable');
+        end
+        return false;
+    end
+
+    local last = nil;
+    if (accessxi.nav_route_recorder_last_x ~= nil and accessxi.nav_route_recorder_last_z ~= nil) then
+        last = T{
+            zone = tonumber(accessxi.nav_route_recorder_last_zone) or 0,
+            x = tonumber(accessxi.nav_route_recorder_last_x) or 0,
+            z = tonumber(accessxi.nav_route_recorder_last_z) or 0,
+            y = tonumber(accessxi.nav_route_recorder_last_y) or 0,
+        };
+    end
+
+    if (last == nil) then
+        return accessxi.nav_route_recorder_write('point', pos, '', now, 0);
+    end
+
+    if ((tonumber(pos.zone) or 0) ~= (tonumber(last.zone) or 0)) then
+        return accessxi.nav_route_recorder_write('zone-change', pos, '', now, 0);
+    end
+
+    local distance = nav_distance(pos, last);
+    if (distance >= (tonumber(accessxi.nav_route_recorder_min_distance) or 1.0)) then
+        return accessxi.nav_route_recorder_write('point', pos, '', now, distance);
+    end
+
+    return false;
+end
+
+function accessxi.nav_route_recorder_command(args, verb_index, tail_index)
+    local verb = tostring(args[verb_index] or ''):lower();
+    if (verb == '' or verb:any('status', 'info')) then
+        return accessxi.nav_route_recorder_status();
+    elseif (verb:any('start', 'begin', 'on')) then
+        return accessxi.nav_route_recorder_start(command_tail(args, tail_index));
+    elseif (verb:any('stop', 'end', 'off', 'finish')) then
+        return accessxi.nav_route_recorder_stop();
+    elseif (verb:any('mark', 'note')) then
+        return accessxi.nav_route_recorder_mark(command_tail(args, tail_index));
+    end
+
+    return accessxi.nav_route_recorder_start(command_tail(args, verb_index));
+end
+
 nav_nearby = function (max_count, max_distance)
     local player = nav_cached_player_position();
     if (player == nil) then
@@ -68766,6 +71278,8 @@ function accessxi.nav_entity_name_looks_like_enemy(pos)
         or name:contains('mandragora')
         or name:contains('funguar')
         or name:contains('crawler')
+        or name:contains('wasp')
+        or name:contains('hornet')
         or name:contains('beetle')
         or name:contains('bee')
         or name:contains('bat')
@@ -69397,31 +71911,37 @@ local function nav_collect_menu_items(category_key, search_query)
     if (nav_clean_field(search_query) ~= '') then
         live_distance = accessxi.nav_live_entity_search_range();
     end
-    local nearby = accessxi.nav_live_entities_for_category(category_key, live_distance);
-    for _, entity_point in ipairs(nearby) do
-        local entity_kind = tostring(entity_point.live_kind or accessxi.nav_entity_kind(entity_point));
-        local point = T{
-            zone = zone,
-            name = entity_point.name,
-            x = entity_point.x,
-            z = entity_point.z,
-            y = entity_point.y,
-            kind = entity_kind,
-            source = ('live-entity:%d:%d'):fmt(entity_point.index or -1, entity_point.server_id or 0),
-            distance = entity_point.distance or 0,
-            index = entity_point.index,
-            server_id = entity_point.server_id,
-            live_kind = entity_kind,
-            live_nm = entity_point.live_nm,
-        };
-        local key = nav_point_key(point);
-        if (accessxi.nav_point_matches_category(point, category_key)
-            and accessxi.nav_point_matches_search(point, search_query)
-            and not accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, static_destination_keys)
-            and not seen:contains(key)) then
-            seen:append(key);
-            table.insert(items, point);
+    local function append_live_entity_points(nearby)
+        for _, entity_point in ipairs(nearby or {}) do
+            local entity_kind = tostring(entity_point.live_kind or accessxi.nav_entity_kind(entity_point));
+            local point = T{
+                zone = zone,
+                name = entity_point.name,
+                x = entity_point.x,
+                z = entity_point.z,
+                y = entity_point.y,
+                kind = entity_kind,
+                source = ('live-entity:%d:%d'):fmt(entity_point.index or -1, entity_point.server_id or 0),
+                distance = entity_point.distance or 0,
+                index = entity_point.index,
+                server_id = entity_point.server_id,
+                live_kind = entity_kind,
+                live_nm = entity_point.live_nm,
+            };
+            local key = nav_point_key(point);
+            if (accessxi.nav_point_matches_category(point, category_key)
+                and accessxi.nav_point_matches_search(point, search_query)
+                and not accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, static_destination_keys)
+                and not seen:contains(key)) then
+                seen:append(key);
+                table.insert(items, point);
+            end
         end
+    end
+
+    append_live_entity_points(accessxi.nav_live_entities_for_category(category_key, live_distance));
+    if (search_query ~= '' and category_key == 'all') then
+        append_live_entity_points(accessxi.nav_live_entities_for_category('enemy', live_distance));
     end
 
     table.sort(items, function (a, b)
@@ -69467,18 +71987,11 @@ end
 local function nav_menu_item_speech()
     local total = accessxi.nav_menu_items:len();
     local category = nav_current_category();
-    local category_label = category ~= nil and category.label or 'All';
     local category_key = category ~= nil and category.key or 'all';
     local search_query = nav_clean_field(accessxi.nav_menu_search_query or '');
-    local scope_label = category_label;
-    if (search_query ~= '' and category_key == 'search-results') then
-        scope_label = ('%s. Search %s'):fmt(category_label, search_query);
-    end
     if (total == 0) then
-        if (search_query ~= '' and category_key == 'search-results') then
-            return ('Navigation. Search %s. No search results found.'):fmt(search_query);
-        end
-        return ('Navigation. %s. No destinations found in this zone.'):fmt(scope_label);
+        return accessxi.navigation_empty_speech(
+            category_key == 'search-results' and search_query or '');
     end
 
     if (accessxi.nav_menu_index < 1) then
@@ -69504,41 +72017,31 @@ local function nav_menu_item_speech()
             route_text = 'No zone route known.';
         end
         local confidence = nav_point_confidence(item);
-        local confidence_text = confidence ~= '' and (' Confidence %s.'):fmt(confidence) or '';
-        return ('Zone search. Search %s. %d of %d. %s. NPC. %s. %s%s'):fmt(
-            search_query,
+        return accessxi.navigation_zone_search_row_speech(
+            accessxi.speech_name(item.name or 'NPC'),
             accessxi.nav_menu_index,
             total,
-            accessxi.speech_name(item.name or 'NPC'),
             zone_name ~= '' and zone_name or ('zone ' .. tostring(item.zone or 0)),
             route_text,
-            confidence_text);
+            confidence);
     end
 
     local player = nav_cached_player_position();
     local phrase = accessxi.nav_guidance_phrase(player, item, nil);
     local kind = nav_clean_field(item.kind);
-    if (kind ~= '') then
-        kind = kind .. '. ';
-    end
     local confidence = nav_point_confidence(item);
-    local confidence_text = '';
-    if (confidence ~= '') then
-        confidence_text = ('Confidence %s. '):fmt(confidence);
-    end
     local section = nav_clean_field(item.section or '');
     local section_lower = section:lower();
     local note_text = '';
     if (section_lower:startswith('requires:') or section_lower:startswith('note:')) then
-        note_text = (' %s.'):fmt(section);
+        note_text = section;
     end
-    return ('Navigation. %s. %d of %d. %s. %s%s%s%s'):fmt(
-        scope_label,
+    return accessxi.navigation_row_speech(
+        accessxi.speech_name(item.name or 'destination'),
         accessxi.nav_menu_index,
         total,
-        accessxi.speech_name(item.name or 'destination'),
         kind,
-        confidence_text,
+        confidence,
         phrase,
         note_text);
 end
@@ -69557,7 +72060,7 @@ local function nav_open_menu(search_query)
         accessxi.nav_menu_poll_key = 0;
         accessxi.nav_menu_poll_tick = 0;
         accessxi.nav_menu_open_tick = tick();
-        local text = ('Navigation. Search %s. No search results found.'):fmt(accessxi.nav_menu_search_query);
+        local text = accessxi.navigation_empty_speech(accessxi.nav_menu_search_query);
         speak(text);
         log_line(('nav browser search empty search="%s"'):fmt(accessxi.escape_probe_log_text(accessxi.nav_menu_search_query or '')));
         return;
@@ -69575,7 +72078,7 @@ local function nav_open_menu(search_query)
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = tick();
     local text = nav_menu_item_speech();
-    speak(text .. ' Control numpad 7 and 9 change categories. Control numpad 1 and 3 move destinations. Control numpad plus starts route.');
+    speak(text .. ' U selects the previous category. O selects the next category. J selects the previous destination. K repeats. L selects the next destination. I starts the selected route or stops active navigation.');
     log_line(('nav browser open search="%s" %s'):fmt(accessxi.escape_probe_log_text(accessxi.nav_menu_search_query or ''), text));
 end
 
@@ -69646,7 +72149,7 @@ local function nav_menu_move(delta)
 
     local total = accessxi.nav_menu_items:len();
     if (total == 0) then
-        speak('Navigation destinations. No destinations found in this zone.');
+        speak(accessxi.navigation_empty_speech(''));
         return;
     end
 
@@ -69658,15 +72161,11 @@ end
 
 local function nav_menu_category_move(delta)
     accessxi.nav_menu_category = accessxi.nav_menu_category + delta;
-    nav_current_category();
+    local category = nav_current_category();
     nav_menu_rebuild();
-    local text = nav_menu_item_speech();
+    local text = accessxi.navigation_category_speech(category ~= nil and category.label or '');
     speak(text);
     log_line('nav menu category ' .. text);
-end
-
-function accessxi.nav_keypad_control_down()
-    return bit.band(kernel32.GetAsyncKeyState(VK_CONTROL), 0x8000) ~= 0;
 end
 
 local function nav_menu_start_route()
@@ -69697,6 +72196,12 @@ local function nav_menu_start_route()
     end
 
     accessxi.nav_clear_zone_search();
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('menu-route-start');
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+        accessxi.nav_dangruf_fount_drop_clear('menu-route-start');
+    end
     local player = nav_cached_player_position();
     local live_item = accessxi.nav_resolve_live_entity_point(item, player);
     if (live_item ~= nil) then
@@ -69737,7 +72242,32 @@ local function nav_menu_start_route()
     accessxi.nav_last_failure_key = '';
     accessxi.nav_last_failure_tick = 0;
     accessxi.nav_live_route_missing_since = 0;
+    accessxi.nav_route_live_replan_last_key = '';
+    accessxi.nav_route_live_replan_last_tick = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, item);
+    local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, item);
+    if (accessxi.nav_route_points:len() <= 1
+        and unsafe_route_text ~= ''
+        and accessxi.nav_zone_search_target == nil
+        and not tostring(item.source or ''):startswith('zonesearch:')
+        and type(accessxi.nav_same_zone_reentry_start) == 'function') then
+        local reentry_text = accessxi.nav_same_zone_reentry_start(player, item, 'menu-route-reentry');
+        if reentry_text ~= nil and reentry_text ~= '' then
+            speak(reentry_text);
+            log_line('nav menu same-zone reentry ' .. reentry_text);
+            return;
+        end
+    end
+    if (accessxi.nav_route_points:len() <= 1 and unsafe_route_text ~= '') then
+        nav_write_route_evidence('unreachable', player, item, nil, T{ reason = unsafe_route_text });
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+        accessxi.nav_last_direction_text = unsafe_route_text;
+        speak(unsafe_route_text);
+        log_line('nav menu start blocked ' .. unsafe_route_text);
+        return;
+    end
     if (accessxi.nav_point_effective_kind(item) == 'area' and accessxi.nav_route_points:len() <= 1 and not accessxi.nav_area_point_direct_route_allowed(player, item) and not accessxi.nav_area_point_reachable(player, item)) then
         nav_write_route_evidence('unreachable', player, item, nil, T{ reason = 'menu start unreachable' });
         accessxi.nav_active = false;
@@ -69767,70 +72297,73 @@ local function nav_menu_start_route()
             text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(item.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
         end
     end
+    if (type(accessxi.nav_transport_start_suffix) == 'function') then
+        text = text .. accessxi.nav_transport_start_suffix();
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
+        text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
+    end
     accessxi.nav_last_direction_text = text;
     nav_write_route_evidence('start', player, item, accessxi.nav_route_points[accessxi.nav_route_point_index] or item, T{ reason = 'menu' });
     speak(text);
     log_line('nav menu start ' .. text);
 end
 
-local function nav_menu_handle_key(key)
-    if (key == accessxi.VK_NUMPAD7) then
-        nav_menu_category_move(-1);
-    elseif (key == accessxi.VK_NUMPAD9) then
-        nav_menu_category_move(1);
-    elseif (key == accessxi.VK_NUMPAD1) then
-        nav_menu_move(-1);
-    elseif (key == accessxi.VK_NUMPAD3) then
-        nav_menu_move(1);
-    elseif (key == accessxi.VK_ADD) then
+local nav_route_stop;
+
+local function nav_menu_handle_action(action)
+    if (action == 'start_route') then
         nav_menu_start_route();
+    elseif (action == 'stop_route') then
+        local text = nav_route_stop();
+        speak(text);
+        log_line('nav hotkey ' .. text);
+    elseif (action == 'previous_category') then
+        nav_menu_category_move(-1);
+    elseif (action == 'next_category') then
+        nav_menu_category_move(1);
+    elseif (action == 'previous_item') then
+        nav_menu_move(-1);
+    elseif (action == 'repeat_item') then
+        nav_menu_move(0);
+    elseif (action == 'next_item') then
+        nav_menu_move(1);
     end
 end
 
 accessxi.poll_nav_browser_hotkeys = function ()
-    if (not accessxi.is_foreground_process()) then
-        accessxi.nav_menu_poll_key = 0;
-        return;
-    end
-
-    if (accessxi.chat_input_open) then
-        accessxi.nav_menu_poll_key = 0;
-        return;
-    end
-
-    if (not accessxi.nav_keypad_control_down()) then
-        accessxi.nav_menu_poll_key = 0;
-        return;
-    end
-
-    local key = 0;
-    if (bit.band(kernel32.GetAsyncKeyState(accessxi.VK_NUMPAD7), 0x8000) ~= 0) then
-        key = accessxi.VK_NUMPAD7;
-    elseif (bit.band(kernel32.GetAsyncKeyState(accessxi.VK_NUMPAD9), 0x8000) ~= 0) then
-        key = accessxi.VK_NUMPAD9;
-    elseif (bit.band(kernel32.GetAsyncKeyState(accessxi.VK_NUMPAD1), 0x8000) ~= 0) then
-        key = accessxi.VK_NUMPAD1;
-    elseif (bit.band(kernel32.GetAsyncKeyState(accessxi.VK_NUMPAD3), 0x8000) ~= 0) then
-        key = accessxi.VK_NUMPAD3;
-    elseif (bit.band(kernel32.GetAsyncKeyState(accessxi.VK_ADD), 0x8000) ~= 0) then
-        key = accessxi.VK_ADD;
-    end
-
-    if (key == 0) then
-        accessxi.nav_menu_poll_key = 0;
-        return;
-    end
-
     local now = tick();
-    local prior = accessxi.nav_menu_poll_key or 0;
-    local repeat_delay = (key == accessxi.VK_ADD) and 700 or 220;
-    if (key == prior and ((now - (accessxi.nav_menu_poll_tick or 0)) < repeat_delay)) then
-        return;
+    local foreground = accessxi.is_foreground_process();
+    local chat_open = is_chat_input_open ~= nil and is_chat_input_open() or false;
+    if (type(accessxi.navigation_hotkeys) ~= 'table'
+        or type(accessxi.navigation_hotkeys.poll) ~= 'function') then
+        return false;
     end
 
-    accessxi.nav_menu_poll_key = key;
-    accessxi.nav_menu_poll_tick = now;
-    nav_menu_handle_key(key);
+    local vk = accessxi.navigation_hotkeys.VK or {};
+    local snapshot = {
+        foreground = foreground,
+        chat_open = chat_open,
+        modifier_down = accessxi.accessibility_hotkey_modifier_held(),
+        route_active = accessxi.nav_active == true,
+        route_pending = accessxi.nav_zone_search_target ~= nil,
+        now = now,
+        keys = {
+            I = accessxi.quick_status_key_down(tonumber(vk.I) or 0x49),
+            U = accessxi.quick_status_key_down(tonumber(vk.U) or 0x55),
+            O = accessxi.quick_status_key_down(tonumber(vk.O) or 0x4F),
+            J = accessxi.quick_status_key_down(tonumber(vk.J) or 0x4A),
+            K = accessxi.quick_status_key_down(tonumber(vk.K) or 0x4B),
+            L = accessxi.quick_status_key_down(tonumber(vk.L) or 0x4C),
+        },
+    };
+    local action = accessxi.navigation_hotkeys.poll(
+        accessxi.navigation_hotkey_state, snapshot);
+    if (action == nil) then
+        return false;
+    end
+    nav_menu_handle_action(action);
+    return true;
 end
 
 local function nav_find_point(query)
@@ -69861,6 +72394,14 @@ accessxi.nav_clear_zone_search = function ()
     accessxi.nav_zone_search_waiting_zone = 0;
     accessxi.nav_zone_search_waiting_from_zone = 0;
     accessxi.nav_zone_search_last_replan_tick = 0;
+    if type(accessxi.nav_same_zone_reentry_clear) == 'function' then
+        accessxi.nav_same_zone_reentry_clear();
+    else
+        accessxi.nav_same_zone_reentry_edges = T{};
+        accessxi.nav_same_zone_reentry_index = 0;
+        accessxi.nav_same_zone_reentry_origin_zone = 0;
+        accessxi.nav_same_zone_reentry_neighbor_zone = 0;
+    end
 end
 
 function accessxi.nav_copy_point(point)
@@ -69886,12 +72427,26 @@ function accessxi.nav_copy_point(point)
     };
 end
 
+accessxi.load_code_module('same_zone_reentry_navigation', T{
+    T = T,
+    nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    nav_clean_field = nav_clean_field,
+    log_line = log_line,
+});
+
 function accessxi.nav_start_route_to_point(point, reason)
     if (point == nil) then
         return 'No destination selected.';
     end
 
     accessxi.nav_clear_zoning_watch('route-start');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('route-start');
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+        accessxi.nav_dangruf_fount_drop_clear('route-start');
+    end
     local player = nav_cached_player_position();
     local live_point = accessxi.nav_resolve_live_entity_point(point, player);
     if (live_point ~= nil) then
@@ -69917,6 +72472,14 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_collision_tick = 0;
     accessxi.nav_collision_last_sound_tick = 0;
     accessxi.nav_collision_last_key = '';
+    accessxi.nav_door_wait_until = 0;
+    accessxi.nav_door_pause_until = 0;
+    accessxi.nav_door_x = nil;
+    accessxi.nav_door_z = nil;
+    accessxi.nav_door_route_unit_x = nil;
+    accessxi.nav_door_route_unit_z = nil;
+    accessxi.nav_door_wait_key = '';
+    accessxi.nav_door_wait_name = '';
     accessxi.nav_obstacle_last_key = '';
     accessxi.nav_obstacle_last_tick = 0;
     accessxi.nav_wall_avoid_last_key = '';
@@ -69928,7 +72491,28 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_last_failure_key = '';
     accessxi.nav_last_failure_tick = 0;
     accessxi.nav_live_route_missing_since = 0;
+    accessxi.nav_route_live_replan_last_key = '';
+    accessxi.nav_route_live_replan_last_tick = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, point);
+    local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, point);
+    if (accessxi.nav_route_points:len() <= 1
+        and unsafe_route_text ~= ''
+        and accessxi.nav_zone_search_target == nil
+        and not tostring(point.source or ''):startswith('zonesearch:')
+        and type(accessxi.nav_same_zone_reentry_start) == 'function') then
+        local reentry_text = accessxi.nav_same_zone_reentry_start(player, point, reason or 'route-reentry');
+        if reentry_text ~= nil and reentry_text ~= '' then
+            return reentry_text;
+        end
+    end
+    if (accessxi.nav_route_points:len() <= 1 and unsafe_route_text ~= '') then
+        nav_write_route_evidence('unreachable', player, point, nil, T{ reason = unsafe_route_text });
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+        accessxi.nav_last_direction_text = unsafe_route_text;
+        return unsafe_route_text;
+    end
     if (accessxi.nav_point_effective_kind(point) == 'area' and accessxi.nav_route_points:len() <= 1 and not accessxi.nav_area_point_direct_route_allowed(player, point) and not accessxi.nav_area_point_reachable(player, point)) then
         nav_write_route_evidence('unreachable', player, point, nil, T{ reason = tostring(reason or 'command') .. ' start unreachable' });
         accessxi.nav_active = false;
@@ -69948,6 +72532,12 @@ function accessxi.nav_start_route_to_point(point, reason)
             text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(point.name or 'destination', accessxi.nav_route_points:len());
         else
             text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(point.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
+        end
+        if (type(accessxi.nav_transport_start_suffix) == 'function') then
+            text = text .. accessxi.nav_transport_start_suffix();
+        end
+        if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
+            text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
         end
         accessxi.nav_last_direction_text = text;
         nav_write_route_evidence('start', player, point, first, T{ reason = reason or 'command' });
@@ -70047,6 +72637,34 @@ function accessxi.nav_zone_search_start_next_leg(reason)
     local player_zone = tonumber(player.zone) or 0;
     local target_zone = tonumber(target.zone) or 0;
     local target_zone_name = accessxi.nav_graph_zone_name(target_zone);
+    if type(accessxi.nav_same_zone_reentry_active) == 'function' and accessxi.nav_same_zone_reentry_active() then
+        local leg, reentry_status = accessxi.nav_same_zone_reentry_current_leg(player);
+        if reentry_status == 'complete' then
+            accessxi.nav_same_zone_reentry_clear();
+        elseif reentry_status == 'waiting' then
+            return ('Safe re-entry route to %s is waiting for the zone change.'):fmt(accessxi.speech_name(target.name or 'destination'));
+        elseif reentry_status ~= 'leg' or leg == nil then
+            local current_zone_name = accessxi.nav_graph_zone_name(player_zone);
+            accessxi.nav_clear_zone_search();
+            return ('Safe re-entry route stopped after an unexpected zone in %s.'):fmt(current_zone_name);
+        else
+            accessxi.nav_zone_search_waiting_zone = 0;
+            accessxi.nav_zone_search_waiting_from_zone = 0;
+            local start_text = accessxi.nav_start_route_to_point(leg, reason or 'same-zone-reentry');
+            if not accessxi.nav_active then
+                accessxi.nav_clear_zone_search();
+                return ('Safe re-entry route to %s stopped. %s'):fmt(accessxi.speech_name(target.name or 'destination'), start_text);
+            end
+            local step = tonumber(leg.same_zone_reentry_step) or 1;
+            local text = ('Safe re-entry route to %s. Crossing %d of 2 through %s. %s'):fmt(
+                accessxi.speech_name(target.name or 'destination'),
+                step,
+                accessxi.nav_graph_zone_name(tonumber(leg.to_zone) or 0),
+                start_text);
+            accessxi.nav_last_direction_text = text;
+            return text;
+        end
+    end
     if (player_zone == target_zone) then
         accessxi.nav_zone_search_waiting_zone = 0;
         accessxi.nav_zone_search_waiting_from_zone = 0;
@@ -70141,7 +72759,7 @@ function accessxi.nav_zone_search_start(query)
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = tick();
     local text = nav_menu_item_speech();
-    return text .. ' Control numpad 7 and 9 change categories. Control numpad 1 and 3 move destinations. Control numpad plus starts route.';
+    return text .. ' U selects the previous category. O selects the next category. J selects the previous destination. K repeats. L selects the next destination. I starts the selected route or stops active navigation.';
 end
 
 function accessxi.poll_nav_zone_search()
@@ -71121,9 +73739,15 @@ local function nav_route_start(query)
     return accessxi.nav_start_route_to_point(point, 'command');
 end
 
-local function nav_route_stop()
+nav_route_stop = function ()
     accessxi.nav_clear_zone_search();
     accessxi.nav_clear_zoning_watch('route-stop');
+    if (type(accessxi.nav_transport_clear) == 'function') then
+        accessxi.nav_transport_clear('route-stop');
+    end
+    if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+        accessxi.nav_dangruf_fount_drop_clear('route-stop');
+    end
     accessxi.nav_active = false;
     accessxi.nav_destination = nil;
     accessxi.nav_last_key = '';
@@ -71143,6 +73767,14 @@ local function nav_route_stop()
     accessxi.nav_collision_tick = 0;
     accessxi.nav_collision_last_sound_tick = 0;
     accessxi.nav_collision_last_key = '';
+    accessxi.nav_door_wait_until = 0;
+    accessxi.nav_door_pause_until = 0;
+    accessxi.nav_door_x = nil;
+    accessxi.nav_door_z = nil;
+    accessxi.nav_door_route_unit_x = nil;
+    accessxi.nav_door_route_unit_z = nil;
+    accessxi.nav_door_wait_key = '';
+    accessxi.nav_door_wait_name = '';
     accessxi.nav_obstacle_last_key = '';
     accessxi.nav_obstacle_last_tick = 0;
     accessxi.nav_wall_avoid_last_key = '';
@@ -71516,6 +74148,8 @@ function accessxi.trade_handover_prepare_slot_map(obj)
         accessxi.trade_handover_slot_obj = obj;
         accessxi.trade_handover_slot_by_entry = {};
         accessxi.trade_slots = {};
+        accessxi.trade_handover_gil_amount = 0;
+        accessxi.trade_handover_gil_amount_tick = 0;
     end
     accessxi.trade_handover_slot_by_entry = accessxi.trade_handover_slot_by_entry or {};
     return true;
@@ -71569,6 +74203,76 @@ function accessxi.trade_handover_slot_for_desc(entry)
     return 0;
 end
 
+function accessxi.trade_handover_slot_for_geometry(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return 0;
+    end
+
+    local row_shape = read_u32(entry + 0x2C) or 0;
+    if (row_shape ~= 0x00200046 and row_shape ~= 0x00200068) then
+        return 0;
+    end
+
+    local row_marker = math.floor((read_u32(entry + 0x38) or 0) / 0x10000);
+    if (row_marker >= 1 and row_marker <= 8) then
+        return row_marker;
+    end
+
+    local geom = accessxi.trade_handover_entry_geometry(entry);
+    if (geom == nil) then
+        return 0;
+    end
+
+    local y = tonumber(geom.y) or -1;
+    local slot = 0;
+    if (y >= 18 and y <= 28) then
+        slot = 1;
+    elseif (y >= 52 and y <= 62) then
+        slot = 2;
+    elseif (y >= 86 and y <= 96) then
+        slot = 3;
+    elseif (y >= 120 and y <= 130) then
+        slot = 4;
+    end
+    if (slot == 0) then
+        return 0;
+    end
+    if (row_shape == 0x00200068) then
+        return slot + 4;
+    end
+    return slot;
+end
+
+function accessxi.trade_handover_control_geometry_label(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return '';
+    end
+
+    local geom = accessxi.trade_handover_entry_geometry(entry);
+    if (geom == nil) then
+        return '';
+    end
+
+    local control_shape = read_u32(entry + 0x2C) or 0;
+    local control_extent = read_u32(entry + 0x34) or 0;
+    local y = tonumber(geom.y) or -1;
+    if (y == 92 and control_shape == 0x00540037 and control_extent == 0x00A00007) then
+        return 'GilAmount';
+    end
+    if (y ~= 159) then
+        return '';
+    end
+
+    if (control_shape == 0x00220068 or control_extent == 0x00B10038) then
+        return 'Cancel';
+    elseif (control_shape == 0x00220046 or control_extent == 0x00B10016) then
+        return 'Okay';
+    end
+    return '';
+end
+
 function accessxi.trade_handover_control_label_for_entry(entry)
     entry = tonumber(entry) or 0;
     if (not accessxi.is_probe_pointer(entry)) then
@@ -71593,6 +74297,11 @@ function accessxi.trade_handover_control_label_for_entry(entry)
     end
 
     label = accessxi.plain_native_menu_label(read_probe_string(desc + 0x46));
+    if (label ~= '') then
+        return label;
+    end
+
+    label = accessxi.trade_handover_control_geometry_label(entry);
     if (label ~= '') then
         return label;
     end
@@ -71661,11 +74370,12 @@ function accessxi.trade_handover_entry_ascii_digits(entry, offset, length)
 end
 
 function accessxi.trade_handover_entry_gil_amount(entry)
-    local digits = accessxi.trade_handover_entry_ascii_digits(entry, 0x3C, 16);
-    if (digits == '') then
-        return nil;
+    entry = tonumber(entry) or 0;
+    local amount = tonumber(accessxi.trade_handover_gil_amount);
+    if (amount == nil or amount < 0) then
+        return 0;
     end
-    return tonumber(digits) or 0;
+    return math.floor(amount);
 end
 
 function accessxi.log_trade_handover_control_text_probe(obj, entry)
@@ -71842,6 +74552,12 @@ function accessxi.trade_handover_slot_for_entry(obj, entry)
     local native_slot = accessxi.trade_handover_slot_for_desc(entry);
     if (native_slot >= 1 and native_slot <= 8) then
         return native_slot;
+    end
+
+    local geom_slot = accessxi.trade_handover_slot_for_geometry(entry);
+    if (geom_slot >= 1 and geom_slot <= 8) then
+        accessxi.trade_handover_bind_entry_slot(obj, entry, geom_slot, 'geometry');
+        return geom_slot;
     end
 
     if (not accessxi.trade_handover_prepare_slot_map(obj)) then
@@ -72263,26 +74979,39 @@ local function resource_item_info(id)
     local name = res.Name ~= nil and clean_resource_text(res.Name[1]) or '';
     local long_name = '';
     local windower_item = accessxi.windower_item_resource_record(id);
-    if (windower_item ~= nil) then
+    if (windower_item == nil) then
+        windower_item = {};
+    end
+    if (next(windower_item) ~= nil) then
         if (name == '') then
             name = clean_resource_text(windower_item.en or windower_item.name or '');
         end
         long_name = clean_resource_text(windower_item.enl or windower_item.long_name or '');
     end
     local description = res.Description ~= nil and clean_resource_text(res.Description[1]) or '';
+    local category = clean_resource_text(windower_item.category or '');
+    if (res.Category ~= nil) then
+        local live_category = clean_resource_text(res.Category);
+        if (live_category ~= '') then
+            category = live_category;
+        end
+    end
     return T{
         name = name,
         long_name = long_name,
         description = description,
         id = tonumber(res.Id) or id,
         flags = tonumber(res.Flags) or 0,
-        type = tonumber(res.Type) or 0,
-        slots = tonumber(res.Slots) or 0,
+        type = tonumber(res.Type) or tonumber(windower_item.type) or 0,
+        category = category,
+        skill = tonumber(res.Skill) or tonumber(windower_item.skill) or 0,
+        slots = tonumber(res.Slots) or tonumber(windower_item.slots) or 0,
         races = tonumber(res.Races) or 0,
         jobs = tonumber(res.Jobs) or 0,
         level = tonumber(res.Level) or 0,
         superior_level = tonumber(res.SuperiorLevel) or 0,
         item_level = normalize_item_level(res.ItemLevel),
+        stack = tonumber(res.Stack) or tonumber(res.StackSize) or tonumber(windower_item.stack) or 0,
         max_charges = tonumber(res.MaxCharges) or 0,
         cast_time = tonumber(res.CastTime) or 0,
         cast_delay = tonumber(res.CastDelay) or 0,
@@ -72684,6 +75413,81 @@ local function join_speech_parts(parts)
     return cleaned:concat('. ') .. '.';
 end
 
+function accessxi.capture_current_gear_detail(menu_name, info, options)
+    local module = accessxi.gear_detail_hotkeys;
+    local state = accessxi.gear_detail_hotkey_state;
+    if (type(module) ~= 'table'
+        or type(module.set_detail) ~= 'function'
+        or type(state) ~= 'table'
+        or type(info) ~= 'table'
+        or info.command == true
+        or info.empty == true) then
+        return false;
+    end
+
+    menu_name = tostring(menu_name or '');
+    local context_key = tostring(accessxi.current_speech_key or '');
+    local item_id = tonumber(raw_table_value(info, 'id', 0)) or 0;
+    local name = tostring(raw_table_value(info, 'name', '') or '');
+    if (menu_name == '' or context_key == '' or item_id <= 0 or name == '') then
+        return false;
+    end
+
+    local resource_info = resource_item_info(item_id);
+    if (resource_info == nil or (tonumber(resource_info.slots) or 0) <= 0) then
+        return false;
+    end
+
+    options = type(options) == 'table' and options or T{};
+    local count = raw_table_value(options, 'count', nil);
+    if (count == nil) then
+        count = raw_table_value(info, 'count', 0);
+    end
+    local item_index = raw_table_value(options, 'index', nil);
+    if (item_index == nil) then
+        item_index = raw_table_value(info, 'index', raw_table_value(info, 'slot', -1));
+    end
+    local detail_parts = raw_table_value(info, 'detail_parts', nil);
+    if (type(detail_parts) ~= 'table') then
+        detail_parts = item_static_detail_parts(resource_info);
+    end
+    local captured_detail_parts = T{};
+    local price = tonumber(raw_table_value(info, 'price', 0)) or 0;
+    if (price > 0) then
+        captured_detail_parts:append(('Price %s gil'):fmt(accessxi.format_currency_number(price)));
+    end
+    for _, part in ipairs(detail_parts) do
+        captured_detail_parts:append(part);
+    end
+
+    local previous_identity = tostring(state.identity or '');
+    local captured = module.set_detail(state, {
+        is_gear = true,
+        menu = menu_name,
+        context_key = context_key,
+        id = item_id,
+        index = tonumber(item_index) or -1,
+        name = name,
+        slot_name = tostring(raw_table_value(options, 'slot_name', raw_table_value(info, 'slot_name', '')) or ''),
+        count = tonumber(count) or 0,
+        detail_parts = captured_detail_parts,
+        description = tostring(raw_table_value(info, 'description', '') or ''),
+        source = tostring(raw_table_value(options, 'source', '') or ''),
+        updated_tick = tick(),
+    });
+    if (captured and previous_identity ~= tostring(state.identity or '')) then
+        log_state(('state gear-detail captured menu="%s" id=%d index=%d name="%s" source="%s" lines=%d contextKey="%s"'):fmt(
+            accessxi.escape_probe_log_text(menu_name),
+            item_id,
+            tonumber(item_index) or -1,
+            accessxi.escape_probe_log_text(name),
+            accessxi.escape_probe_log_text(tostring(raw_table_value(options, 'source', '') or '')),
+            type(state.lines) == 'table' and #state.lines or 0,
+            accessxi.escape_probe_log_text(context_key)));
+    end
+    return captured == true;
+end
+
 function accessxi.inspect_check_item_detail_speech(slot_name, item_id, check_item)
     item_id = tonumber(item_id) or 0;
     if (item_id <= 0 or item_id >= 65535) then
@@ -72723,7 +75527,16 @@ function accessxi.inspect_check_item_detail_speech(slot_name, item_id, check_ite
     if (resource_info.description ~= nil and resource_info.description ~= '') then
         parts:append(resource_info.description);
     end
-    return join_speech_parts(parts);
+    return join_speech_parts(parts), T{
+        id = item_id,
+        index = tonumber(slot_name) or -1,
+        name = label,
+        slot_name = tostring(slot_name or ''),
+        count = 1,
+        detail_parts = detail_parts,
+        description = tostring(resource_info.description or ''),
+        empty = false,
+    };
 end
 
 local function read_target_ank_num()
@@ -73791,6 +76604,11 @@ local function selected_equipment_speech(menu_name, menu_just_opened, full_detai
         parts:append(info.description);
     end
 
+    accessxi.capture_current_gear_detail(menu_name, info, T{
+        slot_name = info.slot_name,
+        source = 'equipment',
+    });
+
     return join_speech_parts(parts);
 end
 
@@ -74415,6 +77233,154 @@ function accessxi.trace_delivery_box_packet(e, direction)
         accessxi.escape_probe_log_text(sender),
         accessxi.escape_probe_log_text(accessxi.packet_ascii_preview(data, 96)),
         accessxi.packet_hex_limit(data, 0x58)));
+end
+
+function accessxi.enable_auction_packet_trace(reason)
+    local now = tick();
+    reason = tostring(reason or '');
+    if ((tonumber(accessxi.auction_packet_trace_until) or 0) <= now
+        or reason ~= tostring(accessxi.auction_packet_trace_reason or '')) then
+        accessxi.auction_packet_trace_count = 0;
+        accessxi.auction_packet_trace_key = '';
+        accessxi.auction_packet_trace_fields_logged = false;
+        accessxi.auction_packet_trace_variant_count = 0;
+    end
+
+    accessxi.auction_packet_trace_reason = reason;
+    accessxi.auction_packet_trace_until = math.max(tonumber(accessxi.auction_packet_trace_until) or 0, now + 15000);
+    accessxi.auction_packet_trace_limit = math.max(tonumber(accessxi.auction_packet_trace_limit) or 0, 80);
+    accessxi.auction_packet_trace_variant_limit = math.max(tonumber(accessxi.auction_packet_trace_variant_limit) or 0, 32);
+end
+
+function accessxi.trace_auction_packet(e, direction)
+    if (e == nil or tick() > (tonumber(accessxi.auction_packet_trace_until) or 0)) then
+        return;
+    end
+
+    if (not accessxi.auction_packet_trace_fields_logged) then
+        accessxi.auction_packet_trace_fields_logged = true;
+        local fields = T{};
+        pcall(function ()
+            for k, v in pairs(e) do
+                fields:append(('%s:%s'):fmt(tostring(k), type(v)));
+            end
+        end);
+        log_line(('auction packet event fields "%s"'):fmt(accessxi.escape_probe_log_text(fields:concat(', '))));
+    end
+
+    local variants = T{};
+    local seen_variants = {};
+    local function add_variant(name, value)
+        if (type(value) ~= 'string' or #value == 0) then
+            return;
+        end
+        local key = ('%d:%s'):fmt(#value, accessxi.packet_hex_limit(value, 64));
+        if (seen_variants[key] == true) then
+            return;
+        end
+        seen_variants[key] = true;
+        variants:append(T{ name = name, data = value });
+    end
+
+    add_variant('data_modified', e.data_modified);
+    add_variant('data', e.data);
+    add_variant('data_modified_raw', accessxi.packet_event_string(e, 'data_modified', 'size'));
+    add_variant('data_raw', accessxi.packet_event_string(e, 'data', 'size'));
+    add_variant('data_chunk', accessxi.packet_event_string(e, 'data_chunk', 'size_chunk'));
+    add_variant('dataChunk', accessxi.packet_event_string(e, 'dataChunk', 'sizeChunk'));
+    add_variant('chunk', accessxi.packet_event_string(e, 'chunk', 'size'));
+    add_variant('packet_chunk', accessxi.packet_event_string(e, 'packet_chunk', 'size_chunk'));
+
+    if (variants:len() == 0) then
+        return;
+    end
+
+    local data = variants[1].data or '';
+    local variant_name = tostring(variants[1].name or '');
+    local id = tonumber(e.id) or 0;
+    if (id == 0x015) then
+        return;
+    end
+    local ah_search_list_packet = (#data >= 0x18 and data:byte(0x0B + 1) == 0x95);
+    if ((id == 0x00D or id == 0x00E) and not ah_search_list_packet) then
+        return;
+    end
+
+    local trace_count = tonumber(accessxi.auction_packet_trace_count) or 0;
+    local trace_limit = tonumber(accessxi.auction_packet_trace_limit) or 80;
+    if (trace_count >= trace_limit) then
+        return;
+    end
+
+    local w04 = #data >= 0x06 and accessxi.packet_u16(data, 0x04 + 1) or 0;
+    local w06 = #data >= 0x08 and accessxi.packet_u16(data, 0x06 + 1) or 0;
+    local w08 = #data >= 0x0A and accessxi.packet_u16(data, 0x08 + 1) or 0;
+    local w0A = #data >= 0x0C and accessxi.packet_u16(data, 0x0A + 1) or 0;
+    local ascii_preview = accessxi.packet_ascii_preview(data, 128);
+    local ascii_run = ascii_preview:match('[%w][%w][%w][%w][%w]') ~= nil;
+    local candidate = (id ~= 0x00D and id ~= 0x00E) or ascii_run;
+    if (not candidate and trace_count >= 16) then
+        return;
+    end
+
+    local hex_key = accessxi.packet_hex_limit(data, candidate and 96 or 24);
+    local key = ('%s:%03X:%s:%d:%04X:%04X:%04X:%04X:%s'):fmt(
+        tostring(direction or ''),
+        id,
+        variant_name,
+        #data,
+        w04,
+        w06,
+        w08,
+        w0A,
+        hex_key);
+    if (key == tostring(accessxi.auction_packet_trace_key or '')) then
+        return;
+    end
+
+    accessxi.auction_packet_trace_key = key;
+    accessxi.auction_packet_trace_count = trace_count + 1;
+
+    local obj = get_current_menu_object_ptr();
+    local cursor4c = obj ~= 0 and read_current_native_menu_index(0x4C) or -1;
+    local menu_name = tostring(accessxi.current_menu_name or '');
+    if (menu_name == '') then
+        menu_name = tostring(get_menu_name() or '');
+    end
+
+    log_line(('auction packet trace dir=%s n=%d id=0x%03X variant=%s len=%d candidate=%s reason="%s" menu="%s" cursor4c=%d w04=0x%04X w06=0x%04X w08=0x%04X w0A=0x%04X ascii="%s" hex="%s"'):fmt(
+        tostring(direction or ''),
+        trace_count + 1,
+        id,
+        accessxi.escape_probe_log_text(variant_name),
+        #data,
+        tostring(candidate),
+        accessxi.escape_probe_log_text(tostring(accessxi.auction_packet_trace_reason or '')),
+        accessxi.escape_probe_log_text(menu_name),
+        cursor4c,
+        w04,
+        w06,
+        w08,
+        w0A,
+        accessxi.escape_probe_log_text(ascii_preview),
+        accessxi.packet_hex_limit(data, 160)));
+
+    local variant_count = tonumber(accessxi.auction_packet_trace_variant_count) or 0;
+    local variant_limit = tonumber(accessxi.auction_packet_trace_variant_limit) or 32;
+    for idx, variant in ipairs(variants) do
+        if (idx > 1 and variant_count < variant_limit) then
+            variant_count = variant_count + 1;
+            accessxi.auction_packet_trace_variant_count = variant_count;
+            log_line(('auction packet variant dir=%s n=%d id=0x%03X variant=%s len=%d ascii="%s" hex="%s"'):fmt(
+                tostring(direction or ''),
+                variant_count,
+                id,
+                accessxi.escape_probe_log_text(tostring(variant.name or '')),
+                #(variant.data or ''),
+                accessxi.escape_probe_log_text(accessxi.packet_ascii_preview(variant.data or '', 96)),
+                accessxi.packet_hex_limit(variant.data or '', 160)));
+        end
+    end
 end
 
 function accessxi.delivery_box_slot_label(slot)
@@ -75356,6 +78322,3716 @@ function accessxi.shopbuy_menu_speech(menu_name, title, obj, selected, count, pa
         accessxi.escape_probe_log_text(help),
         accessxi.escape_probe_log_text(source)));
     return ('%s. %s'):fmt(tostring(title or 'Shop'), speech_text);
+end
+
+function accessxi.load_auction_counter_command_rows()
+    if (type(accessxi.auction_counter_command_rows) == 'table') then
+        return accessxi.auction_counter_command_rows;
+    end
+    if (accessxi.auction_counter_command_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_counter_command_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 121, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 515, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 516, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 517, 'help');
+    sources[1] = 'ROM\\165\\76.DAT:121;ROM\\165\\75.DAT:515';
+    sources[2] = 'ROM\\165\\75.DAT:516';
+    sources[3] = 'ROM\\165\\75.DAT:517';
+
+    if (helps[1] == '' or helps[2] == '' or helps[3] == '') then
+        log_line(('auction counter command resource unavailable row1="%s" row2="%s" row3="%s"'):fmt(
+            accessxi.escape_probe_log_text(helps[1] or ''),
+            accessxi.escape_probe_log_text(helps[2] or ''),
+            accessxi.escape_probe_log_text(helps[3] or '')));
+        return nil;
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources };
+    accessxi.auction_counter_command_rows = rows;
+    log_line(('loaded auction counter command resource row1="%s" row2="%s" row3="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[2] or ''),
+        accessxi.escape_probe_log_text(helps[3] or '')));
+    return rows;
+end
+
+function accessxi.auction_counter_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auc1', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    child = tonumber(child) or 0;
+    local first = accessxi.is_probe_pointer(child) and (read_u32(child + 0x14) or 0) or 0;
+    if (count ~= 6) then
+        return nil;
+    end
+
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 3) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 3) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 3) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_counter_command_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (help == '') then
+        return nil;
+    end
+
+    local speech_text = help;
+    if (label ~= '' and not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = help ~= '' and help or label;
+    if (not tostring(accessxi.auction_last_bid_category or ''):lower():contains('weapon')) then
+        accessxi.auction_last_weapon_category = '';
+    end
+    if (visible_selected == 3) then
+        accessxi.auction_sales_status_context_tick = tick();
+        accessxi.auction_sales_status_empty_key = '';
+    else
+        accessxi.auction_sales_status_context_tick = 0;
+        accessxi.auction_sales_status_empty_key = '';
+    end
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-counter:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        child,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-counter native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X first=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Auction House'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        child,
+        first,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source)));
+    return ('%s. %s'):fmt(tostring(title or 'Auction House'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.reset_auction_item_packet_cache(reason)
+    accessxi.auction_selected_item_context = nil;
+    accessxi.auction_price_history_rows = {};
+    accessxi.auction_price_history_context_key = '';
+    accessxi.auction_price_history_context_item = '';
+    accessxi.auction_price_history_context_item_id = 0;
+    accessxi.auction_price_history_context_tick = 0;
+    accessxi.auction_item_packet_rows = {};
+    accessxi.auction_item_packet_total = 0;
+    accessxi.auction_item_packet_tick = 0;
+    accessxi.auction_item_packet_key = '';
+    accessxi.auction_item_packet_capture_key = '';
+    accessxi.auction_item_packet_chunks = 0;
+    accessxi.auction_item_packet_category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+    accessxi.auction_sales_status_rows = {};
+    accessxi.auction_sales_status_tick = 0;
+    accessxi.auction_sales_status_key = '';
+    accessxi.auction_sales_status_capture_key = '';
+    accessxi.auction_sales_status_change_key = '';
+    accessxi.auction_sales_status_context_tick = 0;
+    accessxi.auction_sales_status_empty_key = '';
+    if (tostring(reason or '') ~= '') then
+        log_line(('auction item-list packet cache reset reason="%s" category=%d label="%s"'):fmt(
+            accessxi.escape_probe_log_text(tostring(reason or '')),
+            tonumber(accessxi.auction_current_ah_category_id) or 0,
+            accessxi.escape_probe_log_text(tostring(accessxi.auction_current_ah_category_label or ''))));
+    end
+end
+
+function accessxi.set_auction_current_ah_category(category_id, label, source)
+    category_id = tonumber(category_id) or 0;
+    label = tostring(label or '');
+    local old_category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+    local old_label = tostring(accessxi.auction_current_ah_category_label or '');
+    if (old_category_id ~= category_id or old_label ~= label) then
+        accessxi.auction_current_ah_category_id = category_id;
+        accessxi.auction_current_ah_category_label = label;
+        accessxi.reset_auction_item_packet_cache(tostring(source or 'category-change'));
+    end
+end
+
+function accessxi.load_auction_bid_category_rows()
+    if (type(accessxi.auction_bid_category_rows) == 'table') then
+        return accessxi.auction_bid_category_rows;
+    end
+    if (accessxi.auction_bid_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_bid_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 125, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 116, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 122, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 253, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 254, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 123, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 118, 'label');
+    labels[8] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 271, 'label');
+    labels[9] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 120, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 518, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 519, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 520, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 521, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 522, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 523, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 524, 'help');
+    helps[8] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 525, 'help');
+    helps[9] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 526, 'help');
+    sources[1] = 'ROM\\165\\76.DAT:125;ROM\\165\\75.DAT:518';
+    sources[2] = 'ROM\\165\\76.DAT:116;ROM\\165\\75.DAT:519';
+    sources[3] = 'ROM\\165\\76.DAT:122;ROM\\165\\75.DAT:520';
+    sources[4] = 'ROM\\165\\77.DAT:253;ROM\\165\\75.DAT:521';
+    sources[5] = 'ROM\\165\\77.DAT:254;ROM\\165\\75.DAT:522';
+    sources[6] = 'ROM\\165\\76.DAT:123;ROM\\165\\75.DAT:523';
+    sources[7] = 'ROM\\165\\76.DAT:118;ROM\\165\\75.DAT:524';
+    sources[8] = 'ROM\\165\\77.DAT:271;ROM\\165\\75.DAT:525';
+    sources[9] = 'ROM\\165\\76.DAT:120;ROM\\165\\75.DAT:526';
+    ah_category_ids[4] = 33;
+    ah_category_ids[5] = 34;
+    ah_category_ids[8] = 35;
+
+    for i = 1, 9 do
+        if (helps[i] == '') then
+            log_line(('auction bid category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_bid_category_rows = rows;
+    log_line(('loaded auction bid category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[9] or '')));
+    return rows;
+end
+
+function accessxi.auction_bid_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auc2', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    if (count > 0 and count ~= 9 and count ~= 12) then
+        return nil;
+    end
+
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 9) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 9) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 9) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_bid_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    if (help == '') then
+        return nil;
+    end
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'auc2');
+
+    local speech_text = help;
+    if (label ~= '' and not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Auction'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source)));
+    return ('%s. %s'):fmt(tostring(title or 'Auction'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.load_auction_weapon_category_rows()
+    if (type(accessxi.auction_weapon_category_rows) == 'table') then
+        return accessxi.auction_weapon_category_rows;
+    end
+    if (accessxi.auction_weapon_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_weapon_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 24, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 221, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 222, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 223, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 224, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 225, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 226, 'label');
+    labels[8] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 227, 'label');
+    labels[9] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 228, 'label');
+    labels[10] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 229, 'label');
+    labels[11] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 230, 'label');
+    labels[12] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 231, 'label');
+    labels[13] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 232, 'label');
+    labels[14] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 233, 'label');
+    labels[15] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 115, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 574, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 575, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 576, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 577, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 578, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 579, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 580, 'help');
+    helps[8] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 581, 'help');
+    helps[9] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 582, 'help');
+    helps[10] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 583, 'help');
+    helps[11] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 584, 'help');
+    helps[12] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 585, 'help');
+    helps[13] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 251, 'help');
+    helps[14] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 587, 'help');
+    helps[15] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 255, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:24;ROM\\165\\75.DAT:574';
+    sources[2] = 'ROM\\165\\77.DAT:221;ROM\\165\\75.DAT:575';
+    sources[3] = 'ROM\\165\\77.DAT:222;ROM\\165\\75.DAT:576';
+    sources[4] = 'ROM\\165\\77.DAT:223;ROM\\165\\75.DAT:577';
+    sources[5] = 'ROM\\165\\77.DAT:224;ROM\\165\\75.DAT:578';
+    sources[6] = 'ROM\\165\\77.DAT:225;ROM\\165\\75.DAT:579';
+    sources[7] = 'ROM\\165\\77.DAT:226;ROM\\165\\75.DAT:580';
+    sources[8] = 'ROM\\165\\77.DAT:227;ROM\\165\\75.DAT:581';
+    sources[9] = 'ROM\\165\\77.DAT:228;ROM\\165\\75.DAT:582';
+    sources[10] = 'ROM\\165\\77.DAT:229;ROM\\165\\75.DAT:583';
+    sources[11] = 'ROM\\165\\77.DAT:230;ROM\\165\\75.DAT:584';
+    sources[12] = 'ROM\\165\\77.DAT:231;ROM\\165\\75.DAT:585';
+    sources[13] = 'ROM\\165\\77.DAT:232;ROM\\165\\75.DAT:251';
+    sources[14] = 'ROM\\165\\77.DAT:233;ROM\\165\\75.DAT:587';
+    sources[15] = 'ROM\\165\\76.DAT:115;ROM\\165\\75.DAT:255';
+    for i = 1, 14 do
+        ah_category_ids[i] = i;
+    end
+    labels[1] = tostring(labels[1] or ''):gsub('^%((.-)%)$', '%1');
+    for i = 1, 15 do
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction weapon category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_weapon_category_rows = rows;
+    log_line(('loaded auction weapon category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[15] or '')));
+    return rows;
+end
+
+function accessxi.auction_weapon_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucweapo', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 15) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 15) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 15) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_weapon_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucweapo');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Weapons';
+    accessxi.auction_last_weapon_category = help ~= '' and help or label;
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-weapon-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-weapon-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Weapons'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source)));
+    return ('%s. %s'):fmt(tostring(title or 'Weapons'), accessxi.sentence_fragment(speech_text));
+end
+
+accessxi.auction_armor_category_slot_masks = T{
+    [15] = 2,
+    [16] = 16,
+    [17] = 512,
+    [18] = 32,
+    [19] = 64,
+    [20] = 1024,
+    [21] = 128,
+    [22] = 256,
+    [23] = 32768,
+    [24] = 6144,
+    [25] = 24576,
+};
+
+function accessxi.load_auction_armor_category_rows()
+    if (type(accessxi.auction_armor_category_rows) == 'table') then
+        return accessxi.auction_armor_category_rows;
+    end
+    if (accessxi.auction_armor_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_armor_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 235, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 236, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 237, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 238, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 239, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 240, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 241, 'label');
+    labels[8] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 242, 'label');
+    labels[9] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 243, 'label');
+    labels[10] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 244, 'label');
+    labels[11] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 245, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 534, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 535, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 536, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 537, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 538, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 539, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 540, 'help');
+    helps[8] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 541, 'help');
+    helps[9] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 542, 'help');
+    helps[10] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 543, 'help');
+    helps[11] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 544, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:235;ROM\\165\\75.DAT:534';
+    sources[2] = 'ROM\\165\\77.DAT:236;ROM\\165\\75.DAT:535';
+    sources[3] = 'ROM\\165\\77.DAT:237;ROM\\165\\75.DAT:536';
+    sources[4] = 'ROM\\165\\77.DAT:238;ROM\\165\\75.DAT:537';
+    sources[5] = 'ROM\\165\\77.DAT:239;ROM\\165\\75.DAT:538';
+    sources[6] = 'ROM\\165\\77.DAT:240;ROM\\165\\75.DAT:539';
+    sources[7] = 'ROM\\165\\77.DAT:241;ROM\\165\\75.DAT:540';
+    sources[8] = 'ROM\\165\\77.DAT:242;ROM\\165\\75.DAT:541';
+    sources[9] = 'ROM\\165\\77.DAT:243;ROM\\165\\75.DAT:542';
+    sources[10] = 'ROM\\165\\77.DAT:244;ROM\\165\\75.DAT:543';
+    sources[11] = 'ROM\\165\\77.DAT:245;ROM\\165\\75.DAT:544';
+    for i = 1, 11 do
+        ah_category_ids[i] = 14 + i;
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction armor category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_armor_category_rows = rows;
+    log_line(('loaded auction armor category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[11] or '')));
+    return rows;
+end
+
+function accessxi.auction_armor_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucarmor', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 11) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 11) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 11) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_armor_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucarmor');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Armor';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-armor-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-armor-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Armor'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source)));
+    return ('%s. %s'):fmt(tostring(title or 'Armor'), accessxi.sentence_fragment(speech_text));
+end
+
+accessxi.auction_magic_category_spell_types = T{
+    [26] = 1,
+    [27] = 2,
+    [28] = 5,
+    [29] = 4,
+    [30] = 3,
+    [32] = 7,
+};
+
+function accessxi.load_auction_magic_category_rows()
+    if (type(accessxi.auction_magic_category_rows) == 'table') then
+        return accessxi.auction_magic_category_rows;
+    end
+    if (accessxi.auction_magic_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_magic_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 246, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 247, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 248, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 249, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 250, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 251, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 252, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 555, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 556, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 557, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 558, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 559, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 639, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 699, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:246;ROM\\165\\75.DAT:555';
+    sources[2] = 'ROM\\165\\77.DAT:247;ROM\\165\\75.DAT:556';
+    sources[3] = 'ROM\\165\\77.DAT:248;ROM\\165\\75.DAT:557';
+    sources[4] = 'ROM\\165\\77.DAT:249;ROM\\165\\75.DAT:558';
+    sources[5] = 'ROM\\165\\77.DAT:250;ROM\\165\\75.DAT:559';
+    sources[6] = 'ROM\\165\\77.DAT:251;ROM\\165\\75.DAT:639';
+    sources[7] = 'ROM\\165\\77.DAT:252;ROM\\165\\75.DAT:699';
+    for i = 1, 7 do
+        ah_category_ids[i] = 25 + i;
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction magic category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_magic_category_rows = rows;
+    log_line(('loaded auction magic category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[7] or '')));
+    return rows;
+end
+
+function accessxi.auction_magic_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucmagic', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 7) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 7) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 7) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_magic_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucmagic');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Magic Scrolls';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-magic-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-magic-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Magic Scrolls'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source)));
+    return ('%s. %s'):fmt(tostring(title or 'Magic Scrolls'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.load_auction_material_category_rows()
+    if (type(accessxi.auction_material_category_rows) == 'table') then
+        return accessxi.auction_material_category_rows;
+    end
+    if (accessxi.auction_material_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_material_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 255, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 256, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 257, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 258, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 259, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 260, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 261, 'label');
+    labels[8] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 283, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 560, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 561, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 562, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 563, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 564, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 565, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 566, 'help');
+    helps[8] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 805, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:255;ROM\\165\\75.DAT:560';
+    sources[2] = 'ROM\\165\\77.DAT:256;ROM\\165\\75.DAT:561';
+    sources[3] = 'ROM\\165\\77.DAT:257;ROM\\165\\75.DAT:562';
+    sources[4] = 'ROM\\165\\77.DAT:258;ROM\\165\\75.DAT:563';
+    sources[5] = 'ROM\\165\\77.DAT:259;ROM\\165\\75.DAT:564';
+    sources[6] = 'ROM\\165\\77.DAT:260;ROM\\165\\75.DAT:565';
+    sources[7] = 'ROM\\165\\77.DAT:261;ROM\\165\\75.DAT:566';
+    sources[8] = 'ROM\\165\\77.DAT:283;ROM\\165\\75.DAT:805';
+    ah_category_ids[1] = 38;
+    ah_category_ids[2] = 39;
+    ah_category_ids[3] = 40;
+    ah_category_ids[4] = 41;
+    ah_category_ids[5] = 42;
+    ah_category_ids[6] = 43;
+    ah_category_ids[7] = 44;
+    ah_category_ids[8] = 63;
+    for i = 1, 8 do
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction material category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_material_category_rows = rows;
+    log_line(('loaded auction material category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[8] or '')));
+    return rows;
+end
+
+function accessxi.auction_material_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucmater', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 8) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 8) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 8) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_material_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucmater');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Materials';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-material-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-material-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s" ahCategory=%d'):fmt(
+        menu_name,
+        tostring(title or 'Materials'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source),
+        ah_category_id));
+    return ('%s. %s'):fmt(tostring(title or 'Materials'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.load_auction_food_category_rows()
+    if (type(accessxi.auction_food_category_rows) == 'table') then
+        return accessxi.auction_food_category_rows;
+    end
+    if (accessxi.auction_food_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_food_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 124, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 269, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 270, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 545, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 546, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 547, 'help');
+    sources[1] = 'ROM\\165\\76.DAT:124;ROM\\165\\75.DAT:545';
+    sources[2] = 'ROM\\165\\77.DAT:269;ROM\\165\\75.DAT:546';
+    sources[3] = 'ROM\\165\\77.DAT:270;ROM\\165\\75.DAT:547';
+    ah_category_ids[2] = 59;
+    ah_category_ids[3] = 51;
+
+    for i = 1, 3 do
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction food category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_food_category_rows = rows;
+    log_line(('loaded auction food category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[3] or '')));
+    return rows;
+end
+
+function accessxi.auction_food_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucfood', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 3) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 3) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 3) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_food_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucfood');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Food';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-food-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-food-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s" ahCategory=%d'):fmt(
+        menu_name,
+        tostring(title or 'Food'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source),
+        ah_category_id));
+    return ('%s. %s'):fmt(tostring(title or 'Food'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.load_auction_meal_category_rows()
+    if (type(accessxi.auction_meal_category_rows) == 'table') then
+        return accessxi.auction_meal_category_rows;
+    end
+    if (accessxi.auction_meal_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_meal_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 262, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 263, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 264, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 265, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 266, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 267, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 268, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 567, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 568, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 569, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 570, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 571, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 572, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 573, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:262;ROM\\165\\75.DAT:567';
+    sources[2] = 'ROM\\165\\77.DAT:263;ROM\\165\\75.DAT:568';
+    sources[3] = 'ROM\\165\\77.DAT:264;ROM\\165\\75.DAT:569';
+    sources[4] = 'ROM\\165\\77.DAT:265;ROM\\165\\75.DAT:570';
+    sources[5] = 'ROM\\165\\77.DAT:266;ROM\\165\\75.DAT:571';
+    sources[6] = 'ROM\\165\\77.DAT:267;ROM\\165\\75.DAT:572';
+    sources[7] = 'ROM\\165\\77.DAT:268;ROM\\165\\75.DAT:573';
+    ah_category_ids[1] = 52;
+    ah_category_ids[2] = 53;
+    ah_category_ids[3] = 54;
+    ah_category_ids[4] = 55;
+    ah_category_ids[5] = 56;
+    ah_category_ids[6] = 57;
+    ah_category_ids[7] = 58;
+
+    for i = 1, 7 do
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction meal category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_meal_category_rows = rows;
+    log_line(('loaded auction meal category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[7] or '')));
+    return rows;
+end
+
+function accessxi.auction_meal_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucmeals', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > 7) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > 7) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > 7) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_meal_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    local speech_label = label:gsub('/', ' and ');
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (speech_label ~= '' and speech_label or help) or '', 'aucmeals');
+
+    local speech_text = help;
+    if (not speech_label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(speech_label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Meals';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-meal-category:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help);
+    log_state(('state auction-meal-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" label="%s" help="%s" source="%s" ahCategory=%d'):fmt(
+        menu_name,
+        tostring(title or 'Meals'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source),
+        ah_category_id));
+    return ('%s. %s'):fmt(tostring(title or 'Meals'), accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.load_auction_other_category_rows()
+    if (type(accessxi.auction_other_category_rows) == 'table') then
+        return accessxi.auction_other_category_rows;
+    end
+    if (accessxi.auction_other_category_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_other_category_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    local ah_category_ids = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 272, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 282, 'label');
+    labels[3] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 284, 'label');
+    labels[4] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 273, 'label');
+    labels[5] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 274, 'label');
+    labels[6] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 275, 'label');
+    labels[7] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 276, 'label');
+    labels[8] = accessxi.dat_index_row_text('ROM\\165\\77.DAT', 277, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 549, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 806, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 987, 'help');
+    helps[4] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 550, 'help');
+    helps[5] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 551, 'help');
+    helps[6] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 552, 'help');
+    helps[7] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 553, 'help');
+    helps[8] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 652, 'help');
+    sources[1] = 'ROM\\165\\77.DAT:272;ROM\\165\\75.DAT:549';
+    sources[2] = 'ROM\\165\\77.DAT:282;ROM\\165\\75.DAT:806';
+    sources[3] = 'ROM\\165\\77.DAT:284;ROM\\165\\75.DAT:987';
+    sources[4] = 'ROM\\165\\77.DAT:273;ROM\\165\\75.DAT:550';
+    sources[5] = 'ROM\\165\\77.DAT:274;ROM\\165\\75.DAT:551';
+    sources[6] = 'ROM\\165\\77.DAT:275;ROM\\165\\75.DAT:552';
+    sources[7] = 'ROM\\165\\77.DAT:276;ROM\\165\\75.DAT:553';
+    sources[8] = 'ROM\\165\\77.DAT:277;ROM\\165\\75.DAT:652';
+    ah_category_ids[1] = 46;
+    ah_category_ids[2] = 64;
+    ah_category_ids[3] = 65;
+    ah_category_ids[4] = 50;
+    ah_category_ids[5] = 36;
+    ah_category_ids[6] = 49;
+    ah_category_ids[7] = 37;
+    ah_category_ids[8] = 61;
+
+    for i = 1, 8 do
+        helps[i] = tostring(helps[i] or ''):gsub(',$', '.');
+        if (labels[i] == '' or helps[i] == '') then
+            log_line(('auction other category resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources, ah_category_ids = ah_category_ids };
+    accessxi.auction_other_category_rows = rows;
+    log_line(('loaded auction other category resource first="%s" last="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[8] or '')));
+    return rows;
+end
+
+function accessxi.auction_other_category_label_key(label)
+    label = accessxi.plain_native_menu_label(label or '');
+    label = tostring(label or ''):gsub('%.', ''):gsub('%s+', ' '):trim():lower();
+    return label;
+end
+
+function accessxi.auction_other_category_row_index_for_label(rows, label)
+    if (type(rows) ~= 'table') then
+        return 0;
+    end
+
+    local target = accessxi.auction_other_category_label_key(label);
+    if (target == '') then
+        return 0;
+    end
+
+    local labels = rows.labels or T{};
+    for i = 1, 8 do
+        if (accessxi.auction_other_category_label_key(labels[i] or '') == target) then
+            return i;
+        end
+    end
+
+    return 0;
+end
+
+function accessxi.auction_other_category_row_index_for_live_text(rows, live_text)
+    if (type(rows) ~= 'table') then
+        return 0;
+    end
+
+    local target = accessxi.auction_other_category_label_key(live_text);
+    if (target == '') then
+        return 0;
+    end
+
+    local labels = rows.labels or T{};
+    local helps = rows.helps or T{};
+    for i = 1, math.max(#labels, #helps, 8) do
+        if (accessxi.auction_other_category_label_key(labels[i] or '') == target) then
+            return i;
+        end
+        if (accessxi.auction_other_category_label_key(helps[i] or '') == target) then
+            return i;
+        end
+    end
+
+    return 0;
+end
+
+function accessxi.auction_other_category_live_text_from_ptr(ptr)
+    ptr = tonumber(ptr) or 0;
+    if (not accessxi.is_probe_pointer(ptr)) then
+        return '';
+    end
+
+    local text = accessxi.plain_native_menu_label(read_probe_string(ptr, 260));
+    if (text ~= '') then
+        return text;
+    end
+
+    if (accessxi.native_query_candidate_label_from_ptr ~= nil) then
+        text = accessxi.plain_native_menu_label(accessxi.native_query_candidate_label_from_ptr(ptr, 'plain') or '');
+        if (text ~= '') then
+            return text;
+        end
+    end
+
+    return '';
+end
+
+function accessxi.auction_other_category_entry_live_text(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return '', 0, '';
+    end
+
+    local ptr40 = read_u32(entry + 0x40) or 0;
+    local text40 = accessxi.plain_native_menu_label(read_probe_string(ptr40, 260));
+    if (text40 == '' and accessxi.native_query_candidate_label_from_ptr ~= nil and accessxi.is_probe_pointer(ptr40)) then
+        text40 = accessxi.plain_native_menu_label(accessxi.native_query_candidate_label_from_ptr(ptr40, 'plain') or '');
+    end
+    if (text40 ~= '') then
+        return text40, ptr40, 'entry+40';
+    end
+
+    local ptr44 = read_u32(entry + 0x44) or 0;
+    local text44 = accessxi.plain_native_menu_label(read_probe_string(ptr44, 260));
+    if (text44 == '' and accessxi.native_query_candidate_label_from_ptr ~= nil and accessxi.is_probe_pointer(ptr44)) then
+        text44 = accessxi.plain_native_menu_label(accessxi.native_query_candidate_label_from_ptr(ptr44, 'plain') or '');
+    end
+    if (text44 ~= '') then
+        return text44, ptr44, 'entry+44';
+    end
+
+    return '', 0, '';
+end
+
+function accessxi.auction_other_category_row_descriptor_table(row_desc, selected, count)
+    row_desc = tonumber(row_desc) or 0;
+    selected = tonumber(selected) or 0;
+    count = tonumber(count) or 0;
+    if (not accessxi.is_probe_pointer(row_desc) or selected <= 0 or count <= 0 or count > 32) then
+        return '';
+    end
+
+    local base = row_desc - ((selected - 1) * 0x14);
+    if (not accessxi.is_probe_pointer(base)) then
+        return '';
+    end
+
+    local parts = T{};
+    for i = 1, math.min(count, 16) do
+        local ptr = base + ((i - 1) * 0x14);
+        if (not accessxi.is_probe_pointer(ptr)) then
+            break;
+        end
+        parts:append(('%02d@0x%08X[%s]'):fmt(
+            i,
+            ptr,
+            accessxi.escape_probe_log_text(accessxi.format_probe_dwords(ptr, 0x00, 5))));
+    end
+    return parts:concat(' || ');
+end
+
+function accessxi.auction_other_category_entry_pointer_probe(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return '';
+    end
+
+    local parts = T{};
+    for _, off in ipairs(T{ 0x04, 0x0C, 0x40, 0x44 }) do
+        local ptr = read_u32(entry + off) or 0;
+        if (accessxi.is_probe_pointer(ptr)) then
+            local text = accessxi.plain_native_menu_label(read_probe_string(ptr, 180));
+            parts:append(('+%02X=0x%08X text="%s" dwords="%s" runs="%s"'):fmt(
+                off,
+                ptr,
+                accessxi.escape_probe_log_text(text),
+                accessxi.escape_probe_log_text(accessxi.format_probe_dwords(ptr, 0x00, 8)),
+                accessxi.escape_probe_log_text(accessxi.status_menu_probe_runs(ptr, 0x100))));
+        else
+            parts:append(('+%02X=0x%08X'):fmt(off, ptr));
+        end
+    end
+    return parts:concat(' | ');
+end
+
+function accessxi.auction_other_category_missing_native_label_probe(menu_name, title, selected, count, page, raw, obj, child, entry, cursor4c, cursor34, native_mode)
+    local key = ('%s:%d:%d:%d:%d:0x%08X:0x%08X:0x%08X:%d:%d:%s'):fmt(
+        tostring(menu_name or ''),
+        tonumber(selected) or 0,
+        tonumber(count) or 0,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(obj) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        tostring(native_mode or ''));
+    if (key == tostring(accessxi.last_auction_other_missing_native_label_key or '')) then
+        return;
+    end
+    accessxi.last_auction_other_missing_native_label_key = key;
+
+    local row_desc = accessxi.is_probe_pointer(entry) and (read_u32(entry + 0x0C) or 0) or 0;
+    local entry40_text = '';
+    local entry44_text = '';
+    if (accessxi.is_probe_pointer(entry)) then
+        entry40_text = accessxi.auction_other_category_live_text_from_ptr(read_u32(entry + 0x40) or 0);
+        entry44_text = accessxi.auction_other_category_live_text_from_ptr(read_u32(entry + 0x44) or 0);
+    end
+    log_state(('state auction-other-category missing-native-label menu="%s" title="%s" selected=%d count=%d page=%d raw=0x%08X obj=0x%08X child=0x%08X entry=0x%08X rowDesc=0x%08X cursor4c=%d cursor34=%d nativeMode="%s" entry40Text="%s" entry44Text="%s" objDwords="%s" childDwords="%s" entryDwords="%s" rowDescDwords="%s" rowDescRuns="%s" rowTable="%s" entryPtrs="%s" objRuns="%s" childRuns="%s" entryRuns="%s" note="no ordinal DAT fallback"'):fmt(
+        tostring(menu_name or ''),
+        tostring(title or ''),
+        tonumber(selected) or 0,
+        tonumber(count) or 0,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(obj) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        row_desc,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        accessxi.escape_probe_log_text(native_mode or ''),
+        accessxi.escape_probe_log_text(entry40_text),
+        accessxi.escape_probe_log_text(entry44_text),
+        accessxi.escape_probe_log_text_wide(accessxi.format_probe_dwords(obj, 0x00, 20)),
+        accessxi.escape_probe_log_text_wide(accessxi.format_probe_dwords(child, 0x00, 20)),
+        accessxi.escape_probe_log_text_wide(accessxi.format_probe_dwords(entry, 0x00, 20)),
+        accessxi.escape_probe_log_text_wide(accessxi.format_probe_dwords(row_desc, 0x00, 12)),
+        accessxi.escape_probe_log_text(accessxi.status_menu_probe_runs(row_desc, 0x180)),
+        accessxi.escape_probe_log_text_wide(accessxi.auction_other_category_row_descriptor_table(row_desc, selected, count)),
+        accessxi.escape_probe_log_text_wide(accessxi.auction_other_category_entry_pointer_probe(entry)),
+        accessxi.escape_probe_log_text(accessxi.status_menu_probe_runs(obj, 0x180)),
+        accessxi.escape_probe_log_text(accessxi.status_menu_probe_runs(child, 0x180)),
+        accessxi.escape_probe_log_text(accessxi.status_menu_probe_runs(entry, 0x180))));
+end
+
+function accessxi.auction_other_category_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    aucitem', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_limit = count;
+    if (visible_limit < 1) then
+        visible_limit = 8;
+    end
+    visible_limit = math.min(math.max(visible_limit, 8), 32);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_other_category_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local native_label = '';
+    local native_mode = '';
+    local native_index = 0;
+    if (accessxi.is_probe_pointer(child) and accessxi.native_query_label_for_selection ~= nil) then
+        native_label, native_mode = accessxi.native_query_label_for_selection(child, visible_selected, count, 'plain');
+        native_label = accessxi.plain_native_menu_label(native_label or '');
+        native_index = accessxi.auction_other_category_row_index_for_label(rows, native_label);
+        if (native_index > 0) then
+            visible_selected = native_index;
+            cursorSource = cursorSource .. '+native-label';
+        end
+    end
+    local entry_live_text = '';
+    local entry_live_ptr = 0;
+    local entry_live_source = '';
+    local entry_live_index = 0;
+    if (native_index <= 0) then
+        entry_live_text, entry_live_ptr, entry_live_source = accessxi.auction_other_category_entry_live_text(entry);
+        entry_live_index = accessxi.auction_other_category_row_index_for_live_text(rows, entry_live_text);
+        if (entry_live_index > 0) then
+            native_label = entry_live_text;
+            native_mode = entry_live_source;
+            native_index = entry_live_index;
+            visible_selected = entry_live_index;
+            cursorSource = cursorSource .. '+' .. entry_live_source;
+        end
+    end
+    if (native_index <= 0) then
+        accessxi.auction_other_category_missing_native_label_probe(menu_name, title, visible_selected, count, page, raw, obj, child, entry, cursor4c, cursor34, native_mode);
+        return nil;
+    end
+
+    local label = tostring((rows.labels or T{})[visible_selected] or '');
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' or help == '') then
+        return nil;
+    end
+    local ah_category_id = tonumber((rows.ah_category_ids or T{})[visible_selected]) or 0;
+    accessxi.set_auction_current_ah_category(ah_category_id, ah_category_id ~= 0 and (label ~= '' and label or help) or '', 'aucitem');
+
+    local speech_text = help;
+    if (not label:eq(help, true)) then
+        speech_text = ('%s. %s'):fmt(label, accessxi.sentence_fragment(help));
+    end
+
+    accessxi.auction_last_bid_category = 'Others';
+    accessxi.auction_last_weapon_category = '';
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-other-category:%d:0x%08X:0x%08X:%d:%s:%s'):fmt(
+        visible_selected,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        ah_category_id,
+        label,
+        help);
+    log_state(('state auction-other-category native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" nativeLabel="%s" nativeMode="%s" nativeIndex=%d label="%s" help="%s" source="%s" ahCategory=%d'):fmt(
+        menu_name,
+        tostring(title or 'Others'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(native_label),
+        accessxi.escape_probe_log_text(native_mode),
+        native_index,
+        accessxi.escape_probe_log_text(label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(source),
+        ah_category_id));
+    local title_text = tostring(title or 'Others');
+    if (title_text:eq(label, true)) then
+        return speech_text;
+    end
+    return ('%s. %s'):fmt(title_text, accessxi.sentence_fragment(speech_text));
+end
+
+function accessxi.auction_spell_resource_name_index()
+    if (type(accessxi.auction_spell_name_index) == 'table') then
+        return accessxi.auction_spell_name_index;
+    end
+
+    local index = {};
+    local count = 0;
+    for id = 1, 2048 do
+        local info = accessxi.magic_spell_resource_info(id);
+        local name = info ~= nil and tostring(info.name or '') or '';
+        local key = accessxi.normalized_resource_name(name);
+        if (key ~= '' and index[key] == nil) then
+            index[key] = info;
+            count = count + 1;
+        end
+    end
+
+    accessxi.auction_spell_name_index = index;
+    log_line(('loaded auction spell name index count=%d'):fmt(count));
+    return accessxi.auction_spell_name_index;
+end
+
+function accessxi.auction_spell_resource_info_by_name(name)
+    name = accessxi.plain_native_menu_label(name or '');
+    if (name == '') then
+        return nil;
+    end
+
+    local key = accessxi.normalized_resource_name(name);
+    if (key == '') then
+        return nil;
+    end
+
+    local index = accessxi.auction_spell_resource_name_index();
+    return index[key];
+end
+
+function accessxi.auction_item_spell_label_candidates(resource_info)
+    local labels = T{};
+    local seen = {};
+    local function add(label)
+        label = accessxi.plain_native_menu_label(label or ''):gsub('%s+', ' '):trim();
+        if (label == '') then
+            return;
+        end
+        local key = accessxi.normalized_resource_name(label);
+        if (key == '' or seen[key] == true) then
+            return;
+        end
+        seen[key] = true;
+        labels:append(label);
+    end
+
+    resource_info = resource_info or T{};
+    local name = clean_resource_text(resource_info.name or '');
+    local long_name = clean_resource_text(resource_info.long_name or '');
+    add(name);
+    add(long_name);
+
+    local stripped = long_name;
+    stripped = stripped:gsub('^[Gg]eomancy%s+[Ss]croll%s+of%s+', '');
+    stripped = stripped:gsub('^[Ss]croll%s+of%s+', '');
+    stripped = stripped:gsub('^[Pp]late%s+of%s+', '');
+    stripped = stripped:gsub('^[Ss]heet%s+of%s+', '');
+    stripped = stripped:gsub('^[Cc]opy%s+of%s+', '');
+    stripped = stripped:gsub('^[Tt]ome%s+of%s+', '');
+    stripped = stripped:gsub('%s+[Pp]act$', '');
+    add(stripped);
+
+    return labels;
+end
+
+function accessxi.auction_item_spell_type(resource_info)
+    resource_info = resource_info or T{};
+    local item_id = tonumber(resource_info.id) or 0;
+    accessxi.auction_item_spell_type_cache = accessxi.auction_item_spell_type_cache or {};
+    accessxi.auction_item_spell_type_source_cache = accessxi.auction_item_spell_type_source_cache or {};
+    if (item_id > 0 and accessxi.auction_item_spell_type_cache[item_id] ~= nil) then
+        return tonumber(accessxi.auction_item_spell_type_cache[item_id]) or 0,
+            tostring(accessxi.auction_item_spell_type_source_cache[item_id] or '');
+    end
+
+    local spell_type = 0;
+    local source = '';
+    if ((tonumber(resource_info.type) or 0) == 7) then
+        local candidates = accessxi.auction_item_spell_label_candidates(resource_info);
+        for _, label in ipairs(candidates) do
+            local spell = accessxi.auction_spell_resource_info_by_name(label);
+            if (spell ~= nil) then
+                spell_type = tonumber(spell.type) or 0;
+                source = ('spell-name:%s'):fmt(label);
+                break;
+            end
+        end
+    end
+
+    if (item_id > 0) then
+        accessxi.auction_item_spell_type_cache[item_id] = spell_type;
+        accessxi.auction_item_spell_type_source_cache[item_id] = source;
+    end
+    return spell_type, source;
+end
+
+function accessxi.auction_item_is_magic_die(resource_info)
+    resource_info = resource_info or T{};
+    if ((tonumber(resource_info.type) or 0) ~= 7) then
+        return false;
+    end
+
+    local function is_die_text(text)
+        text = accessxi.plain_native_menu_label(text or ''):lower():gsub('%s+', ' '):trim();
+        if (text == '') then
+            return false;
+        end
+        return text:match('%s+die$') ~= nil;
+    end
+
+    return is_die_text(resource_info.name) or is_die_text(resource_info.long_name);
+end
+
+function accessxi.auction_item_is_crystal_category_item(item_id, resource_info)
+    item_id = tonumber(item_id) or 0;
+    local is_known_crystal_range = item_id >= 4096 and item_id <= 4111;
+    if (not is_known_crystal_range) then
+        return false;
+    end
+
+    resource_info = resource_info or T{};
+    local resource_type = tonumber(resource_info.type) or 0;
+    if (resource_type ~= 0 and resource_type ~= 7 and resource_type ~= 8) then
+        return false;
+    end
+
+    local name = ('%s %s'):fmt(
+        accessxi.plain_native_menu_label(resource_info.name or ''),
+        accessxi.plain_native_menu_label(resource_info.long_name or '')):lower():gsub('%s+', ' '):trim();
+    if (name ~= '') then
+        return name:contains('crystal') or name:contains('cluster');
+    end
+
+    return true;
+end
+
+function accessxi.auction_packet_item_matches_current_category(item_id, category_id)
+    category_id = tonumber(category_id) or 0;
+    item_id = tonumber(item_id) or 0;
+    if (category_id <= 0 or not is_valid_inventory_item_id(item_id)) then
+        return false;
+    end
+
+    local resource_info = resource_item_info(item_id);
+    if (resource_info == nil) then
+        return false;
+    end
+
+    local resource_type = tonumber(resource_info.type) or 0;
+    local skill = tonumber(resource_info.skill) or 0;
+    if (category_id >= 26 and category_id <= 32) then
+        local is_magic_scroll_item = resource_type == 7;
+        if (not is_magic_scroll_item) then
+            return false;
+        end
+        if (category_id == 31) then
+            return accessxi.auction_item_is_magic_die(resource_info);
+        end
+
+        local wanted_spell_type = tonumber((accessxi.auction_magic_category_spell_types or T{})[category_id]) or 0;
+        local spell_type = accessxi.auction_item_spell_type(resource_info);
+        return wanted_spell_type > 0 and spell_type == wanted_spell_type;
+    end
+
+    local armor_slot_mask = tonumber((accessxi.auction_armor_category_slot_masks or T{})[category_id]) or 0;
+    if (armor_slot_mask ~= 0) then
+        local slots = tonumber(resource_info.slots) or 0;
+        return resource_type == 5 and bit.band(slots, armor_slot_mask) ~= 0;
+    end
+    if (category_id >= 1 and category_id <= 12) then
+        return resource_type == 4 and skill == category_id;
+    end
+    if (category_id == 13 or category_id == 14) then
+        return resource_type == 4;
+    end
+    if (category_id == 34) then
+        return resource_type == 10;
+    end
+    if (category_id == 35) then
+        return accessxi.auction_item_is_crystal_category_item(item_id, resource_info);
+    end
+
+    return true;
+end
+
+function accessxi.auction_sales_status_context_is_fresh()
+    return (tick() - (tonumber(accessxi.auction_sales_status_context_tick) or 0)) < 600000;
+end
+
+function accessxi.auction_sales_status_row_matches(row, item_id, price, status_a, status_b)
+    if (row == nil) then
+        return false;
+    end
+    if ((tonumber(row.item_id) or 0) ~= (tonumber(item_id) or 0)) then
+        return false;
+    end
+    if ((tonumber(price) or 0) > 0 and (tonumber(row.price) or 0) ~= (tonumber(price) or 0)) then
+        return false;
+    end
+    if ((tonumber(status_a) or 0) > 0 and (tonumber(row.status_a) or 0) ~= (tonumber(status_a) or 0)) then
+        return false;
+    end
+    if ((tonumber(status_b) or 0) > 0 and (tonumber(row.status_b) or 0) ~= (tonumber(status_b) or 0)) then
+        return false;
+    end
+    return true;
+end
+
+function accessxi.auction_sales_status_trim_rows(max_rows, source, direction)
+    max_rows = tonumber(max_rows) or 0;
+    if (max_rows < 0) then
+        max_rows = 0;
+    elseif (max_rows > 64) then
+        max_rows = 64;
+    end
+
+    accessxi.auction_sales_status_rows = accessxi.auction_sales_status_rows or {};
+    if (max_rows <= 0) then
+        accessxi.auction_sales_status_rows = {};
+        accessxi.auction_sales_status_tick = 0;
+        accessxi.auction_selected_item_context = nil;
+    else
+        for index = max_rows + 1, 64 do
+            accessxi.auction_sales_status_rows[index] = nil;
+        end
+        accessxi.auction_sales_status_tick = tick();
+    end
+    accessxi.auction_sales_status_context_tick = tick();
+    accessxi.auction_sales_status_key = '';
+    accessxi.auction_sales_status_empty_key = '';
+
+    local key = ('trim:%d:%d:%s'):fmt(max_rows, accessxi.auction_sales_status_row_count(), tostring(source or ''));
+    if (key ~= tostring(accessxi.auction_sales_status_change_key or '')) then
+        accessxi.auction_sales_status_change_key = key;
+        log_state(('state auction-sales-status packet-trim dir=%s maxRows=%d packetRows=%d source="%s"'):fmt(
+            tostring(direction or ''),
+            max_rows,
+            accessxi.auction_sales_status_row_count(),
+            accessxi.escape_probe_log_text(tostring(source or ''))));
+    end
+    return true;
+end
+
+function accessxi.auction_sales_status_remove_packet_row(data, source, direction)
+    local item_id = accessxi.packet_u16(data, 0x28 + 1);
+    local price = accessxi.packet_u32(data, 0x2C + 1);
+    if (not is_valid_inventory_item_id(item_id)) then
+        return false;
+    end
+
+    local rows = accessxi.auction_sales_status_rows or {};
+    local row_count = accessxi.auction_sales_status_row_count();
+    if (row_count <= 0) then
+        return false;
+    end
+
+    local status_a = accessxi.packet_u16(data, 0x08 + 1);
+    local status_b = accessxi.packet_u16(data, 0x0A + 1);
+    local selected_row = read_current_native_menu_index(0x4C);
+    local remove_index = 0;
+    if (selected_row >= 1 and selected_row <= 64
+        and accessxi.auction_sales_status_row_matches(rows[selected_row], item_id, price, status_a, status_b)) then
+        remove_index = selected_row;
+    end
+    if (remove_index <= 0) then
+        for index = 1, 64 do
+            if (accessxi.auction_sales_status_row_matches(rows[index], item_id, price, status_a, status_b)) then
+                remove_index = index;
+                break;
+            end
+        end
+    end
+    if (remove_index <= 0 and selected_row >= 1 and selected_row <= 64
+        and rows[selected_row] ~= nil
+        and accessxi.auction_sales_status_row_matches(rows[selected_row], item_id, price, 0, 0)) then
+        remove_index = selected_row;
+    end
+    if (remove_index <= 0) then
+        for index = 1, 64 do
+            if (accessxi.auction_sales_status_row_matches(rows[index], item_id, price, 0, 0)) then
+                remove_index = index;
+                break;
+            end
+        end
+    end
+    if (remove_index <= 0) then
+        return false;
+    end
+
+    for index = remove_index, 63 do
+        rows[index] = rows[index + 1];
+        if (rows[index] ~= nil) then
+            rows[index].row = index;
+        end
+    end
+    rows[64] = nil;
+    accessxi.auction_sales_status_rows = rows;
+    accessxi.auction_sales_status_tick = accessxi.auction_sales_status_row_count() > 0 and tick() or 0;
+    accessxi.auction_sales_status_context_tick = tick();
+    accessxi.auction_sales_status_key = '';
+    accessxi.auction_sales_status_empty_key = '';
+    if (accessxi.auction_sales_status_row_count() <= 0) then
+        accessxi.auction_selected_item_context = nil;
+    end
+
+    local key = ('remove:%d:%d:%d:%d:%s'):fmt(remove_index, item_id, price, accessxi.auction_sales_status_row_count(), tostring(source or ''));
+    if (key ~= tostring(accessxi.auction_sales_status_change_key or '')) then
+        accessxi.auction_sales_status_change_key = key;
+        log_state(('state auction-sales-status packet-remove dir=%s row=%d itemId=%d price=%d remainingRows=%d source="%s"'):fmt(
+            tostring(direction or ''),
+            remove_index,
+            item_id,
+            price,
+            accessxi.auction_sales_status_row_count(),
+            accessxi.escape_probe_log_text(tostring(source or ''))));
+    end
+    return true;
+end
+
+function accessxi.auction_sales_status_capture_packet_data(data, source, direction)
+    data = tostring(data or '');
+    if (#data < 0x34 or data:byte(1) ~= 0x4C) then
+        return false;
+    end
+
+    source = tostring(source or 'packet');
+    local row_command = accessxi.packet_byte(data, 0x04 + 1);
+    local packet_row = accessxi.packet_byte(data, 0x05 + 1);
+    if (row_command == 0x05 and packet_row == 0xFF) then
+        return accessxi.auction_sales_status_remove_packet_row(data, source, direction);
+    end
+    if (row_command ~= 0x0A or packet_row < 0 or packet_row > 11) then
+        return false;
+    end
+
+    local item_id = accessxi.packet_u16(data, 0x28 + 1);
+    local price = accessxi.packet_u32(data, 0x2C + 1);
+    if ((not is_valid_inventory_item_id(item_id)) or price <= 0 or price > 999999999) then
+        if (accessxi.auction_sales_status_context_is_fresh() or accessxi.auction_sales_status_row_count() > 0) then
+            return accessxi.auction_sales_status_trim_rows(packet_row, source, direction);
+        end
+        return false;
+    end
+
+    local resource_info = resource_item_info(item_id);
+    local item_name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
+    if (item_name == '') then
+        return false;
+    end
+
+    local visible_row = packet_row + 1;
+    if (visible_row == 1 or (tick() - (tonumber(accessxi.auction_sales_status_tick) or 0)) > 30000) then
+        accessxi.auction_sales_status_rows = {};
+        accessxi.auction_sales_status_key = '';
+    end
+
+    local seller = accessxi.packet_ascii_z_at(data, 0x18 + 1, 16);
+    local status_a = accessxi.packet_u16(data, 0x08 + 1);
+    local status_b = accessxi.packet_u16(data, 0x0A + 1);
+    local status_c = accessxi.packet_byte(data, 0x2B + 1);
+    local status_d = accessxi.packet_u32(data, 0x30 + 1);
+    local row = T{
+        row = visible_row,
+        packet_row = packet_row,
+        item_id = item_id,
+        item_name = item_name,
+        price = price,
+        seller = seller,
+        status_a = status_a,
+        status_b = status_b,
+        status_c = status_c,
+        status_d = status_d,
+        source = source,
+        tick = tick(),
+    };
+
+    accessxi.auction_sales_status_rows = accessxi.auction_sales_status_rows or {};
+    accessxi.auction_sales_status_rows[visible_row] = row;
+    accessxi.auction_sales_status_tick = tick();
+    accessxi.auction_sales_status_context_tick = tick();
+    accessxi.auction_sales_status_empty_key = '';
+
+    local key = ('%d:%d:%d:%d:%s'):fmt(visible_row, item_id, price, status_b, source);
+    if (key ~= tostring(accessxi.auction_sales_status_capture_key or '')) then
+        accessxi.auction_sales_status_capture_key = key;
+        log_state(('state auction-sales-status packet-row dir=%s row=%d itemId=%d item="%s" price=%d seller="%s" statusA=0x%04X statusB=0x%04X statusC=0x%02X statusD=0x%08X source="%s"'):fmt(
+            tostring(direction or ''),
+            visible_row,
+            item_id,
+            accessxi.escape_probe_log_text(item_name),
+            price,
+            accessxi.escape_probe_log_text(seller),
+            status_a,
+            status_b,
+            status_c,
+            status_d,
+            accessxi.escape_probe_log_text(source)));
+    end
+    return true;
+end
+
+function accessxi.capture_auction_sales_status_packet(e, direction)
+    if (e == nil or tostring(direction or '') ~= 'in') then
+        return false;
+    end
+
+    local variants = T{};
+    local seen_variants = {};
+    local function add_variant(name, value)
+        if (type(value) ~= 'string' or #value < 0x34) then
+            return;
+        end
+        local key = ('%d:%s'):fmt(#value, accessxi.packet_hex_limit(value, 64));
+        if (seen_variants[key] == true) then
+            return;
+        end
+        seen_variants[key] = true;
+        variants:append(T{ name = tostring(name or ''), data = value });
+    end
+
+    add_variant('data_modified', e.data_modified);
+    add_variant('data', e.data);
+    add_variant('data_modified_raw', accessxi.packet_event_string(e, 'data_modified', 'size'));
+    add_variant('data_raw', accessxi.packet_event_string(e, 'data', 'size'));
+    add_variant('data_chunk', accessxi.packet_event_string(e, 'data_chunk', 'size_chunk'));
+    add_variant('dataChunk', accessxi.packet_event_string(e, 'dataChunk', 'sizeChunk'));
+    add_variant('chunk', accessxi.packet_event_string(e, 'chunk', 'size'));
+    add_variant('packet_chunk', accessxi.packet_event_string(e, 'packet_chunk', 'size_chunk'));
+
+    local captured = false;
+    for _, variant in ipairs(variants) do
+        if (accessxi.auction_sales_status_capture_packet_data(variant.data, tostring(variant.name or ''), direction)) then
+            captured = true;
+        end
+    end
+    return captured;
+end
+
+function accessxi.auction_sales_status_row_count()
+    local rows = accessxi.auction_sales_status_rows or {};
+    local count = 0;
+    for _, row in pairs(rows) do
+        if (row ~= nil) then
+            count = count + 1;
+        end
+    end
+    return count;
+end
+
+function accessxi.auction_sales_status_rows_are_fresh()
+    return accessxi.auction_sales_status_row_count() > 0
+        and (tick() - (tonumber(accessxi.auction_sales_status_tick) or 0)) < 120000;
+end
+
+function accessxi.auction_sales_status_row_speech(row)
+    if (row == nil) then
+        return '';
+    end
+
+    local item_id = tonumber(row.item_id) or 0;
+    if (not is_valid_inventory_item_id(item_id)) then
+        return '';
+    end
+
+    local resource_info = resource_item_info(item_id);
+    local speech_name, speech_name_source = accessxi.resource_item_speech_name(resource_info, tostring(row.item_name or ''));
+    if (speech_name == '') then
+        speech_name = tostring(row.item_name or '');
+        speech_name_source = 'packet-name';
+    end
+    if (speech_name == '') then
+        return '';
+    end
+
+    local parts = T{ speech_name };
+    local price = tonumber(row.price) or 0;
+    if (price > 0) then
+        parts:append(('Price %s gil'):fmt(accessxi.format_currency_number(price)));
+    end
+    if (resource_info ~= nil and tostring(resource_info.description or '') ~= '') then
+        parts:append(resource_info.description);
+    end
+
+    row.speech_name = speech_name;
+    row.speech_name_source = speech_name_source;
+    return join_speech_parts(parts) or speech_name;
+end
+
+function accessxi.auction_sales_status_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auclist', true)) then
+        return nil;
+    end
+    local rows_fresh = accessxi.auction_sales_status_rows_are_fresh();
+    local context_fresh = accessxi.auction_sales_status_context_is_fresh();
+    if ((tonumber(accessxi.auction_current_ah_category_id) or 0) > 0 and not context_fresh) then
+        return nil;
+    end
+    if (not rows_fresh and not context_fresh) then
+        return nil;
+    end
+
+    count = tonumber(count) or 0;
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local row_count = accessxi.auction_sales_status_row_count();
+    if ((not rows_fresh) or row_count <= 0) then
+        accessxi.auction_sales_status_rows = {};
+        accessxi.auction_sales_status_tick = 0;
+        accessxi.auction_sales_status_key = '';
+        accessxi.auction_selected_item_context = nil;
+
+        local empty_text = 'No items currently placed on auction';
+        accessxi.last_native_menu_name = menu_name;
+        accessxi.last_native_menu_label = empty_text;
+        accessxi.last_native_menu_selected = 1;
+        accessxi.last_native_menu_tick = tick();
+        accessxi.current_speech_key = ('auction-sales-status-empty:%d:%d:%d:0x%08X:0x%08X'):fmt(
+            tonumber(selected) or 0,
+            count,
+            tonumber(page) or 0,
+            tonumber(raw) or 0,
+            tonumber(entry) or 0);
+
+        local empty_key = accessxi.current_speech_key;
+        if (empty_key ~= tostring(accessxi.auction_sales_status_empty_key or '')) then
+            accessxi.auction_sales_status_empty_key = empty_key;
+            log_state(('state auction-sales-status empty menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d rowsFresh=%s contextFresh=%s source="packet-0x04C" speech="%s"'):fmt(
+                menu_name,
+                tostring(title or 'Auction'),
+                tonumber(selected) or 0,
+                count,
+                tonumber(page) or 0,
+                tonumber(raw) or 0,
+                tonumber(child) or 0,
+                tonumber(entry) or 0,
+                tonumber(cursor4c) or 0,
+                tonumber(cursor34) or 0,
+                tostring(rows_fresh),
+                tostring(context_fresh),
+                accessxi.escape_probe_log_text(empty_text)));
+        end
+        return ('Auction. Sales status. %s'):fmt(empty_text);
+    end
+
+    local visible_limit = math.max(count, row_count);
+    if (visible_limit <= 0 or visible_limit > 64) then
+        visible_limit = row_count;
+    end
+
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > visible_limit) then
+        return nil;
+    end
+
+    local row = (accessxi.auction_sales_status_rows or {})[visible_selected];
+    if (row == nil) then
+        log_state(('state auction-sales-status native-missing-row menu="%s" title="%s" select=%d count=%d packetRows=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" source="packet-0x04C"'):fmt(
+            menu_name,
+            tostring(title or 'Auction'),
+            visible_selected,
+            count,
+            row_count,
+            tonumber(page) or 0,
+            tonumber(raw) or 0,
+            tonumber(child) or 0,
+            tonumber(entry) or 0,
+            tonumber(cursor4c) or 0,
+            tonumber(cursor34) or 0,
+            cursorSource));
+        accessxi.auction_sales_status_rows = {};
+        accessxi.auction_sales_status_tick = 0;
+        accessxi.auction_sales_status_key = '';
+        accessxi.auction_selected_item_context = nil;
+        accessxi.current_speech_key = ('auction-sales-status-missing:%d:%d:%d:0x%08X'):fmt(
+            visible_selected,
+            row_count,
+            tonumber(page) or 0,
+            tonumber(entry) or 0);
+        return 'Auction. Sales status. List changed.';
+    end
+
+    local speech_text = accessxi.auction_sales_status_row_speech(row);
+    if (speech_text == '') then
+        return nil;
+    end
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-sales-status:%d:%d:%d:%d'):fmt(
+        visible_selected,
+        tonumber(row.item_id) or 0,
+        tonumber(row.price) or 0,
+        tonumber(row.status_b) or 0);
+    accessxi.auction_selected_item_context = T{
+        label = tostring(row.item_name or ''),
+        speech_name = tostring(row.speech_name or row.item_name or ''),
+        item_id = tonumber(row.item_id) or 0,
+        item_source = 'auction-sales-status-packet',
+        selected = visible_selected,
+        count = row_count,
+        tick = tick(),
+    };
+
+    local status_help = '';
+    if ((tonumber(row.status_a) or 0) == 0x001E and (tonumber(row.status_b) or 0) == 0x0801) then
+        status_help = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 65, 'help');
+    end
+
+    log_state(('state auction-sales-status native menu="%s" title="%s" select=%d count=%d packetRows=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" itemId=%d item="%s" price=%d statusA=0x%04X statusB=0x%04X statusC=0x%02X statusD=0x%08X statusHelp="%s" source="packet-0x04C" speech="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Auction'),
+        visible_selected,
+        count,
+        row_count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        tonumber(row.item_id) or 0,
+        accessxi.escape_probe_log_text(tostring(row.item_name or '')),
+        tonumber(row.price) or 0,
+        tonumber(row.status_a) or 0,
+        tonumber(row.status_b) or 0,
+        tonumber(row.status_c) or 0,
+        tonumber(row.status_d) or 0,
+        accessxi.escape_probe_log_text(status_help),
+        accessxi.escape_probe_log_text(speech_text)));
+
+    local title_text = 'Auction. Sales status';
+    if (status_help ~= '') then
+        return ('%s. %s. %s'):fmt(title_text, speech_text, accessxi.sentence_fragment(status_help));
+    end
+    return ('%s. %s'):fmt(title_text, speech_text);
+end
+
+function accessxi.auction_item_list_capture_packet_data(data, source, direction)
+    data = tostring(data or '');
+    if (#data < 0x18 or data:byte(0x0B + 1) ~= 0x95) then
+        return false;
+    end
+
+    local category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+    if (category_id <= 0) then
+        return false;
+    end
+
+    source = tostring(source or 'packet');
+    local packet_key = ('%d:%s:%d:%s'):fmt(category_id, source, #data, accessxi.packet_hex_limit(data, 260));
+    if (packet_key == tostring(accessxi.auction_item_packet_capture_key or '')) then
+        return true;
+    end
+    accessxi.auction_item_packet_capture_key = packet_key;
+
+    local total = accessxi.packet_u16(data, 0x0E + 1);
+    local packet_size = accessxi.packet_u16(data, 0x08 + 1);
+    if (total <= 0 or total > 4096 or packet_size < 0x18 or packet_size > (0x18 + (20 * 0x0A))) then
+        return false;
+    end
+    local entry_count = math.floor((packet_size - 0x18) / 0x0A);
+    if (entry_count < 0 or entry_count > 20) then
+        entry_count = math.floor((math.min(#data, 0x18 + (20 * 0x0A)) - 0x18) / 0x0A);
+    end
+    entry_count = math.max(0, math.min(20, entry_count));
+    if (entry_count <= 0 or entry_count > total) then
+        return false;
+    end
+
+    local rows = accessxi.auction_item_packet_rows or {};
+    if (tonumber(accessxi.auction_item_packet_category_id) ~= category_id
+        or tonumber(accessxi.auction_item_packet_total) ~= total
+        or (total > 0 and #rows >= total)) then
+        accessxi.auction_item_packet_rows = {};
+        rows = accessxi.auction_item_packet_rows;
+        accessxi.auction_item_packet_chunks = 0;
+        accessxi.auction_item_packet_category_id = category_id;
+        accessxi.auction_item_packet_total = total;
+    end
+
+    local added = 0;
+    local samples = T{};
+    local packet_rows = T{};
+    for i = 0, entry_count - 1 do
+        local base = 0x18 + (i * 0x0A);
+        local item_id = accessxi.packet_u16(data, base + 1);
+        if (is_valid_inventory_item_id(item_id)) then
+            if (not accessxi.auction_packet_item_matches_current_category(item_id, category_id)) then
+                return false;
+            end
+            local single_amount = accessxi.packet_u32(data, base + 0x02 + 1);
+            local stack_amount = accessxi.packet_u32(data, base + 0x06 + 1);
+            if (stack_amount >= 4294967295) then
+                stack_amount = -1;
+            end
+            packet_rows:append(T{
+                id = item_id,
+                single = single_amount,
+                stack = stack_amount,
+                category = category_id,
+            });
+            added = added + 1;
+            if (samples:len() < 6) then
+                local resource_info = resource_item_info(item_id);
+                local name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
+                samples:append(('%d:%s'):fmt(item_id, accessxi.escape_probe_log_text(name ~= '' and name or tostring(item_id))));
+            end
+        end
+    end
+    if (added <= 0) then
+        return false;
+    end
+
+    for _, row in ipairs(packet_rows) do
+        rows[#rows + 1] = row;
+    end
+
+    accessxi.auction_item_packet_rows = rows;
+    accessxi.auction_item_packet_total = total;
+    accessxi.auction_item_packet_tick = tick();
+    accessxi.auction_item_packet_chunks = (tonumber(accessxi.auction_item_packet_chunks) or 0) + 1;
+    accessxi.auction_item_packet_key = ('%d:%d:%d:%d'):fmt(category_id, total, #rows, tonumber(accessxi.auction_item_packet_chunks) or 0);
+    log_line(('auction item-list packet captured dir=%s variant=%s category=%d label="%s" total=%d packetSize=%d entries=%d added=%d cached=%d chunks=%d final=%s sample="%s"'):fmt(
+        tostring(direction or ''),
+        accessxi.escape_probe_log_text(source),
+        category_id,
+        accessxi.escape_probe_log_text(tostring(accessxi.auction_current_ah_category_label or '')),
+        total,
+        packet_size,
+        entry_count,
+        added,
+        #rows,
+        tonumber(accessxi.auction_item_packet_chunks) or 0,
+        tostring(total > 0 and #rows >= total),
+        samples:concat(' | ')));
+    return true;
+end
+
+function accessxi.capture_auction_item_list_packet(e, direction)
+    if (e == nil or tostring(direction or '') ~= 'in') then
+        return false;
+    end
+
+    local variants = T{};
+    local seen_variants = {};
+    local function add_variant(name, value)
+        if (type(value) ~= 'string' or #value < 0x18) then
+            return;
+        end
+        local key = ('%d:%s'):fmt(#value, accessxi.packet_hex_limit(value, 64));
+        if (seen_variants[key] == true) then
+            return;
+        end
+        seen_variants[key] = true;
+        variants:append(T{ name = tostring(name or ''), data = value });
+    end
+
+    add_variant('data_modified', e.data_modified);
+    add_variant('data', e.data);
+    add_variant('data_modified_raw', accessxi.packet_event_string(e, 'data_modified', 'size'));
+    add_variant('data_raw', accessxi.packet_event_string(e, 'data', 'size'));
+    add_variant('data_chunk', accessxi.packet_event_string(e, 'data_chunk', 'size_chunk'));
+    add_variant('dataChunk', accessxi.packet_event_string(e, 'dataChunk', 'sizeChunk'));
+    add_variant('chunk', accessxi.packet_event_string(e, 'chunk', 'size'));
+    add_variant('packet_chunk', accessxi.packet_event_string(e, 'packet_chunk', 'size_chunk'));
+
+    local captured = false;
+    for _, variant in ipairs(variants) do
+        if (accessxi.auction_item_list_capture_packet_data(variant.data, tostring(variant.name or ''), direction)) then
+            captured = true;
+        end
+    end
+
+    return captured;
+end
+
+function accessxi.auction_item_list_load_searchhook_packet()
+    local path = tostring(accessxi.searchhook_auction_bundle_path or '');
+    if (path == '') then
+        return false;
+    end
+
+    local ok_open, file = pcall(io.open, path, 'rb');
+    if (not ok_open or file == nil) then
+        return false;
+    end
+
+    local ok_read, data = pcall(function ()
+        local bytes = file:read('*a');
+        file:close();
+        return bytes;
+    end);
+    if (not ok_read or type(data) ~= 'string' or #data < 12) then
+        return false;
+    end
+    if (data:sub(1, 8) ~= 'AXAHB001') then
+        return false;
+    end
+
+    local sig = ('%d:%s:%s'):fmt(
+        #data,
+        accessxi.packet_hex_limit(data, 32),
+        accessxi.packet_hex_limit(data:sub(math.max(1, #data - 31)), 32));
+    if (sig == tostring(accessxi.searchhook_last_auction_bundle_sig or '')
+        and accessxi.auction_item_packet_rows ~= nil
+        and tostring(accessxi.auction_item_packet_source or ''):find('searchhook%-auction%-bundle', 1, false) == 1) then
+        return false;
+    end
+    accessxi.searchhook_last_auction_bundle_sig = sig;
+
+    local previous_rows = accessxi.auction_item_packet_rows;
+    local previous_total = accessxi.auction_item_packet_total;
+    local previous_category = accessxi.auction_item_packet_category_id;
+    local previous_chunks = accessxi.auction_item_packet_chunks;
+    local previous_tick = accessxi.auction_item_packet_tick;
+    local previous_key = accessxi.auction_item_packet_key;
+    local previous_capture_key = accessxi.auction_item_packet_capture_key;
+    local previous_source = accessxi.auction_item_packet_source;
+
+    accessxi.auction_item_packet_rows = {};
+    accessxi.auction_item_packet_total = 0;
+    accessxi.auction_item_packet_category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+    accessxi.auction_item_packet_chunks = 0;
+    accessxi.auction_item_packet_key = '';
+    accessxi.auction_item_packet_capture_key = '';
+    accessxi.auction_item_packet_source = '';
+
+    local pos = 9;
+    local packet_count = 0;
+    local captured_count = 0;
+    while (pos + 4 <= #data) do
+        local packet_len = accessxi.packet_u32(data, pos);
+        pos = pos + 4;
+        if (packet_len <= 0 or (pos + packet_len - 1) > #data) then
+            break;
+        end
+
+        packet_count = packet_count + 1;
+        local packet = data:sub(pos, pos + packet_len - 1);
+        pos = pos + packet_len;
+        if (accessxi.auction_item_list_capture_packet_data(packet, ('searchhook-auction-bundle:%d'):fmt(packet_count), 'searchhook')) then
+            captured_count = captured_count + 1;
+        end
+    end
+
+    if (captured_count <= 0 or #(accessxi.auction_item_packet_rows or {}) == 0) then
+        accessxi.auction_item_packet_rows = previous_rows;
+        accessxi.auction_item_packet_total = previous_total;
+        accessxi.auction_item_packet_category_id = previous_category;
+        accessxi.auction_item_packet_chunks = previous_chunks;
+        accessxi.auction_item_packet_tick = previous_tick;
+        accessxi.auction_item_packet_key = previous_key;
+        accessxi.auction_item_packet_capture_key = previous_capture_key;
+        accessxi.auction_item_packet_source = previous_source;
+        return false;
+    end
+
+    accessxi.auction_item_packet_source = ('searchhook-auction-bundle:%d'):fmt(captured_count);
+    log_line(('auction item-list searchhook bundle loaded packets=%d captured=%d cached=%d total=%d category=%d label="%s"'):fmt(
+        packet_count,
+        captured_count,
+        #(accessxi.auction_item_packet_rows or {}),
+        tonumber(accessxi.auction_item_packet_total) or 0,
+        tonumber(accessxi.auction_item_packet_category_id) or 0,
+        accessxi.escape_probe_log_text(tostring(accessxi.auction_current_ah_category_label or ''))));
+    return true;
+end
+
+function accessxi.auction_item_list_packet_display_rows()
+    local rows = accessxi.auction_item_packet_rows or {};
+    local display_rows = T{};
+    for _, row in ipairs(rows) do
+        local item_id = tonumber(row.id) or 0;
+        if (is_valid_inventory_item_id(item_id)) then
+            local single_count = tonumber(row.single) or 0;
+            local stack_count = tonumber(row.stack) or 0;
+            display_rows:append(T{
+                id = item_id,
+                single = single_count,
+                stack = 0,
+                display_count = single_count,
+                listing_kind = 'single',
+                category = row.category,
+            });
+            if (stack_count > 0) then
+                display_rows:append(T{
+                    id = item_id,
+                    single = 0,
+                    stack = stack_count,
+                    display_count = stack_count,
+                    listing_kind = 'stack',
+                    category = row.category,
+                });
+            end
+        end
+    end
+    return display_rows;
+end
+
+function accessxi.auction_item_list_packet_label(selected, count, page, child, entry)
+    selected = tonumber(selected) or 0;
+    local rows = accessxi.auction_item_list_packet_display_rows();
+    if (selected <= 0 or #rows == 0) then
+        return '', 'auction-packet-empty', nil, '', 0, 0, 0, 0, 0, 0;
+    end
+
+    local total = #rows;
+    local scroll_top = 0;
+    local scroll_raw = 0;
+    child = tonumber(child) or 0;
+    if (accessxi.is_probe_pointer(child)) then
+        scroll_raw = read_u32(child + 0x18) or 0;
+        local hi = bit.rshift(scroll_raw, 16);
+        local lo = bit.band(scroll_raw, 0xFFFF);
+        if (hi >= 0 and hi <= total) then
+            scroll_top = hi;
+        elseif (lo >= 0 and lo <= total) then
+            scroll_top = lo;
+        end
+    end
+
+    local logical = scroll_top + selected;
+    local row = rows[logical];
+    if (row == nil and scroll_top == 0 and selected <= #rows) then
+        logical = selected;
+        row = rows[logical];
+        scroll_top = 0;
+    end
+    if (row == nil) then
+        return '', ('auction-packet-missing:%d/%d'):fmt(logical, #rows), nil, '', 0, 0, logical, total, scroll_top, scroll_raw;
+    end
+
+    local resource_info = resource_item_info(tonumber(row.id) or 0);
+    local name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
+    if (name == '') then
+        return '', ('auction-packet-no-resource:%d'):fmt(tonumber(row.id) or 0), nil, '', 0, 0, logical, total, scroll_top, scroll_raw;
+    end
+
+    local raw_label = name;
+    local single_count = tonumber(row.single) or 0;
+    local stack_count = tonumber(row.stack) or 0;
+    local display_count = tonumber(row.display_count) or 0;
+    if (display_count > 0) then
+        raw_label = ('%s [%d]'):fmt(raw_label, display_count);
+    end
+    return name, 'auction-packet', resource_info, raw_label, single_count, stack_count, logical, total, scroll_top, scroll_raw;
+end
+
+function accessxi.auction_item_list_clean_label(label)
+    label = accessxi.plain_native_menu_label(label or '');
+    if (label == '') then
+        return '';
+    end
+
+    label = label:gsub('%s*%[%d+%]%s*$', '');
+    label = label:gsub('%s+', ' '):trim();
+    return label;
+end
+
+function accessxi.auction_item_resource_from_label(label)
+    local cleaned_label = accessxi.auction_item_list_clean_label(label);
+    if (cleaned_label == '') then
+        return nil, '', 'empty';
+    end
+
+    local resource_info = accessxi.resource_item_info_by_name(cleaned_label);
+    if (resource_info ~= nil) then
+        return resource_info, cleaned_label, 'resource-name-exact';
+    end
+
+    local stripped_label = cleaned_label:gsub('%s+[Uu]p%s+[Tt]o$', ''):gsub('%s+[Tt]o$', ''):gsub('%s+', ' '):trim();
+    if (stripped_label ~= '' and stripped_label ~= cleaned_label) then
+        resource_info = accessxi.resource_item_info_by_name(stripped_label);
+        if (resource_info ~= nil) then
+            return resource_info, stripped_label, 'resource-name-stripped';
+        end
+    end
+
+    return nil, cleaned_label, 'native-name';
+end
+
+function accessxi.auction_item_list_entry_label(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return '', '', 0, 0, 'invalid-entry';
+    end
+
+    local label_ptr = read_u32(entry + 0x44) or 0;
+    local help_ptr = read_u32(entry + 0x40) or 0;
+    local label = accessxi.plain_native_menu_label(read_probe_string(label_ptr, 160));
+    local help = accessxi.plain_native_menu_help(read_probe_string(help_ptr, 260));
+    if (label ~= '' and accessxi.survival_guide_native_label_is_polluted(label)) then
+        label = '';
+    end
+    if (help:eq(label, true)) then
+        help = '';
+    end
+
+    if (label == '') then
+        return '', help, label_ptr, help_ptr, 'entry-empty';
+    end
+    return label, help, label_ptr, help_ptr, 'entry+44';
+end
+
+function accessxi.auction_item_list_entry_words(entry)
+    entry = tonumber(entry) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return '';
+    end
+
+    local u16_parts = T{};
+    local u32_parts = T{};
+    for off = 0, 0x80, 2 do
+        local value = read_u16(entry + off) or 0;
+        if (value ~= 0 and u16_parts:len() < 28) then
+            u16_parts:append(('%02X=%04X'):fmt(off, value));
+        end
+    end
+    for off = 0, 0x80, 4 do
+        local value = read_u32(entry + off) or 0;
+        if (value ~= 0 and u32_parts:len() < 16) then
+            u32_parts:append(('%02X=%08X'):fmt(off, value));
+        end
+    end
+
+    local parts = T{};
+    if (u16_parts:len() > 0) then
+        parts:append(('u16=%s'):fmt(u16_parts:concat(' ')));
+    end
+    if (u32_parts:len() > 0) then
+        parts:append(('u32=%s'):fmt(u32_parts:concat(' ')));
+    end
+    return parts:concat(' | ');
+end
+
+function accessxi.auction_item_list_offset_probe(raw, child, entry, selected, count)
+    raw = tonumber(raw) or 0;
+    child = tonumber(child) or 0;
+    entry = tonumber(entry) or 0;
+    selected = tonumber(selected) or 0;
+    count = tonumber(count) or 0;
+    if (not accessxi.is_probe_pointer(entry)) then
+        return 'invalid-entry';
+    end
+
+    local desc_offset = read_u16(entry + 0x0C) or 0;
+    local category_a = read_u16(entry + 0x10) or 0;
+    local category_b = read_u16(entry + 0x14) or 0;
+    local now = tick();
+    local key = ('%08X:%08X:%08X:%d:%d:%04X'):fmt(raw, child, entry, selected, count, desc_offset);
+    if (key == tostring(accessxi.last_auction_item_list_offset_probe_key or '')
+        and (now - (tonumber(accessxi.last_auction_item_list_offset_probe_tick) or 0)) < 700) then
+        return 'same-key';
+    end
+    accessxi.last_auction_item_list_offset_probe_key = key;
+    accessxi.last_auction_item_list_offset_probe_tick = now;
+
+    local function u16_summary(ptr)
+        local values = T{};
+        for off = 0, 0x38, 2 do
+            local value = read_u16(ptr + off) or 0;
+            if (value ~= 0 and values:len() < 8) then
+                values:append(('%02X=%04X'):fmt(off, value));
+            end
+        end
+        return values:concat(' ');
+    end
+
+    local function u32_summary(ptr)
+        local values = T{};
+        for off = 0, 0x38, 4 do
+            local value = read_u32(ptr + off) or 0;
+            if (value ~= 0 and values:len() < 6) then
+                values:append(('%02X=%08X'):fmt(off, value));
+            end
+        end
+        return values:concat(' ');
+    end
+
+    local function item_summary(ptr)
+        local values = T{};
+        local seen = {};
+        local category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+        for off = 0, 0x60, 2 do
+            local item_id = read_u16(ptr + off) or 0;
+            if (item_id > 0 and seen[item_id] ~= true and is_valid_inventory_item_id(item_id)) then
+                seen[item_id] = true;
+                local resource_info = resource_item_info(item_id);
+                local name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
+                if (name ~= '' and values:len() < 6) then
+                    local category_match = accessxi.auction_packet_item_matches_current_category(item_id, category_id);
+                    values:append(('%02X=%d:%s%s'):fmt(
+                        off,
+                        item_id,
+                        accessxi.escape_probe_log_text(name),
+                        category_match and ':category-match' or ''));
+                end
+            end
+        end
+        return values:concat(' ');
+    end
+
+    local function run_summary(ptr)
+        local parts = T{};
+        if (accessxi.collect_probe_ascii_runs ~= nil) then
+            local ascii = accessxi.collect_probe_ascii_runs(ptr, 0x80, 3, 4);
+            if (#ascii > 0) then
+                parts:append(('ascii=%s'):fmt(ascii:concat(' ')));
+            end
+        end
+        if (accessxi.collect_probe_utf16_runs ~= nil) then
+            local utf16 = accessxi.collect_probe_utf16_runs(ptr, 0x80, 3, 4);
+            if (#utf16 > 0) then
+                parts:append(('utf16=%s'):fmt(utf16:concat(' ')));
+            end
+        end
+        return parts:concat(' ');
+    end
+
+    local parts = T{ ('entry0C=0x%04X categoryWords=%d/%d'):fmt(desc_offset, category_a, category_b) };
+    local seen_ptrs = {};
+    local function append_root(label, ptr)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr) or seen_ptrs[ptr] == true) then
+            return;
+        end
+        seen_ptrs[ptr] = true;
+        parts:append(('%s=0x%08X u16="%s" u32="%s" items="%s" runs="%s"'):fmt(
+            tostring(label or ''),
+            ptr,
+            u16_summary(ptr),
+            u32_summary(ptr),
+            item_summary(ptr),
+            run_summary(ptr)));
+        log_state(('state auction-item-list offset-root select=%d count=%d entry0C=0x%04X categoryWords=%d/%d root="%s" ptr=0x%08X u16="%s" u32="%s" items="%s" runs="%s"'):fmt(
+            selected,
+            count,
+            desc_offset,
+            category_a,
+            category_b,
+            accessxi.escape_probe_log_text(tostring(label or '')),
+            ptr,
+            accessxi.escape_probe_log_text_wide(u16_summary(ptr)),
+            accessxi.escape_probe_log_text_wide(u32_summary(ptr)),
+            accessxi.escape_probe_log_text_wide(item_summary(ptr)),
+            accessxi.escape_probe_log_text_wide(run_summary(ptr))));
+    end
+
+    if (desc_offset > 0 and desc_offset < 0x4000) then
+        append_root('raw+off', raw + desc_offset);
+        append_root('child+off', child + desc_offset);
+        append_root('raw+off-20', raw + desc_offset - 0x20);
+        append_root('child+off-20', child + desc_offset - 0x20);
+    end
+    append_root('entry', entry);
+    return parts:concat(' | ');
+end
+
+function accessxi.auction_item_list_pointer_candidate(ptr)
+    ptr = tonumber(ptr) or 0;
+    if (not accessxi.is_probe_pointer(ptr)) then
+        return false;
+    end
+    if (ptr < 0x10000000) then
+        return false;
+    end
+    if (bit.band(ptr, 0x03) ~= 0) then
+        return false;
+    end
+    return true;
+end
+
+function accessxi.auction_item_list_pointer_probe(raw, child, entry, selected, count)
+    raw = tonumber(raw) or 0;
+    child = tonumber(child) or 0;
+    entry = tonumber(entry) or 0;
+    selected = tonumber(selected) or 0;
+    count = tonumber(count) or 0;
+
+    local now = tick();
+    local key = ('%08X:%08X:%08X:%d:%d'):fmt(raw, child, entry, selected, count);
+    if (key == tostring(accessxi.last_auction_item_list_pointer_probe_key or '')
+        and (now - (tonumber(accessxi.last_auction_item_list_pointer_probe_tick) or 0)) < 700) then
+        return 'same-key';
+    end
+    accessxi.last_auction_item_list_pointer_probe_key = key;
+    accessxi.last_auction_item_list_pointer_probe_tick = now;
+
+    local bases = T{};
+    local seen_base = {};
+    local function add_base(label, ptr)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr) or seen_base[ptr] == true) then
+            return;
+        end
+        seen_base[ptr] = true;
+        bases:append(T{ label = tostring(label or ''), ptr = ptr });
+    end
+
+    add_base('entry', entry);
+    add_base('child', child);
+    add_base('raw', raw);
+
+    local probes = T{};
+    local seen_ptr = {};
+    local function add_probe(label, off, ptr)
+        ptr = tonumber(ptr) or 0;
+        off = tonumber(off) or 0;
+        if (not accessxi.auction_item_list_pointer_candidate(ptr) or seen_ptr[ptr] == true or probes:len() >= 24) then
+            return;
+        end
+        seen_ptr[ptr] = true;
+        probes:append(T{
+            label = ('%s+%03X'):fmt(tostring(label or ''), off),
+            ptr = ptr,
+        });
+    end
+
+    local function scan_root(root, max_off)
+        if (root == nil or not accessxi.is_probe_pointer(root.ptr)) then
+            return;
+        end
+        max_off = tonumber(max_off) or 0x80;
+        for off = 0, max_off, 4 do
+            local ptr = read_u32(root.ptr + off) or 0;
+            add_probe(root.label, off, ptr);
+            if (probes:len() >= 24) then
+                break;
+            end
+        end
+    end
+
+    for _, root in ipairs(bases) do
+        scan_root(root, 0x180);
+        if (probes:len() >= 24) then
+            break;
+        end
+    end
+
+    local first_pass_count = probes:len();
+    for index = 1, first_pass_count do
+        if (probes:len() >= 24) then
+            break;
+        end
+        scan_root(probes[index], 0x80);
+    end
+
+    local function dword_summary(ptr)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr)) then
+            return '';
+        end
+        if (accessxi.format_probe_dwords ~= nil) then
+            return accessxi.format_probe_dwords(ptr, 0x00, 12);
+        end
+
+        local values = T{};
+        for off = 0, 0x2C, 4 do
+            local value = read_u32(ptr + off) or 0;
+            if (value ~= 0 and values:len() < 12) then
+                values:append(('%02X=%08X'):fmt(off, value));
+            end
+        end
+        return values:concat(' ');
+    end
+
+    local function text_summary(ptr)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr)) then
+            return '';
+        end
+
+        local parts = T{};
+        local direct = read_probe_string(ptr, 160);
+        if (direct ~= '') then
+            parts:append(('str="%s"'):fmt(direct));
+        end
+        if (accessxi.collect_probe_ascii_runs ~= nil) then
+            local ascii = accessxi.collect_probe_ascii_runs(ptr, 0x240, 3, 5);
+            if (#ascii > 0) then
+                parts:append(('ascii=%s'):fmt(ascii:concat(' ')));
+            end
+        end
+        if (accessxi.collect_probe_utf16_runs ~= nil) then
+            local utf16 = accessxi.collect_probe_utf16_runs(ptr, 0x240, 3, 4);
+            if (#utf16 > 0) then
+                parts:append(('utf16=%s'):fmt(utf16:concat(' ')));
+            end
+        end
+        if (accessxi.collect_probe_ffxi_utf16_runs ~= nil) then
+            local ffxi16 = accessxi.collect_probe_ffxi_utf16_runs(ptr, 0x240, 3, 4);
+            if (#ffxi16 > 0) then
+                parts:append(('ffxi16=%s'):fmt(ffxi16:concat(' ')));
+            end
+        end
+        return parts:concat(' ');
+    end
+
+    local parts = T{};
+    local logged = 0;
+    for _, probe in ipairs(probes) do
+        if (logged >= 18) then
+            break;
+        end
+
+        local text = text_summary(probe.ptr);
+        local dwords = dword_summary(probe.ptr);
+        parts:append(('%s=0x%08X text="%s"'):fmt(
+            tostring(probe.label or ''),
+            tonumber(probe.ptr) or 0,
+            accessxi.escape_probe_log_text_wide(text)));
+        log_state(('state auction-item-list pointer-root select=%d count=%d root="%s" ptr=0x%08X text="%s" dwords="%s"'):fmt(
+            selected,
+            count,
+            accessxi.escape_probe_log_text(tostring(probe.label or '')),
+            tonumber(probe.ptr) or 0,
+            accessxi.escape_probe_log_text_wide(text),
+            accessxi.escape_probe_log_text_wide(dwords)));
+        logged = logged + 1;
+    end
+
+    if (parts:len() == 0) then
+        return 'empty';
+    end
+    return parts:concat(' | ');
+end
+
+function accessxi.auction_item_list_expected_resource_type()
+    local bid_category = tostring(accessxi.auction_last_bid_category or ''):lower();
+    local weapon_category = tostring(accessxi.auction_last_weapon_category or ''):lower();
+    local category_id = tonumber(accessxi.auction_current_ah_category_id) or 0;
+    if (bid_category:contains('weapon') or weapon_category ~= '') then
+        return 4, 'Weapons';
+    end
+    if (bid_category:contains('armor')) then
+        return 5, 'Armor';
+    end
+    if ((category_id >= 26 and category_id <= 32) or bid_category:contains('magic') or bid_category:contains('scroll')) then
+        return 7, 'Magic Scrolls';
+    end
+    return 0, '';
+end
+
+function accessxi.auction_item_list_resource_candidates(entry, child, raw, selected, count)
+    local candidates = T{};
+    local seen = {};
+    local expected_type, expected_label = accessxi.auction_item_list_expected_resource_type();
+
+    local function add_candidate(source, offset, width, value, selected_row)
+        value = tonumber(value) or 0;
+        if (not is_valid_inventory_item_id(value)) then
+            return;
+        end
+
+        local resource_info = resource_item_info(value);
+        local name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
+        if (name == '') then
+            return;
+        end
+
+        local resource_type = tonumber(resource_info.type) or 0;
+        local matches_expected = expected_type ~= 0 and resource_type == expected_type;
+        local speech_ok = selected_row == true and matches_expected;
+        local key = ('%s:%s:%d'):fmt(tostring(source or ''), tostring(width or ''), value);
+        if (seen[key] == true) then
+            return;
+        end
+        seen[key] = true;
+
+        candidates:append(T{
+            id = value,
+            name = name,
+            source = tostring(source or ''),
+            offset = tonumber(offset) or 0,
+            width = tostring(width or ''),
+            speech_ok = speech_ok == true,
+            score = (speech_ok == true and 100 or 0)
+                + (matches_expected and 25 or 0)
+                + (selected_row == true and 8 or 0)
+                + (value >= 0x1000 and 4 or 0),
+            expected = expected_label,
+            type = resource_type,
+            resource_info = resource_info,
+        });
+    end
+
+    local function scan_root(source, ptr, length, speech_ok)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr)) then
+            return;
+        end
+
+        length = tonumber(length) or 0x100;
+        for off = 0, length, 2 do
+            local value = read_u16(ptr + off) or 0;
+            add_candidate(source, off, 'u16', value, speech_ok);
+            if (value > 0) then
+                local swapped = bit.bor(bit.lshift(bit.band(value, 0x00FF), 8), bit.rshift(bit.band(value, 0xFF00), 8));
+                if (swapped ~= value) then
+                    add_candidate(source, off, 'u16be', swapped, speech_ok);
+                end
+            end
+        end
+        for off = 0, length, 4 do
+            local value = read_u32(ptr + off) or 0;
+            if (value <= 0xFFFF) then
+                add_candidate(source, off, 'u32', value, speech_ok);
+            end
+        end
+    end
+
+    scan_root('entry', entry, 0x160, true);
+    scan_root('child', child, 0x180, false);
+    scan_root('raw', raw, 0x180, false);
+
+    table.sort(candidates, function (a, b)
+        local ascore = tonumber(a.score) or 0;
+        local bscore = tonumber(b.score) or 0;
+        if (ascore ~= bscore) then
+            return ascore > bscore;
+        end
+        if (tostring(a.source or '') ~= tostring(b.source or '')) then
+            return tostring(a.source or '') < tostring(b.source or '');
+        end
+        return (tonumber(a.offset) or 0) < (tonumber(b.offset) or 0);
+    end);
+
+    local summary = T{};
+    for _, candidate in ipairs(candidates) do
+        if (summary:len() >= 16) then
+            break;
+        end
+        summary:append(('%s+%02X.%s=%d:%s%s'):fmt(
+            tostring(candidate.source or ''),
+            tonumber(candidate.offset) or 0,
+            tostring(candidate.width or ''),
+            tonumber(candidate.id) or 0,
+            accessxi.escape_probe_log_text(tostring(candidate.name or '')),
+            candidate.speech_ok and (':match-' .. tostring(candidate.expected or '')) or ''));
+    end
+
+    return candidates, summary:concat(' | ');
+end
+
+function accessxi.auction_item_list_resource_label(raw, child, entry, selected, count)
+    local candidates, summary = accessxi.auction_item_list_resource_candidates(entry, child, raw, selected, count);
+    local unique = T{};
+    local seen_ids = {};
+    for _, candidate in ipairs(candidates) do
+        if (candidate.speech_ok == true) then
+            local id = tonumber(candidate.id) or 0;
+            if (seen_ids[id] ~= true) then
+                seen_ids[id] = true;
+                unique:append(candidate);
+            end
+        end
+    end
+
+    if (unique:len() == 1) then
+        local candidate = unique[1];
+        return tostring(candidate.name or ''), ('%s+%02X.%s'):fmt(
+            tostring(candidate.source or ''),
+            tonumber(candidate.offset) or 0,
+            tostring(candidate.width or '')),
+            candidate.resource_info,
+            summary;
+    end
+
+    return '', unique:len() == 0 and 'resource-id-none' or 'resource-id-ambiguous', nil, summary;
+end
+
+function accessxi.auction_item_list_memory_probe(raw, child, entry, selected, count)
+    local now = tick();
+    local key = ('%08X:%08X:%08X:%d:%d'):fmt(
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(selected) or 0,
+        tonumber(count) or 0);
+    if (key == tostring(accessxi.last_auction_item_list_memory_probe_key or '')
+        and (now - (tonumber(accessxi.last_auction_item_list_memory_probe_tick) or 0)) < 700) then
+        return 'same-key';
+    end
+    accessxi.last_auction_item_list_memory_probe_key = key;
+    accessxi.last_auction_item_list_memory_probe_tick = now;
+
+    local roots = T{};
+    local seen = {};
+    local function add_root(label, ptr)
+        ptr = tonumber(ptr) or 0;
+        if (not accessxi.is_probe_pointer(ptr) or seen[ptr] == true) then
+            return;
+        end
+        seen[ptr] = true;
+        roots:append(T{ label = tostring(label or ''), ptr = ptr });
+    end
+
+    add_root('raw', raw);
+    add_root('child', child);
+    add_root('entry', entry);
+
+    for _, root in ipairs(T{ raw, child, entry }) do
+        root = tonumber(root) or 0;
+        if (accessxi.is_probe_pointer(root)) then
+            for _, off in ipairs(T{ 0x00, 0x04, 0x08, 0x0C, 0x10, 0x14, 0x18, 0x1C, 0x20, 0x24, 0x28, 0x30, 0x34, 0x38, 0x40, 0x44, 0x48, 0x4C, 0x50, 0x60, 0x70, 0x80, 0x84, 0x88, 0x90, 0xA0, 0xC0 }) do
+                local ptr = read_u32(root + off) or 0;
+                add_root(('0x%08X+%02X'):fmt(root, off), ptr);
+                if (roots:len() >= 32) then
+                    break;
+                end
+            end
+        end
+        if (roots:len() >= 32) then
+            break;
+        end
+    end
+
+    local parts = T{};
+    local function append_runs(label, ptr)
+        if (not accessxi.is_probe_pointer(ptr)) then
+            return;
+        end
+
+        local run_parts = T{};
+        if (accessxi.collect_probe_ascii_runs ~= nil) then
+            local ascii = accessxi.collect_probe_ascii_runs(ptr, 0x240, 3, 5);
+            if (#ascii > 0) then
+                run_parts:append(('ascii=%s'):fmt(ascii:concat(' ')));
+            end
+        end
+        if (accessxi.collect_probe_utf16_runs ~= nil) then
+            local utf16 = accessxi.collect_probe_utf16_runs(ptr, 0x240, 3, 4);
+            if (#utf16 > 0) then
+                run_parts:append(('utf16=%s'):fmt(utf16:concat(' ')));
+            end
+        end
+        if (accessxi.collect_probe_ffxi_utf16_runs ~= nil) then
+            local ffxi16 = accessxi.collect_probe_ffxi_utf16_runs(ptr, 0x240, 3, 4);
+            if (#ffxi16 > 0) then
+                run_parts:append(('ffxi16=%s'):fmt(ffxi16:concat(' ')));
+            end
+        end
+
+        if (run_parts:len() > 0) then
+            parts:append(('%s=0x%08X %s'):fmt(
+                tostring(label or ''),
+                ptr,
+                accessxi.escape_probe_log_text(run_parts:concat(' '))));
+        end
+    end
+
+    for _, root in ipairs(roots) do
+        append_runs(root.label, root.ptr);
+        if (parts:len() >= 12) then
+            break;
+        end
+    end
+
+    if (parts:len() == 0) then
+        return 'empty';
+    end
+    return parts:concat(' | ');
+end
+
+function accessxi.load_auction_action_rows()
+    if (type(accessxi.auction_action_rows) == 'table') then
+        return accessxi.auction_action_rows;
+    end
+    if (accessxi.auction_action_rows_tried == true) then
+        return nil;
+    end
+    accessxi.auction_action_rows_tried = true;
+
+    local labels = T{};
+    local helps = T{};
+    local sources = T{};
+    labels[1] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 119, 'label');
+    labels[2] = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 121, 'label');
+    helps[1] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 527, 'help');
+    helps[2] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 528, 'help');
+    helps[3] = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 80, 'help');
+    sources[1] = 'ROM\\165\\76.DAT:119;ROM\\165\\75.DAT:527';
+    sources[2] = 'ROM\\165\\76.DAT:121;ROM\\165\\75.DAT:528';
+    sources[3] = 'ROM\\165\\75.DAT:80';
+
+    for i = 1, 3 do
+        if (helps[i] == '') then
+            log_line(('auction action resource unavailable row=%d label="%s" help="%s" source="%s"'):fmt(
+                i,
+                accessxi.escape_probe_log_text(labels[i] or ''),
+                accessxi.escape_probe_log_text(helps[i] or ''),
+                accessxi.escape_probe_log_text(sources[i] or '')));
+            return nil;
+        end
+    end
+
+    local rows = T{ labels = labels, helps = helps, sources = sources };
+    accessxi.auction_action_rows = rows;
+    log_line(('loaded auction action resource row1="%s" row2="%s" row3="%s"'):fmt(
+        accessxi.escape_probe_log_text(helps[1] or ''),
+        accessxi.escape_probe_log_text(helps[2] or ''),
+        accessxi.escape_probe_log_text(helps[3] or '')));
+    return rows;
+end
+
+function accessxi.auction_action_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auc3', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    local action_count = 3;
+    count = tonumber(count) or 0;
+    if (count <= 0 or count > 16) then
+        count = action_count;
+    end
+
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > action_count) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > action_count) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > action_count) then
+        return nil;
+    end
+
+    local rows = accessxi.load_auction_action_rows();
+    if (rows == nil) then
+        return nil;
+    end
+
+    local native_label = '';
+    local native_mode = '';
+    if (accessxi.is_probe_pointer(child) and accessxi.native_query_label_for_selection ~= nil) then
+        native_label, native_mode = accessxi.native_query_label_for_selection(child, visible_selected, count, 'auction-action');
+        native_label = accessxi.plain_native_menu_label(native_label or '');
+    end
+
+    local dat_label = tostring((rows.labels or T{})[visible_selected] or '');
+    local label = native_label ~= '' and native_label or dat_label;
+    local help = tostring((rows.helps or T{})[visible_selected] or '');
+    local source = tostring((rows.sources or T{})[visible_selected] or '');
+    if (label == '' and help == '') then
+        return nil;
+    end
+
+    local now = tick();
+    local item_label = '';
+    local item_id = 0;
+    local item_context_age = -1;
+    local context = accessxi.auction_selected_item_context;
+    if (type(context) == 'table') then
+        item_context_age = math.max(0, now - (tonumber(context.tick) or 0));
+        if (item_context_age <= 300000) then
+            item_label = tostring(context.speech_name or context.label or '');
+            item_id = tonumber(context.item_id) or 0;
+        end
+    end
+    if (visible_selected == 1 and item_label ~= '') then
+        accessxi.prepare_auction_price_history_context(item_id, item_label);
+    end
+
+    local speech_parts = T{};
+    if (item_label ~= '') then
+        speech_parts:append(item_label);
+    end
+    if (label ~= '') then
+        speech_parts:append(label);
+    end
+    if (help ~= '' and not help:eq(label, true)) then
+        speech_parts:append(accessxi.sentence_fragment(help));
+    end
+
+    local speech_text = join_speech_parts(speech_parts) or accessxi.sentence_fragment(label ~= '' and label or help);
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = now;
+    accessxi.current_speech_key = ('auction-action:%d:%d:0x%08X:0x%08X:%s:%s:%d'):fmt(
+        visible_selected,
+        count,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        label,
+        help,
+        item_id);
+    log_state(('state auction-action native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" nativeMode="%s" nativeLabel="%s" datLabel="%s" help="%s" item="%s" itemId=%d contextAge=%d source="%s" speech="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Auction'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        tostring(native_mode or ''),
+        accessxi.escape_probe_log_text(native_label),
+        accessxi.escape_probe_log_text(dat_label),
+        accessxi.escape_probe_log_text(help),
+        accessxi.escape_probe_log_text(item_label),
+        item_id,
+        item_context_age,
+        accessxi.escape_probe_log_text(source),
+        accessxi.escape_probe_log_text(speech_text)));
+    return ('%s. %s'):fmt(tostring(title or 'Auction'), speech_text);
+end
+
+function accessxi.prepare_auction_price_history_context(item_id, item_label)
+    item_id = tonumber(item_id) or 0;
+    item_label = tostring(item_label or '');
+    local key = ('%d:%s'):fmt(item_id, item_label);
+    if (key ~= tostring(accessxi.auction_price_history_context_key or '')) then
+        accessxi.auction_price_history_rows = {};
+        accessxi.auction_price_history_context_key = key;
+        accessxi.auction_price_history_context_item = item_label;
+        accessxi.auction_price_history_context_item_id = item_id;
+        accessxi.auction_price_history_context_tick = tick();
+        log_state(('state auction-price-history context item="%s" itemId=%d'):fmt(
+            accessxi.escape_probe_log_text(item_label),
+            item_id));
+    end
+end
+
+function accessxi.auction_price_history_text_to_row(text)
+    text = accessxi.clean_incoming_text(text or '');
+    local date_text, parties, price = text:match('^%((.-)%)%s+(.+)%s+%[([^%]]+)%]$');
+    if (date_text == nil or parties == nil or price == nil) then
+        return nil;
+    end
+
+    local seller = tostring(parties or ''):match('^%s*([A-Za-z][A-Za-z0-9_%-]*)');
+    local buyer = tostring(parties or ''):match('([A-Za-z][A-Za-z0-9_%-]*)%s*$');
+    if (seller == nil or buyer == nil or seller == buyer) then
+        return nil;
+    end
+
+    local price_text = tostring(price or ''):gsub('%s+', ' '):trim();
+    price_text = price_text:gsub('%s*[Gg]$', ' gil');
+    return T{
+        date = tostring(date_text or ''):gsub('%s+', ' '):trim(),
+        seller = seller,
+        buyer = buyer,
+        price = price_text,
+        raw = text,
+        tick = tick(),
+    };
+end
+
+function accessxi.auction_price_history_selected_index()
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local selected = cursor4c;
+    local source = 'obj+4C';
+    if (selected < 1 or selected > 10) then
+        selected = cursor34;
+        source = 'obj+34-fallback';
+    end
+    if (selected < 1 or selected > 10) then
+        selected = 1;
+        source = 'default';
+    end
+    return selected, source, cursor4c, cursor34;
+end
+
+function accessxi.auction_price_history_remember_chat_text(entry)
+    if (entry == nil) then
+        return nil;
+    end
+    local mid = bit.band(tonumber(entry.mode) or 0, 0xFF);
+    if (mid ~= 121 and mid ~= 122 and mid ~= 123) then
+        return nil;
+    end
+    local current_name = tostring(get_menu_name() or accessxi.current_menu_name or accessxi.last_nonblank_menu_name or '');
+    if (not current_name:eq('menu    auchisto', true)) then
+        return nil;
+    end
+
+    local row = accessxi.auction_price_history_text_to_row(entry.text or '');
+    if (row == nil) then
+        return nil;
+    end
+
+    local selected = accessxi.auction_price_history_selected_index();
+    row.index = selected;
+    row.item = tostring(accessxi.auction_price_history_context_item or '');
+    row.item_id = tonumber(accessxi.auction_price_history_context_item_id) or 0;
+    accessxi.auction_price_history_rows = accessxi.auction_price_history_rows or {};
+    accessxi.auction_price_history_rows[selected] = row;
+    log_state(('state auction-price-history cache select=%d item="%s" text="%s"'):fmt(
+        selected,
+        accessxi.escape_probe_log_text(row.item or ''),
+        accessxi.escape_probe_log_text(row.raw or '')));
+    return row;
+end
+
+function accessxi.auction_price_history_row_speech(row, selected)
+    if (row == nil) then
+        return '';
+    end
+
+    local parts = T{};
+    local item = tostring(row.item or accessxi.auction_price_history_context_item or '');
+    if (item ~= '') then
+        parts:append(item);
+    end
+    parts:append(('Sale %d of 10'):fmt(tonumber(selected or row.index) or 1));
+    if (tostring(row.date or '') ~= '') then
+        parts:append(row.date);
+    end
+    if (tostring(row.seller or '') ~= '' and tostring(row.buyer or '') ~= '') then
+        parts:append(('%s to %s'):fmt(accessxi.speech_name(row.seller), accessxi.speech_name(row.buyer)));
+    end
+    if (tostring(row.price or '') ~= '') then
+        parts:append(row.price);
+    end
+    return join_speech_parts(parts) or '';
+end
+
+function accessxi.auction_price_history_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auchisto', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    local dat_title = accessxi.dat_index_row_text('ROM\\165\\76.DAT', 119, 'label');
+    local dat_help = accessxi.dat_index_row_text('ROM\\165\\75.DAT', 548, 'help');
+    local selected_index, cursorSource, cursor4c, cursor34 = accessxi.auction_price_history_selected_index();
+    accessxi.auction_price_history_rows = accessxi.auction_price_history_rows or {};
+    local row = accessxi.auction_price_history_rows[selected_index];
+    if (row == nil) then
+        local item = tostring(accessxi.auction_price_history_context_item or '');
+        local speech_text = join_speech_parts(T{ item, dat_help }) or accessxi.sentence_fragment(dat_help ~= '' and dat_help or dat_title);
+        accessxi.last_native_menu_name = menu_name;
+        accessxi.last_native_menu_label = speech_text;
+        accessxi.last_native_menu_selected = selected_index;
+        accessxi.last_native_menu_tick = tick();
+        accessxi.current_speech_key = ('auction-price-history:%d:missing:%s'):fmt(selected_index, item);
+        log_state(('state auction-price-history native-missing-row menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" item="%s" help="%s" cached=%d'):fmt(
+            menu_name,
+            tostring(dat_title ~= '' and dat_title or title or 'Price History'),
+            selected_index,
+            tonumber(count) or 0,
+            tonumber(page) or 0,
+            tonumber(raw) or 0,
+            tonumber(child) or 0,
+            tonumber(entry) or 0,
+            tonumber(cursor4c) or 0,
+            tonumber(cursor34) or 0,
+            cursorSource,
+            accessxi.escape_probe_log_text(item),
+            accessxi.escape_probe_log_text(dat_help),
+            #(accessxi.auction_price_history_rows or {})));
+        return ('%s. %s'):fmt(tostring(dat_title ~= '' and dat_title or title or 'Price History'), speech_text);
+    end
+
+    local speech_text = accessxi.auction_price_history_row_speech(row, selected_index);
+    if (speech_text == '') then
+        return nil;
+    end
+
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech_text;
+    accessxi.last_native_menu_selected = selected_index;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-price-history:%d:%s:%s:%s:%s'):fmt(
+        selected_index,
+        tostring(row.date or ''),
+        tostring(row.seller or ''),
+        tostring(row.buyer or ''),
+        tostring(row.price or ''));
+    log_state(('state auction-price-history native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" item="%s" date="%s" seller="%s" buyer="%s" price="%s" source="text_in" speech="%s"'):fmt(
+        menu_name,
+        tostring(dat_title ~= '' and dat_title or title or 'Price History'),
+        selected_index,
+        tonumber(count) or 0,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        accessxi.escape_probe_log_text(tostring(row.item or '')),
+        accessxi.escape_probe_log_text(tostring(row.date or '')),
+        accessxi.escape_probe_log_text(tostring(row.seller or '')),
+        accessxi.escape_probe_log_text(tostring(row.buyer or '')),
+        accessxi.escape_probe_log_text(tostring(row.price or '')),
+        accessxi.escape_probe_log_text(speech_text)));
+    return ('%s. %s'):fmt(tostring(dat_title ~= '' and dat_title or title or 'Price History'), speech_text);
+end
+
+function accessxi.auction_item_list_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
+    menu_name = tostring(menu_name or '');
+    if (not menu_name:eq('menu    auclist', true)) then
+        return nil;
+    end
+    accessxi.enable_auction_packet_trace(menu_name);
+
+    count = tonumber(count) or 0;
+    if (count <= 0 or count > 64 or not accessxi.is_probe_pointer(child)) then
+        log_state(('state auction-item-list native-missing menu="%s" title="%s" reason="invalid-list" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X'):fmt(
+            menu_name,
+            tostring(title or 'Bid'),
+            tonumber(selected) or 0,
+            count,
+            tonumber(page) or 0,
+            tonumber(raw) or 0,
+            tonumber(child) or 0,
+            tonumber(entry) or 0));
+        return nil;
+    end
+
+    local cursor4c = read_current_native_menu_index(0x4C);
+    local cursor34 = read_current_native_menu_index(0x34);
+    local visible_selected = cursor4c;
+    local cursorSource = 'obj+4C';
+    if (visible_selected < 1 or visible_selected > count) then
+        visible_selected = tonumber(selected) or 0;
+        cursorSource = 'dispatcher';
+    end
+    if (visible_selected < 1 or visible_selected > count) then
+        visible_selected = cursor34;
+        cursorSource = 'obj+34-fallback';
+    end
+    if (visible_selected < 1 or visible_selected > count) then
+        log_state(('state auction-item-list native-missing menu="%s" title="%s" reason="invalid-selected" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X cursor4c=%d cursor34=%d'):fmt(
+            menu_name,
+            tostring(title or 'Bid'),
+            tonumber(selected) or 0,
+            count,
+            tonumber(page) or 0,
+            tonumber(raw) or 0,
+            tonumber(child) or 0,
+            tonumber(entry) or 0,
+            tonumber(cursor4c) or 0,
+            tonumber(cursor34) or 0));
+        return nil;
+    end
+
+    local raw_label, mode = accessxi.native_query_label_for_selection(child, visible_selected, count, 'auction-item-list');
+    raw_label = accessxi.plain_native_menu_label(raw_label or '');
+    local resource_info, cleaned_label, item_source = accessxi.auction_item_resource_from_label(raw_label);
+    local entry_label = '';
+    local entry_help = '';
+    local entry_label_ptr = 0;
+    local entry_help_ptr = 0;
+    local resource_candidate_summary = '';
+    local entry_words = '';
+    local packet_single_count = 0;
+    local packet_stack_count = 0;
+    local packet_logical = 0;
+    local packet_total = 0;
+    local packet_scroll_top = 0;
+    local packet_scroll_raw = 0;
+    local label_source = 'child';
+    if (cleaned_label == '') then
+        local entry_source = '';
+        entry_label, entry_help, entry_label_ptr, entry_help_ptr, entry_source = accessxi.auction_item_list_entry_label(entry);
+        if (entry_label ~= '') then
+            raw_label = entry_label;
+            mode = ('%s+%s'):fmt(tostring(mode or ''), entry_source):gsub('^%+', '');
+            label_source = entry_source;
+            resource_info, cleaned_label, item_source = accessxi.auction_item_resource_from_label(raw_label);
+        end
+    end
+    if (cleaned_label == '') then
+        accessxi.auction_item_list_load_searchhook_packet();
+        local packet_label = '';
+        local packet_mode = '';
+        local packet_info = nil;
+        packet_label, packet_mode, packet_info, raw_label, packet_single_count, packet_stack_count, packet_logical, packet_total, packet_scroll_top, packet_scroll_raw = accessxi.auction_item_list_packet_label(visible_selected, count, page, child, entry);
+        if (packet_label ~= '' and packet_info ~= nil) then
+            cleaned_label = accessxi.auction_item_list_clean_label(packet_label);
+            resource_info = packet_info;
+            item_source = 'auction-packet';
+            mode = ('%s+%s'):fmt(tostring(mode or ''), packet_mode):gsub('^%+', '');
+            label_source = packet_mode;
+        else
+            mode = ('%s+%s'):fmt(tostring(mode or ''), packet_mode):gsub('^%+', '');
+        end
+    end
+    if (cleaned_label == '') then
+        entry_words = accessxi.auction_item_list_entry_words(entry);
+        local _;
+        _, resource_candidate_summary = accessxi.auction_item_list_resource_candidates(entry, child, raw, visible_selected, count);
+    end
+    if (cleaned_label == '') then
+        log_state(('state auction-item-list native-missing-label menu="%s" title="%s" select=%d count=%d page=%d mode="%s" raw=0x%08X child=0x%08X entry=0x%08X labelPtr=0x%08X helpPtr=0x%08X rawLabel="%s" entryLabel="%s" entryHelp="%s" packetRows=%d packetTotal=%d packetCategory=%d currentCategory=%d currentCategoryLabel="%s" packetAge=%d packetLogical=%d packetScrollTop=%d packetScrollRaw=0x%08X candidates="%s" entryWords="%s" offsetProbe="%s" pointerProbe="%s" memoryProbe="%s"'):fmt(
+            menu_name,
+            tostring(title or 'Bid'),
+            visible_selected,
+            count,
+            tonumber(page) or 0,
+            tostring(mode or ''),
+            tonumber(raw) or 0,
+            tonumber(child) or 0,
+            tonumber(entry) or 0,
+            tonumber(entry_label_ptr) or 0,
+            tonumber(entry_help_ptr) or 0,
+            accessxi.escape_probe_log_text(raw_label),
+            accessxi.escape_probe_log_text(entry_label),
+            accessxi.escape_probe_log_text(entry_help),
+            #(accessxi.auction_item_packet_rows or {}),
+            tonumber(accessxi.auction_item_packet_total) or 0,
+            tonumber(accessxi.auction_item_packet_category_id) or 0,
+            tonumber(accessxi.auction_current_ah_category_id) or 0,
+            accessxi.escape_probe_log_text(tostring(accessxi.auction_current_ah_category_label or '')),
+            math.max(0, tick() - (tonumber(accessxi.auction_item_packet_tick) or 0)),
+            tonumber(packet_logical) or 0,
+            tonumber(packet_scroll_top) or 0,
+            tonumber(packet_scroll_raw) or 0,
+            accessxi.escape_probe_log_text(resource_candidate_summary),
+            accessxi.escape_probe_log_text(entry_words),
+            accessxi.escape_probe_log_text_wide(accessxi.auction_item_list_offset_probe(raw, child, entry, visible_selected, count)),
+            accessxi.escape_probe_log_text_wide(accessxi.auction_item_list_pointer_probe(raw, child, entry, visible_selected, count)),
+            accessxi.escape_probe_log_text(accessxi.auction_item_list_memory_probe(raw, child, entry, visible_selected, count))));
+        return nil;
+    end
+
+    local speech_name = cleaned_label;
+    local speech_name_source = item_source;
+    if (resource_info ~= nil) then
+        speech_name, speech_name_source = accessxi.resource_item_speech_name(resource_info, cleaned_label);
+        if (speech_name == '') then
+            speech_name = cleaned_label;
+            speech_name_source = item_source;
+        end
+    end
+
+    local listing_count = tonumber(packet_single_count) or 0;
+    if (listing_count <= 0 and (tonumber(packet_stack_count) or 0) <= 0) then
+        listing_count = tonumber(raw_label:match('%[(%d+)%]%s*$')) or 0;
+    end
+    local speech_parts = T{ speech_name };
+    if (listing_count > 0) then
+        speech_parts:append(('Single listings %d'):fmt(listing_count));
+    end
+    if ((tonumber(packet_stack_count) or 0) > 0) then
+        speech_parts:append(('Stack listings %d'):fmt(tonumber(packet_stack_count) or 0));
+    end
+    if (entry_help ~= '' and not entry_help:eq(speech_name, true)) then
+        speech_parts:append(entry_help);
+    end
+    local detail_parts = item_static_detail_parts(resource_info);
+    for _, part in ipairs(detail_parts) do
+        speech_parts:append(part);
+    end
+    if (resource_info ~= nil and tostring(resource_info.description or '') ~= '') then
+        speech_parts:append(resource_info.description);
+    end
+
+    local speech = join_speech_parts(speech_parts) or accessxi.sentence_fragment(speech_name);
+    accessxi.auction_selected_item_context = T{
+        label = cleaned_label,
+        speech_name = speech_name,
+        item_id = tonumber(resource_info ~= nil and resource_info.id or 0) or 0,
+        item_source = item_source,
+        listing_count = listing_count,
+        stack_listing_count = tonumber(packet_stack_count) or 0,
+        selected = visible_selected,
+        count = count,
+        tick = tick(),
+    };
+    accessxi.last_native_menu_name = menu_name;
+    accessxi.last_native_menu_label = speech;
+    accessxi.last_native_menu_selected = visible_selected;
+    accessxi.last_native_menu_tick = tick();
+    accessxi.current_speech_key = ('auction-item-list:%d:%d:0x%08X:0x%08X:%s:%s'):fmt(
+        visible_selected,
+        count,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        cleaned_label,
+        ('%s:%d:%d:%d'):fmt(
+            tostring(resource_info ~= nil and resource_info.id or 0),
+            tonumber(packet_logical) or 0,
+            tonumber(packet_single_count) or 0,
+            tonumber(packet_stack_count) or 0));
+    local gear_detail_parts = T{};
+    if (listing_count > 0) then
+        gear_detail_parts:append(('Single listings %d'):fmt(listing_count));
+    end
+    if ((tonumber(packet_stack_count) or 0) > 0) then
+        gear_detail_parts:append(('Stack listings %d'):fmt(tonumber(packet_stack_count) or 0));
+    end
+    if (entry_help ~= '' and not entry_help:eq(speech_name, true)) then
+        gear_detail_parts:append(entry_help);
+    end
+    for _, part in ipairs(detail_parts) do
+        gear_detail_parts:append(part);
+    end
+    accessxi.capture_current_gear_detail(menu_name, T{
+        id = tonumber(resource_info ~= nil and resource_info.id or 0) or 0,
+        index = visible_selected,
+        name = speech_name,
+        count = 0,
+        detail_parts = gear_detail_parts,
+        description = resource_info ~= nil and tostring(resource_info.description or '') or '',
+        empty = false,
+    }, T{
+        index = visible_selected,
+        source = 'auction',
+    });
+    log_state(('state auction-item-list native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X labelPtr=0x%08X helpPtr=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" mode="%s" labelSource="%s" rawLabel="%s" label="%s" entryHelp="%s" speechName="%s" nameSource="%s" itemId=%d listingCount=%d stackListingCount=%d packetRows=%d packetTotal=%d packetCategory=%d packetLogical=%d packetScrollTop=%d packetScrollRaw=0x%08X detailCount=%d source="%s" speech="%s"'):fmt(
+        menu_name,
+        tostring(title or 'Bid'),
+        visible_selected,
+        count,
+        tonumber(page) or 0,
+        tonumber(raw) or 0,
+        tonumber(child) or 0,
+        tonumber(entry) or 0,
+        tonumber(entry_label_ptr) or 0,
+        tonumber(entry_help_ptr) or 0,
+        tonumber(cursor4c) or 0,
+        tonumber(cursor34) or 0,
+        cursorSource,
+        tostring(mode or ''),
+        accessxi.escape_probe_log_text(label_source),
+        accessxi.escape_probe_log_text(raw_label),
+        accessxi.escape_probe_log_text(cleaned_label),
+        accessxi.escape_probe_log_text(entry_help),
+        accessxi.escape_probe_log_text(speech_name),
+        accessxi.escape_probe_log_text(speech_name_source),
+        tonumber(resource_info ~= nil and resource_info.id or 0) or 0,
+        listing_count,
+        tonumber(packet_stack_count) or 0,
+        #(accessxi.auction_item_packet_rows or {}),
+        tonumber(accessxi.auction_item_packet_total) or 0,
+        tonumber(accessxi.auction_item_packet_category_id) or 0,
+        tonumber(packet_logical) or 0,
+        tonumber(packet_scroll_top) or 0,
+        tonumber(packet_scroll_raw) or 0,
+        detail_parts:len(),
+        accessxi.escape_probe_log_text(item_source),
+        accessxi.escape_probe_log_text(speech)));
+    return ('%s. %s'):fmt(tostring(title or 'Bid'), speech);
 end
 
 function accessxi.shopmain_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
@@ -78984,6 +85660,8 @@ function accessxi.selected_trade_moneyctr_speech(menu_name)
     if (current_gil ~= nil and amount > current_gil) then
         amount = current_gil;
     end
+    accessxi.trade_handover_gil_amount = amount;
+    accessxi.trade_handover_gil_amount_tick = tick();
 
     accessxi.current_speech_key = ('trade-moneyctr:%s:%d:%d:%s'):fmt(
         menu_name or '',
@@ -79374,7 +86052,13 @@ local function selected_inventory_item_speech(menu_name)
         accessxi.current_speech_key = ('inventory-native:%s:%d:%d:%d:%s%s'):fmt(menu_name or '', info.container or -1, info.slot or -1, info.id or 0, info.name or '', context_token);
     end
     local suppress_count = tostring(accessxi.inventory_context or '') == 'vendor_shop_item_list';
-    return inventory_item_info_speech(info, suppress_count);
+    local speech = inventory_item_info_speech(info, suppress_count);
+    if (speech ~= nil and speech ~= '') then
+        accessxi.capture_current_gear_detail(menu_name, info, T{
+            source = tostring(accessxi.inventory_context or 'inventory'),
+        });
+    end
+    return speech;
 end
 
 function accessxi.trade_item_packet_text(slot, item_id, item_num, item_index, source)
@@ -79670,6 +86354,11 @@ function accessxi.selected_trade_handover_item_speech(menu_name)
         trade_count,
         info.name or '',
         window_name or '');
+    accessxi.capture_current_gear_detail(menu_name, info, T{
+        count = trade_count > 0 and trade_count or info.count,
+        slot_name = ('Trade slot %d'):fmt(trade_slot),
+        source = 'trade',
+    });
     local item_text = inventory_item_info_speech(info, true);
     if (item_text == nil or item_text == '') then
         return nil;
@@ -79701,6 +86390,171 @@ function accessxi.selected_trade_handover_item_speech(menu_name)
     return ('Trade. %s'):fmt(item_text);
 end
 
+function accessxi.is_synthesis_slot_menu_name(name)
+    local slots = accessxi.synthesis_slots;
+    return type(slots) == 'table'
+        and type(slots.is_menu_name) == 'function'
+        and slots.is_menu_name(name) == true;
+end
+
+function accessxi.synthesis_slot_selected_entry()
+    local obj = get_current_menu_object_ptr();
+    if (not accessxi.is_probe_pointer(obj)) then
+        return 0, 0;
+    end
+    return obj, read_u32(obj + 0x08) or 0;
+end
+
+function accessxi.log_synthesis_slot_probe(menu_name, obj, entry, cursor, slot, occupied, info, reason)
+    if (not accessxi.is_probe_pointer(entry)) then
+        return;
+    end
+    local info_id = info ~= nil and (tonumber(info.id) or 0) or 0;
+    local info_name = info ~= nil and tostring(info.name or '') or '';
+    local key = ('%s:%08X:%08X:%d:%d:%d:%d:%s'):fmt(
+        tostring(menu_name or ''),
+        tonumber(obj) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor) or 0,
+        tonumber(slot) or 0,
+        occupied and 1 or 0,
+        info_id,
+        tostring(reason or ''));
+    if (key == tostring(accessxi.synthesis_slot_probe_key or '')) then
+        return;
+    end
+    accessxi.synthesis_slot_probe_key = key;
+    log_state(('state synthesis slot menu=%s obj=0x%08X entry=0x%08X cursor=%d slot=%d occupied=%d infoId=%d infoName=%s reason=%s entryDwords=%s'):fmt(
+        tostring(menu_name or ''),
+        tonumber(obj) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor) or 0,
+        tonumber(slot) or 0,
+        occupied and 1 or 0,
+        info_id,
+        accessxi.escape_probe_log_text(info_name),
+        accessxi.escape_probe_log_text(tostring(reason or '')),
+        accessxi.format_probe_dwords(entry, 0, 24)));
+end
+
+function accessxi.log_synthesis_control_state(menu_name, obj, entry, cursor, control, native_text, source)
+    local key = ('%s:%08X:%08X:%d:%s:%s:%s'):fmt(
+        tostring(menu_name or ''),
+        tonumber(obj) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor) or 0,
+        tostring(control or ''),
+        tostring(source or ''),
+        tostring(native_text or ''));
+    if (key == tostring(accessxi.synthesis_control_state_key or '')) then
+        return;
+    end
+    accessxi.synthesis_control_state_key = key;
+    log_state(('state synthesis control menu=%s obj=0x%08X entry=0x%08X cursor=%d control=%s source=%s nativeText="%s"'):fmt(
+        tostring(menu_name or ''),
+        tonumber(obj) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor) or 0,
+        tostring(control or ''),
+        tostring(source or ''),
+        accessxi.escape_probe_log_text(tostring(native_text or ''))));
+end
+
+function accessxi.selected_synthesis_slot_speech(menu_name)
+    local slots = accessxi.synthesis_slots;
+    if (type(slots) ~= 'table'
+        or type(slots.slot_for_cursor) ~= 'function'
+        or type(slots.slot_speech) ~= 'function') then
+        return nil;
+    end
+
+    local obj, entry = accessxi.synthesis_slot_selected_entry();
+    if (not accessxi.is_probe_pointer(entry)) then
+        return nil;
+    end
+    local cursor = read_current_native_menu_index(0x4C);
+    local slot = slots.slot_for_cursor(cursor);
+    if (slot == nil) then
+        if (type(slots.control_for_cursor) ~= 'function'
+            or type(slots.control_speech) ~= 'function') then
+            return nil;
+        end
+        local control = slots.control_for_cursor(cursor);
+        if (control == nil) then
+            return nil;
+        end
+
+        local label_ptr = read_u32(entry + 0x44) or 0;
+        local help_ptr = read_u32(entry + 0x40) or 0;
+        local native_text = accessxi.plain_native_menu_label(read_probe_string(label_ptr));
+        local source = 'native-label';
+        if (native_text == '') then
+            native_text = accessxi.plain_native_menu_help(read_probe_string(help_ptr));
+            source = 'native-help';
+        end
+        local speech = slots.control_speech(cursor, native_text);
+        accessxi.log_synthesis_control_state(
+            menu_name,
+            obj,
+            entry,
+            cursor,
+            control,
+            native_text,
+            speech ~= nil and source or 'native-text-missing');
+        if (speech == nil) then
+            return nil;
+        end
+
+        accessxi.current_speech_key = ('synthesis-control:%s:%08X:%08X:%d:%s:%s'):fmt(
+            tostring(menu_name or ''),
+            tonumber(obj) or 0,
+            tonumber(entry) or 0,
+            tonumber(cursor) or 0,
+            tostring(control or ''),
+            tostring(native_text or ''));
+        return speech;
+    end
+
+    local occupied = accessxi.trade_handover_entry_occupied(entry);
+    local info = nil;
+    local item_text = '';
+    if (occupied) then
+        info = accessxi.get_native_selected_inventory_item_info(menu_name);
+        local has_item_info = info ~= nil
+            and info.command ~= true
+            and (tonumber(info.id) or 0) > 0;
+        if (has_item_info) then
+            item_text = inventory_item_info_speech(info, true) or '';
+        end
+    end
+
+    accessxi.current_speech_key = ('synthesis-slot:%s:%08X:%08X:%d:%d:%d:%d:%s'):fmt(
+        tostring(menu_name or ''),
+        tonumber(obj) or 0,
+        tonumber(entry) or 0,
+        tonumber(cursor) or 0,
+        tonumber(slot) or 0,
+        occupied and 1 or 0,
+        info ~= nil and (tonumber(info.id) or 0) or 0,
+        tostring(item_text or ''));
+    if (info ~= nil) then
+        accessxi.capture_current_gear_detail(menu_name, info, T{
+            slot_name = ('Synthesis slot %d'):fmt(slot),
+            source = 'synthesis',
+        });
+    end
+    accessxi.log_synthesis_slot_probe(
+        menu_name,
+        obj,
+        entry,
+        cursor,
+        slot,
+        occupied,
+        info,
+        item_text ~= '' and 'native-item' or (occupied and 'occupied-no-item' or 'empty'));
+    return slots.slot_speech(slot, occupied, item_text);
+end
+
 local function selected_storage_bank_item_speech(menu_name)
     local context_was_unknown = not is_storage_bank_container(accessxi.storage_bank_container);
     local info = get_selected_storage_bank_item_info();
@@ -79719,7 +86573,13 @@ local function selected_storage_bank_item_speech(menu_name)
     end
 
     accessxi.current_speech_key = ('bank:%d:%d:%d'):fmt(info.container or -1, info.slot or -1, info.id or 0);
-    return inventory_item_info_speech(info);
+    local speech = inventory_item_info_speech(info);
+    if (speech ~= nil and speech ~= '') then
+        accessxi.capture_current_gear_detail(menu_name, info, T{
+            source = 'storage',
+        });
+    end
+    return speech;
 end
 
 local function inventory_open_speech(menu_name)
@@ -80370,6 +87230,209 @@ function accessxi.poll_status_hotkeys()
     return accessxi.speak_manual_status_overview(nil, 'status-hotkey');
 end
 
+function accessxi.quick_status_key_down(virtual_key)
+    return bit.band(tonumber(kernel32.GetAsyncKeyState(virtual_key)) or 0, 0x8000) ~= 0;
+end
+
+function accessxi.accessibility_hotkey_modifier_held()
+    return accessxi.quick_status_key_down(VK_MENU)
+        or accessxi.quick_status_key_down(VK_CONTROL)
+        or accessxi.quick_status_key_down(accessxi.VK_SHIFT);
+end
+
+function accessxi.accessibility_hotkey_snapshot()
+    return {
+        foreground = accessxi.is_foreground_process(),
+        chat_open = is_chat_input_open ~= nil and is_chat_input_open() or false,
+        modifier_down = accessxi.accessibility_hotkey_modifier_held(),
+    };
+end
+
+function accessxi.quick_status_pressed_chord(snapshot)
+    if type(snapshot) ~= 'table'
+        or snapshot.modifier_down == true
+        or type(snapshot.keys) ~= 'table' then
+        return nil;
+    end
+    for _, key in ipairs({ 'D', 'B', 'H', 'M', 'X' }) do
+        if (snapshot.keys[key] == true) then
+            return key;
+        end
+    end
+    return nil;
+end
+
+function accessxi.quick_status_live_data(snapshot)
+    local mm = safe_call(function () return AshitaCore:GetMemoryManager(); end, nil);
+    local player = mm ~= nil and safe_call(function () return mm:GetPlayer(); end, nil) or nil;
+    local party = mm ~= nil and safe_call(function () return mm:GetParty(); end, nil) or nil;
+    local resources = safe_call(function () return AshitaCore:GetResourceManager(); end, nil);
+
+    snapshot.hp_available = false;
+    snapshot.mp_available = false;
+    snapshot.experience_available = false;
+    snapshot.vitals_available = false;
+    if (player ~= nil and party ~= nil) then
+        snapshot.hp_current = tonumber(safe_call(function () return party:GetMemberHP(0); end, nil));
+        snapshot.hp_max = tonumber(safe_call(function () return player:GetHPMax(); end, nil));
+        snapshot.mp_current = tonumber(safe_call(function () return party:GetMemberMP(0); end, nil));
+        snapshot.mp_max = tonumber(safe_call(function () return player:GetMPMax(); end, nil));
+        snapshot.exp_current = tonumber(safe_call(function () return player:GetExpCurrent(); end, nil));
+        snapshot.exp_needed = tonumber(safe_call(function () return player:GetExpNeeded(); end, nil));
+        snapshot.hp_available = snapshot.hp_current ~= nil and snapshot.hp_max ~= nil;
+        snapshot.mp_available = snapshot.mp_current ~= nil and snapshot.mp_max ~= nil;
+        snapshot.experience_available = snapshot.exp_current ~= nil and snapshot.exp_needed ~= nil;
+        snapshot.vitals_available = snapshot.hp_available
+            and snapshot.mp_available
+            and snapshot.experience_available;
+    end
+
+    snapshot.statuses_available = false;
+    snapshot.statuses = {};
+    if (player == nil or resources == nil) then
+        return snapshot;
+    end
+
+    local buffs = safe_call(function () return player:GetBuffs(); end, nil);
+    if (buffs == nil) then
+        return snapshot;
+    end
+    local probe_ok = pcall(function () return tonumber(buffs[0]); end);
+    if (not probe_ok) then
+        return snapshot;
+    end
+
+    snapshot.statuses_available = true;
+    for index = 0, 31 do
+        local id = tonumber(safe_call(function () return buffs[index]; end, nil));
+        if (id ~= nil and id >= 0) then
+            local name = safe_call(function ()
+                return resources:GetString('buffs.names', id) or '';
+            end, '');
+            local icon = safe_call(function () return resources:GetStatusIconById(id); end, nil);
+            local can_cancel = icon ~= nil
+                and (tonumber(safe_call(function () return icon.CanCancel; end, 0)) or 0) ~= 0;
+            snapshot.statuses[#snapshot.statuses + 1] = {
+                id = id,
+                name = tostring(name or ''),
+                can_cancel = can_cancel,
+            };
+        end
+    end
+    return snapshot;
+end
+
+function accessxi.quick_status_log_ids(label, values)
+    if type(values) ~= 'table' or #values == 0 then
+        return;
+    end
+    local parts = {};
+    for _, value in ipairs(values) do
+        parts[#parts + 1] = tostring(tonumber(value) or value);
+    end
+    log_line(('quick-status %s ids="%s"'):fmt(tostring(label or 'unclassified'), table.concat(parts, ',')));
+end
+
+function accessxi.poll_quick_status_hotkeys()
+    if (type(accessxi.quick_status_hotkeys) ~= 'table'
+        or type(accessxi.quick_status_hotkeys.poll) ~= 'function') then
+        return false;
+    end
+
+    local snapshot = {
+        foreground = accessxi.is_foreground_process(),
+        chat_open = is_chat_input_open ~= nil and is_chat_input_open() or false,
+        modifier_down = accessxi.accessibility_hotkey_modifier_held(),
+        keys = {
+            D = accessxi.quick_status_key_down(0x44),
+            B = accessxi.quick_status_key_down(0x42),
+            H = accessxi.quick_status_key_down(0x48),
+            M = accessxi.quick_status_key_down(0x4D),
+            X = accessxi.quick_status_key_down(0x58),
+        },
+    };
+    local chord = accessxi.quick_status_pressed_chord(snapshot);
+    local last_chord = tostring(accessxi.quick_status_hotkey_state.last_chord or '');
+    if (chord ~= nil
+        and chord ~= last_chord
+        and snapshot.foreground
+        and not snapshot.chat_open) then
+        accessxi.quick_status_live_data(snapshot);
+    end
+
+    local text, action, meta = accessxi.quick_status_hotkeys.poll(
+        accessxi.quick_status_hotkey_state, snapshot);
+    if (type(meta) == 'table') then
+        accessxi.quick_status_log_ids('unclassified', meta.unknown_ids);
+        accessxi.quick_status_log_ids('missing-native-name', meta.missing_name_ids);
+    end
+    text = tostring(text or ''):trim();
+    if (text == '') then
+        return false;
+    end
+
+    local result = speak(text);
+    log_state(('state quick-status action="%s" result="%s" text="%s"'):fmt(
+        accessxi.escape_probe_log_text(action or ''),
+        accessxi.escape_probe_log_text(result or ''),
+        accessxi.escape_probe_log_text(text)));
+    return true;
+end
+
+function accessxi.accessibility_hotkey_owns_vk(vk, snapshot)
+    snapshot = snapshot or accessxi.accessibility_hotkey_snapshot();
+    if (snapshot.foreground ~= true
+        or snapshot.chat_open == true
+        or snapshot.modifier_down == true) then
+        return false;
+    end
+
+    if (type(accessxi.quick_status_hotkeys) == 'table'
+        and type(accessxi.quick_status_hotkeys.is_hotkey_vk) == 'function'
+        and accessxi.quick_status_hotkeys.is_hotkey_vk(vk)) then
+        return true;
+    end
+
+    if (type(accessxi.navigation_hotkeys) == 'table'
+        and type(accessxi.navigation_hotkeys.should_claim_vk) == 'function') then
+        return accessxi.navigation_hotkeys.should_claim_vk(
+            accessxi.navigation_hotkey_state, vk, snapshot);
+    end
+    return false;
+end
+
+function accessxi.accessibility_hotkey_directinput_map()
+    if (type(accessxi.accessibility_hotkey_dik_map) == 'table') then
+        return accessxi.accessibility_hotkey_dik_map;
+    end
+
+    local result = { vk_to_dik = {}, dik_to_vk = {} };
+    local modules = { accessxi.quick_status_hotkeys, accessxi.navigation_hotkeys };
+    local resolved = {};
+    for _, module in ipairs(modules) do
+        if (type(module) == 'table' and type(module.VK) == 'table') then
+            for label, raw_vk in pairs(module.VK) do
+                local vk = tonumber(raw_vk) or 0;
+                local dik = tonumber(safe_call(function ()
+                    return AshitaCore:GetInputManager():GetKeyboard():V2D(vk);
+                end, 0)) or 0;
+                if ((dik <= 0 or dik > 255) and type(module.DIK_BY_VK) == 'table') then
+                    dik = tonumber(module.DIK_BY_VK[vk]) or 0;
+                end
+                if (vk > 0 and dik > 0 and dik <= 255) then
+                    result.vk_to_dik[vk] = dik;
+                    result.dik_to_vk[dik] = vk;
+                    resolved[#resolved + 1] = ('%s:%d'):fmt(tostring(label), dik);
+                end
+            end
+        end
+    end
+    table.sort(resolved);
+    accessxi.accessibility_hotkey_dik_map = result;
+    log_line(('accessibility DirectInput keys %s'):fmt(table.concat(resolved, ',')));
+    return result;
+end
+
 local function current_menu_speech(full_details)
     if (is_chat_input_open ~= nil and is_chat_input_open()) then
         return nil;
@@ -80874,6 +87937,15 @@ local function current_menu_speech(full_details)
         end
     end
 
+    if (accessxi.is_synthesis_slot_menu_name(name)) then
+        accessxi.inventory_context = 'synthesis_slots';
+        local synthesis_speech = accessxi.selected_synthesis_slot_speech(name);
+        if (synthesis_speech ~= nil) then
+            return synthesis_speech;
+        end
+        return nil;
+    end
+
     if (accessxi.is_trade_handover_menu_name(name)) then
         accessxi.inventory_context = 'trade_handover';
         local trade_speech = accessxi.selected_trade_handover_item_speech(name);
@@ -80941,6 +88013,63 @@ local function current_menu_speech(full_details)
         log_ingame_target_probe('unsupported-menu-' .. name);
     end
     return nil;
+end
+
+function accessxi.poll_gear_detail_hotkeys()
+    local module = accessxi.gear_detail_hotkeys;
+    local state = accessxi.gear_detail_hotkey_state;
+    if (type(module) ~= 'table'
+        or type(module.poll) ~= 'function'
+        or type(module.needs_refresh) ~= 'function'
+        or type(state) ~= 'table') then
+        return false;
+    end
+
+    local vk = module.VK or {};
+    local snapshot = {
+        foreground = accessxi.is_foreground_process(),
+        chat_open = is_chat_input_open ~= nil and is_chat_input_open() or false,
+        modifier_down = accessxi.accessibility_hotkey_modifier_held(),
+        current_menu = tostring(get_menu_name() or ''),
+        context_key = tostring(accessxi.current_speech_key or ''),
+        now = tick(),
+        keys = {
+            J = accessxi.quick_status_key_down(tonumber(vk.J) or 0x4A),
+            K = accessxi.quick_status_key_down(tonumber(vk.K) or 0x4B),
+            L = accessxi.quick_status_key_down(tonumber(vk.L) or 0x4C),
+        },
+    };
+
+    if (module.needs_refresh(state, snapshot)) then
+        accessxi.current_speech_key = '';
+        local ok_refresh, refresh_error = pcall(current_menu_speech, true);
+        if (not ok_refresh) then
+            if (type(module.clear) == 'function') then
+                module.clear(state);
+            end
+            log_state(('state gear-detail refresh-error menu="%s" error="%s"'):fmt(
+                accessxi.escape_probe_log_text(snapshot.current_menu),
+                accessxi.escape_probe_log_text(tostring(refresh_error or ''))));
+            return false;
+        end
+        snapshot.current_menu = tostring(get_menu_name() or '');
+        snapshot.context_key = tostring(accessxi.current_speech_key or '');
+        snapshot.now = tick();
+    end
+
+    local text, handled = module.poll(state, snapshot);
+    if (handled ~= true) then
+        return false;
+    end
+    if (text ~= nil and text ~= '') then
+        speak(text, true);
+        log_line(('gear detail line %d of %d menu="%s" text="%s"'):fmt(
+            tonumber(state.index) or 0,
+            type(state.lines) == 'table' and #state.lines or 0,
+            accessxi.escape_probe_log_text(tostring(state.menu or '')),
+            accessxi.escape_probe_log_text(text)));
+    end
+    return true;
 end
 
 function accessxi.clear_chat_log_deferred_speech()
@@ -81099,6 +88228,83 @@ function accessxi.poll_missions_menu_detail_deferred_speech()
         log_line(text);
     end
     return true;
+end
+
+function accessxi.poll_missions_menu_detail_position_speech(menu_name)
+    menu_name = tostring(menu_name or get_menu_name() or '');
+    if (not menu_name:eq('menu    miss00', true)) then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+    if (type(accessxi.detail_summary_navigation) ~= 'table'
+        or type(accessxi.detail_summary_navigation.begin_surface) ~= 'function'
+        or type(accessxi.detail_summary_navigation.current_line) ~= 'function') then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+
+    local row = accessxi.last_missions_menu_detail_row;
+    local cached_obj = tonumber(accessxi.last_missions_menu_detail_summary_obj) or 0;
+    local context = tostring(accessxi.last_missions_menu_detail_summary_context or '');
+    local row_age = (tonumber(accessxi.last_missions_menu_detail_summary_tick) or 0) > 0
+        and (tick() - (tonumber(accessxi.last_missions_menu_detail_summary_tick) or 0))
+        or 999999;
+    local obj = get_current_menu_object_ptr();
+    if (type(row) ~= 'table'
+        or row_age > 30000
+        or not accessxi.is_probe_pointer(obj)
+        or obj ~= cached_obj) then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+
+    local entry = read_u32(obj + 0x08);
+    if (not accessxi.is_probe_pointer(entry)) then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+    local _, desc_id = accessxi.missions_menu_descriptor_row(entry);
+    if (not accessxi.missions_menu_detail_section_active(desc_id, row, entry)) then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+
+    local position = tonumber(read_current_native_menu_index(0x4C)) or 0;
+    local lines, lines_reason = accessxi.mission_detail_summary_lines(row);
+    local surface_key = accessxi.mission_detail_summary_surface_key(menu_name, context, row, obj);
+    if (position <= 0 or type(lines) ~= 'table' or #lines <= 0 or surface_key == '') then
+        accessxi.reset_mission_detail_summary_surface();
+        return false;
+    end
+    accessxi.last_missions_menu_detail_summary_tick = tick();
+
+    if (surface_key ~= tostring(accessxi.last_missions_menu_detail_summary_surface_key or '')) then
+        accessxi.detail_summary_navigation.begin_surface(
+            accessxi.mission_detail_summary_state, surface_key, position);
+        accessxi.missions_menu_detail_speech_protect_until = 0;
+        return false;
+    end
+
+    local text, line_index, reason = accessxi.detail_summary_navigation.current_line(
+        accessxi.mission_detail_summary_state, surface_key, position, lines);
+    if (text == nil or text == '') then
+        if (reason ~= 'unchanged-position') then
+            local quiet_key = ('%s:%d:%s:%s'):fmt(surface_key, position, tostring(reason or ''), tostring(lines_reason or ''));
+            if (quiet_key ~= tostring(accessxi.last_mission_detail_summary_quiet_key or '')) then
+                accessxi.last_mission_detail_summary_quiet_key = quiet_key;
+                log_state(('state mission summary-position-quiet menu="%s" position=%d lines=%d reason="%s" source="%s"'):fmt(
+                    accessxi.escape_probe_log_text(menu_name),
+                    position,
+                    #lines,
+                    accessxi.escape_probe_log_text(tostring(reason or '')),
+                    accessxi.escape_probe_log_text(tostring(lines_reason or ''))));
+            end
+        end
+        return true;
+    end
+
+    return accessxi.speak_detail_summary_position_line(
+        'mission', menu_name, surface_key, position, line_index, text);
 end
 
 function accessxi.poll_chat_log_deferred_speech()
@@ -81377,6 +88583,12 @@ local function poll_menu()
     if (accessxi.poll_quests_menu_detail_deferred_speech()) then
         return;
     end
+    if (accessxi.poll_missions_menu_detail_position_speech(menu_name)) then
+        return;
+    end
+    if (accessxi.poll_quests_menu_detail_position_speech(menu_name)) then
+        return;
+    end
     if (tostring(menu_name or ''):eq('menu    miss00', true)
         and now < (tonumber(accessxi.missions_menu_detail_speech_protect_until) or 0)) then
         return;
@@ -81399,6 +88611,9 @@ local function poll_menu()
         accessxi.records_of_eminence_poll_detail_native_signal();
     end
     if (accessxi.poll_records_of_eminence_summary_open_speech(menu_name)) then
+        return;
+    end
+    if (accessxi.poll_records_of_eminence_detail_position_speech()) then
         return;
     end
     local roe_summary_open_blocks_list = false;
@@ -82166,6 +89381,95 @@ function accessxi.nav_collision_control_interrupt_state()
     return false, '';
 end
 
+function accessxi.axi_drive_stop(reason)
+    local was_active = (tonumber(accessxi.axi_drive_directinput_key) or 0) > 0;
+    local direction = tostring(accessxi.axi_drive_direction or '');
+    accessxi.axi_drive_directinput_key = 0;
+    accessxi.axi_drive_until = 0;
+    accessxi.axi_drive_direction = '';
+    if (was_active) then
+        log_line(('axi drive stopped direction=%s reason="%s"'):fmt(
+            direction,
+            accessxi.escape_probe_log_text(tostring(reason or 'stopped'))));
+    end
+    return was_active;
+end
+
+function accessxi.poll_axi_drive(now)
+    local directinput_key = tonumber(accessxi.axi_drive_directinput_key) or 0;
+    if (directinput_key <= 0) then
+        return false;
+    end
+
+    now = tonumber(now) or tick();
+    if ((type(accessxi.nav_zoning_watch_active) == 'function' and accessxi.nav_zoning_watch_active(now))
+        or (type(accessxi.nav_zone_load_settle_active) == 'function' and accessxi.nav_zone_load_settle_active(now))) then
+        return accessxi.axi_drive_stop('zoning');
+    end
+    if (now >= (tonumber(accessxi.axi_drive_until) or 0)) then
+        return accessxi.axi_drive_stop('expired');
+    end
+    if (not accessxi.is_foreground_process()) then
+        return accessxi.axi_drive_stop('foreground-lost');
+    end
+
+    local interrupted, reason = accessxi.nav_collision_control_interrupt_state();
+    if (interrupted == true) then
+        return accessxi.axi_drive_stop(('blocked:%s'):fmt(tostring(reason or 'game-input')));
+    end
+    return false;
+end
+
+function accessxi.axi_drive_command(args)
+    local direction = tostring(args[3] or ''):trim():lower();
+    if (direction:any('stop', 'off', '0')) then
+        local stopped = accessxi.axi_drive_stop('manual');
+        return stopped and 'Drive stopped.' or 'Drive is already stopped.';
+    end
+    if (direction ~= '2' and direction ~= '4' and direction ~= '6' and direction ~= '8') then
+        return 'Drive needs numpad direction 2, 4, 6, or 8.';
+    end
+    if (not accessxi.is_foreground_process()) then
+        return 'Drive blocked because Final Fantasy XI is not in the foreground.';
+    end
+
+    local interrupted, reason = accessxi.nav_collision_control_interrupt_state();
+    if (interrupted == true) then
+        return ('Drive blocked by %s.'):fmt(tostring(reason or 'game input'));
+    end
+
+    local duration = tonumber(args[4]) or 150;
+    duration = math.floor(math.max(
+        tonumber(accessxi.axi_drive_min_ms) or 50,
+        math.min(duration, tonumber(accessxi.axi_drive_max_ms) or 500)));
+
+    local virtual_key = accessxi.VK_NUMPAD2;
+    if (direction == '4') then
+        virtual_key = accessxi.VK_NUMPAD4;
+    elseif (direction == '6') then
+        virtual_key = accessxi.VK_NUMPAD6;
+    elseif (direction == '8') then
+        virtual_key = accessxi.VK_NUMPAD8;
+    end
+
+    local directinput_key = tonumber(safe_call(function ()
+        return AshitaCore:GetInputManager():GetKeyboard():V2D(virtual_key);
+    end, 0)) or 0;
+    if (directinput_key <= 0 or directinput_key > 255) then
+        return 'Drive blocked because the DirectInput key mapping is unavailable.';
+    end
+
+    accessxi.axi_drive_stop('replaced');
+    accessxi.axi_drive_directinput_key = directinput_key;
+    accessxi.axi_drive_until = tick() + duration;
+    accessxi.axi_drive_direction = direction;
+    log_line(('axi drive started direction=%s duration_ms=%d directinput_key=%d'):fmt(
+        direction,
+        duration,
+        directinput_key));
+    return ('Drive numpad %s for %d milliseconds.'):fmt(direction, duration);
+end
+
 function accessxi.nav_collision_update_control_interrupt(now)
     now = tonumber(now) or tick();
     local active, reason = accessxi.nav_collision_control_interrupt_state();
@@ -82263,7 +89567,8 @@ function accessxi.nav_player_movement_signal(player, now)
     local recent_tick = tonumber(accessxi.nav_movement_recent_tick) or 0;
     local move_count_recent = ((now - (tonumber(accessxi.nav_movement_last_move_count_tick) or 0)) <= recent_ms);
     local recent_movement = recent_tick > 0 and ((now - recent_tick) <= recent_ms);
-    local active = moving_now or auto_running or move_count_changed or move_count_recent or recent_movement;
+    local input_intent = accessxi.nav_collision_forward_input_intent(now);
+    local active = moving_now or auto_running or move_count_changed or move_count_recent or input_intent;
     local reason = 'idle';
     if (moving_now) then
         reason = 'moving';
@@ -82271,6 +89576,8 @@ function accessxi.nav_player_movement_signal(player, now)
         reason = 'autorun';
     elseif (move_count_changed or move_count_recent) then
         reason = 'move-count';
+    elseif (input_intent) then
+        reason = 'input-forward';
     elseif (recent_movement) then
         reason = 'recent-movement';
     end
@@ -82282,11 +89589,30 @@ function accessxi.nav_player_movement_signal(player, now)
         move_count_changed = move_count_changed,
         move_count_recent = move_count_recent,
         recent_movement = recent_movement,
+        input_intent = input_intent,
         actual_moved = actual_moved,
         actual_delta = actual_delta,
         move_count = move_count,
         reason = reason,
     };
+end
+
+function accessxi.nav_collision_fresh_movement_intent(movement_signal)
+    movement_signal = movement_signal or T{};
+    return movement_signal.actual_moved == true
+        or movement_signal.moving == true
+        or movement_signal.autorun == true
+        or movement_signal.move_count_changed == true
+        or movement_signal.input_intent == true;
+end
+
+function accessxi.nav_collision_current_movement_intent(movement_signal)
+    movement_signal = movement_signal or T{};
+    return movement_signal.moving == true
+        or movement_signal.autorun == true
+        or movement_signal.move_count_changed == true
+        or movement_signal.move_count_recent == true
+        or movement_signal.input_intent == true;
 end
 
 function accessxi.nav_collision_reset(player, destination_distance, route_distance, now)
@@ -82297,12 +89623,45 @@ function accessxi.nav_collision_reset(player, destination_distance, route_distan
     accessxi.nav_collision_tick = tonumber(now) or tick();
 end
 
+function accessxi.nav_collision_forward_key(key)
+    key = tonumber(key) or 0;
+    return key == VK_UP or key == accessxi.VK_W or key == accessxi.VK_NUMPAD8;
+end
+
+function accessxi.nav_collision_note_movement_key(key, down)
+    key = tonumber(key) or 0;
+    if (not accessxi.nav_collision_forward_key(key)) then
+        return false;
+    end
+
+    if (down == true) then
+        accessxi.nav_collision_forward_intent_tick = tick();
+        accessxi.nav_collision_forward_intent_key = key;
+    elseif (key == (tonumber(accessxi.nav_collision_forward_intent_key) or 0)) then
+        accessxi.nav_collision_forward_intent_tick = 0;
+        accessxi.nav_collision_forward_intent_key = 0;
+    end
+    return true;
+end
+
+function accessxi.nav_collision_forward_input_intent(now)
+    now = tonumber(now) or tick();
+    local last = tonumber(accessxi.nav_collision_forward_intent_tick) or 0;
+    local key = tonumber(accessxi.nav_collision_forward_intent_key) or 0;
+    local window = tonumber(accessxi.nav_collision_input_intent_ms) or 1200;
+    local hold_window = tonumber(accessxi.nav_collision_forward_hold_ms) or 30000;
+    if (last <= 0 or key == 0) then
+        return false;
+    end
+    return (now - last) <= math.max(window, hold_window);
+end
+
 function accessxi.nav_collision_state(player, destination, route_target, destination_distance, now, movement_signal)
     if (player == nil or destination == nil or route_target == nil) then
         return nil;
     end
     movement_signal = movement_signal or T{};
-    if (movement_signal.active ~= true) then
+    if (not accessxi.nav_collision_current_movement_intent(movement_signal)) then
         accessxi.nav_collision_reset(nil, 0, 0, 0);
         return nil;
     end
@@ -82387,16 +89746,207 @@ function accessxi.nav_collision_state(player, destination, route_target, destina
     };
 end
 
-function accessxi.nav_collision_watch(player, destination, route_target, destination_distance, now)
+function accessxi.nav_entity_is_verified_door(pos)
+    if (pos == nil or tonumber(pos.type) ~= 3) then
+        return false;
+    end
+
+    local name = nav_clean_field(pos.name or ''):lower();
+    if (name == '' or name == '???') then
+        return false;
+    end
+    return name:contains('door')
+        or name:contains('gate')
+        or name:contains('entrance')
+        or name:contains('hatch')
+        or name:contains('postern')
+        or name:contains('portcullis')
+        or name:contains('flap');
+end
+
+function accessxi.nav_verified_door_ahead(player, route_target)
+    if (player == nil or route_target == nil) then
+        return nil;
+    end
+
+    local route_x = (tonumber(route_target.x) or 0) - (tonumber(player.x) or 0);
+    local route_z = (tonumber(route_target.z) or 0) - (tonumber(player.z) or 0);
+    local route_length = math.sqrt((route_x * route_x) + (route_z * route_z));
+    if (route_length < 0.25) then
+        return nil;
+    end
+    local unit_x = route_x / route_length;
+    local unit_z = route_z / route_length;
+    local best = nil;
+    local best_distance = nil;
+
+    for _, pos in ipairs(accessxi.nav_live_entity_snapshot(80, 12)) do
+        if (accessxi.nav_entity_is_verified_door(pos)
+            and (tonumber(pos.zone) or 0) == (tonumber(player.zone) or 0)) then
+            local entity_x = (tonumber(pos.x) or 0) - (tonumber(player.x) or 0);
+            local entity_z = (tonumber(pos.z) or 0) - (tonumber(player.z) or 0);
+            local ahead = (entity_x * unit_x) + (entity_z * unit_z);
+            local side = math.abs((entity_x * unit_z) - (entity_z * unit_x));
+            local distance = math.sqrt((entity_x * entity_x) + (entity_z * entity_z));
+            if (ahead > 0 and ahead <= 12 and side <= 4.5 and distance <= 12
+                and (best == nil or distance < best_distance)) then
+                best = pos;
+                best_distance = distance;
+            end
+        end
+    end
+
+    return best;
+end
+
+function accessxi.nav_door_wait_clear(reason)
+    local active = (tonumber(accessxi.nav_door_wait_until) or 0) > 0;
+    local name = tostring(accessxi.nav_door_wait_name or '');
+    accessxi.nav_door_wait_until = 0;
+    accessxi.nav_door_pause_until = 0;
+    accessxi.nav_door_x = nil;
+    accessxi.nav_door_z = nil;
+    accessxi.nav_door_route_unit_x = nil;
+    accessxi.nav_door_route_unit_z = nil;
+    accessxi.nav_door_wait_key = '';
+    accessxi.nav_door_wait_name = '';
+    if (active) then
+        log_line(('nav door wait clear reason="%s" name="%s"'):fmt(
+            accessxi.escape_probe_log_text(reason or ''),
+            accessxi.escape_probe_log_text(name)));
+    end
+end
+
+function accessxi.nav_door_context_active(now)
+    now = tonumber(now) or tick();
+    return (tonumber(accessxi.nav_door_wait_until) or 0) > now;
+end
+
+function accessxi.nav_door_waiting(player, now)
+    now = tonumber(now) or tick();
+    local until_tick = tonumber(accessxi.nav_door_wait_until) or 0;
+    if (until_tick <= 0) then
+        return false;
+    end
+    if (now >= until_tick) then
+        accessxi.nav_door_wait_clear('timeout');
+        return false;
+    end
+
+    if (player ~= nil
+        and accessxi.nav_door_x ~= nil
+        and accessxi.nav_door_z ~= nil
+        and accessxi.nav_door_route_unit_x ~= nil
+        and accessxi.nav_door_route_unit_z ~= nil) then
+        local dx = (tonumber(player.x) or 0) - (tonumber(accessxi.nav_door_x) or 0);
+        local dz = (tonumber(player.z) or 0) - (tonumber(accessxi.nav_door_z) or 0);
+        local progress = (dx * (tonumber(accessxi.nav_door_route_unit_x) or 0))
+            + (dz * (tonumber(accessxi.nav_door_route_unit_z) or 0));
+        if (progress >= 1.25) then
+            accessxi.nav_door_wait_clear('crossed-route-plane');
+            return false;
+        end
+    end
+
+    return now < (tonumber(accessxi.nav_door_pause_until) or 0);
+end
+
+function accessxi.nav_door_begin_prompt(player, destination, route_target, door, state, now, source)
+    if (player == nil or route_target == nil or door == nil) then
+        return false, false;
+    end
+
+    local route_x = (tonumber(route_target.x) or 0) - (tonumber(player.x) or 0);
+    local route_z = (tonumber(route_target.z) or 0) - (tonumber(player.z) or 0);
+    local route_length = math.sqrt((route_x * route_x) + (route_z * route_z));
+    if (route_length < 0.25) then
+        return false, false;
+    end
+
+    now = tonumber(now) or tick();
+    local key = ('%d:%d:%s'):fmt(
+        tonumber(door.index) or -1,
+        tonumber(door.server_id) or 0,
+        tostring(door.name or ''));
+    if (key == tostring(accessxi.nav_door_wait_key or '')
+        and now < (tonumber(accessxi.nav_door_wait_until) or 0)) then
+        return false, true;
+    end
+
+    local name = nav_clean_field(door.name or 'door');
+    accessxi.nav_door_wait_until = now + 15000;
+    accessxi.nav_door_pause_until = now + 2500;
+    accessxi.nav_door_x = tonumber(door.x);
+    accessxi.nav_door_z = tonumber(door.z);
+    accessxi.nav_door_route_unit_x = route_x / route_length;
+    accessxi.nav_door_route_unit_z = route_z / route_length;
+    accessxi.nav_door_wait_key = key;
+    accessxi.nav_door_wait_name = name;
+
+    local text = ('Door ahead: %s. Press Tab until %s is targeted, then press Enter to open it. Navigation will resume with the beacon through the doorway.'):fmt(name, name);
+    nav_write_route_evidence('door', player, destination, door, T{
+        wall = state ~= nil and state.wall or nil,
+        off_route = state ~= nil and state.route_distance or 0,
+        moved = state ~= nil and state.moved or 0,
+        improve = state ~= nil and state.route_improvement or 0,
+        reason = text,
+    });
+    speak(text);
+    log_line(('nav door prompt source=%s name="%s" index=%d server=%d distance=%.1f route=(%.3f,%.3f) %s'):fmt(
+        tostring(source or 'route'),
+        accessxi.escape_probe_log_text(name),
+        tonumber(door.index) or -1,
+        tonumber(door.server_id) or 0,
+        nav_distance(player, door),
+        accessxi.nav_door_route_unit_x or 0,
+        accessxi.nav_door_route_unit_z or 0,
+        text));
+    return true, true;
+end
+
+function accessxi.nav_door_prompt_for_route(player, destination, route_target, now)
+    local door = accessxi.nav_verified_door_ahead(player, route_target);
+    if (door == nil or nav_distance(player, door) > 6) then
+        return false;
+    end
+
+    local prompted = accessxi.nav_door_begin_prompt(
+        player, destination, route_target, door, nil, now, 'route');
+    return prompted == true;
+end
+
+function accessxi.nav_door_prompt_for_collision(player, destination, route_target, state, now)
+    if (state == nil or state.state ~= 'blocked') then
+        return false;
+    end
+
+    local door = accessxi.nav_verified_door_ahead(player, route_target);
+    if (door == nil) then
+        return false;
+    end
+
+    local _, handled = accessxi.nav_door_begin_prompt(
+        player, destination, route_target, door, state, now, 'collision');
+    return handled == true;
+end
+
+function accessxi.nav_collision_watch(player, destination, route_target, destination_distance, now, movement_signal)
     now = tonumber(now) or tick();
     if (now < (tonumber(accessxi.nav_collision_quiet_until) or 0)) then
         accessxi.nav_collision_reset(nil, 0, 0, now);
         return false;
     end
 
-    local state = accessxi.nav_collision_state(player, destination, route_target, destination_distance, now, accessxi.nav_player_movement_signal(player, now));
+    movement_signal = movement_signal or accessxi.nav_player_movement_signal(player, now);
+    local state = accessxi.nav_collision_state(player, destination, route_target, destination_distance, now, movement_signal);
     if (state == nil) then
         return false;
+    end
+
+    if (accessxi.nav_door_prompt_for_collision(player, destination, route_target, state, now)) then
+        accessxi.nav_collision_play_sound(state.state, now);
+        accessxi.nav_collision_reset(player, destination_distance, state.route_distance, now);
+        return true;
     end
 
     local key = ('%s:%s:%d:%d'):fmt(
@@ -82461,7 +90011,10 @@ function accessxi.nav_freewalk_collision_state(player, now, movement_signal)
     now = tonumber(now) or tick();
     local recent_tick = tonumber(accessxi.nav_movement_recent_tick) or 0;
     local recent_age = recent_tick > 0 and (now - recent_tick) or 999999;
-    if (movement_signal.moving ~= true and movement_signal.autorun ~= true and movement_signal.move_count_recent ~= true) then
+    if (movement_signal.moving ~= true
+        and movement_signal.autorun ~= true
+        and movement_signal.move_count_recent ~= true
+        and movement_signal.input_intent ~= true) then
         accessxi.nav_freewalk_collision_reset(nil, now);
         return nil;
     end
@@ -82557,10 +90110,15 @@ function accessxi.poll_nav_collision_sound()
         return false;
     end
 
+    if (accessxi.nav_active == true and accessxi.nav_destination ~= nil) then
+        accessxi.nav_freewalk_collision_reset(nil, now);
+        return false;
+    end
+
     local player = nav_cached_player_position();
     local movement_signal = accessxi.nav_player_movement_signal(player, now);
     if (accessxi.nav_collision_require_fresh_movement == true) then
-        if (movement_signal.actual_moved == true) then
+        if (accessxi.nav_collision_fresh_movement_intent(movement_signal)) then
             accessxi.nav_collision_require_fresh_movement = false;
         else
             accessxi.nav_freewalk_collision_reset(nil, now);
@@ -82600,6 +90158,51 @@ function accessxi.poll_nav_collision_sound()
     return true;
 end
 
+function accessxi.nav_route_contact_sound(player, route_target, now, movement_signal)
+    if (player == nil or route_target == nil) then
+        return false;
+    end
+    now = tonumber(now) or tick();
+    if (now < (tonumber(accessxi.nav_collision_quiet_until) or 0)) then
+        return false;
+    end
+
+    movement_signal = movement_signal or T{};
+    if (not accessxi.nav_collision_current_movement_intent(movement_signal)) then
+        return false;
+    end
+    if (movement_signal.actual_moved == true) then
+        return false;
+    end
+
+    local wall = accessxi.nav_wall_distance(player);
+    if (wall == nil or wall > 0.8) then
+        return false;
+    end
+
+    local interval = tonumber(accessxi.nav_collision_route_contact_sound_ms) or 1300;
+    if ((now - (tonumber(accessxi.nav_collision_route_contact_last_sound_tick) or 0)) < interval) then
+        return true;
+    end
+    accessxi.nav_collision_route_contact_last_sound_tick = now;
+
+    local route_distance = nav_distance(player, route_target);
+    local sound_ok = accessxi.nav_collision_play_sound('blocked', now);
+    local key = ('%d:%d:%d'):fmt(
+        math.floor((tonumber(player.x) or 0) * 2),
+        math.floor((tonumber(player.z) or 0) * 2),
+        math.floor((tonumber(wall) or 0) * 10));
+    if (key ~= accessxi.nav_collision_route_contact_last_log_key or sound_ok ~= true) then
+        accessxi.nav_collision_route_contact_last_log_key = key;
+        log_line(('nav collision contact intent=%s route=%.1f wall=%.2f sound=%s'):fmt(
+            tostring(movement_signal.reason or ''),
+            route_distance,
+            wall,
+            sound_ok and 'ok' or 'failed'));
+    end
+    return sound_ok;
+end
+
 function accessxi.nav_current_route_instruction()
     if (not accessxi.nav_active or accessxi.nav_destination == nil) then
         return '';
@@ -82625,8 +90228,12 @@ function accessxi.nav_current_route_instruction()
         elseif (accessxi.nav_route_point_index > route_count) then
             accessxi.nav_route_point_index = route_count;
         end
-        route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
-        route_target = route_target or accessxi.nav_route_points[accessxi.nav_route_point_index] or destination;
+        route_target = accessxi.nav_route_points[accessxi.nav_route_point_index] or destination;
+        next_target = (accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
+        if (not accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
+            route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
+            route_target = route_target or accessxi.nav_route_points[accessxi.nav_route_point_index] or destination;
+        end
     end
 
     local phrase = accessxi.nav_guidance_phrase(player, route_target, next_target, false);
@@ -83416,6 +91023,96 @@ function accessxi.poll_enemy_warning()
     end
 end
 
+function accessxi.nav_precise_beacon_lookahead_allowed(player, route_target, next_target)
+    if (player == nil or route_target == nil or next_target == nil) then
+        return false;
+    end
+
+    local approach_x = (tonumber(route_target.x) or 0) - (tonumber(player.x) or 0);
+    local approach_z = (tonumber(route_target.z) or 0) - (tonumber(player.z) or 0);
+    local exit_x = (tonumber(next_target.x) or 0) - (tonumber(route_target.x) or 0);
+    local exit_z = (tonumber(next_target.z) or 0) - (tonumber(route_target.z) or 0);
+    local approach_length = math.sqrt((approach_x * approach_x) + (approach_z * approach_z));
+    local exit_length = math.sqrt((exit_x * exit_x) + (exit_z * exit_z));
+    if (approach_length > 5 or exit_length <= 0.25) then
+        return false;
+    end
+    if (approach_length <= 0.75) then
+        return true;
+    end
+
+    local turn_cosine = ((approach_x * exit_x) + (approach_z * exit_z))
+        / (approach_length * exit_length);
+    return turn_cosine >= 0.70710678;
+end
+
+function accessxi.nav_precise_route_return_clear()
+    accessxi.nav_precise_return_target = nil;
+    accessxi.nav_precise_return_points = nil;
+    accessxi.nav_precise_return_segment = 0;
+end
+
+function accessxi.nav_precise_steering_target(player, points, index, lookahead)
+    if (player == nil) then
+        return nil;
+    end
+
+    index = tonumber(index) or 1;
+    local preferred_segment = math.max(1, index - 1);
+    local route_id = tostring(points ~= nil and points[1] ~= nil and points[1].route_override_id or ''):lower();
+    local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1;
+    local effective_lookahead = smooth_lookahead and math.max(9, tonumber(lookahead) or 0) or lookahead;
+    local px = tonumber(player.x) or 0;
+    local pz = tonumber(player.z) or 0;
+    local delicate_recorded_curve = route_id == 'lathine-recorded-corridor-20260712-01'
+        or (route_id:find('lathine-recorded-corridor-20260712-west-via-', 1, true) == 1
+            and px >= -465 and px <= -430 and pz >= 205 and pz <= 275);
+    if (not smooth_lookahead and delicate_recorded_curve) then
+        effective_lookahead = math.min(2.25, tonumber(effective_lookahead) or 5);
+    end
+    local anchor = accessxi.nav_precise_return_target;
+    local match = nil;
+    if (anchor ~= nil) then
+        if (accessxi.nav_precise_return_points ~= points) then
+            accessxi.nav_precise_route_return_clear();
+        else
+            match = accessxi.nav_route_live_match(player, points, preferred_segment);
+            local anchor_segment = tonumber(accessxi.nav_precise_return_segment) or 0;
+            local safely_ahead = match ~= nil
+                and (tonumber(match.segment) or 0) > anchor_segment
+                and (tonumber(match.horizontal) or 999999) <= 3.25
+                and (tonumber(match.vertical) or 999999) <= 2.0
+                and (not delicate_recorded_curve or nav_distance(player, anchor) >= 1.25);
+            if (safely_ahead) then
+                accessxi.nav_precise_route_return_clear();
+            else
+                local horizontal = nav_distance(player, anchor);
+                local vertical = math.abs((tonumber(player.y) or 0) - (tonumber(anchor.y) or 0));
+                local reached_distance = delicate_recorded_curve and 0.35 or 1.25;
+                if (horizontal <= reached_distance and vertical <= 2.0) then
+                    accessxi.nav_precise_route_return_clear();
+                elseif (horizontal <= 6.0 and vertical <= 4.5) then
+                    return anchor;
+                else
+                    return nil;
+                end
+            end
+        end
+    end
+
+    match = match or accessxi.nav_route_live_match(player, points, preferred_segment);
+    local target = accessxi.nav_route_target_from_match(
+        player, points, match, effective_lookahead, smooth_lookahead);
+    if (target ~= nil and tostring(target.source or '') == 'live-route-return') then
+        accessxi.nav_precise_return_target = target;
+        accessxi.nav_precise_return_points = points;
+        accessxi.nav_precise_return_segment = tonumber(match ~= nil and match.segment) or 0;
+    else
+        accessxi.nav_precise_route_return_clear();
+    end
+    return target;
+end
+
 function accessxi.nav_beacon_route_target(player)
     if (player == nil or not accessxi.nav_active or accessxi.nav_destination == nil) then
         return nil;
@@ -83433,6 +91130,11 @@ function accessxi.nav_beacon_route_target(player)
             accessxi.nav_route_point_index = 1;
         elseif (accessxi.nav_route_point_index > route_count) then
             accessxi.nav_route_point_index = route_count;
+        end
+
+        if (accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
+            return accessxi.nav_precise_steering_target(
+                player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
         end
 
         local route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
@@ -83745,7 +91447,7 @@ function accessxi.nav_reset_progress_watch(player, destination_distance, now)
     accessxi.nav_progress_tick = tonumber(now) or tick();
 end
 
-function accessxi.nav_progress_watch(player, destination, route_target, destination_distance, now)
+function accessxi.nav_progress_watch(player, destination, route_target, destination_distance, now, movement_signal)
     if (player == nil or destination == nil or route_target == nil) then
         return false;
     end
@@ -83753,6 +91455,12 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
     now = tonumber(now) or tick();
     if (now < (tonumber(accessxi.nav_collision_quiet_until) or 0)) then
         accessxi.nav_reset_progress_watch(nil, 0, now);
+        return false;
+    end
+
+    movement_signal = movement_signal or accessxi.nav_player_movement_signal(player, now);
+    if (not accessxi.nav_collision_current_movement_intent(movement_signal)) then
+        accessxi.nav_reset_progress_watch(player, destination_distance, now);
         return false;
     end
 
@@ -83794,6 +91502,21 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
         accessxi.nav_route_points = new_points;
         accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, new_points, destination);
         text = text .. ' Route refreshed.';
+    else
+        local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, destination);
+        if (unsafe_route_text ~= '') then
+            nav_write_route_evidence('unreachable', player, destination, nil, T{ wall = wall, off_route = route_distance, reason = unsafe_route_text });
+            accessxi.nav_active = false;
+            accessxi.nav_destination = nil;
+            accessxi.nav_route_points:clear();
+            accessxi.nav_route_point_index = 1;
+            accessxi.nav_last_key = '';
+            accessxi.nav_last_direction_text = unsafe_route_text;
+            speak(unsafe_route_text);
+            log_line('nav blocked unsafe ' .. unsafe_route_text);
+            accessxi.nav_reset_progress_watch(player, destination_distance, now);
+            return true;
+        end
     end
 
     local failure_key = ('%s:%d:%d:%d'):fmt(destination.name or '', math.floor(tonumber(player.x) or 0), math.floor(tonumber(player.z) or 0), tonumber(accessxi.nav_route_point_index) or 0);
@@ -83804,12 +91527,14 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
     end
 
     accessxi.nav_last_direction_text = text;
+    local sound_ok = accessxi.nav_collision_play_sound('blocked', now);
     speak(text);
-    log_line(('nav blocked moved=%.1f improve=%.1f route=%.1f wall=%s %s'):fmt(
+    log_line(('nav blocked moved=%.1f improve=%.1f route=%.1f wall=%s sound=%s %s'):fmt(
         moved,
         improvement,
         route_distance,
         wall ~= nil and ('%.2f'):fmt(wall) or 'unknown',
+        sound_ok and 'ok' or 'failed',
         text));
     accessxi.nav_reset_progress_watch(player, destination_distance, now);
     return true;
@@ -83843,12 +91568,33 @@ function accessxi.poll_nav_beacon()
     end
 
     local player = nav_cached_player_position();
-    local route_target = accessxi.nav_beacon_route_target(player);
+    local route_target = nil;
+    local drop_handled = false;
+    if (type(accessxi.nav_dangruf_fount_drop_beacon_target) == 'function') then
+        route_target, drop_handled = accessxi.nav_dangruf_fount_drop_beacon_target(player, now);
+    end
+    local transport_waiting = false;
+    if (not drop_handled and type(accessxi.nav_transport_waiting_beacon_target) == 'function') then
+        route_target, transport_waiting = accessxi.nav_transport_waiting_beacon_target(player, now);
+        if (transport_waiting and route_target == nil) then
+            return;
+        end
+    end
+    if (not drop_handled and not transport_waiting) then
+        if (accessxi.nav_door_waiting(player, now)) then
+            return;
+        end
+        route_target = accessxi.nav_beacon_route_target(player);
+    end
     if (player == nil or route_target == nil) then
         return;
     end
-    route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
-    route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+    local precise_override = (not drop_handled and not transport_waiting)
+        and accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
+    if (not precise_override and not transport_waiting and not drop_handled) then
+        route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
+        route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+    end
 
     local destination_distance = nav_distance(player, accessxi.nav_destination);
     if (destination_distance <= accessxi.nav_arrival_radius(accessxi.nav_destination)) then
@@ -83891,7 +91637,8 @@ local function poll_nav_route()
     end
 
     local now = tick();
-    if ((now - (accessxi.nav_last_tick or 0)) < 1500) then
+    accessxi.nav_precise_route_track_index(nav_cached_player_position(), now);
+    if ((now - (accessxi.nav_last_tick or 0)) < (tonumber(accessxi.nav_route_poll_ms) or 850)) then
         return;
     end
     accessxi.nav_last_tick = now;
@@ -83905,6 +91652,9 @@ local function poll_nav_route()
 
     local player = nav_cached_player_position();
     if (player == nil) then
+        return;
+    end
+    if (accessxi.nav_door_waiting(player, now)) then
         return;
     end
 
@@ -83945,11 +91695,35 @@ local function poll_nav_route()
         end
     end
 
+    if (type(accessxi.nav_dangruf_fount_drop_poll) == 'function'
+        and accessxi.nav_dangruf_fount_drop_poll(player, destination, now)) then
+        return;
+    end
+
+    if (type(accessxi.nav_transport_transition_poll) == 'function'
+        and accessxi.nav_transport_transition_poll(player, destination, now)) then
+        return;
+    end
+
     if ((accessxi.nav_route_points:len() == 0) and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 3000)) then
         accessxi.nav_route_last_recalc_tick = now;
         accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
         if (accessxi.nav_route_points:len() > 1) then
             accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, accessxi.nav_route_points, destination);
+        else
+            local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, destination);
+            if (unsafe_route_text ~= '') then
+                nav_write_route_evidence('unreachable', player, destination, nil, T{ reason = unsafe_route_text });
+                accessxi.nav_active = false;
+                accessxi.nav_destination = nil;
+                accessxi.nav_route_points:clear();
+                accessxi.nav_route_point_index = 1;
+                accessxi.nav_last_key = '';
+                accessxi.nav_last_direction_text = unsafe_route_text;
+                speak(unsafe_route_text);
+                log_line('nav route blocked ' .. unsafe_route_text);
+                return;
+            end
         end
     end
 
@@ -83964,14 +91738,71 @@ local function poll_nav_route()
     end
 
     local route_count = accessxi.nav_route_points:len();
-    if (route_count > 1 and not accessxi.nav_route_points_are_override(accessxi.nav_route_points)) then
-        local override_handoff = accessxi.nav_route_override_points(player, destination);
+    local route_delta = nil;
+    if (route_count > 1) then
+        local current_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
+        local current_is_override = accessxi.nav_route_points_are_override(accessxi.nav_route_points);
+        local survey_authoritative = current_id:startswith('lathine-recorded-survey-');
+        local lower_ravine_handoff = (not survey_authoritative)
+            and accessxi.nav_lathine_lower_ravine_position(player)
+            and current_id ~= 'lathine-fallen-ravine-to-west-ronfaure-zoneline';
+        local override_handoff = T{};
+        if ((not current_is_override) or lower_ravine_handoff) then
+            override_handoff = accessxi.nav_route_override_points(player, destination);
+        end
+        local recorded_handoff = accessxi.nav_lathine_live_recorded_corridor_handoff(
+            player, destination, accessxi.nav_route_points);
+        if (recorded_handoff:len() > 1) then
+            override_handoff = recorded_handoff;
+        end
         if (override_handoff:len() > 1) then
-            accessxi.nav_route_points = override_handoff;
-            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, override_handoff, destination);
+            local handoff_id = accessxi.nav_route_points_override_id(override_handoff);
+            if (override_handoff:len() > 1
+                and ((not current_is_override)
+                    or (handoff_id ~= '' and handoff_id ~= current_id))) then
+                accessxi.nav_route_points = override_handoff;
+                accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, override_handoff, destination);
+                accessxi.nav_route_last_recalc_tick = now;
+                route_count = accessxi.nav_route_points:len();
+                log_line(('nav route override handoff destination="%s" id="%s" from="%s" count=%d'):fmt(destination.name or '', handoff_id, current_id, route_count));
+            end
+        end
+    end
+
+    if (route_count > 1 and not accessxi.nav_door_context_active(now)) then
+        route_delta = accessxi.nav_route_position_delta(player, accessxi.nav_route_points);
+        local live_replan_reason = accessxi.nav_route_live_replan_reason(player, destination, accessxi.nav_route_points, route_delta);
+        local live_key = ('%s:%s'):fmt(live_replan_reason, accessxi.nav_route_points_override_id(accessxi.nav_route_points));
+        if (live_replan_reason ~= ''
+            and ((now - (tonumber(accessxi.nav_route_live_replan_last_tick) or 0)) > 1200
+                or live_key ~= tostring(accessxi.nav_route_live_replan_last_key or ''))) then
+            accessxi.nav_route_live_replan_last_key = live_key;
+            accessxi.nav_route_live_replan_last_tick = now;
             accessxi.nav_route_last_recalc_tick = now;
-            route_count = accessxi.nav_route_points:len();
-            log_line(('nav route override handoff destination="%s" count=%d'):fmt(destination.name or '', route_count));
+            local new_points = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
+            if (new_points:len() > 1) then
+                accessxi.nav_route_points = new_points;
+                accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, new_points, destination);
+                route_count = accessxi.nav_route_points:len();
+                route_delta = accessxi.nav_route_position_delta(player, accessxi.nav_route_points);
+                accessxi.nav_reset_progress_watch(player, nav_distance(player, destination), now);
+                accessxi.nav_collision_reset(nil, 0, 0, now);
+                local new_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
+                log_line(('nav live replan reason="%s" destination="%s" id="%s" count=%d horizontal=%.1f vertical=%.1f below=%.1f'):fmt(
+                    live_replan_reason,
+                    destination.name or '',
+                    new_id,
+                    route_count,
+                    route_delta ~= nil and (tonumber(route_delta.horizontal) or 0) or 0,
+                    route_delta ~= nil and (tonumber(route_delta.vertical) or 0) or 0,
+                    route_delta ~= nil and (tonumber(route_delta.below) or 0) or 0));
+                nav_write_route_evidence('replanned', player, destination, accessxi.nav_route_points[accessxi.nav_route_point_index] or destination, T{
+                    reason = live_replan_reason,
+                    route_id = new_id,
+                    off_route = route_delta ~= nil and route_delta.horizontal or 0,
+                    below = route_delta ~= nil and route_delta.below or 0,
+                });
+            end
         end
     end
 
@@ -83989,23 +91820,45 @@ local function poll_nav_route()
     end
 
     local next_target = (route_count > 1 and accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
-    if (route_count > 1) then
+    local precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
+    if (route_count > 1 and precise_override) then
+        route_target = accessxi.nav_precise_steering_target(
+            player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+        next_target = nil;
+    elseif (route_count > 1) then
         route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
         route_target = route_target or real_route_target;
     end
-    route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
-    route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+    if (route_count > 1 and precise_override and route_target == nil) then
+        accessxi.nav_last_direction_text = '';
+        return;
+    end
+    if (accessxi.nav_door_prompt_for_route(player, destination, route_target, now)) then
+        return;
+    end
+    if (not precise_override) then
+        route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
+        route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+    end
     local phrase, distance, dx, dz = accessxi.nav_guidance_phrase(player, route_target, next_target, false);
     local real_waypoint_distance = route_count > 1 and nav_distance(player, real_route_target) or distance;
-    if (route_count > 1 and real_waypoint_distance <= accessxi.nav_route_waypoint_arrival_radius(destination) and accessxi.nav_route_point_index < route_count) then
+    if (route_count > 1
+        and not precise_override
+        and real_waypoint_distance <= accessxi.nav_route_waypoint_arrival_radius(destination)
+        and accessxi.nav_route_point_index < route_count) then
         accessxi.nav_route_point_index = accessxi.nav_route_point_index + 1;
         real_route_target = accessxi.nav_route_points[accessxi.nav_route_point_index] or destination;
         route_target = real_route_target;
         next_target = (accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
-        route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
-        route_target = route_target or real_route_target;
-        route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
-        route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+        precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
+        if (not precise_override) then
+            route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
+            route_target = route_target or real_route_target;
+        end
+        if (not precise_override) then
+            route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
+            route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+        end
         phrase, distance, dx, dz = accessxi.nav_guidance_phrase(player, route_target, next_target, false);
         local text = phrase;
         accessxi.nav_last_direction_text = text;
@@ -84014,8 +91867,14 @@ local function poll_nav_route()
         return;
     end
 
-    local off_route_distance = route_count > 1 and accessxi.nav_distance_to_route(player, accessxi.nav_route_points) or 0;
-    if (route_count > 1 and off_route_distance > 16 and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 6000)) then
+    route_delta = route_count > 1 and (route_delta or accessxi.nav_route_position_delta(player, accessxi.nav_route_points)) or nil;
+    local off_route_distance = route_delta ~= nil and (tonumber(route_delta.horizontal) or 0) or 0;
+    local vertical_route_distance = route_delta ~= nil and (tonumber(route_delta.vertical) or 0) or 0;
+    local below_route_distance = route_delta ~= nil and (tonumber(route_delta.below) or 0) or 0;
+    if (route_count > 1
+        and not accessxi.nav_door_context_active(now)
+        and (off_route_distance > 16 or vertical_route_distance > 7.0)
+        and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 6000)) then
         accessxi.nav_route_last_recalc_tick = now;
         local new_points = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
         if (new_points:len() > 1) then
@@ -84025,15 +91884,28 @@ local function poll_nav_route()
             route_target = real_route_target;
             route_count = accessxi.nav_route_points:len();
             next_target = (accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
-            route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
-            route_target = route_target or real_route_target;
-            route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
-            route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+            precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
+            if (precise_override) then
+                route_target = accessxi.nav_precise_steering_target(
+                    player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+                next_target = nil;
+            else
+                route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
+                route_target = route_target or real_route_target;
+            end
+            if (precise_override and route_target == nil) then
+                accessxi.nav_last_direction_text = '';
+                return;
+            end
+            if (not precise_override) then
+                route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
+                route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+            end
             phrase, distance, dx, dz = accessxi.nav_guidance_phrase(player, route_target, next_target, false);
             local text = ('Route adjusted. %s'):fmt(phrase);
             accessxi.nav_last_direction_text = text;
             accessxi.nav_speak_route_guidance(text);
-            log_line(('nav route adjusted offroute=%.1f %s'):fmt(off_route_distance, text));
+            log_line(('nav route adjusted offroute=%.1f vertical=%.1f below=%.1f %s'):fmt(off_route_distance, vertical_route_distance, below_route_distance, text));
             return;
         end
     end
@@ -84041,6 +91913,19 @@ local function poll_nav_route()
     local destination_distance = nav_distance(player, destination);
     if (destination_distance <= accessxi.nav_arrival_radius(destination)) then
         if (accessxi.nav_zone_search_target ~= nil and tostring(destination.source or ''):startswith('zonesearch:')) then
+            if tonumber(destination.same_zone_reentry_step) ~= nil
+                and (type(accessxi.nav_same_zone_reentry_advance) ~= 'function'
+                    or not accessxi.nav_same_zone_reentry_advance(destination)) then
+                local failed_name = nav_clean_field(accessxi.nav_zone_search_target.name or destination.final_name or 'destination');
+                accessxi.nav_clear_zone_search();
+                accessxi.nav_active = false;
+                accessxi.nav_destination = nil;
+                accessxi.nav_route_points:clear();
+                local failed_text = ('Safe re-entry route to %s stopped because the zone step no longer matched.'):fmt(failed_name);
+                speak(failed_text);
+                log_line('nav same-zone reentry arrival rejected ' .. failed_text);
+                return;
+            end
             nav_write_route_evidence('zone-leg-arrived', player, destination, route_target, T{ reason = 'zone search leg arrival' });
             accessxi.nav_begin_zoning_watch('zone-search-zoneline-arrival', player, destination, now);
             accessxi.nav_collision_quiet('zone-search-zoneline-arrival', accessxi.nav_collision_zoneline_quiet_ms, now);
@@ -84113,13 +91998,16 @@ local function poll_nav_route()
         return;
     end
 
-    if (accessxi.nav_collision_watch(player, destination, route_target, destination_distance, now)) then
+    local movement_signal = accessxi.nav_player_movement_signal(player, now);
+    if (accessxi.nav_collision_watch(player, destination, route_target, destination_distance, now, movement_signal)) then
         return;
     end
 
-    if (accessxi.nav_progress_watch(player, destination, route_target, destination_distance, now)) then
+    if (accessxi.nav_progress_watch(player, destination, route_target, destination_distance, now, movement_signal)) then
         return;
     end
+
+    accessxi.nav_route_contact_sound(player, route_target, now, movement_signal);
 
     local key = ('%s:%d:%d:%d:%d'):fmt(destination.name or '', accessxi.nav_route_point_index or 0, math.floor((distance + 2.5) / 5), math.floor((dx + 5) / 10), math.floor((dz + 5) / 10));
     if (key ~= accessxi.nav_last_key) then
@@ -84182,6 +92070,10 @@ function accessxi.run_load_startup(reason)
     load_step('restore-key-items-packet-cache', function () accessxi.restore_key_items_packet_cache_if_needed(); end);
     load_step('load-searchhook', function () accessxi.load_searchhook(); end);
     load_step('macro-active-profile', function () accessxi.macro_active_profile(); end);
+    load_step('blue-magic-current-set-probe', function ()
+        log_state('state blue-magic-current-set-probe ' .. accessxi.blue_magic_current_set_probe_text());
+        log_state('state blue-magic-current-cast-probe ' .. accessxi.blue_magic_current_cast_probe_text());
+    end);
 
     accessxi.ptrs.license  = load_find_pointer('license', '895E1C895E14896E1889??????????EB??89??????????68', 0x0B);
     accessxi.ptrs.lobby    = load_find_pointer('lobby', '89412C8B15????????897C2410894230A1', 0x5);
@@ -84216,6 +92108,7 @@ end);
 accessxi.run_load_startup('top-level');
 
 ashita.events.register('unload', 'unload_cb', function ()
+    accessxi.axi_drive_stop('unload');
     local ok, result = pcall(function () return accessxi.unload_searchhook(); end);
     if (not ok) then
         log_line(('searchhook shutdown failed during unload error="%s"'):fmt(
@@ -84229,12 +92122,13 @@ ashita.events.register('unload', 'unload_cb', function ()
 end);
 
 ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
-    local mode = tonumber(e.mode_modified) or tonumber(e.mode) or 0;
+    local mode = tonumber(e.mode) or tonumber(e.mode_modified) or 0;
     local mid = bit.band(mode, 0xFF);
+    local injected = e.injected == true;
 
-    local text = accessxi.clean_incoming_text(e.message_modified or e.message or '');
+    local text = accessxi.clean_incoming_text(e.message or e.message_modified or '');
     accessxi.chat_text_in_diag(e, mid, text);
-    if (text == '') then
+    if (text == '' or injected or e.blocked == true) then
         return;
     end
     safe_call(function ()
@@ -84253,7 +92147,7 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
             log_line(('chat text npc echo suppressed mode=%d "%s"'):fmt(mid, accessxi.escape_probe_log_text(text)));
             return;
         end
-        accessxi.handle_chat_text(mid, text);
+        accessxi.handle_chat_text(mid, text, injected);
         return;
     end
 
@@ -84310,7 +92204,7 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
     accessxi.last_npc_text_tick = now;
     accessxi.last_npc_echo_compare_text = accessxi.npc_echo_compare_text(text);
     accessxi.last_npc_echo_tick = now;
-    accessxi.chat_add_history(mid, text);
+    accessxi.chat_add_history(mid, text, injected);
     accessxi.npc_text_hold_until = now + 900;
     accessxi.last = '';
     accessxi.last_key = '';
@@ -84334,6 +92228,9 @@ ashita.events.register('packet_in', 'accessxi_reader_packet_in_cb', function (e)
     accessxi.trace_help_desk_packet(e, 'in');
     accessxi.trace_friend_list_packet(e, 'in');
     accessxi.trace_delivery_box_packet(e, 'in');
+    accessxi.trace_auction_packet(e, 'in');
+    accessxi.capture_auction_sales_status_packet(e, 'in');
+    accessxi.capture_auction_item_list_packet(e, 'in');
     accessxi.capture_roe_packet(e);
     accessxi.capture_quest_packet(e);
     accessxi.capture_mission_packet(e);
@@ -84364,6 +92261,7 @@ ashita.events.register('packet_out', 'accessxi_reader_packet_out_cb', function (
     accessxi.trace_help_desk_packet(e, 'out');
     accessxi.trace_friend_list_packet(e, 'out');
     accessxi.trace_delivery_box_packet(e, 'out');
+    accessxi.trace_auction_packet(e, 'out');
     accessxi.capture_trade_outgoing_packet(e);
     accessxi.capture_party_config_outgoing_packet(e);
     accessxi.capture_home_point_outgoing_packet(e);
@@ -84523,6 +92421,10 @@ function accessxi.input_fix_text()
     accessxi.nav_collision_freewalk_tick = 0;
     accessxi.nav_collision_freewalk_last_sound_tick = 0;
     accessxi.nav_collision_freewalk_last_log_key = '';
+    accessxi.nav_collision_route_contact_last_sound_tick = 0;
+    accessxi.nav_collision_route_contact_last_log_key = '';
+    accessxi.nav_collision_forward_intent_tick = 0;
+    accessxi.nav_collision_forward_intent_key = 0;
     accessxi.nav_movement_recent_tick = 0;
     accessxi.nav_movement_last_move_count_tick = 0;
     accessxi.nav_movement_last_x = nil;
@@ -84671,6 +92573,11 @@ function accessxi.handle_axi_command(args, e, source)
     elseif (#args >= 2 and args[2]:any('console', 'ashita', 'sidebar')) then
         e.blocked = true;
         accessxi.ashita_console_command(args);
+    elseif (#args >= 2 and args[2]:any('drive', 'move', 'steer')) then
+        e.blocked = true;
+        local text = accessxi.axi_drive_command(args);
+        speak(text);
+        log_line('axi drive manual ' .. text);
     elseif (#args >= 2 and args[2]:any('check', 'checksummary', 'checkstats', 'checkinfo')) then
         e.blocked = true;
         local text = accessxi.safe_check_character_summary('check-command') or 'No safe checked character summary is available.';
@@ -84686,6 +92593,16 @@ function accessxi.handle_axi_command(args, e, source)
         local text = accessxi.nav_zone_search_start(command_tail(args, 3));
         speak(text);
         log_line('nav zone search manual ' .. text);
+    elseif (#args >= 2 and args[2]:any('record', 'recorder', 'routelog')) then
+        e.blocked = true;
+        local text = accessxi.nav_route_recorder_command(args, 3, 4);
+        speak(text);
+        log_line('nav route recorder manual ' .. text);
+    elseif (#args >= 3 and args[2]:any('route') and args[3]:any('record', 'recorder', 'routelog')) then
+        e.blocked = true;
+        local text = accessxi.nav_route_recorder_command(args, 4, 5);
+        speak(text);
+        log_line('nav route recorder manual ' .. text);
     elseif (#args >= 2 and args[2]:any('nav', 'navigation', 'dest')) then
         e.blocked = true;
         if (#args >= 3 and args[3]:any('capture', 'discover')) then
@@ -84704,6 +92621,10 @@ function accessxi.handle_axi_command(args, e, source)
             local text = ('Navigation database reloaded. %d destinations.'):fmt(accessxi.nav_points:len());
             speak(text);
             log_line('nav manual ' .. text);
+        elseif (#args >= 3 and args[3]:any('record', 'recorder', 'routelog')) then
+            local text = accessxi.nav_route_recorder_command(args, 4, 5);
+            speak(text);
+            log_line('nav route recorder manual ' .. text);
         elseif (#args >= 3 and args[3]:any('stop')) then
             local text = nav_route_stop();
             speak(text);
@@ -84912,6 +92833,55 @@ function accessxi.dispatch_axi_command_text(command_text, source)
     return accessxi.handle_axi_command(args, fake_event, source or 'chat-input-replay') == true;
 end
 
+function accessxi.poll_axi_external_control(now)
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.axi_external_control_poll_tick) or 0))
+        < (tonumber(accessxi.axi_external_control_poll_ms) or 150)) then
+        return false;
+    end
+    accessxi.axi_external_control_poll_tick = now;
+
+    local f = io.open(accessxi.axi_external_control_path, 'r');
+    if (f == nil) then
+        return false;
+    end
+
+    local command_text = tostring(f:read('*a') or '');
+    f:close();
+    os.remove(accessxi.axi_external_control_path);
+    command_text = command_text:gsub('\r', ''):gsub('\n+$', ''):trim();
+    if command_text == '' then
+        log_line('axi external control rejected reason="empty"');
+        return true;
+    end
+    if command_text:find('\n', 1, true) ~= nil then
+        log_line('axi external control rejected reason="multiple-lines"');
+        return true;
+    end
+
+    local args = accessxi.axi_command_args_from_text(command_text);
+    if not accessxi.is_axi_command_args(args) then
+        log_line(('axi external control rejected reason="not-axi" command="%s"'):fmt(
+            accessxi.escape_probe_log_text(command_text)));
+        return true;
+    end
+
+    local ok, handled = pcall(function ()
+        return accessxi.dispatch_axi_command_text(command_text, 'external-control-file');
+    end);
+    if not ok then
+        log_line(('axi external control failed command="%s" error="%s"'):fmt(
+            accessxi.escape_probe_log_text(command_text),
+            accessxi.escape_probe_log_text(tostring(handled or ''))));
+        return true;
+    end
+
+    log_line(('axi external control handled=%s command="%s"'):fmt(
+        tostring(handled == true),
+        accessxi.escape_probe_log_text(command_text)));
+    return true;
+end
+
 function accessxi.poll_pending_axi_command_replay()
     local command_text = tostring(accessxi.axi_command_pending_text or '');
     if (command_text == '') then
@@ -84979,21 +92949,29 @@ ashita.events.register('command', 'command_cb', function (e)
 end);
 ashita.events.register('key', 'accessxi_reader_key_cb', function (e)
     local key = tonumber(e.wparam) or 0;
-    if (e.message == accessxi.WM_KEYUP or e.message == accessxi.WM_SYSKEYUP) then
+    local key_is_up = bit.band(tonumber(e.lparam) or 0, 0x80000000) ~= 0;
+    if (key_is_up) then
+        accessxi.nav_collision_note_movement_key(key, false);
         accessxi.config_chat_filter_note_confirm_key_up(key);
         accessxi.config_log_window_designation_note_confirm_key_up(key);
         return;
     end
-    if (e.message ~= WM_KEYDOWN and e.message ~= WM_SYSKEYDOWN) then
-        return;
-    end
+    accessxi.nav_collision_note_movement_key(key, true);
 
     if (key == VK_RETURN and is_chat_input_open ~= nil and is_chat_input_open()) then
         accessxi.chat_input_last_enter_tick = tick();
     end
 
-    if (key == 0x49
-        and (e.message == WM_SYSKEYDOWN or bit.band(kernel32.GetAsyncKeyState(VK_MENU), 0x8000) ~= 0)) then
+    -- Ashita exposes text-entry keys through WNDPROC separately from the
+    -- DirectInput game-control events below.  Claim the same guarded bare
+    -- letters here before FFXI can open chat with the first character.
+    if (accessxi.accessibility_hotkey_owns_vk(
+            key, accessxi.accessibility_hotkey_snapshot())) then
+        e.blocked = true;
+        return;
+    end
+
+    if (key == 0x49 and accessxi.quick_status_key_down(VK_MENU)) then
         e.blocked = true;
         return;
     end
@@ -85009,13 +92987,62 @@ ashita.events.register('key', 'accessxi_reader_key_cb', function (e)
     accessxi.mog_door_note_key(key);
 end);
 
+ashita.events.register('key_data', 'accessxi_accessibility_hotkeys_key_data_cb', function (e)
+    local mapping = accessxi.accessibility_hotkey_directinput_map();
+    local vk = mapping.dik_to_vk[tonumber(e.key) or -1];
+    if (vk ~= nil
+        and accessxi.accessibility_hotkey_owns_vk(
+            vk, accessxi.accessibility_hotkey_snapshot())) then
+        e.blocked = true;
+    end
+end);
+
+ashita.events.register('key_state', 'accessxi_accessibility_hotkeys_key_state_cb', function (e)
+    local size = tonumber(e.size) or 0;
+    if (e.data_raw == nil or size <= 0) then
+        return;
+    end
+
+    local mapping = accessxi.accessibility_hotkey_directinput_map();
+    local snapshot = accessxi.accessibility_hotkey_snapshot();
+    local ptr = ffi.cast('uint8_t*', e.data_raw);
+    for vk, dik in pairs(mapping.vk_to_dik) do
+        if (dik < size and accessxi.accessibility_hotkey_owns_vk(vk, snapshot)) then
+            ptr[dik] = 0;
+        end
+    end
+end);
+
+ashita.events.register('key_state', 'accessxi_drive_key_state_cb', function (e)
+    local directinput_key = tonumber(accessxi.axi_drive_directinput_key) or 0;
+    if (directinput_key <= 0) then
+        return;
+    end
+    if (accessxi.poll_axi_drive(tick())) then
+        return;
+    end
+    if (e.data_raw == nil or (tonumber(e.size) or 0) <= directinput_key) then
+        accessxi.axi_drive_stop('key-state-unavailable');
+        return;
+    end
+
+    local ptr = ffi.cast('uint8_t*', e.data_raw);
+    ptr[directinput_key] = 0x80;
+end);
+
 ashita.events.register('d3d_present', 'present_cb', function ()
     local now = tick();
+    accessxi.poll_axi_drive(now);
+    if (accessxi.poll_axi_external_control(now)) then
+        return;
+    end
     if (accessxi.nav_zoning_watch_active(now) or accessxi.nav_zone_load_settle_active(now)) then
         accessxi.nav_poll_zone_transition_only(now);
+        accessxi.nav_route_recorder_poll(now);
         return;
     end
     poll_nav_position();
+    accessxi.nav_route_recorder_poll(now);
     accessxi.poll_compass_hotkey();
     accessxi.poll_view_hotkey();
     accessxi.poll_combat_action_feedback();
@@ -85024,6 +93051,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     accessxi.poll_config_log_window_designation_confirm_key();
     accessxi.poll_chat_log_native_trace();
     if (accessxi.poll_chat_log_missing_retry()) then
+        return;
+    end
+    if (accessxi.poll_quick_status_hotkeys()) then
         return;
     end
     if (accessxi.poll_status_hotkeys()) then
@@ -85051,6 +93081,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         return;
     end
     if (accessxi.poll_ashita_console_hotkeys()) then
+        return;
+    end
+    if (accessxi.poll_gear_detail_hotkeys()) then
         return;
     end
     accessxi.poll_nav_browser_hotkeys();

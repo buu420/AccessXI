@@ -1,0 +1,11 @@
+LIBRARY fake_prism
+EXPORTS
+    prism_init
+    prism_shutdown
+    prism_registry_create
+    prism_registry_create_best
+    prism_backend_initialize
+    prism_backend_free
+    prism_backend_name
+    prism_backend_output
+    prism_backend_stop

@@ -1,0 +1,3 @@
+LIBRARY fake_pol_hook_no_sink
+EXPORTS
+    AccessXI_POL_InitializeV2=_AccessXI_POL_InitializeV2@0

@@ -1,6 +1,6 @@
 param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
-    [string]$PackageRoot = 'C:\Users\buu42\AccessXI\dist\AccessXI-Ashita-Reloaded-Installer'
+    [string]$PackageRoot = 'C:\Users\buu42\AccessXI\dist\AccessXI-Ashita-Installer'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,6 +53,7 @@ $programSource = Get-Content -LiteralPath $programPath -Raw
 $packageSource = Get-Content -LiteralPath $packageScriptPath -Raw
 $installerSource = Get-Content -LiteralPath $installerScriptPath -Raw
 $addonSource = Get-Content -LiteralPath $addonPath -Raw
+$setupGuideSource = Get-Content -LiteralPath $setupGuidePath -Raw
 
 Assert-Contains $packageSource 'setup-guide\.md' 'Package builder must stage setup-guide.md at the package root.'
 Assert-Contains $installerSource 'setup-guide\.md' 'Installer script must copy setup-guide.md into the installed AccessXI root.'
@@ -62,7 +63,8 @@ Assert-Contains $programSource 'OpenSetupGuideAfterFinish' 'Finish button must o
 Assert-Contains $programSource 'setup-guide\.md' 'Installer exe must know the installed setup-guide.md path.'
 Assert-Contains $programSource 'AskPrerequisiteInstallChoice' 'Installer must ask to run missing dependency installers after Install is clicked.'
 Assert-Contains $programSource 'RunPrerequisiteInstallers' 'Installer must run bundled dependency installers before install_accessxi.ps1.'
-Assert-Contains $programSource 'RunInstaller\(installRoot,\s*polExe,\s*installMissingPrerequisites,\s*missingVisualCppRedistributables,\s*missingDotNetDesktopRuntimes\)' 'Installer must pass missing dependency information into the actual install run.'
+Assert-Contains $programSource 'RunInstaller\(installRoot,\s*polExe,\s*installMissingPrerequisites,\s*missingVisualCppRedistributables\)' 'Installer must pass missing Visual C++ dependency information into the actual install run.'
+Assert-NotContains $programSource 'missingDotNetDesktopRuntimes|windowsdesktop-runtime-' 'Native installer must not carry Reloaded-only .NET Desktop Runtime state.'
 Assert-NotContains $programSource 'HttpClient' 'Installer must not download dependencies during setup; it should run bundled installers.'
 Assert-NotContains $programSource 'DownloadPrerequisitesAsync|CopyDownloadedPrerequisites|Use bundled offline installers' 'Installer must not ask users to choose between downloading and bundled dependencies.'
 
@@ -94,7 +96,19 @@ Assert-NotContains $loadBody 'log_magic_shortcut_target_probe\(\)' 'Addon load m
 Assert-NotContains $loadBody "loaded probe=" 'Addon load log should not advertise active probe builds.'
 
 if (Test-Path -LiteralPath $PackageRoot) {
-    Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'setup-guide.md')) 'Packaged installer root must contain setup-guide.md.'
+    $packagedSetupGuide = Join-Path $PackageRoot 'setup-guide.md'
+    Assert-True (Test-Path -LiteralPath $packagedSetupGuide) 'Packaged installer root must contain setup-guide.md.'
+    Assert-True (
+        (Get-FileHash -LiteralPath $packagedSetupGuide -Algorithm SHA256).Hash -eq
+        (Get-FileHash -LiteralPath $setupGuidePath -Algorithm SHA256).Hash
+    ) 'Packaged setup guide must exactly match the reviewed root setup-guide.md.'
+    $packagedCleanup = Join-Path $PackageRoot 'legacy_accessxi_cleanup.ps1'
+    $sourceCleanup = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
+    Assert-True (Test-Path -LiteralPath $packagedCleanup) 'Packaged installer root must contain the legacy Reloaded cleanup library.'
+    Assert-True (
+        (Get-FileHash -LiteralPath $packagedCleanup -Algorithm SHA256).Hash -eq
+        (Get-FileHash -LiteralPath $sourceCleanup -Algorithm SHA256).Hash
+    ) 'Packaged legacy cleanup library must exactly match the reviewed source.'
     $payloadRoot = Join-Path $PackageRoot 'payload'
     foreach ($unneededDirectory in @('tools', 'ffxi_re', 'pol_re', 'tmp', 'scratch', 'video_frames')) {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadRoot $unneededDirectory))) "Package payload must not contain repo-only directory: $unneededDirectory"

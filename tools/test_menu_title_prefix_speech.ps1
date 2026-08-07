@@ -82,12 +82,12 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
-    -Pattern "(?s)local roe_text = current_menu_speech\(\).*?roe_text\s*=\s*accessxi\.menu_row_speech_without_repeated_title\(roe_text,\s*menu_name,\s*roe_key\)" `
+    -Pattern "(?s)local\s+(?:ok_roe_text,\s*)?roe_text\s*=\s*(?:pcall\(\s*)?current_menu_speech(?:\s*\))?.*?roe_text\s*=\s*accessxi\.menu_row_speech_without_repeated_title\(roe_text,\s*menu_name,\s*roe_key\)" `
     -Message 'Records of Eminence fast-path row speech should use the central repeated-title suppressor.'
 
 Assert-Match `
     -Text $source `
-    -Pattern "(?s)local text = current_menu_speech\(\).*?text\s*=\s*accessxi\.menu_row_speech_without_repeated_title\(text,\s*menu_name,\s*key\)" `
+    -Pattern "(?s)local\s+(?:ok_text,\s*)?text\s*=\s*(?:pcall\(\s*)?current_menu_speech(?:\s*\))?.*?text\s*=\s*accessxi\.menu_row_speech_without_repeated_title\(text,\s*menu_name,\s*key\)" `
     -Message 'Normal menu row speech should use the central repeated-title suppressor before speaking/logging.'
 
 Write-Host 'menu title prefix speech static checks ok'

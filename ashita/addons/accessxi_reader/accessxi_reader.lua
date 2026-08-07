@@ -629,6 +629,8 @@ local accessxi = T{
     key_items_packet_cache_loaded = false,
     key_items_packet_tables = {},
     key_items_packet_player = '',
+    key_items_packet_identity = '',
+    key_items_packet_source = '',
     key_items_packet_key = '',
     currency_packet_menu_speech_enabled = true,
     currency_native_help_bank = 0,
@@ -687,8 +689,17 @@ local accessxi = T{
     merit_packet_cache_loaded = false,
     mission_packet_cache_path = accessxi_paths.addon_path('data', 'ffxi-mission-main-packet.txt'),
     mission_packet_cache_loaded = false,
+    mission_packet_player = '',
+    mission_packet_identity = '',
+    mission_packet_source = '',
+    mission_quest_nav_player = '',
+    mission_quest_nav_identity = '',
+    mission_packet_ahturghan_identity = '',
+    mission_packet_ahturghan_source = '',
     mission_packet_ahturghan_complete = {},
     mission_packet_ahturghan_complete_tick = 0,
+    mission_packet_ahturghan_complete_identity = '',
+    mission_packet_ahturghan_complete_source = '',
     missions_menu_detail_hold_until = 0,
     missions_menu_detail_hold_context = '',
     missions_menu_detail_hold_label = '',
@@ -784,6 +795,9 @@ local accessxi = T{
     quest_packet_cache_path = accessxi_paths.addon_path('data', 'ffxi-quest-packets.tsv'),
     quest_packet_cache_loaded = false,
     quest_packet_logs = {},
+    quest_packet_player = '',
+    quest_packet_identity = '',
+    quest_packet_source = '',
     quest_packet_tick = 0,
     quest_packet_key = '',
     last_quest_packet_key = '',
@@ -3810,13 +3824,19 @@ function accessxi.save_mission_packet_cache()
         return;
     end
 
+    local player_name = accessxi.current_player_name();
+    local server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    if (player_name == '' or server_id <= 0) then
+        return;
+    end
+
     local f = io.open(accessxi.mission_packet_cache_path, 'w');
     if (f == nil) then
         return;
     end
 
-    local player_name = accessxi.current_player_name();
     f:write(('player=%s\n'):fmt(player_name));
+    f:write(('server_id=%d\n'):fmt(server_id));
     f:write(('saved_at=%d\n'):fmt(os.time()));
     for _, key in ipairs(T{ 'nation', 'nation_mission', 'zilart', 'cop', 'cop_status', 'addons', 'tales', 'soa', 'rov', 'port', 'port_raw' }) do
         f:write(('%s=%d\n'):fmt(key, tonumber(packet[key]) or 0));
@@ -3853,11 +3873,18 @@ function accessxi.restore_mission_packet_cache_if_needed()
     f:close();
 
     local cached_player = tostring(values.player or '');
+    local cached_server_id = tonumber(values.server_id) or 0;
     local player_name = accessxi.current_player_name();
-    if (cached_player ~= '' and player_name ~= '' and cached_player ~= player_name) then
-        log_line(('mission packet cache ignored cachedPlayer="%s" player="%s"'):fmt(
+    local current_server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    local player_identity = accessxi.current_player_identity();
+    if (cached_player == '' or player_name == '' or cached_player ~= player_name
+        or cached_server_id <= 0 or current_server_id <= 0 or cached_server_id ~= current_server_id
+        or player_identity == '') then
+        log_line(('mission packet cache ignored cachedPlayer="%s" player="%s" cachedServerId=%d serverId=%d'):fmt(
             accessxi.escape_probe_log_text(cached_player),
-            accessxi.escape_probe_log_text(player_name)));
+            accessxi.escape_probe_log_text(player_name),
+            cached_server_id,
+            current_server_id));
         return;
     end
     local saved_at = tonumber(values.saved_at);
@@ -3884,6 +3911,9 @@ function accessxi.restore_mission_packet_cache_if_needed()
     end
 
     accessxi.mission_packet_main = info;
+    accessxi.mission_packet_player = player_name;
+    accessxi.mission_packet_identity = player_identity;
+    accessxi.mission_packet_source = 'cache';
     accessxi.mission_packet_tick = tick();
     if (values.ahturghan_toau ~= nil or values.ahturghan_wotg ~= nil or values.ahturghan_assault ~= nil or values.ahturghan_campaign ~= nil) then
         accessxi.mission_packet_ahturghan = {
@@ -3894,6 +3924,8 @@ function accessxi.restore_mission_packet_cache_if_needed()
             port = tonumber(values.ahturghan_port) or 0,
         };
         accessxi.mission_packet_ahturghan_tick = accessxi.mission_packet_tick;
+        accessxi.mission_packet_ahturghan_identity = player_identity;
+        accessxi.mission_packet_ahturghan_source = 'cache';
     end
     if (values.assault_complete0 ~= nil or values.assault_complete1 ~= nil or values.assault_complete2 ~= nil or values.assault_complete3 ~= nil) then
         accessxi.mission_packet_ahturghan_complete = T{
@@ -3903,6 +3935,8 @@ function accessxi.restore_mission_packet_cache_if_needed()
             tonumber(values.assault_complete3) or 0
         };
         accessxi.mission_packet_ahturghan_complete_tick = accessxi.mission_packet_tick;
+        accessxi.mission_packet_ahturghan_complete_identity = player_identity;
+        accessxi.mission_packet_ahturghan_complete_source = 'cache';
     end
     log_line(('mission packet cache restored player="%s" cop=%d copStatus=0x%08X rov=%d'):fmt(
         accessxi.escape_probe_log_text(cached_player),
@@ -3941,13 +3975,19 @@ end
 
 function accessxi.save_quest_packet_cache()
     local logs = accessxi.quest_packet_logs or {};
+    local player_name = accessxi.current_player_name();
+    local server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    if (player_name == '' or server_id <= 0) then
+        return;
+    end
+
     local f = io.open(accessxi.quest_packet_cache_path, 'w');
     if (f == nil) then
         return;
     end
 
-    local player_name = accessxi.current_player_name();
     f:write(('player=%s\n'):fmt(player_name));
+    f:write(('server_id=%d\n'):fmt(server_id));
     f:write(('saved_at=%d\n'):fmt(os.time()));
     for key, entry in pairs(logs) do
         if (type(entry) == 'table' and type(entry.words) == 'table') then
@@ -3993,11 +4033,18 @@ function accessxi.restore_quest_packet_cache_if_needed()
     f:close();
 
     local cached_player = tostring(values.player or '');
+    local cached_server_id = tonumber(values.server_id) or 0;
     local player_name = accessxi.current_player_name();
-    if (cached_player ~= '' and player_name ~= '' and cached_player ~= player_name) then
-        log_line(('quest packet cache ignored cachedPlayer="%s" player="%s"'):fmt(
+    local current_server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    local player_identity = accessxi.current_player_identity();
+    if (cached_player == '' or player_name == '' or cached_player ~= player_name
+        or cached_server_id <= 0 or current_server_id <= 0 or cached_server_id ~= current_server_id
+        or player_identity == '') then
+        log_line(('quest packet cache ignored cachedPlayer="%s" player="%s" cachedServerId=%d serverId=%d'):fmt(
             accessxi.escape_probe_log_text(cached_player),
-            accessxi.escape_probe_log_text(player_name)));
+            accessxi.escape_probe_log_text(player_name),
+            cached_server_id,
+            current_server_id));
         return;
     end
     local saved_at = tonumber(values.saved_at);
@@ -4025,11 +4072,16 @@ function accessxi.restore_quest_packet_cache_if_needed()
                     area_key = tostring(area_key or ''),
                     mode = tostring(mode or ''),
                     words = words,
+                    source = 'cache',
+                    identity = player_identity,
                 };
             end
         end
     end
     accessxi.quest_packet_tick = tick();
+    accessxi.quest_packet_player = player_name;
+    accessxi.quest_packet_identity = player_identity;
+    accessxi.quest_packet_source = 'cache';
     log_line(('quest packet cache restored player="%s" logs=%d'):fmt(
         accessxi.escape_probe_log_text(cached_player),
         accessxi.table_count(accessxi.quest_packet_logs or {})));
@@ -4065,7 +4117,12 @@ function accessxi.capture_quest_packet(e)
     if (area_key == '' or mode == '') then
         return;
     end
+    if (type(accessxi.nav_mission_quest_sync_character) == 'function') then
+        accessxi.nav_mission_quest_sync_character('quest-packet');
+    end
 
+    local quest_player = accessxi.current_player_name();
+    local quest_identity = accessxi.current_player_identity();
     local words = accessxi.quest_packet_data_words(data);
     local key = accessxi.quest_packet_entry_key(area_key, mode);
     accessxi.quest_packet_logs = accessxi.quest_packet_logs or {};
@@ -4074,8 +4131,15 @@ function accessxi.capture_quest_packet(e)
         area_key = area_key,
         mode = mode,
         words = words,
+        source = 'packet_in_056',
+        identity = quest_identity,
     };
     accessxi.quest_packet_tick = tick();
+    if (quest_player ~= '') then
+        accessxi.quest_packet_player = quest_player;
+    end
+    accessxi.quest_packet_identity = quest_identity;
+    accessxi.quest_packet_source = 'packet_in_056';
     accessxi.quest_packet_cache_loaded = true;
     accessxi.save_quest_packet_cache();
 
@@ -4364,8 +4428,19 @@ function accessxi.capture_mission_packet(e)
         port_raw = accessxi.packet_u16(data, base + 0x24 + 1),
     };
     local key = accessxi.packet_hex_limit(data, 96);
+    local mission_state_packet = packet_port == 0xFFFF or packet_port == 0x0080 or packet_port == 0x00C0;
+    if (mission_state_packet and type(accessxi.nav_mission_quest_sync_character) == 'function') then
+        accessxi.nav_mission_quest_sync_character('mission-packet');
+    end
+    local mission_player = accessxi.current_player_name();
+    local mission_identity = accessxi.current_player_identity();
+    if (mission_state_packet and mission_player ~= '') then
+        accessxi.mission_packet_player = mission_player;
+    end
     if (packet_port == 0xFFFF) then
         accessxi.mission_packet_main = info;
+        accessxi.mission_packet_identity = mission_identity;
+        accessxi.mission_packet_source = 'packet_in_056';
         accessxi.mission_packet_tick = tick();
         accessxi.mission_packet_hex = key;
         accessxi.mission_packet_cache_loaded = true;
@@ -4379,6 +4454,8 @@ function accessxi.capture_mission_packet(e)
             port = packet_port,
         };
         accessxi.mission_packet_ahturghan_tick = tick();
+        accessxi.mission_packet_ahturghan_identity = mission_identity;
+        accessxi.mission_packet_ahturghan_source = 'packet_in_056';
         accessxi.save_mission_packet_cache();
     elseif (packet_port == 0x00C0) then
         accessxi.mission_packet_ahturghan_complete = T{
@@ -4388,6 +4465,8 @@ function accessxi.capture_mission_packet(e)
             accessxi.packet_u32(data, base + 0x1C + 1)
         };
         accessxi.mission_packet_ahturghan_complete_tick = tick();
+        accessxi.mission_packet_ahturghan_complete_identity = mission_identity;
+        accessxi.mission_packet_ahturghan_complete_source = 'packet_in_056';
         accessxi.save_mission_packet_cache();
     end
 
@@ -6958,6 +7037,23 @@ function accessxi.current_player_name()
     return tostring(name or ''):match('^[A-Za-z0-9_%-]+') or '';
 end
 
+function accessxi.current_player_server_id()
+    if (type(accessxi.combat_player_server_id) ~= 'function') then
+        return 0;
+    end
+    local server_id = tonumber(accessxi.combat_player_server_id()) or 0;
+    return server_id > 0 and server_id or 0;
+end
+
+function accessxi.current_player_identity()
+    local player_name = accessxi.current_player_name();
+    local server_id = accessxi.current_player_server_id();
+    if (player_name == '' or server_id <= 0) then
+        return '';
+    end
+    return ('%s:%d'):fmt(player_name:lower(), server_id);
+end
+
 function accessxi.table_count(values)
     local count = 0;
     for _, _ in pairs(values or {}) do
@@ -6998,7 +7094,8 @@ end
 function accessxi.save_key_items_packet_cache()
     local tables = accessxi.key_items_packet_tables or {};
     local player_name = accessxi.current_player_name();
-    if (player_name == '' or next(tables) == nil) then
+    local server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    if (player_name == '' or server_id <= 0 or next(tables) == nil) then
         return;
     end
 
@@ -7014,6 +7111,7 @@ function accessxi.save_key_items_packet_cache()
     end
     f:write(('time\t%d\n'):fmt(os.time()));
     f:write(('player\t%s\n'):fmt(player_name));
+    f:write(('server_id\t%d\n'):fmt(server_id));
     for _, table_index in ipairs(indices) do
         local entry = tables[table_index];
         if (type(entry) == 'table' and #(tostring(entry.flags or '')) == 64) then
@@ -7032,7 +7130,9 @@ function accessxi.restore_key_items_packet_cache_if_needed()
     end
 
     local player_name = accessxi.current_player_name();
-    if (player_name == '') then
+    local current_server_id = tonumber(accessxi.current_player_server_id()) or 0;
+    local player_identity = accessxi.current_player_identity();
+    if (player_name == '' or current_server_id <= 0 or player_identity == '') then
         return;
     end
     accessxi.key_items_packet_cache_loaded = true;
@@ -7044,6 +7144,7 @@ function accessxi.restore_key_items_packet_cache_if_needed()
 
     local cached_time = 0;
     local cached_player = '';
+    local cached_server_id = 0;
     local tables = {};
     for line in f:lines() do
         local key, rest = line:match('^([^\t]+)\t(.*)$');
@@ -7051,6 +7152,8 @@ function accessxi.restore_key_items_packet_cache_if_needed()
             cached_time = tonumber(rest) or 0;
         elseif (key == 'player') then
             cached_player = tostring(rest or '');
+        elseif (key == 'server_id') then
+            cached_server_id = tonumber(rest) or 0;
         elseif (key == 'table') then
             local table_index, flags_hex, seen_hex = rest:match('^(%d+)\t([%x%s]+)\t([%x%s]*)$');
             table_index = tonumber(table_index) or -1;
@@ -7062,6 +7165,7 @@ function accessxi.restore_key_items_packet_cache_if_needed()
                     seen = seen,
                     tick = tick(),
                     source = 'cache',
+                    identity = player_identity,
                 };
             end
         end
@@ -7071,7 +7175,7 @@ function accessxi.restore_key_items_packet_cache_if_needed()
     if (cached_time <= 0 or (os.time() - cached_time) > 86400) then
         return;
     end
-    if (cached_player ~= player_name) then
+    if (cached_player ~= player_name or cached_server_id <= 0 or cached_server_id ~= current_server_id) then
         return;
     end
     if (next(tables) == nil) then
@@ -7080,6 +7184,8 @@ function accessxi.restore_key_items_packet_cache_if_needed()
 
     accessxi.key_items_packet_tables = tables;
     accessxi.key_items_packet_player = player_name;
+    accessxi.key_items_packet_identity = player_identity;
+    accessxi.key_items_packet_source = 'cache';
     accessxi.key_items_packet_key = accessxi.key_items_packet_cache_key();
     log_line(('key items packet cache restored player="%s" tables=%d ownedBits=%d'):fmt(
         player_name,
@@ -7120,8 +7226,13 @@ function accessxi.capture_key_items_packet(e)
         return;
     end
 
+    if (type(accessxi.nav_mission_quest_sync_character) == 'function') then
+        accessxi.nav_mission_quest_sync_character('key-items-packet');
+    end
     local player_name = accessxi.current_player_name();
-    if (player_name ~= '' and tostring(accessxi.key_items_packet_player or '') ~= '' and player_name ~= tostring(accessxi.key_items_packet_player or '')) then
+    local player_identity = accessxi.current_player_identity();
+    if (player_identity ~= '' and tostring(accessxi.key_items_packet_identity or '') ~= ''
+        and player_identity ~= tostring(accessxi.key_items_packet_identity or '')) then
         accessxi.key_items_packet_tables = {};
         accessxi.key_items_packet_key = '';
         accessxi.key_items_owned_cache = {};
@@ -7129,6 +7240,8 @@ function accessxi.capture_key_items_packet(e)
     if (player_name ~= '') then
         accessxi.key_items_packet_player = player_name;
     end
+    accessxi.key_items_packet_identity = player_identity;
+    accessxi.key_items_packet_source = 'packet_in_055';
 
     accessxi.key_items_packet_tables = accessxi.key_items_packet_tables or {};
     accessxi.key_items_packet_tables[table_index] = {
@@ -7136,6 +7249,7 @@ function accessxi.capture_key_items_packet(e)
         seen = data:sub(0x44 + 1, 0x44 + 64),
         tick = tick(),
         source = 'packet_in_055',
+        identity = player_identity,
     };
     accessxi.key_items_owned_cache = {};
     accessxi.key_items_packet_cache_loaded = true;
@@ -67692,6 +67806,16 @@ accessxi.navigation_data = accessxi.load_module_table('navigation_data', T{
     mesh_names = T{},
 });
 
+accessxi.mission_quest_objectives = accessxi.load_module_table('mission_quest_objectives', T{
+    missions = T{},
+    quests = T{},
+});
+accessxi.load_code_module('mission_quest_navigation', T{
+    T = T,
+    bit = bit,
+    log_line = log_line,
+});
+
 function accessxi.nav_search_results_available()
     return nav_clean_field(accessxi.nav_menu_search_query or '') ~= ''
         and accessxi.nav_menu_search_results ~= nil
@@ -68359,6 +68483,10 @@ end
 function accessxi.nav_arrival_radius(destination)
     if (destination == nil) then
         return 8;
+    end
+    local explicit = tonumber(destination.arrival_radius);
+    if (explicit ~= nil and explicit >= 0.5 and explicit <= 20) then
+        return explicit;
     end
 
     local name = tostring(destination.name or ''):lower();
@@ -71714,7 +71842,12 @@ function accessxi.nav_refresh_live_route_destination(player, now)
 end
 
 function accessxi.nav_live_category(category_key)
-    return category_key == 'all' or category_key == 'enemy' or category_key == 'player' or category_key == 'live-nm';
+    return category_key == 'all'
+        or category_key == 'enemy'
+        or category_key == 'player'
+        or category_key == 'live-nm'
+        or category_key == 'mission'
+        or category_key == 'quest';
 end
 
 function accessxi.nav_log_entity_candidates(label, count)
@@ -71874,10 +72007,21 @@ end
 local function nav_collect_menu_items(category_key, search_query)
     nav_load_points();
 
-    local player = nav_cached_player_position();
-    local zone = nav_zone_id();
     category_key = tostring(category_key or 'all');
     search_query = nav_clean_field(search_query or '');
+    if ((category_key == 'mission' or category_key == 'quest')
+        and type(accessxi.nav_mission_quest_active_items) == 'function') then
+        local dynamic = {};
+        for _, item in ipairs(accessxi.nav_mission_quest_active_items(category_key)) do
+            if (accessxi.nav_point_matches_search(item, search_query)) then
+                table.insert(dynamic, item);
+            end
+        end
+        return dynamic;
+    end
+
+    local player = nav_cached_player_position();
+    local zone = nav_zone_id();
     local items = {};
     local static_by_key = {};
     local static_destination_keys = {};
@@ -71990,6 +72134,11 @@ local function nav_menu_item_speech()
     local category_key = category ~= nil and category.key or 'all';
     local search_query = nav_clean_field(accessxi.nav_menu_search_query or '');
     if (total == 0) then
+        if (category_key == 'mission') then
+            return 'No active missions are available from the current native character state.';
+        elseif (category_key == 'quest') then
+            return 'No active quests are available from the current native character state.';
+        end
         return accessxi.navigation_empty_speech(
             category_key == 'search-results' and search_query or '');
     end
@@ -72001,6 +72150,10 @@ local function nav_menu_item_speech()
     end
 
     local item = accessxi.nav_menu_items[accessxi.nav_menu_index];
+    if (item ~= nil and (item.objective_kind == 'mission' or item.objective_kind == 'quest')
+        and type(accessxi.nav_mission_quest_item_speech) == 'function') then
+        return accessxi.nav_mission_quest_item_speech(item, accessxi.nav_menu_index, total);
+    end
     if (item ~= nil and item.zone_search_result == true) then
         local zone_name = accessxi.nav_graph_zone_name(item.zone);
         local route_text = '';
@@ -72149,7 +72302,7 @@ local function nav_menu_move(delta)
 
     local total = accessxi.nav_menu_items:len();
     if (total == 0) then
-        speak(accessxi.navigation_empty_speech(''));
+        speak(nav_menu_item_speech());
         return;
     end
 
@@ -72177,6 +72330,46 @@ local function nav_menu_start_route()
     if (item == nil) then
         speak('No destination selected.');
         return;
+    end
+
+    local objective_kind = nav_clean_field(item.objective_kind or item.kind):lower();
+    if ((objective_kind == 'mission' or objective_kind == 'quest')
+        and type(accessxi.nav_mission_quest_prepare_route) == 'function') then
+        local objective_player = nav_cached_player_position();
+        if (objective_player == nil) then
+            speak('Position unavailable.');
+            return;
+        end
+        local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
+        if (objective_mode ~= 'ready' or target == nil) then
+            local text = nav_clean_field(objective_message);
+            if (text == '') then
+                text = 'No verified route objective is available for this stage.';
+            end
+            speak(text);
+            log_line('nav objective start blocked ' .. text);
+            return;
+        end
+        item = target;
+        if ((tonumber(item.zone) or 0) ~= (tonumber(objective_player.zone) or 0)) then
+            accessxi.nav_menu_open = false;
+            accessxi.nav_menu_poll_key = 0;
+            accessxi.nav_menu_poll_tick = 0;
+            accessxi.nav_menu_open_tick = 0;
+            accessxi.nav_clear_zone_search();
+            accessxi.nav_zone_search_target = accessxi.nav_copy_point(item);
+            accessxi.nav_zone_search_query = nav_clean_field(item.objective_title or item.name or 'objective');
+            accessxi.nav_zone_search_waiting_zone = 0;
+            accessxi.nav_zone_search_waiting_from_zone = 0;
+            accessxi.nav_zone_search_last_replan_tick = 0;
+            local text = accessxi.nav_zone_search_start_next_leg('mission-quest-objective');
+            if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+                text = text .. accessxi.nav_mission_quest_start_suffix(item);
+            end
+            speak(text);
+            log_line('nav objective zone route ' .. text);
+            return;
+        end
     end
 
     if (item.zone_search_result == true) then
@@ -72253,6 +72446,9 @@ local function nav_menu_start_route()
         and type(accessxi.nav_same_zone_reentry_start) == 'function') then
         local reentry_text = accessxi.nav_same_zone_reentry_start(player, item, 'menu-route-reentry');
         if reentry_text ~= nil and reentry_text ~= '' then
+            if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+                reentry_text = reentry_text .. accessxi.nav_mission_quest_start_suffix(item);
+            end
             speak(reentry_text);
             log_line('nav menu same-zone reentry ' .. reentry_text);
             return;
@@ -72302,6 +72498,9 @@ local function nav_menu_start_route()
     end
     if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
         text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
+    end
+    if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+        text = text .. accessxi.nav_mission_quest_start_suffix(item);
     end
     accessxi.nav_last_direction_text = text;
     nav_write_route_evidence('start', player, item, accessxi.nav_route_points[accessxi.nav_route_point_index] or item, T{ reason = 'menu' });
@@ -72424,6 +72623,18 @@ function accessxi.nav_copy_point(point)
         server_id = tonumber(point.server_id),
         live_kind = nav_clean_field(point.live_kind or ''),
         live_nm = point.live_nm == true,
+        arrival_radius = tonumber(point.arrival_radius),
+        objective_kind = nav_clean_field(point.objective_kind or ''),
+        objective_context = nav_clean_field(point.objective_context or ''),
+        objective_area = nav_clean_field(point.objective_area or ''),
+        objective_id = tonumber(point.objective_id),
+        objective_stage = nav_clean_field(point.objective_stage or ''),
+        objective_title = nav_clean_field(point.objective_title or ''),
+        objective_instruction = nav_clean_field(point.objective_instruction or ''),
+        arrival_instruction = nav_clean_field(point.arrival_instruction or ''),
+        objective_source = nav_clean_field(point.objective_source or ''),
+        objective_character_identity = nav_clean_field(point.objective_character_identity or ''),
+        route_context_label = nav_clean_field(point.route_context_label or ''),
     };
 end
 
@@ -72502,6 +72713,9 @@ function accessxi.nav_start_route_to_point(point, reason)
         and type(accessxi.nav_same_zone_reentry_start) == 'function') then
         local reentry_text = accessxi.nav_same_zone_reentry_start(player, point, reason or 'route-reentry');
         if reentry_text ~= nil and reentry_text ~= '' then
+            if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+                reentry_text = reentry_text .. accessxi.nav_mission_quest_start_suffix(point);
+            end
             return reentry_text;
         end
     end
@@ -72539,6 +72753,9 @@ function accessxi.nav_start_route_to_point(point, reason)
         if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
             text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
         end
+        if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+            text = text .. accessxi.nav_mission_quest_start_suffix(point);
+        end
         accessxi.nav_last_direction_text = text;
         nav_write_route_evidence('start', player, point, first, T{ reason = reason or 'command' });
         return text;
@@ -72548,6 +72765,9 @@ function accessxi.nav_start_route_to_point(point, reason)
         text = ('Starting route to %s. Beacon active.'):fmt(point.name or 'destination');
     else
         text = ('Starting route to %s. %s'):fmt(point.name or 'destination', phrase);
+    end
+    if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+        text = text .. accessxi.nav_mission_quest_start_suffix(point);
     end
     accessxi.nav_last_direction_text = text;
     nav_write_route_evidence('start', player, point, point, T{ reason = reason or 'command' });
@@ -72637,6 +72857,10 @@ function accessxi.nav_zone_search_start_next_leg(reason)
     local player_zone = tonumber(player.zone) or 0;
     local target_zone = tonumber(target.zone) or 0;
     local target_zone_name = accessxi.nav_graph_zone_name(target_zone);
+    local route_context = type(accessxi.nav_mission_quest_route_context) == 'function'
+        and accessxi.nav_mission_quest_route_context(target) or '';
+    route_context = nav_clean_field(route_context);
+    route_context = route_context ~= '' and route_context or 'Zone search';
     if type(accessxi.nav_same_zone_reentry_active) == 'function' and accessxi.nav_same_zone_reentry_active() then
         local leg, reentry_status = accessxi.nav_same_zone_reentry_current_leg(player);
         if reentry_status == 'complete' then
@@ -72673,7 +72897,7 @@ function accessxi.nav_zone_search_start_next_leg(reason)
             accessxi.nav_clear_zone_search();
             return start_text;
         end
-        local text = ('Zone search. Target zone reached. %s is in %s. %s'):fmt(accessxi.speech_name(target.name or 'NPC'), target_zone_name, start_text);
+        local text = ('%s. Target zone reached. %s is in %s. %s'):fmt(route_context, accessxi.speech_name(target.name or 'NPC'), target_zone_name, start_text);
         accessxi.nav_last_direction_text = text;
         return text;
     end
@@ -72709,9 +72933,10 @@ function accessxi.nav_zone_search_start_next_leg(reason)
     local start_text = accessxi.nav_start_route_to_point(leg, reason or 'zone-search');
     if (not accessxi.nav_active) then
         accessxi.nav_clear_zone_search();
-        return ('Zone search. %s is in %s. %s'):fmt(accessxi.speech_name(target.name or 'NPC'), target_zone_name, start_text);
+        return ('%s. %s is in %s. %s'):fmt(route_context, accessxi.speech_name(target.name or 'NPC'), target_zone_name, start_text);
     end
-    local text = ('Zone search. %s is in %s. Route %d zones. First, %s'):fmt(
+    local text = ('%s. %s is in %s. Route %d zones. First, %s'):fmt(
+        route_context,
         accessxi.speech_name(target.name or 'NPC'),
         target_zone_name,
         path:len(),
@@ -72765,6 +72990,15 @@ end
 function accessxi.poll_nav_zone_search()
     if (accessxi.nav_zone_search_target == nil or accessxi.nav_active) then
         return false;
+    end
+    if (type(accessxi.nav_mission_quest_route_owner_mismatch) == 'function'
+        and accessxi.nav_mission_quest_route_owner_mismatch()) then
+        if (accessxi.nav_cancel_mission_quest_route('pending-route-owner-mismatch')) then
+            local text = 'Mission or quest route stopped because the active character changed.';
+            speak(text);
+            log_line('nav objective pending owner mismatch');
+        end
+        return true;
     end
 
     local player = nav_cached_player_position();
@@ -73782,6 +74016,21 @@ nav_route_stop = function ()
     accessxi.nav_route_points:clear();
     accessxi.nav_route_point_index = 1;
     return 'Route stopped.';
+end
+
+function accessxi.nav_is_mission_quest_point(point)
+    local kind = nav_clean_field(type(point) == 'table' and (point.objective_kind or point.kind) or ''):lower();
+    return kind == 'mission' or kind == 'quest';
+end
+
+function accessxi.nav_cancel_mission_quest_route(reason)
+    if (not accessxi.nav_is_mission_quest_point(accessxi.nav_destination)
+        and not accessxi.nav_is_mission_quest_point(accessxi.nav_zone_search_target)) then
+        return false;
+    end
+    nav_route_stop();
+    log_line(('nav objective route cancelled reason="%s"'):fmt(nav_clean_field(reason or 'character-changed')));
+    return true;
 end
 
 local function nav_route_mark_result(result, label)
@@ -91635,6 +91884,15 @@ local function poll_nav_route()
     if (not accessxi.nav_active or accessxi.nav_destination == nil) then
         return;
     end
+    if (type(accessxi.nav_mission_quest_route_owner_mismatch) == 'function'
+        and accessxi.nav_mission_quest_route_owner_mismatch()) then
+        if (accessxi.nav_cancel_mission_quest_route('active-route-owner-mismatch')) then
+            local text = 'Mission or quest route stopped because the active character changed.';
+            speak(text);
+            log_line('nav objective active owner mismatch');
+        end
+        return;
+    end
 
     local now = tick();
     accessxi.nav_precise_route_track_index(nav_cached_player_position(), now);
@@ -91993,7 +92251,11 @@ local function poll_nav_route()
         accessxi.nav_collision_tick = 0;
         accessxi.nav_collision_last_sound_tick = 0;
         accessxi.nav_collision_last_key = '';
-        speak(('Arrived at %s.'):fmt(destination.name or 'destination'));
+        local arrival_suffix = '';
+        if (type(accessxi.nav_mission_quest_arrival_suffix) == 'function') then
+            arrival_suffix = accessxi.nav_mission_quest_arrival_suffix(destination);
+        end
+        speak(('Arrived at %s.%s'):fmt(destination.name or 'destination', arrival_suffix));
         log_line(('nav arrived name="%s" zone=%d x=%.3f z=%.3f'):fmt(destination.name or '', player.zone or 0, player.x or 0, player.z or 0));
         return;
     end
@@ -93096,6 +93358,3 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     accessxi.poll_nav_beacon();
     accessxi.poll_enemy_warning();
 end);
-
-
-

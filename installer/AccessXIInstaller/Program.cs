@@ -382,12 +382,23 @@ internal sealed class InstallerForm : Form
             }
 
             SetInstallState(InstallState.Installing);
-            SetStep("Starting installation.", 5);
+            SetStep("Checking GitHub for AccessXI updates.", 5);
             AppendLog("Starting installation.");
             AppendLog("Install destination: " + installRoot);
             AppendLog("PlayOnline executable: " + polExe);
 
-            var summary = await Task.Run(() => RunInstaller(installRoot, polExe, installMissingPrerequisites, missingVisualCppRedistributables));
+            var updateProgress = new Progress<PayloadUpdateProgress>(update =>
+            {
+                var installerPercent = 5 + (Math.Clamp(update.Percent, 0, 100) * 20 / 100);
+                SetStep(update.Message, installerPercent);
+            });
+            using var updateClient = CreateUpdateHttpClient();
+            var updater = new ReleasePayloadUpdater(updateClient);
+            var updateTempRoot = Path.Combine(Path.GetTempPath(), "AccessXIInstaller", "updates");
+            using var payloadSelection = await updater.SelectPayloadAsync(OpenEmbeddedPayload, updateTempRoot, updateProgress);
+            AppendLog(payloadSelection.Message);
+
+            var summary = await Task.Run(() => RunInstaller(installRoot, polExe, installMissingPrerequisites, missingVisualCppRedistributables, payloadSelection.DownloadedZipPath, payloadSelection.VerifiedSha256Hex));
             AppendLog("Installation finished.");
             AppendLog("Launcher: " + Path.Combine(installRoot, "Ashita", "Ashita-cli.exe") + " accessxi-retail.ini");
             AppendLog("Desktop shortcut: AccessXI Ashita");
@@ -409,30 +420,39 @@ internal sealed class InstallerForm : Form
         }
     }
 
-    private string RunInstaller(string installRoot, string polExe, bool installMissingPrerequisites, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables)
+    private string RunInstaller(string installRoot, string polExe, bool installMissingPrerequisites, IReadOnlyCollection<VisualCppPrerequisite> missingVisualCppRedistributables, string? downloadedPayloadZipPath, string? verifiedPayloadSha256Hex)
     {
-        var extractionRoot = Path.Combine(Path.GetTempPath(), "AccessXIInstaller", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+        var extractionRoot = Path.Combine(Path.GetTempPath(), "AccessXIInstaller", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(extractionRoot);
 
-        SetStepThreadSafe("Extracting embedded AccessXI payload.", 15);
         var zipPath = Path.Combine(extractionRoot, "AccessXI-Ashita-Installer.zip");
-        using (var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
+        if (!string.IsNullOrWhiteSpace(downloadedPayloadZipPath))
         {
-            if (payload == null)
+            if (string.IsNullOrWhiteSpace(verifiedPayloadSha256Hex))
             {
-                throw new InvalidOperationException("Embedded AccessXI payload was not found.");
+                throw new InvalidDataException("The downloaded AccessXI package did not include its verified SHA-256.");
             }
 
+            SetStepThreadSafe("Preparing the verified AccessXI update.", 28);
+            File.Copy(downloadedPayloadZipPath, zipPath, overwrite: false);
+            ReleasePayloadUpdater.VerifyPackageFile(zipPath, verifiedPayloadSha256Hex);
+            AppendLogThreadSafe("Using the verified AccessXI release package downloaded from GitHub.");
+        }
+        else
+        {
+            SetStepThreadSafe("Preparing the embedded AccessXI package.", 28);
+            using var payload = OpenEmbeddedPayload();
             using var file = File.Create(zipPath);
             payload.CopyTo(file);
+            AppendLogThreadSafe("Using the complete embedded AccessXI package.");
         }
 
-        AppendLogThreadSafe("Extracting embedded payload.");
+        SetStepThreadSafe("Extracting the selected AccessXI package.", 32);
         ZipFile.ExtractToDirectory(zipPath, extractionRoot, overwriteFiles: true);
         var prerequisitesRoot = Path.Combine(extractionRoot, "payload", "Prerequisites");
         if (installMissingPrerequisites)
         {
-            SetStepThreadSafe("Installing missing Microsoft runtime prerequisites.", 25);
+            SetStepThreadSafe("Installing missing Microsoft runtime prerequisites.", 35);
             RunPrerequisiteInstallers(prerequisitesRoot, missingVisualCppRedistributables);
         }
         else if (missingVisualCppRedistributables.Count > 0)
@@ -467,7 +487,7 @@ internal sealed class InstallerForm : Form
         startInfo.ArgumentList.Add(polExe);
         startInfo.ArgumentList.Add("-SkipVisualCppRedistributables");
 
-        SetStepThreadSafe("Installing Ashita, cleaning files from older AccessXI installations, and deploying native PlayOnline accessibility.", 35);
+        SetStepThreadSafe("Installing Ashita, cleaning files from older AccessXI installations, and deploying native PlayOnline accessibility.", 45);
         AppendLogThreadSafe("Running packaged installer script.");
         using var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, e) => { if (e.Data != null) AppendLogThreadSafe(e.Data); };
@@ -489,7 +509,29 @@ internal sealed class InstallerForm : Form
 
         SetStepThreadSafe("Reading installation summary.", 95);
         var summaryPath = Path.Combine(installRoot, "install_summary.json");
-        return File.Exists(summaryPath) ? File.ReadAllText(summaryPath) : string.Empty;
+        var summary = File.Exists(summaryPath) ? File.ReadAllText(summaryPath) : string.Empty;
+        ReleasePayloadUpdater.TryDeleteDirectory(extractionRoot);
+        return summary;
+    }
+
+    private static HttpClient CreateUpdateHttpClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 5,
+            CheckCertificateRevocationList = true,
+        };
+        return new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromMinutes(45),
+        };
+    }
+
+    private static Stream OpenEmbeddedPayload()
+    {
+        return Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName)
+            ?? throw new InvalidOperationException("Embedded AccessXI payload was not found.");
     }
 
     private static PlayOnlineViewerState DetectPlayOnlineViewerVersion(string polExe)

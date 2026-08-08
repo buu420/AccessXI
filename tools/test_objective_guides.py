@@ -3,9 +3,17 @@ from __future__ import annotations
 import struct
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from tools.objective_guides.model import ManifestError, NativeObjective
+from tools.objective_guides.mediawiki import (
+    ACCESSXI_USER_AGENT,
+    MediaWikiClient,
+    MediaWikiError,
+    PageRevision,
+    refresh_snapshot,
+)
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -220,6 +228,193 @@ class NativeManifestTests(unittest.TestCase):
             )
 
         self.assertEqual([row.key for row in manifest], ["mission:Bastok:1", "quest:sandoria:2"])
+
+
+class _ScriptedTransport:
+    def __init__(self, responses: list[dict | Exception]) -> None:
+        self.responses = list(responses)
+        self.calls: list[tuple[str, dict[str, str], dict[str, str], float]] = []
+
+    def __call__(
+        self,
+        api_url: str,
+        params: dict[str, str],
+        headers: dict[str, str],
+        timeout: float,
+    ) -> dict:
+        self.calls.append((api_url, dict(params), dict(headers), timeout))
+        if not self.responses:
+            raise AssertionError("Unexpected MediaWiki request")
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
+def _load_api_fixture(name: str) -> dict:
+    path = Path(__file__).parent / "testdata" / "objective_guides" / name
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class MediaWikiAcquisitionTests(unittest.TestCase):
+    def test_category_members_follow_continuation_with_required_request_policy(self) -> None:
+        transport = _ScriptedTransport(
+            [
+                {
+                    "batchcomplete": True,
+                    "continue": {"cmcontinue": "page|414354494e47", "continue": "-||"},
+                    "query": {
+                        "categorymembers": [
+                            {"pageid": 12562, "ns": 0, "title": "Bastok Mission 1-2"}
+                        ]
+                    },
+                },
+                {
+                    "batchcomplete": True,
+                    "query": {
+                        "categorymembers": [
+                            {"pageid": 6, "ns": 0, "title": "Acting in Good Faith"}
+                        ]
+                    },
+                },
+            ]
+        )
+        client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=transport,
+        )
+
+        members = client.category_members("Category:Missions")
+
+        self.assertEqual([member.title for member in members], ["Bastok Mission 1-2", "Acting in Good Faith"])
+        self.assertEqual(len(transport.calls), 2)
+        first_params = transport.calls[0][1]
+        second_params = transport.calls[1][1]
+        self.assertEqual(first_params["formatversion"], "2")
+        self.assertEqual(first_params["maxlag"], "5")
+        self.assertEqual(first_params["cmlimit"], "max")
+        self.assertEqual(second_params["cmcontinue"], "page|414354494e47")
+        self.assertEqual(transport.calls[0][2]["User-Agent"], ACCESSXI_USER_AGENT)
+
+    def test_fetch_pages_keeps_redirect_aliases_and_deduplicates_canonical_page(self) -> None:
+        fixture = _load_api_fixture("bg-api-pages.json")
+        response = dict(fixture["response"])
+        response["query"] = dict(response["query"])
+        response["query"]["redirects"] = [
+            {"from": "A Geological Survey", "to": "Bastok Mission 1-2"}
+        ]
+        transport = _ScriptedTransport([response])
+        client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=transport,
+        )
+
+        pages = client.fetch_pages(["A Geological Survey", "Bastok Mission 1-2", "Acting in Good Faith"])
+
+        self.assertEqual([page.canonical_title for page in pages], ["Acting in Good Faith", "Bastok Mission 1-2"])
+        geological = pages[1]
+        self.assertEqual(geological.page_id, 12562)
+        self.assertEqual(geological.revision_id, 686732)
+        self.assertIn("A Geological Survey", geological.aliases)
+        params = transport.calls[0][1]
+        self.assertEqual(params["rvslots"], "main")
+        self.assertEqual(params["rvprop"], "ids|timestamp|content")
+        self.assertEqual(params["redirects"], "1")
+        self.assertLessEqual(len(params["titles"].split("|")), 40)
+
+    def test_fetch_pages_rejects_missing_or_conflicting_canonical_pages(self) -> None:
+        missing = _ScriptedTransport(
+            [{"batchcomplete": True, "query": {"pages": [{"ns": 0, "title": "Missing", "missing": True}]}}]
+        )
+        with self.assertRaises(MediaWikiError):
+            MediaWikiClient("bg", "https://www.bg-wiki.com/api.php", transport=missing).fetch_pages(["Missing"])
+
+        fixture = _load_api_fixture("bg-api-pages.json")["response"]
+        duplicate = json.loads(json.dumps(fixture))
+        second = json.loads(json.dumps(duplicate["query"]["pages"][0]))
+        second["revisions"][0]["revid"] += 1
+        duplicate["query"]["pages"].append(second)
+        with self.assertRaises(MediaWikiError):
+            MediaWikiClient(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                transport=_ScriptedTransport([duplicate]),
+            ).fetch_pages(["Acting in Good Faith"])
+
+    def test_revision_cache_key_carries_site_ids_and_content_hash(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Bastok Mission 1-2",
+            page_id=12562,
+            revision_id=686732,
+            parent_revision_id=678203,
+            revision_timestamp="2023-07-27T00:56:06Z",
+            content="walkthrough",
+            aliases=("A Geological Survey",),
+        )
+
+        self.assertRegex(
+            page.cache_key,
+            r"^bg-page-12562-revision-686732-sha256-[0-9a-f]{64}$",
+        )
+        self.assertEqual(page.source_url, "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            client = MediaWikiClient(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                cache_dir=Path(temporary),
+                transport=_ScriptedTransport([]),
+            )
+            cache_path = client.cache_revision(page)
+            self.assertIsNotNone(cache_path)
+            assert cache_path is not None
+            self.assertEqual(cache_path.stem, page.cache_key)
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            self.assertEqual(cached["content_sha256"], page.content_sha256)
+            self.assertEqual(cached["license"], "CC-BY-NC-SA-3.0")
+
+    def test_failed_refresh_does_not_replace_prior_snapshot(self) -> None:
+        first_page = _load_api_fixture("bg-api-pages.json")["response"]["query"]["pages"][0]
+        transport = _ScriptedTransport(
+            [
+                {"batchcomplete": True, "query": {"pages": [first_page]}},
+                MediaWikiError("simulated second batch failure"),
+            ]
+        )
+        client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=transport,
+            batch_size=1,
+            max_attempts=1,
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            snapshot = Path(temporary) / "snapshot.json"
+            snapshot.write_text('{"reviewed":"prior"}\n', encoding="utf-8")
+            before = snapshot.read_bytes()
+
+            with self.assertRaises(MediaWikiError):
+                refresh_snapshot(client, ["Acting in Good Faith", "Bastok Mission 1-2"], snapshot)
+
+            self.assertEqual(snapshot.read_bytes(), before)
+
+    def test_recorded_fixtures_decode_both_sites(self) -> None:
+        for site, fixture_name, api_url in (
+            ("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php"),
+            ("ffxiclopedia", "ffxiclopedia-api-pages.json", "https://ffxiclopedia.fandom.com/api.php"),
+        ):
+            fixture = _load_api_fixture(fixture_name)
+            pages = MediaWikiClient(site, api_url, transport=_ScriptedTransport([fixture["response"]])).fetch_pages(
+                fixture["requested_titles"]
+            )
+            self.assertEqual(len(pages), 2)
+            self.assertTrue(all(page.content for page in pages))
+            self.assertEqual(fixture["source"]["license"], pages[0].license_id)
 
 
 if __name__ == "__main__":

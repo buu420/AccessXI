@@ -141,9 +141,10 @@ local function mission_state_ready()
         accessxi.restore_mission_packet_cache_if_needed();
     end
     local packet = accessxi.mission_packet_main or {};
+    local source = clean(accessxi.mission_packet_source);
     return clean(accessxi.mission_packet_player) == current_player
         and clean(accessxi.mission_packet_identity):lower() == current_identity
-        and clean(accessxi.mission_packet_source) == 'packet_in_056'
+        and (source == 'packet_in_056' or source == 'cache')
         and (tonumber(packet.port) or 0) == 0xFFFF;
 end
 
@@ -154,9 +155,10 @@ local function auxiliary_mission_state_ready(context)
         return true;
     end
     local current_identity = character_identity();
+    local source = clean(accessxi.mission_packet_ahturghan_source);
     return current_identity ~= ''
         and clean(accessxi.mission_packet_ahturghan_identity):lower() == current_identity
-        and clean(accessxi.mission_packet_ahturghan_source) == 'packet_in_056';
+        and (source == 'packet_in_056' or source == 'cache');
 end
 
 local function quest_state_ready()
@@ -169,20 +171,62 @@ local function quest_state_ready()
     if (type(accessxi.restore_quest_packet_cache_if_needed) == 'function') then
         accessxi.restore_quest_packet_cache_if_needed();
     end
+    local source = clean(accessxi.quest_packet_source);
     if (clean(accessxi.quest_packet_player) ~= current_player
         or clean(accessxi.quest_packet_identity):lower() ~= current_identity
-        or clean(accessxi.quest_packet_source) ~= 'packet_in_056') then
+        or (source ~= 'packet_in_056' and source ~= 'cache')) then
         return false;
     end
     for _, area_key in ipairs((accessxi.quests_menu_data or {}).quest_log_order or T{}) do
         local entry = type(accessxi.quest_packet_entry) == 'function'
             and accessxi.quest_packet_entry(area_key, 'current') or nil;
-        if (type(entry) ~= 'table' or clean(entry.source) ~= 'packet_in_056'
+        local entry_source = clean(type(entry) == 'table' and entry.source or '');
+        if (type(entry) ~= 'table'
+            or (entry_source ~= 'packet_in_056' and entry_source ~= 'cache')
             or clean(entry.identity):lower() ~= current_identity) then
             return false;
         end
     end
     return true;
+end
+
+local function mission_route_state_ready(item)
+    local current_player = player_name();
+    local current_identity = character_identity();
+    local packet = accessxi.mission_packet_main or {};
+    if (current_player == '' or current_identity == ''
+        or clean(accessxi.mission_packet_player) ~= current_player
+        or clean(accessxi.mission_packet_identity):lower() ~= current_identity
+        or clean(accessxi.mission_packet_source) ~= 'packet_in_056'
+        or (tonumber(packet.port) or 0) ~= 0xFFFF) then
+        return false;
+    end
+
+    local context = clean(type(item) == 'table' and item.mission_context or '');
+    if (context == 'Assault' or context == 'Treasures of Aht Urhgan'
+        or context == 'Campaign' or context == 'Wings of the Goddess') then
+        return clean(accessxi.mission_packet_ahturghan_identity):lower() == current_identity
+            and clean(accessxi.mission_packet_ahturghan_source) == 'packet_in_056';
+    end
+    return true;
+end
+
+local function quest_route_state_ready(item)
+    local current_player = player_name();
+    local current_identity = character_identity();
+    if (current_player == '' or current_identity == ''
+        or clean(accessxi.quest_packet_player) ~= current_player
+        or clean(accessxi.quest_packet_identity):lower() ~= current_identity
+        or clean(accessxi.quest_packet_source) ~= 'packet_in_056') then
+        return false;
+    end
+
+    local area_key = clean(type(item) == 'table' and item.quest_area_key or '');
+    local entry = area_key ~= '' and type(accessxi.quest_packet_entry) == 'function'
+        and accessxi.quest_packet_entry(area_key, 'current') or nil;
+    return type(entry) == 'table'
+        and clean(entry.source) == 'packet_in_056'
+        and clean(entry.identity):lower() == current_identity;
 end
 
 local function key_item_state_available(id)
@@ -550,6 +594,15 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     local title = clean(item ~= nil and item.name or 'objective');
     if (fresh == nil) then
         return nil, ('%s is no longer present in the current character\'s active %s list.'):fmt(title, kind == 'quest' and 'quest' or 'mission'), 'blocked';
+    end
+    local route_state_ready = false;
+    if (kind == 'mission') then
+        route_state_ready = mission_route_state_ready(fresh);
+    else
+        route_state_ready = quest_route_state_ready(fresh);
+    end
+    if (not route_state_ready) then
+        return nil, ('Current-session packet evidence is not yet available for %s.'):fmt(title), 'blocked';
     end
     if (fresh.objective_available ~= true or type(fresh.objective_target) ~= 'table') then
         return nil, ('No verified route objective is available for this stage of %s.'):fmt(title), 'blocked';

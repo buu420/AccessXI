@@ -199,6 +199,21 @@ end
 
 accessxi.mission_quest_objectives = load_with_env(objectives_path, { accessxi = accessxi, T = T })
 assert(type(accessxi.mission_quest_objectives) == 'table')
+accessxi.mission_quest_objectives.quests['sandoria:2'] = {
+    title = 'The Pickpocket',
+    context = 'sandoria',
+    quest_id = 2,
+    required_key_items = T{},
+    source = 'test fixture backed by the native current quest bit',
+    stages = T{
+        {
+            key = 'report-to-cid',
+            when = 'owns-none',
+            instruction = 'Talk to Cid.',
+            target = { reference = { zone = 237, name = 'Cid', kind = 'npc' } },
+        },
+    },
+}
 assert(load_with_env(module_path, {
     accessxi = accessxi,
     T = T,
@@ -219,8 +234,14 @@ assert(find(missions, 'A Geological Survey') ~= nil)
 assert(find(missions, "Welcome t'Norg") ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
 accessxi.mission_packet_source = 'cache'
-assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
+missions = accessxi.nav_mission_quest_active_items('mission')
+local cached_survey = assert(find(missions, 'A Geological Survey'))
+assert(find(missions, "Welcome t'Norg") ~= nil)
+local cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_survey, { zone = 106 })
+assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
 accessxi.mission_packet_source = 'packet_in_056'
+cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_survey, { zone = 106 })
+assert(cached_target ~= nil and cached_mode == 'ready' and cached_message == '')
 accessxi.mission_packet_identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
 accessxi.mission_packet_identity = current_identity
@@ -238,9 +259,22 @@ assert(quests[1].name == 'The Pickpocket')
 assert(quests[2].name == 'A Long Current Quest')
 assert(quests[3].name == 'Safe Aht Urhgan Quest')
 assert(find(quests, 'Overlaid Mission Word') == nil)
-quest_entries['sandoria:current'].source = 'cache'
-assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
+accessxi.quest_packet_source = 'cache'
+for _, entry in pairs(quest_entries) do entry.source = 'cache' end
+quests = accessxi.nav_mission_quest_active_items('quest')
+assert(#quests == 3)
+local cached_pickpocket = assert(find(quests, 'The Pickpocket'))
+assert(find(quests, 'Safe Aht Urhgan Quest') ~= nil)
+cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
+assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
+accessxi.quest_packet_source = 'packet_in_056'
+quest_entries['aht_urhgan:current'].source = 'packet_in_056'
+cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
+assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
 quest_entries['sandoria:current'].source = 'packet_in_056'
+cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
+assert(cached_target ~= nil and cached_mode == 'ready' and cached_message == '')
+for _, entry in pairs(quest_entries) do entry.source = 'packet_in_056' end
 quest_entries['sandoria:current'].identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
 quest_entries['sandoria:current'].identity = current_identity
@@ -312,6 +346,8 @@ accessxi.key_items_packet_tables = { [0] = { flags = string.rep('\0', 64), sourc
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
+target, message, mode = accessxi.nav_mission_quest_prepare_route(survey, { zone = 191 })
+assert(target == nil and mode == 'blocked' and message ~= '')
 
 accessxi.key_items_packet_tables[0].source = 'packet_in_055'
 accessxi.key_items_packet_tables[0].identity = current_identity

@@ -171,11 +171,13 @@ def _source_pages(
                 site,
                 str(config["api_url"]),
                 cache_dir=cache_root / "revisions",
+                request_cache_dir=cache_root / "resume" / site,
                 min_request_interval=0.2,
             )
             pages, site_discovery = _discover_and_fetch(client, native_rows)
             write_snapshot(client, pages, snapshot)
             _atomic_json(discovery_path, site_discovery)
+            client.clear_request_cache()
         all_pages.extend(pages)
         discovery["sites"][site] = site_discovery
     return tuple(all_pages), discovery

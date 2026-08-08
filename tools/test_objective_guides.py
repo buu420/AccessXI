@@ -276,6 +276,41 @@ def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, 
 
 
 class MediaWikiAcquisitionTests(unittest.TestCase):
+    def test_successful_api_batches_resume_across_clients_until_cleared(self) -> None:
+        response = {
+            "batchcomplete": True,
+            "query": {
+                "categorymembers": [
+                    {"pageid": 10, "ns": 0, "title": "First Mission"},
+                ]
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            resume_root = Path(temporary) / "resume"
+            first_transport = _ScriptedTransport([response])
+            first = MediaWikiClient(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                transport=first_transport,
+                request_cache_dir=resume_root,
+            )
+
+            self.assertEqual(first.category_members("Category:Missions")[0].title, "First Mission")
+            self.assertEqual(len(first_transport.calls), 1)
+
+            resumed_transport = _ScriptedTransport([])
+            resumed = MediaWikiClient(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                transport=resumed_transport,
+                request_cache_dir=resume_root,
+            )
+            self.assertEqual(resumed.category_members("Category:Missions")[0].title, "First Mission")
+            self.assertEqual(resumed_transport.calls, [])
+
+            resumed.clear_request_cache()
+            self.assertEqual(list(resume_root.glob("*.json")), [])
+
     def test_recursive_category_walk_returns_pages_once_and_stops_cycles(self) -> None:
         transport = _ScriptedTransport(
             [

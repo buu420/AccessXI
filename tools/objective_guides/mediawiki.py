@@ -113,12 +113,14 @@ class MediaWikiClient:
         api_url: str,
         *,
         cache_dir: Path | None = None,
+        request_cache_dir: Path | None = None,
         transport: Transport | None = None,
         user_agent: str = ACCESSXI_USER_AGENT,
         timeout: float = 30.0,
         batch_size: int = 50,
         max_attempts: int = 4,
         min_request_interval: float = 0.0,
+        request_cache_max_age: float = 7200.0,
     ) -> None:
         if site not in SITE_LICENSES:
             raise ValueError(f"Unsupported MediaWiki site: {site}")
@@ -127,13 +129,79 @@ class MediaWikiClient:
         self.site = site
         self.api_url = api_url
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
+        self.request_cache_dir = Path(request_cache_dir) if request_cache_dir is not None else None
         self.transport = transport or _http_json_transport
         self.user_agent = user_agent
         self.timeout = float(timeout)
         self.batch_size = int(batch_size)
         self.max_attempts = max(1, int(max_attempts))
         self.min_request_interval = max(0.0, float(min_request_interval))
+        self.request_cache_max_age = max(0.0, float(request_cache_max_age))
         self._last_request_time = 0.0
+
+    def _request_cache_identity(self, params: dict[str, str]) -> tuple[Path | None, str]:
+        identity = json.dumps(
+            {
+                "site": self.site,
+                "api_url": self.api_url,
+                "params": params,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+        path = self.request_cache_dir / f"query-{digest}.json" if self.request_cache_dir else None
+        return path, identity
+
+    def _load_cached_request(self, params: dict[str, str]) -> dict[str, Any] | None:
+        path, identity = self._request_cache_identity(params)
+        if path is None or not path.is_file() or self.request_cache_max_age <= 0:
+            return None
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            created_unix = float(record.get("created_unix", 0))
+            age = time.time() - created_unix
+            payload = record.get("payload")
+            valid = (
+                record.get("schema_version") == 1
+                and record.get("identity") == identity
+                and 0 <= age <= self.request_cache_max_age
+                and isinstance(payload, dict)
+                and payload.get("batchcomplete") is True
+                and "error" not in payload
+            )
+            if valid:
+                return payload
+        except (OSError, TypeError, ValueError):
+            pass
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+
+    def _cache_request(self, params: dict[str, str], payload: dict[str, Any]) -> None:
+        path, identity = self._request_cache_identity(params)
+        if path is None:
+            return
+        _atomic_json_write(
+            path,
+            {
+                "schema_version": 1,
+                "identity": identity,
+                "created_unix": time.time(),
+                "payload": payload,
+            },
+        )
+
+    def clear_request_cache(self) -> None:
+        """Clear only this client's short-lived, resumable API batch cache."""
+
+        if self.request_cache_dir is None or not self.request_cache_dir.is_dir():
+            return
+        for path in self.request_cache_dir.glob("query-*.json"):
+            path.unlink(missing_ok=True)
 
     def _query(self, params: dict[str, str]) -> dict[str, Any]:
         request_params = {
@@ -143,6 +211,9 @@ class MediaWikiClient:
             "maxlag": "5",
         }
         request_params.update({key: str(value) for key, value in params.items()})
+        cached = self._load_cached_request(request_params)
+        if cached is not None:
+            return cached
         headers = {"User-Agent": self.user_agent, "Accept": "application/json"}
         last_error: Exception | None = None
         for attempt in range(self.max_attempts):
@@ -161,6 +232,7 @@ class MediaWikiClient:
                     raise MediaWikiError(f"MediaWiki error {code}: {info}")
                 if payload.get("batchcomplete") is not True:
                     raise MediaWikiError("MediaWiki response was not marked batchcomplete.")
+                self._cache_request(request_params, payload)
                 return payload
             except urllib.error.HTTPError as error:
                 last_error = error

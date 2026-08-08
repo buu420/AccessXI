@@ -295,6 +295,17 @@ function GuideState:open(native_key, automatic_step_id)
         end
     end
     if (selected == 0) then
+        local default_step_id = clean(objective.reconciliation.default_step_id);
+        if (default_step_id ~= '') then
+            for index, step in ipairs(objective.steps) do
+                if (step.stable_step_id == default_step_id) then
+                    selected = index;
+                    break;
+                end
+            end
+        end
+    end
+    if (selected == 0) then
         selected = 1;
     end
     self.selected_native_key = clean(native_key);

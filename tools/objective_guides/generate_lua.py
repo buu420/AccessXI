@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from .matching import MatchingReport, match_objective_pages
+from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
 from .model import NativeObjective, ParsedObjective, SourceStep
 from .reconcile import ReconciledObjective, reconcile_objectives
@@ -193,7 +193,7 @@ def _source_module_text(
 
 def _reconcile_module_text(
     entries: Iterable[
-        tuple[NativeObjective, ReconciledObjective, Mapping[str, str], set[str]]
+        tuple[NativeObjective, ReconciledObjective, Mapping[str, str], str, set[str]]
     ],
 ) -> str:
     lines = [
@@ -201,13 +201,16 @@ def _reconcile_module_text(
         "-- No source walkthrough prose is combined in this module.",
         "return {",
     ]
-    for native, objective, automatic_stages, route_steps in sorted(entries, key=lambda item: item[0].key):
+    for native, objective, automatic_stages, default_step_id, route_steps in sorted(
+        entries, key=lambda item: item[0].key
+    ):
         lines.extend(
             [
                 f"  [{lua_quote(native.key)}] = {{",
                 f"    dynamic_candidate_comparison = {lua_quote(objective.dynamic_candidate_comparison)},",
                 f"    dynamic_candidate_grid = {_lua_array(objective.dynamic_candidate_grid)},",
                 "    selected_candidate_grid = nil,",
+                f"    default_step_id = {lua_quote(default_step_id) if default_step_id else 'nil'},",
                 "    automatic_stages = {",
             ]
         )
@@ -264,6 +267,57 @@ def _matches_by_native(
     return unique, ambiguous_keys, report
 
 
+def _expanded_reviewed_page_matches(
+    reviewed_overrides: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    raw_matches = reviewed_overrides.get("page_matches", {})
+    if not isinstance(raw_matches, Mapping):
+        raise GenerationError("Reviewed page_matches must be an object.")
+    expanded: dict[str, dict[str, Any]] = {}
+    for native_key, per_site in raw_matches.items():
+        if not isinstance(per_site, Mapping):
+            raise GenerationError(f"Reviewed matches for {native_key!r} must be an object.")
+        expanded[str(native_key)] = {
+            str(site): dict(identity) if isinstance(identity, Mapping) else identity
+            for site, identity in per_site.items()
+        }
+
+    groups = reviewed_overrides.get("shared_page_groups", [])
+    if not isinstance(groups, list):
+        raise GenerationError("Reviewed shared_page_groups must be an array.")
+    for group in groups:
+        if not isinstance(group, Mapping):
+            raise GenerationError("Each reviewed shared page group must be an object.")
+        site = str(group.get("site", "")).strip()
+        native_keys = group.get("native_keys")
+        if not site or not isinstance(native_keys, list) or len(native_keys) < 2 or "page_id" not in group:
+            raise GenerationError("A reviewed shared page group needs a site, page_id, and two native keys.")
+        identity = {
+            "page_id": int(group["page_id"]),
+            "canonical_title": str(group.get("canonical_title", "")).strip(),
+            "allow_shared_page": True,
+        }
+        for native_key_value in native_keys:
+            native_key = str(native_key_value)
+            per_site = expanded.setdefault(native_key, {})
+            previous = per_site.get(site)
+            if previous is not None and (
+                not isinstance(previous, Mapping)
+                or int(previous.get("page_id", 0)) != identity["page_id"]
+                or (
+                    str(previous.get("canonical_title", "")).strip()
+                    and str(previous.get("canonical_title", "")).strip() != identity["canonical_title"]
+                )
+            ):
+                raise GenerationError(
+                    f"Reviewed shared page group conflicts with {native_key!r}/{site!r}."
+                )
+            merged = dict(previous) if isinstance(previous, Mapping) else {}
+            merged.update(identity)
+            per_site[site] = merged
+    return expanded
+
+
 def _apply_reviewed_page_matches(
     native_by_key: Mapping[str, NativeObjective],
     pages: tuple[ParsedObjective, ...],
@@ -272,9 +326,7 @@ def _apply_reviewed_page_matches(
 ) -> None:
     if not reviewed_overrides:
         return
-    raw_matches = reviewed_overrides.get("page_matches", {})
-    if not isinstance(raw_matches, Mapping):
-        raise GenerationError("Reviewed page_matches must be an object.")
+    raw_matches = _expanded_reviewed_page_matches(reviewed_overrides)
     page_lookup = {(page.site, page.page_id): page for page in pages}
     reviewed_assignments: dict[tuple[str, int], list[tuple[str, bool]]] = defaultdict(list)
     for native_key, per_site in raw_matches.items():
@@ -406,6 +458,56 @@ def _runtime_objective_key(
     if not isinstance(values, Mapping):
         raise GenerationError("Reviewed runtime_objective_keys must be an object.")
     return str(values.get(native_key, "")).strip()
+
+
+def _section_heading_key(instruction: str) -> str:
+    match = re.match(r"^Section:\s*(.*?)\.?$", str(instruction or "").strip(), re.IGNORECASE)
+    if not match:
+        return ""
+    heading = re.sub(r"^[0-9][0-9A-Za-z-]*:\s*", "", match.group(1)).strip()
+    return normalize_title(heading)
+
+
+def _section_matches_native_title(section_key: str, native_title: str) -> bool:
+    if not section_key or not native_title:
+        return False
+    if section_key == native_title:
+        return True
+    if not section_key.startswith(native_title):
+        return False
+    suffix = section_key[len(native_title) :]
+    return bool(suffix) and suffix.endswith("path")
+
+
+def _default_shared_step_id(
+    native: NativeObjective,
+    reconciled: ReconciledObjective,
+    matched: Mapping[str, ParsedObjective],
+    assignment_counts: Mapping[tuple[str, int], int],
+) -> str:
+    if not any(assignment_counts.get((site, page.page_id), 0) > 1 for site, page in matched.items()):
+        return ""
+    native_title = normalize_title(native.title)
+    sections = [
+        step
+        for step in reconciled.steps
+        if native_title
+        and any(
+            _section_matches_native_title(section_key, native_title)
+            for section_key in (
+                _section_heading_key(step.bg_instruction),
+                _section_heading_key(step.ffxiclopedia_instruction),
+            )
+        )
+    ]
+    if sections:
+        return sections[0].stable_step_id
+    if not sections and reconciled.steps:
+        for page in matched.values():
+            source_titles = (page.objective_name, page.canonical_title, *page.aliases)
+            if native_title in {normalize_title(value) for value in source_titles}:
+                return reconciled.steps[0].stable_step_id
+    return ""
 
 
 def _native_manifest_row(native: NativeObjective) -> dict[str, Any]:
@@ -553,11 +655,15 @@ def build_guide_artifacts(
         ambiguous_by_site[site] = ambiguous
         reports[site] = report
     _apply_reviewed_page_matches(native_by_key, pages, source_maps, reviewed_overrides)
+    assignment_counts: dict[tuple[str, int], int] = defaultdict(int)
+    for site, source_map in source_maps.items():
+        for page in source_map.values():
+            assignment_counts[(site, page.page_id)] += 1
 
     source_groups: dict[tuple[str, str, str], list[tuple[NativeObjective, ParsedObjective]]] = defaultdict(list)
     reconcile_groups: dict[
         tuple[str, str],
-        list[tuple[NativeObjective, ReconciledObjective, Mapping[str, str], set[str]]],
+        list[tuple[NativeObjective, ReconciledObjective, Mapping[str, str], str, set[str]]],
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
@@ -571,16 +677,23 @@ def build_guide_artifacts(
 
         reconciled: ReconciledObjective | None = None
         automatic_stages: dict[str, str] = {}
+        default_step_id = ""
         runtime_objective_key = ""
         route_steps: set[str] = set()
         if matched:
             reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
             automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
+            default_step_id = _default_shared_step_id(
+                native,
+                reconciled,
+                matched,
+                assignment_counts,
+            )
             runtime_objective_key = _runtime_objective_key(native.key, reviewed_overrides)
             if runtime_objective_key and automatic_stages:
                 route_steps = set(automatic_stages.values())
             reconcile_groups[(native.kind, native.context)].append(
-                (native, reconciled, automatic_stages, route_steps)
+                (native, reconciled, automatic_stages, default_step_id, route_steps)
             )
             for step in reconciled.steps:
                 if not (
@@ -662,6 +775,7 @@ def build_guide_artifacts(
             "has_source_conflict": reconciled is not None and _has_material_conflict(reconciled),
             "runtime_objective_key": runtime_objective_key,
             "automatic_stages": automatic_stages,
+            "default_step_id": default_step_id,
             "route_ready": bool(runtime_objective_key),
             "automatic_stage": bool(automatic_stages),
         }

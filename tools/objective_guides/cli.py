@@ -24,10 +24,15 @@ SITE_CONFIG = {
     "bg": {
         "api_url": "https://www.bg-wiki.com/api.php",
         "categories": ("Category:Missions", "Category:Quests"),
+        "additional_titles": (),
     },
     "ffxiclopedia": {
         "api_url": "https://ffxiclopedia.fandom.com/api.php",
         "categories": ("Category:Missions", "Category:Quests"),
+        # The wiki explicitly says this miniquest is absent from the in-game
+        # quest log, so it is not reachable through the normal quest category
+        # traversal or the native title "The Sahagin's Key".
+        "additional_titles": ("Sahagin Key Quest",),
     },
 }
 
@@ -93,11 +98,27 @@ def _overrides_for_sites(
             if isinstance(per_site, dict)
             and any(site in selected for site in per_site)
         }
+    shared_groups = overrides.get("shared_page_groups", [])
+    if isinstance(shared_groups, list):
+        result["shared_page_groups"] = [
+            group
+            for group in shared_groups
+            if isinstance(group, dict) and str(group.get("site", "")) in selected
+        ]
     return result
 
 
 def _snapshot_path(cache_root: Path, site: str) -> Path:
     return cache_root / "snapshots" / f"{site}.json"
+
+
+def _requested_source_titles(
+    category_titles: tuple[str, ...] | list[str],
+    native_rows: tuple[NativeObjective, ...],
+    additional_titles: tuple[str, ...] | list[str] = (),
+) -> tuple[str, ...]:
+    native_titles = (row.title for row in native_rows)
+    return tuple(dict.fromkeys((*category_titles, *native_titles, *additional_titles)))
 
 
 def _discover_and_fetch(
@@ -107,8 +128,11 @@ def _discover_and_fetch(
     config = SITE_CONFIG[client.site]
     category_pages, categories = recursive_category_pages(client, config["categories"])
     category_titles = [page.title for page in category_pages]
-    native_titles = [row.title for row in native_rows]
-    requested_titles = tuple(dict.fromkeys((*category_titles, *native_titles)))
+    requested_titles = _requested_source_titles(
+        category_titles,
+        native_rows,
+        config.get("additional_titles", ()),
+    )
     pages, missing = client.fetch_existing_pages(requested_titles)
     fetched_titles = {
         title.casefold()

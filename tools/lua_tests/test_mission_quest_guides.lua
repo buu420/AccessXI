@@ -54,6 +54,7 @@ local modules = {
         ['mission:Bastok:2'] = {
             dynamic_candidate_comparison = 'none',
             dynamic_candidate_grid = {},
+            default_step_id = 'mission:Bastok:2:step-003',
             automatic_stages = {
                 ['obtain-blue-tester'] = 'mission:Bastok:2:step-001',
             },
@@ -179,7 +180,7 @@ assert(guides:sync_identity() == true)
 assert(guides:is_open() == false)
 assert(identity_changes == 1)
 assert(guides:open('mission:Bastok:2') ~= nil)
-assert(guides:current_index() == 1)
+assert(guides:current_index() == 3)
 
 local missing, missing_reason = guides:resolve('quest:windurst:77')
 assert(missing == nil)

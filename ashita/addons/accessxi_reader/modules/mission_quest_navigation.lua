@@ -4,6 +4,16 @@ local function clean(value)
     return tostring(value or ''):gsub('[\t\r\n]', ' '):gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '');
 end
 
+local function meaningful_native_details(value)
+    value = clean(value);
+    local lower = value:lower():gsub('[^a-z0-9]+', '');
+    if (lower == '' or lower == 'client' or lower == 'clients'
+        or lower == 'summary' or lower == 'missionorders') then
+        return '';
+    end
+    return value;
+end
+
 local function player_name()
     if (type(accessxi.current_player_name) ~= 'function') then
         return '';
@@ -493,6 +503,7 @@ local function append_mission(items, context, value)
         source = ('native-active-mission:%s:%d:%s'):fmt(clean(context), tonumber(value) or 0, clean(row.source)),
         confidence = 'native',
         section = clean(context),
+        objective_native_details = meaningful_native_details(row.orders),
     };
     items:append(apply_guide_metadata(apply_objective(item)));
 end
@@ -586,6 +597,13 @@ local function active_quests()
                     and accessxi.quest_packet_has_id(entry, quest_id)) then
                     local row = rows[quest_id];
                     if (valid_quest_row(row)) then
+                        local native_details = '';
+                        if (type(accessxi.quest_rom_detail_for_row) == 'function') then
+                            local ok, details = pcall(accessxi.quest_rom_detail_for_row, row);
+                            if (ok) then
+                                native_details = meaningful_native_details(details);
+                            end
+                        end
                         local item = T{
                             zone = 0,
                             name = clean(row.label),
@@ -598,6 +616,7 @@ local function active_quests()
                             source = ('native-active-quest:%s:%d:%s'):fmt(clean(area_key), quest_id, clean(row.source)),
                             confidence = 'native',
                             section = clean(resource.label or row.area or area_key),
+                            objective_native_details = native_details,
                         };
                         items:append(apply_guide_metadata(apply_objective(item)));
                     end
@@ -637,6 +656,11 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
     end
     if (item.guide_available == true) then
         return prefix .. ' Guide available. Press I to open steps.';
+    end
+    local native_details = meaningful_native_details(item.objective_native_details);
+    if (native_details ~= '') then
+        local detail_label = kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ';
+        prefix = prefix .. detail_label .. native_details;
     end
     if (clean(item.guide_status) == 'ambiguous-match') then
         return prefix .. ' Guide match is ambiguous.';

@@ -60,7 +60,12 @@ local mission_rows = {
     },
     ['Rise of the Zilart'] = T{
         { label = 'The New Frontier', mission_id = 1, next_mission_id = 2 },
-        { label = "Welcome t'Norg", mission_id = 2, next_mission_id = 3 },
+        {
+            label = "Welcome t'Norg",
+            mission_id = 2,
+            next_mission_id = 3,
+            orders = 'Lion is waiting in the room at the end of the second-floor hallway in Norg.',
+        },
     },
     ['The Voracious Resurgence'] = T{
         { label = 'False TVR mission from TalesBeginning bits', mission_id = 188, next_mission_id = 189 },
@@ -187,6 +192,12 @@ accessxi = {
         return bit.band(word, 2 ^ (id % 32)) ~= 0
     end,
     quest_rom_rows_for_area = function(area) return quest_rows[area] end,
+    quest_rom_detail_for_row = function(row)
+        if row ~= nil and row.label == 'A Long Current Quest' then
+            return 'Client: Native Tester. Summary: Bring the requested item.', 'quest-rom-detail'
+        end
+        return nil, 'missing-detail-text'
+    end,
     key_items_packet_has_id = function(id) return owned_key_items[id] == true end,
     nav_point_effective_kind = function(point) return tostring(point.kind or ''):lower() end,
     speech_name = function(value) return tostring(value or '') end,
@@ -241,6 +252,9 @@ assert(find(missions, 'A Geological Survey') ~= nil)
 assert(find(missions, 'A Geological Survey').objective_native_key == 'mission:Bastok:2')
 assert(find(missions, 'A Geological Survey').guide_available == true)
 assert(find(missions, "Welcome t'Norg") ~= nil)
+local welcome = assert(find(missions, "Welcome t'Norg"))
+assert(welcome.objective_native_details:find('second-floor hallway', 1, true) ~= nil)
+assert(accessxi.nav_mission_quest_item_speech(welcome, 1, #missions):find('Native mission orders:', 1, true) ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
 local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
 mission_values['Chains of Promathia'] = 1
@@ -311,6 +325,8 @@ assert(quests[1].name == 'The Pickpocket')
 assert(quests[1].objective_native_key == 'quest:sandoria:2')
 assert(quests[1].guide_available == true)
 assert(quests[2].name == 'A Long Current Quest')
+assert(quests[2].objective_native_details:find('Bring the requested item', 1, true) ~= nil)
+assert(accessxi.nav_mission_quest_item_speech(quests[2], 2, #quests):find('Native quest details:', 1, true) ~= nil)
 assert(quests[3].name == 'Safe Aht Urhgan Quest')
 assert(find(quests, 'Overlaid Mission Word') == nil)
 accessxi.quest_packet_source = 'cache'

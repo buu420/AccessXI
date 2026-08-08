@@ -26,6 +26,7 @@ from tools.objective_guides.generate_lua import (
     lua_quote,
     source_module_name,
 )
+from tools.objective_guides.cli import _requested_source_titles
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -277,6 +278,28 @@ def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, 
 
 
 class MediaWikiAcquisitionTests(unittest.TestCase):
+    def test_source_title_candidates_include_reviewed_non_log_aliases(self) -> None:
+        native = NativeObjective(
+            "quest",
+            "outlands",
+            128,
+            "The Sahagin's Key",
+            "quests.dat",
+            0,
+            128,
+        )
+
+        titles = _requested_source_titles(
+            ("Category-discovered quest",),
+            (native,),
+            ("Sahagin Key Quest",),
+        )
+
+        self.assertEqual(
+            titles,
+            ("Category-discovered quest", "The Sahagin's Key", "Sahagin Key Quest"),
+        )
+
     def test_successful_api_batches_resume_across_clients_until_cleared(self) -> None:
         response = {
             "batchcomplete": True,
@@ -545,6 +568,88 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
 
 class WikitextParserTests(unittest.TestCase):
+    def test_nyzul_special_pages_keep_only_progress_sections(self) -> None:
+        bg = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Nyzul Isle Uncharted Area Survey",
+            page_id=87211,
+            revision_id=751150,
+            parent_revision_id=751149,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Nyzul Header\n"
+                "|Assault Area=Nyzul Isle\n"
+                "|Orders=Complete on-site objectives.\n"
+                "|Level=99\n"
+                "}}[[Category:Assault]]\n"
+                "==Entry==\n"
+                "Speak with [[Sorrowful Sage]] before entering.\n"
+                "==Floor Objectives==\n"
+                "*Defeat the enemy that checks as [[Impossible to Gauge]].\n"
+                "==Advancement==\n"
+                "*Use the [[Rune of Transfer]] after completing the objective.\n"
+                "==Rewards==\n"
+                "*A reward table is not progress guidance.\n"
+            ),
+        )
+        ffxiclopedia = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Nyzul Isle Investigation",
+            page_id=46228,
+            revision_id=1700640,
+            parent_revision_id=1700639,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "[[Category:Missions]][[Category:Assault Missions]]\n"
+                "==Rules==\n"
+                "*Obtain an [[Imperial Army I.D. Tag]].\n"
+                "==Objectives==\n"
+                "*Complete the randomly assigned floor objective.\n"
+                "==Rewards==\n"
+                "*A reward table is not progress guidance.\n"
+            ),
+        )
+
+        parsed_bg = parse_objective_page(bg)
+        parsed_ffxi = parse_objective_page(ffxiclopedia)
+
+        self.assertEqual((parsed_bg.kind, parsed_bg.context_hint), ("mission", "Assault"))
+        self.assertIn("Complete on-site objectives", parsed_bg.steps[0].spoken_text)
+        self.assertTrue(any("Sorrowful Sage" in step.spoken_text for step in parsed_bg.steps))
+        self.assertTrue(any("Rune of Transfer" in step.spoken_text for step in parsed_bg.steps))
+        self.assertEqual((parsed_ffxi.kind, parsed_ffxi.context_hint), ("mission", "Assault"))
+        self.assertTrue(any("Imperial Army I.D. Tag" in step.spoken_text for step in parsed_ffxi.steps))
+        self.assertFalse(any("reward table" in step.spoken_text.casefold() for step in (*parsed_bg.steps, *parsed_ffxi.steps)))
+
+    def test_sahagin_key_miniquest_page_uses_obtainment_sections_only(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Sahagin Key",
+            page_id=1787,
+            revision_id=767515,
+            parent_revision_id=767514,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "[[Category:Mini-Quests]]\n"
+                "==Obtainment==\n"
+                "*Speak to [[Gimb]] in [[Norg]].\n"
+                "==Additional Keys==\n"
+                "*Trade a [[Gold Beastcoin]] and a [[Norg Shell]].\n"
+                "==Notes==\n"
+                "*This note is not part of the ordered acquisition guide.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        self.assertEqual(parsed.kind, "quest")
+        self.assertTrue(any("Gimb" in step.spoken_text for step in parsed.steps))
+        self.assertTrue(any("Gold Beastcoin" in step.spoken_text for step in parsed.steps))
+        self.assertFalse(any("not part" in step.spoken_text for step in parsed.steps))
+
     def test_legacy_objective_templates_preserve_source_details_without_inventing_routes(self) -> None:
         assault = PageRevision(
             site="ffxiclopedia",
@@ -705,12 +810,41 @@ class WikitextParserTests(unittest.TestCase):
 
         parsed = parse_objective_page(page)
 
-        self.assertEqual(len(parsed.steps), 4)
+        self.assertEqual(len(parsed.steps), 5)
         self.assertIn("Maat", parsed.steps[0].linked_entities)
         self.assertEqual(parsed.steps[1].action, "trade")
         self.assertGreater(parsed.steps[2].depth, parsed.steps[1].depth)
-        self.assertIn("Defeat the target", parsed.steps[3].spoken_text)
+        self.assertEqual(parsed.steps[3].spoken_text, "Section: Battle notes.")
+        self.assertIn("Defeat the target", parsed.steps[4].spoken_text)
         self.assertFalse(any("Template furniture" in step.spoken_text for step in parsed.steps))
+
+    def test_numbered_route_headings_at_walkthrough_level_stay_inside_the_guide(self) -> None:
+        page = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Composite Mission",
+            page_id=9004,
+            revision_id=45,
+            parent_revision_id=44,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Mission|name=Composite Mission}}\n"
+                "==Walkthrough==\nStart the mission.\n"
+                "==3-3A: First Route==\nTalk to [[First NPC]].\n"
+                "==3-3B: Second Route==\nTalk to [[Second NPC]].\n"
+                "==Notes==\nThis must not be imported.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        self.assertEqual([step.spoken_text for step in parsed.steps], [
+            "Start the mission.",
+            "Section: 3-3A: First Route.",
+            "Talk to First NPC.",
+            "Section: 3-3B: Second Route.",
+            "Talk to Second NPC.",
+        ])
 
     def test_spoken_step_cap_retains_required_entities_and_coordinates(self) -> None:
         filler = "very long explanatory phrase " * 30
@@ -1097,6 +1231,7 @@ class GeneratedArtifactTests(unittest.TestCase):
         overrides["page_matches"] = {
             "mission:Bastok:2": overrides["page_matches"]["mission:Bastok:2"]
         }
+        overrides["shared_page_groups"] = []
         return overrides
 
     def _native_rows(self) -> tuple[NativeObjective, ...]:
@@ -1170,7 +1305,25 @@ class GeneratedArtifactTests(unittest.TestCase):
             canonical_title="The Rivalry - The Competition",
             kind="quest",
             objective_name="The Rivalry - The Competition",
-            steps=(SourceStep(1, "*", 1, "Talk to either brother.", "Talk to either brother.", "talk"),),
+            steps=(
+                SourceStep(1, "*", 1, "Talk to either brother.", "Talk to either brother.", "talk"),
+                SourceStep(
+                    2,
+                    "*",
+                    1,
+                    "Section: The Competition.",
+                    "Section: The Competition.",
+                    "note",
+                ),
+                SourceStep(
+                    3,
+                    "*",
+                    1,
+                    "Section: The Competition.",
+                    "Section: The Competition.",
+                    "note",
+                ),
+            ),
         )
         unsafe = {
             "page_matches": {
@@ -1179,12 +1332,14 @@ class GeneratedArtifactTests(unittest.TestCase):
             }
         }
         safe = {
-            "page_matches": {
-                native.key: {
-                    "ffxiclopedia": {"page_id": 4506, "allow_shared_page": True}
+            "shared_page_groups": [
+                {
+                    "site": "ffxiclopedia",
+                    "page_id": 4506,
+                    "canonical_title": "The Rivalry - The Competition",
+                    "native_keys": [native.key for native in natives],
                 }
-                for native in natives
-            }
+            ]
         }
         wrong_title = {
             "page_matches": {
@@ -1222,8 +1377,82 @@ class GeneratedArtifactTests(unittest.TestCase):
                 data_root=root / "safe-data",
                 reviewed_overrides=safe,
             )
+            reconcile = (root / "safe-modules" / "mission_quest_reconcile_quest_sandoria.lua").read_text(
+                encoding="utf-8"
+            )
 
         self.assertEqual(result["counts"]["guide_only"], 2)
+        self.assertIn('default_step_id = "quest:sandoria:76:step-002"', reconcile)
+
+    def test_shared_page_default_accepts_a_native_title_with_a_route_suffix(self) -> None:
+        natives = (
+            NativeObjective(
+                "mission",
+                "Chains of Promathia",
+                14,
+                "The Road Forks",
+                "missions.dat",
+                0,
+                14,
+            ),
+            NativeObjective(
+                "mission",
+                "Chains of Promathia",
+                15,
+                "Emerald Waters",
+                "missions.dat",
+                0x180,
+                15,
+            ),
+        )
+        page = ParsedObjective(
+            site="bg",
+            page_id=5812,
+            revision_id=456,
+            canonical_title="The Road Forks",
+            kind="mission",
+            objective_name="The Road Forks",
+            steps=(
+                SourceStep(1, "*", 1, "Start the mission.", "Start the mission.", "talk"),
+                SourceStep(
+                    2,
+                    "*",
+                    1,
+                    "Section: Emerald Waters (San d'Oria Path).",
+                    "Section: Emerald Waters (San d'Oria Path).",
+                    "note",
+                ),
+                SourceStep(3, "*", 1, "Continue the route.", "Continue the route.", "travel"),
+            ),
+        )
+        overrides = {
+            "shared_page_groups": [
+                {
+                    "site": "bg",
+                    "page_id": 5812,
+                    "canonical_title": "The Road Forks",
+                    "native_keys": [native.key for native in natives],
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                (page,),
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_chains_of_promathia.lua"
+            ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            'default_step_id = "mission:Chains of Promathia:15:step-002"',
+            reconcile,
+        )
 
     def test_generation_is_deterministic_complete_and_source_separated(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

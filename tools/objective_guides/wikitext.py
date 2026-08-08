@@ -12,6 +12,26 @@ from .model import ParsedObjective, SourceStep
 
 MAX_SPOKEN_STEP = 420
 
+_NYZUL_OBJECTIVE_TITLES = {
+    "Nyzul Isle Investigation",
+    "Nyzul Isle Uncharted Area Survey",
+}
+_NYZUL_PROGRESS_SECTIONS = {
+    "differencesfromotherassaults",
+    "rules",
+    "entry",
+    "lobby",
+    "runeoftransfer",
+    "runicdisc",
+    "floorobjectives",
+    "objectives",
+    "floorrestrictions",
+    "floorbonusesandrestrictions",
+    "secondaryobjectives",
+    "advancement",
+    "completion",
+}
+
 
 class WikitextError(ValueError):
     """Raised when a source page cannot safely become objective guidance."""
@@ -265,9 +285,46 @@ def _walkthrough_lines(content: str) -> tuple[str, ...]:
     for line in lines[start:]:
         heading = heading_pattern.match(line)
         if heading and len(heading.group(1)) <= level:
-            break
+            heading_text = _strip_code(heading.group(2))
+            numbered_route = (
+                len(heading.group(1)) == level
+                and (
+                    re.search(r"\b\d+-\d+[A-Za-z]\d*\b", heading_text) is not None
+                    or heading_text.casefold().startswith("completing ")
+                )
+            )
+            if not numbered_route:
+                break
         result.append(line)
     return tuple(result)
+
+
+def _selected_level_two_sections(content: str, wanted: set[str]) -> tuple[str, ...]:
+    lines = content.replace("\r", "").split("\n")
+    heading_pattern = re.compile(r"^\s*(={2,6})\s*(.*?)\s*\1\s*$")
+    result: list[str] = []
+    selected = False
+    for line in lines:
+        heading = heading_pattern.match(line)
+        if heading and len(heading.group(1)) == 2:
+            selected = _name_key(_strip_code(heading.group(2))) in wanted
+            if selected:
+                result.append(line)
+            continue
+        if selected:
+            result.append(line)
+    return tuple(result)
+
+
+def _special_guidance_lines(revision: PageRevision) -> tuple[str, ...]:
+    if revision.canonical_title in _NYZUL_OBJECTIVE_TITLES:
+        return _selected_level_two_sections(revision.content, _NYZUL_PROGRESS_SECTIONS)
+    if revision.site == "bg" and revision.canonical_title == "Sahagin Key":
+        return _selected_level_two_sections(
+            revision.content,
+            {"obtainment", "additionalkeys"},
+        )
+    return ()
 
 
 def _legacy_template_guidance_lines(content: str) -> tuple[str, ...]:
@@ -284,6 +341,15 @@ def _legacy_template_guidance_lines(content: str) -> tuple[str, ...]:
                 ("Area", ("area",)),
                 ("Staging point", ("staging point", "stagingpoint")),
                 ("Mission contact", ("npc",)),
+            ):
+                value = _raw_template_parameter(template, *names)
+                if value:
+                    labeled.append((label, value))
+        elif key == "nyzulheader":
+            for label, names in (
+                ("Orders", ("orders",)),
+                ("Area", ("assault area", "area")),
+                ("Recommended level", ("level",)),
             ):
                 value = _raw_template_parameter(template, *names)
                 if value:
@@ -354,12 +420,25 @@ def _header_details(revision: PageRevision) -> tuple[str, str, str, str, tuple[s
         if key == "assaultmission":
             name = _template_parameter(template, "name") or revision.canonical_title
             return "mission", name, "", "Assault", tuple(warnings)
+        if key == "nyzulheader" and revision.canonical_title in _NYZUL_OBJECTIVE_TITLES:
+            return "mission", revision.canonical_title, "", "Assault", tuple(warnings)
         if key == "questheader":
             return "quest", revision.canonical_title, "", "", tuple(warnings)
         if key == "quest":
             return "quest", revision.canonical_title, "", "", tuple(warnings)
         if key in {"gobbiebagquest", "boghertzquest", "unlockingmyth", "mogws"}:
             return "quest", revision.canonical_title, "", "", tuple(warnings)
+    categories = {_name_key(category) for category in _page_categories(revision.content)}
+    if revision.canonical_title in _NYZUL_OBJECTIVE_TITLES and categories.intersection(
+        {"assault", "assaultmissions"}
+    ):
+        return "mission", revision.canonical_title, "", "Assault", tuple(warnings)
+    if (
+        revision.site == "bg"
+        and revision.canonical_title == "Sahagin Key"
+        and "miniquests" in categories
+    ):
+        return "quest", revision.canonical_title, "", "", tuple(warnings)
     raise WikitextError(f"{revision.site} page {revision.canonical_title!r} has no supported mission or quest header.")
 
 
@@ -394,27 +473,37 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
     kind, objective_name, mission_number, context_hint, header_warnings = _header_details(revision)
     steps: list[SourceStep] = []
     page_warnings = list(header_warnings)
-    guide_lines = (*_legacy_template_guidance_lines(revision.content), *_walkthrough_lines(revision.content))
+    guide_lines = (
+        *_legacy_template_guidance_lines(revision.content),
+        *_walkthrough_lines(revision.content),
+        *_special_guidance_lines(revision),
+    )
     for line in guide_lines:
         candidate = line.lstrip()
-        if candidate.startswith("|") and len(candidate) > 1 and candidate[1] in "#*":
-            candidate = candidate[1:].lstrip()
-        if not candidate or candidate.startswith(("{{", "}}", "{|", "|}", "|", "!", "=", "<")):
-            continue
-        if re.match(r"^\[\[(?:file|image):", candidate, re.IGNORECASE):
-            continue
-        match = re.match(r"^([#*]+)\s*(.*)$", candidate)
-        colon_match = re.match(r"^(:+)([#*]+)\s*(.*)$", candidate)
-        numbered_match = re.match(r"^\d+[.)]\s*(.*)$", candidate)
-        if match:
-            marker, fragment = match.groups()
-        elif colon_match:
-            colons, symbols, fragment = colon_match.groups()
-            marker = "*" * (len(colons) + len(symbols))
-        elif numbered_match:
-            marker, fragment = "#", numbered_match.group(1)
+        heading_match = re.match(r"^(={2,6})\s*(.*?)\s*\1\s*$", candidate)
+        if heading_match:
+            heading = _strip_code(heading_match.group(2)).rstrip(" .")
+            marker = "*" * max(1, len(heading_match.group(1)) - 2)
+            fragment = f"Section: {heading}." if heading else ""
         else:
-            marker, fragment = "*", candidate
+            if candidate.startswith("|") and len(candidate) > 1 and candidate[1] in "#*":
+                candidate = candidate[1:].lstrip()
+            if not candidate or candidate.startswith(("{{", "}}", "{|", "|}", "|", "!", "=", "<")):
+                continue
+            if re.match(r"^\[\[(?:file|image):", candidate, re.IGNORECASE):
+                continue
+            match = re.match(r"^([#*]+)\s*(.*)$", candidate)
+            colon_match = re.match(r"^(:+)([#*]+)\s*(.*)$", candidate)
+            numbered_match = re.match(r"^\d+[.)]\s*(.*)$", candidate)
+            if match:
+                marker, fragment = match.groups()
+            elif colon_match:
+                colons, symbols, fragment = colon_match.groups()
+                marker = "*" * (len(colons) + len(symbols))
+            elif numbered_match:
+                marker, fragment = "#", numbered_match.group(1)
+            else:
+                marker, fragment = "*", candidate
         if not fragment.strip():
             continue
         rendered, links, locations, maps, warnings = _render_fragment(fragment)

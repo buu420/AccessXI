@@ -21,6 +21,7 @@ from tools.objective_guides.matching import match_objective_pages, normalize_tit
 from tools.objective_guides.reconcile import reconcile_objectives
 from tools.objective_guides.model import ParsedObjective, SourceStep
 from tools.objective_guides.generate_lua import (
+    GenerationError,
     build_guide_artifacts,
     lua_quote,
     source_module_name,
@@ -708,6 +709,68 @@ class WikitextParserTests(unittest.TestCase):
 
 
 class MatchingTests(unittest.TestCase):
+    def test_kind_and_context_disambiguation_suffixes_match_exactly(self) -> None:
+        windurst = NativeObjective("quest", "windurst", 77, "Wild Card", "quests.dat", 0, 77)
+        wild_card = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=8315,
+            revision_id=1,
+            canonical_title="Wild Card (Quest)",
+            kind="quest",
+            objective_name="Wild Card (Quest)",
+            categories=("Windurst Quests",),
+        )
+        eco_natives = [
+            NativeObjective("quest", context, native_id, "Eco-Warrior", "quests.dat", 0, native_id)
+            for context, native_id in (("bastok", 65), ("sandoria", 97), ("windurst", 84))
+        ]
+        eco_bastok = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=5745,
+            revision_id=1,
+            canonical_title="Eco-Warrior (Bastok)",
+            kind="quest",
+            objective_name="Eco-Warrior (Bastok)",
+            categories=("Bastok Quests",),
+        )
+
+        wild_report = match_objective_pages([windurst], [wild_card])
+        eco_report = match_objective_pages(eco_natives, [eco_bastok])
+
+        self.assertEqual(wild_report.matches[0].native_key, "quest:windurst:77")
+        self.assertEqual(eco_report.matches[0].native_key, "quest:bastok:65")
+
+    def test_literal_title_wins_when_lossy_normalization_collides(self) -> None:
+        first = NativeObjective(
+            kind="quest",
+            context="windurst",
+            native_id=32,
+            title="Curses, Foiled Again!",
+            source_dat="ROM/176/62.DAT",
+            record_offset=0,
+        )
+        second = NativeObjective(
+            kind="quest",
+            context="windurst",
+            native_id=33,
+            title="Curses, Foiled...Again!?",
+            source_dat="ROM/176/62.DAT",
+            record_offset=0x280,
+        )
+        page = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=8412,
+            revision_id=99,
+            canonical_title="Curses, Foiled...Again!?",
+            kind="quest",
+            objective_name="Curses, Foiled...Again!?",
+        )
+
+        report = match_objective_pages([first, second], [page])
+
+        self.assertEqual([match.native_key for match in report.matches], ["quest:windurst:33"])
+        self.assertEqual(report.ambiguous_pages, {})
+
     def test_reviewed_geological_mapping_seeds_stages_without_unreviewed_targets(self) -> None:
         path = Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json"
         overrides = json.loads(path.read_text(encoding="utf-8"))
@@ -950,6 +1013,17 @@ class ReconciliationTests(unittest.TestCase):
 
 
 class GeneratedArtifactTests(unittest.TestCase):
+    def _fixture_overrides(self) -> dict:
+        overrides = json.loads(
+            (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        overrides["page_matches"] = {
+            "mission:Bastok:2": overrides["page_matches"]["mission:Bastok:2"]
+        }
+        return overrides
+
     def _native_rows(self) -> tuple[NativeObjective, ...]:
         return (
             NativeObjective(
@@ -1009,6 +1083,73 @@ class GeneratedArtifactTests(unittest.TestCase):
             "mission_quest_ffxiclopedia_quest_other_areas",
         )
 
+    def test_reviewed_shared_page_requires_explicit_consent_for_every_objective(self) -> None:
+        natives = (
+            NativeObjective("quest", "sandoria", 75, "The Rivalry", "quests.dat", 0, 75),
+            NativeObjective("quest", "sandoria", 76, "The Competition", "quests.dat", 0x280, 76),
+        )
+        page = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=4506,
+            revision_id=123,
+            canonical_title="The Rivalry - The Competition",
+            kind="quest",
+            objective_name="The Rivalry - The Competition",
+            steps=(SourceStep(1, "*", 1, "Talk to either brother.", "Talk to either brother.", "talk"),),
+        )
+        unsafe = {
+            "page_matches": {
+                native.key: {"ffxiclopedia": {"page_id": 4506}}
+                for native in natives
+            }
+        }
+        safe = {
+            "page_matches": {
+                native.key: {
+                    "ffxiclopedia": {"page_id": 4506, "allow_shared_page": True}
+                }
+                for native in natives
+            }
+        }
+        wrong_title = {
+            "page_matches": {
+                natives[0].key: {
+                    "ffxiclopedia": {
+                        "page_id": 4506,
+                        "canonical_title": "A different page",
+                    }
+                }
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    natives,
+                    (page,),
+                    module_root=root / "unsafe-modules",
+                    data_root=root / "unsafe-data",
+                    reviewed_overrides=unsafe,
+                )
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    natives,
+                    (page,),
+                    module_root=root / "wrong-title-modules",
+                    data_root=root / "wrong-title-data",
+                    reviewed_overrides=wrong_title,
+                )
+            result = build_guide_artifacts(
+                natives,
+                (page,),
+                module_root=root / "safe-modules",
+                data_root=root / "safe-data",
+                reviewed_overrides=safe,
+            )
+
+        self.assertEqual(result["counts"]["guide_only"], 2)
+
     def test_generation_is_deterministic_complete_and_source_separated(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1040,11 +1181,7 @@ class GeneratedArtifactTests(unittest.TestCase):
                 data_root=data_root,
                 source_revisions=source_revisions,
                 parse_failures=parse_failures,
-                reviewed_overrides=json.loads(
-                    (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
-                        encoding="utf-8"
-                    )
-                ),
+                reviewed_overrides=self._fixture_overrides(),
             )
             first_bytes = {
                 path.relative_to(root).as_posix(): path.read_bytes()
@@ -1058,11 +1195,7 @@ class GeneratedArtifactTests(unittest.TestCase):
                 data_root=data_root,
                 source_revisions=source_revisions,
                 parse_failures=parse_failures,
-                reviewed_overrides=json.loads(
-                    (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
-                        encoding="utf-8"
-                    )
-                ),
+                reviewed_overrides=self._fixture_overrides(),
             )
             second_bytes = {
                 path.relative_to(root).as_posix(): path.read_bytes()

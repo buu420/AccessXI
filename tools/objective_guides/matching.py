@@ -35,6 +35,11 @@ def normalize_title(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value)
 
 
+def _literal_title(value: str) -> str:
+    value = unicodedata.normalize("NFKC", str(value or "")).casefold()
+    return re.sub(r"\s+", " ", value).strip()
+
+
 _CONTEXT_ALIASES = {
     "sandoria": "sandoria",
     "sandoriaquests": "sandoria",
@@ -110,7 +115,25 @@ def _title_match_method(native: NativeObjective, page: ParsedObjective) -> str |
         return "exact-canonical"
     if native_title in {normalize_title(alias) for alias in page.aliases}:
         return "exact-alias"
+    source_titles = {
+        normalize_title(page.objective_name),
+        normalize_title(page.canonical_title),
+        *(normalize_title(alias) for alias in page.aliases),
+    }
+    if native_title + normalize_title(native.kind) in source_titles:
+        return "exact-kind-suffix"
+    if native_title + _context_key(native.context) in source_titles:
+        return "exact-context-suffix"
     return None
+
+
+def _literal_title_matches(native: NativeObjective, page: ParsedObjective) -> bool:
+    title = _literal_title(native.title)
+    return title in {
+        _literal_title(page.objective_name),
+        _literal_title(page.canonical_title),
+        *(_literal_title(alias) for alias in page.aliases),
+    }
 
 
 def match_objective_pages(
@@ -132,6 +155,11 @@ def match_objective_pages(
             method = _title_match_method(native, page)
             if method is not None:
                 candidates.append((native, method))
+
+        if len(candidates) > 1:
+            literal = [candidate for candidate in candidates if _literal_title_matches(candidate[0], page)]
+            if literal:
+                candidates = literal
 
         context_used = False
         page_contexts = _page_contexts(page)

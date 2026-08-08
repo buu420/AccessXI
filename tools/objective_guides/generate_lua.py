@@ -276,6 +276,23 @@ def _apply_reviewed_page_matches(
     if not isinstance(raw_matches, Mapping):
         raise GenerationError("Reviewed page_matches must be an object.")
     page_lookup = {(page.site, page.page_id): page for page in pages}
+    reviewed_assignments: dict[tuple[str, int], list[tuple[str, bool]]] = defaultdict(list)
+    for native_key, per_site in raw_matches.items():
+        if not isinstance(per_site, Mapping):
+            raise GenerationError(f"Reviewed matches for {native_key!r} must be an object.")
+        for site, raw_identity in per_site.items():
+            if not isinstance(raw_identity, Mapping) or "page_id" not in raw_identity:
+                raise GenerationError(f"Reviewed {site} match for {native_key!r} lacks page_id.")
+            identity = (str(site), int(raw_identity["page_id"]))
+            reviewed_assignments[identity].append(
+                (str(native_key), raw_identity.get("allow_shared_page") is True)
+            )
+    for identity, assignments in reviewed_assignments.items():
+        if len(assignments) > 1 and not all(allowed for _native_key, allowed in assignments):
+            raise GenerationError(
+                f"Reviewed page {identity!r} is shared by multiple objectives without explicit consent."
+            )
+
     for native_key, per_site in raw_matches.items():
         native = native_by_key.get(str(native_key))
         if native is None:
@@ -286,16 +303,23 @@ def _apply_reviewed_page_matches(
             if not isinstance(raw_identity, Mapping) or "page_id" not in raw_identity:
                 raise GenerationError(f"Reviewed {site} match for {native_key!r} lacks page_id.")
             identity = (str(site), int(raw_identity["page_id"]))
+            allow_shared = raw_identity.get("allow_shared_page") is True
             page = page_lookup.get(identity)
             if page is None:
                 raise GenerationError(
                     f"Reviewed match {identity[0]} page {identity[1]} for {native_key!r} is absent."
                 )
+            expected_title = str(raw_identity.get("canonical_title", "")).strip()
+            if expected_title and page.canonical_title != expected_title:
+                raise GenerationError(
+                    f"Reviewed page {identity!r} changed title from {expected_title!r} "
+                    f"to {page.canonical_title!r}."
+                )
             if page.kind != native.kind:
                 raise GenerationError(f"Reviewed page {identity!r} has the wrong objective kind.")
             source_map = source_maps.setdefault(identity[0], {})
             for other_key, other_page in tuple(source_map.items()):
-                if other_page.page_id == identity[1] and other_key != native_key:
+                if other_page.page_id == identity[1] and other_key != native_key and not allow_shared:
                     raise GenerationError(
                         f"Reviewed page {identity!r} is already assigned to {other_key!r}."
                     )

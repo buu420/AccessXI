@@ -10,6 +10,192 @@
         "page_id": 3338,
         "canonical_title": "A Geological Survey"
       }
+    },
+    "mission:Chains of Promathia:39": {
+      "ffxiclopedia": {
+        "page_id": 13552,
+        "canonical_title": "The Pursuit of Paradise (Tenzen's Path)"
+      }
+    },
+    "mission:Chains of Promathia:44": {
+      "ffxiclopedia": {
+        "page_id": 13606,
+        "canonical_title": "Where Messengers Gather (Ulmia's Path)"
+      }
+    },
+    "mission:Rhapsodies of Vana'diel:11": {
+      "ffxiclopedia": {
+        "page_id": 209849,
+        "canonical_title": "Eddies of Despair"
+      }
+    },
+    "mission:Rhapsodies of Vana'diel:55": {
+      "ffxiclopedia": {
+        "page_id": 210505,
+        "canonical_title": "Eddies of Despair (Chapter 2)"
+      }
+    },
+    "mission:San d'Oria:6": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:7": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:8": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:9": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:10": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Seekers of Adoulin:84": {
+      "ffxiclopedia": {
+        "page_id": 207263,
+        "canonical_title": "Tomatoes of Wrath"
+      }
+    },
+    "mission:Windurst:6": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:7": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:8": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:9": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:10": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "quest:bastok:71": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:crystal_war:83": {
+      "ffxiclopedia": {
+        "page_id": 188703,
+        "canonical_title": "VW Op. No. 126: Qufim Incursion"
+      }
+    },
+    "quest:jeuno:168": {
+      "ffxiclopedia": {
+        "page_id": 190076,
+        "canonical_title": "VW Op. No. 115: Valkurm Duster"
+      }
+    },
+    "quest:jeuno:169": {
+      "ffxiclopedia": {
+        "page_id": 190125,
+        "canonical_title": "VW Op. No. 118: Buburimu Squall"
+      }
+    },
+    "quest:other_areas:10": {
+      "ffxiclopedia": {
+        "page_id": 204943,
+        "canonical_title": "Elder Memories - The Old Lady",
+        "allow_shared_page": true
+      }
+    },
+    "quest:other_areas:24": {
+      "ffxiclopedia": {
+        "page_id": 204943,
+        "canonical_title": "Elder Memories - The Old Lady",
+        "allow_shared_page": true
+      }
+    },
+    "quest:outlands:14": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:outlands:163": {
+      "ffxiclopedia": {
+        "page_id": 13498,
+        "canonical_title": "Divine Might"
+      }
+    },
+    "quest:outlands:164": {
+      "ffxiclopedia": {
+        "page_id": 204861,
+        "canonical_title": "Divine Might (Repeat)"
+      }
+    },
+    "quest:sandoria:75": {
+      "ffxiclopedia": {
+        "page_id": 4506,
+        "canonical_title": "The Rivalry - The Competition",
+        "allow_shared_page": true
+      }
+    },
+    "quest:sandoria:76": {
+      "ffxiclopedia": {
+        "page_id": 4506,
+        "canonical_title": "The Rivalry - The Competition",
+        "allow_shared_page": true
+      }
+    },
+    "quest:sandoria:104": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:windurst:89": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
     }
   },
   "runtime_objective_keys": {
@@ -48,6 +234,21 @@
     "installed English client DAT rows",
     "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2",
     "https://ffxiclopedia.fandom.com/wiki/A_Geological_Survey",
+    "https://ffxiclopedia.fandom.com/wiki/A_Discerning_Eye",
+    "https://ffxiclopedia.fandom.com/wiki/The_Rivalry_-_The_Competition",
+    "https://ffxiclopedia.fandom.com/wiki/Journey_Abroad",
+    "https://ffxiclopedia.fandom.com/wiki/The_Three_Kingdoms",
+    "https://ffxiclopedia.fandom.com/wiki/Divine_Might",
+    "https://ffxiclopedia.fandom.com/wiki/Divine_Might_(Repeat)",
+    "https://ffxiclopedia.fandom.com/wiki/Elder_Memories_-_The_Old_Lady",
+    "https://ffxiclopedia.fandom.com/wiki/Eddies_of_Despair",
+    "https://ffxiclopedia.fandom.com/wiki/Eddies_of_Despair_(Chapter_2)",
+    "https://ffxiclopedia.fandom.com/wiki/The_Pursuit_of_Paradise_(Tenzen%27s_Path)",
+    "https://ffxiclopedia.fandom.com/wiki/Where_Messengers_Gather_(Ulmia%27s_Path)",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._126:_Qufim_Incursion",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._115:_Valkurm_Duster",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._118:_Buburimu_Squall",
+    "https://ffxiclopedia.fandom.com/wiki/Tomatoes_of_Wrath",
     "existing AccessXI current-session key-item stages"
   ]
 }

@@ -14,6 +14,7 @@ from tools.objective_guides.mediawiki import (
     PageRevision,
     refresh_snapshot,
 )
+from tools.objective_guides.wikitext import parse_objective_page
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -256,6 +257,14 @@ def _load_api_fixture(name: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, PageRevision]:
+    fixture = _load_api_fixture(fixture_name)
+    pages = MediaWikiClient(site, api_url, transport=_ScriptedTransport([fixture["response"]])).fetch_pages(
+        fixture["requested_titles"]
+    )
+    return {page.canonical_title: page for page in pages}
+
+
 class MediaWikiAcquisitionTests(unittest.TestCase):
     def test_category_members_follow_continuation_with_required_request_policy(self) -> None:
         transport = _ScriptedTransport(
@@ -415,6 +424,118 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
             self.assertEqual(len(pages), 2)
             self.assertTrue(all(page.content for page in pages))
             self.assertEqual(fixture["source"]["license"], pages[0].license_id)
+
+
+class WikitextParserTests(unittest.TestCase):
+    def test_parses_both_mission_header_dialects_and_preserves_coordinate_conflict(self) -> None:
+        bg = _fixture_revisions(
+            "bg",
+            "bg-api-pages.json",
+            "https://www.bg-wiki.com/api.php",
+        )["Bastok Mission 1-2"]
+        ffxiclopedia = _fixture_revisions(
+            "ffxiclopedia",
+            "ffxiclopedia-api-pages.json",
+            "https://ffxiclopedia.fandom.com/api.php",
+        )["A Geological Survey"]
+
+        bg_parsed = parse_objective_page(bg)
+        ffxiclopedia_parsed = parse_objective_page(ffxiclopedia)
+
+        self.assertEqual(bg_parsed.kind, "mission")
+        self.assertEqual(ffxiclopedia_parsed.kind, "mission")
+        self.assertEqual(bg_parsed.objective_name, "A Geological Survey")
+        self.assertEqual(ffxiclopedia_parsed.objective_name, "A Geological Survey")
+        self.assertEqual(bg_parsed.mission_number, "1-2")
+        self.assertEqual(ffxiclopedia_parsed.mission_number, "1-2")
+        self.assertEqual(
+            [step.action for step in bg_parsed.steps],
+            ["talk", "talk", "travel", "use", "talk"],
+        )
+        self.assertEqual(
+            [step.action for step in ffxiclopedia_parsed.steps],
+            ["talk", "talk", "travel", "use", "talk"],
+        )
+        bg_cid = next(step for step in bg_parsed.steps if "Cid" in step.linked_entities)
+        ffxi_cid = next(step for step in ffxiclopedia_parsed.steps if "Cid" in step.spoken_text)
+        self.assertIn("G-8", bg_cid.grid_coordinates)
+        self.assertIn("H-8", ffxi_cid.grid_coordinates)
+
+    def test_dynamic_question_mark_candidates_and_source_disagreement_remain_visible(self) -> None:
+        bg = _fixture_revisions(
+            "bg",
+            "bg-api-pages.json",
+            "https://www.bg-wiki.com/api.php",
+        )["Acting in Good Faith"]
+        ffxiclopedia = _fixture_revisions(
+            "ffxiclopedia",
+            "ffxiclopedia-api-pages.json",
+            "https://ffxiclopedia.fandom.com/api.php",
+        )["Acting in Good Faith"]
+
+        bg_parsed = parse_objective_page(bg)
+        ffxiclopedia_parsed = parse_objective_page(ffxiclopedia)
+        expected = {"I-7", "I-10", "M-6", "D-5"}
+
+        self.assertTrue(expected.issubset({coord for step in bg_parsed.steps for coord in step.grid_coordinates}))
+        self.assertTrue(expected.issubset({coord for step in ffxiclopedia_parsed.steps for coord in step.grid_coordinates}))
+        self.assertTrue(any("always fail" in step.spoken_text.lower() for step in bg_parsed.steps))
+        self.assertTrue(any("rarely" in step.spoken_text.lower() for step in ffxiclopedia_parsed.steps))
+
+    def test_nested_lists_templates_and_page_furniture_are_handled_without_row_guessing(self) -> None:
+        page = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Synthetic Quest",
+            page_id=9001,
+            revision_id=42,
+            parent_revision_id=41,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Quest|startnpc=[[Tester]] - {{Location|Port Windurst|E-7}}}}\n"
+                "==Walkthrough==\n"
+                "[[File:Map.png|thumb|A map caption that must not become a step.]]\n"
+                "#Talk to [[Tester]] at {{Location Tooltip|area=Port Windurst|text=E-7|pos=E-7}}.\n"
+                "#*Bring {{KeyItem}}[[Test key item]].\n"
+                "#**{{Unknown Guide Box|opaque=yes}} This warning remains readable.\n"
+                "{| class=\"wikitable\"\n| Reward || 999 gil\n|}\n"
+                "==Plot Details==\n*This must not be imported.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        self.assertEqual([step.marker for step in parsed.steps], ["#", "#*", "#**"])
+        self.assertEqual([step.depth for step in parsed.steps], [1, 2, 3])
+        self.assertIn("Port Windurst", parsed.steps[0].zone_candidates)
+        self.assertIn("Test key item", parsed.steps[1].key_items)
+        self.assertTrue(parsed.steps[2].warnings)
+        self.assertFalse(any("999 gil" in step.source_text for step in parsed.steps))
+        self.assertFalse(any("Plot Details" in step.source_text for step in parsed.steps))
+
+    def test_spoken_step_cap_retains_required_entities_and_coordinates(self) -> None:
+        filler = "very long explanatory phrase " * 30
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Long Quest",
+            page_id=9002,
+            revision_id=43,
+            parent_revision_id=42,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Quest Header|Start=[[Guide NPC]]}}\n==Walkthrough==\n"
+                f"*Talk to [[Guide NPC]] {filler}in [[Western Adoulin]] at (K-9).\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+        spoken = parsed.steps[0].spoken_text
+
+        self.assertLessEqual(len(spoken), 420)
+        self.assertIn("Talk", spoken)
+        self.assertIn("Guide NPC", spoken)
+        self.assertIn("K-9", spoken)
 
 
 if __name__ == "__main__":

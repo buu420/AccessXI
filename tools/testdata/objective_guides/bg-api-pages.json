@@ -46,7 +46,7 @@
                 "main": {
                   "contentmodel": "wikitext",
                   "contentformat": "text/x-wiki",
-                  "content": "{{Mission Header\n|Mission Name=A Geological Survey\n|Expansion=bastok\n|Start=Any Bastok [[Gate Guard]]\n}}\n==Walkthrough==\n*Speak to a Bastok [[Gate Guard]].\n*Go to [[Cid]] at (G-8) in [[Metalworks]] and receive the {{KI}} [[Blue acidity tester]].\n*Enter [[Dangruf Wadi]] from [[South Gustaberg]] (D-9).\n*Use the geyser at (I-8) until the tester becomes the {{KI}} [[Red acidity tester]].\n*Return to [[Cid]]."
+                  "content": "{{Mission Header\n|Mission Name=A Geological Survey\n|Expansion=bastok\n|Start=Any Bastok [[Gate Guard]]\n}}\n==Walkthrough==\n*Speak to a Bastok [[Gate Guard]].\n*Go to [[Cid]] at (G-8) in [[Metalworks]], talk to him, and receive the {{KI}} [[Blue acidity tester]].\n*Enter [[Dangruf Wadi]] from [[South Gustaberg]] (D-9).\n*Use the geyser at (I-8) until the tester becomes the {{KI}} [[Red acidity tester]].\n*Return to [[Cid]]."
                 }
               }
             }

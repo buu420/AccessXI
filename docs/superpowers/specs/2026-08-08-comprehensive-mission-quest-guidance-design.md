@@ -77,8 +77,10 @@ LandSandBoat remains separately attributed under GPLv3 and is a build-time corro
 
 The importer reuses the addon's installed-client mission and quest parsing rules to generate stable native keys:
 
-- mission: native context plus native mission ID;
-- quest: native quest-area key plus native quest ID.
+- mission: native context plus one-based ROM row ordinal, with the packet progress ID retained separately because later mission tables reuse progress IDs for consecutive display rows;
+- quest: native quest-area key plus corrected `0x056` packet-bit ID.
+
+Quest DAT sources are section-aware. In the current English client, Adoulin quest titles come primarily from `ROM/293/70.DAT`, Coalition assignments come from `ROM/293/71.DAT`, and two Mog Garden blocks displayed from the tail of `ROM/176/64.DAT` are tracked by the Adoulin packet. The first supplemental block requires the client-observed `+24` packet-ID correction. Raw embedded DAT bytes are therefore retained as provenance but are not assumed to be globally unique identifiers.
 
 Each key includes its native title and relevant aliases. Source matching is deterministic:
 

@@ -37,8 +37,8 @@ The initial bulk generation may classify unresolved entries as source-missing, a
 1. In `tools/test_objective_guides.py`, construct small in-memory `d_msg` mission and quest records using the same byte inversion and offsets as the live Lua reader.
 2. Assert mission decoding reads layout offsets `0x18`, `0x20`, and `0x28`, title data at record offset `0x3C`, and mission ID at `0x1C`.
 3. Assert quest decoding uses title offset `0x7C`, inverted ID byte at `0x5C`, stride `0x280`, and rejects blank, `Client:`, `Summary:`, `G<number>`, `AS~`, `ATV`, and `ZL` placeholders.
-4. Assert native keys are `mission:<context>:<id>` and `quest:<area_key>:<id>` and retain native title, source DAT, record offset, and optional mission orders/quest detail.
-5. Assert duplicate IDs or duplicate native keys fail generation instead of overwriting rows.
+4. Assert mission native keys use the stable one-based ROM row ordinal while retaining the possibly repeated packet progress ID, and quest native keys use the area plus corrected `0x056` packet-bit ID. Retain native title, source DAT, record offset, and optional mission orders/quest detail.
+5. Assert duplicate final native keys fail generation instead of overwriting rows. Cover repeated mission progress IDs, non-English placeholder rejection, section-bounded quest DAT decoding, the Adoulin Mog Garden supplemental sections, and the corrected Adoulin/Coalition DAT paths.
 6. Add a bootstrap wrapper that accepts `-Python`, defaults to `ACCESSXI_PYTHON`, then `python`, then `py -3`, creates the ignored `tools\.objective-guides-venv`, and installs the exact requirements file.
 7. Add a test wrapper that uses the bootstrapped virtual-environment Python by default, accepts an explicit `-Python` for recovery, and runs `python -m unittest tools.test_objective_guides` without performing network installation during the test.
 8. Ignore `/tools/.objective-guides-venv/`.

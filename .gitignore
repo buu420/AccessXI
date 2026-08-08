@@ -22,6 +22,8 @@
 /tools/jdk-21/
 /tools/*.zip
 /tools/__pycache__/
+/tools/.objective-guides-venv/
+/tools/objective_guides_cache/
 /tools/xi-tinkerer/
 *.pyc
 

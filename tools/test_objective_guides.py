@@ -544,6 +544,58 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
 
 class WikitextParserTests(unittest.TestCase):
+    def test_legacy_objective_templates_preserve_source_details_without_inventing_routes(self) -> None:
+        assault = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Synthetic Assault",
+            page_id=9100,
+            revision_id=50,
+            parent_revision_id=49,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Assault Mission\n"
+                "| name = Synthetic Assault\n"
+                "| area = [[Leujaoam Sanctum]]\n"
+                "| npc = [[Yahsra]] - [[Aht Urhgan Whitegate]] (L-10)\n"
+                "| staging point = [[Azouph Isle Staging Point]]\n"
+                "| objective = Remove all threats\n"
+                "| orders = Destroy all creatures in the area.\n"
+                "}}\n"
+                "==Walkthrough==\n"
+                "* Go north and defeat every [[Leujaoam Worm]].\n"
+            ),
+        )
+        gobbiebag = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Synthetic Gobbiebag",
+            page_id=9101,
+            revision_id=51,
+            parent_revision_id=50,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Gobbiebag Quest\n"
+                "|item1=[[Dhalmel Leather]]\n"
+                "|summary=[[Bluffnix]] will enlarge your pack if you bring [[Dhalmel Leather]].\n"
+                "}}\n"
+            ),
+        )
+
+        parsed_assault = parse_objective_page(assault)
+        parsed_gobbiebag = parse_objective_page(gobbiebag)
+
+        self.assertEqual(parsed_assault.kind, "mission")
+        self.assertEqual(parsed_assault.objective_name, "Synthetic Assault")
+        self.assertIn("Remove all threats", parsed_assault.steps[0].spoken_text)
+        self.assertIn("Leujaoam Sanctum", parsed_assault.steps[0].spoken_text)
+        self.assertNotIn("..", parsed_assault.steps[0].spoken_text)
+        self.assertIn("Leujaoam Worm", parsed_assault.steps[1].linked_entities)
+        self.assertEqual(parsed_gobbiebag.kind, "quest")
+        self.assertEqual(len(parsed_gobbiebag.steps), 1)
+        self.assertIn("Bluffnix", parsed_gobbiebag.steps[0].spoken_text)
+        self.assertIn("Dhalmel Leather", parsed_gobbiebag.steps[0].linked_entities)
+
     def test_parses_both_mission_header_dialects_and_preserves_coordinate_conflict(self) -> None:
         bg = _fixture_revisions(
             "bg",

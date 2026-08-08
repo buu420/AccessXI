@@ -50,6 +50,14 @@ def _template_parameter(template: Template, *names: str) -> str:
     return ""
 
 
+def _raw_template_parameter(template: Template, *names: str) -> str:
+    wanted = {_name_key(name) for name in names}
+    for parameter in template.params:
+        if _name_key(parameter.name) in wanted:
+            return str(parameter.value).strip()
+    return ""
+
+
 def _positional_parameters(template: Template) -> tuple[str, ...]:
     values: list[str] = []
     for parameter in template.params:
@@ -262,6 +270,72 @@ def _walkthrough_lines(content: str) -> tuple[str, ...]:
     return tuple(result)
 
 
+def _legacy_template_guidance_lines(content: str) -> tuple[str, ...]:
+    """Expose objective-specific legacy template fields without expanding or guessing them."""
+
+    code = mwparserfromhell.parse(content)
+    for template in code.filter_templates(recursive=True):
+        key = _name_key(template.name)
+        labeled: list[tuple[str, str]] = []
+        if key == "assaultmission":
+            for label, names in (
+                ("Objective", ("objective",)),
+                ("Orders", ("orders",)),
+                ("Area", ("area",)),
+                ("Staging point", ("staging point", "stagingpoint")),
+                ("Mission contact", ("npc",)),
+            ):
+                value = _raw_template_parameter(template, *names)
+                if value:
+                    labeled.append((label, value))
+        elif key == "gobbiebagquest":
+            summary = _raw_template_parameter(template, "summary")
+            if summary:
+                labeled.append(("Summary", summary))
+            else:
+                for number in range(1, 5):
+                    value = _raw_template_parameter(template, f"item{number}")
+                    if value:
+                        labeled.append((f"Required item {number}", value))
+        elif key == "boghertzquest":
+            for label, names in (
+                ("Job", ("job",)),
+                ("Previous quest", ("previous quest", "previousquest")),
+                ("Hands area", ("hands area", "handsarea")),
+                ("Hands key", ("hands key", "handskey")),
+                ("Hands item", ("hands item", "handsitem")),
+                ("Second area", ("area 2", "area2")),
+                ("Second key", ("key 2", "key2")),
+                ("Second item", ("item 2", "item2")),
+                ("Third area", ("area 3", "area3")),
+                ("Third key", ("key 3", "key3")),
+                ("Third item", ("item 3", "item3")),
+            ):
+                value = _raw_template_parameter(template, *names)
+                if value:
+                    labeled.append((label, value))
+        elif key == "unlockingmyth":
+            positional = [str(parameter.value).strip() for parameter in template.params if str(parameter.name).strip().isdigit()]
+            for label, value in zip(("Weapon", "Weapon skill", "Weapon type", "Job"), positional):
+                if value:
+                    labeled.append((label, value))
+        elif key == "mogws":
+            for label, names in (
+                ("Weapon skill", ("ws",)),
+                ("Weapon type", ("type",)),
+                ("Walk of Echoes weapon", ("woeweapon",)),
+                ("Empyrean weapon", ("empyrean",)),
+                ("Jobs", ("jobs",)),
+            ):
+                value = _raw_template_parameter(template, *names)
+                if value:
+                    labeled.append((label, value))
+        if labeled:
+            phrases = [f"{label}: {value.rstrip(' .;:!?')}" for label, value in labeled]
+            return ("* " + ". ".join(phrases) + ".",)
+    return ()
+
+
 def _header_details(revision: PageRevision) -> tuple[str, str, str, str, tuple[str, ...]]:
     code = mwparserfromhell.parse(revision.content)
     warnings: list[str] = []
@@ -277,9 +351,14 @@ def _header_details(revision: PageRevision) -> tuple[str, str, str, str, tuple[s
             name = _template_parameter(template, "name") or revision.canonical_title
             number = _template_parameter(template, "number")
             return "mission", name, number, "", tuple(warnings)
+        if key == "assaultmission":
+            name = _template_parameter(template, "name") or revision.canonical_title
+            return "mission", name, "", "Assault", tuple(warnings)
         if key == "questheader":
             return "quest", revision.canonical_title, "", "", tuple(warnings)
         if key == "quest":
+            return "quest", revision.canonical_title, "", "", tuple(warnings)
+        if key in {"gobbiebagquest", "boghertzquest", "unlockingmyth", "mogws"}:
             return "quest", revision.canonical_title, "", "", tuple(warnings)
     raise WikitextError(f"{revision.site} page {revision.canonical_title!r} has no supported mission or quest header.")
 
@@ -315,7 +394,8 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
     kind, objective_name, mission_number, context_hint, header_warnings = _header_details(revision)
     steps: list[SourceStep] = []
     page_warnings = list(header_warnings)
-    for line in _walkthrough_lines(revision.content):
+    guide_lines = (*_legacy_template_guidance_lines(revision.content), *_walkthrough_lines(revision.content))
+    for line in guide_lines:
         candidate = line.lstrip()
         if candidate.startswith("|") and len(candidate) > 1 and candidate[1] in "#*":
             candidate = candidate[1:].lstrip()

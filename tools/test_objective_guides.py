@@ -683,6 +683,35 @@ class WikitextParserTests(unittest.TestCase):
         self.assertFalse(any("999 gil" in step.source_text for step in parsed.steps))
         self.assertFalse(any("Plot Details" in step.source_text for step in parsed.steps))
 
+    def test_plain_and_numbered_walkthrough_paragraphs_become_ordered_steps(self) -> None:
+        page = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Paragraph Quest",
+            page_id=9003,
+            revision_id=44,
+            parent_revision_id=43,
+            revision_timestamp="2026-08-08T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "Speak with [[Maat]] at {{Location|Ru'Lude Gardens|H-5}}.\n\n"
+                "1. Trade a [[Test Item]] to [[Maat]].\n"
+                ":*The item can be obtained from a monster.\n"
+                "{{Quest/Description\n|summary=Template furniture must not become a step.\n}}\n"
+                "===Battle notes===\n"
+                "Defeat the target and inspect the ??? again.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        self.assertEqual(len(parsed.steps), 4)
+        self.assertIn("Maat", parsed.steps[0].linked_entities)
+        self.assertEqual(parsed.steps[1].action, "trade")
+        self.assertGreater(parsed.steps[2].depth, parsed.steps[1].depth)
+        self.assertIn("Defeat the target", parsed.steps[3].spoken_text)
+        self.assertFalse(any("Template furniture" in step.spoken_text for step in parsed.steps))
+
     def test_spoken_step_cap_retains_required_entities_and_coordinates(self) -> None:
         filler = "very long explanatory phrase " * 30
         page = PageRevision(

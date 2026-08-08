@@ -399,10 +399,22 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         candidate = line.lstrip()
         if candidate.startswith("|") and len(candidate) > 1 and candidate[1] in "#*":
             candidate = candidate[1:].lstrip()
-        match = re.match(r"^([#*]+)\s*(.*)$", candidate)
-        if not match:
+        if not candidate or candidate.startswith(("{{", "}}", "{|", "|}", "|", "!", "=", "<")):
             continue
-        marker, fragment = match.groups()
+        if re.match(r"^\[\[(?:file|image):", candidate, re.IGNORECASE):
+            continue
+        match = re.match(r"^([#*]+)\s*(.*)$", candidate)
+        colon_match = re.match(r"^(:+)([#*]+)\s*(.*)$", candidate)
+        numbered_match = re.match(r"^\d+[.)]\s*(.*)$", candidate)
+        if match:
+            marker, fragment = match.groups()
+        elif colon_match:
+            colons, symbols, fragment = colon_match.groups()
+            marker = "*" * (len(colons) + len(symbols))
+        elif numbered_match:
+            marker, fragment = "#", numbered_match.group(1)
+        else:
+            marker, fragment = "*", candidate
         if not fragment.strip():
             continue
         rendered, links, locations, maps, warnings = _render_fragment(fragment)

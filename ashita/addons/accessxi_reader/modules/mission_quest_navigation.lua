@@ -74,6 +74,9 @@ local function point_copy(point)
         arrival_instruction = clean(point.arrival_instruction),
         objective_source = clean(point.objective_source),
         objective_character_identity = clean(point.objective_character_identity),
+        objective_native_key = clean(point.objective_native_key),
+        guide_step_id = clean(point.guide_step_id),
+        verified = point.verified == true,
         route_context_label = clean(point.route_context_label),
     };
 end
@@ -117,6 +120,11 @@ local function clear_character_state(reason)
     accessxi.key_items_packet_identity = '';
     accessxi.key_items_packet_source = '';
     accessxi.key_items_owned_cache = {};
+
+    if (type(accessxi.objective_guides) == 'table'
+        and type(accessxi.objective_guides.close) == 'function') then
+        accessxi.objective_guides:close(reason or 'character-state-cleared');
+    end
 
     if (type(log_line) == 'function') then
         log_line(('mission quest nav state cleared reason="%s"'):fmt(clean(reason)));
@@ -410,6 +418,18 @@ local function apply_objective(item)
     return item;
 end
 
+local function apply_guide_metadata(item)
+    local native_key = clean(type(item) == 'table' and item.objective_native_key or '');
+    local entry = native_key ~= '' and type(accessxi.mission_quest_guide_index) == 'table'
+        and accessxi.mission_quest_guide_index[native_key] or nil;
+    local status = clean(type(entry) == 'table' and entry.status or 'source-missing');
+    item.guide_status = status;
+    item.guide_available = type(entry) == 'table'
+        and status ~= 'source-missing'
+        and status ~= 'ambiguous-match';
+    return item;
+end
+
 local function exact_mission_row(rows, value)
     if (type(rows) ~= 'table') then
         return nil;
@@ -468,12 +488,13 @@ local function append_mission(items, context, value)
         objective_kind = 'mission',
         mission_context = clean(context),
         mission_id = tonumber(row.mission_id) or 0,
+        objective_native_key = ('mission:%s:%d'):fmt(clean(context), tonumber(row.rom_ordinal) or 0),
         mission_current_value = tonumber(value) or 0,
         source = ('native-active-mission:%s:%d:%s'):fmt(clean(context), tonumber(value) or 0, clean(row.source)),
         confidence = 'native',
         section = clean(context),
     };
-    items:append(apply_objective(item));
+    items:append(apply_guide_metadata(apply_objective(item)));
 end
 
 local function run_safe_mission_context(items, context, build_fn)
@@ -573,11 +594,12 @@ local function active_quests()
                             quest_area_key = clean(area_key),
                             quest_area = clean(resource.label or row.area or area_key),
                             quest_id = quest_id,
+                            objective_native_key = ('quest:%s:%d'):fmt(clean(area_key), quest_id),
                             source = ('native-active-quest:%s:%d:%s'):fmt(clean(area_key), quest_id, clean(row.source)),
                             confidence = 'native',
                             section = clean(resource.label or row.area or area_key),
                         };
-                        items:append(apply_objective(item));
+                        items:append(apply_guide_metadata(apply_objective(item)));
                     end
                 end
             end
@@ -609,9 +631,17 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
         prefix = prefix .. ' ' .. location .. '.';
     end
     if (item.objective_available == true and clean(item.objective_instruction) ~= '') then
-        return prefix .. ' Current objective: ' .. clean(item.objective_instruction);
+        prefix = prefix .. ' Current objective: ' .. clean(item.objective_instruction);
+    else
+        prefix = prefix .. ' No verified route objective is available for this stage.';
     end
-    return prefix .. ' No verified route objective is available for this stage.';
+    if (item.guide_available == true) then
+        return prefix .. ' Guide available. Press I to open steps.';
+    end
+    if (clean(item.guide_status) == 'ambiguous-match') then
+        return prefix .. ' Guide match is ambiguous.';
+    end
+    return prefix .. ' No source-backed guide is available.';
 end
 
 local function same_item(a, b)
@@ -659,6 +689,102 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
         return nil, ('No verified route objective is available for this stage of %s.'):fmt(title), 'blocked';
     end
     return point_copy(fresh.objective_target), '', 'ready';
+end
+
+function accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id)
+    native_key = clean(native_key);
+    guide_step_id = clean(guide_step_id);
+    local kind = native_key:match('^(mission):') or native_key:match('^(quest):') or '';
+    if (kind == '' or guide_step_id == '') then
+        return nil;
+    end
+    for _, item in ipairs(accessxi.nav_mission_quest_active_items(kind)) do
+        if (clean(item.objective_native_key) == native_key) then
+            local expected_step = clean(item.objective_guide_step_id);
+            if (expected_step == '' and type(accessxi.objective_guides) == 'table'
+                and type(accessxi.objective_guides.automatic_step_id) == 'function') then
+                expected_step = accessxi.objective_guides:automatic_step_id(
+                    native_key,
+                    clean(item.objective_stage));
+            end
+            local state_ready = false;
+            if (kind == 'mission') then
+                state_ready = mission_route_state_ready(item);
+            elseif (kind == 'quest') then
+                state_ready = quest_route_state_ready(item);
+            end
+            if (expected_step == guide_step_id and state_ready and item.objective_available == true
+                and type(item.objective_target) == 'table') then
+                local descriptor = point_copy(item.objective_target);
+                descriptor.verified = true;
+                descriptor.guide_step_id = guide_step_id;
+                descriptor.objective_native_key = native_key;
+                return descriptor;
+            end
+        end
+    end
+    return nil;
+end
+
+function accessxi.nav_mission_quest_open_guide(item)
+    if (type(item) ~= 'table' or item.guide_available ~= true
+        or type(accessxi.objective_guides) ~= 'table'
+        or type(accessxi.objective_guides.open) ~= 'function') then
+        return nil, 'No source-backed guide is available for this objective.';
+    end
+    local native_key = clean(item.objective_native_key);
+    local automatic_step = '';
+    local kind = clean(item.objective_kind or item.kind):lower();
+    local state_ready = kind == 'mission'
+        and mission_route_state_ready(item)
+        or (kind == 'quest' and quest_route_state_ready(item));
+    if (state_ready and item.objective_available == true) then
+        automatic_step = clean(item.objective_guide_step_id);
+        if (automatic_step == '' and type(accessxi.objective_guides.automatic_step_id) == 'function') then
+            automatic_step = accessxi.objective_guides:automatic_step_id(
+                native_key,
+                clean(item.objective_stage));
+        end
+    end
+    local objective, reason = accessxi.objective_guides:open(native_key, automatic_step);
+    if (objective == nil) then
+        return nil, clean(reason);
+    end
+    return accessxi.objective_guides:repeat_step(), '';
+end
+
+function accessxi.nav_mission_quest_prepare_guide_route()
+    if (type(accessxi.objective_guides) ~= 'table'
+        or type(accessxi.objective_guides.is_open) ~= 'function'
+        or not accessxi.objective_guides:is_open()) then
+        return nil, 'No objective step is selected.', 'blocked';
+    end
+    local descriptor = accessxi.objective_guides:route_descriptor();
+    if (type(descriptor) ~= 'table') then
+        return nil, accessxi.objective_guides:repeat_step(), 'blocked';
+    end
+    return point_copy(descriptor), '', 'ready';
+end
+
+function accessxi.nav_mission_quest_guide_selection_present()
+    if (type(accessxi.objective_guides) ~= 'table'
+        or type(accessxi.objective_guides.current_native_key) ~= 'function') then
+        return false;
+    end
+    local native_key = clean(accessxi.objective_guides:current_native_key());
+    local kind = native_key:match('^(mission):') or native_key:match('^(quest):') or '';
+    if (native_key == '' or kind == '') then
+        return false;
+    end
+    for _, item in ipairs(accessxi.nav_mission_quest_active_items(kind)) do
+        if (clean(item.objective_native_key) == native_key) then
+            return true;
+        end
+    end
+    if (type(accessxi.objective_guides.close) == 'function') then
+        accessxi.objective_guides:close('objective-no-longer-active');
+    end
+    return false;
 end
 
 function accessxi.nav_mission_quest_start_suffix(point)

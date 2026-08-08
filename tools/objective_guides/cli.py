@@ -75,6 +75,27 @@ def _load_overrides(path: Path) -> dict[str, Any]:
     return value
 
 
+def _overrides_for_sites(
+    overrides: dict[str, Any],
+    sites: tuple[str, ...],
+) -> dict[str, Any]:
+    selected = set(sites)
+    result = dict(overrides)
+    page_matches = overrides.get("page_matches", {})
+    if isinstance(page_matches, dict):
+        result["page_matches"] = {
+            native_key: {
+                site: identity
+                for site, identity in per_site.items()
+                if site in selected
+            }
+            for native_key, per_site in page_matches.items()
+            if isinstance(per_site, dict)
+            and any(site in selected for site in per_site)
+        }
+    return result
+
+
 def _snapshot_path(cache_root: Path, site: str) -> Path:
     return cache_root / "snapshots" / f"{site}.json"
 
@@ -89,9 +110,14 @@ def _discover_and_fetch(
     native_titles = [row.title for row in native_rows]
     requested_titles = tuple(dict.fromkeys((*category_titles, *native_titles)))
     pages, missing = client.fetch_existing_pages(requested_titles)
-    category_ids = {page.page_id for page in category_pages}
-    fetched_ids = {page.page_id for page in pages}
-    omitted_category_pages = sorted(category_ids.difference(fetched_ids))
+    fetched_titles = {
+        title.casefold()
+        for page in pages
+        for title in (page.canonical_title, *page.aliases)
+    }
+    omitted_category_pages = sorted(
+        page.title for page in category_pages if page.title.casefold() not in fetched_titles
+    )
     if omitted_category_pages:
         raise MediaWikiError(
             f"{client.site} did not return {len(omitted_category_pages)} discovered category pages."
@@ -114,13 +140,15 @@ def _source_pages(
     cache_root: Path,
     offline: bool,
     refresh: bool,
+    sites: tuple[str, ...],
 ) -> tuple[tuple[PageRevision, ...], dict[str, Any]]:
     if offline and refresh:
         raise MediaWikiError("--offline refuses network access and cannot be combined with --refresh.")
 
     all_pages: list[PageRevision] = []
     discovery: dict[str, Any] = {"schema_version": 1, "sites": {}}
-    for site, config in SITE_CONFIG.items():
+    for site in sites:
+        config = SITE_CONFIG[site]
         snapshot = _snapshot_path(cache_root, site)
         discovery_path = cache_root / "snapshots" / f"{site}-discovery.json"
         if snapshot.is_file() and not refresh:
@@ -143,6 +171,7 @@ def _source_pages(
                 site,
                 str(config["api_url"]),
                 cache_dir=cache_root / "revisions",
+                min_request_interval=0.2,
             )
             pages, site_discovery = _discover_and_fetch(client, native_rows)
             write_snapshot(client, pages, snapshot)
@@ -200,6 +229,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cache-root", type=Path)
     parser.add_argument("--module-root", type=Path)
     parser.add_argument("--data-root", type=Path)
+    parser.add_argument(
+        "--site",
+        action="append",
+        choices=tuple(SITE_CONFIG),
+        dest="sites",
+        help="Limit source acquisition to one site; repeat to select both.",
+    )
     parser.add_argument("--offline", action="store_true", help="Refuse all source network access.")
     parser.add_argument(
         "--refresh",
@@ -229,11 +265,13 @@ def run(argv: list[str] | None = None) -> int:
     if args.command == "manifest":
         return 0
 
+    selected_sites = tuple(dict.fromkeys(args.sites or SITE_CONFIG))
     source_pages, discovery = _source_pages(
         native_rows,
         cache_root=cache_root,
         offline=args.offline,
         refresh=args.refresh,
+        sites=selected_sites,
     )
     print(f"Loaded {len(source_pages)} revisioned guide pages.")
     if args.command == "fetch":
@@ -241,13 +279,18 @@ def run(argv: list[str] | None = None) -> int:
         return 0
 
     parsed_pages, parse_failures = _parse_pages(source_pages)
-    overrides = _load_overrides(data_root / "reviewed-overrides.json")
+    overrides = _overrides_for_sites(
+        _load_overrides(data_root / "reviewed-overrides.json"),
+        selected_sites,
+    )
     summary = build_guide_artifacts(
         native_rows,
         parsed_pages,
         module_root=module_root,
         data_root=data_root,
         reviewed_overrides=overrides,
+        source_revisions=source_pages,
+        parse_failures=parse_failures,
     )
     _atomic_json(data_root / "source-discovery.json", discovery)
     _atomic_json(

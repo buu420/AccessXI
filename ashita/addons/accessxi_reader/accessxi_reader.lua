@@ -67810,6 +67810,34 @@ accessxi.mission_quest_objectives = accessxi.load_module_table('mission_quest_ob
     missions = T{},
     quests = T{},
 });
+accessxi.mission_quest_guide_index = accessxi.load_module_table('mission_quest_guide_index', T{});
+accessxi.mission_quest_guides_module = accessxi.load_module_table('mission_quest_guides', T{});
+if (type(accessxi.mission_quest_guides_module.new) == 'function') then
+    accessxi.objective_guides = accessxi.mission_quest_guides_module.new(T{
+        index = accessxi.mission_quest_guide_index,
+        module_loader = function(name)
+            return accessxi.load_module_table(name, T{});
+        end,
+        identity_provider = function()
+            return accessxi.current_player_identity();
+        end,
+        manual_path = accessxi_paths.addon_path('data', 'ffxi-objective-manual-steps.tsv'),
+        route_resolver = function(native_key, guide_step_id)
+            if (type(accessxi.nav_mission_quest_guide_route_descriptor) == 'function') then
+                return accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id);
+            end
+            return nil;
+        end,
+        on_character_change = function()
+            if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
+                accessxi.nav_cancel_mission_quest_route('objective-guide-character-changed');
+            end
+        end,
+        logger = log_line,
+    });
+else
+    accessxi.objective_guides = T{};
+end
 accessxi.load_code_module('mission_quest_navigation', T{
     T = T,
     bit = bit,
@@ -68190,6 +68218,10 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_menu_poll_key = 0;
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = 0;
+    if (type(accessxi.objective_guides) == 'table'
+        and type(accessxi.objective_guides.close) == 'function') then
+        accessxi.objective_guides:close('zone-change');
+    end
     accessxi.nav_route_points:clear();
     accessxi.nav_route_point_index = 1;
     accessxi.nav_route_last_recalc_tick = 0;
@@ -72246,6 +72278,10 @@ local function nav_close_menu()
     accessxi.nav_menu_poll_key = 0;
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = 0;
+    if (type(accessxi.objective_guides) == 'table'
+        and type(accessxi.objective_guides.close) == 'function') then
+        accessxi.objective_guides:close('navigation-menu-closed');
+    end
     speak('Navigation menu closed.');
     log_line('nav menu closed');
 end
@@ -72265,6 +72301,10 @@ local function nav_close_menu_silent(reason)
     accessxi.nav_menu_poll_key = 0;
     accessxi.nav_menu_poll_tick = 0;
     accessxi.nav_menu_open_tick = 0;
+    if (type(accessxi.objective_guides) == 'table'
+        and type(accessxi.objective_guides.close) == 'function') then
+        accessxi.objective_guides:close(reason or 'navigation-menu-closed');
+    end
     log_line(('nav menu silent close reason="%s"'):fmt(accessxi.escape_probe_log_text(reason or '')));
 end
 
@@ -72321,6 +72361,12 @@ local function nav_menu_category_move(delta)
     log_line('nav menu category ' .. text);
 end
 
+function accessxi.nav_objective_step_view_open()
+    return type(accessxi.objective_guides) == 'table'
+        and type(accessxi.objective_guides.is_open) == 'function'
+        and accessxi.objective_guides:is_open();
+end
+
 local function nav_menu_start_route()
     if (accessxi.nav_menu_items:len() == 0) then
         nav_menu_rebuild(true);
@@ -72332,6 +72378,23 @@ local function nav_menu_start_route()
         return;
     end
 
+    local guide_route_selected = false;
+    if (accessxi.nav_objective_step_view_open()
+        and type(accessxi.nav_mission_quest_prepare_guide_route) == 'function') then
+        local guide_target, guide_message, guide_mode = accessxi.nav_mission_quest_prepare_guide_route();
+        if (guide_mode ~= 'ready' or guide_target == nil) then
+            local text = nav_clean_field(guide_message);
+            if (text == '') then
+                text = 'No verified navigation target is available for this objective step.';
+            end
+            speak(text);
+            log_line('nav objective guide start blocked ' .. text);
+            return;
+        end
+        item = guide_target;
+        guide_route_selected = true;
+    end
+
     local objective_kind = nav_clean_field(item.objective_kind or item.kind):lower();
     if ((objective_kind == 'mission' or objective_kind == 'quest')
         and type(accessxi.nav_mission_quest_prepare_route) == 'function') then
@@ -72340,17 +72403,29 @@ local function nav_menu_start_route()
             speak('Position unavailable.');
             return;
         end
-        local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
-        if (objective_mode ~= 'ready' or target == nil) then
-            local text = nav_clean_field(objective_message);
-            if (text == '') then
-                text = 'No verified route objective is available for this stage.';
+        if (not guide_route_selected) then
+            if (type(accessxi.nav_mission_quest_open_guide) == 'function') then
+                local guide_speech, guide_error = accessxi.nav_mission_quest_open_guide(item);
+                local text = nav_clean_field(guide_speech or guide_error);
+                if (text == '') then
+                    text = 'No source-backed guide is available for this objective.';
+                end
+                speak(text);
+                log_line('nav objective guide open ' .. text);
+                return;
             end
-            speak(text);
-            log_line('nav objective start blocked ' .. text);
-            return;
+            local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
+            if (objective_mode ~= 'ready' or target == nil) then
+                local text = nav_clean_field(objective_message);
+                if (text == '') then
+                    text = 'No verified route objective is available for this stage.';
+                end
+                speak(text);
+                log_line('nav objective start blocked ' .. text);
+                return;
+            end
+            item = target;
         end
-        item = target;
         if ((tonumber(item.zone) or 0) ~= (tonumber(objective_player.zone) or 0)) then
             accessxi.nav_menu_open = false;
             accessxi.nav_menu_poll_key = 0;
@@ -72511,6 +72586,40 @@ end
 local nav_route_stop;
 
 local function nav_menu_handle_action(action)
+    if (action ~= 'stop_route' and accessxi.nav_objective_step_view_open()
+        and type(accessxi.nav_mission_quest_guide_selection_present) == 'function'
+        and not accessxi.nav_mission_quest_guide_selection_present()) then
+        local text = 'That objective is no longer present in the current character\'s active list.';
+        speak(text);
+        log_line('nav objective guide closed ' .. text);
+        return;
+    end
+    if (accessxi.nav_objective_step_view_open() and action ~= 'stop_route') then
+        if (action == 'previous_category') then
+            accessxi.objective_guides:close('return-to-objective-list');
+            local text = nav_menu_item_speech();
+            speak(text);
+            log_line('nav objective guide exit ' .. text);
+        elseif (action == 'next_category') then
+            accessxi.objective_guides:close('advance-category');
+            nav_menu_category_move(1);
+        elseif (action == 'previous_item') then
+            local text = accessxi.objective_guides:move(-1);
+            speak(text);
+            log_line('nav objective guide move ' .. text);
+        elseif (action == 'repeat_item') then
+            local text = accessxi.objective_guides:repeat_step();
+            speak(text);
+            log_line('nav objective guide repeat ' .. text);
+        elseif (action == 'next_item') then
+            local text = accessxi.objective_guides:move(1);
+            speak(text);
+            log_line('nav objective guide move ' .. text);
+        elseif (action == 'start_route') then
+            nav_menu_start_route();
+        end
+        return;
+    end
     if (action == 'start_route') then
         nav_menu_start_route();
     elseif (action == 'stop_route') then

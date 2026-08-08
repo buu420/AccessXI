@@ -3,6 +3,8 @@ param(
     [string]$Command = 'all',
     [string]$FfxiRoot = 'C:\Program Files (x86)\PlayOnline\SquareEnix\FINAL FANTASY XI',
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
+    [ValidateSet('bg', 'ffxiclopedia')]
+    [string[]]$Site,
     [switch]$Offline,
     [switch]$Refresh
 )
@@ -26,6 +28,9 @@ if ($Offline) {
 }
 if ($Refresh) {
     $arguments += '--refresh'
+}
+foreach ($selectedSite in $Site) {
+    $arguments += @('--site', $selectedSite)
 }
 
 Push-Location $RepoRoot

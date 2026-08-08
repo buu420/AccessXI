@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .matching import MatchingReport, match_objective_pages
+from .mediawiki import PageRevision
 from .model import NativeObjective, ParsedObjective, SourceStep
 from .reconcile import ReconciledObjective, reconcile_objectives
 
@@ -190,22 +191,29 @@ def _source_module_text(
     return "\n".join(lines) + "\n"
 
 
-def _reconcile_module_text(entries: Iterable[tuple[NativeObjective, ReconciledObjective]]) -> str:
+def _reconcile_module_text(
+    entries: Iterable[
+        tuple[NativeObjective, ReconciledObjective, Mapping[str, str], set[str]]
+    ],
+) -> str:
     lines = [
         "-- Generated AccessXI reconciliation facts. Do not edit by hand.",
         "-- No source walkthrough prose is combined in this module.",
         "return {",
     ]
-    for native, objective in sorted(entries, key=lambda item: item[0].key):
+    for native, objective, automatic_stages, route_steps in sorted(entries, key=lambda item: item[0].key):
         lines.extend(
             [
                 f"  [{lua_quote(native.key)}] = {{",
                 f"    dynamic_candidate_comparison = {lua_quote(objective.dynamic_candidate_comparison)},",
                 f"    dynamic_candidate_grid = {_lua_array(objective.dynamic_candidate_grid)},",
                 "    selected_candidate_grid = nil,",
-                "    steps = {",
+                "    automatic_stages = {",
             ]
         )
+        for stage_key, step_id in sorted(automatic_stages.items()):
+            lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
+        lines.extend(["    },", "    steps = {"])
         for step in objective.steps:
             lines.extend(
                 [
@@ -220,7 +228,7 @@ def _reconcile_module_text(entries: Iterable[tuple[NativeObjective, ReconciledOb
                     f"        entities = {_lua_array(step.entities)},",
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
-                    "        route_ready = false,",
+                    f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
                     "      },",
                 ]
             )
@@ -300,6 +308,82 @@ def _has_material_conflict(reconciled: ReconciledObjective) -> bool:
     )
 
 
+def _selector_key(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").casefold())
+
+
+def _resolve_stage_selectors(
+    native_key: str,
+    reconciled: ReconciledObjective,
+    reviewed_overrides: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    if not reviewed_overrides:
+        return {}
+    all_links = reviewed_overrides.get("automatic_stage_links", {})
+    if not isinstance(all_links, Mapping):
+        raise GenerationError("Reviewed automatic_stage_links must be an object.")
+    stage_links = all_links.get(native_key, {})
+    if not isinstance(stage_links, Mapping):
+        raise GenerationError(f"Reviewed automatic stages for {native_key!r} must be an object.")
+
+    resolved: dict[str, str] = {}
+    for stage_key, raw_stage in stage_links.items():
+        if not isinstance(raw_stage, Mapping) or not isinstance(raw_stage.get("step_selector"), Mapping):
+            raise GenerationError(f"Reviewed stage {stage_key!r} for {native_key!r} lacks a selector.")
+        selector = raw_stage["step_selector"]
+        candidates = []
+        for step in reconciled.steps:
+            searchable = " ".join(
+                (
+                    *step.entities,
+                    *step.zones,
+                    *step.grid_coordinates,
+                    step.bg_instruction,
+                    step.ffxiclopedia_instruction,
+                )
+            )
+            searchable_key = _selector_key(searchable)
+            action = str(selector.get("action", "")).strip().casefold()
+            entity = _selector_key(selector.get("entity", ""))
+            key_item = _selector_key(selector.get("key_item", ""))
+            grid = str(selector.get("grid", "")).strip().casefold()
+            if action and step.action.casefold() != action:
+                continue
+            if entity and entity not in searchable_key:
+                continue
+            if key_item and key_item not in searchable_key:
+                continue
+            if grid and grid not in {value.casefold() for value in step.grid_coordinates}:
+                continue
+            candidates.append(step)
+        occurrence = str(selector.get("occurrence", "")).strip().casefold()
+        if occurrence == "first" and candidates:
+            selected = candidates[0]
+        elif occurrence == "last" and candidates:
+            selected = candidates[-1]
+        elif len(candidates) == 1:
+            selected = candidates[0]
+        else:
+            raise GenerationError(
+                f"Reviewed stage selector {native_key!r}/{stage_key!r} resolved to "
+                f"{len(candidates)} steps; refusing to guess."
+            )
+        resolved[str(stage_key)] = selected.stable_step_id
+    return resolved
+
+
+def _runtime_objective_key(
+    native_key: str,
+    reviewed_overrides: Mapping[str, Any] | None,
+) -> str:
+    if not reviewed_overrides:
+        return ""
+    values = reviewed_overrides.get("runtime_objective_keys", {})
+    if not isinstance(values, Mapping):
+        raise GenerationError("Reviewed runtime_objective_keys must be an object.")
+    return str(values.get(native_key, "")).strip()
+
+
 def _native_manifest_row(native: NativeObjective) -> dict[str, Any]:
     return {
         "key": native.key,
@@ -314,15 +398,15 @@ def _native_manifest_row(native: NativeObjective) -> dict[str, Any]:
     }
 
 
-def _source_snapshot_page(page: ParsedObjective) -> dict[str, Any]:
+def _source_snapshot_page(page: ParsedObjective | PageRevision) -> dict[str, Any]:
     return {
         "site": page.site,
         "page_id": page.page_id,
         "revision_id": page.revision_id,
         "revision_timestamp": page.revision_timestamp,
         "canonical_title": page.canonical_title,
-        "objective_name": page.objective_name,
-        "kind": page.kind,
+        "objective_name": str(getattr(page, "objective_name", "")),
+        "kind": str(getattr(page, "kind", "")),
         "aliases": list(page.aliases),
         "content_sha256": page.content_sha256,
         "source_url": _source_url(page),
@@ -398,17 +482,41 @@ def build_guide_artifacts(
     module_root: Path,
     data_root: Path,
     reviewed_overrides: Mapping[str, Any] | None = None,
+    source_revisions: Iterable[PageRevision] | None = None,
+    parse_failures: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Build deterministic, license-separated runtime and coverage artifacts."""
 
     natives = tuple(sorted(native_objectives, key=lambda row: row.key))
     pages = tuple(sorted(parsed_pages, key=lambda page: (page.site, page.page_id, page.revision_id)))
+    revisions = tuple(
+        sorted(
+            source_revisions or (),
+            key=lambda page: (page.site, page.page_id, page.revision_id),
+        )
+    )
+    if not revisions:
+        revisions = pages
     if len({native.key for native in natives}) != len(natives):
         raise GenerationError("Native objective keys must be unique before guide generation.")
     if len({(page.site, page.page_id) for page in pages}) != len(pages):
         raise GenerationError("A source snapshot contains duplicate site/page identities.")
+    if len({(page.site, page.page_id) for page in revisions}) != len(revisions):
+        raise GenerationError("Raw source revisions contain duplicate site/page identities.")
+    revision_lookup = {(page.site, page.page_id): page for page in revisions}
     for page in pages:
         _license_id(page)
+        revision = revision_lookup.get((page.site, page.page_id))
+        if revision is None or revision.revision_id != page.revision_id:
+            raise GenerationError(
+                f"Parsed page {page.site}:{page.page_id} has no matching source revision."
+            )
+        if page.content_sha256 and revision.content_sha256 != page.content_sha256:
+            raise GenerationError(
+                f"Parsed page {page.site}:{page.page_id} does not match its source content hash."
+            )
+    for revision in revisions:
+        _license_id(revision)
 
     native_by_key = {native.key: native for native in natives}
     source_maps: dict[str, dict[str, ParsedObjective]] = {}
@@ -423,8 +531,12 @@ def build_guide_artifacts(
     _apply_reviewed_page_matches(native_by_key, pages, source_maps, reviewed_overrides)
 
     source_groups: dict[tuple[str, str, str], list[tuple[NativeObjective, ParsedObjective]]] = defaultdict(list)
-    reconcile_groups: dict[tuple[str, str], list[tuple[NativeObjective, ReconciledObjective]]] = defaultdict(list)
+    reconcile_groups: dict[
+        tuple[str, str],
+        list[tuple[NativeObjective, ReconciledObjective, Mapping[str, str], set[str]]],
+    ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
+    target_review_steps: list[dict[str, Any]] = []
 
     for native in natives:
         bg = source_maps.get("bg", {}).get(native.key)
@@ -434,15 +546,62 @@ def build_guide_artifacts(
             source_groups[(site, native.kind, native.context)].append((native, page))
 
         reconciled: ReconciledObjective | None = None
+        automatic_stages: dict[str, str] = {}
+        runtime_objective_key = ""
+        route_steps: set[str] = set()
         if matched:
             reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
-            reconcile_groups[(native.kind, native.context)].append((native, reconciled))
+            automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
+            runtime_objective_key = _runtime_objective_key(native.key, reviewed_overrides)
+            if runtime_objective_key and automatic_stages:
+                route_steps = set(automatic_stages.values())
+            reconcile_groups[(native.kind, native.context)].append(
+                (native, reconciled, automatic_stages, route_steps)
+            )
+            for step in reconciled.steps:
+                if not (
+                    step.action != "note"
+                    or step.entities
+                    or step.zones
+                    or step.grid_coordinates
+                ):
+                    continue
+                if step.stable_step_id in route_steps:
+                    review_status = "verified-runtime"
+                elif step.comparison == "conflict":
+                    review_status = "source-conflict"
+                elif reconciled.dynamic_candidate_grid:
+                    review_status = "dynamic-candidate-unresolved"
+                elif step.action in {"talk", "travel", "examine", "use", "wait"} and (
+                    step.entities or step.zones or step.grid_coordinates
+                ):
+                    review_status = "needs-exact-target-review"
+                else:
+                    review_status = "guide-only-action"
+                target_review_steps.append(
+                    {
+                        "native_key": native.key,
+                        "stable_step_id": step.stable_step_id,
+                        "action": step.action,
+                        "comparison": step.comparison,
+                        "entities": list(step.entities),
+                        "zones": list(step.zones),
+                        "grid_coordinates": list(step.grid_coordinates),
+                        "dynamic_candidate_grid": list(reconciled.dynamic_candidate_grid),
+                        "review_status": review_status,
+                        "route_ready": step.stable_step_id in route_steps,
+                    }
+                )
 
         has_steps = any(page.steps for page in matched.values())
         ambiguous_sites = sorted(
             site for site, keys in ambiguous_by_site.items() if native.key in keys and site not in matched
         )
-        if reconciled is not None and _has_material_conflict(reconciled):
+        if runtime_objective_key and automatic_stages:
+            status = "automatic-stage"
+        elif runtime_objective_key:
+            status = "verified-navigation"
+        elif reconciled is not None and _has_material_conflict(reconciled):
             status = "source-conflict"
         elif has_steps:
             status = "guide"
@@ -476,8 +635,11 @@ def build_guide_artifacts(
             "dynamic_candidate_comparison": (
                 reconciled.dynamic_candidate_comparison if reconciled else "none"
             ),
-            "route_ready": False,
-            "automatic_stage": False,
+            "has_source_conflict": reconciled is not None and _has_material_conflict(reconciled),
+            "runtime_objective_key": runtime_objective_key,
+            "automatic_stages": automatic_stages,
+            "route_ready": bool(runtime_objective_key),
+            "automatic_stage": bool(automatic_stages),
         }
 
     module_root = Path(module_root)
@@ -515,19 +677,55 @@ def build_guide_artifacts(
         "by_status": by_status,
         "dual_source": sum(1 for record in coverage_objectives.values() if len(record["source_pages"]) == 2),
         "guide_only": sum(1 for record in coverage_objectives.values() if record["status"] == "guide"),
-        "verified_navigation": 0,
-        "automatic_stage": 0,
+        "verified_navigation": sum(
+            1 for record in coverage_objectives.values() if record["route_ready"]
+        ),
+        "automatic_stage": sum(
+            1 for record in coverage_objectives.values() if record["automatic_stage"]
+        ),
     }
 
     native_manifest = {"schema_version": 1, "objectives": [_native_manifest_row(native) for native in natives]}
     source_snapshot = {
         "schema_version": 1,
-        "pages": [_source_snapshot_page(page) for page in pages],
+        "pages": [_source_snapshot_page(page) for page in revisions],
     }
+    failure_lookup = {
+        (str(failure.get("site", "")), int(failure.get("page_id", 0) or 0)): failure
+        for failure in parse_failures
+        if isinstance(failure, Mapping)
+    }
+    matched_keys_by_page: dict[tuple[str, int], list[str]] = defaultdict(list)
+    for site, source_map in source_maps.items():
+        for native_key, page in source_map.items():
+            matched_keys_by_page[(site, page.page_id)].append(native_key)
+    parsed_identities = {(page.site, page.page_id) for page in pages}
+    source_inventory: dict[str, dict[str, Any]] = {}
+    for revision in revisions:
+        identity = (revision.site, revision.page_id)
+        matched_native_keys = sorted(matched_keys_by_page.get(identity, ()))
+        failure = failure_lookup.get(identity)
+        if matched_native_keys:
+            source_status = "matched"
+        elif failure is not None:
+            source_status = "parser-failure"
+        elif identity in parsed_identities:
+            source_status = "source-unmatched"
+        else:
+            source_status = "source-only"
+        source_inventory[f"{revision.site}:{revision.page_id}"] = {
+            "status": source_status,
+            "title": revision.canonical_title,
+            "revision_id": revision.revision_id,
+            "source_url": revision.source_url,
+            "native_keys": matched_native_keys,
+            "failure_reason": str(failure.get("reason", ""))[:500] if failure else "",
+        }
     coverage = {
         "schema_version": 1,
         "counts": counts,
         "objectives": coverage_objectives,
+        "source_inventory": source_inventory,
         "matching": {
             site: {
                 "matched": len(report.matches),
@@ -541,10 +739,26 @@ def build_guide_artifacts(
     _write_json(data_root / "native-manifest.json", native_manifest)
     _write_json(data_root / "source-snapshot.json", source_snapshot)
     _write_json(data_root / "coverage.json", coverage)
+    _write_json(
+        data_root / "target-review.json",
+        {
+            "schema_version": 1,
+            "steps": sorted(
+                target_review_steps,
+                key=lambda row: (row["native_key"], row["stable_step_id"]),
+            ),
+        },
+    )
     _write_text(data_root / "coverage.md", _coverage_markdown(counts, pages))
 
     return {
         "counts": counts,
         "module_files": sorted(path.name for path in generated_module_paths),
-        "data_files": ["coverage.json", "coverage.md", "native-manifest.json", "source-snapshot.json"],
+        "data_files": [
+            "coverage.json",
+            "coverage.md",
+            "native-manifest.json",
+            "source-snapshot.json",
+            "target-review.json",
+        ],
     }

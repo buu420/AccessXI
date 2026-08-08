@@ -84,6 +84,10 @@ Assert-True ($packageSource -match 'repoAddonRoot') `
     'Package builder must stage the checked-in addon as the canonical latest addon source.'
 Assert-True ($packageSource -match 'Ultimate-ASI-Loader-LICENSE\.txt') `
     'Package builder must ship the upstream ASI loader license.'
+Assert-True ($packageSource -match 'BG-Wiki-objective-guides-CC-BY-NC-SA-3\.0\.txt') `
+    'Package builder must ship the BG Wiki objective-guide source notice.'
+Assert-True ($packageSource -match 'FFXIclopedia-objective-guides-CC-BY-SA-3\.0\.txt') `
+    'Package builder must ship the FFXIclopedia objective-guide source notice.'
 
 $licensePath = Join-Path $root 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt'
 Assert-True (Test-Path -LiteralPath $licensePath -PathType Leaf) `
@@ -123,6 +127,10 @@ if (-not [string]::IsNullOrWhiteSpace($PackageRoot)) {
         }
     }    Assert-True (Test-Path -LiteralPath (Join-Path $package 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')) `
         'Packaged installer is missing the Ultimate ASI Loader license notice.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt')) `
+        'Packaged installer is missing the BG Wiki objective-guide notice.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')) `
+        'Packaged installer is missing the FFXIclopedia objective-guide notice.'
     $runtimeRemnants = Get-ChildItem -LiteralPath $package -Recurse -Force |
         Where-Object { $_.FullName -match '(?i)AccessXI\.PolReloaded|Reloaded\.Mod\.Loader|Reloaded-II' }
     Assert-True (@($runtimeRemnants).Count -eq 0) `

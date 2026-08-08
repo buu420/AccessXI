@@ -8,7 +8,9 @@ $addonPath = Join-Path $Root 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $navigationDataPath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\navigation_data.lua'
 $objectivesPath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_quest_objectives.lua'
 $modulePath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_quest_navigation.lua'
+$guidesModulePath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_quest_guides.lua'
 $harnessPath = Join-Path $Root 'tools\lua_tests\test_mission_quest_navigation.lua'
+$guidesHarnessPath = Join-Path $Root 'tools\lua_tests\test_mission_quest_guides.lua'
 $luaPath = Join-Path $Root 'tools\lua51\lua5.1.exe'
 if (-not (Test-Path -LiteralPath $luaPath -PathType Leaf)) {
     $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
@@ -19,7 +21,7 @@ function Assert-Match {
     if ($Text -notmatch $Pattern) { throw $Message }
 }
 
-foreach ($path in @($addonPath, $navigationDataPath, $objectivesPath, $modulePath, $harnessPath, $luaPath)) {
+foreach ($path in @($addonPath, $navigationDataPath, $objectivesPath, $modulePath, $guidesModulePath, $harnessPath, $guidesHarnessPath, $luaPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Missing mission/quest navigation test dependency: $path"
     }
@@ -46,6 +48,17 @@ Assert-Match $addonSource 'reentry_text\s*=\s*reentry_text\s*\.\.\s*accessxi\.na
 & $luaPath $harnessPath $objectivesPath $modulePath
 if ($LASTEXITCODE -ne 0) {
     throw "Mission/quest navigation Lua behavior harness failed with exit code $LASTEXITCODE."
+}
+
+$manualPath = Join-Path ([System.IO.Path]::GetTempPath()) ("accessxi-objective-manual-{0}.tsv" -f [guid]::NewGuid().ToString('N'))
+try {
+    & $luaPath $guidesHarnessPath $guidesModulePath $manualPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Mission/quest guide Lua behavior harness failed with exit code $LASTEXITCODE."
+    }
+}
+finally {
+    Remove-Item -LiteralPath $manualPath -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host 'mission and quest navigation tests passed'

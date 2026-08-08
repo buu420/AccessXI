@@ -69,7 +69,10 @@ local mission_rows = {
 for _, rows in pairs(mission_rows) do
     rows.count = #rows
     rows.by_mission_id = {}
-    for _, row in ipairs(rows) do rows.by_mission_id[row.mission_id] = row end
+    for ordinal, row in ipairs(rows) do
+        row.rom_ordinal = ordinal
+        rows.by_mission_id[row.mission_id] = row
+    end
 end
 
 local quest_rows = {
@@ -189,6 +192,10 @@ accessxi = {
     speech_name = function(value) return tostring(value or '') end,
     sentence_fragment = function(value) return tostring(value or '') end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
+    mission_quest_guide_index = {
+        ['mission:Bastok:2'] = { status = 'guide', title = 'A Geological Survey' },
+        ['quest:sandoria:2'] = { status = 'guide', title = 'The Pickpocket' },
+    },
 }
 
 local function load_with_env(path, env)
@@ -231,6 +238,8 @@ end
 -- Native active mission rows, including exact nation mission ID zero.
 local missions = accessxi.nav_mission_quest_active_items('mission')
 assert(find(missions, 'A Geological Survey') ~= nil)
+assert(find(missions, 'A Geological Survey').objective_native_key == 'mission:Bastok:2')
+assert(find(missions, 'A Geological Survey').guide_available == true)
 assert(find(missions, "Welcome t'Norg") ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
 local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
@@ -299,6 +308,8 @@ accessxi.mission_packet_main.nation_mission = 1
 local quests = accessxi.nav_mission_quest_active_items('quest')
 assert(#quests == 3)
 assert(quests[1].name == 'The Pickpocket')
+assert(quests[1].objective_native_key == 'quest:sandoria:2')
+assert(quests[1].guide_available == true)
 assert(quests[2].name == 'A Long Current Quest')
 assert(quests[3].name == 'Safe Aht Urhgan Quest')
 assert(find(quests, 'Overlaid Mission Word') == nil)
@@ -336,6 +347,7 @@ assert(survey.objective_target.zone == 237 and survey.objective_target.name == '
 assert(survey.objective_instruction:find('Blue acidity tester', 1, true) ~= nil)
 local row_speech = accessxi.nav_mission_quest_item_speech(survey, 1, #missions)
 assert(row_speech:find('Current objective', 1, true) ~= nil)
+assert(row_speech:find('Guide available', 1, true) ~= nil)
 
 owned_key_items[3] = true
 missions = accessxi.nav_mission_quest_active_items('mission')

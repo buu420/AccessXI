@@ -115,6 +115,8 @@ $ultimateAsiLoaderArchiveSha256 = '0F34758B30EAA0EFB59F7AE04100DB789914E1A08891B
 $ultimateAsiLoaderDllSha256 = 'C7277E832F6F07AF64903A99ECEBAB2936260CBF55EDA70787C5D7B2D5B9FE60'
 $asiLoaderSource = Join-Path $RepoRoot "third_party\Ultimate-ASI-Loader\$ultimateAsiLoaderVersion\x86\dinput8.dll"
 $asiLoaderLicense = Join-Path $RepoRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt'
+$bgWikiGuideNotice = Join-Path $RepoRoot 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt'
+$ffxiclopediaGuideNotice = Join-Path $RepoRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt'
 $installerScript = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
 $legacyCleanupScript = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
 $publicGuide = Join-Path $RepoRoot 'README.md'
@@ -158,6 +160,11 @@ if (-not (Test-Path -LiteralPath $fetchAsiLoaderScript -PathType Leaf)) {
 }
 if (-not (Test-Path -LiteralPath $asiLoaderLicense -PathType Leaf)) {
     throw "Ultimate ASI Loader license notice is missing: $asiLoaderLicense"
+}
+foreach ($guideNotice in @($bgWikiGuideNotice, $ffxiclopediaGuideNotice)) {
+    if (-not (Test-Path -LiteralPath $guideNotice -PathType Leaf)) {
+        throw "Objective guide source license notice is missing: $guideNotice"
+    }
 }
 if (-not (Test-Path -LiteralPath $asiLoaderSource -PathType Leaf)) {
     & $fetchAsiLoaderScript -RepoRoot $RepoRoot -Version $ultimateAsiLoaderVersion -ArchiveSha256 $ultimateAsiLoaderArchiveSha256 -DllSha256 $ultimateAsiLoaderDllSha256
@@ -318,6 +325,8 @@ Copy-RequiredFile -Source $installerScript -Destination (Join-Path $packageRoot 
 Copy-RequiredFile -Source $legacyCleanupScript -Destination (Join-Path $packageRoot 'legacy_accessxi_cleanup.ps1')
 Copy-RequiredFile -Source $publicGuide -Destination (Join-Path $packageRoot 'setup-guide.md')
 Copy-RequiredFile -Source $asiLoaderLicense -Destination (Join-Path $packageRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')
+Copy-RequiredFile -Source $bgWikiGuideNotice -Destination (Join-Path $packageRoot 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt')
+Copy-RequiredFile -Source $ffxiclopediaGuideNotice -Destination (Join-Path $packageRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')
 Copy-RequiredFile -Source $asiLoaderSource -Destination (Join-Path $payloadNative 'ddraw.dll')
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative.asi') -Destination (Join-Path $payloadNative 'AccessXI.PolNative.asi')
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\accessxi_pol_native.dll') -Destination (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
@@ -337,6 +346,8 @@ $manifest = [ordered]@{
     UltimateAsiLoaderVersion = $ultimateAsiLoaderVersion
     PolAsiLoaderHash = Get-OptionalFileHash (Join-Path $payloadNative 'ddraw.dll')
     PolAsiLoaderLicenseHash = Get-OptionalFileHash (Join-Path $packageRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt')
+    BgWikiObjectiveGuideNoticeHash = Get-OptionalFileHash (Join-Path $packageRoot 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt')
+    FFXIclopediaObjectiveGuideNoticeHash = Get-OptionalFileHash (Join-Path $packageRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')
     PolNativeAsiHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative.asi')
     PolNativeHookHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\accessxi_pol_native.dll')
     PolNativePrismHash = Get-OptionalFileHash (Join-Path $payloadNative 'AccessXI.PolNative\prism.dll')

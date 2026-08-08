@@ -372,7 +372,7 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
         self.assertEqual(params["rvslots"], "main")
         self.assertEqual(params["rvprop"], "ids|timestamp|content")
         self.assertEqual(params["redirects"], "1")
-        self.assertLessEqual(len(params["titles"].split("|")), 40)
+        self.assertLessEqual(len(params["titles"].split("|")), 50)
 
     def test_fetch_pages_rejects_missing_or_conflicting_canonical_pages(self) -> None:
         missing = _ScriptedTransport(
@@ -895,6 +895,9 @@ class GeneratedArtifactTests(unittest.TestCase):
         )
 
     def _source_pages(self) -> tuple[ParsedObjective, ...]:
+        return tuple(parse_objective_page(revision) for revision in self._source_revisions())
+
+    def _source_revisions(self) -> tuple[PageRevision, ...]:
         bg = _fixture_revisions("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php")
         ffxi = _fixture_revisions(
             "ffxiclopedia",
@@ -902,10 +905,10 @@ class GeneratedArtifactTests(unittest.TestCase):
             "https://ffxiclopedia.fandom.com/api.php",
         )
         return (
-            parse_objective_page(bg["Bastok Mission 1-2"]),
-            parse_objective_page(bg["Acting in Good Faith"]),
-            parse_objective_page(ffxi["A Geological Survey"]),
-            parse_objective_page(ffxi["Acting in Good Faith"]),
+            bg["Bastok Mission 1-2"],
+            bg["Acting in Good Faith"],
+            ffxi["A Geological Survey"],
+            ffxi["Acting in Good Faith"],
         )
 
     def test_lua_escaping_and_module_names_are_stable(self) -> None:
@@ -924,12 +927,37 @@ class GeneratedArtifactTests(unittest.TestCase):
             root = Path(temporary)
             module_root = root / "modules"
             data_root = root / "data"
+            source_only = PageRevision(
+                site="bg",
+                api_url="https://www.bg-wiki.com/api.php",
+                canonical_title="Source Only Category Page",
+                page_id=9999,
+                revision_id=1,
+                parent_revision_id=0,
+                revision_timestamp="2026-08-08T00:00:00Z",
+                content="This page deliberately has no objective header.",
+            )
+            source_revisions = (*self._source_revisions(), source_only)
+            parse_failures = ({
+                "site": "bg",
+                "page_id": 9999,
+                "revision_id": 1,
+                "title": "Source Only Category Page",
+                "reason": "missing supported objective header",
+            },)
 
             first = build_guide_artifacts(
                 self._native_rows(),
                 self._source_pages(),
                 module_root=module_root,
                 data_root=data_root,
+                source_revisions=source_revisions,
+                parse_failures=parse_failures,
+                reviewed_overrides=json.loads(
+                    (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
+                        encoding="utf-8"
+                    )
+                ),
             )
             first_bytes = {
                 path.relative_to(root).as_posix(): path.read_bytes()
@@ -941,6 +969,13 @@ class GeneratedArtifactTests(unittest.TestCase):
                 self._source_pages(),
                 module_root=module_root,
                 data_root=data_root,
+                source_revisions=source_revisions,
+                parse_failures=parse_failures,
+                reviewed_overrides=json.loads(
+                    (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
+                        encoding="utf-8"
+                    )
+                ),
             )
             second_bytes = {
                 path.relative_to(root).as_posix(): path.read_bytes()
@@ -977,15 +1012,33 @@ class GeneratedArtifactTests(unittest.TestCase):
             self.assertIn('dynamic_candidate_comparison = "corroborated"', reconcile)
             self.assertIn('"D-5", "I-7", "I-10", "M-6"', reconcile)
 
+            mission_reconcile = (
+                module_root / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            self.assertIn('["obtain-blue-tester"] = "mission:Bastok:2:step-002"', mission_reconcile)
+            self.assertIn('["charge-blue-tester"] = "mission:Bastok:2:step-004"', mission_reconcile)
+            self.assertIn('["return-red-tester"] = "mission:Bastok:2:step-005"', mission_reconcile)
+            self.assertIn("route_ready = true", mission_reconcile)
+
             coverage = json.loads((data_root / "coverage.json").read_text(encoding="utf-8"))
             self.assertEqual(coverage["counts"]["valid_native"], 3)
             self.assertEqual(sum(coverage["counts"]["by_status"].values()), 3)
             self.assertEqual(coverage["objectives"]["quest:bastok:92"]["status"], "source-missing")
+            self.assertEqual(coverage["objectives"]["mission:Bastok:2"]["status"], "automatic-stage")
             self.assertEqual(len(coverage["objectives"]), 3)
+            self.assertEqual(coverage["source_inventory"]["bg:9999"]["status"], "parser-failure")
+
+            target_review = json.loads((data_root / "target-review.json").read_text(encoding="utf-8"))
+            acting_reviews = [
+                row for row in target_review["steps"] if row["native_key"] == "quest:windurst:77"
+            ]
+            self.assertTrue(acting_reviews)
+            self.assertTrue(all(row["route_ready"] is False for row in acting_reviews))
+            self.assertNotIn("selected_candidate_grid", json.dumps(target_review))
 
             snapshot = json.loads((data_root / "source-snapshot.json").read_text(encoding="utf-8"))
             self.assertTrue(all("content" not in page for page in snapshot["pages"]))
-            self.assertEqual(len(snapshot["pages"]), 4)
+            self.assertEqual(len(snapshot["pages"]), 5)
             self.assertTrue(all(page["content_sha256"] for page in snapshot["pages"]))
             self.assertTrue(all(page["revision_timestamp"] for page in snapshot["pages"]))
             self.assertEqual(

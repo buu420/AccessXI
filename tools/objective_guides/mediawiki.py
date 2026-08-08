@@ -116,13 +116,14 @@ class MediaWikiClient:
         transport: Transport | None = None,
         user_agent: str = ACCESSXI_USER_AGENT,
         timeout: float = 30.0,
-        batch_size: int = 40,
+        batch_size: int = 50,
         max_attempts: int = 4,
+        min_request_interval: float = 0.0,
     ) -> None:
         if site not in SITE_LICENSES:
             raise ValueError(f"Unsupported MediaWiki site: {site}")
-        if batch_size < 1 or batch_size > 40:
-            raise ValueError("MediaWiki batch_size must be between 1 and 40.")
+        if batch_size < 1 or batch_size > 50:
+            raise ValueError("MediaWiki batch_size must be between 1 and 50.")
         self.site = site
         self.api_url = api_url
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
@@ -131,6 +132,8 @@ class MediaWikiClient:
         self.timeout = float(timeout)
         self.batch_size = int(batch_size)
         self.max_attempts = max(1, int(max_attempts))
+        self.min_request_interval = max(0.0, float(min_request_interval))
+        self._last_request_time = 0.0
 
     def _query(self, params: dict[str, str]) -> dict[str, Any]:
         request_params = {
@@ -144,6 +147,10 @@ class MediaWikiClient:
         last_error: Exception | None = None
         for attempt in range(self.max_attempts):
             try:
+                since_last = time.monotonic() - self._last_request_time
+                if since_last < self.min_request_interval:
+                    time.sleep(self.min_request_interval - since_last)
+                self._last_request_time = time.monotonic()
                 payload = self.transport(self.api_url, request_params, headers, self.timeout)
                 if not isinstance(payload, dict):
                     raise MediaWikiError("MediaWiki returned a non-object JSON payload.")
@@ -155,6 +162,21 @@ class MediaWikiClient:
                 if payload.get("batchcomplete") is not True:
                     raise MediaWikiError("MediaWiki response was not marked batchcomplete.")
                 return payload
+            except urllib.error.HTTPError as error:
+                last_error = error
+                retry_after = 0.0
+                if error.code == 429 and error.headers is not None:
+                    try:
+                        retry_after = float(error.headers.get("Retry-After", "0") or 0)
+                    except ValueError:
+                        retry_after = 0.0
+                if retry_after > 60:
+                    raise MediaWikiError(
+                        f"{self.site} rate limited the importer; retry after {int(retry_after)} seconds."
+                    ) from error
+                if attempt + 1 >= self.max_attempts:
+                    break
+                time.sleep(max(retry_after, min(8.0, 0.5 * (2**attempt))))
             except (MediaWikiError, OSError, ValueError, urllib.error.URLError) as error:
                 last_error = error
                 if attempt + 1 >= self.max_attempts:

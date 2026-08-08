@@ -233,6 +233,49 @@ local missions = accessxi.nav_mission_quest_active_items('mission')
 assert(find(missions, 'A Geological Survey') ~= nil)
 assert(find(missions, "Welcome t'Norg") ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
+local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
+mission_values['Chains of Promathia'] = 1
+accessxi.load_mission_rom_rows = function(context)
+    if context == 'Chains of Promathia' then
+        error('intentional mission context failure "quoted" ' .. string.rep('x', 180))
+    end
+    return native_mission_load_mission_rom_rows(context)
+end
+logs:clear()
+missions = accessxi.nav_mission_quest_active_items('mission')
+assert(find(missions, 'A Geological Survey') ~= nil)
+assert(find(missions, "Welcome t'Norg") ~= nil)
+local saw_chain_failure = false
+local saw_mission_summary = false
+local chain_failure_line = nil
+for _, line in ipairs(logs) do
+    if line:find('mission active context failure context="Chains of Promathia"', 1, true) then
+        saw_chain_failure = true
+        chain_failure_line = line
+    end
+    if line:find('mission active context complete attempts=', 1, true) then
+        saw_mission_summary = true
+    end
+end
+assert(saw_chain_failure == true)
+assert(saw_mission_summary == true)
+assert(chain_failure_line ~= nil)
+local chain_failure_reason = chain_failure_line:match('reason="(.*)"$')
+assert(chain_failure_reason ~= nil)
+assert(chain_failure_reason:find('intentional mission context failure', 1, true) == 1)
+assert(chain_failure_reason:find('"') == nil)
+assert(chain_failure_reason:find(" 'quoted' ", 1, true) ~= nil)
+assert(chain_failure_reason:sub(-3) == '...')
+assert(#chain_failure_reason == 99)
+local chain_survivor = assert(find(missions, 'A Geological Survey'))
+local chain_survivor_target, chain_survivor_message, chain_survivor_mode = accessxi.nav_mission_quest_prepare_route(chain_survivor, { zone = 106 })
+assert(chain_survivor_mode == 'ready' and chain_survivor_target ~= nil and chain_survivor_message == '')
+accessxi.load_mission_rom_rows = native_mission_load_mission_rom_rows
+mission_values['Chains of Promathia'] = 0
+local survey_after_failure = assert(find(missions, 'A Geological Survey'))
+local failure_target, failure_message, failure_mode = accessxi.nav_mission_quest_prepare_route(survey_after_failure, { zone = 106 })
+assert(failure_mode == 'ready' and failure_target ~= nil and failure_message == '')
+
 accessxi.mission_packet_source = 'cache'
 missions = accessxi.nav_mission_quest_active_items('mission')
 local cached_survey = assert(find(missions, 'A Geological Survey'))

@@ -35,6 +35,12 @@ function Test-ExcludedRelativePath {
         [string[]]$ExcludePatterns
     )
 
+    foreach ($component in ($RelativePath -split '[\\/]')) {
+        if ($component -in @('.git', '.hg', '.svn')) {
+            return $true
+        }
+    }
+
     foreach ($pattern in $ExcludePatterns) {
         if ($RelativePath -like $pattern) {
             return $true

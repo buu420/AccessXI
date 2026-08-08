@@ -201,6 +201,10 @@ if (Test-Path -LiteralPath $PackageRoot) {
     $payloadNative = Join-Path $PackageRoot 'payload\PlayOnlineNative'
     $payloadPrerequisites = Join-Path $PackageRoot 'payload\Prerequisites'
     $payloadAddon = Join-Path $payloadAshita 'addons\accessxi_reader'
+    $packagedSourceControlMetadata = @(Get-ChildItem -LiteralPath $PackageRoot -Force -Recurse | Where-Object {
+        $_.Name -in @('.git', '.hg', '.svn')
+    })
+    Assert-True ($packagedSourceControlMetadata.Count -eq 0) "Package must not contain source-control metadata; found $($packagedSourceControlMetadata.Count)."
     $payloadWin32Types = Join-Path $payloadAshita 'addons\libs\win32types.lua'
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'install_accessxi.ps1')) 'Package must contain the installer entry script.'
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'legacy_accessxi_cleanup.ps1')) 'Package must contain the legacy Reloaded cleanup library.'

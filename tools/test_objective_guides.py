@@ -15,6 +15,9 @@ from tools.objective_guides.mediawiki import (
     refresh_snapshot,
 )
 from tools.objective_guides.wikitext import parse_objective_page
+from tools.objective_guides.matching import match_objective_pages, normalize_title
+from tools.objective_guides.reconcile import reconcile_objectives
+from tools.objective_guides.model import ParsedObjective, SourceStep
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -536,6 +539,248 @@ class WikitextParserTests(unittest.TestCase):
         self.assertIn("Talk", spoken)
         self.assertIn("Guide NPC", spoken)
         self.assertIn("K-9", spoken)
+
+
+class MatchingTests(unittest.TestCase):
+    def test_reviewed_geological_mapping_seeds_stages_without_unreviewed_targets(self) -> None:
+        path = Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json"
+        overrides = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(overrides["page_matches"]["mission:Bastok:2"]["bg"]["page_id"], 12562)
+        self.assertEqual(
+            set(overrides["automatic_stage_links"]["mission:Bastok:2"]),
+            {"obtain-blue-tester", "charge-blue-tester", "return-red-tester"},
+        )
+        self.assertEqual(overrides["target_overrides"], {})
+
+    def test_exact_mission_context_number_title_and_redirect_alias_match(self) -> None:
+        native = NativeObjective(
+            kind="mission",
+            context="Bastok",
+            native_id=2,
+            title="A Geological Survey",
+            source_dat="ROM/176/68.DAT",
+            record_offset=0x280,
+            progress_id=1,
+        )
+        page = parse_objective_page(
+            _fixture_revisions(
+                "bg",
+                "bg-api-pages.json",
+                "https://www.bg-wiki.com/api.php",
+            )["Bastok Mission 1-2"]
+        )
+
+        report = match_objective_pages([native], [page])
+
+        self.assertEqual(len(report.matches), 1)
+        self.assertEqual(report.matches[0].native_key, "mission:Bastok:2")
+        self.assertEqual(report.matches[0].page_id, 12562)
+        self.assertEqual(report.matches[0].method, "exact-title-context")
+
+        alias_page = ParsedObjective(
+            site="bg",
+            page_id=77,
+            revision_id=88,
+            canonical_title="Geological Survey",
+            kind="mission",
+            objective_name="Geological Survey",
+            aliases=("A Geological Survey",),
+            context_hint="Bastok",
+        )
+        alias_report = match_objective_pages([native], [alias_page])
+        self.assertEqual(alias_report.matches[0].native_key, native.key)
+        self.assertEqual(alias_report.matches[0].method, "exact-alias-context")
+
+    def test_quest_duplicate_title_uses_area_and_start_npc_without_guessing(self) -> None:
+        natives = [
+            NativeObjective(
+                kind="quest",
+                context="sandoria",
+                native_id=103,
+                title="Escort for Hire",
+                source_dat="sandoria.DAT",
+                record_offset=0,
+                progress_id=103,
+                details=("Client: Rondipur",),
+            ),
+            NativeObjective(
+                kind="quest",
+                context="bastok",
+                native_id=70,
+                title="Escort for Hire",
+                source_dat="bastok.DAT",
+                record_offset=0,
+                progress_id=70,
+                details=("Client: Deidogg",),
+            ),
+        ]
+        page = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=99,
+            revision_id=100,
+            canonical_title="Escort for Hire (Bastok)",
+            kind="quest",
+            objective_name="Escort for Hire",
+            categories=("Bastok Quests",),
+            start_entities=("Deidogg",),
+        )
+
+        report = match_objective_pages(natives, [page])
+
+        self.assertEqual([match.native_key for match in report.matches], ["quest:bastok:70"])
+        self.assertFalse(report.ambiguous_pages)
+
+    def test_punctuation_normalization_is_exact_but_fuzzy_results_are_review_only(self) -> None:
+        self.assertEqual(normalize_title("Café...teria"), normalize_title("Cafe-teria"))
+        native = NativeObjective(
+            kind="quest",
+            context="adoulin",
+            native_id=94,
+            title="Cafe...teria",
+            source_dat="adoulin.DAT",
+            record_offset=0,
+            progress_id=94,
+        )
+        exact = ParsedObjective(
+            site="bg",
+            page_id=101,
+            revision_id=102,
+            canonical_title="Café-teria",
+            kind="quest",
+            objective_name="Café-teria",
+            categories=("Adoulin Quests",),
+        )
+        fuzzy = ParsedObjective(
+            site="bg",
+            page_id=103,
+            revision_id=104,
+            canonical_title="Cafe Taria",
+            kind="quest",
+            objective_name="Cafe Taria",
+            categories=("Adoulin Quests",),
+        )
+
+        exact_report = match_objective_pages([native], [exact])
+        fuzzy_report = match_objective_pages([native], [fuzzy])
+
+        self.assertEqual(exact_report.matches[0].native_key, native.key)
+        self.assertFalse(fuzzy_report.matches)
+        self.assertEqual(fuzzy_report.suggestions[103], (native.key,))
+
+    def test_ambiguous_exact_page_never_maps_to_multiple_native_keys(self) -> None:
+        natives = [
+            NativeObjective("quest", "sandoria", 1, "Shared Name", "a", 0, 1),
+            NativeObjective("quest", "bastok", 1, "Shared Name", "b", 0, 1),
+        ]
+        page = ParsedObjective(
+            site="bg",
+            page_id=105,
+            revision_id=106,
+            canonical_title="Shared Name",
+            kind="quest",
+            objective_name="Shared Name",
+        )
+
+        report = match_objective_pages(natives, [page])
+
+        self.assertFalse(report.matches)
+        self.assertEqual(report.ambiguous_pages[105], ("quest:bastok:1", "quest:sandoria:1"))
+
+
+class ReconciliationTests(unittest.TestCase):
+    def test_geological_survey_aligns_material_steps_but_keeps_cid_grid_conflict(self) -> None:
+        bg = parse_objective_page(
+            _fixture_revisions("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php")[
+                "Bastok Mission 1-2"
+            ]
+        )
+        ffxi = parse_objective_page(
+            _fixture_revisions(
+                "ffxiclopedia",
+                "ffxiclopedia-api-pages.json",
+                "https://ffxiclopedia.fandom.com/api.php",
+            )["A Geological Survey"]
+        )
+
+        reconciled = reconcile_objectives("mission:Bastok:2", bg, ffxi)
+
+        cid = next(step for step in reconciled.steps if "Cid" in step.entities and step.order < len(reconciled.steps))
+        self.assertEqual(cid.comparison, "conflict")
+        self.assertIn("grid_coordinates", cid.conflicting_fields)
+        self.assertFalse(cid.route_ready)
+        self.assertTrue(any(step.comparison == "corroborated" for step in reconciled.steps))
+
+    def test_dynamic_candidate_set_is_corroborated_and_never_collapsed(self) -> None:
+        bg = parse_objective_page(
+            _fixture_revisions("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php")[
+                "Acting in Good Faith"
+            ]
+        )
+        ffxi = parse_objective_page(
+            _fixture_revisions(
+                "ffxiclopedia",
+                "ffxiclopedia-api-pages.json",
+                "https://ffxiclopedia.fandom.com/api.php",
+            )["Acting in Good Faith"]
+        )
+
+        reconciled = reconcile_objectives("quest:windurst:77", bg, ffxi)
+
+        self.assertEqual(reconciled.dynamic_candidate_grid, ("D-5", "I-7", "I-10", "M-6"))
+        self.assertEqual(reconciled.dynamic_candidate_comparison, "corroborated")
+        self.assertIsNone(reconciled.selected_candidate_grid)
+        self.assertTrue(any("result" in step.conflicting_fields for step in reconciled.steps))
+
+    def test_alignment_uses_factual_fields_instead_of_prose_similarity(self) -> None:
+        bg = ParsedObjective(
+            site="bg",
+            page_id=1,
+            revision_id=1,
+            canonical_title="One",
+            kind="quest",
+            objective_name="One",
+            steps=(
+                SourceStep(
+                    1,
+                    "*",
+                    1,
+                    "Proceed to the engineer.",
+                    "Proceed to the engineer.",
+                    "talk",
+                    linked_entities=("Cid",),
+                    zone_candidates=("Metalworks",),
+                    grid_coordinates=("H-8",),
+                ),
+            ),
+        )
+        ffxi = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=2,
+            revision_id=2,
+            canonical_title="One",
+            kind="quest",
+            objective_name="One",
+            steps=(
+                SourceStep(
+                    1,
+                    "#",
+                    1,
+                    "Speak with Cid in his laboratory.",
+                    "Speak with Cid in his laboratory.",
+                    "talk",
+                    linked_entities=("Cid",),
+                    zone_candidates=("Metalworks",),
+                    grid_coordinates=("H-8",),
+                ),
+            ),
+        )
+
+        reconciled = reconcile_objectives("quest:bastok:1", bg, ffxi)
+
+        self.assertEqual(len(reconciled.steps), 1)
+        self.assertEqual(reconciled.steps[0].comparison, "corroborated")
+        self.assertEqual(reconciled.steps[0].source_orders, (1, 1))
 
 
 if __name__ == "__main__":

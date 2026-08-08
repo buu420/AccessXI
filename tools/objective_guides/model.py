@@ -50,5 +50,8 @@ class ParsedObjective:
     objective_name: str
     mission_number: str = ""
     context_hint: str = ""
+    aliases: tuple[str, ...] = ()
+    categories: tuple[str, ...] = ()
+    start_entities: tuple[str, ...] = ()
     steps: tuple[SourceStep, ...] = ()
     warnings: tuple[str, ...] = ()

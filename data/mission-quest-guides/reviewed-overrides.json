@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "page_matches": {
+    "mission:Bastok:2": {
+      "bg": {
+        "page_id": 12562,
+        "canonical_title": "Bastok Mission 1-2"
+      },
+      "ffxiclopedia": {
+        "page_id": 3338,
+        "canonical_title": "A Geological Survey"
+      }
+    }
+  },
+  "runtime_objective_keys": {
+    "mission:Bastok:2": "Bastok:1"
+  },
+  "automatic_stage_links": {
+    "mission:Bastok:2": {
+      "obtain-blue-tester": {
+        "predicate": "current-session key-item table owns neither tester",
+        "step_selector": {
+          "action": "talk",
+          "entity": "Cid",
+          "key_item": "Blue acidity tester",
+          "occurrence": "first"
+        }
+      },
+      "charge-blue-tester": {
+        "predicate": "current-session key-item table owns Blue acidity tester",
+        "step_selector": {
+          "grid": "I-8",
+          "entity": "geyser"
+        }
+      },
+      "return-red-tester": {
+        "predicate": "current-session key-item table owns Red acidity tester",
+        "step_selector": {
+          "action": "talk",
+          "entity": "Cid",
+          "occurrence": "last"
+        }
+      }
+    }
+  },
+  "target_overrides": {},
+  "evidence": [
+    "installed English client DAT rows",
+    "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2",
+    "https://ffxiclopedia.fandom.com/wiki/A_Geological_Survey",
+    "existing AccessXI current-session key-item stages"
+  ]
+}

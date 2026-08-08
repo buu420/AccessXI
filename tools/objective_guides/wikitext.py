@@ -284,6 +284,33 @@ def _header_details(revision: PageRevision) -> tuple[str, str, str, str, tuple[s
     raise WikitextError(f"{revision.site} page {revision.canonical_title!r} has no supported mission or quest header.")
 
 
+def _page_categories(content: str) -> tuple[str, ...]:
+    categories: list[str] = []
+    for link in mwparserfromhell.parse(content).filter_wikilinks(recursive=True):
+        target = _clean(link.title)
+        if target.casefold().startswith("category:"):
+            categories.append(target.split(":", 1)[1])
+    return _unique(categories)
+
+
+def _header_start_entities(content: str) -> tuple[str, ...]:
+    code = mwparserfromhell.parse(content)
+    for template in code.filter_templates(recursive=True):
+        if _name_key(template.name) not in {"mission", "missionheader", "quest", "questheader"}:
+            continue
+        for parameter_name in ("Start", "npc", "startnpc", "client"):
+            for parameter in template.params:
+                if _name_key(parameter.name) != _name_key(parameter_name):
+                    continue
+                entities: list[str] = []
+                for link in mwparserfromhell.parse(str(parameter.value)).filter_wikilinks(recursive=True):
+                    label = _wikilink_label(link)
+                    if label:
+                        entities.append(label)
+                return _unique(entities)
+    return ()
+
+
 def parse_objective_page(revision: PageRevision) -> ParsedObjective:
     kind, objective_name, mission_number, context_hint, header_warnings = _header_details(revision)
     steps: list[SourceStep] = []
@@ -335,6 +362,9 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         objective_name=objective_name,
         mission_number=mission_number,
         context_hint=context_hint,
+        aliases=_unique(revision.aliases),
+        categories=_page_categories(revision.content),
+        start_entities=_header_start_entities(revision.content),
         steps=tuple(steps),
         warnings=_unique(page_warnings),
     )

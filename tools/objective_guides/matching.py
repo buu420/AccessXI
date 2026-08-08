@@ -40,6 +40,10 @@ def _literal_title(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _campaign_title_key(value: str) -> str:
+    return re.sub(r"^vwopno(?=\d)", "vwop", normalize_title(value))
+
+
 _CONTEXT_ALIASES = {
     "sandoria": "sandoria",
     "sandoriaquests": "sandoria",
@@ -148,6 +152,40 @@ def match_objective_pages(
     matched_native: set[str] = set()
 
     for page in pages:
+        page_title_keys = {
+            normalize_title(page.objective_name),
+            normalize_title(page.canonical_title),
+            *(normalize_title(alias) for alias in page.aliases),
+        }
+        category_keys = {normalize_title(category) for category in page.categories}
+        if page.kind == "quest" and "crystalwarquests" in category_keys:
+            campaign_page_keys: set[str] = set()
+            for source_title in (page.objective_name, page.canonical_title, *page.aliases):
+                campaign_page_keys.add(_campaign_title_key(source_title))
+                without_kind_suffix = re.sub(r"\s*\(\s*quest\s*\)\s*$", "", source_title, flags=re.IGNORECASE)
+                if without_kind_suffix != source_title:
+                    campaign_page_keys.add(_campaign_title_key(without_kind_suffix))
+            campaign_candidates = [
+                native
+                for native in natives
+                if native.kind == "mission"
+                and native.context == "Campaign"
+                and _campaign_title_key(native.title) in campaign_page_keys
+            ]
+            if len(campaign_candidates) == 1:
+                campaign = campaign_candidates[0]
+                matches.append(
+                    ObjectiveMatch(
+                        native_key=campaign.key,
+                        site=page.site,
+                        page_id=page.page_id,
+                        revision_id=page.revision_id,
+                        canonical_title=page.canonical_title,
+                        method="campaign-log-exact-title",
+                    )
+                )
+                matched_native.add(campaign.key)
+
         candidates: list[tuple[NativeObjective, str]] = []
         for native in natives:
             if native.kind != page.kind:

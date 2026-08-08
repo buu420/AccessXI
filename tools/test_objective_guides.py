@@ -709,6 +709,52 @@ class WikitextParserTests(unittest.TestCase):
 
 
 class MatchingTests(unittest.TestCase):
+    def test_campaign_log_rows_mirror_exact_crystal_war_quest_guides_only(self) -> None:
+        campaign = NativeObjective("mission", "Campaign", 14, "Fires of Discontent", "missions.dat", 0, 14)
+        voidwatch_campaign = NativeObjective(
+            "mission", "Campaign", 84, "VW Op. #126: Qufim Incursion", "missions.dat", 1, 84
+        )
+        quest = NativeObjective("quest", "crystal_war", 13, "Fires of Discontent", "quests.dat", 0, 13)
+        page = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=5000,
+            revision_id=1,
+            canonical_title="Fires of Discontent",
+            kind="quest",
+            objective_name="Fires of Discontent",
+            categories=("Quests", "Crystal War Quests"),
+        )
+        unrelated = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=5001,
+            revision_id=1,
+            canonical_title="The Swarm",
+            kind="quest",
+            objective_name="The Swarm",
+            categories=("Side Quests",),
+        )
+        unrelated_campaign = NativeObjective("mission", "Campaign", 32, "The Swarm", "missions.dat", 1, 32)
+        voidwatch_page = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=5002,
+            revision_id=1,
+            canonical_title="VW Op. No. 126: Qufim Incursion",
+            kind="quest",
+            objective_name="VW Op. No. 126: Qufim Incursion",
+            categories=("Crystal War Quests", "Voidwatch Quests"),
+        )
+
+        report = match_objective_pages(
+            [campaign, voidwatch_campaign, quest, unrelated_campaign],
+            [page, unrelated, voidwatch_page],
+        )
+
+        self.assertEqual(
+            {match.native_key for match in report.matches},
+            {"mission:Campaign:14", "mission:Campaign:84", "quest:crystal_war:13"},
+        )
+        self.assertNotIn("mission:Campaign:32", {match.native_key for match in report.matches})
+
     def test_kind_and_context_disambiguation_suffixes_match_exactly(self) -> None:
         windurst = NativeObjective("quest", "windurst", 77, "Wild Card", "quests.dat", 0, 77)
         wild_card = ParsedObjective(

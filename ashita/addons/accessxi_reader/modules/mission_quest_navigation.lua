@@ -22,6 +22,33 @@ local function has_entries(value)
     return type(value) == 'table' and next(value) ~= nil;
 end
 
+local function sanitize_navigation_failure_reason(reason)
+    local value = clean(reason):match('^[^\r\n]*') or '';
+    value = value:match('^.+%.lua:%d+:%s*(.*)$') or value;
+    if (value == '') then
+        return '';
+    end
+    value = value:gsub('"', "'");
+    if (#value > 96) then
+        value = value:sub(1, 96) .. '...';
+    end
+    return value;
+end
+
+local function report_navigation_failure(context, error_message)
+    if (type(log_line) ~= 'function' or context == '') then
+        return;
+    end
+    local message = sanitize_navigation_failure_reason(error_message);
+    log_line(('mission active context failure context="%s" reason="%s"'):fmt(clean(context), message));
+end
+
+local function report_navigation_trace(context, phase)
+    if (type(log_line) == 'function' and context ~= '') then
+        log_line(('mission active context %s context="%s"'):fmt(phase, clean(context)));
+    end
+end
+
 local function point_copy(point)
     if (type(point) ~= 'table') then
         return nil;
@@ -449,40 +476,64 @@ local function append_mission(items, context, value)
     items:append(apply_objective(item));
 end
 
+local function run_safe_mission_context(items, context, build_fn)
+    report_navigation_trace(context, 'begin');
+    local before_count = #items;
+    local ok, err = xpcall(build_fn, function(err)
+        return clean(err):match('^[^\r\n]*') or '';
+    end);
+    if (not ok) then
+        report_navigation_failure(context, ('%s'):fmt(err));
+        return;
+    end
+    local added = #items - before_count;
+    report_navigation_trace(context, ('done added=%d'):fmt(added >= 0 and added or 0));
+end
+
 local function active_missions()
     local items = T{};
     if (not mission_state_ready()) then
         return items;
     end
+    local attempted_contexts = 0;
     local packet = accessxi.mission_packet_main or {};
     local nation = tonumber(packet.nation);
     local nation_contexts = T{ [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
     local nation_context = nation_contexts[nation];
     local nation_value = tonumber(packet.nation_mission);
     if (nation_context ~= nil and nation_value ~= nil and nation_value ~= 65535) then
-        append_mission(items, nation_context, nation_value);
+        attempted_contexts = attempted_contexts + 1;
+        run_safe_mission_context(items, nation_context, function()
+            append_mission(items, nation_context, nation_value);
+        end);
     end
 
     for _, context in ipairs(accessxi.missions_menu_category_labels or T{}) do
-        local context_id = type(accessxi.missions_menu_nation_context_id) == 'function'
-            and accessxi.missions_menu_nation_context_id(context) or nil;
-        local info = type(accessxi.mission_rom_table_for_context) == 'function'
-            and accessxi.mission_rom_table_for_context(context) or nil;
-        local packet_key = type(info) == 'table' and clean(info.packet) or '';
-        -- The main packet's `tales` byte is the TalesBeginning expansion-start
-        -- bitfield, not the current Voracious Resurgence mission. TVR stays
-        -- silent until its separate native mission packet is captured.
-        if (context_id == nil and clean(context) ~= 'Campaign'
-            and packet_key ~= '' and packet_key ~= 'tales'
-            and auxiliary_mission_state_ready(context)
-            and type(accessxi.current_mission_value_for_context) == 'function') then
-            local value = tonumber(accessxi.current_mission_value_for_context(context));
-            local terminal = value == nil or value <= 0 or value == 65535
-                or ((packet_key == 'acp' or packet_key == 'mkd' or packet_key == 'asa') and value >= 15);
-            if (not terminal) then
-                append_mission(items, context, value);
+        attempted_contexts = attempted_contexts + 1;
+        run_safe_mission_context(items, context, function()
+            local context_id = type(accessxi.missions_menu_nation_context_id) == 'function'
+                and accessxi.missions_menu_nation_context_id(context) or nil;
+            local info = type(accessxi.mission_rom_table_for_context) == 'function'
+                and accessxi.mission_rom_table_for_context(context) or nil;
+            local packet_key = type(info) == 'table' and clean(info.packet) or '';
+            -- The main packet's `tales` byte is the TalesBeginning expansion-start
+            -- bitfield, not the current Voracious Resurgence mission. TVR stays
+            -- silent until its separate native mission packet is captured.
+            if (context_id == nil and clean(context) ~= 'Campaign'
+                and packet_key ~= '' and packet_key ~= 'tales'
+                and auxiliary_mission_state_ready(context)
+                and type(accessxi.current_mission_value_for_context) == 'function') then
+                local value = tonumber(accessxi.current_mission_value_for_context(context));
+                local terminal = value == nil or value <= 0 or value == 65535
+                    or ((packet_key == 'acp' or packet_key == 'mkd' or packet_key == 'asa') and value >= 15);
+                if (not terminal) then
+                    append_mission(items, context, value);
+                end
             end
-        end
+        end);
+    end
+    if (type(log_line) == 'function') then
+        log_line(('mission active context complete attempts=%d results=%d'):fmt(attempted_contexts, #items));
     end
     return items;
 end

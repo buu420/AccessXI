@@ -60,7 +60,7 @@ foreach ($requiredText in @(
     '| `H` | Read current and maximum HP. |',
     '| `M` | Read current and maximum MP. |',
     '| `X` | Read current experience and experience to next level. |',
-    '| `I` | Start a route to the selected destination, or stop the active or pending route. |',
+    '| `I` | Enter a selected mission or quest, start a verified route for its selected step, start an ordinary destination route, or stop the active or pending route. |',
     '| `U` | Previous navigation category. |',
     '| `O` | Next navigation category. |',
     '| `J` | Previous item in the current navigation category. |',

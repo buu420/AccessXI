@@ -125,12 +125,28 @@ Unless a table says otherwise, the bare-letter accessibility keys work only whil
 
 | Key | Action |
 | --- | --- |
-| `I` | Start a route to the selected destination, or stop the active or pending route. |
+| `I` | Enter a selected mission or quest, start a verified route for its selected step, start an ordinary destination route, or stop the active or pending route. |
 | `U` | Previous navigation category. |
 | `O` | Next navigation category. |
 | `J` | Previous item in the current navigation category. |
 | `K` | Repeat the current navigation item. |
 | `L` | Next item in the current navigation category. |
+
+The `Missions` and `Quests` navigation categories are built from the current
+character's native active-objective state. Press `I` on an objective to open its
+ordered guide steps. Within that step view, `J` and `L` move between actual
+steps, `K` repeats the selected step and its evidence status, `U` returns to the
+same objective, and `O` closes the steps and advances to the next category.
+Press `I` on a step to navigate only when AccessXI has a separately verified
+target and walkable route. Map-grid references and wiki prose are guidance, not
+proof of a safe path; conflicts and unresolved `???` candidates are spoken and
+left unrouted.
+
+When the client exposes enough current-session state, AccessXI selects the
+current step automatically. Otherwise the player moves through the steps
+manually, and that selection is stored separately for each native character
+identity. Counts come from the current objective and are never fixed row
+numbers.
 
 When a supported highlighted gear item has active detail text, `J`, `K`, and `L` read that gear instead of moving through navigation:
 
@@ -221,6 +237,10 @@ Repository layout:
 - `data`, `sounds`, and `docs`: navigation data, audio assets, and technical documentation.
 - `third-party-notices`: notices for release dependencies.
 
+Mission and quest guide data is generated offline from exact, revisioned BG
+Wiki and FFXIclopedia snapshots. Source-specific modules and license notices
+remain separate; the in-game addon never makes web requests.
+
 Native PlayOnline components must be built for 32-bit x86. Configure `ASHITA4_SDK_PATH` for the local Ashita v4 SDK and provide the reviewed x86 Prism build expected by `tools/build_pol_native_asi.ps1`.
 
 Build and validate the complete release with:
@@ -235,5 +255,12 @@ The package builder takes the addon from `ashita\addons\accessxi_reader`, not fr
 
 ## Known limitations
 
+- Final Fantasy XI does not expose a universal live stage number for every
+  quest and mission. AccessXI automatically selects a step only from verified
+  current-session packet, key-item, inventory, or world evidence; other guides
+  use the player's saved manual step.
+- A wiki coordinate is not a walked route. Objectives with unresolved dynamic
+  targets, source conflicts, unknown doors, one-way terrain, or no verified nav
+  connection remain guide-only instead of starting an unsafe route.
 - Help Desk > Adventuring Primer: category titles, article titles, and short detail lines are native or DAT-backed. The long article body pages are texture-backed, so AccessXI leaves them silent rather than inventing text.
 - Communications > Friend List > Edit Friend List: friend names are visible in native data, but no reliable selected-row signal has been verified. AccessXI leaves that list silent rather than announce the wrong person.

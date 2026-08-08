@@ -135,6 +135,8 @@ Assert-Contains $packageSource 'LandSandBoat-server' 'Package builder must stage
 Assert-Contains $packageSource 'xiNavmeshes' 'Package builder must stage local nav meshes used by AccessXI nav.'
 Assert-Contains $packageSource 'FFXINAV\.dll' 'Package builder must stage the FFXI navmesh DLL used by AccessXI nav.'
 Assert-Contains $packageSource 'sounds' 'Package builder must stage AccessXI sounds locally instead of pointing at a developer folder.'
+Assert-Contains $packageSource 'BG-Wiki-objective-guides-CC-BY-NC-SA-3\.0\.txt' 'Package builder must ship the BG Wiki objective-guide notice.'
+Assert-Contains $packageSource 'FFXIclopedia-objective-guides-CC-BY-SA-3\.0\.txt' 'Package builder must ship the FFXIclopedia objective-guide notice.'
 
 Assert-Contains $installerSource 'param\(' 'Installer must accept parameters instead of hardcoding this machine only.'
 Assert-Contains $installerSource '\$InstallRoot' 'Installer must install Ashita under a caller-selected install root.'
@@ -199,6 +201,10 @@ if (Test-Path -LiteralPath $PackageRoot) {
     $payloadNative = Join-Path $PackageRoot 'payload\PlayOnlineNative'
     $payloadPrerequisites = Join-Path $PackageRoot 'payload\Prerequisites'
     $payloadAddon = Join-Path $payloadAshita 'addons\accessxi_reader'
+    $packagedSourceControlMetadata = @(Get-ChildItem -LiteralPath $PackageRoot -Force -Recurse | Where-Object {
+        $_.Name -in @('.git', '.hg', '.svn')
+    })
+    Assert-True ($packagedSourceControlMetadata.Count -eq 0) "Package must not contain source-control metadata; found $($packagedSourceControlMetadata.Count)."
     $payloadWin32Types = Join-Path $payloadAshita 'addons\libs\win32types.lua'
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'install_accessxi.ps1')) 'Package must contain the installer entry script.'
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'legacy_accessxi_cleanup.ps1')) 'Package must contain the legacy Reloaded cleanup library.'
@@ -226,6 +232,13 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+IID\s*\*\s*REFIID') 'Packaged win32types.lua must expose REFIID as a C pointer typedef.'
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+GUID\s*\*\s*REFGUID') 'Packaged win32types.lua must expose REFGUID as a C pointer typedef.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'accessxi_reader.lua')) 'Package must contain the AccessXI Ashita addon.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_guide_index.lua')) 'Package must contain the complete native objective guide index.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_bg_mission_bastok.lua')) 'Package must contain BG Wiki objective guide chunks.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_ffxiclopedia_mission_bastok.lua')) 'Package must contain FFXIclopedia objective guide chunks.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\mission-quest-guides\coverage.json')) 'Package must contain objective guide coverage data.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\mission-quest-guides\source-snapshot.json')) 'Package must contain objective guide source provenance.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt')) 'Package must contain the BG Wiki objective-guide notice.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')) 'Package must contain the FFXIclopedia objective-guide notice.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')) 'Package must contain AccessXI nav destinations beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-zoneline-graph.tsv')) 'Package must contain AccessXI nav zoneline graph beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')) 'Package must contain the DAT string index beside the addon.'

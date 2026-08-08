@@ -1,0 +1,58 @@
+{
+  "source": {
+    "site": "ffxiclopedia",
+    "api_url": "https://ffxiclopedia.fandom.com/api.php",
+    "license": "CC-BY-SA-3.0",
+    "license_url": "https://www.fandom.com/licensing",
+    "fixture_note": "Minimal revisioned API fields and walkthrough excerpts retained for parser regression tests."
+  },
+  "requested_titles": [
+    "A Geological Survey",
+    "Acting in Good Faith"
+  ],
+  "response": {
+    "batchcomplete": true,
+    "query": {
+      "pages": [
+        {
+          "pageid": 3338,
+          "ns": 0,
+          "title": "A Geological Survey",
+          "revisions": [
+            {
+              "revid": 1748775,
+              "parentid": 1748774,
+              "timestamp": "2021-12-06T07:58:30Z",
+              "slots": {
+                "main": {
+                  "contentmodel": "wikitext",
+                  "contentformat": "text/x-wiki",
+                  "content": "{{Mission\n|name=A Geological Survey\n|number=1-2\n|npc=Any [[Bastok Gate Guard]]\n}}\n==Walkthrough==\n#Talk to a [[Bastok Gate Guard]].\n#Talk to {{Location Tooltip|area=Metalworks|text=Cid (H-8)|pos=H-8}} for a {{keyItem}}[[Blue Acidity Tester]].\n#Enter [[Dangruf Wadi]] from [[South Gustaberg]] (D-9).\n#Use the {{Location Tooltip|area=Dangruf Wadi|text=geyser at (I-8)|pos=I-8}} until the tester becomes the {{keyItem}}[[Red Acidity Tester]].\n#Return to [[Cid]]."
+                }
+              }
+            }
+          ]
+        },
+        {
+          "pageid": 8173,
+          "ns": 0,
+          "title": "Acting in Good Faith",
+          "revisions": [
+            {
+              "revid": 1771132,
+              "parentid": 1771131,
+              "timestamp": "2023-10-31T07:42:31Z",
+              "slots": {
+                "main": {
+                  "contentmodel": "wikitext",
+                  "contentformat": "text/x-wiki",
+                  "content": "{{Quest\n|startnpc=[[Gantineux]] - {{Location|Windurst Waters|map=North|E-10}}\n|items={{KeyItem}}[[Spirit Incense]]\n}}\n==Walkthrough==\n*Speak to [[Gantineux]] at {{Location|Windurst Waters|map=North|E-10}}.\n*Travel to {{Location|The Eldieme Necropolis}}.\n*Find the [[???]] on one of four braziers on Map 2: I-10, I-7, M-6, or D-5.\n*Touch the [[???]].\n**The attempt usually fails and can very rarely report success; this does not affect the quest outcome.\n*Return to [[Gantineux]], then deliver his letter to [[Eperdur]] in {{Location|Northern San d'Oria|M-7}}."
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

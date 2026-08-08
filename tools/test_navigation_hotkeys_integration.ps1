@@ -40,6 +40,22 @@ Assert-Contains 'route_pending = accessxi.nav_zone_search_target ~= nil' `
     'I cannot stop pending cross-zone navigation between route legs.'
 Assert-Contains 'accessxi.navigation_hotkeys.should_claim_vk(' `
     'DirectInput suppression does not use the navigation ownership policy.'
+Assert-Contains "accessxi.mission_quest_guide_index = accessxi.load_module_table('mission_quest_guide_index'" `
+    'Reader does not load the complete native objective guide index.'
+Assert-Contains "accessxi.mission_quest_guides_module = accessxi.load_module_table('mission_quest_guides'" `
+    'Reader does not load the lazy objective step browser.'
+Assert-Contains 'accessxi.objective_guides:is_open()' `
+    'Navigation actions do not distinguish objective step view from the objective list.'
+Assert-Contains "action == 'previous_category'" `
+    'U does not exit objective step view to the same objective.'
+Assert-Contains "action == 'next_category'" `
+    'O does not exit objective step view and advance a category.'
+Assert-Contains 'accessxi.objective_guides:move(-1)' `
+    'J does not move to the previous objective step.'
+Assert-Contains 'accessxi.objective_guides:repeat_step()' `
+    'K does not repeat the current objective step.'
+Assert-Contains 'accessxi.objective_guides:move(1)' `
+    'L does not move to the next objective step.'
 
 $pollBlock = [regex]::Match(
     $reader,

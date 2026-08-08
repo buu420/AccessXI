@@ -1,0 +1,4965 @@
+{
+  "failures": [
+    {
+      "page_id": 28,
+      "reason": "bg page 'Asuran Fists' has no supported mission or quest header.",
+      "revision_id": 740989,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Asuran_Fists",
+      "title": "Asuran Fists"
+    },
+    {
+      "page_id": 214,
+      "reason": "bg page 'Penance' has no supported mission or quest header.",
+      "revision_id": 709673,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Penance",
+      "title": "Penance"
+    },
+    {
+      "page_id": 543,
+      "reason": "bg page 'Tachi: Kasha' has no supported mission or quest header.",
+      "revision_id": 741114,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Tachi%3A_Kasha",
+      "title": "Tachi: Kasha"
+    },
+    {
+      "page_id": 596,
+      "reason": "bg page 'Wild Card' has no supported mission or quest header.",
+      "revision_id": 744308,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Wild_Card",
+      "title": "Wild Card"
+    },
+    {
+      "page_id": 1064,
+      "reason": "bg page 'The Big One' has no supported mission or quest header.",
+      "revision_id": 616328,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Big_One",
+      "title": "The Big One"
+    },
+    {
+      "page_id": 2770,
+      "reason": "bg page '??? Sword' has no supported mission or quest header.",
+      "revision_id": 511695,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Sword",
+      "title": "??? Sword"
+    },
+    {
+      "page_id": 2771,
+      "reason": "bg page '??? Dagger' has no supported mission or quest header.",
+      "revision_id": 511684,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Dagger",
+      "title": "??? Dagger"
+    },
+    {
+      "page_id": 2772,
+      "reason": "bg page '??? Polearm' has no supported mission or quest header.",
+      "revision_id": 511690,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Polearm",
+      "title": "??? Polearm"
+    },
+    {
+      "page_id": 2773,
+      "reason": "bg page '??? Axe' has no supported mission or quest header.",
+      "revision_id": 511678,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Axe",
+      "title": "??? Axe"
+    },
+    {
+      "page_id": 2774,
+      "reason": "bg page '??? Bow' has no supported mission or quest header.",
+      "revision_id": 511679,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Bow",
+      "title": "??? Bow"
+    },
+    {
+      "page_id": 2775,
+      "reason": "bg page '??? Gloves' has no supported mission or quest header.",
+      "revision_id": 511686,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Gloves",
+      "title": "??? Gloves"
+    },
+    {
+      "page_id": 2776,
+      "reason": "bg page '??? Footwear' has no supported mission or quest header.",
+      "revision_id": 511685,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Footwear",
+      "title": "??? Footwear"
+    },
+    {
+      "page_id": 2820,
+      "reason": "bg page '??? Headpiece' has no supported mission or quest header.",
+      "revision_id": 511687,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Headpiece",
+      "title": "??? Headpiece"
+    },
+    {
+      "page_id": 2821,
+      "reason": "bg page '??? Earring' has no supported mission or quest header.",
+      "revision_id": 511683,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Earring",
+      "title": "??? Earring"
+    },
+    {
+      "page_id": 2822,
+      "reason": "bg page '??? Ring' has no supported mission or quest header.",
+      "revision_id": 511692,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Ring",
+      "title": "??? Ring"
+    },
+    {
+      "page_id": 2823,
+      "reason": "bg page '??? Cape' has no supported mission or quest header.",
+      "revision_id": 511681,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Cape",
+      "title": "??? Cape"
+    },
+    {
+      "page_id": 2824,
+      "reason": "bg page '??? Sash' has no supported mission or quest header.",
+      "revision_id": 511693,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Sash",
+      "title": "??? Sash"
+    },
+    {
+      "page_id": 2825,
+      "reason": "bg page '??? Shield' has no supported mission or quest header.",
+      "revision_id": 511694,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Shield",
+      "title": "??? Shield"
+    },
+    {
+      "page_id": 2826,
+      "reason": "bg page '??? Necklace' has no supported mission or quest header.",
+      "revision_id": 511689,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Necklace",
+      "title": "??? Necklace"
+    },
+    {
+      "page_id": 2827,
+      "reason": "bg page '??? Ingot' has no supported mission or quest header.",
+      "revision_id": 511688,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Ingot",
+      "title": "??? Ingot"
+    },
+    {
+      "page_id": 2828,
+      "reason": "bg page '??? Potion' has no supported mission or quest header.",
+      "revision_id": 511691,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Potion",
+      "title": "??? Potion"
+    },
+    {
+      "page_id": 2829,
+      "reason": "bg page '??? Cloth' has no supported mission or quest header.",
+      "revision_id": 511712,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Cloth",
+      "title": "??? Cloth"
+    },
+    {
+      "page_id": 2830,
+      "reason": "bg page '??? Box' has no supported mission or quest header.",
+      "revision_id": 733490,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Box",
+      "title": "??? Box"
+    },
+    {
+      "page_id": 10659,
+      "reason": "bg page 'Leujaoam Cleansing' has no supported mission or quest header.",
+      "revision_id": 749569,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Leujaoam_Cleansing",
+      "title": "Leujaoam Cleansing"
+    },
+    {
+      "page_id": 11093,
+      "reason": "bg page 'Orichalcum Survey' has no supported mission or quest header.",
+      "revision_id": 749570,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Orichalcum_Survey",
+      "title": "Orichalcum Survey"
+    },
+    {
+      "page_id": 11098,
+      "reason": "bg page 'Escort Professor Chanoix' has no supported mission or quest header.",
+      "revision_id": 749642,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Escort_Professor_Chanoix",
+      "title": "Escort Professor Chanoix"
+    },
+    {
+      "page_id": 11116,
+      "reason": "bg page 'Shanarha Grass Conservation' has no supported mission or quest header.",
+      "revision_id": 749575,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Shanarha_Grass_Conservation",
+      "title": "Shanarha Grass Conservation"
+    },
+    {
+      "page_id": 11125,
+      "reason": "bg page 'Counting Sheep' has no supported mission or quest header.",
+      "revision_id": 718221,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Counting_Sheep",
+      "title": "Counting Sheep"
+    },
+    {
+      "page_id": 11153,
+      "reason": "bg page 'Supplies Recovery' has no supported mission or quest header.",
+      "revision_id": 718222,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Supplies_Recovery",
+      "title": "Supplies Recovery"
+    },
+    {
+      "page_id": 11177,
+      "reason": "bg page 'Azure Experiments' has no supported mission or quest header.",
+      "revision_id": 764434,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Azure_Experiments",
+      "title": "Azure Experiments"
+    },
+    {
+      "page_id": 11186,
+      "reason": "bg page 'Imperial Code' has no supported mission or quest header.",
+      "revision_id": 746811,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Imperial_Code",
+      "title": "Imperial Code"
+    },
+    {
+      "page_id": 11190,
+      "reason": "bg page 'Red Versus Blue' has no supported mission or quest header.",
+      "revision_id": 718225,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Red_Versus_Blue",
+      "title": "Red Versus Blue"
+    },
+    {
+      "page_id": 11203,
+      "reason": "bg page 'Bloody Rondo' has no supported mission or quest header.",
+      "revision_id": 718227,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Bloody_Rondo",
+      "title": "Bloody Rondo"
+    },
+    {
+      "page_id": 11308,
+      "reason": "bg page 'Spiral Hell' has no supported mission or quest header.",
+      "revision_id": 741091,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Spiral_Hell",
+      "title": "Spiral Hell"
+    },
+    {
+      "page_id": 11431,
+      "reason": "bg page 'Black Halo' has no supported mission or quest header.",
+      "revision_id": 741129,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Black_Halo",
+      "title": "Black Halo"
+    },
+    {
+      "page_id": 11524,
+      "reason": "bg page 'Impulse Drive' has no supported mission or quest header.",
+      "revision_id": 741100,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Impulse_Drive",
+      "title": "Impulse Drive"
+    },
+    {
+      "page_id": 11550,
+      "reason": "bg page 'Private Second Class' has no supported mission or quest header.",
+      "revision_id": 210273,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Private_Second_Class",
+      "title": "Private Second Class"
+    },
+    {
+      "page_id": 11551,
+      "reason": "bg page 'Private First Class' has no supported mission or quest header.",
+      "revision_id": 210274,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Private_First_Class",
+      "title": "Private First Class"
+    },
+    {
+      "page_id": 11552,
+      "reason": "bg page 'Superior Private' has no supported mission or quest header.",
+      "revision_id": 210280,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Superior_Private",
+      "title": "Superior Private"
+    },
+    {
+      "page_id": 11553,
+      "reason": "bg page 'Lance Corporal' has no supported mission or quest header.",
+      "revision_id": 210281,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Lance_Corporal",
+      "title": "Lance Corporal"
+    },
+    {
+      "page_id": 11554,
+      "reason": "bg page 'Corporal' has no supported mission or quest header.",
+      "revision_id": 210283,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Corporal",
+      "title": "Corporal"
+    },
+    {
+      "page_id": 11555,
+      "reason": "bg page 'Sergeant' has no supported mission or quest header.",
+      "revision_id": 210282,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Sergeant",
+      "title": "Sergeant"
+    },
+    {
+      "page_id": 11556,
+      "reason": "bg page 'Sergeant Major' has no supported mission or quest header.",
+      "revision_id": 210279,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Sergeant_Major",
+      "title": "Sergeant Major"
+    },
+    {
+      "page_id": 11557,
+      "reason": "bg page 'Chief Sergeant' has no supported mission or quest header.",
+      "revision_id": 210276,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Chief_Sergeant",
+      "title": "Chief Sergeant"
+    },
+    {
+      "page_id": 11558,
+      "reason": "bg page 'Second Lieutenant' has no supported mission or quest header.",
+      "revision_id": 210278,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Second_Lieutenant",
+      "title": "Second Lieutenant"
+    },
+    {
+      "page_id": 11560,
+      "reason": "bg page 'First Lieutenant' has no supported mission or quest header.",
+      "revision_id": 210277,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/First_Lieutenant",
+      "title": "First Lieutenant"
+    },
+    {
+      "page_id": 11561,
+      "reason": "bg page 'Captain' has no supported mission or quest header.",
+      "revision_id": 210381,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Captain",
+      "title": "Captain"
+    },
+    {
+      "page_id": 11642,
+      "reason": "bg page 'Lamia No.13' has no supported mission or quest header.",
+      "revision_id": 718228,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Lamia_No.13",
+      "title": "Lamia No.13"
+    },
+    {
+      "page_id": 11646,
+      "reason": "bg page 'Imperial Agent Rescue' has no supported mission or quest header.",
+      "revision_id": 718283,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Imperial_Agent_Rescue",
+      "title": "Imperial Agent Rescue"
+    },
+    {
+      "page_id": 11649,
+      "reason": "bg page 'Preemptive Strike' has no supported mission or quest header.",
+      "revision_id": 718257,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preemptive_Strike",
+      "title": "Preemptive Strike"
+    },
+    {
+      "page_id": 11659,
+      "reason": "bg page 'Empyreal Arrow' has no supported mission or quest header.",
+      "revision_id": 741153,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Empyreal_Arrow",
+      "title": "Empyreal Arrow"
+    },
+    {
+      "page_id": 11661,
+      "reason": "bg page 'Sagelord Elimination' has no supported mission or quest header.",
+      "revision_id": 761283,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Sagelord_Elimination",
+      "title": "Sagelord Elimination"
+    },
+    {
+      "page_id": 11668,
+      "reason": "bg page 'Breaking Morale' has no supported mission or quest header.",
+      "revision_id": 745481,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Breaking_Morale",
+      "title": "Breaking Morale"
+    },
+    {
+      "page_id": 11675,
+      "reason": "bg page 'The Double Agent' has no supported mission or quest header.",
+      "revision_id": 718248,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Double_Agent",
+      "title": "The Double Agent"
+    },
+    {
+      "page_id": 11676,
+      "reason": "bg page 'Imperial Treasure Retrieval' has no supported mission or quest header.",
+      "revision_id": 718249,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Imperial_Treasure_Retrieval",
+      "title": "Imperial Treasure Retrieval"
+    },
+    {
+      "page_id": 11680,
+      "reason": "bg page 'Blitzkrieg' has no supported mission or quest header.",
+      "revision_id": 718250,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Blitzkrieg",
+      "title": "Blitzkrieg"
+    },
+    {
+      "page_id": 11684,
+      "reason": "bg page 'Marids in the Mist' has no supported mission or quest header.",
+      "revision_id": 718251,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Marids_in_the_Mist",
+      "title": "Marids in the Mist"
+    },
+    {
+      "page_id": 11691,
+      "reason": "bg page 'Azure Ailments' has no supported mission or quest header.",
+      "revision_id": 718252,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Azure_Ailments",
+      "title": "Azure Ailments"
+    },
+    {
+      "page_id": 11694,
+      "reason": "bg page 'The Susanoo Shuffle' has no supported mission or quest header.",
+      "revision_id": 718253,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Susanoo_Shuffle",
+      "title": "The Susanoo Shuffle"
+    },
+    {
+      "page_id": 11757,
+      "reason": "bg page 'Retribution' has no supported mission or quest header.",
+      "revision_id": 766402,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Retribution",
+      "title": "Retribution"
+    },
+    {
+      "page_id": 11805,
+      "reason": "bg page 'Savage Blade' has no supported mission or quest header.",
+      "revision_id": 741022,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Savage_Blade",
+      "title": "Savage Blade"
+    },
+    {
+      "page_id": 11815,
+      "reason": "bg page 'Evisceration' has no supported mission or quest header.",
+      "revision_id": 741176,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Evisceration",
+      "title": "Evisceration"
+    },
+    {
+      "page_id": 11832,
+      "reason": "bg page 'Ground Strike' has no supported mission or quest header.",
+      "revision_id": 741034,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Ground_Strike",
+      "title": "Ground Strike"
+    },
+    {
+      "page_id": 11907,
+      "reason": "bg page 'Decimation' has no supported mission or quest header.",
+      "revision_id": 743592,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Decimation",
+      "title": "Decimation"
+    },
+    {
+      "page_id": 11924,
+      "reason": "bg page 'Steel Cyclone' has no supported mission or quest header.",
+      "revision_id": 741047,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Steel_Cyclone",
+      "title": "Steel Cyclone"
+    },
+    {
+      "page_id": 11942,
+      "reason": "bg page 'Detonator' has no supported mission or quest header.",
+      "revision_id": 742172,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Detonator",
+      "title": "Detonator"
+    },
+    {
+      "page_id": 12044,
+      "reason": "bg page 'Excavation Duty' has no supported mission or quest header.",
+      "revision_id": 752176,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Excavation_Duty",
+      "title": "Excavation Duty"
+    },
+    {
+      "page_id": 12045,
+      "reason": "bg page 'Lebros Supplies' has no supported mission or quest header.",
+      "revision_id": 745549,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Lebros_Supplies",
+      "title": "Lebros Supplies"
+    },
+    {
+      "page_id": 12065,
+      "reason": "bg page 'Troll Fugitives' has no supported mission or quest header.",
+      "revision_id": 718255,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Troll_Fugitives",
+      "title": "Troll Fugitives"
+    },
+    {
+      "page_id": 12082,
+      "reason": "bg page 'Evade and Escape' has no supported mission or quest header.",
+      "revision_id": 718256,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Evade_and_Escape",
+      "title": "Evade and Escape"
+    },
+    {
+      "page_id": 12089,
+      "reason": "bg page 'Siegemaster Assassination' has no supported mission or quest header.",
+      "revision_id": 718264,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Siegemaster_Assassination",
+      "title": "Siegemaster Assassination"
+    },
+    {
+      "page_id": 12112,
+      "reason": "bg page 'Blade: Ku' has no supported mission or quest header.",
+      "revision_id": 741108,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Blade%3A_Ku",
+      "title": "Blade: Ku"
+    },
+    {
+      "page_id": 12325,
+      "reason": "bg page 'Apkallu Breeding' has no supported mission or quest header.",
+      "revision_id": 718286,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Apkallu_Breeding",
+      "title": "Apkallu Breeding"
+    },
+    {
+      "page_id": 12350,
+      "reason": "bg page 'Wamoura Farm Raid' has no supported mission or quest header.",
+      "revision_id": 718265,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Wamoura_Farm_Raid",
+      "title": "Wamoura Farm Raid"
+    },
+    {
+      "page_id": 12531,
+      "reason": "bg page 'Mercenary Assessments' has no supported mission or quest header.",
+      "revision_id": 569191,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Mercenary_Assessments",
+      "title": "Mercenary Assessments"
+    },
+    {
+      "page_id": 12569,
+      "reason": "bg page 'Egg Conservation' has no supported mission or quest header.",
+      "revision_id": 762192,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Egg_Conservation",
+      "title": "Egg Conservation"
+    },
+    {
+      "page_id": 12570,
+      "reason": "bg page 'Operation: Black Pearl' has no supported mission or quest header.",
+      "revision_id": 764914,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Operation%3A_Black_Pearl",
+      "title": "Operation: Black Pearl"
+    },
+    {
+      "page_id": 12736,
+      "reason": "bg page 'Better Than One' has no supported mission or quest header.",
+      "revision_id": 718267,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Better_Than_One",
+      "title": "Better Than One"
+    },
+    {
+      "page_id": 12820,
+      "reason": "bg page 'Seagull Grounded' has no supported mission or quest header.",
+      "revision_id": 758706,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Seagull_Grounded",
+      "title": "Seagull Grounded"
+    },
+    {
+      "page_id": 13054,
+      "reason": "bg page 'Requiem' has no supported mission or quest header.",
+      "revision_id": 718269,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Requiem",
+      "title": "Requiem"
+    },
+    {
+      "page_id": 13303,
+      "reason": "bg page 'Saving Private Ryaaf' has no supported mission or quest header.",
+      "revision_id": 718270,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Saving_Private_Ryaaf",
+      "title": "Saving Private Ryaaf"
+    },
+    {
+      "page_id": 13322,
+      "reason": "bg page 'Shooting Down the Baron' has no supported mission or quest header.",
+      "revision_id": 718271,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Shooting_Down_the_Baron",
+      "title": "Shooting Down the Baron"
+    },
+    {
+      "page_id": 13323,
+      "reason": "bg page 'Building Bridges' has no supported mission or quest header.",
+      "revision_id": 757106,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Building_Bridges",
+      "title": "Building Bridges"
+    },
+    {
+      "page_id": 13324,
+      "reason": "bg page 'Abquhbah' has no supported mission or quest header.",
+      "revision_id": 656722,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Abquhbah",
+      "title": "Abquhbah"
+    },
+    {
+      "page_id": 13563,
+      "reason": "bg page 'Stop the Bloodshed' has no supported mission or quest header.",
+      "revision_id": 762404,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Stop_the_Bloodshed",
+      "title": "Stop the Bloodshed"
+    },
+    {
+      "page_id": 13564,
+      "reason": "bg page 'Defuse the Threat' has no supported mission or quest header.",
+      "revision_id": 718259,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Defuse_the_Threat",
+      "title": "Defuse the Threat"
+    },
+    {
+      "page_id": 13565,
+      "reason": "bg page 'Operation: Snake Eyes' has no supported mission or quest header.",
+      "revision_id": 762190,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Operation%3A_Snake_Eyes",
+      "title": "Operation: Snake Eyes"
+    },
+    {
+      "page_id": 13699,
+      "reason": "bg page 'Wake the Puppet' has no supported mission or quest header.",
+      "revision_id": 764915,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Wake_the_Puppet",
+      "title": "Wake the Puppet"
+    },
+    {
+      "page_id": 13980,
+      "reason": "bg page 'Golden Salvage' has no supported mission or quest header.",
+      "revision_id": 718287,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Golden_Salvage",
+      "title": "Golden Salvage"
+    },
+    {
+      "page_id": 14417,
+      "reason": "bg page 'Askar Armor Set' has no supported mission or quest header.",
+      "revision_id": 709106,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Askar_Armor_Set",
+      "title": "Askar Armor Set"
+    },
+    {
+      "page_id": 14514,
+      "reason": "bg page 'Extermination' has no supported mission or quest header.",
+      "revision_id": 718275,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Extermination",
+      "title": "Extermination"
+    },
+    {
+      "page_id": 14522,
+      "reason": "bg page 'Demolition Duty' has no supported mission or quest header.",
+      "revision_id": 718276,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Demolition_Duty",
+      "title": "Demolition Duty"
+    },
+    {
+      "page_id": 14586,
+      "reason": "bg page 'Escort for Hire' has no supported mission or quest header.",
+      "revision_id": 718766,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Escort_for_Hire",
+      "title": "Escort for Hire"
+    },
+    {
+      "page_id": 14775,
+      "reason": "bg page 'Full Moon Fountain' has no supported mission or quest header.",
+      "revision_id": 754549,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Full_Moon_Fountain",
+      "title": "Full Moon Fountain"
+    },
+    {
+      "page_id": 14969,
+      "reason": "bg page \"Ro'Maeve\" has no supported mission or quest header.",
+      "revision_id": 763901,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Ro'Maeve",
+      "title": "Ro'Maeve"
+    },
+    {
+      "page_id": 15106,
+      "reason": "bg page 'The Price is Right' has no supported mission or quest header.",
+      "revision_id": 718277,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Price_is_Right",
+      "title": "The Price is Right"
+    },
+    {
+      "page_id": 15159,
+      "reason": "bg page 'Imperial Army I.D. tag' has no supported mission or quest header.",
+      "revision_id": 553386,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Imperial_Army_I.D._tag",
+      "title": "Imperial Army I.D. tag"
+    },
+    {
+      "page_id": 15182,
+      "reason": "bg page \"Bellerophon's Bliss\" has no supported mission or quest header.",
+      "revision_id": 718278,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Bellerophon's_Bliss",
+      "title": "Bellerophon's Bliss"
+    },
+    {
+      "page_id": 15675,
+      "reason": "bg page 'Fame' has no supported mission or quest header.",
+      "revision_id": 773990,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Fame",
+      "title": "Fame"
+    },
+    {
+      "page_id": 15748,
+      "reason": "bg page 'Desperately Seeking Cephalopods' has no supported mission or quest header.",
+      "revision_id": 736813,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Desperately_Seeking_Cephalopods",
+      "title": "Desperately Seeking Cephalopods"
+    },
+    {
+      "page_id": 15767,
+      "reason": "bg page 'The Crystal War' has no supported mission or quest header.",
+      "revision_id": 438884,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Crystal_War",
+      "title": "The Crystal War"
+    },
+    {
+      "page_id": 15907,
+      "reason": "bg page 'Nyzul Isle Staging Point' has no supported mission or quest header.",
+      "revision_id": 747276,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Nyzul_Isle_Staging_Point",
+      "title": "Nyzul Isle Staging Point"
+    },
+    {
+      "page_id": 16135,
+      "reason": "bg page 'Commissions Agency' has no supported mission or quest header.",
+      "revision_id": 514014,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Commissions_Agency",
+      "title": "Commissions Agency"
+    },
+    {
+      "page_id": 16137,
+      "reason": "bg page 'Assault Orders' has no supported mission or quest header.",
+      "revision_id": 101332,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Assault_Orders",
+      "title": "Assault Orders"
+    },
+    {
+      "page_id": 16138,
+      "reason": "bg page 'Runic Portal' has no supported mission or quest header.",
+      "revision_id": 710625,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Runic_Portal",
+      "title": "Runic Portal"
+    },
+    {
+      "page_id": 16141,
+      "reason": "bg page 'Staging Points' has no supported mission or quest header.",
+      "revision_id": 710627,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Staging_Points",
+      "title": "Staging Points"
+    },
+    {
+      "page_id": 16169,
+      "reason": "bg page 'Searat Salvation' has no supported mission or quest header.",
+      "revision_id": 764370,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Searat_Salvation",
+      "title": "Searat Salvation"
+    },
+    {
+      "page_id": 16170,
+      "reason": "bg page 'Apkallu Seizure' has no supported mission or quest header.",
+      "revision_id": 759978,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Apkallu_Seizure",
+      "title": "Apkallu Seizure"
+    },
+    {
+      "page_id": 16178,
+      "reason": "bg page 'Lost and Found' has no supported mission or quest header.",
+      "revision_id": 718289,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Lost_and_Found",
+      "title": "Lost and Found"
+    },
+    {
+      "page_id": 16185,
+      "reason": "bg page 'Assault armband' has no supported mission or quest header.",
+      "revision_id": 553407,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Assault_armband",
+      "title": "Assault armband"
+    },
+    {
+      "page_id": 16188,
+      "reason": "bg page 'Ilrusi Assault orders' has no supported mission or quest header.",
+      "revision_id": 552994,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Ilrusi_Assault_orders",
+      "title": "Ilrusi Assault orders"
+    },
+    {
+      "page_id": 16189,
+      "reason": "bg page 'Periqia Assault orders' has no supported mission or quest header.",
+      "revision_id": 563964,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Periqia_Assault_orders",
+      "title": "Periqia Assault orders"
+    },
+    {
+      "page_id": 16190,
+      "reason": "bg page 'Lebros Assault orders' has no supported mission or quest header.",
+      "revision_id": 552991,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Lebros_Assault_orders",
+      "title": "Lebros Assault orders"
+    },
+    {
+      "page_id": 16191,
+      "reason": "bg page 'Mamool Ja Assault orders' has no supported mission or quest header.",
+      "revision_id": 552992,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Mamool_Ja_Assault_orders",
+      "title": "Mamool Ja Assault orders"
+    },
+    {
+      "page_id": 16192,
+      "reason": "bg page 'Leujaoam Assault orders' has no supported mission or quest header.",
+      "revision_id": 552989,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Leujaoam_Assault_orders",
+      "title": "Leujaoam Assault orders"
+    },
+    {
+      "page_id": 16202,
+      "reason": "bg page 'Deserter' has no supported mission or quest header.",
+      "revision_id": 746817,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deserter",
+      "title": "Deserter"
+    },
+    {
+      "page_id": 16272,
+      "reason": "bg page 'Eco-Warrior' has no supported mission or quest header.",
+      "revision_id": 38933,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Eco-Warrior",
+      "title": "Eco-Warrior"
+    },
+    {
+      "page_id": 16284,
+      "reason": "bg page 'Runic Seal' has no supported mission or quest header.",
+      "revision_id": 38987,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Runic_Seal",
+      "title": "Runic Seal"
+    },
+    {
+      "page_id": 16285,
+      "reason": "bg page 'Rune of Release' has no supported mission or quest header.",
+      "revision_id": 511755,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Rune_of_Release",
+      "title": "Rune of Release"
+    },
+    {
+      "page_id": 16292,
+      "reason": "bg page 'Assault Points' has no supported mission or quest header.",
+      "revision_id": 732472,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Assault_Points",
+      "title": "Assault Points"
+    },
+    {
+      "page_id": 16293,
+      "reason": "bg page 'Fairy Apkallu' has no supported mission or quest header.",
+      "revision_id": 58656,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Fairy_Apkallu",
+      "title": "Fairy Apkallu"
+    },
+    {
+      "page_id": 16296,
+      "reason": "bg page 'Azouph Isle Staging Point' has no supported mission or quest header.",
+      "revision_id": 767641,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Azouph_Isle_Staging_Point",
+      "title": "Azouph Isle Staging Point"
+    },
+    {
+      "page_id": 16331,
+      "reason": "bg page 'Dvucca Isle Staging Point' has no supported mission or quest header.",
+      "revision_id": 629320,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Dvucca_Isle_Staging_Point",
+      "title": "Dvucca Isle Staging Point"
+    },
+    {
+      "page_id": 16335,
+      "reason": "bg page 'Ilrusi Atoll Staging Point' has no supported mission or quest header.",
+      "revision_id": 771485,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Ilrusi_Atoll_Staging_Point",
+      "title": "Ilrusi Atoll Staging Point"
+    },
+    {
+      "page_id": 16338,
+      "reason": "bg page 'Halvung Staging Point' has no supported mission or quest header.",
+      "revision_id": 703543,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Halvung_Staging_Point",
+      "title": "Halvung Staging Point"
+    },
+    {
+      "page_id": 16341,
+      "reason": "bg page 'Mamool Ja Staging Point' has no supported mission or quest header.",
+      "revision_id": 744420,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Mamool_Ja_Staging_Point",
+      "title": "Mamool Ja Staging Point"
+    },
+    {
+      "page_id": 16898,
+      "reason": "bg page 'Beriphaule' has no supported mission or quest header.",
+      "revision_id": 671804,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Beriphaule",
+      "title": "Beriphaule"
+    },
+    {
+      "page_id": 16899,
+      "reason": "bg page 'Rakano-Marukano' has no supported mission or quest header.",
+      "revision_id": 671806,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Rakano-Marukano",
+      "title": "Rakano-Marukano"
+    },
+    {
+      "page_id": 16900,
+      "reason": "bg page 'Mythily' has no supported mission or quest header.",
+      "revision_id": 671805,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Mythily",
+      "title": "Mythily"
+    },
+    {
+      "page_id": 17865,
+      "reason": "bg page 'Crest of Davoi' has no supported mission or quest header.",
+      "revision_id": 647674,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Crest_of_Davoi",
+      "title": "Crest of Davoi"
+    },
+    {
+      "page_id": 19040,
+      "reason": "bg page 'Cavernous Maws (NPC)' has no supported mission or quest header.",
+      "revision_id": 763937,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Cavernous_Maws_(NPC)",
+      "title": "Cavernous Maws (NPC)"
+    },
+    {
+      "page_id": 20174,
+      "reason": "bg page 'Pahluwan Armor Set' has no supported mission or quest header.",
+      "revision_id": 716338,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Pahluwan_Armor_Set",
+      "title": "Pahluwan Armor Set"
+    },
+    {
+      "page_id": 41365,
+      "reason": "bg page 'Ragnarok' has no supported mission or quest header.",
+      "revision_id": 609681,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Ragnarok",
+      "title": "Ragnarok"
+    },
+    {
+      "page_id": 42552,
+      "reason": "bg page 'A Crystalline Prophecy' has no supported mission or quest header.",
+      "revision_id": 773901,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/A_Crystalline_Prophecy",
+      "title": "A Crystalline Prophecy"
+    },
+    {
+      "page_id": 42555,
+      "reason": "bg page \"A Moogle Kupo d'Etat\" has no supported mission or quest header.",
+      "revision_id": 773903,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/A_Moogle_Kupo_d'Etat",
+      "title": "A Moogle Kupo d'Etat"
+    },
+    {
+      "page_id": 42556,
+      "reason": "bg page 'A Shantotto Ascension' has no supported mission or quest header.",
+      "revision_id": 773904,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/A_Shantotto_Ascension",
+      "title": "A Shantotto Ascension"
+    },
+    {
+      "page_id": 43437,
+      "reason": "bg page 'Louverance' has no supported mission or quest header.",
+      "revision_id": 677446,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Louverance",
+      "title": "Louverance"
+    },
+    {
+      "page_id": 45196,
+      "reason": "bg page 'Sacrifice' has no supported mission or quest header.",
+      "revision_id": 641886,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Sacrifice",
+      "title": "Sacrifice"
+    },
+    {
+      "page_id": 50994,
+      "reason": "bg page 'Magicite' has no supported mission or quest header.",
+      "revision_id": 447141,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Magicite",
+      "title": "Magicite"
+    },
+    {
+      "page_id": 52152,
+      "reason": "bg page 'Scars of Abyssea' has no supported mission or quest header.",
+      "revision_id": 229073,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Scars_of_Abyssea",
+      "title": "Scars of Abyssea"
+    },
+    {
+      "page_id": 52153,
+      "reason": "bg page 'Heroes of Abyssea' has no supported mission or quest header.",
+      "revision_id": 229075,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Heroes_of_Abyssea",
+      "title": "Heroes of Abyssea"
+    },
+    {
+      "page_id": 55781,
+      "reason": "bg page 'Reckoning' has no supported mission or quest header.",
+      "revision_id": 614914,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Reckoning",
+      "title": "Reckoning"
+    },
+    {
+      "page_id": 86625,
+      "reason": "bg page 'Sin' has no supported mission or quest header.",
+      "revision_id": 600168,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Sin",
+      "title": "Sin"
+    },
+    {
+      "page_id": 89097,
+      "reason": "bg page 'Provenance' has no supported mission or quest header.",
+      "revision_id": 704944,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provenance",
+      "title": "Provenance"
+    },
+    {
+      "page_id": 98356,
+      "reason": "bg page 'Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 770277,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Morimar_Basalt_Fields",
+      "title": "Morimar Basalt Fields"
+    },
+    {
+      "page_id": 98628,
+      "reason": "bg page 'Gather: Rala Waterways' has no supported mission or quest header.",
+      "revision_id": 772341,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Rala_Waterways",
+      "title": "Gather: Rala Waterways"
+    },
+    {
+      "page_id": 98668,
+      "reason": "bg page 'Support: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 527786,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Ceizak_Battlegrounds",
+      "title": "Support: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98765,
+      "reason": "bg page 'Procure: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 742183,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Ceizak_Battlegrounds",
+      "title": "Procure: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98769,
+      "reason": "bg page 'Clear: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 510435,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Ceizak_Battlegrounds",
+      "title": "Clear: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98789,
+      "reason": "bg page 'Provide: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 567342,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provide%3A_Foret_de_Hennetiel",
+      "title": "Provide: Foret de Hennetiel"
+    },
+    {
+      "page_id": 98790,
+      "reason": "bg page 'Provide: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 549250,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provide%3A_Morimar_Basalt_Fields",
+      "title": "Provide: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 98817,
+      "reason": "bg page 'Gather: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 510459,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Ceizak_Battlegrounds",
+      "title": "Gather: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98818,
+      "reason": "bg page 'Gather: Yahse Hunting Grounds' has no supported mission or quest header.",
+      "revision_id": 510460,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Yahse_Hunting_Grounds",
+      "title": "Gather: Yahse Hunting Grounds"
+    },
+    {
+      "page_id": 98819,
+      "reason": "bg page 'Gather: Moh Gates' has no supported mission or quest header.",
+      "revision_id": 772343,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Moh_Gates",
+      "title": "Gather: Moh Gates"
+    },
+    {
+      "page_id": 98820,
+      "reason": "bg page 'Gather: Sih Gates' has no supported mission or quest header.",
+      "revision_id": 772342,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Sih_Gates",
+      "title": "Gather: Sih Gates"
+    },
+    {
+      "page_id": 98821,
+      "reason": "bg page 'Gather: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510463,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Foret_de_Hennetiel",
+      "title": "Gather: Foret de Hennetiel"
+    },
+    {
+      "page_id": 98822,
+      "reason": "bg page 'Gather: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 510464,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Morimar_Basalt_Fields",
+      "title": "Gather: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 98834,
+      "reason": "bg page 'Survey: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 761494,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Ceizak_Battlegrounds",
+      "title": "Survey: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98846,
+      "reason": "bg page 'Preserve: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 510473,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Ceizak_Battlegrounds",
+      "title": "Preserve: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98847,
+      "reason": "bg page 'Preserve: Yahse Hunting Grounds' has no supported mission or quest header.",
+      "revision_id": 700761,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Yahse_Hunting_Grounds",
+      "title": "Preserve: Yahse Hunting Grounds"
+    },
+    {
+      "page_id": 98848,
+      "reason": "bg page 'Preserve: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510475,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Foret_de_Hennetiel",
+      "title": "Preserve: Foret de Hennetiel"
+    },
+    {
+      "page_id": 98912,
+      "reason": "bg page 'Patrol: Sih Gates' has no supported mission or quest header.",
+      "revision_id": 510484,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Sih_Gates",
+      "title": "Patrol: Sih Gates"
+    },
+    {
+      "page_id": 98914,
+      "reason": "bg page 'Survey: Sih Gates' has no supported mission or quest header.",
+      "revision_id": 774364,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Sih_Gates",
+      "title": "Survey: Sih Gates"
+    },
+    {
+      "page_id": 98917,
+      "reason": "bg page 'Recover: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 708330,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Ceizak_Battlegrounds",
+      "title": "Recover: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 98926,
+      "reason": "bg page 'Research: Rala Waterways' has no supported mission or quest header.",
+      "revision_id": 730146,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Rala_Waterways",
+      "title": "Research: Rala Waterways"
+    },
+    {
+      "page_id": 98930,
+      "reason": "bg page 'Support: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510416,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Foret_de_Hennetiel",
+      "title": "Support: Foret de Hennetiel"
+    },
+    {
+      "page_id": 98931,
+      "reason": "bg page 'Support: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 510417,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Morimar_Basalt_Fields",
+      "title": "Support: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 98934,
+      "reason": "bg page 'Survey: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 761509,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Foret_de_Hennetiel",
+      "title": "Survey: Foret de Hennetiel"
+    },
+    {
+      "page_id": 98935,
+      "reason": "bg page 'Survey: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 761507,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Morimar_Basalt_Fields",
+      "title": "Survey: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99044,
+      "reason": "bg page 'Survey: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 761506,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Cirdas_Caverns",
+      "title": "Survey: Cirdas Caverns"
+    },
+    {
+      "page_id": 99046,
+      "reason": "bg page 'Research: Ceizak Battlegrounds' has no supported mission or quest header.",
+      "revision_id": 646348,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Ceizak_Battlegrounds",
+      "title": "Research: Ceizak Battlegrounds"
+    },
+    {
+      "page_id": 99339,
+      "reason": "bg page 'Analyze: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510504,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Foret_de_Hennetiel",
+      "title": "Analyze: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99340,
+      "reason": "bg page 'Analyze: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 436598,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Morimar_Basalt_Fields",
+      "title": "Analyze: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99382,
+      "reason": "bg page 'Preserve: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 696852,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Morimar_Basalt_Fields",
+      "title": "Preserve: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99383,
+      "reason": "bg page 'Deliver: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510410,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deliver%3A_Foret_de_Hennetiel",
+      "title": "Deliver: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99384,
+      "reason": "bg page 'Deliver: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 510411,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deliver%3A_Morimar_Basalt_Fields",
+      "title": "Deliver: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99392,
+      "reason": "bg page 'Boost: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 771527,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Boost%3A_Foret_de_Hennetiel",
+      "title": "Boost: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99393,
+      "reason": "bg page 'Gather: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 510465,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Cirdas_Caverns",
+      "title": "Gather: Cirdas Caverns"
+    },
+    {
+      "page_id": 99395,
+      "reason": "bg page 'Patrol: Moh Gates' has no supported mission or quest header.",
+      "revision_id": 766660,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Moh_Gates",
+      "title": "Patrol: Moh Gates"
+    },
+    {
+      "page_id": 99396,
+      "reason": "bg page 'Patrol: Rala Waterways' has no supported mission or quest header.",
+      "revision_id": 769221,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Rala_Waterways",
+      "title": "Patrol: Rala Waterways"
+    },
+    {
+      "page_id": 99422,
+      "reason": "bg page 'Category:The Sacred City of Adoulin' has no supported mission or quest header.",
+      "revision_id": 292139,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Category%3AThe_Sacred_City_of_Adoulin",
+      "title": "Category:The Sacred City of Adoulin"
+    },
+    {
+      "page_id": 99475,
+      "reason": "bg page 'Recover: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 580397,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Foret_de_Hennetiel",
+      "title": "Recover: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99476,
+      "reason": "bg page 'Recover: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 746905,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Morimar_Basalt_Fields",
+      "title": "Recover: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99477,
+      "reason": "bg page 'Research: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 773261,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Foret_de_Hennetiel",
+      "title": "Research: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99478,
+      "reason": "bg page 'Research: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 773772,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Morimar_Basalt_Fields",
+      "title": "Research: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99489,
+      "reason": "bg page 'Procure: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510428,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Foret_de_Hennetiel",
+      "title": "Procure: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99490,
+      "reason": "bg page 'Procure: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 510429,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Morimar_Basalt_Fields",
+      "title": "Procure: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99491,
+      "reason": "bg page 'Procure: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 630030,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Cirdas_Caverns",
+      "title": "Procure: Cirdas Caverns"
+    },
+    {
+      "page_id": 99492,
+      "reason": "bg page 'Clear: Foret de Hennetiel' has no supported mission or quest header.",
+      "revision_id": 510436,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Foret_de_Hennetiel",
+      "title": "Clear: Foret de Hennetiel"
+    },
+    {
+      "page_id": 99493,
+      "reason": "bg page 'Clear: Morimar Basalt Fields' has no supported mission or quest header.",
+      "revision_id": 510437,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Morimar_Basalt_Fields",
+      "title": "Clear: Morimar Basalt Fields"
+    },
+    {
+      "page_id": 99494,
+      "reason": "bg page 'Clear: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 580105,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Cirdas_Caverns",
+      "title": "Clear: Cirdas Caverns"
+    },
+    {
+      "page_id": 99495,
+      "reason": "bg page 'Preserve: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 689976,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Cirdas_Caverns",
+      "title": "Preserve: Cirdas Caverns"
+    },
+    {
+      "page_id": 102179,
+      "reason": "bg page 'Analyze: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 510505,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Cirdas_Caverns",
+      "title": "Analyze: Cirdas Caverns"
+    },
+    {
+      "page_id": 102216,
+      "reason": "bg page 'Survey: Dho Gates' has no supported mission or quest header.",
+      "revision_id": 774553,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Dho_Gates",
+      "title": "Survey: Dho Gates"
+    },
+    {
+      "page_id": 102253,
+      "reason": "bg page 'Survey: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 761505,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Marjami_Ravine",
+      "title": "Survey: Marjami Ravine"
+    },
+    {
+      "page_id": 102254,
+      "reason": "bg page 'Patrol: Cirdas Caverns' has no supported mission or quest header.",
+      "revision_id": 760092,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Cirdas_Caverns",
+      "title": "Patrol: Cirdas Caverns"
+    },
+    {
+      "page_id": 102255,
+      "reason": "bg page 'Patrol: Dho Gates' has no supported mission or quest header.",
+      "revision_id": 755907,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Dho_Gates",
+      "title": "Patrol: Dho Gates"
+    },
+    {
+      "page_id": 102270,
+      "reason": "bg page 'Gather: Dho Gates' has no supported mission or quest header.",
+      "revision_id": 772634,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Dho_Gates",
+      "title": "Gather: Dho Gates"
+    },
+    {
+      "page_id": 102662,
+      "reason": "bg page 'Category:Monstrosity' has no supported mission or quest header.",
+      "revision_id": 775134,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Category%3AMonstrosity",
+      "title": "Category:Monstrosity"
+    },
+    {
+      "page_id": 102682,
+      "reason": "bg page 'Survey: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 761504,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Yorcia_Weald",
+      "title": "Survey: Yorcia Weald"
+    },
+    {
+      "page_id": 102835,
+      "reason": "bg page 'Boost: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 706315,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Boost%3A_Marjami_Ravine",
+      "title": "Boost: Marjami Ravine"
+    },
+    {
+      "page_id": 102836,
+      "reason": "bg page 'Research: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 586201,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Marjami_Ravine",
+      "title": "Research: Marjami Ravine"
+    },
+    {
+      "page_id": 103235,
+      "reason": "bg page 'Gather: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 510467,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Marjami_Ravine",
+      "title": "Gather: Marjami Ravine"
+    },
+    {
+      "page_id": 103236,
+      "reason": "bg page 'Gather: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 510468,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Yorcia_Weald",
+      "title": "Gather: Yorcia Weald"
+    },
+    {
+      "page_id": 103237,
+      "reason": "bg page 'Procure: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 773025,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Marjami_Ravine",
+      "title": "Procure: Marjami Ravine"
+    },
+    {
+      "page_id": 103238,
+      "reason": "bg page 'Procure: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 771515,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Yorcia_Weald",
+      "title": "Procure: Yorcia Weald"
+    },
+    {
+      "page_id": 103239,
+      "reason": "bg page 'Clear: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 770766,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Marjami_Ravine",
+      "title": "Clear: Marjami Ravine"
+    },
+    {
+      "page_id": 103240,
+      "reason": "bg page 'Clear: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 510440,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Yorcia_Weald",
+      "title": "Clear: Yorcia Weald"
+    },
+    {
+      "page_id": 103241,
+      "reason": "bg page 'Preserve: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 702594,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Yorcia_Weald",
+      "title": "Preserve: Yorcia Weald"
+    },
+    {
+      "page_id": 103242,
+      "reason": "bg page 'Preserve: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 702761,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Marjami_Ravine",
+      "title": "Preserve: Marjami Ravine"
+    },
+    {
+      "page_id": 103243,
+      "reason": "bg page 'Provide: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 549251,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provide%3A_Marjami_Ravine",
+      "title": "Provide: Marjami Ravine"
+    },
+    {
+      "page_id": 103244,
+      "reason": "bg page 'Provide: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 549252,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provide%3A_Yorcia_Weald",
+      "title": "Provide: Yorcia Weald"
+    },
+    {
+      "page_id": 103245,
+      "reason": "bg page 'Recover: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 774884,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Marjami_Ravine",
+      "title": "Recover: Marjami Ravine"
+    },
+    {
+      "page_id": 103246,
+      "reason": "bg page 'Recover: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 679216,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Yorcia_Weald",
+      "title": "Recover: Yorcia Weald"
+    },
+    {
+      "page_id": 104812,
+      "reason": "bg page 'Survey: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 761508,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Survey%3A_Kamihr_Drifts",
+      "title": "Survey: Kamihr Drifts"
+    },
+    {
+      "page_id": 104930,
+      "reason": "bg page 'Boost: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 674984,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Boost%3A_Kamihr_Drifts",
+      "title": "Boost: Kamihr Drifts"
+    },
+    {
+      "page_id": 104931,
+      "reason": "bg page 'Research: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 682832,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Yorcia_Weald",
+      "title": "Research: Yorcia Weald"
+    },
+    {
+      "page_id": 104976,
+      "reason": "bg page 'Gather: Woh Gates' has no supported mission or quest header.",
+      "revision_id": 510469,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Woh_Gates",
+      "title": "Gather: Woh Gates"
+    },
+    {
+      "page_id": 105039,
+      "reason": "bg page 'Procure: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 733567,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Kamihr_Drifts",
+      "title": "Procure: Kamihr Drifts"
+    },
+    {
+      "page_id": 105040,
+      "reason": "bg page 'Clear: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 718891,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Kamihr_Drifts",
+      "title": "Clear: Kamihr Drifts"
+    },
+    {
+      "page_id": 105041,
+      "reason": "bg page 'Preserve: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 773515,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Kamihr_Drifts",
+      "title": "Preserve: Kamihr Drifts"
+    },
+    {
+      "page_id": 105042,
+      "reason": "bg page 'Patrol: Woh Gates' has no supported mission or quest header.",
+      "revision_id": 752063,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Woh_Gates",
+      "title": "Patrol: Woh Gates"
+    },
+    {
+      "page_id": 106275,
+      "reason": "bg page 'Category:Records of Eminence' has no supported mission or quest header.",
+      "revision_id": 774133,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Category%3ARecords_of_Eminence",
+      "title": "Category:Records of Eminence"
+    },
+    {
+      "page_id": 106302,
+      "reason": "bg page 'Analyze: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 681133,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Marjami_Ravine",
+      "title": "Analyze: Marjami Ravine"
+    },
+    {
+      "page_id": 106303,
+      "reason": "bg page 'Analyze: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 474818,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Yorcia_Weald",
+      "title": "Analyze: Yorcia Weald"
+    },
+    {
+      "page_id": 106304,
+      "reason": "bg page 'Provide: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 549253,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Provide%3A_Kamihr_Drifts",
+      "title": "Provide: Kamihr Drifts"
+    },
+    {
+      "page_id": 106305,
+      "reason": "bg page 'Deliver: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 510412,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deliver%3A_Marjami_Ravine",
+      "title": "Deliver: Marjami Ravine"
+    },
+    {
+      "page_id": 106306,
+      "reason": "bg page 'Deliver: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 510413,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deliver%3A_Yorcia_Weald",
+      "title": "Deliver: Yorcia Weald"
+    },
+    {
+      "page_id": 106327,
+      "reason": "bg page 'Support: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 510426,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Kamihr_Drifts",
+      "title": "Support: Kamihr Drifts"
+    },
+    {
+      "page_id": 106588,
+      "reason": "bg page 'Gather: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 773589,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Kamihr_Drifts",
+      "title": "Gather: Kamihr Drifts"
+    },
+    {
+      "page_id": 108958,
+      "reason": "bg page \"Analyze: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 510507,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Outer_Ra'Kaznar",
+      "title": "Analyze: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 108961,
+      "reason": "bg page \"Preserve: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 566689,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Preserve%3A_Outer_Ra'Kaznar",
+      "title": "Preserve: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 108962,
+      "reason": "bg page \"Patrol: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 521636,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Patrol%3A_Outer_Ra'Kaznar",
+      "title": "Patrol: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 108985,
+      "reason": "bg page \"Gather: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 510471,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Outer_Ra'Kaznar",
+      "title": "Gather: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 108986,
+      "reason": "bg page 'Recover: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 772832,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Recover%3A_Kamihr_Drifts",
+      "title": "Recover: Kamihr Drifts"
+    },
+    {
+      "page_id": 108987,
+      "reason": "bg page 'Research: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 718996,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Research%3A_Kamihr_Drifts",
+      "title": "Research: Kamihr Drifts"
+    },
+    {
+      "page_id": 109765,
+      "reason": "bg page 'Cait Sith (Avatar)' has no supported mission or quest header.",
+      "revision_id": 689107,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Cait_Sith_(Avatar)",
+      "title": "Cait Sith (Avatar)"
+    },
+    {
+      "page_id": 110405,
+      "reason": "bg page 'Melvien de Malecroix' has no supported mission or quest header.",
+      "revision_id": 768475,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Melvien_de_Malecroix",
+      "title": "Melvien de Malecroix"
+    },
+    {
+      "page_id": 110453,
+      "reason": "bg page 'Leafallia' has no supported mission or quest header.",
+      "revision_id": 770275,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Leafallia",
+      "title": "Leafallia"
+    },
+    {
+      "page_id": 110469,
+      "reason": "bg page \"Clear: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 510442,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Clear%3A_Outer_Ra'Kaznar",
+      "title": "Clear: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 112208,
+      "reason": "bg page \"Gather: Ra'Kaznar Inner Court\" has no supported mission or quest header.",
+      "revision_id": 771467,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Gather%3A_Ra'Kaznar_Inner_Court",
+      "title": "Gather: Ra'Kaznar Inner Court"
+    },
+    {
+      "page_id": 112438,
+      "reason": "bg page 'Category:Unity Concord' has no supported mission or quest header.",
+      "revision_id": 767656,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Category%3AUnity_Concord",
+      "title": "Category:Unity Concord"
+    },
+    {
+      "page_id": 112852,
+      "reason": "bg page 'Hades (Second Form)' has no supported mission or quest header.",
+      "revision_id": 665075,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Hades_(Second_Form)",
+      "title": "Hades (Second Form)"
+    },
+    {
+      "page_id": 113217,
+      "reason": "bg page '??? Sword +1' has no supported mission or quest header.",
+      "revision_id": 511711,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Sword_%2B1",
+      "title": "??? Sword +1"
+    },
+    {
+      "page_id": 113218,
+      "reason": "bg page '??? Dagger +1' has no supported mission or quest header.",
+      "revision_id": 511701,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Dagger_%2B1",
+      "title": "??? Dagger +1"
+    },
+    {
+      "page_id": 113219,
+      "reason": "bg page '??? Pole +1' has no supported mission or quest header.",
+      "revision_id": 511707,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Pole_%2B1",
+      "title": "??? Pole +1"
+    },
+    {
+      "page_id": 113220,
+      "reason": "bg page '??? Axe +1' has no supported mission or quest header.",
+      "revision_id": 511696,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Axe_%2B1",
+      "title": "??? Axe +1"
+    },
+    {
+      "page_id": 113221,
+      "reason": "bg page '??? Bow +1' has no supported mission or quest header.",
+      "revision_id": 511697,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Bow_%2B1",
+      "title": "??? Bow +1"
+    },
+    {
+      "page_id": 113222,
+      "reason": "bg page '??? Gloves +1' has no supported mission or quest header.",
+      "revision_id": 511704,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Gloves_%2B1",
+      "title": "??? Gloves +1"
+    },
+    {
+      "page_id": 113223,
+      "reason": "bg page '??? Footwear +1' has no supported mission or quest header.",
+      "revision_id": 511703,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Footwear_%2B1",
+      "title": "??? Footwear +1"
+    },
+    {
+      "page_id": 113224,
+      "reason": "bg page '??? Headwear +1' has no supported mission or quest header.",
+      "revision_id": 511705,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Headwear_%2B1",
+      "title": "??? Headwear +1"
+    },
+    {
+      "page_id": 113225,
+      "reason": "bg page '??? Earring +1' has no supported mission or quest header.",
+      "revision_id": 511702,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Earring_%2B1",
+      "title": "??? Earring +1"
+    },
+    {
+      "page_id": 113226,
+      "reason": "bg page '??? Ring +1' has no supported mission or quest header.",
+      "revision_id": 582236,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Ring_%2B1",
+      "title": "??? Ring +1"
+    },
+    {
+      "page_id": 113227,
+      "reason": "bg page '??? Cape +1' has no supported mission or quest header.",
+      "revision_id": 511700,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Cape_%2B1",
+      "title": "??? Cape +1"
+    },
+    {
+      "page_id": 113228,
+      "reason": "bg page '??? Sash +1' has no supported mission or quest header.",
+      "revision_id": 582242,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Sash_%2B1",
+      "title": "??? Sash +1"
+    },
+    {
+      "page_id": 113229,
+      "reason": "bg page '??? Shield +1' has no supported mission or quest header.",
+      "revision_id": 511710,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Shield_%2B1",
+      "title": "??? Shield +1"
+    },
+    {
+      "page_id": 113230,
+      "reason": "bg page '??? Necklace +1' has no supported mission or quest header.",
+      "revision_id": 582239,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Necklace_%2B1",
+      "title": "??? Necklace +1"
+    },
+    {
+      "page_id": 113231,
+      "reason": "bg page '??? Box +1' has no supported mission or quest header.",
+      "revision_id": 511698,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Box_%2B1",
+      "title": "??? Box +1"
+    },
+    {
+      "page_id": 113232,
+      "reason": "bg page '??? Box +2' has no supported mission or quest header.",
+      "revision_id": 511699,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/%3F%3F%3F_Box_%2B2",
+      "title": "??? Box +2"
+    },
+    {
+      "page_id": 116631,
+      "reason": "bg page \"Rhapsodies of Vana'diel\" has no supported mission or quest header.",
+      "revision_id": 638888,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Rhapsodies_of_Vana'diel",
+      "title": "Rhapsodies of Vana'diel"
+    },
+    {
+      "page_id": 116661,
+      "reason": "bg page 'Eddies of Despair' has no supported mission or quest header.",
+      "revision_id": 542064,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Eddies_of_Despair",
+      "title": "Eddies of Despair"
+    },
+    {
+      "page_id": 116703,
+      "reason": "bg page 'Support: Marjami Ravine' has no supported mission or quest header.",
+      "revision_id": 510425,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Marjami_Ravine",
+      "title": "Support: Marjami Ravine"
+    },
+    {
+      "page_id": 116704,
+      "reason": "bg page 'Support: Yorcia Weald' has no supported mission or quest header.",
+      "revision_id": 510424,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Support%3A_Yorcia_Weald",
+      "title": "Support: Yorcia Weald"
+    },
+    {
+      "page_id": 117222,
+      "reason": "bg page \"Escha - Ru'Aun\" has no supported mission or quest header.",
+      "revision_id": 741480,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Escha_-_Ru'Aun",
+      "title": "Escha - Ru'Aun"
+    },
+    {
+      "page_id": 122708,
+      "reason": "bg page 'Deliver: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 550548,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Deliver%3A_Kamihr_Drifts",
+      "title": "Deliver: Kamihr Drifts"
+    },
+    {
+      "page_id": 122817,
+      "reason": "bg page 'Category:Jeuno' has no supported mission or quest header.",
+      "revision_id": 510152,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Category%3AJeuno",
+      "title": "Category:Jeuno"
+    },
+    {
+      "page_id": 130285,
+      "reason": "bg page \"Procure: Outer Ra'Kaznar\" has no supported mission or quest header.",
+      "revision_id": 630037,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Procure%3A_Outer_Ra'Kaznar",
+      "title": "Procure: Outer Ra'Kaznar"
+    },
+    {
+      "page_id": 130296,
+      "reason": "bg page 'Analyze: Kamihr Drifts' has no supported mission or quest header.",
+      "revision_id": 547790,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Analyze%3A_Kamihr_Drifts",
+      "title": "Analyze: Kamihr Drifts"
+    },
+    {
+      "page_id": 138693,
+      "reason": "bg page 'Rank Mission 5-2' has no supported mission or quest header.",
+      "revision_id": 575187,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Rank_Mission_5-2",
+      "title": "Rank Mission 5-2"
+    },
+    {
+      "page_id": 143297,
+      "reason": "bg page 'The Voracious Resurgence' has no supported mission or quest header.",
+      "revision_id": 627662,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/The_Voracious_Resurgence",
+      "title": "The Voracious Resurgence"
+    },
+    {
+      "page_id": 146206,
+      "reason": "bg page 'Amir Armor Set' has no supported mission or quest header.",
+      "revision_id": 703786,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Amir_Armor_Set",
+      "title": "Amir Armor Set"
+    },
+    {
+      "page_id": 152720,
+      "reason": "bg page 'Denali Attire Set' has no supported mission or quest header.",
+      "revision_id": 712735,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Denali_Attire_Set",
+      "title": "Denali Attire Set"
+    },
+    {
+      "page_id": 153726,
+      "reason": "bg page 'CatsEyeXI Systems/Navigation' has no supported mission or quest header.",
+      "revision_id": 750489,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/CatsEyeXI_Systems%2FNavigation",
+      "title": "CatsEyeXI Systems/Navigation"
+    },
+    {
+      "page_id": 156458,
+      "reason": "bg page 'Desuetia - Empyreal Paradox' has no supported mission or quest header.",
+      "revision_id": 754580,
+      "site": "bg",
+      "source_url": "https://www.bg-wiki.com/ffxi/Desuetia_-_Empyreal_Paradox",
+      "title": "Desuetia - Empyreal Paradox"
+    },
+    {
+      "page_id": 806,
+      "reason": "ffxiclopedia page 'Jeuno' has no supported mission or quest header.",
+      "revision_id": 1744898,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Jeuno",
+      "title": "Jeuno"
+    },
+    {
+      "page_id": 1406,
+      "reason": "ffxiclopedia page \"Ro'Maeve\" has no supported mission or quest header.",
+      "revision_id": 1768982,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Ro'Maeve",
+      "title": "Ro'Maeve"
+    },
+    {
+      "page_id": 1442,
+      "reason": "ffxiclopedia page 'Full Moon Fountain' has no supported mission or quest header.",
+      "revision_id": 1164135,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Full_Moon_Fountain",
+      "title": "Full Moon Fountain"
+    },
+    {
+      "page_id": 2062,
+      "reason": "ffxiclopedia page 'Requiem' has no supported mission or quest header.",
+      "revision_id": 1564731,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Requiem",
+      "title": "Requiem"
+    },
+    {
+      "page_id": 3333,
+      "reason": "ffxiclopedia page 'Bastok Gate Guard' has no supported mission or quest header.",
+      "revision_id": 1732830,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bastok_Gate_Guard",
+      "title": "Bastok Gate Guard"
+    },
+    {
+      "page_id": 7724,
+      "reason": "ffxiclopedia page 'Supply Run Mission' has no supported mission or quest header.",
+      "revision_id": 1755345,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Supply_Run_Mission",
+      "title": "Supply Run Mission"
+    },
+    {
+      "page_id": 8359,
+      "reason": "ffxiclopedia page 'Magicite' has no supported mission or quest header.",
+      "revision_id": 1263982,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magicite",
+      "title": "Magicite"
+    },
+    {
+      "page_id": 8595,
+      "reason": "ffxiclopedia page \"San d'Oria Gate Guard\" has no supported mission or quest header.",
+      "revision_id": 1756051,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/San_d'Oria_Gate_Guard",
+      "title": "San d'Oria Gate Guard"
+    },
+    {
+      "page_id": 9076,
+      "reason": "ffxiclopedia page 'Windurst Gate Guard' has no supported mission or quest header.",
+      "revision_id": 879645,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Windurst_Gate_Guard",
+      "title": "Windurst Gate Guard"
+    },
+    {
+      "page_id": 9237,
+      "reason": "ffxiclopedia page 'The Big One' has no supported mission or quest header.",
+      "revision_id": 1791975,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Big_One",
+      "title": "The Big One"
+    },
+    {
+      "page_id": 11510,
+      "reason": "ffxiclopedia page 'Ragnarok' has no supported mission or quest header.",
+      "revision_id": 1693497,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Ragnarok",
+      "title": "Ragnarok"
+    },
+    {
+      "page_id": 19204,
+      "reason": "ffxiclopedia page 'Mhaura Fortune' has no supported mission or quest header.",
+      "revision_id": 1493983,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Mhaura_Fortune",
+      "title": "Mhaura Fortune"
+    },
+    {
+      "page_id": 19690,
+      "reason": "ffxiclopedia page 'Wild Card' has no supported mission or quest header.",
+      "revision_id": 808347,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Wild_Card",
+      "title": "Wild Card"
+    },
+    {
+      "page_id": 21219,
+      "reason": "ffxiclopedia page 'Lamia No.13' has no supported mission or quest header.",
+      "revision_id": 1054402,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Lamia_No.13",
+      "title": "Lamia No.13"
+    },
+    {
+      "page_id": 26604,
+      "reason": "ffxiclopedia page 'Penance' has no supported mission or quest header.",
+      "revision_id": 1773697,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Penance",
+      "title": "Penance"
+    },
+    {
+      "page_id": 26947,
+      "reason": "ffxiclopedia page 'Lathuya' has no supported mission or quest header.",
+      "revision_id": 1675225,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Lathuya",
+      "title": "Lathuya"
+    },
+    {
+      "page_id": 34138,
+      "reason": "ffxiclopedia page 'Dhima Polevhia' has no supported mission or quest header.",
+      "revision_id": 1674076,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Dhima_Polevhia",
+      "title": "Dhima Polevhia"
+    },
+    {
+      "page_id": 36556,
+      "reason": "ffxiclopedia page 'Furniture Quest' has no supported mission or quest header.",
+      "revision_id": 1720062,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Furniture_Quest",
+      "title": "Furniture Quest"
+    },
+    {
+      "page_id": 44533,
+      "reason": "ffxiclopedia page 'Mimeo Stone' has no supported mission or quest header.",
+      "revision_id": 1792928,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Mimeo_Stone",
+      "title": "Mimeo Stone"
+    },
+    {
+      "page_id": 54569,
+      "reason": "ffxiclopedia page 'Assault Mission Template' has no supported mission or quest header.",
+      "revision_id": 969235,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Assault_Mission_Template",
+      "title": "Assault Mission Template"
+    },
+    {
+      "page_id": 54590,
+      "reason": "ffxiclopedia page 'Brown Magic' has no supported mission or quest header.",
+      "revision_id": 1750245,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brown_Magic",
+      "title": "Brown Magic"
+    },
+    {
+      "page_id": 60331,
+      "reason": "ffxiclopedia page 'Eco-Warrior' has no supported mission or quest header.",
+      "revision_id": 324440,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Eco-Warrior",
+      "title": "Eco-Warrior"
+    },
+    {
+      "page_id": 62963,
+      "reason": "ffxiclopedia page 'Louverance' has no supported mission or quest header.",
+      "revision_id": 1675328,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Louverance",
+      "title": "Louverance"
+    },
+    {
+      "page_id": 66871,
+      "reason": "ffxiclopedia page 'Stock and Awe I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1765989,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_I_(Windurst)",
+      "title": "Stock and Awe I (Windurst)"
+    },
+    {
+      "page_id": 66907,
+      "reason": "ffxiclopedia page 'Stock and Awe I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1799209,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_I_(Bastok)",
+      "title": "Stock and Awe I (Bastok)"
+    },
+    {
+      "page_id": 66909,
+      "reason": "ffxiclopedia page \"Stock and Awe I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1765988,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_I_(San_d'Oria)",
+      "title": "Stock and Awe I (San d'Oria)"
+    },
+    {
+      "page_id": 66912,
+      "reason": "ffxiclopedia page \"Vanguard-X I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1355355,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_I_(San_d'Oria)",
+      "title": "Vanguard-X I (San d'Oria)"
+    },
+    {
+      "page_id": 66918,
+      "reason": "ffxiclopedia page 'Crystal Fist I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429893,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_I_(Windurst)",
+      "title": "Crystal Fist I (Windurst)"
+    },
+    {
+      "page_id": 66953,
+      "reason": "ffxiclopedia page 'Vanguard-X I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1105444,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_I_(Windurst)",
+      "title": "Vanguard-X I (Windurst)"
+    },
+    {
+      "page_id": 67104,
+      "reason": "ffxiclopedia page 'Vanguard-X I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446608,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_I_(Bastok)",
+      "title": "Vanguard-X I (Bastok)"
+    },
+    {
+      "page_id": 67209,
+      "reason": "ffxiclopedia page \"Crystal Fist I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1428907,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_I_(San_d'Oria)",
+      "title": "Crystal Fist I (San d'Oria)"
+    },
+    {
+      "page_id": 67213,
+      "reason": "ffxiclopedia page 'Crystal Fist I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1798584,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_I_(Bastok)",
+      "title": "Crystal Fist I (Bastok)"
+    },
+    {
+      "page_id": 67249,
+      "reason": "ffxiclopedia page \"Streetsweeper I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1003520,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_I_(San_d'Oria)",
+      "title": "Streetsweeper I (San d'Oria)"
+    },
+    {
+      "page_id": 67391,
+      "reason": "ffxiclopedia page \"Smokescreen I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1126613,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_I_(San_d'Oria)",
+      "title": "Smokescreen I (San d'Oria)"
+    },
+    {
+      "page_id": 67392,
+      "reason": "ffxiclopedia page \"Aegis Scream I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1121568,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_I_(San_d'Oria)",
+      "title": "Aegis Scream I (San d'Oria)"
+    },
+    {
+      "page_id": 67393,
+      "reason": "ffxiclopedia page \"Hawk Eye I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1110912,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_I_(San_d'Oria)",
+      "title": "Hawk Eye I (San d'Oria)"
+    },
+    {
+      "page_id": 67394,
+      "reason": "ffxiclopedia page \"Brave Dawn I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117416,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_I_(San_d'Oria)",
+      "title": "Brave Dawn I (San d'Oria)"
+    },
+    {
+      "page_id": 67492,
+      "reason": "ffxiclopedia page 'Streetsweeper I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1563990,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_I_(Windurst)",
+      "title": "Streetsweeper I (Windurst)"
+    },
+    {
+      "page_id": 67494,
+      "reason": "ffxiclopedia page 'Materiel Storm I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1783720,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_I_(Windurst)",
+      "title": "Materiel Storm I (Windurst)"
+    },
+    {
+      "page_id": 67495,
+      "reason": "ffxiclopedia page 'Iron Anvil I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429892,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_I_(Windurst)",
+      "title": "Iron Anvil I (Windurst)"
+    },
+    {
+      "page_id": 67509,
+      "reason": "ffxiclopedia page 'Hawk Eye I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1449562,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_I_(Bastok)",
+      "title": "Hawk Eye I (Bastok)"
+    },
+    {
+      "page_id": 67521,
+      "reason": "ffxiclopedia page \"Iron Anvil I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1429459,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_I_(San_d'Oria)",
+      "title": "Iron Anvil I (San d'Oria)"
+    },
+    {
+      "page_id": 67525,
+      "reason": "ffxiclopedia page 'Hawk Eye I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1094276,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_I_(Windurst)",
+      "title": "Hawk Eye I (Windurst)"
+    },
+    {
+      "page_id": 67694,
+      "reason": "ffxiclopedia page 'Slaughterhouse I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1094240,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_I_(Windurst)",
+      "title": "Slaughterhouse I (Windurst)"
+    },
+    {
+      "page_id": 67699,
+      "reason": "ffxiclopedia page 'Materiel Storm I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1800565,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_I_(Bastok)",
+      "title": "Materiel Storm I (Bastok)"
+    },
+    {
+      "page_id": 67751,
+      "reason": "ffxiclopedia page 'Streetsweeper I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1800563,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_I_(Bastok)",
+      "title": "Streetsweeper I (Bastok)"
+    },
+    {
+      "page_id": 67752,
+      "reason": "ffxiclopedia page 'Aegis Scream I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1106261,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_I_(Bastok)",
+      "title": "Aegis Scream I (Bastok)"
+    },
+    {
+      "page_id": 67783,
+      "reason": "ffxiclopedia page 'Crimson Domino I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1329591,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_I_(Windurst)",
+      "title": "Crimson Domino I (Windurst)"
+    },
+    {
+      "page_id": 67830,
+      "reason": "ffxiclopedia page 'Iron Anvil I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1800566,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_I_(Bastok)",
+      "title": "Iron Anvil I (Bastok)"
+    },
+    {
+      "page_id": 67940,
+      "reason": "ffxiclopedia page 'Smokescreen I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1783724,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_I_(Windurst)",
+      "title": "Smokescreen I (Windurst)"
+    },
+    {
+      "page_id": 67951,
+      "reason": "ffxiclopedia page \"Delta Strike I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1123711,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_I_(San_d'Oria)",
+      "title": "Delta Strike I (San d'Oria)"
+    },
+    {
+      "page_id": 67970,
+      "reason": "ffxiclopedia page 'Smokescreen I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1216847,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_I_(Bastok)",
+      "title": "Smokescreen I (Bastok)"
+    },
+    {
+      "page_id": 67993,
+      "reason": "ffxiclopedia page 'Delta Strike I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1563989,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_I_(Windurst)",
+      "title": "Delta Strike I (Windurst)"
+    },
+    {
+      "page_id": 68026,
+      "reason": "ffxiclopedia page \"Crimson Domino I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1349469,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_I_(San_d'Oria)",
+      "title": "Crimson Domino I (San d'Oria)"
+    },
+    {
+      "page_id": 68041,
+      "reason": "ffxiclopedia page 'Delta Strike I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1007241,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_I_(Bastok)",
+      "title": "Delta Strike I (Bastok)"
+    },
+    {
+      "page_id": 68079,
+      "reason": "ffxiclopedia page \"Materiel Storm I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1058942,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_I_(San_d'Oria)",
+      "title": "Materiel Storm I (San d'Oria)"
+    },
+    {
+      "page_id": 68081,
+      "reason": "ffxiclopedia page 'Pit Spider I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1783721,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_I_(Windurst)",
+      "title": "Pit Spider I (Windurst)"
+    },
+    {
+      "page_id": 68087,
+      "reason": "ffxiclopedia page 'Crimson Domino I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1494051,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_I_(Bastok)",
+      "title": "Crimson Domino I (Bastok)"
+    },
+    {
+      "page_id": 68088,
+      "reason": "ffxiclopedia page 'Brave Dawn I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1117428,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_I_(Bastok)",
+      "title": "Brave Dawn I (Bastok)"
+    },
+    {
+      "page_id": 68103,
+      "reason": "ffxiclopedia page 'Slaughterhouse I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1097107,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_I_(Bastok)",
+      "title": "Slaughterhouse I (Bastok)"
+    },
+    {
+      "page_id": 68219,
+      "reason": "ffxiclopedia page \"Slaughterhouse I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1110914,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_I_(San_d'Oria)",
+      "title": "Slaughterhouse I (San d'Oria)"
+    },
+    {
+      "page_id": 68227,
+      "reason": "ffxiclopedia page 'Aegis Scream I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1106264,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_I_(Windurst)",
+      "title": "Aegis Scream I (Windurst)"
+    },
+    {
+      "page_id": 68228,
+      "reason": "ffxiclopedia page 'Brave Dawn I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1792401,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_I_(Windurst)",
+      "title": "Brave Dawn I (Windurst)"
+    },
+    {
+      "page_id": 68287,
+      "reason": "ffxiclopedia page \"Granite Rose I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1549978,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_I_(San_d'Oria)",
+      "title": "Granite Rose I (San d'Oria)"
+    },
+    {
+      "page_id": 68306,
+      "reason": "ffxiclopedia page \"Pit Spider I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1289639,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_I_(San_d'Oria)",
+      "title": "Pit Spider I (San d'Oria)"
+    },
+    {
+      "page_id": 68333,
+      "reason": "ffxiclopedia page 'Granite Rose I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1180570,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_I_(Bastok)",
+      "title": "Granite Rose I (Bastok)"
+    },
+    {
+      "page_id": 68416,
+      "reason": "ffxiclopedia page 'Granite Rose I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1541976,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_I_(Windurst)",
+      "title": "Granite Rose I (Windurst)"
+    },
+    {
+      "page_id": 68576,
+      "reason": "ffxiclopedia page 'Allied Ensign' has no supported mission or quest header.",
+      "revision_id": 1673300,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Allied_Ensign",
+      "title": "Allied Ensign"
+    },
+    {
+      "page_id": 68639,
+      "reason": "ffxiclopedia page 'Matthias' has no supported mission or quest header.",
+      "revision_id": 1731722,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Matthias",
+      "title": "Matthias"
+    },
+    {
+      "page_id": 68656,
+      "reason": "ffxiclopedia page 'Hawk Eye II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1097103,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_II_(Bastok)",
+      "title": "Hawk Eye II (Bastok)"
+    },
+    {
+      "page_id": 68721,
+      "reason": "ffxiclopedia page \"Crystal Fist II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1337450,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_II_(San_d'Oria)",
+      "title": "Crystal Fist II (San d'Oria)"
+    },
+    {
+      "page_id": 68722,
+      "reason": "ffxiclopedia page 'Aegis Scream II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1106263,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_II_(Windurst)",
+      "title": "Aegis Scream II (Windurst)"
+    },
+    {
+      "page_id": 68740,
+      "reason": "ffxiclopedia page \"Vanguard-X II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1125167,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_II_(San_d'Oria)",
+      "title": "Vanguard-X II (San d'Oria)"
+    },
+    {
+      "page_id": 68742,
+      "reason": "ffxiclopedia page 'Pit Spider I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1113876,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_I_(Bastok)",
+      "title": "Pit Spider I (Bastok)"
+    },
+    {
+      "page_id": 68752,
+      "reason": "ffxiclopedia page \"Streetsweeper II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1343073,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_II_(San_d'Oria)",
+      "title": "Streetsweeper II (San d'Oria)"
+    },
+    {
+      "page_id": 68860,
+      "reason": "ffxiclopedia page \"Stock and Awe II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1765991,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_II_(San_d'Oria)",
+      "title": "Stock and Awe II (San d'Oria)"
+    },
+    {
+      "page_id": 68861,
+      "reason": "ffxiclopedia page 'Stock and Awe II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1765990,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_II_(Bastok)",
+      "title": "Stock and Awe II (Bastok)"
+    },
+    {
+      "page_id": 68881,
+      "reason": "ffxiclopedia page 'Smokescreen II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1117184,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_II_(Windurst)",
+      "title": "Smokescreen II (Windurst)"
+    },
+    {
+      "page_id": 68885,
+      "reason": "ffxiclopedia page 'Stock and Awe II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1765992,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_II_(Windurst)",
+      "title": "Stock and Awe II (Windurst)"
+    },
+    {
+      "page_id": 68889,
+      "reason": "ffxiclopedia page 'Materiel Storm II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 986188,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_II_(Windurst)",
+      "title": "Materiel Storm II (Windurst)"
+    },
+    {
+      "page_id": 68890,
+      "reason": "ffxiclopedia page 'Materiel Storm III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 986215,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_III_(Windurst)",
+      "title": "Materiel Storm III (Windurst)"
+    },
+    {
+      "page_id": 68891,
+      "reason": "ffxiclopedia page 'Vanguard-X II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1105447,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_II_(Windurst)",
+      "title": "Vanguard-X II (Windurst)"
+    },
+    {
+      "page_id": 68893,
+      "reason": "ffxiclopedia page 'Streetsweeper II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1158699,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_II_(Windurst)",
+      "title": "Streetsweeper II (Windurst)"
+    },
+    {
+      "page_id": 68979,
+      "reason": "ffxiclopedia page 'Crystal Fist II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429894,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_II_(Windurst)",
+      "title": "Crystal Fist II (Windurst)"
+    },
+    {
+      "page_id": 68980,
+      "reason": "ffxiclopedia page 'Streetsweeper II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446570,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_II_(Bastok)",
+      "title": "Streetsweeper II (Bastok)"
+    },
+    {
+      "page_id": 69039,
+      "reason": "ffxiclopedia page 'Brave Dawn II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1792404,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_II_(Windurst)",
+      "title": "Brave Dawn II (Windurst)"
+    },
+    {
+      "page_id": 69066,
+      "reason": "ffxiclopedia page 'Vanguard-X II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1105445,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_II_(Bastok)",
+      "title": "Vanguard-X II (Bastok)"
+    },
+    {
+      "page_id": 69139,
+      "reason": "ffxiclopedia page 'Crystal Fist II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1337449,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_II_(Bastok)",
+      "title": "Crystal Fist II (Bastok)"
+    },
+    {
+      "page_id": 69241,
+      "reason": "ffxiclopedia page \"Brave Dawn II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117419,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_II_(San_d'Oria)",
+      "title": "Brave Dawn II (San d'Oria)"
+    },
+    {
+      "page_id": 69315,
+      "reason": "ffxiclopedia page 'Hawk Eye II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1094275,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_II_(Windurst)",
+      "title": "Hawk Eye II (Windurst)"
+    },
+    {
+      "page_id": 69412,
+      "reason": "ffxiclopedia page \"Crimson Domino II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1115676,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_II_(San_d'Oria)",
+      "title": "Crimson Domino II (San d'Oria)"
+    },
+    {
+      "page_id": 69414,
+      "reason": "ffxiclopedia page \"Delta Strike II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1123693,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_II_(San_d'Oria)",
+      "title": "Delta Strike II (San d'Oria)"
+    },
+    {
+      "page_id": 69415,
+      "reason": "ffxiclopedia page \"Materiel Storm II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986187,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_II_(San_d'Oria)",
+      "title": "Materiel Storm II (San d'Oria)"
+    },
+    {
+      "page_id": 69489,
+      "reason": "ffxiclopedia page \"Iron Anvil II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1392110,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_II_(San_d'Oria)",
+      "title": "Iron Anvil II (San d'Oria)"
+    },
+    {
+      "page_id": 69545,
+      "reason": "ffxiclopedia page 'Crimson Domino II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1009573,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_II_(Windurst)",
+      "title": "Crimson Domino II (Windurst)"
+    },
+    {
+      "page_id": 69554,
+      "reason": "ffxiclopedia page 'Materiel Storm II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1278623,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_II_(Bastok)",
+      "title": "Materiel Storm II (Bastok)"
+    },
+    {
+      "page_id": 69562,
+      "reason": "ffxiclopedia page 'Delta Strike II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1563991,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_II_(Windurst)",
+      "title": "Delta Strike II (Windurst)"
+    },
+    {
+      "page_id": 69736,
+      "reason": "ffxiclopedia page 'Iron Anvil II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446571,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_II_(Bastok)",
+      "title": "Iron Anvil II (Bastok)"
+    },
+    {
+      "page_id": 69762,
+      "reason": "ffxiclopedia page 'Iron Anvil II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429897,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_II_(Windurst)",
+      "title": "Iron Anvil II (Windurst)"
+    },
+    {
+      "page_id": 69848,
+      "reason": "ffxiclopedia page 'Crimson Domino II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446610,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_II_(Bastok)",
+      "title": "Crimson Domino II (Bastok)"
+    },
+    {
+      "page_id": 69853,
+      "reason": "ffxiclopedia page 'Delta Strike II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 985284,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_II_(Bastok)",
+      "title": "Delta Strike II (Bastok)"
+    },
+    {
+      "page_id": 69908,
+      "reason": "ffxiclopedia page 'Aegis Scream II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1106260,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_II_(Bastok)",
+      "title": "Aegis Scream II (Bastok)"
+    },
+    {
+      "page_id": 70623,
+      "reason": "ffxiclopedia page \"Smokescreen II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117173,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_II_(San_d'Oria)",
+      "title": "Smokescreen II (San d'Oria)"
+    },
+    {
+      "page_id": 70624,
+      "reason": "ffxiclopedia page \"Aegis Scream II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1098237,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_II_(San_d'Oria)",
+      "title": "Aegis Scream II (San d'Oria)"
+    },
+    {
+      "page_id": 70643,
+      "reason": "ffxiclopedia page 'Streetsweeper III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446557,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_III_(Bastok)",
+      "title": "Streetsweeper III (Bastok)"
+    },
+    {
+      "page_id": 70695,
+      "reason": "ffxiclopedia page 'Streetsweeper III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1114938,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_III_(Windurst)",
+      "title": "Streetsweeper III (Windurst)"
+    },
+    {
+      "page_id": 70714,
+      "reason": "ffxiclopedia page \"Streetsweeper III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1269128,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Streetsweeper_III_(San_d'Oria)",
+      "title": "Streetsweeper III (San d'Oria)"
+    },
+    {
+      "page_id": 70716,
+      "reason": "ffxiclopedia page \"Vanguard-X III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1114869,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_III_(San_d'Oria)",
+      "title": "Vanguard-X III (San d'Oria)"
+    },
+    {
+      "page_id": 70724,
+      "reason": "ffxiclopedia page \"Crystal Fist III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1337453,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_III_(San_d'Oria)",
+      "title": "Crystal Fist III (San d'Oria)"
+    },
+    {
+      "page_id": 70727,
+      "reason": "ffxiclopedia page \"Stock and Awe III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1765985,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_III_(San_d'Oria)",
+      "title": "Stock and Awe III (San d'Oria)"
+    },
+    {
+      "page_id": 70784,
+      "reason": "ffxiclopedia page 'Vanguard-X III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1105450,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_III_(Windurst)",
+      "title": "Vanguard-X III (Windurst)"
+    },
+    {
+      "page_id": 70938,
+      "reason": "ffxiclopedia page 'Stock and Awe III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1765993,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_III_(Bastok)",
+      "title": "Stock and Awe III (Bastok)"
+    },
+    {
+      "page_id": 70941,
+      "reason": "ffxiclopedia page 'Vanguard-X III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1127604,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_III_(Bastok)",
+      "title": "Vanguard-X III (Bastok)"
+    },
+    {
+      "page_id": 71028,
+      "reason": "ffxiclopedia page 'Babban Ny Mheillea' has no supported mission or quest header.",
+      "revision_id": 1742864,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Babban_Ny_Mheillea",
+      "title": "Babban Ny Mheillea"
+    },
+    {
+      "page_id": 71065,
+      "reason": "ffxiclopedia page 'Crystal Fist III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1337454,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_III_(Bastok)",
+      "title": "Crystal Fist III (Bastok)"
+    },
+    {
+      "page_id": 71125,
+      "reason": "ffxiclopedia page 'Stock and Awe III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1765994,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_III_(Windurst)",
+      "title": "Stock and Awe III (Windurst)"
+    },
+    {
+      "page_id": 71186,
+      "reason": "ffxiclopedia page 'Pit Spider II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 986194,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_II_(Windurst)",
+      "title": "Pit Spider II (Windurst)"
+    },
+    {
+      "page_id": 71188,
+      "reason": "ffxiclopedia page 'Brave Dawn III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1792405,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_III_(Windurst)",
+      "title": "Brave Dawn III (Windurst)"
+    },
+    {
+      "page_id": 71228,
+      "reason": "ffxiclopedia page 'Crystal Fist III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429895,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_III_(Windurst)",
+      "title": "Crystal Fist III (Windurst)"
+    },
+    {
+      "page_id": 71236,
+      "reason": "ffxiclopedia page 'Granite Rose II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 984868,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_II_(Windurst)",
+      "title": "Granite Rose II (Windurst)"
+    },
+    {
+      "page_id": 71272,
+      "reason": "ffxiclopedia page 'Materiel Storm III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1011752,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_III_(Bastok)",
+      "title": "Materiel Storm III (Bastok)"
+    },
+    {
+      "page_id": 71322,
+      "reason": "ffxiclopedia page 'Brave Dawn II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1117421,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_II_(Bastok)",
+      "title": "Brave Dawn II (Bastok)"
+    },
+    {
+      "page_id": 72014,
+      "reason": "ffxiclopedia page \"Materiel Storm III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 991941,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_III_(San_d'Oria)",
+      "title": "Materiel Storm III (San d'Oria)"
+    },
+    {
+      "page_id": 72272,
+      "reason": "ffxiclopedia page 'Crimson Domino III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446609,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_III_(Bastok)",
+      "title": "Crimson Domino III (Bastok)"
+    },
+    {
+      "page_id": 72285,
+      "reason": "ffxiclopedia page 'Crimson Domino III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1329592,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_III_(Windurst)",
+      "title": "Crimson Domino III (Windurst)"
+    },
+    {
+      "page_id": 72307,
+      "reason": "ffxiclopedia page \"Delta Strike III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1492168,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_III_(San_d'Oria)",
+      "title": "Delta Strike III (San d'Oria)"
+    },
+    {
+      "page_id": 72402,
+      "reason": "ffxiclopedia page 'Delta Strike III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1563998,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_III_(Windurst)",
+      "title": "Delta Strike III (Windurst)"
+    },
+    {
+      "page_id": 72413,
+      "reason": "ffxiclopedia page 'Delta Strike III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1400128,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Delta_Strike_III_(Bastok)",
+      "title": "Delta Strike III (Bastok)"
+    },
+    {
+      "page_id": 72425,
+      "reason": "ffxiclopedia page 'Iron Anvil III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446611,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_III_(Bastok)",
+      "title": "Iron Anvil III (Bastok)"
+    },
+    {
+      "page_id": 72432,
+      "reason": "ffxiclopedia page 'Iron Anvil III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429898,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_III_(Windurst)",
+      "title": "Iron Anvil III (Windurst)"
+    },
+    {
+      "page_id": 72940,
+      "reason": "ffxiclopedia page \"Iron Anvil III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986217,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_III_(San_d'Oria)",
+      "title": "Iron Anvil III (San d'Oria)"
+    },
+    {
+      "page_id": 73103,
+      "reason": "ffxiclopedia page \"Crimson Domino III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1114563,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_III_(San_d'Oria)",
+      "title": "Crimson Domino III (San d'Oria)"
+    },
+    {
+      "page_id": 73105,
+      "reason": "ffxiclopedia page \"Brave Dawn III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117422,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_III_(San_d'Oria)",
+      "title": "Brave Dawn III (San d'Oria)"
+    },
+    {
+      "page_id": 73431,
+      "reason": "ffxiclopedia page 'Aegis Scream III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1106262,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_III_(Windurst)",
+      "title": "Aegis Scream III (Windurst)"
+    },
+    {
+      "page_id": 73789,
+      "reason": "ffxiclopedia page 'Smokescreen II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1224815,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_II_(Bastok)",
+      "title": "Smokescreen II (Bastok)"
+    },
+    {
+      "page_id": 77142,
+      "reason": "ffxiclopedia page 'Bridge Too Far I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1128106,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bridge_Too_Far_I_(Windurst)",
+      "title": "Bridge Too Far I (Windurst)"
+    },
+    {
+      "page_id": 77191,
+      "reason": "ffxiclopedia page 'Deep Cover I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1075052,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_I_(Windurst)",
+      "title": "Deep Cover I (Windurst)"
+    },
+    {
+      "page_id": 77201,
+      "reason": "ffxiclopedia page 'Steel Resolve I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1187203,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_I_(Windurst)",
+      "title": "Steel Resolve I (Windurst)"
+    },
+    {
+      "page_id": 77214,
+      "reason": "ffxiclopedia page 'Deep Cover II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1121365,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_II_(Windurst)",
+      "title": "Deep Cover II (Windurst)"
+    },
+    {
+      "page_id": 77218,
+      "reason": "ffxiclopedia page 'Search and Seizure I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1351558,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Search_and_Seizure_I_(Bastok)",
+      "title": "Search and Seizure I (Bastok)"
+    },
+    {
+      "page_id": 77231,
+      "reason": "ffxiclopedia page \"Deep Cover I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986166,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_I_(San_d'Oria)",
+      "title": "Deep Cover I (San d'Oria)"
+    },
+    {
+      "page_id": 77241,
+      "reason": "ffxiclopedia page 'Deep Cover I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1707079,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_I_(Bastok)",
+      "title": "Deep Cover I (Bastok)"
+    },
+    {
+      "page_id": 77243,
+      "reason": "ffxiclopedia page 'Deep Cover II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 991036,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_II_(Bastok)",
+      "title": "Deep Cover II (Bastok)"
+    },
+    {
+      "page_id": 77247,
+      "reason": "ffxiclopedia page 'Deep Cover III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 986235,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_III_(Bastok)",
+      "title": "Deep Cover III (Bastok)"
+    },
+    {
+      "page_id": 77440,
+      "reason": "ffxiclopedia page 'Steel Resolve I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1449563,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_I_(Bastok)",
+      "title": "Steel Resolve I (Bastok)"
+    },
+    {
+      "page_id": 77452,
+      "reason": "ffxiclopedia page 'Bridge Too Far I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 989254,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bridge_Too_Far_I_(Bastok)",
+      "title": "Bridge Too Far I (Bastok)"
+    },
+    {
+      "page_id": 77522,
+      "reason": "ffxiclopedia page 'Steel Resolve II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446594,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_II_(Bastok)",
+      "title": "Steel Resolve II (Bastok)"
+    },
+    {
+      "page_id": 77532,
+      "reason": "ffxiclopedia page 'Steel Resolve II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1114833,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_II_(Windurst)",
+      "title": "Steel Resolve II (Windurst)"
+    },
+    {
+      "page_id": 77584,
+      "reason": "ffxiclopedia page \"Search and Seizure I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 985382,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Search_and_Seizure_I_(San_d'Oria)",
+      "title": "Search and Seizure I (San d'Oria)"
+    },
+    {
+      "page_id": 77713,
+      "reason": "ffxiclopedia page 'Steel Resolve III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1182141,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_III_(Bastok)",
+      "title": "Steel Resolve III (Bastok)"
+    },
+    {
+      "page_id": 77935,
+      "reason": "ffxiclopedia page \"Deep Cover III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1131173,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_III_(San_d'Oria)",
+      "title": "Deep Cover III (San d'Oria)"
+    },
+    {
+      "page_id": 77949,
+      "reason": "ffxiclopedia page \"Steel Resolve I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1114835,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_I_(San_d'Oria)",
+      "title": "Steel Resolve I (San d'Oria)"
+    },
+    {
+      "page_id": 77950,
+      "reason": "ffxiclopedia page \"Steel Resolve II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1202393,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_II_(San_d'Oria)",
+      "title": "Steel Resolve II (San d'Oria)"
+    },
+    {
+      "page_id": 77951,
+      "reason": "ffxiclopedia page 'Hawk Eye III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1416944,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_III_(Bastok)",
+      "title": "Hawk Eye III (Bastok)"
+    },
+    {
+      "page_id": 78011,
+      "reason": "ffxiclopedia page \"Steel Resolve III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1281475,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_III_(San_d'Oria)",
+      "title": "Steel Resolve III (San d'Oria)"
+    },
+    {
+      "page_id": 78036,
+      "reason": "ffxiclopedia page \"Aegis Scream III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1098236,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_III_(San_d'Oria)",
+      "title": "Aegis Scream III (San d'Oria)"
+    },
+    {
+      "page_id": 78107,
+      "reason": "ffxiclopedia page 'Slaughterhouse III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1094237,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_III_(Windurst)",
+      "title": "Slaughterhouse III (Windurst)"
+    },
+    {
+      "page_id": 78113,
+      "reason": "ffxiclopedia page \"Slaughterhouse II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1110915,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_II_(San_d'Oria)",
+      "title": "Slaughterhouse II (San d'Oria)"
+    },
+    {
+      "page_id": 78115,
+      "reason": "ffxiclopedia page \"Slaughterhouse III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1424294,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_III_(San_d'Oria)",
+      "title": "Slaughterhouse III (San d'Oria)"
+    },
+    {
+      "page_id": 78117,
+      "reason": "ffxiclopedia page \"Hawk Eye III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1289647,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_III_(San_d'Oria)",
+      "title": "Hawk Eye III (San d'Oria)"
+    },
+    {
+      "page_id": 78118,
+      "reason": "ffxiclopedia page \"Hawk Eye II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1110913,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_II_(San_d'Oria)",
+      "title": "Hawk Eye II (San d'Oria)"
+    },
+    {
+      "page_id": 78142,
+      "reason": "ffxiclopedia page 'Slaughterhouse II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1207583,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_II_(Windurst)",
+      "title": "Slaughterhouse II (Windurst)"
+    },
+    {
+      "page_id": 78143,
+      "reason": "ffxiclopedia page 'Search and Seizure I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1740528,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Search_and_Seizure_I_(Windurst)",
+      "title": "Search and Seizure I (Windurst)"
+    },
+    {
+      "page_id": 78144,
+      "reason": "ffxiclopedia page 'Smokescreen III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1179220,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_III_(Windurst)",
+      "title": "Smokescreen III (Windurst)"
+    },
+    {
+      "page_id": 78145,
+      "reason": "ffxiclopedia page 'Hawk Eye III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1094273,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_III_(Windurst)",
+      "title": "Hawk Eye III (Windurst)"
+    },
+    {
+      "page_id": 78237,
+      "reason": "ffxiclopedia page 'Slaughterhouse II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1097108,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_II_(Bastok)",
+      "title": "Slaughterhouse II (Bastok)"
+    },
+    {
+      "page_id": 78277,
+      "reason": "ffxiclopedia page 'Steel Resolve III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1114834,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_III_(Windurst)",
+      "title": "Steel Resolve III (Windurst)"
+    },
+    {
+      "page_id": 78406,
+      "reason": "ffxiclopedia page \"Smokescreen III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117172,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_III_(San_d'Oria)",
+      "title": "Smokescreen III (San d'Oria)"
+    },
+    {
+      "page_id": 78568,
+      "reason": "ffxiclopedia page 'Slaughterhouse III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446605,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_III_(Bastok)",
+      "title": "Slaughterhouse III (Bastok)"
+    },
+    {
+      "page_id": 78613,
+      "reason": "ffxiclopedia page 'Deep Cover III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1126216,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_III_(Windurst)",
+      "title": "Deep Cover III (Windurst)"
+    },
+    {
+      "page_id": 78675,
+      "reason": "ffxiclopedia page 'Aegis Scream III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1184047,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_III_(Bastok)",
+      "title": "Aegis Scream III (Bastok)"
+    },
+    {
+      "page_id": 78783,
+      "reason": "ffxiclopedia page \"Deep Cover II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 992570,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deep_Cover_II_(San_d'Oria)",
+      "title": "Deep Cover II (San d'Oria)"
+    },
+    {
+      "page_id": 79063,
+      "reason": "ffxiclopedia page 'Smokescreen III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1224814,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_III_(Bastok)",
+      "title": "Smokescreen III (Bastok)"
+    },
+    {
+      "page_id": 79513,
+      "reason": "ffxiclopedia page \"Bridge Too Far I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1057445,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bridge_Too_Far_I_(San_d'Oria)",
+      "title": "Bridge Too Far I (San d'Oria)"
+    },
+    {
+      "page_id": 82397,
+      "reason": "ffxiclopedia page 'Pit Spider II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1113872,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_II_(Bastok)",
+      "title": "Pit Spider II (Bastok)"
+    },
+    {
+      "page_id": 82400,
+      "reason": "ffxiclopedia page \"Pit Spider II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986193,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_II_(San_d'Oria)",
+      "title": "Pit Spider II (San d'Oria)"
+    },
+    {
+      "page_id": 82402,
+      "reason": "ffxiclopedia page \"Granite Rose II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 984867,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_II_(San_d'Oria)",
+      "title": "Granite Rose II (San d'Oria)"
+    },
+    {
+      "page_id": 82403,
+      "reason": "ffxiclopedia page 'Granite Rose II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 984869,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_II_(Bastok)",
+      "title": "Granite Rose II (Bastok)"
+    },
+    {
+      "page_id": 82406,
+      "reason": "ffxiclopedia page 'Brave Dawn III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1117423,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Brave_Dawn_III_(Bastok)",
+      "title": "Brave Dawn III (Bastok)"
+    },
+    {
+      "page_id": 86853,
+      "reason": "ffxiclopedia page 'Granite Rose III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 984874,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_III_(Bastok)",
+      "title": "Granite Rose III (Bastok)"
+    },
+    {
+      "page_id": 87311,
+      "reason": "ffxiclopedia page 'Limit Break' has no supported mission or quest header.",
+      "revision_id": 1465552,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Limit_Break",
+      "title": "Limit Break"
+    },
+    {
+      "page_id": 88473,
+      "reason": "ffxiclopedia page \"Granite Rose III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 984873,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_III_(San_d'Oria)",
+      "title": "Granite Rose III (San d'Oria)"
+    },
+    {
+      "page_id": 92551,
+      "reason": "ffxiclopedia page \"Stock and Awe IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1765996,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_IV_(San_d'Oria)",
+      "title": "Stock and Awe IV (San d'Oria)"
+    },
+    {
+      "page_id": 92751,
+      "reason": "ffxiclopedia page 'Crystal Fist IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429896,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_IV_(Windurst)",
+      "title": "Crystal Fist IV (Windurst)"
+    },
+    {
+      "page_id": 93358,
+      "reason": "ffxiclopedia page 'Stock and Awe IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1765997,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_IV_(Windurst)",
+      "title": "Stock and Awe IV (Windurst)"
+    },
+    {
+      "page_id": 93379,
+      "reason": "ffxiclopedia page 'Stock and Awe IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1765995,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Stock_and_Awe_IV_(Bastok)",
+      "title": "Stock and Awe IV (Bastok)"
+    },
+    {
+      "page_id": 93445,
+      "reason": "ffxiclopedia page \"Aegis Scream IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1154082,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_IV_(San_d'Oria)",
+      "title": "Aegis Scream IV (San d'Oria)"
+    },
+    {
+      "page_id": 93447,
+      "reason": "ffxiclopedia page \"Smokescreen IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1169375,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_IV_(San_d'Oria)",
+      "title": "Smokescreen IV (San d'Oria)"
+    },
+    {
+      "page_id": 93608,
+      "reason": "ffxiclopedia page \"Prying Eyes I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1444415,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_I_(San_d'Oria)",
+      "title": "Prying Eyes I (San d'Oria)"
+    },
+    {
+      "page_id": 93643,
+      "reason": "ffxiclopedia page 'Prying Eyes I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1444414,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_I_(Windurst)",
+      "title": "Prying Eyes I (Windurst)"
+    },
+    {
+      "page_id": 93675,
+      "reason": "ffxiclopedia page \"Crystal Fist IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1337456,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_IV_(San_d'Oria)",
+      "title": "Crystal Fist IV (San d'Oria)"
+    },
+    {
+      "page_id": 93744,
+      "reason": "ffxiclopedia page 'Prying Eyes I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1266933,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_I_(Bastok)",
+      "title": "Prying Eyes I (Bastok)"
+    },
+    {
+      "page_id": 93765,
+      "reason": "ffxiclopedia page 'Aegis Scream IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1105006,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_IV_(Bastok)",
+      "title": "Aegis Scream IV (Bastok)"
+    },
+    {
+      "page_id": 93825,
+      "reason": "ffxiclopedia page 'Aegis Scream IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1215703,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_IV_(Windurst)",
+      "title": "Aegis Scream IV (Windurst)"
+    },
+    {
+      "page_id": 93985,
+      "reason": "ffxiclopedia page \"Materiel Storm IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1138220,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_IV_(San_d'Oria)",
+      "title": "Materiel Storm IV (San d'Oria)"
+    },
+    {
+      "page_id": 94090,
+      "reason": "ffxiclopedia page 'Materiel Storm IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1040120,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_IV_(Bastok)",
+      "title": "Materiel Storm IV (Bastok)"
+    },
+    {
+      "page_id": 94126,
+      "reason": "ffxiclopedia page 'Smokescreen IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1117181,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_IV_(Windurst)",
+      "title": "Smokescreen IV (Windurst)"
+    },
+    {
+      "page_id": 94139,
+      "reason": "ffxiclopedia page 'Granite Rose III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 984872,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Granite_Rose_III_(Windurst)",
+      "title": "Granite Rose III (Windurst)"
+    },
+    {
+      "page_id": 94315,
+      "reason": "ffxiclopedia page 'Materiel Storm IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 986249,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Materiel_Storm_IV_(Windurst)",
+      "title": "Materiel Storm IV (Windurst)"
+    },
+    {
+      "page_id": 94410,
+      "reason": "ffxiclopedia page 'Iron Anvil IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1429899,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_IV_(Windurst)",
+      "title": "Iron Anvil IV (Windurst)"
+    },
+    {
+      "page_id": 94772,
+      "reason": "ffxiclopedia page \"Iron Anvil IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986251,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_IV_(San_d'Oria)",
+      "title": "Iron Anvil IV (San d'Oria)"
+    },
+    {
+      "page_id": 94931,
+      "reason": "ffxiclopedia page 'Message to Jeuno (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1493510,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Message_to_Jeuno_(Bastok)",
+      "title": "Message to Jeuno (Bastok)"
+    },
+    {
+      "page_id": 96737,
+      "reason": "ffxiclopedia page 'Iron Anvil IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446586,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Iron_Anvil_IV_(Bastok)",
+      "title": "Iron Anvil IV (Bastok)"
+    },
+    {
+      "page_id": 96848,
+      "reason": "ffxiclopedia page 'Plucking Wings' has no supported mission or quest header.",
+      "revision_id": 1766011,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Plucking_Wings",
+      "title": "Plucking Wings"
+    },
+    {
+      "page_id": 96868,
+      "reason": "ffxiclopedia page 'By Light of Fire I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1505608,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/By_Light_of_Fire_I_(Bastok)",
+      "title": "By Light of Fire I (Bastok)"
+    },
+    {
+      "page_id": 96872,
+      "reason": "ffxiclopedia page \"By Light of Fire I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 984430,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/By_Light_of_Fire_I_(San_d'Oria)",
+      "title": "By Light of Fire I (San d'Oria)"
+    },
+    {
+      "page_id": 96873,
+      "reason": "ffxiclopedia page 'By Light of Fire I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1748720,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/By_Light_of_Fire_I_(Windurst)",
+      "title": "By Light of Fire I (Windurst)"
+    },
+    {
+      "page_id": 97246,
+      "reason": "ffxiclopedia page 'Splitting Heirs' has no supported mission or quest header.",
+      "revision_id": 1766010,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Splitting_Heirs",
+      "title": "Splitting Heirs"
+    },
+    {
+      "page_id": 97359,
+      "reason": "ffxiclopedia page 'Cracking Shells' has no supported mission or quest header.",
+      "revision_id": 1766009,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cracking_Shells",
+      "title": "Cracking Shells"
+    },
+    {
+      "page_id": 97534,
+      "reason": "ffxiclopedia page 'Smokescreen IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1228210,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_IV_(Bastok)",
+      "title": "Smokescreen IV (Bastok)"
+    },
+    {
+      "page_id": 97721,
+      "reason": "ffxiclopedia page 'Crystal Fist IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446587,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crystal_Fist_IV_(Bastok)",
+      "title": "Crystal Fist IV (Bastok)"
+    },
+    {
+      "page_id": 101081,
+      "reason": "ffxiclopedia page 'Pit Spider III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 986231,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_III_(Windurst)",
+      "title": "Pit Spider III (Windurst)"
+    },
+    {
+      "page_id": 104201,
+      "reason": "ffxiclopedia page \"Cut and Cauterize I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1115327,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_I_(San_d'Oria)",
+      "title": "Cut and Cauterize I (San d'Oria)"
+    },
+    {
+      "page_id": 104898,
+      "reason": "ffxiclopedia page 'Cut and Cauterize I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1508034,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_I_(Windurst)",
+      "title": "Cut and Cauterize I (Windurst)"
+    },
+    {
+      "page_id": 105233,
+      "reason": "ffxiclopedia page 'Cut and Cauterize I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1126252,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_I_(Bastok)",
+      "title": "Cut and Cauterize I (Bastok)"
+    },
+    {
+      "page_id": 105631,
+      "reason": "ffxiclopedia page 'Cut and Cauterize II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 985218,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_II_(Windurst)",
+      "title": "Cut and Cauterize II (Windurst)"
+    },
+    {
+      "page_id": 106026,
+      "reason": "ffxiclopedia page 'Cut and Cauterize II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 985221,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_II_(Bastok)",
+      "title": "Cut and Cauterize II (Bastok)"
+    },
+    {
+      "page_id": 106419,
+      "reason": "ffxiclopedia page 'Cut and Cauterize III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 985222,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_III_(Windurst)",
+      "title": "Cut and Cauterize III (Windurst)"
+    },
+    {
+      "page_id": 106973,
+      "reason": "ffxiclopedia page \"Pit Spider III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 986230,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_III_(San_d'Oria)",
+      "title": "Pit Spider III (San d'Oria)"
+    },
+    {
+      "page_id": 107433,
+      "reason": "ffxiclopedia page 'Campaign Operations Template' has no supported mission or quest header.",
+      "revision_id": 1109088,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Campaign_Operations_Template",
+      "title": "Campaign Operations Template"
+    },
+    {
+      "page_id": 108000,
+      "reason": "ffxiclopedia page \"Cut and Cauterize II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1116636,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_II_(San_d'Oria)",
+      "title": "Cut and Cauterize II (San d'Oria)"
+    },
+    {
+      "page_id": 108001,
+      "reason": "ffxiclopedia page \"Cut and Cauterize III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117160,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_III_(San_d'Oria)",
+      "title": "Cut and Cauterize III (San d'Oria)"
+    },
+    {
+      "page_id": 108004,
+      "reason": "ffxiclopedia page 'Cut and Cauterize III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 985224,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cut_and_Cauterize_III_(Bastok)",
+      "title": "Cut and Cauterize III (Bastok)"
+    },
+    {
+      "page_id": 108219,
+      "reason": "ffxiclopedia page 'Pit Spider III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 986229,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Pit_Spider_III_(Bastok)",
+      "title": "Pit Spider III (Bastok)"
+    },
+    {
+      "page_id": 112609,
+      "reason": "ffxiclopedia page 'Magna Cache I (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1141199,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_I_(Bastok)",
+      "title": "Magna Cache I (Bastok)"
+    },
+    {
+      "page_id": 112615,
+      "reason": "ffxiclopedia page 'Magna Cache II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1186749,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_II_(Bastok)",
+      "title": "Magna Cache II (Bastok)"
+    },
+    {
+      "page_id": 112676,
+      "reason": "ffxiclopedia page \"Magna Cache I (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1556739,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_I_(San_d'Oria)",
+      "title": "Magna Cache I (San d'Oria)"
+    },
+    {
+      "page_id": 112678,
+      "reason": "ffxiclopedia page \"Magna Cache II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1017873,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_II_(San_d'Oria)",
+      "title": "Magna Cache II (San d'Oria)"
+    },
+    {
+      "page_id": 112681,
+      "reason": "ffxiclopedia page \"Magna Cache III (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1109437,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_III_(San_d'Oria)",
+      "title": "Magna Cache III (San d'Oria)"
+    },
+    {
+      "page_id": 112687,
+      "reason": "ffxiclopedia page 'Magna Cache I (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1215926,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_I_(Windurst)",
+      "title": "Magna Cache I (Windurst)"
+    },
+    {
+      "page_id": 112782,
+      "reason": "ffxiclopedia page 'Magna Cache III (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1186755,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_III_(Bastok)",
+      "title": "Magna Cache III (Bastok)"
+    },
+    {
+      "page_id": 113046,
+      "reason": "ffxiclopedia page 'Magna Cache II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1135473,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_II_(Windurst)",
+      "title": "Magna Cache II (Windurst)"
+    },
+    {
+      "page_id": 113048,
+      "reason": "ffxiclopedia page 'Magna Cache III (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1765967,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Magna_Cache_III_(Windurst)",
+      "title": "Magna Cache III (Windurst)"
+    },
+    {
+      "page_id": 115017,
+      "reason": "ffxiclopedia page 'Category:Assault Missions' has no supported mission or quest header.",
+      "revision_id": 1750407,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Category%3AAssault_Missions",
+      "title": "Category:Assault Missions"
+    },
+    {
+      "page_id": 116948,
+      "reason": "ffxiclopedia page 'Category:Treasures of Aht Urhgan Missions' has no supported mission or quest header.",
+      "revision_id": 1750406,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Category%3ATreasures_of_Aht_Urhgan_Missions",
+      "title": "Category:Treasures of Aht Urhgan Missions"
+    },
+    {
+      "page_id": 122516,
+      "reason": "ffxiclopedia page 'A Crystalline Prophecy' has no supported mission or quest header.",
+      "revision_id": 867053,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/A_Crystalline_Prophecy",
+      "title": "A Crystalline Prophecy"
+    },
+    {
+      "page_id": 125629,
+      "reason": "ffxiclopedia page 'Sacrifice' has no supported mission or quest header.",
+      "revision_id": 1725386,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Sacrifice",
+      "title": "Sacrifice"
+    },
+    {
+      "page_id": 127777,
+      "reason": "ffxiclopedia page 'Ode of Life Bestowing/Strategies' has no supported mission or quest header.",
+      "revision_id": 1539864,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Ode_of_Life_Bestowing%2FStrategies",
+      "title": "Ode of Life Bestowing/Strategies"
+    },
+    {
+      "page_id": 135049,
+      "reason": "ffxiclopedia page \"A Moogle Kupo d'Etat\" has no supported mission or quest header.",
+      "revision_id": 1391014,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/A_Moogle_Kupo_d'Etat",
+      "title": "A Moogle Kupo d'Etat"
+    },
+    {
+      "page_id": 137659,
+      "reason": "ffxiclopedia page 'Smash! A Malevolent Menace/Strategies' has no supported mission or quest header.",
+      "revision_id": 1481347,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smash!_A_Malevolent_Menace%2FStrategies",
+      "title": "Smash! A Malevolent Menace/Strategies"
+    },
+    {
+      "page_id": 138402,
+      "reason": "ffxiclopedia page 'Ancient Flames Beckon' has no supported mission or quest header.",
+      "revision_id": 962273,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Ancient_Flames_Beckon",
+      "title": "Ancient Flames Beckon"
+    },
+    {
+      "page_id": 138403,
+      "reason": "ffxiclopedia page 'The Isle of Forgotten Saints' has no supported mission or quest header.",
+      "revision_id": 962274,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Isle_of_Forgotten_Saints",
+      "title": "The Isle of Forgotten Saints"
+    },
+    {
+      "page_id": 138418,
+      "reason": "ffxiclopedia page 'A Transient Dream' has no supported mission or quest header.",
+      "revision_id": 1356035,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/A_Transient_Dream",
+      "title": "A Transient Dream"
+    },
+    {
+      "page_id": 138454,
+      "reason": "ffxiclopedia page 'The Cradles of Children Lost' has no supported mission or quest header.",
+      "revision_id": 962741,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Cradles_of_Children_Lost",
+      "title": "The Cradles of Children Lost"
+    },
+    {
+      "page_id": 140942,
+      "reason": "ffxiclopedia page 'The Return Home' has no supported mission or quest header.",
+      "revision_id": 983212,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Return_Home",
+      "title": "The Return Home"
+    },
+    {
+      "page_id": 140944,
+      "reason": "ffxiclopedia page 'Echoes of Time' has no supported mission or quest header.",
+      "revision_id": 983214,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Echoes_of_Time",
+      "title": "Echoes of Time"
+    },
+    {
+      "page_id": 140945,
+      "reason": "ffxiclopedia page 'In the Light of the Crystal' has no supported mission or quest header.",
+      "revision_id": 983219,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/In_the_Light_of_the_Crystal",
+      "title": "In the Light of the Crystal"
+    },
+    {
+      "page_id": 140946,
+      "reason": "ffxiclopedia page 'Emptiness Bleeds' has no supported mission or quest header.",
+      "revision_id": 983229,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Emptiness_Bleeds",
+      "title": "Emptiness Bleeds"
+    },
+    {
+      "page_id": 144307,
+      "reason": "ffxiclopedia page 'A Shantotto Ascension' has no supported mission or quest header.",
+      "revision_id": 1445020,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/A_Shantotto_Ascension",
+      "title": "A Shantotto Ascension"
+    },
+    {
+      "page_id": 156706,
+      "reason": "ffxiclopedia page 'Slaughterhouse IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1144591,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_IV_(Windurst)",
+      "title": "Slaughterhouse IV (Windurst)"
+    },
+    {
+      "page_id": 156718,
+      "reason": "ffxiclopedia page 'Hawk Eye IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1240212,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_IV_(Windurst)",
+      "title": "Hawk Eye IV (Windurst)"
+    },
+    {
+      "page_id": 157261,
+      "reason": "ffxiclopedia page 'Slaughterhouse IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1541681,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_IV_(Bastok)",
+      "title": "Slaughterhouse IV (Bastok)"
+    },
+    {
+      "page_id": 157262,
+      "reason": "ffxiclopedia page 'Hawk Eye IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1450301,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_IV_(Bastok)",
+      "title": "Hawk Eye IV (Bastok)"
+    },
+    {
+      "page_id": 157510,
+      "reason": "ffxiclopedia page \"Aegis Scream V (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1679566,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_V_(San_d'Oria)",
+      "title": "Aegis Scream V (San d'Oria)"
+    },
+    {
+      "page_id": 157889,
+      "reason": "ffxiclopedia page 'Frozen Flame (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1380302,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Frozen_Flame_(Windurst)",
+      "title": "Frozen Flame (Windurst)"
+    },
+    {
+      "page_id": 157946,
+      "reason": "ffxiclopedia page \"Slaughterhouse IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1132964,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Slaughterhouse_IV_(San_d'Oria)",
+      "title": "Slaughterhouse IV (San d'Oria)"
+    },
+    {
+      "page_id": 157971,
+      "reason": "ffxiclopedia page 'Bailey Borer (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1154148,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bailey_Borer_(Windurst)",
+      "title": "Bailey Borer (Windurst)"
+    },
+    {
+      "page_id": 157983,
+      "reason": "ffxiclopedia page \"Hawk Eye IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1126845,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hawk_Eye_IV_(San_d'Oria)",
+      "title": "Hawk Eye IV (San d'Oria)"
+    },
+    {
+      "page_id": 158050,
+      "reason": "ffxiclopedia page \"Bailey Borer (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1151592,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bailey_Borer_(San_d'Oria)",
+      "title": "Bailey Borer (San d'Oria)"
+    },
+    {
+      "page_id": 158051,
+      "reason": "ffxiclopedia page 'Bailey Borer (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446599,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Bailey_Borer_(Bastok)",
+      "title": "Bailey Borer (Bastok)"
+    },
+    {
+      "page_id": 158063,
+      "reason": "ffxiclopedia page \"Hazardous Materials (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1125021,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hazardous_Materials_(San_d'Oria)",
+      "title": "Hazardous Materials (San d'Oria)"
+    },
+    {
+      "page_id": 158505,
+      "reason": "ffxiclopedia page 'Kinslayer: Baileys (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1104937,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Baileys_(Windurst)",
+      "title": "Kinslayer: Baileys (Windurst)"
+    },
+    {
+      "page_id": 158603,
+      "reason": "ffxiclopedia page 'Smokescreen V (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1743547,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_V_(Windurst)",
+      "title": "Smokescreen V (Windurst)"
+    },
+    {
+      "page_id": 158604,
+      "reason": "ffxiclopedia page \"Smokescreen V (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1117167,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_V_(San_d'Oria)",
+      "title": "Smokescreen V (San d'Oria)"
+    },
+    {
+      "page_id": 158605,
+      "reason": "ffxiclopedia page 'Smokescreen V (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1132720,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Smokescreen_V_(Bastok)",
+      "title": "Smokescreen V (Bastok)"
+    },
+    {
+      "page_id": 158607,
+      "reason": "ffxiclopedia page 'Aegis Scream V (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446600,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_V_(Bastok)",
+      "title": "Aegis Scream V (Bastok)"
+    },
+    {
+      "page_id": 158608,
+      "reason": "ffxiclopedia page 'Aegis Scream V (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1132533,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Aegis_Scream_V_(Windurst)",
+      "title": "Aegis Scream V (Windurst)"
+    },
+    {
+      "page_id": 158610,
+      "reason": "ffxiclopedia page 'Kinslayer: Baileys (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446598,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Baileys_(Bastok)",
+      "title": "Kinslayer: Baileys (Bastok)"
+    },
+    {
+      "page_id": 158624,
+      "reason": "ffxiclopedia page 'Frozen Flame (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446614,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Frozen_Flame_(Bastok)",
+      "title": "Frozen Flame (Bastok)"
+    },
+    {
+      "page_id": 158670,
+      "reason": "ffxiclopedia page \"Kinslayer: Baileys (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1105441,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Baileys_(San_d'Oria)",
+      "title": "Kinslayer: Baileys (San d'Oria)"
+    },
+    {
+      "page_id": 158672,
+      "reason": "ffxiclopedia page 'Hazardous Materials (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446601,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hazardous_Materials_(Bastok)",
+      "title": "Hazardous Materials (Bastok)"
+    },
+    {
+      "page_id": 158673,
+      "reason": "ffxiclopedia page 'Hazardous Materials (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1549546,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hazardous_Materials_(Windurst)",
+      "title": "Hazardous Materials (Windurst)"
+    },
+    {
+      "page_id": 158674,
+      "reason": "ffxiclopedia page \"Frozen Flame (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1143070,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Frozen_Flame_(San_d'Oria)",
+      "title": "Frozen Flame (San d'Oria)"
+    },
+    {
+      "page_id": 159138,
+      "reason": "ffxiclopedia page \"Vanguard-X IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1263509,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_IV_(San_d'Oria)",
+      "title": "Vanguard-X IV (San d'Oria)"
+    },
+    {
+      "page_id": 159141,
+      "reason": "ffxiclopedia page \"Steel Resolve IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1281476,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_IV_(San_d'Oria)",
+      "title": "Steel Resolve IV (San d'Oria)"
+    },
+    {
+      "page_id": 159144,
+      "reason": "ffxiclopedia page 'Steel Resolve IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446596,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_IV_(Bastok)",
+      "title": "Steel Resolve IV (Bastok)"
+    },
+    {
+      "page_id": 159145,
+      "reason": "ffxiclopedia page 'Steel Resolve IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1537190,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Steel_Resolve_IV_(Windurst)",
+      "title": "Steel Resolve IV (Windurst)"
+    },
+    {
+      "page_id": 159183,
+      "reason": "ffxiclopedia page 'Vanguard-X IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1789019,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_IV_(Bastok)",
+      "title": "Vanguard-X IV (Bastok)"
+    },
+    {
+      "page_id": 159184,
+      "reason": "ffxiclopedia page 'Vanguard-X IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1263510,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vanguard-X_IV_(Windurst)",
+      "title": "Vanguard-X IV (Windurst)"
+    },
+    {
+      "page_id": 159185,
+      "reason": "ffxiclopedia page \"Prying Eyes II (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1549983,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_II_(San_d'Oria)",
+      "title": "Prying Eyes II (San d'Oria)"
+    },
+    {
+      "page_id": 159186,
+      "reason": "ffxiclopedia page 'Prying Eyes II (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1549985,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_II_(Bastok)",
+      "title": "Prying Eyes II (Bastok)"
+    },
+    {
+      "page_id": 159187,
+      "reason": "ffxiclopedia page 'Prying Eyes II (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1549984,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Prying_Eyes_II_(Windurst)",
+      "title": "Prying Eyes II (Windurst)"
+    },
+    {
+      "page_id": 159881,
+      "reason": "ffxiclopedia page \"Crimson Domino IV (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1289656,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_IV_(San_d'Oria)",
+      "title": "Crimson Domino IV (San d'Oria)"
+    },
+    {
+      "page_id": 159927,
+      "reason": "ffxiclopedia page 'Fiat Lux' has no supported mission or quest header.",
+      "revision_id": 1732747,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Fiat_Lux",
+      "title": "Fiat Lux"
+    },
+    {
+      "page_id": 161549,
+      "reason": "ffxiclopedia page 'Kinslayer: Keep (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1130664,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Keep_(Windurst)",
+      "title": "Kinslayer: Keep (Windurst)"
+    },
+    {
+      "page_id": 161553,
+      "reason": "ffxiclopedia page \"Kinslayer: Keep (San d'Oria)\" has no supported mission or quest header.",
+      "revision_id": 1130662,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Keep_(San_d'Oria)",
+      "title": "Kinslayer: Keep (San d'Oria)"
+    },
+    {
+      "page_id": 161554,
+      "reason": "ffxiclopedia page 'Kinslayer: Keep (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446597,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Kinslayer%3A_Keep_(Bastok)",
+      "title": "Kinslayer: Keep (Bastok)"
+    },
+    {
+      "page_id": 163257,
+      "reason": "ffxiclopedia page 'Crimson Domino IV (Windurst)' has no supported mission or quest header.",
+      "revision_id": 1794992,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_IV_(Windurst)",
+      "title": "Crimson Domino IV (Windurst)"
+    },
+    {
+      "page_id": 171380,
+      "reason": "ffxiclopedia page 'Scars of Abyssea' has no supported mission or quest header.",
+      "revision_id": 1699446,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Scars_of_Abyssea",
+      "title": "Scars of Abyssea"
+    },
+    {
+      "page_id": 179662,
+      "reason": "ffxiclopedia page 'Heroes of Abyssea' has no supported mission or quest header.",
+      "revision_id": 1699447,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Heroes_of_Abyssea",
+      "title": "Heroes of Abyssea"
+    },
+    {
+      "page_id": 183971,
+      "reason": "ffxiclopedia page 'Crimson Domino IV (Bastok)' has no supported mission or quest header.",
+      "revision_id": 1446603,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crimson_Domino_IV_(Bastok)",
+      "title": "Crimson Domino IV (Bastok)"
+    },
+    {
+      "page_id": 188619,
+      "reason": "ffxiclopedia page 'VW Op.' has no supported mission or quest header.",
+      "revision_id": 1395206,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/VW_Op.",
+      "title": "VW Op."
+    },
+    {
+      "page_id": 192640,
+      "reason": "ffxiclopedia page 'Provenance' has no supported mission or quest header.",
+      "revision_id": 1395887,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Provenance",
+      "title": "Provenance"
+    },
+    {
+      "page_id": 197748,
+      "reason": "ffxiclopedia page 'The Sacred City of Adoulin' has no supported mission or quest header.",
+      "revision_id": 1453595,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Sacred_City_of_Adoulin",
+      "title": "The Sacred City of Adoulin"
+    },
+    {
+      "page_id": 201166,
+      "reason": "ffxiclopedia page 'Reja Ygridhi' has no supported mission or quest header.",
+      "revision_id": 1783820,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Reja_Ygridhi",
+      "title": "Reja Ygridhi"
+    },
+    {
+      "page_id": 201378,
+      "reason": "ffxiclopedia page 'The Ancient Pact' has no supported mission or quest header.",
+      "revision_id": 1585744,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Ancient_Pact",
+      "title": "The Ancient Pact"
+    },
+    {
+      "page_id": 201568,
+      "reason": "ffxiclopedia page 'Category:Monstrosity' has no supported mission or quest header.",
+      "revision_id": 1779402,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Category%3AMonstrosity",
+      "title": "Category:Monstrosity"
+    },
+    {
+      "page_id": 202549,
+      "reason": "ffxiclopedia page 'Wescolina' has no supported mission or quest header.",
+      "revision_id": 1763125,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Wescolina",
+      "title": "Wescolina"
+    },
+    {
+      "page_id": 202593,
+      "reason": "ffxiclopedia page 'Jerra Ndala' has no supported mission or quest header.",
+      "revision_id": 1721407,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Jerra_Ndala",
+      "title": "Jerra Ndala"
+    },
+    {
+      "page_id": 203149,
+      "reason": "ffxiclopedia page 'Shadows Upon Adoulin' has no supported mission or quest header.",
+      "revision_id": 1505335,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Shadows_Upon_Adoulin",
+      "title": "Shadows Upon Adoulin"
+    },
+    {
+      "page_id": 203650,
+      "reason": "ffxiclopedia page 'Fhelm Jobeizat' has no supported mission or quest header.",
+      "revision_id": 1743328,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Fhelm_Jobeizat",
+      "title": "Fhelm Jobeizat"
+    },
+    {
+      "page_id": 203665,
+      "reason": "ffxiclopedia page 'Rolandienne' has no supported mission or quest header.",
+      "revision_id": 1743327,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Rolandienne",
+      "title": "Rolandienne"
+    },
+    {
+      "page_id": 203669,
+      "reason": "ffxiclopedia page 'Isakoth' has no supported mission or quest header.",
+      "revision_id": 1743326,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Isakoth",
+      "title": "Isakoth"
+    },
+    {
+      "page_id": 203670,
+      "reason": "ffxiclopedia page 'Eternal Flame' has no supported mission or quest header.",
+      "revision_id": 1743329,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Eternal_Flame",
+      "title": "Eternal Flame"
+    },
+    {
+      "page_id": 203781,
+      "reason": "ffxiclopedia page 'Category:Records of Eminence' has no supported mission or quest header.",
+      "revision_id": 1790604,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Category%3ARecords_of_Eminence",
+      "title": "Category:Records of Eminence"
+    },
+    {
+      "page_id": 203783,
+      "reason": "ffxiclopedia page 'Tutorial' has no supported mission or quest header.",
+      "revision_id": 1795812,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Tutorial",
+      "title": "Tutorial"
+    },
+    {
+      "page_id": 203785,
+      "reason": "ffxiclopedia page 'Harvesting (RoE)' has no supported mission or quest header.",
+      "revision_id": 1770710,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Harvesting_(RoE)",
+      "title": "Harvesting (RoE)"
+    },
+    {
+      "page_id": 203786,
+      "reason": "ffxiclopedia page 'Content' has no supported mission or quest header.",
+      "revision_id": 1790605,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Content",
+      "title": "Content"
+    },
+    {
+      "page_id": 203788,
+      "reason": "ffxiclopedia page 'Combat (Wide Area)' has no supported mission or quest header.",
+      "revision_id": 1770712,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Combat_(Wide_Area)",
+      "title": "Combat (Wide Area)"
+    },
+    {
+      "page_id": 203789,
+      "reason": "ffxiclopedia page 'Combat (Region)' has no supported mission or quest header.",
+      "revision_id": 1772993,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Combat_(Region)",
+      "title": "Combat (Region)"
+    },
+    {
+      "page_id": 203901,
+      "reason": "ffxiclopedia page 'Sparks of Eminence' has no supported mission or quest header.",
+      "revision_id": 1793385,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Sparks_of_Eminence",
+      "title": "Sparks of Eminence"
+    },
+    {
+      "page_id": 204078,
+      "reason": "ffxiclopedia page 'Limited-time Challenges' has no supported mission or quest header.",
+      "revision_id": 1770708,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Limited-time_Challenges",
+      "title": "Limited-time Challenges"
+    },
+    {
+      "page_id": 204161,
+      "reason": "ffxiclopedia page 'Nantoto' has no supported mission or quest header.",
+      "revision_id": 1675750,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Nantoto",
+      "title": "Nantoto"
+    },
+    {
+      "page_id": 204604,
+      "reason": "ffxiclopedia page 'Eminence Representative' has no supported mission or quest header.",
+      "revision_id": 1475561,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Eminence_Representative",
+      "title": "Eminence Representative"
+    },
+    {
+      "page_id": 204740,
+      "reason": "ffxiclopedia page 'Sin' has no supported mission or quest header.",
+      "revision_id": 1544805,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Sin",
+      "title": "Sin"
+    },
+    {
+      "page_id": 204901,
+      "reason": "ffxiclopedia page 'Darrcuiln' has no supported mission or quest header.",
+      "revision_id": 1674015,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Darrcuiln",
+      "title": "Darrcuiln"
+    },
+    {
+      "page_id": 205308,
+      "reason": "ffxiclopedia page 'Cait Sith' has no supported mission or quest header.",
+      "revision_id": 1716439,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Cait_Sith",
+      "title": "Cait Sith"
+    },
+    {
+      "page_id": 205385,
+      "reason": "ffxiclopedia page 'The Dawn Also Rises' has no supported mission or quest header.",
+      "revision_id": 1693047,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Dawn_Also_Rises",
+      "title": "The Dawn Also Rises"
+    },
+    {
+      "page_id": 205444,
+      "reason": "ffxiclopedia page 'Fishing (RoE)' has no supported mission or quest header.",
+      "revision_id": 1770707,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Fishing_(RoE)",
+      "title": "Fishing (RoE)"
+    },
+    {
+      "page_id": 205516,
+      "reason": "ffxiclopedia page 'Breath of dawn' has no supported mission or quest header.",
+      "revision_id": 1485275,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Breath_of_dawn",
+      "title": "Breath of dawn"
+    },
+    {
+      "page_id": 205963,
+      "reason": "ffxiclopedia page \"Sajj'aka\" has no supported mission or quest header.",
+      "revision_id": 1676559,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Sajj'aka",
+      "title": "Sajj'aka"
+    },
+    {
+      "page_id": 206030,
+      "reason": "ffxiclopedia page 'Leafallia' has no supported mission or quest header.",
+      "revision_id": 1764169,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Leafallia",
+      "title": "Leafallia"
+    },
+    {
+      "page_id": 206102,
+      "reason": "ffxiclopedia page 'Morimar' has no supported mission or quest header.",
+      "revision_id": 1711251,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Morimar",
+      "title": "Morimar"
+    },
+    {
+      "page_id": 206409,
+      "reason": "ffxiclopedia page 'Duberasson' has no supported mission or quest header.",
+      "revision_id": 1674135,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Duberasson",
+      "title": "Duberasson"
+    },
+    {
+      "page_id": 207283,
+      "reason": "ffxiclopedia page 'The Serpentine Labyrinth' has no supported mission or quest header.",
+      "revision_id": 1505402,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Serpentine_Labyrinth",
+      "title": "The Serpentine Labyrinth"
+    },
+    {
+      "page_id": 207293,
+      "reason": "ffxiclopedia page 'Hades' has no supported mission or quest header.",
+      "revision_id": 1674672,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hades",
+      "title": "Hades"
+    },
+    {
+      "page_id": 208090,
+      "reason": "ffxiclopedia page 'Butterfly-shaped key' has no supported mission or quest header.",
+      "revision_id": 1501524,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Butterfly-shaped_key",
+      "title": "Butterfly-shaped key"
+    },
+    {
+      "page_id": 208351,
+      "reason": "ffxiclopedia page 'Unity Concord' has no supported mission or quest header.",
+      "revision_id": 1776935,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Unity_Concord",
+      "title": "Unity Concord"
+    },
+    {
+      "page_id": 208772,
+      "reason": "ffxiclopedia page 'Hades (Chapter)' has no supported mission or quest header.",
+      "revision_id": 1505398,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Hades_(Chapter)",
+      "title": "Hades (Chapter)"
+    },
+    {
+      "page_id": 209815,
+      "reason": "ffxiclopedia page 'Achievements (RoE)' has no supported mission or quest header.",
+      "revision_id": 1770709,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Achievements_(RoE)",
+      "title": "Achievements (RoE)"
+    },
+    {
+      "page_id": 210582,
+      "reason": "ffxiclopedia page \"Rhapsodies of Vana'diel\" has no supported mission or quest header.",
+      "revision_id": 1743977,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Rhapsodies_of_Vana'diel",
+      "title": "Rhapsodies of Vana'diel"
+    },
+    {
+      "page_id": 210982,
+      "reason": "ffxiclopedia page \"Escha - Ru'Aun\" has no supported mission or quest header.",
+      "revision_id": 1741468,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Escha_-_Ru'Aun",
+      "title": "Escha - Ru'Aun"
+    },
+    {
+      "page_id": 218012,
+      "reason": "ffxiclopedia page \"Vana'versary\" has no supported mission or quest header.",
+      "revision_id": 1739009,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vana'versary",
+      "title": "Vana'versary"
+    },
+    {
+      "page_id": 218080,
+      "reason": "ffxiclopedia page 'Helina' has no supported mission or quest header.",
+      "revision_id": 1786963,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Helina",
+      "title": "Helina"
+    },
+    {
+      "page_id": 219060,
+      "reason": "ffxiclopedia page 'Chapter One: Creation and Rebirth' has no supported mission or quest header.",
+      "revision_id": 1585684,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Chapter_One%3A_Creation_and_Rebirth",
+      "title": "Chapter One: Creation and Rebirth"
+    },
+    {
+      "page_id": 219061,
+      "reason": "ffxiclopedia page 'Chapter Two: Revitalization' has no supported mission or quest header.",
+      "revision_id": 1585745,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Chapter_Two%3A_Revitalization",
+      "title": "Chapter Two: Revitalization"
+    },
+    {
+      "page_id": 219072,
+      "reason": "ffxiclopedia page 'Chapter Three: Reckoning' has no supported mission or quest header.",
+      "revision_id": 1585747,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Chapter_Three%3A_Reckoning",
+      "title": "Chapter Three: Reckoning"
+    },
+    {
+      "page_id": 221056,
+      "reason": "ffxiclopedia page 'Unity (RoE)' has no supported mission or quest header.",
+      "revision_id": 1789006,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Unity_(RoE)",
+      "title": "Unity (RoE)"
+    },
+    {
+      "page_id": 221360,
+      "reason": "ffxiclopedia page 'Crafting (RoE)' has no supported mission or quest header.",
+      "revision_id": 1794263,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Crafting_(RoE)",
+      "title": "Crafting (RoE)"
+    },
+    {
+      "page_id": 244718,
+      "reason": "ffxiclopedia page 'Ancient Melodies' has no supported mission or quest header.",
+      "revision_id": 1784113,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Ancient_Melodies",
+      "title": "Ancient Melodies"
+    },
+    {
+      "page_id": 247480,
+      "reason": "ffxiclopedia page 'Greyson' has no supported mission or quest header.",
+      "revision_id": 1772064,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Greyson",
+      "title": "Greyson"
+    },
+    {
+      "page_id": 252275,
+      "reason": "ffxiclopedia page 'Deeds of Heroism' has no supported mission or quest header.",
+      "revision_id": 1788041,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Deeds_of_Heroism",
+      "title": "Deeds of Heroism"
+    },
+    {
+      "page_id": 255328,
+      "reason": "ffxiclopedia page 'Returning to Vana’diel 2019' has no supported mission or quest header.",
+      "revision_id": 1711922,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Returning_to_Vana%E2%80%99diel_2019",
+      "title": "Returning to Vana’diel 2019"
+    },
+    {
+      "page_id": 257924,
+      "reason": "ffxiclopedia page 'The Voracious Resurgence' has no supported mission or quest header.",
+      "revision_id": 1724078,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/The_Voracious_Resurgence",
+      "title": "The Voracious Resurgence"
+    },
+    {
+      "page_id": 260919,
+      "reason": "ffxiclopedia page 'Elijah' has no supported mission or quest header.",
+      "revision_id": 1773306,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Elijah",
+      "title": "Elijah"
+    },
+    {
+      "page_id": 265871,
+      "reason": "ffxiclopedia page \"Vana'Bout (RoE)\" has no supported mission or quest header.",
+      "revision_id": 1795530,
+      "site": "ffxiclopedia",
+      "source_url": "https://ffxiclopedia.fandom.com/wiki/Vana'Bout_(RoE)",
+      "title": "Vana'Bout (RoE)"
+    }
+  ],
+  "schema_version": 1
+}

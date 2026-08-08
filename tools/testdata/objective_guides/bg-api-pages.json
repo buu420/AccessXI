@@ -1,0 +1,58 @@
+{
+  "source": {
+    "site": "bg",
+    "api_url": "https://www.bg-wiki.com/api.php",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://www.bg-wiki.com/ffxi/BGWiki:Copyrights",
+    "fixture_note": "Minimal revisioned API fields and walkthrough excerpts retained for parser regression tests."
+  },
+  "requested_titles": [
+    "Acting in Good Faith",
+    "Bastok Mission 1-2"
+  ],
+  "response": {
+    "batchcomplete": true,
+    "query": {
+      "pages": [
+        {
+          "pageid": 6,
+          "ns": 0,
+          "title": "Acting in Good Faith",
+          "revisions": [
+            {
+              "revid": 774429,
+              "parentid": 727568,
+              "timestamp": "2026-08-01T00:56:35Z",
+              "slots": {
+                "main": {
+                  "contentmodel": "wikitext",
+                  "contentformat": "text/x-wiki",
+                  "content": "{{Quest Header\n|Start=[[Gantineux]], [[Windurst Waters]] (E-10)\n|Item Reqs={{KI}} [[Spirit incense]]\n}}\n==Walkthrough==\n*Speak to [[Gantineux]] at (E-10).\n*Head to [[The Eldieme Necropolis]] and look for a '''???''' that spawns in one of four locations.\n**(I-7) on Map 2.\n**(I-10) on Map 2.\n**(M-6) on Map 2.\n**(D-5) on Map 2.\n*Click the '''???'''.\n**The incense will always fail to light.\n*Return to [[Gantineux]], then talk to [[Eperdur]] in [[Northern San d'Oria]] (M-7)."
+                }
+              }
+            }
+          ]
+        },
+        {
+          "pageid": 12562,
+          "ns": 0,
+          "title": "Bastok Mission 1-2",
+          "revisions": [
+            {
+              "revid": 686732,
+              "parentid": 678203,
+              "timestamp": "2023-07-27T00:56:06Z",
+              "slots": {
+                "main": {
+                  "contentmodel": "wikitext",
+                  "contentformat": "text/x-wiki",
+                  "content": "{{Mission Header\n|Mission Name=A Geological Survey\n|Expansion=bastok\n|Start=Any Bastok [[Gate Guard]]\n}}\n==Walkthrough==\n*Speak to a Bastok [[Gate Guard]].\n*Go to [[Cid]] at (G-8) in [[Metalworks]], talk to him, and receive the {{KI}} [[Blue acidity tester]].\n*Enter [[Dangruf Wadi]] from [[South Gustaberg]] (D-9).\n*Use the geyser at (I-8) until the tester becomes the {{KI}} [[Red acidity tester]].\n*Return to [[Cid]]."
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

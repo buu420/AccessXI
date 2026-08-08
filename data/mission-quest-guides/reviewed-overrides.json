@@ -1,0 +1,520 @@
+{
+  "schema_version": 1,
+  "page_matches": {
+    "mission:Bastok:2": {
+      "bg": {
+        "page_id": 12562,
+        "canonical_title": "Bastok Mission 1-2"
+      },
+      "ffxiclopedia": {
+        "page_id": 3338,
+        "canonical_title": "A Geological Survey"
+      }
+    },
+    "mission:Chains of Promathia:39": {
+      "ffxiclopedia": {
+        "page_id": 13552,
+        "canonical_title": "The Pursuit of Paradise (Tenzen's Path)"
+      }
+    },
+    "mission:Chains of Promathia:44": {
+      "ffxiclopedia": {
+        "page_id": 13606,
+        "canonical_title": "Where Messengers Gather (Ulmia's Path)"
+      }
+    },
+    "mission:Rhapsodies of Vana'diel:11": {
+      "bg": {
+        "page_id": 116644,
+        "canonical_title": "Rhapsodies of Vanadiel Mission 1-10"
+      },
+      "ffxiclopedia": {
+        "page_id": 209849,
+        "canonical_title": "Eddies of Despair"
+      }
+    },
+    "mission:Rhapsodies of Vana'diel:55": {
+      "bg": {
+        "page_id": 118752,
+        "canonical_title": "Rhapsodies of Vanadiel Mission 2-35"
+      },
+      "ffxiclopedia": {
+        "page_id": 210505,
+        "canonical_title": "Eddies of Despair (Chapter 2)"
+      }
+    },
+    "mission:San d'Oria:6": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:7": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:8": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:9": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:San d'Oria:10": {
+      "ffxiclopedia": {
+        "page_id": 8066,
+        "canonical_title": "Journey Abroad",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Seekers of Adoulin:84": {
+      "ffxiclopedia": {
+        "page_id": 207263,
+        "canonical_title": "Tomatoes of Wrath"
+      }
+    },
+    "mission:Windurst:6": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:7": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:8": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:9": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "mission:Windurst:10": {
+      "ffxiclopedia": {
+        "page_id": 8462,
+        "canonical_title": "The Three Kingdoms",
+        "allow_shared_page": true
+      }
+    },
+    "quest:bastok:71": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:crystal_war:83": {
+      "ffxiclopedia": {
+        "page_id": 188703,
+        "canonical_title": "VW Op. No. 126: Qufim Incursion",
+        "allow_shared_page": true
+      }
+    },
+    "quest:jeuno:168": {
+      "ffxiclopedia": {
+        "page_id": 190076,
+        "canonical_title": "VW Op. No. 115: Valkurm Duster"
+      }
+    },
+    "quest:jeuno:169": {
+      "ffxiclopedia": {
+        "page_id": 190125,
+        "canonical_title": "VW Op. No. 118: Buburimu Squall"
+      }
+    },
+    "quest:other_areas:10": {
+      "ffxiclopedia": {
+        "page_id": 204943,
+        "canonical_title": "Elder Memories - The Old Lady",
+        "allow_shared_page": true
+      }
+    },
+    "quest:other_areas:24": {
+      "ffxiclopedia": {
+        "page_id": 204943,
+        "canonical_title": "Elder Memories - The Old Lady",
+        "allow_shared_page": true
+      }
+    },
+    "quest:outlands:14": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:outlands:128": {
+      "bg": {
+        "page_id": 1787,
+        "canonical_title": "Sahagin Key"
+      },
+      "ffxiclopedia": {
+        "page_id": 11295,
+        "canonical_title": "Sahagin Key Quest"
+      }
+    },
+    "quest:outlands:163": {
+      "bg": {
+        "page_id": 38754,
+        "canonical_title": "Divine Might"
+      },
+      "ffxiclopedia": {
+        "page_id": 13498,
+        "canonical_title": "Divine Might"
+      }
+    },
+    "quest:outlands:164": {
+      "ffxiclopedia": {
+        "page_id": 204861,
+        "canonical_title": "Divine Might (Repeat)"
+      }
+    },
+    "quest:sandoria:75": {
+      "ffxiclopedia": {
+        "page_id": 4506,
+        "canonical_title": "The Rivalry - The Competition",
+        "allow_shared_page": true
+      }
+    },
+    "quest:sandoria:76": {
+      "ffxiclopedia": {
+        "page_id": 4506,
+        "canonical_title": "The Rivalry - The Competition",
+        "allow_shared_page": true
+      }
+    },
+    "quest:sandoria:104": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    },
+    "quest:windurst:89": {
+      "ffxiclopedia": {
+        "page_id": 2797,
+        "canonical_title": "A Discerning Eye",
+        "allow_shared_page": true
+      }
+    }
+  },
+  "shared_page_groups": [
+    {
+      "site": "bg",
+      "page_id": 12758,
+      "canonical_title": "Bastok Mission 2-3",
+      "native_keys": [
+        "mission:Bastok:6",
+        "mission:Bastok:7",
+        "mission:Bastok:8",
+        "mission:Bastok:9",
+        "mission:Bastok:10"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 101638,
+      "canonical_title": "The Emissary",
+      "native_keys": [
+        "mission:Bastok:6",
+        "mission:Bastok:7",
+        "mission:Bastok:8",
+        "mission:Bastok:9",
+        "mission:Bastok:10"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 12650,
+      "canonical_title": "San d'Oria Mission 2-3",
+      "native_keys": [
+        "mission:San d'Oria:6",
+        "mission:San d'Oria:7",
+        "mission:San d'Oria:8",
+        "mission:San d'Oria:9",
+        "mission:San d'Oria:10"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 13289,
+      "canonical_title": "Windurst Mission 2-3",
+      "native_keys": [
+        "mission:Windurst:6",
+        "mission:Windurst:7",
+        "mission:Windurst:8",
+        "mission:Windurst:9",
+        "mission:Windurst:10"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 13126,
+      "canonical_title": "Zilart Mission 1",
+      "native_keys": [
+        "mission:Rise of the Zilart:1",
+        "mission:Rise of the Zilart:3"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 3480,
+      "canonical_title": "The New Frontier",
+      "native_keys": [
+        "mission:Rise of the Zilart:1",
+        "mission:Rise of the Zilart:3"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 11599,
+      "canonical_title": "Promathia Mission 3-3",
+      "native_keys": [
+        "mission:Chains of Promathia:14",
+        "mission:Chains of Promathia:15",
+        "mission:Chains of Promathia:16",
+        "mission:Chains of Promathia:17",
+        "mission:Chains of Promathia:18",
+        "mission:Chains of Promathia:19",
+        "mission:Chains of Promathia:20",
+        "mission:Chains of Promathia:21",
+        "mission:Chains of Promathia:22"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 13427,
+      "canonical_title": "The Road Forks",
+      "native_keys": [
+        "mission:Chains of Promathia:14",
+        "mission:Chains of Promathia:15",
+        "mission:Chains of Promathia:16",
+        "mission:Chains of Promathia:17",
+        "mission:Chains of Promathia:18",
+        "mission:Chains of Promathia:19",
+        "mission:Chains of Promathia:20",
+        "mission:Chains of Promathia:21",
+        "mission:Chains of Promathia:22"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 11704,
+      "canonical_title": "Promathia Mission 5-3/Louverance's Path",
+      "native_keys": [
+        "mission:Chains of Promathia:34",
+        "mission:Chains of Promathia:35",
+        "mission:Chains of Promathia:36",
+        "mission:Chains of Promathia:37",
+        "mission:Chains of Promathia:38"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 13607,
+      "canonical_title": "Past Sins (Louverance's Path)",
+      "native_keys": [
+        "mission:Chains of Promathia:34",
+        "mission:Chains of Promathia:35",
+        "mission:Chains of Promathia:36",
+        "mission:Chains of Promathia:37",
+        "mission:Chains of Promathia:38"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 11943,
+      "canonical_title": "Promathia Mission 5-3/Tenzen's Path",
+      "native_keys": [
+        "mission:Chains of Promathia:39",
+        "mission:Chains of Promathia:40",
+        "mission:Chains of Promathia:41",
+        "mission:Chains of Promathia:42",
+        "mission:Chains of Promathia:43"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 13552,
+      "canonical_title": "The Pursuit of Paradise (Tenzen's Path)",
+      "native_keys": [
+        "mission:Chains of Promathia:39",
+        "mission:Chains of Promathia:40",
+        "mission:Chains of Promathia:41",
+        "mission:Chains of Promathia:42",
+        "mission:Chains of Promathia:43"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 11718,
+      "canonical_title": "Promathia Mission 5-3/Ulmia's Path",
+      "native_keys": [
+        "mission:Chains of Promathia:44",
+        "mission:Chains of Promathia:45",
+        "mission:Chains of Promathia:46",
+        "mission:Chains of Promathia:47"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 13606,
+      "canonical_title": "Where Messengers Gather (Ulmia's Path)",
+      "native_keys": [
+        "mission:Chains of Promathia:44",
+        "mission:Chains of Promathia:45",
+        "mission:Chains of Promathia:46",
+        "mission:Chains of Promathia:47"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 42244,
+      "canonical_title": "Promathia Mission 8-5",
+      "native_keys": [
+        "mission:Chains of Promathia:64",
+        "mission:Rise of the Zilart:32"
+      ]
+    },
+    {
+      "site": "ffxiclopedia",
+      "page_id": 22273,
+      "canonical_title": "The Last Verse",
+      "native_keys": [
+        "mission:Chains of Promathia:64",
+        "mission:Rise of the Zilart:32"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 510,
+      "canonical_title": "The Rivalry/The Competition",
+      "native_keys": [
+        "quest:sandoria:75",
+        "quest:sandoria:76"
+      ]
+    },
+    {
+      "site": "bg",
+      "page_id": 41395,
+      "canonical_title": "Unlocking a Myth",
+      "native_keys": [
+        "quest:jeuno:102",
+        "quest:jeuno:103",
+        "quest:jeuno:104",
+        "quest:jeuno:105",
+        "quest:jeuno:106",
+        "quest:jeuno:107",
+        "quest:jeuno:108",
+        "quest:jeuno:109",
+        "quest:jeuno:110",
+        "quest:jeuno:111",
+        "quest:jeuno:112",
+        "quest:jeuno:113",
+        "quest:jeuno:114",
+        "quest:jeuno:115",
+        "quest:jeuno:116",
+        "quest:jeuno:117",
+        "quest:jeuno:118",
+        "quest:jeuno:119",
+        "quest:jeuno:120",
+        "quest:jeuno:121"
+      ]
+    }
+  ],
+  "runtime_objective_keys": {
+    "mission:Bastok:2": "Bastok:1"
+  },
+  "automatic_stage_links": {
+    "mission:Bastok:2": {
+      "obtain-blue-tester": {
+        "predicate": "current-session key-item table owns neither tester",
+        "step_selector": {
+          "action": "talk",
+          "entity": "Cid",
+          "key_item": "Blue acidity tester",
+          "occurrence": "first"
+        }
+      },
+      "charge-blue-tester": {
+        "predicate": "current-session key-item table owns Blue acidity tester",
+        "step_selector": {
+          "grid": "I-8",
+          "entity": "geyser"
+        }
+      },
+      "return-red-tester": {
+        "predicate": "current-session key-item table owns Red acidity tester",
+        "step_selector": {
+          "action": "talk",
+          "entity": "Cid",
+          "occurrence": "last"
+        }
+      }
+    }
+  },
+  "target_overrides": {},
+  "evidence": [
+    "installed English client DAT rows",
+    "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2",
+    "https://ffxiclopedia.fandom.com/wiki/A_Geological_Survey",
+    "https://ffxiclopedia.fandom.com/wiki/A_Discerning_Eye",
+    "https://ffxiclopedia.fandom.com/wiki/The_Rivalry_-_The_Competition",
+    "https://ffxiclopedia.fandom.com/wiki/Journey_Abroad",
+    "https://ffxiclopedia.fandom.com/wiki/The_Three_Kingdoms",
+    "https://ffxiclopedia.fandom.com/wiki/Divine_Might",
+    "https://ffxiclopedia.fandom.com/wiki/Divine_Might_(Repeat)",
+    "https://ffxiclopedia.fandom.com/wiki/Elder_Memories_-_The_Old_Lady",
+    "https://ffxiclopedia.fandom.com/wiki/Eddies_of_Despair",
+    "https://ffxiclopedia.fandom.com/wiki/Eddies_of_Despair_(Chapter_2)",
+    "https://ffxiclopedia.fandom.com/wiki/The_Pursuit_of_Paradise_(Tenzen%27s_Path)",
+    "https://ffxiclopedia.fandom.com/wiki/Where_Messengers_Gather_(Ulmia%27s_Path)",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._126:_Qufim_Incursion",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._115:_Valkurm_Duster",
+    "https://ffxiclopedia.fandom.com/wiki/VW_Op._No._118:_Buburimu_Squall",
+    "https://ffxiclopedia.fandom.com/wiki/Tomatoes_of_Wrath",
+    "https://www.bg-wiki.com/ffxi/Bastok_Mission_2-3",
+    "https://www.bg-wiki.com/ffxi/San_d%27Oria_Mission_2-3",
+    "https://www.bg-wiki.com/ffxi/Windurst_Mission_2-3",
+    "https://www.bg-wiki.com/ffxi/Promathia_Mission_3-3",
+    "https://ffxiclopedia.fandom.com/wiki/The_Road_Forks",
+    "https://www.bg-wiki.com/ffxi/Promathia_Mission_5-3/Louverance%27s_Path",
+    "https://ffxiclopedia.fandom.com/wiki/Past_Sins_(Louverance%27s_Path)",
+    "https://www.bg-wiki.com/ffxi/Promathia_Mission_5-3/Tenzen%27s_Path",
+    "https://www.bg-wiki.com/ffxi/Promathia_Mission_5-3/Ulmia%27s_Path",
+    "https://www.bg-wiki.com/ffxi/Promathia_Mission_8-5",
+    "https://ffxiclopedia.fandom.com/wiki/The_Last_Verse",
+    "https://www.bg-wiki.com/ffxi/The_Rivalry/The_Competition",
+    "https://www.bg-wiki.com/ffxi/Unlocking_a_Myth",
+    "https://www.bg-wiki.com/ffxi/Nyzul_Isle_Investigation",
+    "https://ffxiclopedia.fandom.com/wiki/Nyzul_Isle_Investigation",
+    "https://www.bg-wiki.com/ffxi/Nyzul_Isle_Uncharted_Area_Survey",
+    "https://ffxiclopedia.fandom.com/wiki/Nyzul_Isle_Uncharted_Area_Survey",
+    "https://www.bg-wiki.com/ffxi/Sahagin_Key",
+    "https://ffxiclopedia.fandom.com/wiki/Sahagin_Key_Quest",
+    "existing AccessXI current-session key-item stages"
+  ]
+}

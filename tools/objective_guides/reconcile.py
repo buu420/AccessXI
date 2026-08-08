@@ -1,0 +1,287 @@
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, replace
+
+from .model import ParsedObjective, SourceStep
+
+
+@dataclass(frozen=True, slots=True)
+class ReconciledStep:
+    stable_step_id: str
+    order: int
+    source_orders: tuple[int, int]
+    comparison: str
+    agreed_fields: tuple[str, ...]
+    conflicting_fields: tuple[str, ...]
+    bg_instruction: str
+    ffxiclopedia_instruction: str
+    action: str
+    entities: tuple[str, ...]
+    zones: tuple[str, ...]
+    grid_coordinates: tuple[str, ...]
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ReconciledObjective:
+    native_key: str
+    steps: tuple[ReconciledStep, ...]
+    dynamic_candidate_grid: tuple[str, ...] = ()
+    dynamic_candidate_comparison: str = "none"
+    selected_candidate_grid: str | None = None
+
+
+def _unique(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        value = str(value or "").strip()
+        key = value.casefold()
+        if value and key not in seen:
+            seen.add(key)
+            result.append(value)
+    return tuple(result)
+
+
+def _tokens(value: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9?]+", value.casefold())
+        if len(token) >= 3 and token not in {"the", "and", "then", "with", "from", "this", "that"}
+    }
+
+
+def _intersection(left: tuple[str, ...], right: tuple[str, ...]) -> set[str]:
+    left_keys = {value.casefold() for value in left}
+    return left_keys.intersection(value.casefold() for value in right)
+
+
+def _alignment_score(left: SourceStep, right: SourceStep) -> int:
+    score = 0
+    if left.action == right.action:
+        score += 1 if left.action == "note" else 4
+    if left.depth == right.depth:
+        score += 1
+    score += min(8, 5 * len(_intersection(left.linked_entities, right.linked_entities)))
+    score += min(6, 4 * len(_intersection(left.zone_candidates, right.zone_candidates)))
+    score += min(8, 4 * len(_intersection(left.grid_coordinates, right.grid_coordinates)))
+    score += min(6, 3 * len(_intersection(left.key_items, right.key_items)))
+    score += min(4, 2 * len(_intersection(left.items, right.items)))
+    left_tokens = _tokens(left.spoken_text)
+    right_tokens = _tokens(right.spoken_text)
+    if left_tokens and right_tokens:
+        overlap = len(left_tokens.intersection(right_tokens)) / len(left_tokens.union(right_tokens))
+        if overlap >= 0.15:
+            score += min(4, 1 + int(overlap * 6))
+    return score
+
+
+def _align_steps(
+    left: tuple[SourceStep, ...],
+    right: tuple[SourceStep, ...],
+) -> tuple[tuple[SourceStep | None, SourceStep | None], ...]:
+    rows = len(left) + 1
+    columns = len(right) + 1
+    scores = [[0 for _ in range(columns)] for _ in range(rows)]
+    choices = [["" for _ in range(columns)] for _ in range(rows)]
+    for i in range(1, rows):
+        choices[i][0] = "left"
+    for j in range(1, columns):
+        choices[0][j] = "right"
+
+    for i in range(1, rows):
+        for j in range(1, columns):
+            pair_score = _alignment_score(left[i - 1], right[j - 1])
+            diagonal = scores[i - 1][j - 1] + pair_score if pair_score >= 4 else -1
+            take_left = scores[i - 1][j]
+            take_right = scores[i][j - 1]
+            best = max(diagonal, take_left, take_right)
+            scores[i][j] = best
+            if diagonal == best:
+                choices[i][j] = "pair"
+            elif take_left == best:
+                choices[i][j] = "left"
+            else:
+                choices[i][j] = "right"
+
+    aligned: list[tuple[SourceStep | None, SourceStep | None]] = []
+    i, j = len(left), len(right)
+    while i > 0 or j > 0:
+        choice = choices[i][j]
+        if choice == "pair":
+            aligned.append((left[i - 1], right[j - 1]))
+            i -= 1
+            j -= 1
+        elif choice == "left" or j == 0:
+            aligned.append((left[i - 1], None))
+            i -= 1
+        else:
+            aligned.append((None, right[j - 1]))
+            j -= 1
+    aligned.reverse()
+    return tuple(aligned)
+
+
+def _coordinate_sort(value: str) -> tuple[str, int]:
+    match = re.fullmatch(r"([A-P])-([0-9]+)", value, re.IGNORECASE)
+    if not match:
+        return value.casefold(), 0
+    return match.group(1).upper(), int(match.group(2))
+
+
+def _dynamic_candidates(objective: ParsedObjective) -> tuple[str, ...]:
+    candidates: list[str] = []
+    dynamic_depth: int | None = None
+    for step in objective.steps:
+        text = step.source_text
+        lower = text.casefold()
+        begins_dynamic = "???" in text and any(term in lower for term in ("one of", "four location", "four brazier"))
+        if begins_dynamic:
+            dynamic_depth = step.depth
+        elif dynamic_depth is not None and step.depth <= dynamic_depth:
+            dynamic_depth = None
+        if not begins_dynamic and dynamic_depth is None:
+            continue
+
+        relevant = text
+        for separator in (" accessible from", ": near ", " near ", ": from ", " from the batallia"):
+            index = relevant.casefold().find(separator)
+            if index >= 0:
+                relevant = relevant[:index]
+                break
+        coordinates = tuple(
+            match.group(1).upper()
+            for match in re.finditer(r"(?<![A-Z0-9])([A-P]-\d{1,2})(?!\d)", relevant, re.IGNORECASE)
+        )
+        if begins_dynamic and not coordinates:
+            continue
+        candidates.extend(coordinates)
+    return tuple(sorted(_unique(candidates), key=_coordinate_sort))
+
+
+def _comparison(left: SourceStep | None, right: SourceStep | None) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    if left is None or right is None:
+        return "single-source", (), ()
+    agreed: list[str] = []
+    conflicts: list[str] = []
+    if left.action == right.action:
+        agreed.append("action")
+    elif left.action != "note" and right.action != "note" and {left.action, right.action} not in (
+        {"use", "wait"},
+        {"travel", "talk"},
+    ):
+        conflicts.append("action")
+
+    for field_name in ("zone_candidates", "map_numbers", "grid_coordinates"):
+        left_values = getattr(left, field_name)
+        right_values = getattr(right, field_name)
+        if left_values and right_values:
+            if {value.casefold() for value in left_values} == {value.casefold() for value in right_values}:
+                agreed.append(field_name)
+            else:
+                conflicts.append(field_name)
+    if _intersection(left.linked_entities, right.linked_entities):
+        agreed.append("entities")
+    if _intersection(left.key_items, right.key_items):
+        agreed.append("key_items")
+    if _intersection(left.items, right.items):
+        agreed.append("items")
+
+    if conflicts:
+        return "conflict", tuple(agreed), tuple(conflicts)
+    if agreed:
+        return "corroborated", tuple(agreed), ()
+    return "compatible", (), ()
+
+
+def reconcile_objectives(
+    native_key: str,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+) -> ReconciledObjective:
+    left = bg.steps if bg is not None else ()
+    right = ffxiclopedia.steps if ffxiclopedia is not None else ()
+    aligned = _align_steps(left, right)
+    steps: list[ReconciledStep] = []
+    for order, (bg_step, ffxi_step) in enumerate(aligned, start=1):
+        comparison, agreed, conflicts = _comparison(bg_step, ffxi_step)
+        entities = _unique(
+            [
+                *(bg_step.linked_entities if bg_step is not None else ()),
+                *(ffxi_step.linked_entities if ffxi_step is not None else ()),
+            ]
+        )
+        zones = _unique(
+            [
+                *(bg_step.zone_candidates if bg_step is not None else ()),
+                *(ffxi_step.zone_candidates if ffxi_step is not None else ()),
+            ]
+        )
+        coordinates = _unique(
+            [
+                *(bg_step.grid_coordinates if bg_step is not None else ()),
+                *(ffxi_step.grid_coordinates if ffxi_step is not None else ()),
+            ]
+        )
+        action = bg_step.action if bg_step is not None else ffxi_step.action if ffxi_step is not None else "note"
+        steps.append(
+            ReconciledStep(
+                stable_step_id=f"{native_key}:step-{order:03d}",
+                order=order,
+                source_orders=(bg_step.order if bg_step is not None else 0, ffxi_step.order if ffxi_step is not None else 0),
+                comparison=comparison,
+                agreed_fields=agreed,
+                conflicting_fields=conflicts,
+                bg_instruction=bg_step.spoken_text if bg_step is not None else "",
+                ffxiclopedia_instruction=ffxi_step.spoken_text if ffxi_step is not None else "",
+                action=action,
+                entities=entities,
+                zones=zones,
+                grid_coordinates=coordinates,
+            )
+        )
+
+    bg_text = " ".join(step.source_text.casefold() for step in left)
+    ffxi_text = " ".join(step.source_text.casefold() for step in right)
+    result_conflict = "always fail" in bg_text and "rare" in ffxi_text and "success" in ffxi_text
+    if result_conflict:
+        target_index = next(
+            (
+                index
+                for index, step in enumerate(steps)
+                if "always fail" in step.bg_instruction.casefold()
+                or ("rare" in step.ffxiclopedia_instruction.casefold() and "success" in step.ffxiclopedia_instruction.casefold())
+            ),
+            None,
+        )
+        if target_index is not None:
+            step = steps[target_index]
+            steps[target_index] = replace(
+                step,
+                comparison="conflict",
+                conflicting_fields=_unique([*step.conflicting_fields, "result"]),
+                route_ready=False,
+            )
+
+    bg_candidates = _dynamic_candidates(bg) if bg is not None else ()
+    ffxi_candidates = _dynamic_candidates(ffxiclopedia) if ffxiclopedia is not None else ()
+    if bg_candidates and ffxi_candidates:
+        dynamic_comparison = "corroborated" if bg_candidates == ffxi_candidates else "conflict"
+        candidates = bg_candidates if dynamic_comparison == "corroborated" else tuple(
+            sorted(_unique([*bg_candidates, *ffxi_candidates]), key=_coordinate_sort)
+        )
+    elif bg_candidates or ffxi_candidates:
+        dynamic_comparison = "single-source"
+        candidates = bg_candidates or ffxi_candidates
+    else:
+        dynamic_comparison = "none"
+        candidates = ()
+
+    return ReconciledObjective(
+        native_key=native_key,
+        steps=tuple(steps),
+        dynamic_candidate_grid=candidates,
+        dynamic_candidate_comparison=dynamic_comparison,
+        selected_candidate_grid=None,
+    )

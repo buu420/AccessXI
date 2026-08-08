@@ -1,0 +1,20 @@
+BG Wiki objective guidance
+
+AccessXI's generated BG Wiki guide modules contain concise adaptations of
+walkthrough guidance from BG Wiki. The generated modules identify the source
+page and exact revision used for each objective.
+
+BG Wiki states that user-contributed text, excluding Square Enix copyrighted
+material, is available under Creative Commons Attribution-NonCommercial-
+ShareAlike 3.0 Unported (CC BY-NC-SA 3.0).
+
+Source: https://www.bg-wiki.com/ffxi/BG_Wiki:Copyrights
+License: https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+Changes: Source steps are parsed, normalized, shortened, and rewritten for
+screen-reader delivery. Raw page wikitext and images are not distributed with
+the addon. BG Wiki source-derived modules remain separate from FFXIclopedia
+source-derived modules and AccessXI-authored reconciliation records.
+
+Final Fantasy XI and its game data are copyrights and trademarks of Square
+Enix. This notice does not grant rights to Square Enix material.

@@ -220,13 +220,31 @@ class MediaWikiClient:
         return tuple(members.values())
 
     def fetch_pages(self, titles: Iterable[str]) -> tuple[PageRevision, ...]:
+        pages, missing = self._fetch_pages(titles)
+        if missing:
+            raise MediaWikiError(f"MediaWiki page is missing: {missing[0]}")
+        return pages
+
+    def fetch_existing_pages(
+        self,
+        titles: Iterable[str],
+    ) -> tuple[tuple[PageRevision, ...], tuple[str, ...]]:
+        """Fetch all existing titles while reporting, rather than guessing over, misses."""
+
+        return self._fetch_pages(titles)
+
+    def _fetch_pages(
+        self,
+        titles: Iterable[str],
+    ) -> tuple[tuple[PageRevision, ...], tuple[str, ...]]:
         requested = tuple(dict.fromkeys(title.strip() for title in titles if title.strip()))
         if not requested:
-            return ()
+            return (), ()
 
         revisions: dict[int, PageRevision] = {}
         resolved_titles: set[str] = set()
         alias_targets: dict[str, str] = {}
+        missing_titles: list[str] = []
         for start in range(0, len(requested), self.batch_size):
             batch = requested[start : start + self.batch_size]
             payload = self._query(
@@ -260,7 +278,7 @@ class MediaWikiClient:
                     raise MediaWikiError("Revision response contains an invalid page record.")
                 title = str(raw_page.get("title", "")).strip()
                 if raw_page.get("missing") is True or int(raw_page.get("pageid", 0) or 0) <= 0:
-                    raise MediaWikiError(f"MediaWiki page is missing: {title or '<unknown>'}")
+                    continue
                 raw_revisions = raw_page.get("revisions")
                 if not isinstance(raw_revisions, list) or len(raw_revisions) != 1:
                     raise MediaWikiError(f"MediaWiki page {title!r} has no unique current revision.")
@@ -303,9 +321,7 @@ class MediaWikiClient:
                     seen_aliases.add(resolved)
                     resolved = redirects[resolved]
                 if resolved not in resolved_titles:
-                    raise MediaWikiError(
-                        f"MediaWiki did not resolve requested page {requested_title!r} to a fetched revision."
-                    )
+                    missing_titles.append(requested_title)
 
         aliases_by_target: dict[str, list[str]] = {}
         for alias, target in alias_targets.items():
@@ -314,7 +330,10 @@ class MediaWikiClient:
         for revision in revisions.values():
             aliases = tuple(sorted(set(aliases_by_target.get(revision.canonical_title, [])), key=str.casefold))
             result.append(replace(revision, aliases=aliases))
-        return tuple(sorted(result, key=lambda page: (page.canonical_title.casefold(), page.page_id)))
+        return (
+            tuple(sorted(result, key=lambda page: (page.canonical_title.casefold(), page.page_id))),
+            tuple(dict.fromkeys(missing_titles)),
+        )
 
     def cache_revision(self, revision: PageRevision) -> Path | None:
         if self.cache_dir is None:
@@ -341,15 +360,129 @@ def _atomic_json_write(path: Path, value: dict[str, Any]) -> None:
             temporary.unlink()
 
 
+def recursive_category_pages(
+    client: MediaWikiClient,
+    category_titles: Iterable[str],
+) -> tuple[tuple[CategoryMember, ...], tuple[str, ...]]:
+    """Walk a category tree without revisiting cycles and return namespace-zero pages."""
+
+    queue = [title.strip() for title in category_titles if title.strip()]
+    queued = {title.casefold() for title in queue}
+    visited: list[str] = []
+    pages: dict[int, CategoryMember] = {}
+    while queue:
+        category = queue.pop(0)
+        visited.append(category)
+        for member in client.category_members(category, member_types="page|subcat"):
+            if member.namespace == 0:
+                previous = pages.get(member.page_id)
+                if previous is not None and previous.title != member.title:
+                    raise MediaWikiError(
+                        f"Category traversal changed page ID {member.page_id} from "
+                        f"{previous.title!r} to {member.title!r}."
+                    )
+                pages[member.page_id] = member
+            elif member.namespace == 14:
+                key = member.title.casefold()
+                if key not in queued:
+                    queued.add(key)
+                    queue.append(member.title)
+    return (
+        tuple(sorted(pages.values(), key=lambda page: (page.title.casefold(), page.page_id))),
+        tuple(visited),
+    )
+
+
+def load_snapshot(
+    snapshot_path: Path,
+    *,
+    expected_site: str | None = None,
+) -> tuple[PageRevision, ...]:
+    """Load and cryptographically validate a complete raw source snapshot."""
+
+    path = Path(snapshot_path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise MediaWikiError(f"Could not read objective source snapshot {path}: {error}") from error
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise MediaWikiError(f"Objective source snapshot {path} has an unsupported schema.")
+    site = str(payload.get("site", ""))
+    api_url = str(payload.get("api_url", ""))
+    if expected_site is not None and site != expected_site:
+        raise MediaWikiError(
+            f"Objective source snapshot {path} is for {site!r}, expected {expected_site!r}."
+        )
+    if site not in SITE_LICENSES or payload.get("license") != SITE_LICENSES[site]:
+        raise MediaWikiError(f"Objective source snapshot {path} has invalid license metadata.")
+    raw_pages = payload.get("pages")
+    if not isinstance(raw_pages, list) or not raw_pages:
+        raise MediaWikiError(f"Objective source snapshot {path} has no pages.")
+
+    pages: list[PageRevision] = []
+    identities: set[tuple[str, int]] = set()
+    for raw in raw_pages:
+        if not isinstance(raw, dict):
+            raise MediaWikiError(f"Objective source snapshot {path} contains an invalid page.")
+        try:
+            page = PageRevision(
+                site=site,
+                api_url=api_url,
+                canonical_title=str(raw["canonical_title"]),
+                page_id=int(raw["page_id"]),
+                revision_id=int(raw["revision_id"]),
+                parent_revision_id=int(raw.get("parent_revision_id", 0)),
+                revision_timestamp=str(raw["revision_timestamp"]),
+                content=str(raw["content"]),
+                aliases=tuple(str(value) for value in raw.get("aliases", [])),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise MediaWikiError(f"Objective source snapshot {path} has incomplete page metadata.") from error
+        if page.page_id <= 0 or page.revision_id <= 0 or not page.canonical_title:
+            raise MediaWikiError(f"Objective source snapshot {path} has an invalid page identity.")
+        if raw.get("content_sha256") != page.content_sha256:
+            raise MediaWikiError(
+                f"Objective source snapshot {path} failed the content hash for {page.canonical_title!r}."
+            )
+        if raw.get("license") != page.license_id or raw.get("source_url") != page.source_url:
+            raise MediaWikiError(
+                f"Objective source snapshot {path} failed provenance validation for {page.canonical_title!r}."
+            )
+        identity = (site, page.page_id)
+        if identity in identities:
+            raise MediaWikiError(f"Objective source snapshot {path} repeats page ID {page.page_id}.")
+        identities.add(identity)
+        pages.append(page)
+    return tuple(sorted(pages, key=lambda page: (page.canonical_title.casefold(), page.page_id)))
+
+
 def refresh_snapshot(
     client: MediaWikiClient,
     titles: Iterable[str],
     snapshot_path: Path,
 ) -> tuple[PageRevision, ...]:
     pages = client.fetch_pages(titles)
+    write_snapshot(client, pages, snapshot_path)
+    return pages
+
+
+def write_snapshot(
+    client: MediaWikiClient,
+    pages: Iterable[PageRevision],
+    snapshot_path: Path,
+) -> tuple[PageRevision, ...]:
+    pages = tuple(sorted(pages, key=lambda page: (page.canonical_title.casefold(), page.page_id)))
     if not pages:
         raise MediaWikiError("Refusing to replace a source snapshot with no pages.")
+    identities: set[int] = set()
     for page in pages:
+        if page.site != client.site:
+            raise MediaWikiError(
+                f"Refusing to mix {page.site!r} data into the {client.site!r} snapshot."
+            )
+        if page.page_id in identities:
+            raise MediaWikiError(f"Refusing to repeat source page ID {page.page_id} in one snapshot.")
+        identities.add(page.page_id)
         client.cache_revision(page)
     payload = {
         "schema_version": 1,

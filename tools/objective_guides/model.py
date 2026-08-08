@@ -55,3 +55,7 @@ class ParsedObjective:
     start_entities: tuple[str, ...] = ()
     steps: tuple[SourceStep, ...] = ()
     warnings: tuple[str, ...] = ()
+    revision_timestamp: str = ""
+    content_sha256: str = ""
+    source_url: str = ""
+    license_id: str = ""

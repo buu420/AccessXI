@@ -367,4 +367,8 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         start_entities=_header_start_entities(revision.content),
         steps=tuple(steps),
         warnings=_unique(page_warnings),
+        revision_timestamp=revision.revision_timestamp,
+        content_sha256=revision.content_sha256,
+        source_url=revision.source_url,
+        license_id=revision.license_id,
     )

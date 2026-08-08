@@ -1,0 +1,21 @@
+FFXIclopedia objective guidance
+
+AccessXI's generated FFXIclopedia guide modules contain concise adaptations of
+walkthrough guidance from FFXIclopedia on Fandom. The generated modules identify
+the source page and exact revision used for each objective.
+
+FFXIclopedia/Fandom user-contributed text is made available under Creative
+Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0), subject to Fandom's
+licensing terms and exclusions for third-party material.
+
+Source: https://ffxiclopedia.fandom.com/wiki/FFXIclopedia:Copyrights
+License: https://creativecommons.org/licenses/by-sa/3.0/
+Fandom licensing information: https://community.fandom.com/wiki/Licensing
+
+Changes: Source steps are parsed, normalized, shortened, and rewritten for
+screen-reader delivery. Raw page wikitext and images are not distributed with
+the addon. FFXIclopedia source-derived modules remain separate from BG Wiki
+source-derived modules and AccessXI-authored reconciliation records.
+
+Final Fantasy XI and its game data are copyrights and trademarks of Square
+Enix. This notice does not grant rights to Square Enix material.

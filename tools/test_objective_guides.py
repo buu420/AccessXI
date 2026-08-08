@@ -12,12 +12,19 @@ from tools.objective_guides.mediawiki import (
     MediaWikiClient,
     MediaWikiError,
     PageRevision,
+    load_snapshot,
+    recursive_category_pages,
     refresh_snapshot,
 )
 from tools.objective_guides.wikitext import parse_objective_page
 from tools.objective_guides.matching import match_objective_pages, normalize_title
 from tools.objective_guides.reconcile import reconcile_objectives
 from tools.objective_guides.model import ParsedObjective, SourceStep
+from tools.objective_guides.generate_lua import (
+    build_guide_artifacts,
+    lua_quote,
+    source_module_name,
+)
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -269,6 +276,37 @@ def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, 
 
 
 class MediaWikiAcquisitionTests(unittest.TestCase):
+    def test_recursive_category_walk_returns_pages_once_and_stops_cycles(self) -> None:
+        transport = _ScriptedTransport(
+            [
+                {
+                    "batchcomplete": True,
+                    "query": {
+                        "categorymembers": [
+                            {"pageid": 10, "ns": 0, "title": "First Mission"},
+                            {"pageid": 20, "ns": 14, "title": "Category:Nation Missions"},
+                        ]
+                    },
+                },
+                {
+                    "batchcomplete": True,
+                    "query": {
+                        "categorymembers": [
+                            {"pageid": 11, "ns": 0, "title": "Second Mission"},
+                            {"pageid": 21, "ns": 14, "title": "Category:Missions"},
+                        ]
+                    },
+                },
+            ]
+        )
+        client = MediaWikiClient("bg", "https://www.bg-wiki.com/api.php", transport=transport)
+
+        pages, categories = recursive_category_pages(client, ["Category:Missions"])
+
+        self.assertEqual([page.title for page in pages], ["First Mission", "Second Mission"])
+        self.assertEqual(categories, ("Category:Missions", "Category:Nation Missions"))
+        self.assertEqual(len(transport.calls), 2)
+
     def test_category_members_follow_continuation_with_required_request_policy(self) -> None:
         transport = _ScriptedTransport(
             [
@@ -354,6 +392,47 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
                 "https://www.bg-wiki.com/api.php",
                 transport=_ScriptedTransport([duplicate]),
             ).fetch_pages(["Acting in Good Faith"])
+
+    def test_lenient_page_fetch_keeps_existing_pages_and_reports_missing_titles(self) -> None:
+        fixture_page = _load_api_fixture("bg-api-pages.json")["response"]["query"]["pages"][0]
+        transport = _ScriptedTransport(
+            [
+                {
+                    "batchcomplete": True,
+                    "query": {
+                        "pages": [
+                            fixture_page,
+                            {"ns": 0, "title": "Definitely Missing", "missing": True},
+                        ]
+                    },
+                }
+            ]
+        )
+        client = MediaWikiClient("bg", "https://www.bg-wiki.com/api.php", transport=transport)
+
+        pages, missing = client.fetch_existing_pages(["Acting in Good Faith", "Definitely Missing"])
+
+        self.assertEqual([page.canonical_title for page in pages], ["Acting in Good Faith"])
+        self.assertEqual(missing, ("Definitely Missing",))
+
+    def test_snapshot_loader_rejects_content_hash_tampering(self) -> None:
+        fixture = _load_api_fixture("bg-api-pages.json")
+        client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=_ScriptedTransport([fixture["response"]]),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            snapshot_path = Path(temporary) / "bg.json"
+            refresh_snapshot(client, fixture["requested_titles"], snapshot_path)
+            loaded = load_snapshot(snapshot_path, expected_site="bg")
+            self.assertEqual(len(loaded), 2)
+
+            payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            payload["pages"][0]["content"] += "tampered"
+            snapshot_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaises(MediaWikiError):
+                load_snapshot(snapshot_path, expected_site="bg")
 
     def test_revision_cache_key_carries_site_ids_and_content_hash(self) -> None:
         page = PageRevision(
@@ -781,6 +860,139 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(len(reconciled.steps), 1)
         self.assertEqual(reconciled.steps[0].comparison, "corroborated")
         self.assertEqual(reconciled.steps[0].source_orders, (1, 1))
+
+
+class GeneratedArtifactTests(unittest.TestCase):
+    def _native_rows(self) -> tuple[NativeObjective, ...]:
+        return (
+            NativeObjective(
+                "mission",
+                "Bastok",
+                2,
+                "A Geological Survey",
+                "ROM/176/68.DAT",
+                0x280,
+                1,
+            ),
+            NativeObjective(
+                "quest",
+                "windurst",
+                77,
+                "Acting in Good Faith",
+                "ROM/176/62.DAT",
+                0xC080,
+                77,
+            ),
+            NativeObjective(
+                "quest",
+                "bastok",
+                92,
+                "No Source Objective",
+                "ROM/176/61.DAT",
+                0xE600,
+                92,
+            ),
+        )
+
+    def _source_pages(self) -> tuple[ParsedObjective, ...]:
+        bg = _fixture_revisions("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php")
+        ffxi = _fixture_revisions(
+            "ffxiclopedia",
+            "ffxiclopedia-api-pages.json",
+            "https://ffxiclopedia.fandom.com/api.php",
+        )
+        return (
+            parse_objective_page(bg["Bastok Mission 1-2"]),
+            parse_objective_page(bg["Acting in Good Faith"]),
+            parse_objective_page(ffxi["A Geological Survey"]),
+            parse_objective_page(ffxi["Acting in Good Faith"]),
+        )
+
+    def test_lua_escaping_and_module_names_are_stable(self) -> None:
+        self.assertEqual(lua_quote("Cid's\\lab\nnext"), '"Cid\'s\\\\lab\\nnext"')
+        self.assertEqual(
+            source_module_name("bg", "mission", "San d'Oria"),
+            "mission_quest_bg_mission_san_doria",
+        )
+        self.assertEqual(
+            source_module_name("ffxiclopedia", "quest", "other_areas"),
+            "mission_quest_ffxiclopedia_quest_other_areas",
+        )
+
+    def test_generation_is_deterministic_complete_and_source_separated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_root = root / "modules"
+            data_root = root / "data"
+
+            first = build_guide_artifacts(
+                self._native_rows(),
+                self._source_pages(),
+                module_root=module_root,
+                data_root=data_root,
+            )
+            first_bytes = {
+                path.relative_to(root).as_posix(): path.read_bytes()
+                for path in sorted(root.rglob("*"))
+                if path.is_file()
+            }
+            second = build_guide_artifacts(
+                self._native_rows(),
+                self._source_pages(),
+                module_root=module_root,
+                data_root=data_root,
+            )
+            second_bytes = {
+                path.relative_to(root).as_posix(): path.read_bytes()
+                for path in sorted(root.rglob("*"))
+                if path.is_file()
+            }
+
+            self.assertEqual(first_bytes, second_bytes)
+            self.assertEqual(first, second)
+            index = (module_root / "mission_quest_guide_index.lua").read_text(encoding="utf-8")
+            self.assertEqual(index.count('["mission:Bastok:2"]'), 1)
+            self.assertEqual(index.count('["quest:windurst:77"]'), 1)
+            self.assertEqual(index.count('["quest:bastok:92"]'), 1)
+            self.assertIn('status = "source-missing"', index)
+
+            bg_quest = (module_root / "mission_quest_bg_quest_windurst.lua").read_text(encoding="utf-8")
+            ffxi_quest = (
+                module_root / "mission_quest_ffxiclopedia_quest_windurst.lua"
+            ).read_text(encoding="utf-8")
+            self.assertIn("always fail", bg_quest)
+            self.assertNotIn("rarely report success", bg_quest)
+            self.assertIn("rarely report success", ffxi_quest)
+            self.assertNotIn("always fail", ffxi_quest)
+            self.assertIn("CC BY-NC-SA 3.0", bg_quest)
+            self.assertIn("CC BY-SA 3.0", ffxi_quest)
+            self.assertIn("revision_id = 774429", bg_quest)
+            self.assertIn("revision_id = 1771132", ffxi_quest)
+
+            reconcile = (
+                module_root / "mission_quest_reconcile_quest_windurst.lua"
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("always fail", reconcile)
+            self.assertNotIn("rarely report success", reconcile)
+            self.assertIn('dynamic_candidate_comparison = "corroborated"', reconcile)
+            self.assertIn('"D-5", "I-7", "I-10", "M-6"', reconcile)
+
+            coverage = json.loads((data_root / "coverage.json").read_text(encoding="utf-8"))
+            self.assertEqual(coverage["counts"]["valid_native"], 3)
+            self.assertEqual(sum(coverage["counts"]["by_status"].values()), 3)
+            self.assertEqual(coverage["objectives"]["quest:bastok:92"]["status"], "source-missing")
+            self.assertEqual(len(coverage["objectives"]), 3)
+
+            snapshot = json.loads((data_root / "source-snapshot.json").read_text(encoding="utf-8"))
+            self.assertTrue(all("content" not in page for page in snapshot["pages"]))
+            self.assertEqual(len(snapshot["pages"]), 4)
+            self.assertTrue(all(page["content_sha256"] for page in snapshot["pages"]))
+            self.assertTrue(all(page["revision_timestamp"] for page in snapshot["pages"]))
+            self.assertEqual(
+                {page["license"] for page in snapshot["pages"]},
+                {"CC-BY-NC-SA-3.0", "CC-BY-SA-3.0"},
+            )
+            self.assertTrue(all(page["source_url"].startswith("https://") for page in snapshot["pages"]))
 
 
 if __name__ == "__main__":

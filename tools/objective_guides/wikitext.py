@@ -292,7 +292,15 @@ _ACTION_MATCH = re.compile(
     re.IGNORECASE,
 )
 
-_COMMON_ABBREVIATIONS = frozenset({"dr", "etc", "lv", "mr", "mrs", "ms", "no"})
+_NAME_ABBREVIATIONS = frozenset({"dr", "mr", "mrs", "ms"})
+_NUMERIC_ABBREVIATIONS = frozenset({"lv", "no"})
+_NEW_SENTENCE_CONTEXT = re.compile(
+    r"(?:a|an|the)\s+(?:cutscene|event|scene)\b|"
+    r"(?:at|in|on|inside|outside|near|from)\b|"
+    r"(?:talk|speak|defeat|kill|slay|trade|obtain|receive|collect|examine|check|inspect|"
+    r"touch|use|select|return|report|visit|go|travel|enter|exit|leave)\b",
+    re.IGNORECASE,
+)
 
 
 def _trim_target(value: str) -> str:
@@ -340,6 +348,61 @@ def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
     )
 
 
+def _refine_linked_target(
+    raw_target: str,
+    clause_links: tuple[str, ...],
+    excluded_links: tuple[str, ...],
+) -> tuple[str, tuple[str, ...]]:
+    target = _trim_target(raw_target)
+    excluded = {value.casefold() for value in excluded_links}
+    candidates = tuple(
+        value
+        for value in _values_in_clause(clause_links, raw_target)
+        if value.casefold() not in excluded
+    )
+    if len(candidates) == 1:
+        return candidates[0], candidates
+    if len(candidates) > 1:
+        return "", candidates
+    return target, ((target,) if target else ())
+
+
+def _period_is_internal_abbreviation(value: str, end: int) -> bool:
+    continuation = value[end:].lstrip()
+    if not continuation or (
+        continuation[0].isupper() and _NEW_SENTENCE_CONTEXT.match(continuation)
+    ):
+        return False
+
+    initialism = re.search(
+        r"(?i)(?<![A-Za-z])((?:[A-Za-z]\.){2,})$",
+        value[:end],
+    )
+    if initialism:
+        token = initialism.group(1).casefold()
+        if continuation[0].islower():
+            return True
+        if token in {"e.g.", "i.e."} and re.match(
+            r"[^.!?]*,\s*(?:to|in|at|on)\b",
+            continuation,
+            re.IGNORECASE,
+        ):
+            return True
+        return False
+
+    abbreviation = re.search(r"([A-Za-z]+)\.$", value[:end])
+    if not abbreviation:
+        return False
+    token = abbreviation.group(1).casefold()
+    if token in _NUMERIC_ABBREVIATIONS:
+        return re.match(r"\d", continuation) is not None
+    if token in _NAME_ABBREVIATIONS:
+        return re.match(r"[A-Z][A-Za-z'-]+\b", continuation) is not None
+    if token == "etc":
+        return continuation[0].islower()
+    return False
+
+
 def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
     boundaries: list[tuple[int, int]] = []
     for match in re.finditer(r"[.!?]+", value):
@@ -359,13 +422,7 @@ def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
                 and value[end].isdigit()
             ):
                 continue
-            if re.search(
-                r"(?i)(?<![A-Za-z])(?:[A-Za-z]\.){2,}$",
-                value[:end],
-            ):
-                continue
-            abbreviation = re.search(r"([A-Za-z]+)\.$", value[:end])
-            if abbreviation and abbreviation.group(1).casefold() in _COMMON_ABBREVIATIONS:
+            if _period_is_internal_abbreviation(value, end):
                 continue
         boundary_start = start
         if len(run) > 1 and run[-1] in ".!" and (
@@ -482,6 +539,8 @@ def _extract_action_spans(
             clause_coordinates = ()
         clause_marked_items = _values_in_clause(marked_items, raw_clause)
         clause_key_items = _values_in_clause(key_items, raw_clause)
+        clause_links = _values_in_clause(links, raw_clause)
+        excluded_target_links = _unique((*clause_zones, *clause_marked_items, *clause_key_items))
         target = ""
         target_kind = ""
         item_mentions: tuple[str, ...] = ()
@@ -500,9 +559,10 @@ def _extract_action_spans(
             )
             if trade:
                 item = _trim_target(trade.group(1))
-                target = _trim_target(trade.group(2))
+                target, npc_mentions = _refine_linked_target(
+                    trade.group(2), clause_links, excluded_target_links
+                )
                 item_mentions = (item,) if item else ()
-                npc_mentions = (target,) if target else ()
                 target_kind = "npc"
         elif action == "talk":
             if verb.casefold() in {"return to", "report to", "visit"}:
@@ -517,12 +577,15 @@ def _extract_action_spans(
                     remainder,
                     re.IGNORECASE,
                 )
-            target = _trim_target(talked.group(1)) if talked else ""
+            if talked:
+                target, npc_mentions = _refine_linked_target(
+                    talked.group(1), clause_links, excluded_target_links
+                )
             if target.casefold() in {"him", "her", "them", "it"}:
                 target_kind = "role"
+                npc_mentions = ()
             else:
-                target_kind = "npc" if target else ""
-                npc_mentions = (target,) if target else ()
+                target_kind = "npc" if target or npc_mentions else ""
         elif action == "fight":
             fought = re.match(
                 r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
@@ -530,9 +593,11 @@ def _extract_action_spans(
                 remainder,
                 re.IGNORECASE,
             )
-            target = _trim_target(fought.group(1)) if fought else ""
-            target_kind = "enemy" if target else ""
-            enemy_mentions = (target,) if target else ()
+            if fought:
+                target, enemy_mentions = _refine_linked_target(
+                    fought.group(1), clause_links, excluded_target_links
+                )
+            target_kind = "enemy" if target or enemy_mentions else ""
         elif action == "examine":
             examined = re.match(
                 r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect|enter)\b|"
@@ -543,11 +608,15 @@ def _extract_action_spans(
             raw_target = examined.group(1) if examined else ""
             if "???" in raw_target:
                 target, target_kind = "???", "question-mark"
+                object_mentions = (target,)
             else:
-                target = _trim_target(raw_target)
+                target, object_mentions = _refine_linked_target(
+                    raw_target, clause_links, excluded_target_links
+                )
                 target = re.sub(r"^sparkling\s+", "", target, flags=re.IGNORECASE)
-                target_kind = "object" if target else ""
-            object_mentions = (target,) if target else ()
+                if target:
+                    object_mentions = (target,)
+                target_kind = "object" if target or object_mentions else ""
         elif action == "obtain":
             obtained = re.match(
                 r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[,;]|$)",
@@ -579,9 +648,13 @@ def _extract_action_spans(
             clause = _clean(warning_match.group(0)) if warning_match else clause
         elif action in {"use", "select"}:
             used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[;,]|$)", remainder, re.IGNORECASE)
-            target = _trim_target(used.group(1)) if used else ""
+            if used:
+                target, object_mentions = _refine_linked_target(
+                    used.group(1), clause_links, excluded_target_links
+                )
             target_kind = "menu-choice" if action == "select" else "object"
-            object_mentions = (target,) if target and action == "use" else ()
+            if action == "select":
+                object_mentions = ()
 
         item_mentions = _unique((*item_mentions, *clause_marked_items, *clause_key_items))
         spans.append(

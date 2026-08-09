@@ -1260,6 +1260,167 @@ class WikitextParserTests(unittest.TestCase):
                 self.assertEqual(fight.zone_mentions, ("East Ronfaure",))
                 self.assertEqual(talk.zone_mentions, ("West Ronfaure",))
 
+    def test_common_abbreviations_require_compatible_continuations(self) -> None:
+        for abbreviation in ("Lv.", "No.", "Mr.", "Mrs.", "Ms.", "Dr."):
+            with self.subTest(abbreviation=abbreviation):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Terminal Common Abbreviation",
+                    page_id=9319,
+                    revision_id=110,
+                    parent_revision_id=109,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Defeat [[Mob A]] in [[East Ronfaure]], {abbreviation} "
+                        "A cutscene occurs in [[West Ronfaure]].\n"
+                    ),
+                )
+
+                (fight,) = parse_objective_page(page).steps[0].action_spans
+
+                self.assertEqual(fight.zone_mentions, ("East Ronfaure",))
+                self.assertNotIn("cutscene", fight.supporting_clause.casefold())
+
+    def test_etc_is_terminal_only_when_a_new_sentence_follows(self) -> None:
+        terminal = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Terminal Etc Boundary",
+            page_id=9315,
+            revision_id=106,
+            parent_revision_id=105,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Defeat [[Mob A]] in [[East Ronfaure]], etc. A cutscene occurs in "
+                "[[West Ronfaure]].\n"
+            ),
+        )
+        (fight,) = parse_objective_page(terminal).steps[0].action_spans
+        self.assertEqual(fight.zone_mentions, ("East Ronfaure",))
+        self.assertNotIn("cutscene", fight.supporting_clause.casefold())
+
+        internal = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Internal Etc Boundary",
+            page_id=9316,
+            revision_id=107,
+            parent_revision_id=106,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Trade an item, etc. to [[Cid]] in [[East Ronfaure]], then talk to "
+                "[[NPC B]] in [[West Ronfaure]].\n"
+            ),
+        )
+        trade, talk = parse_objective_page(internal).steps[0].action_spans
+        self.assertIn("etc. to Cid", trade.supporting_clause)
+        self.assertEqual(trade.zone_mentions, ("East Ronfaure",))
+        self.assertEqual(talk.zone_mentions, ("West Ronfaure",))
+
+    def test_multi_initialism_is_terminal_only_before_new_sentence_context(self) -> None:
+        def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                site="bg",
+                api_url="https://www.bg-wiki.com/api.php",
+                canonical_title="Multi Initialism Boundary",
+                page_id=9318,
+                revision_id=109,
+                parent_revision_id=108,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        (terminal,) = spans(
+            "Defeat [[Mob A]] in [[East Ronfaure]] as an N.M. A cutscene occurs in "
+            "[[West Ronfaure]]."
+        )
+        self.assertEqual(terminal.zone_mentions, ("East Ronfaure",))
+        self.assertNotIn("cutscene", terminal.supporting_clause.casefold())
+
+        fight, talk = spans(
+            "Defeat [[Mob A]] in [[East Ronfaure]], N.M. At (H-8) in "
+            "[[West Ronfaure]], talk to [[NPC B]]."
+        )
+        self.assertEqual((fight.zone_mentions, fight.grid_coordinates), (("East Ronfaure",), ()))
+        self.assertEqual(
+            (talk.zone_mentions, talk.grid_coordinates),
+            (("West Ronfaure",), ("H-8",)),
+        )
+
+        for initialism in ("e.g.", "i.e.", "U.S.", "N.M."):
+            with self.subTest(initialism=initialism):
+                internal_fight, internal_talk = spans(
+                    f"Defeat [[Mob A]], {initialism} encounter details in "
+                    "[[East Ronfaure]], then talk to [[NPC B]] in [[West Ronfaure]]."
+                )
+                self.assertIn("encounter details", internal_fight.supporting_clause)
+                self.assertEqual(internal_fight.zone_mentions, ("East Ronfaure",))
+                self.assertEqual(internal_talk.zone_mentions, ("West Ronfaure",))
+
+        continuing_fight, continuing_talk = spans(
+            "Defeat [[Mob A]] as an N.M. in [[East Ronfaure]], then talk to "
+            "[[NPC B]] in [[West Ronfaure]]."
+        )
+        self.assertEqual(continuing_fight.zone_mentions, ("East Ronfaure",))
+        self.assertEqual(continuing_talk.zone_mentions, ("West Ronfaure",))
+
+    def test_exact_clause_link_refines_decorated_target_without_cross_clause_borrowing(self) -> None:
+        def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                site="bg",
+                api_url="https://www.bg-wiki.com/api.php",
+                canonical_title="Linked Target Refinement",
+                page_id=9317,
+                revision_id=108,
+                parent_revision_id=107,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        (fight,) = spans(
+            "Defeat the Lv. 75 [[Mob A]] in [[East Ronfaure]]."
+        )
+        self.assertEqual((fight.target, fight.enemy_mentions), ("Mob A", ("Mob A",)))
+
+        (ambiguous,) = spans(
+            "Defeat [[Mob A]] and [[Mob B]] in [[East Ronfaure]]."
+        )
+        self.assertEqual(ambiguous.target, "")
+        self.assertEqual(ambiguous.enemy_mentions, ("Mob A", "Mob B"))
+
+        unlinked_fight, talk = spans(
+            "Defeat the Lv. 75 foe in [[East Ronfaure]], then talk to [[NPC B]] in "
+            "[[West Ronfaure]]."
+        )
+        self.assertEqual(unlinked_fight.target, "Lv. 75 foe")
+        self.assertNotIn("NPC B", unlinked_fight.enemy_mentions)
+        self.assertEqual(talk.target, "NPC B")
+
+    def test_unlinked_sparkling_object_normalization_remains_consistent(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Unlinked Sparkling Object",
+            page_id=9320,
+            revision_id=111,
+            parent_revision_id=110,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Examine the sparkling object in [[East Ronfaure]].\n"
+            ),
+        )
+
+        (examine,) = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual((examine.target, examine.object_mentions), ("object", ("object",)))
+
     def test_action_evidence_stops_at_first_terminal_and_skips_intermediate_sentences(self) -> None:
         single = PageRevision(
             site="bg",
@@ -2742,6 +2903,216 @@ class ObjectiveDestinationTests(unittest.TestCase):
         for instruction in (trailing, intermediate):
             with self.subTest(instruction=instruction), self.assertRaises(ObjectiveDestinationError):
                 resolve(instruction, "West Ronfaure")
+
+    def test_destination_rejects_context_after_terminal_etc(self) -> None:
+        native = NativeObjective("quest", "other_areas", 93, "Terminal Etc", "quests.dat", 0)
+
+        def page(site: str, page_id: int) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title=native.title,
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        "*Defeat [[Mob A]] in [[East Ronfaure]], etc. A cutscene occurs in "
+                        "[[West Ronfaure]].\n"
+                    ),
+                )
+            )
+
+        bg = page("bg", 931)
+        ffxi = page("ffxiclopedia", 932)
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+        overrides = {
+            "objective_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "unsafe-mob-a-west",
+                        "source_revisions": {"bg": 931, "ffxiclopedia": 932},
+                        "source_step_ids": [step_id],
+                        "source_claim_ids": [f"{step_id}:claim-01"],
+                        "action": "fight",
+                        "items": [],
+                        "enemies": ["Mob A"],
+                        "destination_id": "enemy:100:mob-a:etc",
+                        "zone": 100,
+                        "zone_name": "West Ronfaure",
+                        "label": "Mob A in West Ronfaure",
+                        "reference": {"name": "Mob A", "kind": "enemy"},
+                        "arrival_instruction": "Defeat Mob A.",
+                    }
+                ]
+            }
+        }
+        point = {
+            "zone": 100,
+            "name": "Mob A",
+            "kind": "enemy",
+            "x": 1.0,
+            "z": 2.0,
+            "y": 3.0,
+        }
+
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, (point,), {100: "West Ronfaure"}
+            )
+
+    def test_destination_rejects_context_after_terminal_multi_initialism(self) -> None:
+        native = NativeObjective(
+            "quest", "other_areas", 95, "Terminal Multi Initialism", "quests.dat", 0
+        )
+
+        def resolve(instruction: str, grid: list[str]):
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title=native.title,
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 951)
+            ffxi = page("ffxiclopedia", 952)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": "unsafe-mob-a-initialism-context",
+                            "source_revisions": {"bg": 951, "ffxiclopedia": 952},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-01"],
+                            "action": "fight",
+                            "items": [],
+                            "enemies": ["Mob A"],
+                            "grid_coordinates": grid,
+                            "destination_id": "enemy:102:mob-a:initialism-context",
+                            "zone": 102,
+                            "zone_name": "West Ronfaure",
+                            "label": "Mob A in West Ronfaure",
+                            "reference": {"name": "Mob A", "kind": "enemy"},
+                            "arrival_instruction": "Defeat Mob A.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": 102,
+                "name": "Mob A",
+                "kind": "enemy",
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, (point,), {102: "West Ronfaure"}
+            )
+
+        cases = (
+            (
+                "Defeat [[Mob A]] in [[East Ronfaure]] as an N.M. A cutscene occurs in "
+                "[[West Ronfaure]].",
+                [],
+            ),
+            (
+                "Defeat [[Mob A]] in [[East Ronfaure]], N.M. At (H-8) in "
+                "[[West Ronfaure]], talk to [[NPC B]].",
+                ["H-8"],
+            ),
+        )
+        for instruction, grid in cases:
+            with self.subTest(instruction=instruction), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                resolve(instruction, grid)
+
+    def test_destination_uses_only_exact_linked_target_from_selected_clause(self) -> None:
+        native = NativeObjective("quest", "other_areas", 94, "Linked Target", "quests.dat", 0)
+
+        def resolve(instruction: str, target_name: str):
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title=native.title,
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 941)
+            ffxi = page("ffxiclopedia", 942)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": "linked-target-probe",
+                            "source_revisions": {"bg": 941, "ffxiclopedia": 942},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-01"],
+                            "action": "fight",
+                            "items": [],
+                            "enemies": [target_name],
+                            "destination_id": "enemy:101:linked-target:fixture",
+                            "zone": 101,
+                            "zone_name": "East Ronfaure",
+                            "label": f"{target_name} in East Ronfaure",
+                            "reference": {"name": target_name, "kind": "enemy"},
+                            "arrival_instruction": f"Defeat {target_name}.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": 101,
+                "name": target_name,
+                "kind": "enemy",
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (point,),
+                {101: "East Ronfaure"},
+            )
+
+        rows = resolve(
+            "Defeat the Lv. 75 [[Mob A]] in [[East Ronfaure]].",
+            "Mob A",
+        )
+        self.assertEqual(rows[0].target_name, "Mob A")
+
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve(
+                "Defeat the Lv. 75 foe in [[East Ronfaure]], then talk to [[NPC B]] in "
+                "[[West Ronfaure]].",
+                "NPC B",
+            )
 
     def test_destination_accepts_exact_punctuated_target_identities(self) -> None:
         cases = (

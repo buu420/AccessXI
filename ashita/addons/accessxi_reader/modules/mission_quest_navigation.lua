@@ -102,6 +102,11 @@ local function clear_character_state(reason)
     accessxi.mission_packet_ahturghan_tick = 0;
     accessxi.mission_packet_ahturghan_complete = {};
     accessxi.mission_packet_ahturghan_complete_tick = 0;
+    accessxi.mission_packet_nations_complete = {};
+    accessxi.mission_packet_nations_complete_tick = 0;
+    accessxi.mission_packet_nations_complete_player = '';
+    accessxi.mission_packet_nations_complete_identity = '';
+    accessxi.mission_packet_nations_complete_source = '';
     accessxi.mission_packet_cache_loaded = false;
     accessxi.mission_packet_player = '';
     accessxi.mission_packet_identity = '';
@@ -151,9 +156,11 @@ function accessxi.nav_mission_quest_sync_character(reason)
     local tracked_identity = clean(accessxi.mission_quest_nav_identity):lower();
     if (tracked_identity == '') then
         local mission_owner = clean(accessxi.mission_packet_identity):lower();
+        local nation_complete_owner = clean(accessxi.mission_packet_nations_complete_identity):lower();
         local quest_owner = clean(accessxi.quest_packet_identity):lower();
         local key_item_owner = clean(accessxi.key_items_packet_identity):lower();
         local stale = (has_entries(accessxi.mission_packet_main) and mission_owner ~= current_identity)
+            or (has_entries(accessxi.mission_packet_nations_complete) and nation_complete_owner ~= current_identity)
             or (has_entries(accessxi.quest_packet_logs) and quest_owner ~= current_identity)
             or (has_entries(accessxi.key_items_packet_tables) and key_item_owner ~= current_identity);
         if (stale) then
@@ -247,6 +254,29 @@ local function mission_route_state_ready(item)
         return false;
     end
 
+    if (clean(type(item) == 'table' and item.mission_availability or '') == 'available-to-start') then
+        local words = accessxi.mission_packet_nations_complete or {};
+        if (clean(accessxi.mission_packet_nations_complete_player) ~= current_player
+            or clean(accessxi.mission_packet_nations_complete_identity):lower() ~= current_identity
+            or clean(accessxi.mission_packet_nations_complete_source) ~= 'packet_in_056'
+            or type(words) ~= 'table' or #words < 8) then
+            return false;
+        end
+        if (type(accessxi.current_nation_mission_rank_state) ~= 'function') then
+            return false;
+        end
+        local ok, state = pcall(accessxi.current_nation_mission_rank_state);
+        local state_rank = type(state) == 'table' and tonumber(state.rank) or nil;
+        local state_rank_points = type(state) == 'table' and tonumber(state.rank_points) or nil;
+        if (not ok or type(state) ~= 'table'
+            or clean(state.identity):lower() ~= current_identity
+            or tonumber(state.nation) ~= tonumber(packet.nation)
+            or state_rank == nil or state_rank < 1 or state_rank > 10
+            or state_rank_points == nil or state_rank_points < 0 or state_rank_points >= 65535) then
+            return false;
+        end
+    end
+
     local context = clean(type(item) == 'table' and item.mission_context or '');
     if (context == 'Assault' or context == 'Treasures of Aht Urhgan'
         or context == 'Campaign' or context == 'Wings of the Goddess') then
@@ -330,6 +360,83 @@ local function referenced_target(reference)
         return nil;
     end
     return point_copy(match);
+end
+
+local nation_gate_guards = {
+    [0] = T{
+        T{ zone = 230, name = 'Ambrotien', kind = 'npc' },
+        T{ zone = 230, name = 'Endracion', kind = 'npc' },
+        T{ zone = 231, name = 'Grilau', kind = 'npc' },
+    },
+    [1] = T{
+        T{ zone = 234, name = 'Rashid', kind = 'npc' },
+        T{ zone = 235, name = 'Cleades', kind = 'npc' },
+        T{ zone = 236, name = 'Argus', kind = 'npc' },
+        T{ zone = 237, name = 'Malduc', kind = 'npc' },
+    },
+    [2] = T{
+        T{ zone = 240, name = 'Janshura-Rashura', kind = 'npc' },
+        T{ zone = 238, name = 'Mokyokyo', kind = 'npc' },
+        T{ zone = 239, name = 'Zokima-Rokima', kind = 'npc' },
+        T{ zone = 241, name = 'Rakoh Buuma', kind = 'npc' },
+    },
+};
+
+local function nation_gate_guard_target(nation, player)
+    local candidates = nation_gate_guards[tonumber(nation) or -1] or T{};
+    local resolved = T{};
+    for _, reference in ipairs(candidates) do
+        local target = referenced_target(reference);
+        if (target ~= nil) then
+            resolved:append(target);
+        end
+    end
+    if (#resolved == 0) then
+        return nil;
+    end
+
+    local player_zone = tonumber(type(player) == 'table' and player.zone or 0) or 0;
+    local player_x = tonumber(type(player) == 'table' and player.x or nil);
+    local player_z = tonumber(type(player) == 'table' and player.z or nil);
+    local best = nil;
+    local best_distance = nil;
+    for _, target in ipairs(resolved) do
+        if ((tonumber(target.zone) or 0) == player_zone) then
+            local distance = 0;
+            if (player_x ~= nil and player_z ~= nil) then
+                local dx = (tonumber(target.x) or 0) - player_x;
+                local dz = (tonumber(target.z) or 0) - player_z;
+                distance = (dx * dx) + (dz * dz);
+            end
+            if (best == nil or distance < best_distance) then
+                best = target;
+                best_distance = distance;
+            end
+        end
+    end
+    return best or resolved[1];
+end
+
+local function available_mission_target(item, nation, player)
+    local target = nation_gate_guard_target(nation, player);
+    if (target == nil) then
+        return nil;
+    end
+    local title = clean(item.name);
+    local instruction = ('Talk to a gate guard to accept %s.'):fmt(title ~= '' and title or 'this mission');
+    target.objective_kind = 'mission';
+    target.objective_context = clean(item.mission_context);
+    target.objective_id = tonumber(item.mission_id);
+    target.objective_stage = 'accept-mission';
+    target.objective_title = title;
+    target.objective_instruction = instruction;
+    target.arrival_instruction = instruction;
+    target.objective_source = 'native-nation-mission-availability';
+    target.objective_character_identity = character_identity();
+    target.objective_native_key = clean(item.objective_native_key);
+    target.route_context_label = 'Mission objective';
+    target.section = instruction;
+    return target;
 end
 
 local function objective_target(definition, stage, item)
@@ -504,6 +611,8 @@ local function append_mission(items, context, value)
         objective_kind = 'mission',
         mission_context = clean(context),
         mission_id = tonumber(row.mission_id) or 0,
+        mission_availability = 'active',
+        objective_character_identity = character_identity(),
         objective_native_key = ('mission:%s:%d'):fmt(clean(context), tonumber(row.rom_ordinal) or 0),
         mission_current_value = tonumber(value) or 0,
         source = ('native-active-mission:%s:%d:%s'):fmt(clean(context), tonumber(value) or 0, clean(row.source)),
@@ -512,6 +621,129 @@ local function append_mission(items, context, value)
         objective_native_details = meaningful_native_details(row.orders),
     };
     items:append(apply_guide_metadata(apply_objective(item)));
+end
+
+local nation_mission_types = {
+    [0] = T{ 1, 3, 1, 0, 1, 0, 2, 2, 2, 2, 3, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    [1] = T{ 2, 0, 1, 0, 1, 0, 2, 2, 2, 2, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    [2] = T{ 2, 0, 0, 0, 1, 0, 2, 2, 2, 2, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+};
+
+local nation_mission_crystals = {
+    [3] = 9, [4] = 17, [5] = 42, [10] = 12, [11] = 30, [12] = 48,
+    [13] = 36, [15] = 44, [16] = 36, [17] = 93, [18] = 45, [19] = 119,
+    [20] = 57, [21] = 148, [22] = 96, [23] = 228,
+};
+
+local function required_nation_rank(mission_id)
+    if (mission_id <= 2) then
+        return 1;
+    elseif (mission_id >= 10 and mission_id <= 12) then
+        return 3;
+    elseif (mission_id == 13) then
+        return 4;
+    elseif (mission_id >= 14) then
+        return math.floor((mission_id - 14) / 2) + 5;
+    end
+    return 2;
+end
+
+local function nation_mission_rank_points_ready(rank, rank_points, mission_id)
+    local crystals = tonumber(nation_mission_crystals[mission_id]) or 0;
+    local rank_factor = (0.372 * rank * rank) - (1.62 * rank) + 6.2;
+    if (rank_factor <= 0) then
+        return false;
+    end
+    local points_needed = 1024 * (crystals - 0.25) / (3 * rank_factor);
+    return rank_points >= points_needed;
+end
+
+local function completed_nation_mission(nation, mission_id)
+    local words = accessxi.mission_packet_nations_complete or {};
+    local word_index = (nation * 2) + math.floor(mission_id / 32) + 1;
+    local word = tonumber(words[word_index]) or 0;
+    return bit.band(word, 2 ^ (mission_id % 32)) ~= 0;
+end
+
+local function available_nation_mission_ids(nation, rank, rank_points)
+    local available = T{};
+    local types = nation_mission_types[nation];
+    if (type(types) ~= 'table') then
+        return available;
+    end
+    -- Bastok and Windurst 1-1 use dedicated gate-guard events instead of the
+    -- ordinary mission mask. Their scripts require only the matching nation,
+    -- no active mission, and a not-completed 1-1 bit.
+    if ((nation == 1 or nation == 2) and not completed_nation_mission(nation, 0)) then
+        available:append(0);
+        return available;
+    end
+    local last_required = -1;
+    for index = 1, #types do
+        local mission_id = index - 1;
+        local required_rank = required_nation_rank(mission_id);
+        local rank_ready = rank > required_rank
+            or (rank == required_rank and nation_mission_rank_points_ready(rank, rank_points, mission_id));
+        local prerequisite_ready = last_required < 0 or completed_nation_mission(nation, last_required);
+        if (not rank_ready or not prerequisite_ready) then
+            break;
+        end
+
+        local mission_type = tonumber(types[index]) or 2;
+        local completed = completed_nation_mission(nation, mission_id);
+        -- Retail requires a nation mission-status value before offering 5-1,
+        -- but that value is not present in the client packet. Stay silent at
+        -- that boundary instead of inferring it from rank alone.
+        if (mission_id == 14 and rank == 5 and not completed) then
+            break;
+        elseif (mission_type == 0) then
+            if (not completed) then
+                available:append(mission_id);
+                last_required = mission_id;
+            end
+        elseif (mission_type == 1) then
+            available:append(mission_id);
+        elseif (mission_type == 3) then
+            available:append(mission_id);
+            last_required = mission_id;
+        end
+    end
+    return available;
+end
+
+local function append_available_nation_mission(items, context, nation, mission_id)
+    local row = mission_row_for_context(context, mission_id);
+    if (row == nil) then
+        return;
+    end
+    local item = T{
+        zone = 0,
+        name = clean(row.label),
+        kind = 'mission',
+        objective_kind = 'mission',
+        mission_context = clean(context),
+        mission_id = tonumber(row.mission_id) or mission_id,
+        mission_nation = nation,
+        mission_availability = 'available-to-start',
+        objective_character_identity = character_identity(),
+        objective_native_key = ('mission:%s:%d'):fmt(clean(context), tonumber(row.rom_ordinal) or 0),
+        source = ('native-available-mission:%s:%d:%s'):fmt(clean(context), mission_id, clean(row.source)),
+        confidence = 'native',
+        section = clean(context),
+        objective_native_details = meaningful_native_details(row.orders),
+    };
+    local target = available_mission_target(item, nation, nil);
+    if (target ~= nil) then
+        item.objective_available = true;
+        item.objective_status = 'verified';
+        item.objective_stage = 'accept-mission';
+        item.objective_instruction = clean(target.objective_instruction);
+        item.objective_source = clean(target.objective_source);
+        item.objective_target = target;
+    else
+        set_unavailable(item, 'destination-unavailable');
+    end
+    items:append(apply_guide_metadata(item));
 end
 
 local function run_safe_mission_context(items, context, build_fn)
@@ -544,6 +776,22 @@ local function active_missions()
         run_safe_mission_context(items, nation_context, function()
             append_mission(items, nation_context, nation_value);
         end);
+    elseif (nation_context ~= nil and nation_value == 65535
+        and mission_route_state_ready(T{
+            mission_context = nation_context,
+            mission_availability = 'available-to-start',
+        })) then
+        local ok, rank_state = pcall(accessxi.current_nation_mission_rank_state);
+        if (ok and type(rank_state) == 'table'
+            and tonumber(rank_state.nation) == nation
+            and clean(rank_state.identity):lower() == character_identity()) then
+            for _, mission_id in ipairs(available_nation_mission_ids(
+                nation,
+                tonumber(rank_state.rank) or 0,
+                tonumber(rank_state.rank_points) or 0)) do
+                append_available_nation_mission(items, nation_context, nation, mission_id);
+            end
+        end
     end
 
     for _, context in ipairs(accessxi.missions_menu_category_labels or T{}) do
@@ -618,6 +866,7 @@ local function active_quests()
                             quest_area_key = clean(area_key),
                             quest_area = clean(resource.label or row.area or area_key),
                             quest_id = quest_id,
+                            objective_character_identity = character_identity(),
                             objective_native_key = ('quest:%s:%d'):fmt(clean(area_key), quest_id),
                             source = ('native-active-quest:%s:%d:%s'):fmt(clean(area_key), quest_id, clean(row.source)),
                             confidence = 'native',
@@ -650,28 +899,28 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
     local title = clean(item.name);
     local kind = clean(item.objective_kind or item.kind):lower();
     local location = kind == 'quest' and clean(item.quest_area) or clean(item.mission_context);
-    local status = kind == 'quest' and 'Active quest.' or 'Active mission.';
+    local status = kind == 'quest' and 'Active quest.'
+        or (clean(item.mission_availability) == 'available-to-start' and 'Available mission.' or 'Active mission.');
     local prefix = ('%s. %d of %d. %s'):fmt(title ~= '' and title or 'Objective', tonumber(index) or 1, tonumber(total) or 1, status);
     if (location ~= '') then
         prefix = prefix .. ' ' .. location .. '.';
     end
     if (item.objective_available == true and clean(item.objective_instruction) ~= '') then
-        prefix = prefix .. ' Current objective: ' .. clean(item.objective_instruction);
+        local objective_label = clean(item.mission_availability) == 'available-to-start'
+            and ' Start destination: ' or ' Current objective: ';
+        prefix = prefix .. objective_label .. clean(item.objective_instruction);
     else
-        prefix = prefix .. ' No verified route objective is available for this stage.';
-    end
-    if (item.guide_available == true) then
-        return prefix .. ' Guide available. Press I to open steps.';
+        prefix = prefix .. ' No verified current destination is available.';
     end
     local native_details = meaningful_native_details(item.objective_native_details);
     if (native_details ~= '') then
         local detail_label = kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ';
         prefix = prefix .. detail_label .. native_details;
     end
-    if (clean(item.guide_status) == 'ambiguous-match') then
-        return prefix .. ' Guide match is ambiguous.';
+    if (item.objective_available == true) then
+        return prefix .. ' Press I to start navigation.';
     end
-    return prefix .. ' No source-backed guide is available.';
+    return prefix;
 end
 
 local function same_item(a, b)
@@ -679,9 +928,14 @@ local function same_item(a, b)
     if (kind ~= clean(b ~= nil and (b.objective_kind or b.kind) or ''):lower()) then
         return false;
     end
+    if (clean(a ~= nil and a.objective_character_identity or ''):lower()
+        ~= clean(b ~= nil and b.objective_character_identity or ''):lower()) then
+        return false;
+    end
     if (kind == 'mission') then
         return clean(a.mission_context) == clean(b.mission_context)
-            and tonumber(a.mission_id) == tonumber(b.mission_id);
+            and tonumber(a.mission_id) == tonumber(b.mission_id)
+            and clean(a.mission_availability or 'active') == clean(b.mission_availability or 'active');
     elseif (kind == 'quest') then
         return clean(a.quest_area_key) == clean(b.quest_area_key)
             and tonumber(a.quest_id) == tonumber(b.quest_id);
@@ -695,6 +949,13 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
         return nil, '', 'not-objective';
     end
 
+    local title = clean(item ~= nil and item.name or 'objective');
+    local selected_identity = clean(item ~= nil and item.objective_character_identity or ''):lower();
+    local current_identity = character_identity();
+    if (selected_identity == '' or current_identity == '' or selected_identity ~= current_identity) then
+        return nil, ('%s belongs to another character. Move or repeat the item to refresh the list.'):fmt(title), 'blocked';
+    end
+
     local fresh = nil;
     for _, candidate in ipairs(accessxi.nav_mission_quest_active_items(kind)) do
         if (same_item(item, candidate)) then
@@ -702,7 +963,6 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
             break;
         end
     end
-    local title = clean(item ~= nil and item.name or 'objective');
     if (fresh == nil) then
         return nil, ('%s is no longer present in the current character\'s active %s list.'):fmt(title, kind == 'quest' and 'quest' or 'mission'), 'blocked';
     end
@@ -714,6 +974,13 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     end
     if (not route_state_ready) then
         return nil, ('Current-session packet evidence is not yet available for %s.'):fmt(title), 'blocked';
+    end
+    if (kind == 'mission' and clean(fresh.mission_availability) == 'available-to-start') then
+        local target = available_mission_target(fresh, tonumber(fresh.mission_nation), player);
+        if (target == nil) then
+            return nil, ('No unique gate guard destination is available for %s.'):fmt(title), 'blocked';
+        end
+        return point_copy(target), '', 'ready';
     end
     if (fresh.objective_available ~= true or type(fresh.objective_target) ~= 'table') then
         return nil, ('No verified route objective is available for this stage of %s.'):fmt(title), 'blocked';
@@ -889,9 +1156,6 @@ end
 
 function accessxi.nav_mission_quest_route_owner_mismatch()
     local current_identity = character_identity();
-    if (current_identity == '') then
-        return false;
-    end
     return route_point_owner_mismatch(accessxi.nav_destination, current_identity)
         or route_point_owner_mismatch(accessxi.nav_zone_search_target, current_identity);
 end

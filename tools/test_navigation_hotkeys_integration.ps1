@@ -6,10 +6,19 @@ $ErrorActionPreference = 'Stop'
 
 $readerPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $reader = Get-Content -LiteralPath $readerPath -Raw
+$navigationDataPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\modules\navigation_data.lua'
+$navigationData = Get-Content -LiteralPath $navigationDataPath -Raw
 
 function Assert-Contains {
     param([string]$Needle, [string]$Message)
     if (-not $reader.Contains($Needle)) {
+        throw $Message
+    }
+}
+
+function Assert-NotContains {
+    param([string]$Haystack, [string]$Needle, [string]$Message)
+    if ($Haystack.Contains($Needle)) {
         throw $Message
     }
 }
@@ -44,22 +53,50 @@ Assert-Contains "accessxi.mission_quest_guide_index = accessxi.load_module_table
     'Reader does not load the complete native objective guide index.'
 Assert-Contains "accessxi.mission_quest_guides_module = accessxi.load_module_table('mission_quest_guides'" `
     'Reader does not load the lazy objective step browser.'
-Assert-Contains 'accessxi.objective_guides:is_open()' `
-    'Navigation actions do not distinguish objective step view from the objective list.'
-Assert-Contains "action == 'previous_category'" `
-    'U does not exit objective step view to the same objective.'
-Assert-Contains "action == 'next_category'" `
-    'O does not exit objective step view and advance a category.'
-Assert-Contains 'accessxi.objective_guides:move(-1)' `
-    'J does not move to the previous objective step.'
-Assert-Contains 'accessxi.objective_guides:repeat_step()' `
-    'K does not repeat the current objective step.'
-Assert-Contains 'accessxi.objective_guides:move(1)' `
-    'L does not move to the next objective step.'
 Assert-Contains 'route_resolver = function(native_key, guide_step_id, step)' `
     'The live guide resolver drops the selected step target before navigation.'
 Assert-Contains 'accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id, step)' `
     'The live guide resolver does not forward the selected step target to navigation.'
+Assert-Contains 'packet_port == 0x00D0' `
+    'The reader does not capture native nation mission completion state.'
+Assert-Contains 'accessxi.mission_packet_nations_complete_player = mission_player' `
+    'Nation mission completion state is not owned by the current player name.'
+Assert-Contains 'accessxi.mission_packet_nations_complete_identity = mission_identity' `
+    'Nation mission completion state is not owned by the World-qualified native identity.'
+Assert-Contains "accessxi.mission_packet_nations_complete_source = 'packet_in_056'" `
+    'Nation mission completion state is not marked as live packet evidence.'
+Assert-Contains 'GetRankPoints()' `
+    'Available nation mission detection does not read native rank points.'
+if ($navigationData -notmatch "(?s)key\s*=\s*'mission'.*?label\s*=\s*'Missions'\s*\},\s*T\{\s*key\s*=\s*'quest'.*?label\s*=\s*'Quests'") {
+    throw 'O category order must place Quests immediately after Missions.'
+}
+
+$startBlock = [regex]::Match(
+    $reader,
+    '(?s)local function nav_menu_start_route\(\).*?^end',
+    [System.Text.RegularExpressions.RegexOptions]::Multiline)
+if (-not $startBlock.Success) {
+    throw 'Could not locate navigation route start handling.'
+}
+if (-not $startBlock.Value.Contains('accessxi.nav_mission_quest_prepare_route(item, objective_player)')) {
+    throw 'I does not prepare the highlighted mission or quest directly for GPS.'
+}
+Assert-NotContains $startBlock.Value 'nav_mission_quest_open_guide' `
+    'I still opens an objective guide instead of starting GPS directly.'
+Assert-NotContains $startBlock.Value 'nav_mission_quest_prepare_guide_route' `
+    'I still starts a manually selected guide step instead of the highlighted objective.'
+
+$actionBlock = [regex]::Match(
+    $reader,
+    '(?s)local function nav_menu_handle_action\(action\).*?^end',
+    [System.Text.RegularExpressions.RegexOptions]::Multiline)
+if (-not $actionBlock.Success) {
+    throw 'Could not locate navigation action dispatch.'
+}
+Assert-NotContains $actionBlock.Value 'objective_guides:move' `
+    'J or L still browses guide steps instead of mission or quest rows.'
+Assert-NotContains $actionBlock.Value 'objective_guides:repeat_step' `
+    'K still repeats a guide step instead of the highlighted mission or quest.'
 
 $pollBlock = [regex]::Match(
     $reader,

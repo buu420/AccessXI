@@ -35,6 +35,9 @@ end
 
 local current_player = 'Alpha'
 local current_identity = 'alpha:1001'
+local current_nation = 1
+local current_rank = 1
+local current_rank_points = 0
 local cancelled_objective_routes = 0
 local owned_key_items = {}
 local mission_values = {
@@ -53,6 +56,11 @@ local mission_values = {
 }
 
 local mission_rows = {
+    ["San d'Oria"] = T{
+        { label = 'Smash the Orcish Scouts', mission_id = 0, next_mission_id = 1 },
+        { label = 'Bat Hunt', mission_id = 1, next_mission_id = 2 },
+        { label = 'Save the Children', mission_id = 2, next_mission_id = 3 },
+    },
     Bastok = T{
         { label = 'The Zeruhn Report', mission_id = 0, next_mission_id = 1 },
         { label = 'A Geological Survey', mission_id = 1, next_mission_id = 2 },
@@ -117,6 +125,10 @@ accessxi = {
     mission_packet_ahturghan_identity = current_identity,
     mission_packet_ahturghan_source = 'packet_in_056',
     mission_packet_ahturghan_complete = {},
+    mission_packet_nations_complete = words_with(),
+    mission_packet_nations_complete_player = 'Alpha',
+    mission_packet_nations_complete_identity = current_identity,
+    mission_packet_nations_complete_source = 'packet_in_056',
     mission_packet_main = { nation = 1, nation_mission = 1, port = 0xFFFF },
     quest_packet_player = 'Alpha',
     quest_packet_identity = current_identity,
@@ -133,6 +145,9 @@ accessxi = {
     nav_points = T{
         T{ zone = 237, name = 'Cid', x = -12.598, z = 2.430, y = -10.988, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 172, name = 'Makarim', x = -60.925, z = -333.294, y = 8.471, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 230, name = 'Ambrotien', x = 93.419, z = -57.347, y = 0.999, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 231, name = 'Grilau', x = -241.987, z = 57.887, y = 7.999, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 234, name = 'Rashid', x = -8.444, z = -123.575, y = -1.000, kind = 'npc', source = 'current-nav-data' },
     },
     quests_menu_data = {
         quest_log_order = T{ 'sandoria', 'aht_urhgan' },
@@ -149,6 +164,14 @@ accessxi = {
     },
     current_player_name = function() return current_player end,
     current_player_identity = function() return current_identity end,
+    current_nation_mission_rank_state = function()
+        return {
+            nation = current_nation,
+            rank = current_rank,
+            rank_points = current_rank_points,
+            identity = current_identity,
+        }
+    end,
     nav_cancel_mission_quest_route = function()
         local destination = accessxi.nav_destination
         local pending = accessxi.nav_zone_search_target
@@ -247,11 +270,30 @@ local function find(items, name)
     return nil
 end
 
+local function set_live_identity(identity)
+    current_identity = identity
+    accessxi.mission_quest_nav_identity = identity
+    accessxi.mission_packet_identity = identity
+    accessxi.mission_packet_ahturghan_identity = identity
+    accessxi.mission_packet_ahturghan_complete_identity = identity
+    accessxi.mission_packet_nations_complete_identity = identity
+    accessxi.quest_packet_identity = identity
+    accessxi.key_items_packet_identity = identity
+    for _, entry in pairs(quest_entries) do
+        entry.identity = identity
+    end
+    for _, entry in pairs(accessxi.key_items_packet_tables or {}) do
+        entry.identity = identity
+    end
+end
+
 -- Native active mission rows, including exact nation mission ID zero.
 local missions = accessxi.nav_mission_quest_active_items('mission')
 assert(find(missions, 'A Geological Survey') ~= nil)
 assert(find(missions, 'A Geological Survey').objective_native_key == 'mission:Bastok:2')
 assert(find(missions, 'A Geological Survey').guide_available == true)
+assert(find(missions, 'A Geological Survey').mission_availability == 'active')
+assert(find(missions, 'A Geological Survey').objective_character_identity == current_identity)
 assert(find(missions, "Welcome t'Norg") ~= nil)
 local welcome = assert(find(missions, "Welcome t'Norg"))
 assert(welcome.objective_native_details:find('second-floor hallway', 1, true) ~= nil)
@@ -312,6 +354,75 @@ assert(cached_target ~= nil and cached_mode == 'ready' and cached_message == '')
 accessxi.mission_packet_identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
 accessxi.mission_packet_identity = current_identity
+
+-- When there is no active nation mission, only source-backed gate-guard
+-- missions currently available to this character are added. Their route goes
+-- directly to the nearest exact guard in the player's current city zone.
+accessxi.mission_packet_main.nation_mission = 65535
+missions = accessxi.nav_mission_quest_active_items('mission')
+local available_zeruhn = assert(find(missions, 'The Zeruhn Report'))
+assert(find(missions, 'A Geological Survey') == nil)
+assert(available_zeruhn.mission_availability == 'available-to-start')
+assert(available_zeruhn.objective_available == true)
+local available_speech = accessxi.nav_mission_quest_item_speech(available_zeruhn, 1, #missions)
+assert(available_speech:find('Available mission.', 1, true) ~= nil)
+assert(available_speech:find('Press I to start navigation.', 1, true) ~= nil)
+assert(available_speech:find('open steps', 1, true) == nil)
+local starter_target, starter_message, starter_mode = accessxi.nav_mission_quest_prepare_route(
+    available_zeruhn,
+    { zone = 234, x = -20, z = -120, y = -1 })
+assert(starter_mode == 'ready' and starter_message == '')
+assert(starter_target.zone == 234 and starter_target.name == 'Rashid')
+assert(starter_target.objective_instruction:find('gate guard', 1, true) ~= nil)
+
+-- Once the dedicated Bastok 1-1 completion bit is live, the ordinary mask
+-- advances to the next currently startable mission.
+accessxi.mission_packet_nations_complete = T{ 0, 0, 1, 0, 0, 0, 0, 0 }
+missions = accessxi.nav_mission_quest_active_items('mission')
+local available_survey = assert(find(missions, 'A Geological Survey'))
+assert(find(missions, 'The Zeruhn Report') == nil)
+assert(available_survey.mission_availability == 'available-to-start')
+accessxi.mission_packet_nations_complete = words_with()
+
+current_rank_points = 65535
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'The Zeruhn Report') == nil)
+current_rank_points = 0
+
+-- Cached, mismatched, incomplete, or contradictory completion evidence never
+-- creates an available mission row or a route.
+accessxi.mission_packet_nations_complete_source = 'cache'
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'A Geological Survey') == nil)
+accessxi.mission_packet_nations_complete_source = 'packet_in_056'
+accessxi.mission_packet_nations_complete_identity = 'alpha:9999'
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'A Geological Survey') == nil)
+accessxi.mission_packet_nations_complete_identity = current_identity
+accessxi.mission_packet_nations_complete = T{ 0, 0, 3, 0, 0, 0, 0, 0 }
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'A Geological Survey') == nil)
+accessxi.mission_packet_nations_complete = words_with()
+
+-- San d'Oria's native-style rank-1 mask offers both repeatable/skippable
+-- choices. Save the Children stays hidden until required mission 1-2 is done.
+current_nation = 0
+accessxi.mission_packet_main.nation = 0
+accessxi.mission_packet_nations_complete = words_with()
+missions = accessxi.nav_mission_quest_active_items('mission')
+local smash = assert(find(missions, 'Smash the Orcish Scouts'))
+assert(find(missions, 'Bat Hunt') ~= nil)
+assert(find(missions, 'Save the Children') == nil)
+starter_target, starter_message, starter_mode = accessxi.nav_mission_quest_prepare_route(
+    smash,
+    { zone = 231, x = -240, z = 58, y = 8 })
+assert(starter_mode == 'ready' and starter_message == '')
+assert(starter_target.zone == 231 and starter_target.name == 'Grilau')
+accessxi.mission_packet_nations_complete = T{ 1, 0, 0, 0, 0, 0, 0, 0 }
+missions = accessxi.nav_mission_quest_active_items('mission')
+assert(find(missions, 'Smash the Orcish Scouts') ~= nil)
+assert(find(missions, 'Bat Hunt') ~= nil)
+assert(find(missions, 'Save the Children') == nil)
+current_nation = 1
+accessxi.mission_packet_main.nation = 1
+accessxi.mission_packet_nations_complete = words_with()
+
 mission_values.Bastok = 0
 accessxi.mission_packet_main.nation_mission = 0
 missions = accessxi.nav_mission_quest_active_items('mission')
@@ -374,9 +485,13 @@ accessxi.mission_packet_main.nation_mission = 1
 -- Quest rows come from every set current bit and change with packet state.
 local quests = accessxi.nav_mission_quest_active_items('quest')
 assert(#quests == 3)
+for _, quest in ipairs(quests) do
+    assert(quest.quest_availability ~= 'available-to-start')
+end
 assert(quests[1].name == 'The Pickpocket')
 assert(quests[1].objective_native_key == 'quest:sandoria:2')
 assert(quests[1].guide_available == true)
+assert(quests[1].objective_character_identity == current_identity)
 assert(quests[2].name == 'A Long Current Quest')
 assert(quests[2].objective_native_details:find('Bring the requested item', 1, true) ~= nil)
 assert(accessxi.nav_mission_quest_item_speech(quests[2], 2, #quests):find('Native quest details:', 1, true) ~= nil)
@@ -398,6 +513,25 @@ quest_entries['sandoria:current'].source = 'packet_in_056'
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
 assert(cached_target ~= nil and cached_mode == 'ready' and cached_message == '')
 for _, entry in pairs(quest_entries) do entry.source = 'packet_in_056' end
+
+-- Browser rows are owned by the character that produced them. Even when a
+-- second character has the exact same active mission and quest, pressing I on
+-- the first character's stale rows must fail closed instead of retargeting.
+local stale_mission_row = assert(find(accessxi.nav_mission_quest_active_items('mission'), 'A Geological Survey'))
+local stale_quest_row = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
+set_live_identity('alpha:2002')
+local fresh_mission_row = assert(find(accessxi.nav_mission_quest_active_items('mission'), 'A Geological Survey'))
+local fresh_quest_row = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
+assert(fresh_mission_row.objective_character_identity == current_identity)
+assert(fresh_quest_row.objective_character_identity == current_identity)
+local stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(stale_mission_row, { zone = 106 })
+assert(stale_target == nil and stale_mode == 'blocked' and stale_message:find('another character', 1, true) ~= nil)
+stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(stale_quest_row, { zone = 106 })
+assert(stale_target == nil and stale_mode == 'blocked' and stale_message:find('another character', 1, true) ~= nil)
+assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_mission_row, { zone = 106 })) == 'ready')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_quest_row, { zone = 106 })) == 'ready')
+set_live_identity('alpha:1001')
+
 quest_entries['sandoria:current'].identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
 quest_entries['sandoria:current'].identity = current_identity
@@ -416,7 +550,8 @@ assert(survey.objective_target.zone == 237 and survey.objective_target.name == '
 assert(survey.objective_instruction:find('Blue acidity tester', 1, true) ~= nil)
 local row_speech = accessxi.nav_mission_quest_item_speech(survey, 1, #missions)
 assert(row_speech:find('Current objective', 1, true) ~= nil)
-assert(row_speech:find('Guide available', 1, true) ~= nil)
+assert(row_speech:find('Press I to start navigation.', 1, true) ~= nil)
+assert(row_speech:find('open steps', 1, true) == nil)
 
 owned_key_items[3] = true
 missions = accessxi.nav_mission_quest_active_items('mission')
@@ -439,6 +574,10 @@ accessxi.nav_destination = target
 assert(accessxi.nav_mission_quest_route_owner_mismatch() == false)
 current_identity = 'alpha:9999'
 assert(accessxi.nav_mission_quest_route_owner_mismatch() == true)
+current_identity = ''
+assert(accessxi.nav_mission_quest_route_owner_mismatch() == true)
+accessxi.nav_destination = { kind = 'npc', name = 'Ordinary destination' }
+assert(accessxi.nav_mission_quest_route_owner_mismatch() == false)
 current_identity = 'alpha:1001'
 accessxi.nav_destination = nil
 
@@ -495,6 +634,10 @@ assert(accessxi.mission_quest_nav_identity == 'alpha:2002')
 assert(cancelled_objective_routes == 1)
 assert(accessxi.nav_active == false and accessxi.nav_destination == nil)
 assert(next(accessxi.mission_packet_main) == nil)
+assert(next(accessxi.mission_packet_nations_complete) == nil)
+assert(accessxi.mission_packet_nations_complete_player == '')
+assert(accessxi.mission_packet_nations_complete_identity == '')
+assert(accessxi.mission_packet_nations_complete_source == '')
 assert(next(accessxi.quest_packet_logs) == nil)
 assert(accessxi.mission_packet_player == '')
 assert(accessxi.mission_packet_identity == '')

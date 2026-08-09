@@ -700,6 +700,11 @@ local accessxi = T{
     mission_packet_ahturghan_complete_tick = 0,
     mission_packet_ahturghan_complete_identity = '',
     mission_packet_ahturghan_complete_source = '',
+    mission_packet_nations_complete = {},
+    mission_packet_nations_complete_tick = 0,
+    mission_packet_nations_complete_player = '',
+    mission_packet_nations_complete_identity = '',
+    mission_packet_nations_complete_source = '',
     missions_menu_detail_hold_until = 0,
     missions_menu_detail_hold_context = '',
     missions_menu_detail_hold_label = '',
@@ -4428,7 +4433,8 @@ function accessxi.capture_mission_packet(e)
         port_raw = accessxi.packet_u16(data, base + 0x24 + 1),
     };
     local key = accessxi.packet_hex_limit(data, 96);
-    local mission_state_packet = packet_port == 0xFFFF or packet_port == 0x0080 or packet_port == 0x00C0;
+    local mission_state_packet = packet_port == 0xFFFF or packet_port == 0x0080
+        or packet_port == 0x00C0 or packet_port == 0x00D0;
     if (mission_state_packet and type(accessxi.nav_mission_quest_sync_character) == 'function') then
         accessxi.nav_mission_quest_sync_character('mission-packet');
     end
@@ -4468,6 +4474,12 @@ function accessxi.capture_mission_packet(e)
         accessxi.mission_packet_ahturghan_complete_identity = mission_identity;
         accessxi.mission_packet_ahturghan_complete_source = 'packet_in_056';
         accessxi.save_mission_packet_cache();
+    elseif (packet_port == 0x00D0) then
+        accessxi.mission_packet_nations_complete = accessxi.quest_packet_data_words(data);
+        accessxi.mission_packet_nations_complete_tick = tick();
+        accessxi.mission_packet_nations_complete_player = mission_player;
+        accessxi.mission_packet_nations_complete_identity = mission_identity;
+        accessxi.mission_packet_nations_complete_source = 'packet_in_056';
     end
 
     local log_key = ('%04X:%s'):fmt(packet_port, key);
@@ -7052,6 +7064,32 @@ function accessxi.current_player_identity()
         return '';
     end
     return ('%s:%d'):fmt(player_name:lower(), server_id);
+end
+
+function accessxi.current_nation_mission_rank_state()
+    local identity = accessxi.current_player_identity();
+    if (identity == '') then
+        return nil;
+    end
+    local mm = safe_call(function () return AshitaCore:GetMemoryManager(); end, nil);
+    local player = mm ~= nil and safe_call(function () return mm:GetPlayer(); end, nil) or nil;
+    if (player == nil) then
+        return nil;
+    end
+    local nation = tonumber(safe_call(function () return player:GetNation(); end, nil));
+    local rank = tonumber(safe_call(function () return player:GetRank(); end, nil));
+    local rank_points = tonumber(safe_call(function () return player:GetRankPoints(); end, nil));
+    if (nation == nil or nation < 0 or nation > 2
+        or rank == nil or rank < 1 or rank > 10
+        or rank_points == nil or rank_points < 0 or rank_points >= 65535) then
+        return nil;
+    end
+    return T{
+        nation = nation,
+        rank = rank,
+        rank_points = rank_points,
+        identity = identity,
+    };
 end
 
 function accessxi.table_count(values)
@@ -72167,7 +72205,7 @@ local function nav_menu_item_speech()
     local search_query = nav_clean_field(accessxi.nav_menu_search_query or '');
     if (total == 0) then
         if (category_key == 'mission') then
-            return 'No active missions are available from the current native character state.';
+            return 'No active or startable missions are available from the current native character state.';
         elseif (category_key == 'quest') then
             return 'No active quests are available from the current native character state.';
         end
@@ -72378,23 +72416,6 @@ local function nav_menu_start_route()
         return;
     end
 
-    local guide_route_selected = false;
-    if (accessxi.nav_objective_step_view_open()
-        and type(accessxi.nav_mission_quest_prepare_guide_route) == 'function') then
-        local guide_target, guide_message, guide_mode = accessxi.nav_mission_quest_prepare_guide_route();
-        if (guide_mode ~= 'ready' or guide_target == nil) then
-            local text = nav_clean_field(guide_message);
-            if (text == '') then
-                text = 'No verified navigation target is available for this objective step.';
-            end
-            speak(text);
-            log_line('nav objective guide start blocked ' .. text);
-            return;
-        end
-        item = guide_target;
-        guide_route_selected = true;
-    end
-
     local objective_kind = nav_clean_field(item.objective_kind or item.kind):lower();
     if ((objective_kind == 'mission' or objective_kind == 'quest')
         and type(accessxi.nav_mission_quest_prepare_route) == 'function') then
@@ -72403,29 +72424,17 @@ local function nav_menu_start_route()
             speak('Position unavailable.');
             return;
         end
-        if (not guide_route_selected) then
-            if (type(accessxi.nav_mission_quest_open_guide) == 'function') then
-                local guide_speech, guide_error = accessxi.nav_mission_quest_open_guide(item);
-                local text = nav_clean_field(guide_speech or guide_error);
-                if (text == '') then
-                    text = 'No source-backed guide is available for this objective.';
-                end
-                speak(text);
-                log_line('nav objective guide open ' .. text);
-                return;
+        local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
+        if (objective_mode ~= 'ready' or target == nil) then
+            local text = nav_clean_field(objective_message);
+            if (text == '') then
+                text = 'No verified current destination is available for this objective.';
             end
-            local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
-            if (objective_mode ~= 'ready' or target == nil) then
-                local text = nav_clean_field(objective_message);
-                if (text == '') then
-                    text = 'No verified route objective is available for this stage.';
-                end
-                speak(text);
-                log_line('nav objective start blocked ' .. text);
-                return;
-            end
-            item = target;
+            speak(text);
+            log_line('nav objective start blocked ' .. text);
+            return;
         end
+        item = target;
         if ((tonumber(item.zone) or 0) ~= (tonumber(objective_player.zone) or 0)) then
             accessxi.nav_menu_open = false;
             accessxi.nav_menu_poll_key = 0;
@@ -72586,40 +72595,6 @@ end
 local nav_route_stop;
 
 local function nav_menu_handle_action(action)
-    if (action ~= 'stop_route' and accessxi.nav_objective_step_view_open()
-        and type(accessxi.nav_mission_quest_guide_selection_present) == 'function'
-        and not accessxi.nav_mission_quest_guide_selection_present()) then
-        local text = 'That objective is no longer present in the current character\'s active list.';
-        speak(text);
-        log_line('nav objective guide closed ' .. text);
-        return;
-    end
-    if (accessxi.nav_objective_step_view_open() and action ~= 'stop_route') then
-        if (action == 'previous_category') then
-            accessxi.objective_guides:close('return-to-objective-list');
-            local text = nav_menu_item_speech();
-            speak(text);
-            log_line('nav objective guide exit ' .. text);
-        elseif (action == 'next_category') then
-            accessxi.objective_guides:close('advance-category');
-            nav_menu_category_move(1);
-        elseif (action == 'previous_item') then
-            local text = accessxi.objective_guides:move(-1);
-            speak(text);
-            log_line('nav objective guide move ' .. text);
-        elseif (action == 'repeat_item') then
-            local text = accessxi.objective_guides:repeat_step();
-            speak(text);
-            log_line('nav objective guide repeat ' .. text);
-        elseif (action == 'next_item') then
-            local text = accessxi.objective_guides:move(1);
-            speak(text);
-            log_line('nav objective guide move ' .. text);
-        elseif (action == 'start_route') then
-            nav_menu_start_route();
-        end
-        return;
-    end
     if (action == 'start_route') then
         nav_menu_start_route();
     elseif (action == 'stop_route') then

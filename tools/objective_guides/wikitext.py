@@ -10,7 +10,12 @@ from mwparserfromhell.nodes import Template, Wikilink
 
 from .mediawiki import PageRevision
 from .model import ParsedObjective, SourceActionSpan, SourceStep
-from .site_config import SiteConfigError, SiteLinkPolicy, load_default_site_link_policies
+from .site_config import (
+    SiteConfigError,
+    SiteLinkPolicy,
+    load_default_site_link_policies,
+    validate_source_site_binding,
+)
 
 
 MAX_SPOKEN_STEP = 420
@@ -1461,6 +1466,16 @@ def parse_objective_page(
             site_policy = None
     if site_policy is not None and not isinstance(site_policy, SiteLinkPolicy):
         raise TypeError("site_policy must be a SiteLinkPolicy or None.")
+    try:
+        validate_source_site_binding(
+            revision.site,
+            revision.api_url,
+            site_policy,
+        )
+    except SiteConfigError as error:
+        raise WikitextError(
+            f"{revision.site} page {revision.canonical_title!r} has mismatched source policy provenance."
+        ) from error
     kind, objective_name, mission_number, context_hint, header_warnings = _header_details(revision)
     steps: list[SourceStep] = []
     page_warnings = list(header_warnings)

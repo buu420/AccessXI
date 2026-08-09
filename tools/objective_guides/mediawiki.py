@@ -12,6 +12,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from .site_config import SiteConfigError, validate_source_site_binding
+
 
 ACCESSXI_USER_AGENT = (
     "AccessXI-objective-guide-importer/1.0 "
@@ -517,6 +519,12 @@ def load_snapshot(
         raise MediaWikiError(
             f"Objective source snapshot {path} is for {site!r}, expected {expected_site!r}."
         )
+    try:
+        validate_source_site_binding(site, api_url)
+    except SiteConfigError as error:
+        raise MediaWikiError(
+            f"Objective source snapshot {path} has invalid API provenance."
+        ) from error
     if site not in SITE_LICENSES or payload.get("license") != SITE_LICENSES[site]:
         raise MediaWikiError(f"Objective source snapshot {path} has invalid license metadata.")
     raw_pages = payload.get("pages")
@@ -578,11 +586,27 @@ def write_snapshot(
     pages = tuple(sorted(pages, key=lambda page: (page.canonical_title.casefold(), page.page_id)))
     if not pages:
         raise MediaWikiError("Refusing to replace a source snapshot with no pages.")
+    try:
+        client_api = validate_source_site_binding(client.site, client.api_url)
+    except SiteConfigError as error:
+        raise MediaWikiError(
+            f"Refusing to write a source snapshot with invalid API provenance for {client.site!r}."
+        ) from error
     identities: set[int] = set()
     for page in pages:
         if page.site != client.site:
             raise MediaWikiError(
                 f"Refusing to mix {page.site!r} data into the {client.site!r} snapshot."
+            )
+        try:
+            page_api = validate_source_site_binding(page.site, page.api_url)
+        except SiteConfigError as error:
+            raise MediaWikiError(
+                f"Refusing to write {page.canonical_title!r} with invalid API provenance."
+            ) from error
+        if page_api != client_api:
+            raise MediaWikiError(
+                f"Refusing to mix API provenance for {page.canonical_title!r} into one snapshot."
             )
         if page.page_id in identities:
             raise MediaWikiError(f"Refusing to repeat source page ID {page.page_id} in one snapshot.")

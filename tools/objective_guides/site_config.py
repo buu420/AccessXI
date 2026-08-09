@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import urllib.parse
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -26,6 +27,29 @@ EXPECTED_SITE_APIS = {
 
 class SiteConfigError(ValueError):
     """Raised when a source wiki's link-classification policy is unavailable or invalid."""
+
+
+def normalize_source_api_url(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw or "?" in raw or "#" in raw:
+        raise SiteConfigError("Source API URL must not contain a query or fragment.")
+    try:
+        parsed = urllib.parse.urlsplit(raw)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError as error:
+        raise SiteConfigError("Source API URL is malformed.") from error
+    if parsed.scheme.casefold() != "https":
+        raise SiteConfigError("Source API URL must use HTTPS.")
+    if parsed.username is not None or parsed.password is not None:
+        raise SiteConfigError("Source API URL must not contain credentials.")
+    if not hostname or not parsed.path:
+        raise SiteConfigError("Source API URL must contain a host and path.")
+    host = hostname.casefold()
+    if ":" in host:
+        host = f"[{host}]"
+    netloc = host if port in {None, 443} else f"{host}:{port}"
+    return urllib.parse.urlunsplit(("https", netloc, parsed.path, "", ""))
 
 
 def _prefix_key(value: object) -> str:
@@ -82,6 +106,32 @@ class SiteLinkPolicy:
 
     def classifies_prefix(self, prefix: object) -> bool:
         return self.namespace_id(prefix) is not None or self.is_interwiki(prefix)
+
+
+def validate_source_site_binding(
+    site: str,
+    api_url: object,
+    policy: SiteLinkPolicy | None = None,
+) -> str:
+    expected_api = EXPECTED_SITE_APIS.get(site)
+    if expected_api is None:
+        raise SiteConfigError(f"Unsupported source site {site!r}.")
+    expected = normalize_source_api_url(expected_api)
+    actual = normalize_source_api_url(api_url)
+    if actual != expected:
+        raise SiteConfigError(
+            f"Source site {site!r} must use its pinned API {expected_api!r}."
+        )
+    if policy is not None:
+        if policy.site != site:
+            raise SiteConfigError(
+                f"Source site {site!r} cannot use policy for {policy.site!r}."
+            )
+        if normalize_source_api_url(policy.api_url) != expected:
+            raise SiteConfigError(
+                f"Source policy for {site!r} does not use its pinned API."
+            )
+    return actual
 
 
 def _normalized_namespaces(

@@ -23,6 +23,7 @@ from .site_config import (
     build_site_config_artifact,
     load_site_link_policies,
     site_config_entry_from_response,
+    validate_source_site_binding,
     write_site_config_artifact,
 )
 from .wikitext import WikitextError, parse_objective_page
@@ -308,12 +309,22 @@ def _parse_pages(
     *,
     site_policies: dict[str, SiteLinkPolicy],
 ) -> tuple[tuple[Any, ...], tuple[dict[str, Any], ...]]:
+    for site, policy in site_policies.items():
+        if not isinstance(policy, SiteLinkPolicy):
+            raise SiteConfigError(f"Source site policy for {site!r} has an invalid type.")
+        validate_source_site_binding(site, policy.api_url, policy)
     missing = sorted({page.site for page in source_pages if page.site not in site_policies})
     if missing:
         raise SiteConfigError(
             "Source site config has no policy for revision site(s): "
             + ", ".join(missing)
             + "."
+        )
+    for page in source_pages:
+        validate_source_site_binding(
+            page.site,
+            page.api_url,
+            site_policies[page.site],
         )
     parsed = []
     failures = []

@@ -5,6 +5,7 @@ import json
 import struct
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -17,6 +18,7 @@ from tools.objective_guides.mediawiki import (
     load_snapshot,
     recursive_category_pages,
     refresh_snapshot,
+    write_snapshot,
 )
 from tools.objective_guides.wikitext import parse_objective_page
 from tools.objective_guides import wikitext as wikitext_parser
@@ -284,6 +286,13 @@ def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, 
     return {page.canonical_title: page for page in pages}
 
 
+def _source_api_url(site: str) -> str:
+    return {
+        "bg": "https://www.bg-wiki.com/api.php",
+        "ffxiclopedia": "https://ffxiclopedia.fandom.com/api.php",
+    }[site]
+
+
 class MediaWikiAcquisitionTests(unittest.TestCase):
     @staticmethod
     def _siteinfo_response(site: str) -> dict:
@@ -445,6 +454,78 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
         with self.assertRaises(site_config.SiteConfigError):
             objective_cli._parse_pages((revision,), site_policies={})
+
+    def test_parse_batch_binds_policy_keys_and_revision_api_provenance(self) -> None:
+        site_config = importlib.import_module("tools.objective_guides.site_config")
+        objective_cli = importlib.import_module("tools.objective_guides.cli")
+        policies = site_config.load_default_site_link_policies()
+
+        def revision(site: str, api_url: str, page_id: int, instruction: str) -> PageRevision:
+            return PageRevision(
+                site=site,
+                api_url=api_url,
+                canonical_title=f"Bound Site Policy {page_id}",
+                page_id=page_id,
+                revision_id=page_id + 100,
+                parent_revision_id=page_id + 99,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=(
+                    "{{Quest Header}}\n==Walkthrough==\n"
+                    f"*{instruction}\n"
+                ),
+            )
+
+        bg = revision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            9360,
+            "Examine [[Door:Orastery]] in [[East Ronfaure]].",
+        )
+        ffxi = revision(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            9361,
+            "Talk to [[Trust: Ajido-Marujido]] in [[East Ronfaure]].",
+        )
+
+        with self.subTest(case="mapping-key-policy-site"), self.assertRaises(
+            site_config.SiteConfigError
+        ):
+            objective_cli._parse_pages(
+                (bg,),
+                site_policies={"bg": policies["ffxiclopedia"]},
+            )
+
+        with self.subTest(case="mapping-policy-api"), self.assertRaises(
+            site_config.SiteConfigError
+        ):
+            objective_cli._parse_pages(
+                (bg,),
+                site_policies={
+                    "bg": replace(
+                        policies["bg"],
+                        api_url="https://example.invalid/api.php",
+                    )
+                },
+            )
+
+        with self.subTest(case="revision-api"), self.assertRaises(
+            site_config.SiteConfigError
+        ):
+            objective_cli._parse_pages(
+                (replace(bg, api_url="https://example.invalid/api.php"),),
+                site_policies=policies,
+            )
+
+        parsed, failures = objective_cli._parse_pages(
+            (bg, ffxi),
+            site_policies=policies,
+        )
+        self.assertEqual(failures, ())
+        self.assertEqual(
+            tuple(page.steps[0].action_spans[0].target for page in parsed),
+            ("Door:Orastery", "Trust: Ajido-Marujido"),
+        )
 
     def test_refresh_site_config_capture_bypasses_resumable_request_cache(self) -> None:
         objective_cli = importlib.import_module("tools.objective_guides.cli")
@@ -695,6 +776,53 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
             with self.assertRaises(MediaWikiError):
                 load_snapshot(snapshot_path, expected_site="bg")
 
+    def test_snapshot_load_and_write_bind_site_to_pinned_api(self) -> None:
+        cases = (
+            (
+                "bg",
+                "bg-api-pages.json",
+                "https://www.bg-wiki.com/api.php",
+            ),
+            (
+                "ffxiclopedia",
+                "ffxiclopedia-api-pages.json",
+                "https://ffxiclopedia.fandom.com/api.php",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for site, fixture_name, api_url in cases:
+                fixture = _load_api_fixture(fixture_name)
+                client = MediaWikiClient(
+                    site,
+                    api_url,
+                    transport=_ScriptedTransport([fixture["response"]]),
+                )
+                pages = client.fetch_pages(fixture["requested_titles"])
+                snapshot = root / f"{site}.json"
+                write_snapshot(client, pages, snapshot)
+                self.assertEqual(len(load_snapshot(snapshot, expected_site=site)), 2)
+
+                tampered = json.loads(snapshot.read_text(encoding="utf-8"))
+                tampered["api_url"] = "https://example.invalid/api.php"
+                snapshot.write_text(json.dumps(tampered), encoding="utf-8")
+                with self.subTest(site=site, case="tampered-load"), self.assertRaises(
+                    MediaWikiError
+                ):
+                    load_snapshot(snapshot, expected_site=site)
+
+                wrong_client = MediaWikiClient(
+                    site,
+                    "https://example.invalid/api.php",
+                    transport=_ScriptedTransport([]),
+                )
+                wrong_snapshot = root / f"{site}-wrong.json"
+                with self.subTest(site=site, case="wrong-client-write"), self.assertRaises(
+                    MediaWikiError
+                ):
+                    write_snapshot(wrong_client, pages, wrong_snapshot)
+                self.assertFalse(wrong_snapshot.exists())
+
     def test_revision_cache_key_carries_site_ids_and_content_hash(self) -> None:
         page = PageRevision(
             site="bg",
@@ -770,6 +898,78 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
 
 class WikitextParserTests(unittest.TestCase):
+    def test_explicit_site_policy_must_bind_revision_site_and_api(self) -> None:
+        site_config = importlib.import_module("tools.objective_guides.site_config")
+        policies = site_config.load_default_site_link_policies()
+
+        def revision(site: str, api_url: str, page_id: int, instruction: str) -> PageRevision:
+            return PageRevision(
+                site=site,
+                api_url=api_url,
+                canonical_title=f"Explicit Site Policy {page_id}",
+                page_id=page_id,
+                revision_id=page_id + 100,
+                parent_revision_id=page_id + 99,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=(
+                    "{{Quest Header}}\n==Walkthrough==\n"
+                    f"*{instruction}\n"
+                ),
+            )
+
+        bg = revision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            9350,
+            "Examine [[Door:Orastery]] in [[East Ronfaure]].",
+        )
+        ffxi = revision(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            9351,
+            "Talk to [[Trust: Ajido-Marujido]] in [[East Ronfaure]].",
+        )
+
+        with self.subTest(case="wrong-site-policy"), self.assertRaises(
+            wikitext_parser.WikitextError
+        ):
+            parse_objective_page(bg, site_policy=policies["ffxiclopedia"])
+
+        for api_url in (
+            "https://example.invalid/api.php",
+            "http://www.bg-wiki.com/api.php",
+            "https://user@www.bg-wiki.com/api.php",
+            "https://www.bg-wiki.com/api.php?site=other",
+            "https://www.bg-wiki.com/api.php#other",
+            "https://www.bg-wiki.com/API.php",
+        ):
+            with self.subTest(case="revision-api", api_url=api_url), self.assertRaises(
+                wikitext_parser.WikitextError
+            ):
+                parse_objective_page(
+                    replace(bg, api_url=api_url),
+                    site_policy=policies["bg"],
+                )
+
+        parsed_bg = parse_objective_page(bg, site_policy=policies["bg"])
+        parsed_bg_equivalent = parse_objective_page(
+            replace(bg, api_url="HTTPS://WWW.BG-WIKI.COM:443/api.php"),
+            site_policy=policies["bg"],
+        )
+        parsed_ffxi = parse_objective_page(ffxi, site_policy=policies["ffxiclopedia"])
+        self.assertEqual(
+            (
+                parsed_bg.steps[0].action_spans[0].target,
+                parsed_bg_equivalent.steps[0].action_spans[0].target,
+                parsed_ffxi.steps[0].action_spans[0].target,
+            ),
+            (
+                "Door:Orastery",
+                "Door:Orastery",
+                "Trust: Ajido-Marujido",
+            ),
+        )
+
     def test_header_start_entities_require_site_eligible_link_identity(self) -> None:
         natives = (
             NativeObjective(
@@ -3073,7 +3273,7 @@ class ReconciliationTests(unittest.TestCase):
                 parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title="Chain Order",
                         page_id=page_id,
                         revision_id=page_id,
@@ -3098,7 +3298,7 @@ class ReconciliationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title="Two Talks",
                     page_id=page_id,
                     revision_id=page_id,
@@ -3272,7 +3472,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
         def page(site: str, revision_id: int) -> ParsedObjective:
             revision = PageRevision(
                 site=site,
-                api_url="https://example.invalid/api.php",
+                api_url=_source_api_url(site),
                 canonical_title=native.title,
                 page_id=revision_id,
                 revision_id=revision_id,
@@ -3482,7 +3682,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title="Claim Isolation",
                     page_id=page_id,
                     revision_id=page_id,
@@ -3538,7 +3738,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title="Claim Local Destination",
                     page_id=page_id,
                     revision_id=page_id,
@@ -3601,7 +3801,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title="Interstitial Destination",
                     page_id=page_id,
                     revision_id=page_id,
@@ -3686,7 +3886,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title="Boundary Destination",
                         page_id=page_id,
                         revision_id=page_id,
@@ -3780,7 +3980,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -3908,7 +4108,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -3974,7 +4174,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title=native.title,
                     page_id=page_id,
                     revision_id=page_id,
@@ -4042,7 +4242,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -4107,7 +4307,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -4186,7 +4386,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             return parse_objective_page(
                 PageRevision(
                     site=site,
-                    api_url="https://example.invalid/api.php",
+                    api_url=_source_api_url(site),
                     canonical_title=native.title,
                     page_id=page_id,
                     revision_id=page_id,
@@ -4298,7 +4498,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -4393,7 +4593,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 return parse_objective_page(
                     PageRevision(
                         site=site,
-                        api_url="https://example.invalid/api.php",
+                        api_url=_source_api_url(site),
                         canonical_title=native.title,
                         page_id=page_id,
                         revision_id=page_id,
@@ -5042,7 +5242,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     return parse_objective_page(
                         PageRevision(
                             site=site,
-                            api_url="https://example.invalid/api.php",
+                            api_url=_source_api_url(site),
                             canonical_title=native.title,
                             page_id=page_id,
                             revision_id=page_id,

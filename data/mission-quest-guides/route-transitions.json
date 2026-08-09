@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "transitions": [
+    {
+      "transition_id": "metalworks-north-elevator:down",
+      "base_id": "metalworks-north-elevator",
+      "zone": 237,
+      "direction": "down",
+      "pre_anchor": {"x": -53.126, "z": 12.04, "y": -12.098},
+      "post_anchor": {"x": -58.85, "z": 12.002, "y": 0.0},
+      "interaction": {"kind": "automatic-platform", "identity": "lsb-native-elevator-platform:@6l0"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_destination_ids": []
+    },
+    {
+      "transition_id": "metalworks-north-elevator:up",
+      "base_id": "metalworks-north-elevator",
+      "zone": 237,
+      "direction": "up",
+      "pre_anchor": {"x": -58.85, "z": 12.002, "y": 0.0},
+      "post_anchor": {"x": -53.126, "z": 12.04, "y": -12.098},
+      "interaction": {"kind": "automatic-platform", "identity": "lsb-native-elevator-platform:@6l0"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_destination_ids": []
+    },
+    {
+      "transition_id": "metalworks-south-elevator:down",
+      "base_id": "metalworks-south-elevator",
+      "zone": 237,
+      "direction": "down",
+      "pre_anchor": {"x": -53.126, "z": -11.875, "y": -12.098},
+      "post_anchor": {"x": -58.85, "z": -11.914, "y": 0.0},
+      "interaction": {"kind": "automatic-platform", "identity": "lsb-native-elevator-platform:@6l1"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_destination_ids": []
+    },
+    {
+      "transition_id": "metalworks-south-elevator:up",
+      "base_id": "metalworks-south-elevator",
+      "zone": 237,
+      "direction": "up",
+      "pre_anchor": {"x": -58.85, "z": -11.914, "y": 0.0},
+      "post_anchor": {"x": -53.126, "z": -11.875, "y": -12.098},
+      "interaction": {"kind": "automatic-platform", "identity": "lsb-native-elevator-platform:@6l1"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_destination_ids": []
+    },
+    {
+      "transition_id": "palborough-mines-lift:down",
+      "base_id": "palborough-mines-lift",
+      "zone": 143,
+      "direction": "down",
+      "pre_anchor": {"x": 182.401, "z": 64.408, "y": -32.207},
+      "post_anchor": {"x": 182.401, "z": 64.408, "y": 0.902},
+      "interaction": {"kind": "lever", "identity": "lsb-native-elevator-lever:_3z7"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_transport_id": "palborough-mines-lift",
+      "required_destination_ids": []
+    },
+    {
+      "transition_id": "palborough-mines-lift:up",
+      "base_id": "palborough-mines-lift",
+      "zone": 143,
+      "direction": "up",
+      "pre_anchor": {"x": 182.401, "z": 64.408, "y": 0.902},
+      "post_anchor": {"x": 182.401, "z": 64.408, "y": -32.207},
+      "interaction": {"kind": "lever", "identity": "lsb-native-elevator-lever:_3z6"},
+      "expected_live_state": "same-zone-floor-change-and-continuation",
+      "timeout_seconds": 45,
+      "cancellation": ["timeout", "player-left-zone", "destination-changed"],
+      "required_transport_id": "palborough-mines-lift",
+      "required_destination_ids": []
+    }
+  ]
+}

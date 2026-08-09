@@ -2325,6 +2325,34 @@ def resolve_objective_actions(
     )
 
 
+def task3_route_contract_inputs(
+    resolution: ObjectiveActionResolution,
+) -> tuple[
+    tuple[ObjectiveActionLedgerRow, ...],
+    tuple[ObjectiveDestinationCandidate, ...],
+    tuple[ObjectiveDestinationGroup, ...],
+]:
+    """Expose only Task 3's typed, still-nonroutable contract inputs."""
+
+    if any(row.route_ready for row in resolution.ledger):
+        raise ObjectiveDestinationError("Task 3 action ledger cannot pre-authorize a route.")
+    if any(candidate.route_ready for candidate in resolution.candidates):
+        raise ObjectiveDestinationError("Task 3 destination candidate cannot pre-authorize a route.")
+    if any(group.route_ready for group in resolution.groups):
+        raise ObjectiveDestinationError("Task 3 destination group cannot pre-authorize a route.")
+    candidate_ids = {candidate.candidate_id for candidate in resolution.candidates}
+    ledger_ids = {row.action_id for row in resolution.ledger}
+    if any(candidate.action_id not in ledger_ids for candidate in resolution.candidates):
+        raise ObjectiveDestinationError("Route candidate has no typed action-ledger owner.")
+    if any(
+        candidate_id not in candidate_ids
+        for group in resolution.groups
+        for candidate_id in group.candidate_ids
+    ):
+        raise ObjectiveDestinationError("Route group contains an unknown typed candidate.")
+    return resolution.ledger, resolution.candidates, resolution.groups
+
+
 def _resolve_reviewed_objective_destinations_strict(
     native: NativeObjective,
     reconciled: ReconciledObjective,

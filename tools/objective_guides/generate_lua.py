@@ -18,6 +18,7 @@ from .objective_destinations import (
     ObjectiveDestinationError,
     resolve_objective_actions,
     resolve_reviewed_objective_destinations,
+    task3_route_contract_inputs,
 )
 from .model import NativeObjective, ParsedObjective, SourceActionSpan, SourceStep
 from .reconcile import (
@@ -1583,14 +1584,17 @@ def build_guide_artifacts(
                 )
             except ObjectiveDestinationError as error:
                 raise GenerationError(str(error)) from error
+            route_ledger, route_candidates, route_groups = task3_route_contract_inputs(
+                action_resolution
+            )
             reconciled = replace(
                 reconciled,
-                action_resolution_ledger=action_resolution.ledger,
-                objective_destination_candidates=action_resolution.candidates,
-                objective_destination_groups=action_resolution.groups,
+                action_resolution_ledger=route_ledger,
+                objective_destination_candidates=route_candidates,
+                objective_destination_groups=route_groups,
                 objective_resolution_review_items=action_resolution.review_items,
             )
-            for row in action_resolution.ledger:
+            for row in route_ledger:
                 target_review_action_ledger.append(
                     {
                         "native_key": native.key,
@@ -1606,9 +1610,9 @@ def build_guide_artifacts(
                         "route_ready": False,
                     }
                 )
-            for candidate in action_resolution.candidates:
+            for candidate in route_candidates:
                 target_review_candidates.append(_objective_candidate_review_row(native.key, candidate))
-            for group in action_resolution.groups:
+            for group in route_groups:
                 target_review_groups.append(_objective_group_review_row(native.key, group))
             for item in action_resolution.review_items:
                 target_review_resolution_items.append(
@@ -2002,4 +2006,24 @@ def build_guide_artifacts(
             "source-snapshot.json",
             "target-review.json",
         ],
+        "route_inputs": {
+            "ledger": tuple(
+                sorted(
+                    target_review_action_ledger,
+                    key=lambda row: (row["native_key"], row["action_id"]),
+                )
+            ),
+            "candidates": tuple(
+                sorted(
+                    target_review_candidates,
+                    key=lambda row: (row["native_key"], row["candidate_id"]),
+                )
+            ),
+            "groups": tuple(
+                sorted(
+                    target_review_groups,
+                    key=lambda row: (row["native_key"], row["group_id"]),
+                )
+            ),
+        },
     }

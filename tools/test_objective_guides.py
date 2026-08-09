@@ -3813,7 +3813,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
         native, bg, ffxi, _reconciled, overrides = self._fixture("quest")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            build_guide_artifacts(
+            summary = build_guide_artifacts(
                 (native,),
                 (bg, ffxi),
                 module_root=root / "modules",
@@ -7054,7 +7054,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         ffxi = self._page("ffxiclopedia", 9802, native.title, (ffxi_span,))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            build_guide_artifacts(
+            summary = build_guide_artifacts(
                 (native,),
                 (bg, ffxi),
                 module_root=root / "modules",
@@ -7076,6 +7076,14 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         self.assertFalse(ledger[0]["route_ready"])
         self.assertEqual(len(candidates), 1)
         self.assertFalse(candidates[0]["route_ready"])
+        self.assertEqual(summary["route_inputs"]["candidates"], tuple(candidates))
+        self.assertEqual(
+            summary["route_inputs"]["groups"],
+            tuple(review.get("objective_destination_groups", [])),
+        )
+        self.assertTrue(
+            all(row["route_ready"] is False for row in summary["route_inputs"]["candidates"])
+        )
         self.assertEqual(len(review_items), 1)
         self.assertEqual(review_items[0]["zone_name"], "West Ronfaure")
         self.assertEqual(

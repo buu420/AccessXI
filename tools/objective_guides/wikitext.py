@@ -887,7 +887,24 @@ def _extract_action_spans(
             clause_ends[index - 1] = offset + leading_connector.start()
             clause_starts[index] = offset + leading_connector.end()
             continue
-        if len(_extract_zone_mentions(between)) > 1:
+        previous_verb = (
+            matches[index - 1].group("verb")
+            if "verb" in matches[index - 1].groupdict()
+            else matches[index - 1].group(0)
+        )
+        current_verb = (
+            matches[index].group("verb")
+            if "verb" in matches[index].groupdict()
+            else matches[index].group(0)
+        )
+        previous_action, _previous_relationship = _action_for_verb(previous_verb)
+        current_action, _current_relationship = _action_for_verb(current_verb)
+        causal_multi_zone_fight = bool(
+            previous_action == "fight"
+            and current_action == "obtain"
+            and re.search(r"\bto\s*$", between, re.IGNORECASE)
+        )
+        if len(_extract_zone_mentions(between)) > 1 and not causal_multi_zone_fight:
             suppressed_location_evidence.add(index - 1)
     for index, match in enumerate(matches):
         trailing_start = match.end()

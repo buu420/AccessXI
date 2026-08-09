@@ -72958,9 +72958,79 @@ function accessxi.nav_zone_search_npc_results(query, player)
             candidate.zone_search_path_len = path_len;
             candidate.zone_search_result = true;
             candidate.zone_search_query = query;
+            candidate.zone_search_player_distance = player ~= nil and nav_distance(player, candidate) or 999999;
             table.insert(candidates, candidate);
         end
     end
+
+    local function representative_less(a, b)
+        local ar = nav_point_source_rank(a);
+        local br = nav_point_source_rank(b);
+        if (ar ~= br) then
+            return ar < br;
+        end
+        local ad = tonumber(a.zone_search_player_distance) or 999999;
+        local bd = tonumber(b.zone_search_player_distance) or 999999;
+        if (ad ~= bd) then
+            return ad < bd;
+        end
+        local aid = nav_clean_field(a.destination_id or ''):lower();
+        local bid = nav_clean_field(b.destination_id or ''):lower();
+        if (aid ~= bid) then
+            return aid < bid;
+        end
+        local ari = nav_clean_field(a.raw_identity or ''):lower();
+        local bri = nav_clean_field(b.raw_identity or ''):lower();
+        if (ari ~= bri) then
+            return ari < bri;
+        end
+        local asource = nav_clean_field(a.source or ''):lower();
+        local bsource = nav_clean_field(b.source or ''):lower();
+        if (asource ~= bsource) then
+            return asource < bsource;
+        end
+        if ((tonumber(a.zone) or 0) ~= (tonumber(b.zone) or 0)) then
+            return (tonumber(a.zone) or 0) < (tonumber(b.zone) or 0);
+        end
+        local aname = accessxi.nav_search_text(a.name or '');
+        local bname = accessxi.nav_search_text(b.name or '');
+        if (aname ~= bname) then
+            return aname < bname;
+        end
+        if ((tonumber(a.x) or 0) ~= (tonumber(b.x) or 0)) then
+            return (tonumber(a.x) or 0) < (tonumber(b.x) or 0);
+        end
+        if ((tonumber(a.z) or 0) ~= (tonumber(b.z) or 0)) then
+            return (tonumber(a.z) or 0) < (tonumber(b.z) or 0);
+        end
+        return (tonumber(a.y) or 0) < (tonumber(b.y) or 0);
+    end
+
+    table.sort(candidates, representative_less);
+    local presented = {};
+    for _, candidate in ipairs(candidates) do
+        local duplicate = false;
+        local candidate_zone = tonumber(candidate.zone) or 0;
+        local candidate_kind = accessxi.nav_point_effective_kind(candidate);
+        local candidate_name = accessxi.nav_search_text(candidate.name or '');
+        for _, representative in ipairs(presented) do
+            if ((tonumber(representative.zone) or 0) == candidate_zone
+                and accessxi.nav_point_effective_kind(representative) == candidate_kind
+                and accessxi.nav_search_text(representative.name or '') == candidate_name) then
+                local dx = (tonumber(representative.x) or 0) - (tonumber(candidate.x) or 0);
+                local dz = (tonumber(representative.z) or 0) - (tonumber(candidate.z) or 0);
+                local dy = math.abs((tonumber(representative.y) or 0) - (tonumber(candidate.y) or 0));
+                if (((dx * dx) + (dz * dz)) <= 0.25 and dy <= 0.5) then
+                    duplicate = true;
+                    break;
+                end
+            end
+        end
+        if (not duplicate) then
+            table.insert(presented, candidate);
+        end
+    end
+    candidates = presented;
 
     table.sort(candidates, function (a, b)
         if (a.zone_search_exact ~= b.zone_search_exact) then

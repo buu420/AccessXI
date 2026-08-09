@@ -71,8 +71,14 @@ def _load_navigation_catalog(
         try:
             zone = int(fields[0])
             x, z, y = (float(fields[index]) for index in (2, 3, 4))
+            raw_spawn_ids = (
+                tuple(int(value) for value in fields[11].split(","))
+                if len(fields) >= 12 and fields[11].strip()
+                else ()
+            )
         except ValueError as error:
             raise ValueError(f"Malformed navigation destination row: {line!r}") from error
+        section = fields[8].strip() if len(fields) >= 9 else ""
         points.append(
             {
                 "zone": zone,
@@ -83,7 +89,12 @@ def _load_navigation_catalog(
                 "kind": fields[5].strip(),
                 "source": fields[6].strip(),
                 "confidence": fields[7].strip() if len(fields) >= 8 else "",
-                "note": fields[8].strip() if len(fields) >= 9 else "",
+                "section": section,
+                "note": section,
+                "destination_id": fields[9].strip() if len(fields) >= 10 else "",
+                "raw_identity": fields[10].strip() if len(fields) >= 11 else "",
+                "raw_spawn_ids": raw_spawn_ids,
+                "cluster_policy_version": fields[12].strip() if len(fields) >= 13 else "",
             }
         )
 

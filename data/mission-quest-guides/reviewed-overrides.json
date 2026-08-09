@@ -476,6 +476,72 @@
       }
     }
   },
+  "role_overrides": {
+    "mission:San d'Oria:1:step-001:claim-01": {
+      "source_revisions": {
+        "bg": 766630,
+        "ffxiclopedia": 1720865
+      },
+      "source_roles": [
+        "Gate Guard",
+        "San d'Orian Gate Guard"
+      ],
+      "allowed_zones": [
+        "Southern San d'Oria",
+        "Northern San d'Oria"
+      ],
+      "members": [
+        {
+          "destination_id": "npc:v1:230:17719394",
+          "name": "Ambrotien",
+          "zone": 230,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-002"
+        },
+        {
+          "destination_id": "npc:v1:230:17719393",
+          "name": "Endracion",
+          "zone": 230,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-003"
+        },
+        {
+          "destination_id": "npc:v1:231:17723426",
+          "name": "Grilau",
+          "zone": 231,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-004"
+        }
+      ],
+      "review_basis": "Exact gate-guard member notes in the pinned BG revision and matching role claim in both pinned guide revisions"
+    }
+  },
+  "single_source_zone_overrides": {
+    "mission:San d'Oria:1:step-005:claim-01": {
+      "source_revisions": {
+        "bg": 766630,
+        "ffxiclopedia": 1720865
+      },
+      "action": "fight",
+      "target": "Orcish Fodder",
+      "allowed_zones": [
+        "East Ronfaure"
+      ],
+      "location_facts": [
+        {
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-006",
+          "relationship": "target-location",
+          "target": "Orcish Fodder",
+          "zones": [
+            "East Ronfaure",
+            "West Ronfaure"
+          ]
+        }
+      ],
+      "review_basis": "Pinned BG target-location fact plus exact raw LandSandBoat spawn identities"
+    }
+  },
   "mission_destination_overrides": {
     "mission:Bastok:3": [
       {
@@ -7628,6 +7694,8 @@
   },
   "evidence": [
     "installed English client DAT rows",
+    "https://www.bg-wiki.com/ffxi/San_d%27Oria_Mission_1-1",
+    "https://ffxiclopedia.fandom.com/wiki/Smash_the_Orcish_Scouts",
     "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2",
     "https://ffxiclopedia.fandom.com/wiki/A_Geological_Survey",
     "https://ffxiclopedia.fandom.com/wiki/A_Discerning_Eye",

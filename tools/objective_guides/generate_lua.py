@@ -15,11 +15,16 @@ from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
 from .objective_destinations import (
     ObjectiveDestinationError,
+    resolve_objective_actions,
     resolve_reviewed_objective_destinations,
 )
 from .model import NativeObjective, ParsedObjective, SourceActionSpan, SourceStep
 from .reconcile import (
     ReconciledActionClaim,
+    ObjectiveActionLedgerRow,
+    ObjectiveDestinationCandidate,
+    ObjectiveDestinationGroup,
+    ObjectiveResolutionReviewItem,
     ReviewedObjectiveDestination,
     ReviewedNavigationTarget,
     ReconciledObjective,
@@ -277,6 +282,22 @@ def _reconcile_module_text(
             for destination in objective.objective_destinations:
                 lines.extend(_objective_destination_lua(destination))
             lines.append("    },")
+        lines.append("    action_resolution_ledger = {")
+        for row in objective.action_resolution_ledger:
+            lines.extend(_objective_action_ledger_lua(row))
+        lines.append("    },")
+        lines.append("    objective_destination_candidates = {")
+        for candidate in objective.objective_destination_candidates:
+            lines.extend(_objective_candidate_lua(candidate))
+        lines.append("    },")
+        lines.append("    objective_destination_groups = {")
+        for group in objective.objective_destination_groups:
+            lines.extend(_objective_group_lua(group))
+        lines.append("    },")
+        lines.append("    objective_resolution_review_items = {")
+        for item in objective.objective_resolution_review_items:
+            lines.extend(_objective_review_item_lua(item))
+        lines.append("    },")
         lines.append("    steps = {")
         for step in objective.steps:
             step_lines = [
@@ -358,6 +379,188 @@ def _reconciled_claim_lua(claim: ReconciledActionClaim) -> list[str]:
         )
     lines.extend(["            },", "          },"])
     return lines
+
+
+def _objective_action_ledger_lua(row: ObjectiveActionLedgerRow) -> list[str]:
+    return [
+        "      {",
+        f"        action_id = {lua_quote(row.action_id)},",
+        f"        source_action_span_ids = {_lua_array(row.source_action_span_ids)},",
+        f"        action = {lua_quote(row.action)},",
+        f"        status = {lua_quote(row.status)},",
+        f"        reason = {lua_quote(row.reason)},",
+        f"        candidate_ids = {_lua_array(row.candidate_ids)},",
+        f"        instruction = {lua_quote(row.instruction)},",
+        f"        material = {'true' if row.material else 'false'},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_candidate_lua(candidate: ObjectiveDestinationCandidate) -> list[str]:
+    lines = [
+        "      {",
+        f"        candidate_id = {lua_quote(candidate.candidate_id)},",
+        f"        action_id = {lua_quote(candidate.action_id)},",
+        f"        source_action_span_ids = {_lua_array(candidate.source_action_span_ids)},",
+        f"        source_sites = {_lua_array(candidate.source_sites)},",
+        "        source_revisions = {",
+    ]
+    lines.extend(
+        f"          [{lua_quote(site)}] = {revision_id},"
+        for site, revision_id in candidate.source_revisions
+    )
+    lines.extend(
+        [
+            "        },",
+            "        coordinate_support = {",
+        ]
+    )
+    for site, coordinate_kind, value in candidate.coordinate_support:
+        lines.extend(
+            [
+                "          {",
+                f"            site = {lua_quote(site)},",
+                f"            kind = {lua_quote(coordinate_kind)},",
+                f"            value = {lua_quote(value)},",
+                "          },",
+            ]
+        )
+    lines.extend(
+        [
+            "        },",
+            f"        coordinate_comparison = {lua_quote(candidate.coordinate_comparison)},",
+            f"        action = {lua_quote(candidate.action)},",
+            f"        items = {_lua_array(candidate.items)},",
+            f"        enemies = {_lua_array(candidate.enemies)},",
+            f"        result_relation = {lua_quote(candidate.result_relation)},",
+            f"        destination_id = {lua_quote(candidate.destination_id)},",
+            f"        zone = {candidate.zone},",
+            f"        zone_name = {lua_quote(candidate.zone_name)},",
+            f"        target_name = {lua_quote(candidate.target_name)},",
+            f"        target_kind = {lua_quote(candidate.target_kind)},",
+            "        target_point = { "
+            + ", ".join(format(value, ".17g") for value in candidate.target_point)
+            + " },",
+            f"        raw_identity = {lua_quote(candidate.raw_identity)},",
+            f"        raw_spawn_ids = {{ {', '.join(str(value) for value in candidate.raw_spawn_ids)} }},",
+            f"        cluster_policy_version = {lua_quote(candidate.cluster_policy_version)},",
+            f"        evidence_level = {lua_quote(candidate.evidence_level)},",
+            f"        group_id = {lua_quote(candidate.group_id)},",
+            f"        metadata_class = {lua_quote(candidate.metadata_class)},",
+            f"        transport_id = {lua_quote(candidate.transport_id)},",
+            f"        battlefield_id = {lua_quote(candidate.battlefield_id)},",
+            f"        label = {lua_quote(candidate.label)},",
+            f"        arrival_instruction = {lua_quote(candidate.arrival_instruction)},",
+            "        route_ready = false,",
+            "      },",
+        ]
+    )
+    return lines
+
+
+def _objective_group_lua(group: ObjectiveDestinationGroup) -> list[str]:
+    return [
+        "      {",
+        f"        group_id = {lua_quote(group.group_id)},",
+        f"        action_id = {lua_quote(group.action_id)},",
+        f"        zone = {group.zone},",
+        f"        zone_name = {lua_quote(group.zone_name)},",
+        f"        candidate_ids = {_lua_array(group.candidate_ids)},",
+        f"        evidence_level = {lua_quote(group.evidence_level)},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_review_item_lua(item: ObjectiveResolutionReviewItem) -> list[str]:
+    return [
+        "      {",
+        f"        review_id = {lua_quote(item.review_id)},",
+        f"        action_id = {lua_quote(item.action_id)},",
+        f"        target_name = {lua_quote(item.target_name)},",
+        f"        zone_name = {lua_quote(item.zone_name)},",
+        f"        source_sites = {_lua_array(item.source_sites)},",
+        f"        source_action_span_ids = {_lua_array(item.source_action_span_ids)},",
+        f"        reason = {lua_quote(item.reason)},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_candidate_review_row(
+    native_key: str,
+    candidate: ObjectiveDestinationCandidate,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "candidate_id": candidate.candidate_id,
+        "action_id": candidate.action_id,
+        "source_action_span_ids": list(candidate.source_action_span_ids),
+        "source_sites": list(candidate.source_sites),
+        "source_revisions": dict(candidate.source_revisions),
+        "coordinate_support": [
+            {"site": site, "kind": coordinate_kind, "value": value}
+            for site, coordinate_kind, value in candidate.coordinate_support
+        ],
+        "coordinate_comparison": candidate.coordinate_comparison,
+        "action": candidate.action,
+        "items": list(candidate.items),
+        "enemies": list(candidate.enemies),
+        "result_relation": candidate.result_relation,
+        "destination_id": candidate.destination_id,
+        "zone": candidate.zone,
+        "zone_name": candidate.zone_name,
+        "target_name": candidate.target_name,
+        "target_kind": candidate.target_kind,
+        "target_point": list(candidate.target_point),
+        "raw_identity": candidate.raw_identity,
+        "raw_spawn_ids": list(candidate.raw_spawn_ids),
+        "cluster_policy_version": candidate.cluster_policy_version,
+        "evidence_level": candidate.evidence_level,
+        "group_id": candidate.group_id,
+        "metadata_class": candidate.metadata_class,
+        "transport_id": candidate.transport_id,
+        "battlefield_id": candidate.battlefield_id,
+        "label": candidate.label,
+        "arrival_instruction": candidate.arrival_instruction,
+        "classification": "catalogue-candidate",
+        "route_ready": False,
+    }
+
+
+def _objective_group_review_row(
+    native_key: str,
+    group: ObjectiveDestinationGroup,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "group_id": group.group_id,
+        "action_id": group.action_id,
+        "zone": group.zone,
+        "zone_name": group.zone_name,
+        "candidate_ids": list(group.candidate_ids),
+        "candidate_count": len(group.candidate_ids),
+        "evidence_level": group.evidence_level,
+        "route_ready": False,
+    }
+
+
+def _objective_review_item_row(
+    native_key: str,
+    item: ObjectiveResolutionReviewItem,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "review_id": item.review_id,
+        "action_id": item.action_id,
+        "target_name": item.target_name,
+        "zone_name": item.zone_name,
+        "source_sites": list(item.source_sites),
+        "source_action_span_ids": list(item.source_action_span_ids),
+        "reason": item.reason,
+        "route_ready": False,
+    }
 
 
 def _objective_destination_lua(destination: ReviewedObjectiveDestination) -> list[str]:
@@ -1101,6 +1304,10 @@ def build_guide_artifacts(
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
     target_review_objective_destinations: list[dict[str, Any]] = []
+    target_review_action_ledger: list[dict[str, Any]] = []
+    target_review_candidates: list[dict[str, Any]] = []
+    target_review_groups: list[dict[str, Any]] = []
+    target_review_resolution_items: list[dict[str, Any]] = []
     resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
@@ -1126,6 +1333,49 @@ def build_guide_artifacts(
                 nav_points,
                 nav_zone_names,
             )
+            try:
+                action_resolution = resolve_objective_actions(
+                    native,
+                    reconciled,
+                    bg,
+                    ffxiclopedia,
+                    reviewed_overrides,
+                    nav_points,
+                    nav_zone_names,
+                )
+            except ObjectiveDestinationError as error:
+                raise GenerationError(str(error)) from error
+            reconciled = replace(
+                reconciled,
+                action_resolution_ledger=action_resolution.ledger,
+                objective_destination_candidates=action_resolution.candidates,
+                objective_destination_groups=action_resolution.groups,
+                objective_resolution_review_items=action_resolution.review_items,
+            )
+            for row in action_resolution.ledger:
+                target_review_action_ledger.append(
+                    {
+                        "native_key": native.key,
+                        "action_id": row.action_id,
+                        "source_action_span_ids": list(row.source_action_span_ids),
+                        "action": row.action,
+                        "status": row.status,
+                        "reason": row.reason,
+                        "candidate_ids": list(row.candidate_ids),
+                        "candidate_count": len(row.candidate_ids),
+                        "instruction": row.instruction,
+                        "material": row.material,
+                        "route_ready": False,
+                    }
+                )
+            for candidate in action_resolution.candidates:
+                target_review_candidates.append(_objective_candidate_review_row(native.key, candidate))
+            for group in action_resolution.groups:
+                target_review_groups.append(_objective_group_review_row(native.key, group))
+            for item in action_resolution.review_items:
+                target_review_resolution_items.append(
+                    _objective_review_item_row(native.key, item)
+                )
             try:
                 objective_destinations = resolve_reviewed_objective_destinations(
                     native,
@@ -1444,6 +1694,22 @@ def build_guide_artifacts(
         data_root / "target-review.json",
         {
             "schema_version": 1,
+            "action_resolution_ledger": sorted(
+                target_review_action_ledger,
+                key=lambda row: (row["native_key"], row["action_id"]),
+            ),
+            "objective_destination_candidates": sorted(
+                target_review_candidates,
+                key=lambda row: (row["native_key"], row["candidate_id"]),
+            ),
+            "objective_destination_groups": sorted(
+                target_review_groups,
+                key=lambda row: (row["native_key"], row["group_id"]),
+            ),
+            "objective_resolution_review_items": sorted(
+                target_review_resolution_items,
+                key=lambda row: (row["native_key"], row["review_id"]),
+            ),
             "objective_destinations": sorted(
                 target_review_objective_destinations,
                 key=lambda row: (row["native_key"], row["stable_id"]),

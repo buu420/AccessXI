@@ -61,6 +61,82 @@ class ReviewedObjectiveDestination:
 
 
 @dataclass(frozen=True, slots=True)
+class ObjectiveActionLedgerRow:
+    action_id: str
+    source_action_span_ids: tuple[str, ...]
+    action: str
+    status: str
+    reason: str
+    candidate_ids: tuple[str, ...]
+    instruction: str
+    material: bool
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveDestinationCandidate:
+    candidate_id: str
+    action_id: str
+    source_action_span_ids: tuple[str, ...]
+    source_sites: tuple[str, ...]
+    source_revisions: tuple[tuple[str, int], ...]
+    coordinate_support: tuple[tuple[str, str, str], ...]
+    coordinate_comparison: str
+    action: str
+    items: tuple[str, ...]
+    enemies: tuple[str, ...]
+    result_relation: str
+    destination_id: str
+    zone: int
+    zone_name: str
+    target_name: str
+    target_kind: str
+    target_point: tuple[float, float, float]
+    raw_identity: str
+    raw_spawn_ids: tuple[int, ...]
+    cluster_policy_version: str
+    evidence_level: str
+    group_id: str
+    metadata_class: str
+    transport_id: str
+    battlefield_id: str
+    label: str
+    arrival_instruction: str
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveDestinationGroup:
+    group_id: str
+    action_id: str
+    zone: int
+    zone_name: str
+    candidate_ids: tuple[str, ...]
+    evidence_level: str
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveResolutionReviewItem:
+    review_id: str
+    action_id: str
+    target_name: str
+    zone_name: str
+    source_sites: tuple[str, ...]
+    source_action_span_ids: tuple[str, ...]
+    reason: str
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveActionResolution:
+    ledger: tuple[ObjectiveActionLedgerRow, ...]
+    candidates: tuple[ObjectiveDestinationCandidate, ...]
+    groups: tuple[ObjectiveDestinationGroup, ...]
+    review_items: tuple[ObjectiveResolutionReviewItem, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class ReconciledCandidate:
     field: str
     value: str
@@ -115,6 +191,10 @@ class ReconciledObjective:
     dynamic_candidate_grid: tuple[str, ...] = ()
     dynamic_candidate_comparison: str = "none"
     selected_candidate_grid: str | None = None
+    action_resolution_ledger: tuple[ObjectiveActionLedgerRow, ...] = ()
+    objective_destination_candidates: tuple[ObjectiveDestinationCandidate, ...] = ()
+    objective_destination_groups: tuple[ObjectiveDestinationGroup, ...] = ()
+    objective_resolution_review_items: tuple[ObjectiveResolutionReviewItem, ...] = ()
     objective_destinations: tuple[ReviewedObjectiveDestination, ...] = ()
     mission_destinations: tuple[ReviewedMissionDestination, ...] = ()
 

@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from tools.objective_guides.model import ManifestError, NativeObjective, SourceActionSpan
@@ -28,6 +29,8 @@ from tools.objective_guides.objective_destinations import (
     ObjectiveDestinationError,
     resolve_reviewed_objective_destinations,
 )
+from tools.objective_guides import objective_destinations as action_resolver
+from tools.objective_guides import mission_destinations as legacy_mission_resolver
 from tools.objective_guides.model import ParsedObjective, SourceStep
 from tools.objective_guides.generate_lua import (
     GenerationError,
@@ -46,6 +49,7 @@ from tools.objective_guides.native_manifest import (
     decode_quest_dat_bytes,
     validate_unique_objectives,
 )
+from tools import generate_nav_zoneline_destinations as nav_destination_generator
 
 
 def _write_u32(buffer: bytearray, offset: int, value: int) -> None:
@@ -5562,15 +5566,1191 @@ class ObjectiveDestinationTests(unittest.TestCase):
             )
 
 
+class ObjectiveActionResolutionTests(unittest.TestCase):
+    @staticmethod
+    def _span(
+        order: int,
+        action: str,
+        target: str,
+        target_kind: str,
+        zone_names: tuple[str, ...] = (),
+        *,
+        relationship: str | None = None,
+        grid: tuple[str, ...] = (),
+        item_mentions: tuple[str, ...] = (),
+        result_items: tuple[str, ...] = (),
+        material: bool = True,
+    ) -> SourceActionSpan:
+        clause = f"{action.title()} {target or 'as instructed'}"
+        mention_fields: dict[str, tuple[str, ...]] = {}
+        if target_kind == "npc":
+            mention_fields["npc_mentions"] = (target,)
+        elif target_kind in {"object", "area", "entrance", "question-mark"}:
+            mention_fields["object_mentions"] = (target,)
+        elif target_kind == "enemy":
+            mention_fields["enemy_mentions"] = (target,)
+        elif target_kind == "transport":
+            mention_fields["transport_mentions"] = (target,)
+        return SourceActionSpan(
+            source_step_order=order,
+            order=1,
+            text_start=0,
+            text_end=len(clause),
+            supporting_clause=clause,
+            action=action,
+            verb=action,
+            relationship=relationship or f"{action}-target",
+            target=target,
+            target_kind=target_kind,
+            item_mentions=item_mentions,
+            zone_mentions=zone_names,
+            grid_coordinates=grid,
+            result_items=result_items,
+            result_relation="obtain-from" if result_items else "",
+            material=material,
+            **mention_fields,
+        )
+
+    @staticmethod
+    def _page(
+        site: str,
+        revision_id: int,
+        title: str,
+        spans: tuple[SourceActionSpan | None, ...],
+        texts: tuple[str, ...] = (),
+    ) -> ParsedObjective:
+        steps = []
+        for index, span in enumerate(spans, start=1):
+            text = texts[index - 1] if index <= len(texts) else (
+                span.supporting_clause if span is not None else "Historical background for this objective."
+            )
+            linked = ()
+            zones = ()
+            grids = ()
+            if span is not None:
+                linked = tuple(
+                    dict.fromkeys(
+                        value
+                        for value in (
+                            span.target,
+                            *span.npc_mentions,
+                            *span.object_mentions,
+                            *span.enemy_mentions,
+                            *span.transport_mentions,
+                            *span.item_mentions,
+                            *span.result_items,
+                            *span.zone_mentions,
+                        )
+                        if value
+                    )
+                )
+                zones = span.zone_mentions
+                grids = span.grid_coordinates
+            steps.append(
+                SourceStep(
+                    index,
+                    "*",
+                    1,
+                    text,
+                    text,
+                    span.action if span is not None else "note",
+                    linked_entities=linked,
+                    zone_candidates=zones,
+                    grid_coordinates=grids,
+                    items=tuple(span.item_mentions) if span is not None else (),
+                    action_spans=(span,) if span is not None else (),
+                )
+            )
+        return ParsedObjective(
+            site=site,
+            page_id=revision_id,
+            revision_id=revision_id,
+            canonical_title=title,
+            kind="mission",
+            objective_name=title,
+            steps=tuple(steps),
+        )
+
+    @staticmethod
+    def _pinned_orcish_pages() -> tuple[ParsedObjective, ParsedObjective]:
+        bg_content = """{{Mission Header
+|Mission Name=Smash the Orcish Scouts
+|Expansion=sandoria
+|Start=Any San d'Oria [[Gate Guard]]
+|Description=Mission Orders: Hunt Orcs lurking outside San d'Oria and bring back one of their axes.
+|Level=
+|Repeatable=Yes
+|Previous=
+|Next=San d'Oria Mission 1-2{{!}}Bat Hunt
+|Title=None
+|Reward=*[[Rank Points]]
+|Image=
+}}
+
+==Walkthrough==\x20
+*Speak to any San d'Orian [[Gate Guard]] to begin this Mission.
+** [[Ambrotien]] - [[Southern San d'Oria]] (K-10)
+** [[Endracion]] - [[Southern San d'Oria]] (F-9)
+** [[Grilau]] - [[Northern San d'Oria]] (D-8)
+*Go outside the city and kill [[Orcish Fodder]] until you receive an {{ItemIcon|Orcish Axe|22}} [[Orcish Axe]].
+**[[Orcish Fodder]] can be found in [[East Ronfaure]] and [[West Ronfaure]].
+*After you receive an [[Orcish Axe]] return to the [[Gate Guard]] and trade them the [[Orcish Axe]] to finish the Mission.
+
+[[category:Missions]][[Category:San d'Oria Missions]]"""
+        ffxi_content = """[[category:Missions]][[Category:San d'Oria Missions]]
+[[de:San d'Oria-Mission 1-1]]
+{{Mission
+| name = Smash the Orcish Scouts
+| number = 1-1
+| npc = A [[San d'Orian Gate Guard]]
+| requirements =\x20
+| level = 1
+| title =\x20
+| reward = Rank points
+| items = [[Orcish Axe]]
+| repeatable = Yes
+| parent =\x20
+| children =\x20
+| previous =\x20
+| next = [[Bat Hunt]]
+| cutscenes =\x20
+{{Mission/Cutscene|Smash the Orcish Scouts|[[Gizel]] {{Location|Southern San d'Oria|H-8}}}}
+}}
+
+== Walkthrough ==
+*Talk to a [[San d'Orian Gate Guard]] to accept the mission.
+*Defeat [[Orcish Fodder]] in either [[West Ronfaure]], [[Ghelsba Outpost]] or [[La Theine Plateau]] to obtain an [[Orcish Axe]].
+*Return to San d'Oria and trade the Orcish Axe to the San d'Orian Gate Guard to complete the mission.
+
+{{Mission/Description
+| orders = Hunt Orcs lurking outside San d'Oria and bring back one of their axes.
+}}
+
+{{spoiler2}}"""
+        bg_revision = PageRevision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            "San d'Oria Mission 1-1",
+            11438,
+            766630,
+            678629,
+            "2026-05-27T17:18:15Z",
+            bg_content,
+            ("Smash the Orcish Scouts",),
+        )
+        ffxi_revision = PageRevision(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            "Smash the Orcish Scouts",
+            3300,
+            1720865,
+            1720864,
+            "2020-05-21T15:12:29Z",
+            ffxi_content,
+        )
+        if bg_revision.content_sha256 != "e0d5cabd0fa1a409fac83461f930601c7c5d3b70f8a475ba945dcb5d2feb276b":
+            raise AssertionError("Pinned BG revision content changed.")
+        if ffxi_revision.content_sha256 != "ee90087fef11f944d1d8feffb608e75b576c2690a680413e9ed2d6a1e0a904f5":
+            raise AssertionError("Pinned FFXIclopedia revision content changed.")
+        return parse_objective_page(bg_revision), parse_objective_page(ffxi_revision)
+
+    @staticmethod
+    def _point(
+        zone: int,
+        zone_name: str,
+        name: str,
+        kind: str,
+        raw_id: int,
+        *,
+        x: float = 1.0,
+        z: float = 2.0,
+        y: float = 3.0,
+        raw_spawn_ids: tuple[int, ...] = (),
+    ) -> dict:
+        if kind == "enemy":
+            raw_identity = (
+                f"lsb:mob_spawn_points:group:{raw_id}:mobname:"
+                + name.replace(" ", "_")
+            )
+            policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+            destination_id = nav_destination_generator.enemy_destination_id(
+                zone=zone,
+                raw_identity=raw_identity,
+                raw_spawn_ids=raw_spawn_ids,
+                policy_version=policy,
+            )
+        else:
+            raw_identity = (
+                f"lsb:zonelines:{raw_id}"
+                if kind == "area"
+                else f"lsb:npc_list:{raw_id}"
+            )
+            policy = ""
+            destination_id = f"{kind}:v1:{zone}:{raw_id}"
+        return {
+            "zone": zone,
+            "zone_name": zone_name,
+            "name": name,
+            "kind": kind,
+            "x": x,
+            "z": z,
+            "y": y,
+            "source": "lsb-test-fixture",
+            "confidence": "untested",
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "raw_spawn_ids": raw_spawn_ids,
+            "cluster_policy_version": policy,
+        }
+
+    @staticmethod
+    def _resolve(
+        native: NativeObjective,
+        bg: ParsedObjective | None,
+        ffxi: ParsedObjective | None,
+        points: tuple[dict, ...],
+        zone_names: dict[int, str],
+        overrides: dict | None = None,
+    ) -> object:
+        resolver = getattr(action_resolver, "resolve_objective_actions", None)
+        if not callable(resolver):
+            return SimpleNamespace(ledger=(), candidates=(), groups=(), review_items=())
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        return resolver(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            overrides or {},
+            points,
+            zone_names,
+        )
+
+    def test_exact_typed_actions_use_only_the_current_catalogue_kinds(self) -> None:
+        native = NativeObjective("mission", "Bastok", 91, "Typed actions", "missions.dat", 0)
+        definitions = (
+            ("talk", "Alpha", "npc", 101, "East Ronfaure"),
+            ("trade", "Beta", "npc", 102, "La Theine Plateau"),
+            ("examine", "Door:Orastery", "object", 103, "Valkurm Dunes"),
+            ("use", "Ancient Lever", "object", 104, "Jugner Forest"),
+            ("fight", "Orcish Fodder", "enemy", 105, "Batallia Downs"),
+            ("obtain", "Huge Hornet", "enemy", 106, "North Gustaberg"),
+            ("travel", "West Ronfaure zone line", "area", 107, "Northern San d'Oria"),
+        )
+        spans = tuple(
+            self._span(order, action, target, kind, (zone_name,))
+            for order, (action, target, kind, _zone, zone_name) in enumerate(definitions, start=1)
+        )
+        bg = self._page("bg", 9101, native.title, spans)
+        ffxi = self._page("ffxiclopedia", 9102, native.title, spans)
+        points = tuple(
+            self._point(zone, zone_name, target, kind, 9000 + order, raw_spawn_ids=(9000 + order,) if kind == "enemy" else ())
+            for order, (action, target, kind, zone, zone_name) in enumerate(definitions, start=1)
+        )
+        resolution = self._resolve(native, bg, ffxi, points, {row[3]: row[4] for row in definitions})
+
+        self.assertEqual(len(resolution.ledger), 7)
+        self.assertEqual({row.status for row in resolution.ledger}, {"catalogue-candidate"})
+        self.assertEqual(len(resolution.candidates), 7)
+        actual = {candidate.action: candidate.target_kind for candidate in resolution.candidates}
+        self.assertEqual(
+            actual,
+            {
+                "talk": "npc",
+                "trade": "npc",
+                "examine": "object",
+                "use": "object",
+                "fight": "enemy",
+                "obtain": "enemy",
+                "travel": "area",
+            },
+        )
+        self.assertTrue(all(candidate.route_ready is False for candidate in resolution.candidates))
+
+    def test_orcish_scouts_keeps_two_reviewed_zone_groups_and_every_camp(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg_span = self._span(
+            1,
+            "fight",
+            "Orcish Fodder",
+            "enemy",
+            ("East Ronfaure", "West Ronfaure"),
+            relationship="defeat-to-obtain",
+            result_items=("Orcish Axe",),
+        )
+        ffxi_span = self._span(
+            1,
+            "fight",
+            "Orcish Fodder",
+            "enemy",
+            ("West Ronfaure", "Ghelsba Outpost", "La Theine Plateau"),
+            relationship="defeat-to-obtain",
+            result_items=("Orcish Axe",),
+        )
+        bg = self._page("bg", 766630, native.title, (bg_span,))
+        ffxi = self._page("ffxiclopedia", 1720865, native.title, (ffxi_span,))
+        points = (
+            self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 10101, raw_spawn_ids=(10101, 10102)),
+            self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 10103, raw_spawn_ids=(10103,)),
+            self._point(100, "West Ronfaure", "Orcish Fodder", "enemy", 10001, raw_spawn_ids=(10001, 10002)),
+            self._point(100, "West Ronfaure", "Orcish Fodder", "enemy", 10003, raw_spawn_ids=(10003,)),
+            self._point(140, "Ghelsba Outpost", "Orcish Fodder", "enemy", 14001, raw_spawn_ids=(14001,)),
+            self._point(102, "La Theine Plateau", "Orcish Fodder", "enemy", 10201, raw_spawn_ids=(10201,)),
+            self._point(81, "East Ronfaure [S]", "Orcish Fodder", "enemy", 8101, raw_spawn_ids=(8101,)),
+            self._point(141, "Fort Ghelsba", "Orcish Fodder", "enemy", 14101, raw_spawn_ids=(14101,)),
+        )
+        action_id = "mission:San d'Oria:1:step-001:claim-01"
+        overrides = {
+            "single_source_zone_overrides": {
+                action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "action": "fight",
+                    "target": "Orcish Fodder",
+                    "allowed_zones": ["East Ronfaure"],
+                    "review_basis": "BG claim plus exact raw LandSandBoat spawn identities",
+                }
+            }
+        }
+        zone_names = {point["zone"]: point["zone_name"] for point in points}
+        resolution = self._resolve(native, bg, ffxi, points, zone_names, overrides)
+
+        self.assertEqual([group.zone_name for group in resolution.groups], ["East Ronfaure", "West Ronfaure"])
+        self.assertEqual([len(group.candidate_ids) for group in resolution.groups], [2, 2])
+        self.assertEqual(len(resolution.candidates), 4)
+        self.assertEqual(
+            {candidate.zone_name for candidate in resolution.candidates},
+            {"East Ronfaure", "West Ronfaure"},
+        )
+        self.assertTrue(
+            {"East Ronfaure [S]", "Fort Ghelsba", "Ghelsba Outpost", "La Theine Plateau"}.isdisjoint(
+                {candidate.zone_name for candidate in resolution.candidates}
+            )
+        )
+        self.assertEqual(
+            {raw_id for candidate in resolution.candidates for raw_id in candidate.raw_spawn_ids},
+            {10101, 10102, 10103, 10001, 10002, 10003},
+        )
+        self.assertEqual(
+            [(item.zone_name, item.reason) for item in resolution.review_items],
+            [
+                ("Ghelsba Outpost", "single-source-needs-independent-corroboration"),
+                ("La Theine Plateau", "single-source-needs-independent-corroboration"),
+            ],
+        )
+
+    def test_pinned_ffxi_plural_causal_zone_list_stays_on_fight_span(self) -> None:
+        bg, ffxi = self._pinned_orcish_pages()
+
+        self.assertEqual(bg.steps[5].spoken_text, "Orcish Fodder can be found in East Ronfaure and West Ronfaure.")
+        self.assertEqual(bg.steps[5].zone_candidates, ("East Ronfaure", "West Ronfaure"))
+        self.assertEqual(bg.steps[5].action_spans, ())
+        (fight,) = ffxi.steps[1].action_spans
+        self.assertEqual(fight.action, "fight")
+        self.assertEqual(fight.target, "Orcish Fodder")
+        self.assertEqual(fight.result_relation, "obtain-from")
+        self.assertEqual(
+            fight.zone_mentions,
+            ("West Ronfaure", "Ghelsba Outpost", "La Theine Plateau"),
+        )
+
+    def test_pinned_orcish_pages_resolve_only_reviewed_gate_guards_and_east_west_camps(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg, ffxi = self._pinned_orcish_pages()
+        fight_action_id = "mission:San d'Oria:1:step-005:claim-01"
+        role_action_id = "mission:San d'Oria:1:step-001:claim-01"
+        points = (
+            self._point(230, "Southern San d'Oria", "Ambrotien", "npc", 17719394),
+            self._point(230, "Southern San d'Oria", "Endracion", "npc", 17719393),
+            self._point(231, "Northern San d'Oria", "Grilau", "npc", 17723426),
+            self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 34, raw_spawn_ids=(413697, 413698)),
+            self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 35, raw_spawn_ids=(413705,)),
+            self._point(100, "West Ronfaure", "Orcish Fodder", "enemy", 36, raw_spawn_ids=(409601, 409602)),
+            self._point(100, "West Ronfaure", "Orcish Fodder", "enemy", 37, raw_spawn_ids=(409611,)),
+            self._point(140, "Ghelsba Outpost", "Orcish Fodder", "enemy", 38, raw_spawn_ids=(573441,)),
+            self._point(102, "La Theine Plateau", "Orcish Fodder", "enemy", 39, raw_spawn_ids=(417793,)),
+            self._point(81, "East Ronfaure [S]", "Orcish Fodder", "enemy", 40, raw_spawn_ids=(331777,)),
+            self._point(141, "Fort Ghelsba", "Orcish Fodder", "enemy", 41, raw_spawn_ids=(577537,)),
+        )
+        overrides = {
+            "role_overrides": {
+                role_action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "source_roles": ["Gate Guard", "San d'Orian Gate Guard"],
+                    "allowed_zones": ["Southern San d'Oria", "Northern San d'Oria"],
+                    "members": [
+                        {
+                            "destination_id": "npc:v1:230:17719394",
+                            "name": "Ambrotien",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-002",
+                        },
+                        {
+                            "destination_id": "npc:v1:230:17719393",
+                            "name": "Endracion",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-003",
+                        },
+                        {
+                            "destination_id": "npc:v1:231:17723426",
+                            "name": "Grilau",
+                            "zone": 231,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-004",
+                        },
+                    ],
+                    "review_basis": "Exact gate-guard member notes in the pinned BG revision and matching role claim in both pinned guide revisions",
+                }
+            },
+            "single_source_zone_overrides": {
+                fight_action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "action": "fight",
+                    "target": "Orcish Fodder",
+                    "allowed_zones": ["East Ronfaure"],
+                    "location_facts": [
+                        {
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-006",
+                            "relationship": "target-location",
+                            "target": "Orcish Fodder",
+                            "zones": ["East Ronfaure", "West Ronfaure"],
+                        }
+                    ],
+                    "review_basis": "Pinned BG target-location fact plus exact raw LandSandBoat spawn identities",
+                }
+            },
+        }
+        checked_in_overrides = json.loads(
+            (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(overrides["role_overrides"], checked_in_overrides["role_overrides"])
+        self.assertEqual(
+            overrides["single_source_zone_overrides"],
+            checked_in_overrides["single_source_zone_overrides"],
+        )
+        resolution = self._resolve(
+            native,
+            bg,
+            ffxi,
+            points,
+            {point["zone"]: point["zone_name"] for point in points},
+            overrides,
+        )
+
+        self.assertEqual(
+            [candidate.target_name for candidate in resolution.candidates if candidate.action_id == role_action_id],
+            ["Ambrotien", "Endracion", "Grilau"],
+        )
+        role_ledger = next(row for row in resolution.ledger if row.action_id == role_action_id)
+        expected_member_facts = {
+            "mission:San d'Oria:1:bg:step-002:role-member-fact-01",
+            "mission:San d'Oria:1:bg:step-003:role-member-fact-01",
+            "mission:San d'Oria:1:bg:step-004:role-member-fact-01",
+        }
+        self.assertTrue(expected_member_facts.issubset(role_ledger.source_action_span_ids))
+        for candidate in resolution.candidates:
+            if candidate.action_id != role_action_id:
+                continue
+            self.assertEqual(
+                len(expected_member_facts.intersection(candidate.source_action_span_ids)),
+                1,
+            )
+        self.assertTrue(
+            {
+                "mission:San d'Oria:1:step-002:context-01",
+                "mission:San d'Oria:1:step-003:context-01",
+                "mission:San d'Oria:1:step-004:context-01",
+            }.isdisjoint({row.action_id for row in resolution.ledger})
+        )
+        self.assertEqual(
+            [group.zone_name for group in resolution.groups if group.action_id == fight_action_id],
+            ["East Ronfaure", "West Ronfaure"],
+        )
+        location_fact_id = "mission:San d'Oria:1:bg:step-006:location-fact-01"
+        fight_ledger = next(row for row in resolution.ledger if row.action_id == fight_action_id)
+        self.assertIn(location_fact_id, fight_ledger.source_action_span_ids)
+        self.assertTrue(
+            all(
+                location_fact_id in candidate.source_action_span_ids
+                for candidate in resolution.candidates
+                if candidate.action_id == fight_action_id
+            )
+        )
+        self.assertNotIn(
+            "mission:San d'Oria:1:step-006:context-01",
+            {row.action_id for row in resolution.ledger},
+        )
+        self.assertEqual(
+            [(item.zone_name, item.reason) for item in resolution.review_items if item.action_id == fight_action_id],
+            [
+                ("Ghelsba Outpost", "single-source-needs-independent-corroboration"),
+                ("La Theine Plateau", "single-source-needs-independent-corroboration"),
+            ],
+        )
+        self.assertTrue(
+            {"East Ronfaure [S]", "Fort Ghelsba"}.isdisjoint(
+                {candidate.zone_name for candidate in resolution.candidates}
+            )
+        )
+
+    def test_pinned_location_fact_override_rejects_stale_target_or_zones(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg, ffxi = self._pinned_orcish_pages()
+        action_id = "mission:San d'Oria:1:step-005:claim-01"
+        base_override = {
+            "single_source_zone_overrides": {
+                action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "action": "fight",
+                    "target": "Orcish Fodder",
+                    "allowed_zones": ["East Ronfaure"],
+                    "location_facts": [
+                        {
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-006",
+                            "relationship": "target-location",
+                            "target": "Orcish Fodder",
+                            "zones": ["East Ronfaure", "West Ronfaure"],
+                        }
+                    ],
+                }
+            }
+        }
+        stale_cases = {
+            "target": {"target": "Huge Hornet"},
+            "zones": {"zones": ["East Ronfaure"]},
+            "relationship": {"relationship": "spawn-location"},
+            "source-step": {"source_step_id": "mission:San d'Oria:1:bg:step-005"},
+            "source-site": {"source_site": "ffxiclopedia"},
+        }
+        for label, mutation in stale_cases.items():
+            override = json.loads(json.dumps(base_override))
+            override["single_source_zone_overrides"][action_id]["location_facts"][0].update(mutation)
+            with self.subTest(label=label), self.assertRaises(ObjectiveDestinationError):
+                self._resolve(
+                    native,
+                    bg,
+                    ffxi,
+                    (
+                        self._point(
+                            101,
+                            "East Ronfaure",
+                            "Orcish Fodder",
+                            "enemy",
+                            34,
+                            raw_spawn_ids=(413697,),
+                        ),
+                    ),
+                    {101: "East Ronfaure", 100: "West Ronfaure"},
+                    override,
+                )
+
+    def test_revision_pinned_gate_guard_role_expands_to_three_exact_members(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg, ffxi = self._pinned_orcish_pages()
+        points = (
+            self._point(230, "Southern San d'Oria", "Ambrotien", "npc", 17719394),
+            self._point(230, "Southern San d'Oria", "Endracion", "npc", 17719393),
+            self._point(231, "Northern San d'Oria", "Grilau", "npc", 17723426),
+        )
+        action_id = "mission:San d'Oria:1:step-001:claim-01"
+        overrides = {
+            "role_overrides": {
+                action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "source_roles": ["Gate Guard", "San d'Orian Gate Guard"],
+                    "allowed_zones": ["Southern San d'Oria", "Northern San d'Oria"],
+                    "members": [
+                        {
+                            "destination_id": "npc:v1:230:17719394",
+                            "name": "Ambrotien",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-002",
+                        },
+                        {
+                            "destination_id": "npc:v1:230:17719393",
+                            "name": "Endracion",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-003",
+                        },
+                        {
+                            "destination_id": "npc:v1:231:17723426",
+                            "name": "Grilau",
+                            "zone": 231,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-004",
+                        },
+                    ],
+                    "review_basis": "Exact gate-guard member list in the pinned guide revision",
+                }
+            }
+        }
+        resolution = self._resolve(
+            native,
+            bg,
+            ffxi,
+            points,
+            {230: "Southern San d'Oria", 231: "Northern San d'Oria"},
+            overrides,
+        )
+
+        role_ledger = next(row for row in resolution.ledger if row.action_id == action_id)
+        self.assertEqual(role_ledger.status, "catalogue-candidate")
+        self.assertEqual(
+            [candidate.target_name for candidate in resolution.candidates if candidate.action_id == action_id],
+            ["Ambrotien", "Endracion", "Grilau"],
+        )
+        self.assertEqual(
+            len({candidate.destination_id for candidate in resolution.candidates if candidate.action_id == action_id}),
+            3,
+        )
+
+    def test_revision_pinned_role_member_facts_reject_stale_name_zone_step_or_site(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg, ffxi = self._pinned_orcish_pages()
+        action_id = "mission:San d'Oria:1:step-001:claim-01"
+        base_override = {
+            "role_overrides": {
+                action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "source_roles": ["Gate Guard", "San d'Orian Gate Guard"],
+                    "allowed_zones": ["Southern San d'Oria", "Northern San d'Oria"],
+                    "members": [
+                        {
+                            "destination_id": "npc:v1:230:17719394",
+                            "name": "Ambrotien",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-002",
+                        }
+                    ],
+                }
+            }
+        }
+        stale_cases = {
+            "name": {"name": "Huge Hornet"},
+            "zone": {"zone": 231},
+            "source-step": {"source_step_id": "mission:San d'Oria:1:bg:step-003"},
+            "source-site": {"source_site": "ffxiclopedia"},
+        }
+        for label, mutation in stale_cases.items():
+            override = json.loads(json.dumps(base_override))
+            override["role_overrides"][action_id]["members"][0].update(mutation)
+            with self.subTest(label=label), self.assertRaises(ObjectiveDestinationError):
+                self._resolve(
+                    native,
+                    bg,
+                    ffxi,
+                    (self._point(230, "Southern San d'Oria", "Ambrotien", "npc", 17719394),),
+                    {230: "Southern San d'Oria", 231: "Northern San d'Oria"},
+                    override,
+                )
+
+    def test_instruction_context_and_unresolved_actions_are_each_accounted_once(self) -> None:
+        native = NativeObjective("mission", "Bastok", 92, "Instruction accounting", "missions.dat", 0)
+        spans = (
+            self._span(1, "wait", "", ""),
+            self._span(2, "select", "Yes", "menu-choice"),
+            self._span(3, "warning", "Dawn Talisman", "key-item"),
+            self._span(4, "protect", "Elvaan and Hume NPCs", "role"),
+            None,
+        )
+        texts = (
+            "Wait until the next game day.",
+            "Select Yes from the menu.",
+            "Do not leave the battlefield or the Dawn Talisman is lost.",
+            "Protect the Elvaan and Hume NPCs.",
+            "This paragraph is historical background only.",
+        )
+        bg = self._page("bg", 9201, native.title, spans, texts)
+        ffxi = self._page("ffxiclopedia", 9202, native.title, spans, texts)
+        context_action_id = "mission:Bastok:92:step-005:context-01"
+        overrides = {
+            "context_overrides": {
+                context_action_id: {
+                    "source_revisions": {"bg": 9201, "ffxiclopedia": 9202},
+                    "reason": "historical-explanation",
+                }
+            }
+        }
+        resolution = self._resolve(native, bg, ffxi, (), {}, overrides)
+
+        self.assertEqual(len(resolution.ledger), 5)
+        by_action = {row.action: row for row in resolution.ledger}
+        self.assertEqual(by_action["wait"].status, "instruction-only")
+        self.assertEqual(by_action["select"].status, "instruction-only")
+        self.assertEqual(by_action["warning"].status, "instruction-only")
+        self.assertEqual(by_action["protect"].status, "unresolved")
+        self.assertEqual(by_action["context"].status, "context-only")
+        self.assertEqual(len(resolution.candidates), 0)
+
+    def test_duplicate_static_target_and_coordinate_conflict_fail_closed(self) -> None:
+        native = NativeObjective("mission", "Bastok", 93, "Fail closed", "missions.dat", 0)
+        bg_span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",), grid=("H-8",))
+        ffxi_span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",), grid=("H-9",))
+        bg = self._page("bg", 9301, native.title, (bg_span,))
+        ffxi = self._page("ffxiclopedia", 9302, native.title, (ffxi_span,))
+        points = (
+            self._point(101, "East Ronfaure", "Alpha", "npc", 1, x=1.0),
+            self._point(101, "East Ronfaure", "Alpha", "npc", 2, x=10.0),
+        )
+        resolution = self._resolve(native, bg, ffxi, points, {101: "East Ronfaure"})
+
+        self.assertEqual(len(resolution.ledger), 1)
+        self.assertEqual(resolution.ledger[0].status, "conflict")
+        self.assertEqual(resolution.ledger[0].reason, "source-conflict")
+        self.assertEqual(resolution.ledger[0].candidate_ids, ())
+        self.assertEqual(len(resolution.candidates), 0)
+
+        same_coordinate = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",), grid=("H-8",))
+        nonconflicting = self._resolve(
+            native,
+            self._page("bg", 9301, native.title, (same_coordinate,)),
+            self._page("ffxiclopedia", 9302, native.title, (same_coordinate,)),
+            points,
+            {101: "East Ronfaure"},
+        )
+        self.assertEqual(nonconflicting.ledger[0].status, "unresolved")
+        self.assertEqual(nonconflicting.ledger[0].reason, "ambiguous-static-reference")
+
+    def test_single_source_plus_raw_game_identity_can_yield_a_candidate(self) -> None:
+        native = NativeObjective("mission", "Bastok", 94, "Single source", "missions.dat", 0)
+        span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",))
+        bg = self._page("bg", 9401, native.title, (span,))
+        resolution = self._resolve(
+            native,
+            bg,
+            None,
+            (self._point(101, "East Ronfaure", "Alpha", "npc", 1001),),
+            {101: "East Ronfaure"},
+        )
+
+        self.assertEqual(len(resolution.ledger), 1)
+        self.assertEqual(resolution.ledger[0].status, "catalogue-candidate")
+        self.assertEqual(resolution.candidates[0].evidence_level, "single-source+game-data")
+        self.assertEqual(resolution.candidates[0].source_sites, ("bg",))
+        self.assertEqual(resolution.candidates[0].source_revisions, (("bg", 9401),))
+
+    def test_question_mark_battlefield_and_transport_require_reviewed_metadata(self) -> None:
+        native = NativeObjective("mission", "Bastok", 95, "Reviewed metadata", "missions.dat", 0)
+        spans = (
+            self._span(1, "examine", "???", "question-mark", ("East Ronfaure",)),
+            self._span(2, "travel", "Horlais Peak entrance", "entrance", ("Yughott Grotto",)),
+            self._span(3, "use", "Mine lift", "transport", ("Palborough Mines",)),
+        )
+        bg = self._page("bg", 9501, native.title, spans)
+        ffxi = self._page("ffxiclopedia", 9502, native.title, spans)
+        points = (
+            self._point(101, "East Ronfaure", "???", "object", 1011, x=1.0, z=2.0, y=3.0),
+            self._point(101, "East Ronfaure", "???", "object", 1012, x=9.0, z=9.0, y=9.0),
+            self._point(142, "Yughott Grotto", "Horlais Peak entrance", "area", 1421),
+            self._point(143, "Palborough Mines", "Mine lift", "object", 1431),
+        )
+        prefix = "mission:Bastok:95"
+        overrides = {
+            "dynamic_target_overrides": {
+                f"{prefix}:step-001:claim-01": {
+                    "source_revisions": {"bg": 9501, "ffxiclopedia": 9502},
+                    "destination_ids": ["object:v1:101:1011"],
+                    "target_point": [1.0, 2.0, 3.0],
+                }
+            },
+            "action_metadata_overrides": {
+                f"{prefix}:step-002:claim-01": {
+                    "source_revisions": {"bg": 9501, "ffxiclopedia": 9502},
+                    "class": "battlefield",
+                    "destination_ids": ["area:v1:142:1421"],
+                    "battlefield_id": "horlais-peak",
+                },
+                f"{prefix}:step-003:claim-01": {
+                    "source_revisions": {"bg": 9501, "ffxiclopedia": 9502},
+                    "class": "transport",
+                    "destination_ids": ["object:v1:143:1431"],
+                    "transport_id": "palborough-mines-lift",
+                },
+            },
+        }
+        resolution = self._resolve(
+            native,
+            bg,
+            ffxi,
+            points,
+            {101: "East Ronfaure", 142: "Yughott Grotto", 143: "Palborough Mines"},
+            overrides,
+        )
+
+        self.assertEqual([row.status for row in resolution.ledger], ["catalogue-candidate"] * 3)
+        by_class = {candidate.metadata_class: candidate for candidate in resolution.candidates}
+        self.assertEqual(by_class["dynamic"].destination_id, "object:v1:101:1011")
+        self.assertEqual(by_class["battlefield"].battlefield_id, "horlais-peak")
+        self.assertEqual(by_class["transport"].transport_id, "palborough-mines-lift")
+
+    def test_distinct_item_sources_have_truthful_separate_instructions(self) -> None:
+        native = NativeObjective("mission", "Bastok", 97, "Separate drops", "missions.dat", 0)
+        spans = (
+            self._span(
+                1,
+                "obtain",
+                "River Crab",
+                "enemy",
+                ("West Ronfaure",),
+                relationship="obtain-from",
+                item_mentions=("Crab Shell",),
+                result_items=("Crab Shell",),
+            ),
+            self._span(
+                2,
+                "obtain",
+                "Stag Beetle",
+                "enemy",
+                ("East Ronfaure",),
+                relationship="obtain-from",
+                item_mentions=("Beetle Wing",),
+                result_items=("Beetle Wing",),
+            ),
+        )
+        bg = self._page("bg", 9701, native.title, spans)
+        ffxi = self._page("ffxiclopedia", 9702, native.title, spans)
+        resolution = self._resolve(
+            native,
+            bg,
+            ffxi,
+            (
+                self._point(100, "West Ronfaure", "River Crab", "enemy", 1001, raw_spawn_ids=(1001,)),
+                self._point(101, "East Ronfaure", "Stag Beetle", "enemy", 1011, raw_spawn_ids=(1011,)),
+            ),
+            {100: "West Ronfaure", 101: "East Ronfaure"},
+        )
+
+        self.assertEqual(len(resolution.candidates), 2)
+        self.assertEqual(
+            [candidate.arrival_instruction for candidate in resolution.candidates],
+            [
+                "Obtain Crab Shell from River Crab in West Ronfaure.",
+                "Obtain Beetle Wing from Stag Beetle in East Ronfaure.",
+            ],
+        )
+        self.assertTrue(
+            all("complete" not in candidate.arrival_instruction.casefold() for candidate in resolution.candidates)
+        )
+        self.assertEqual(
+            [(candidate.items, candidate.enemies, candidate.result_relation) for candidate in resolution.candidates],
+            [
+                (("Crab Shell",), ("River Crab",), "obtain-from"),
+                (("Beetle Wing",), ("Stag Beetle",), "obtain-from"),
+            ],
+        )
+        self.assertTrue(
+            all(candidate.source_revisions == (("bg", 9701), ("ffxiclopedia", 9702)) for candidate in resolution.candidates)
+        )
+
+    def test_partial_grid_agreement_stays_candidate_scoped_and_auditable(self) -> None:
+        native = NativeObjective("mission", "Bastok", 99, "Partial coordinates", "missions.dat", 0)
+        bg_span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",), grid=("H-8",))
+        ffxi_span = self._span(
+            1,
+            "talk",
+            "Alpha",
+            "npc",
+            ("East Ronfaure",),
+            grid=("H-8", "H-9"),
+        )
+        resolution = self._resolve(
+            native,
+            self._page("bg", 9901, native.title, (bg_span,)),
+            self._page("ffxiclopedia", 9902, native.title, (ffxi_span,)),
+            (self._point(101, "East Ronfaure", "Alpha", "npc", 99001),),
+            {101: "East Ronfaure"},
+        )
+
+        self.assertEqual(len(resolution.candidates), 1)
+        candidate = resolution.candidates[0]
+        self.assertEqual(candidate.coordinate_comparison, "partial")
+        self.assertEqual(
+            candidate.coordinate_support,
+            (("bg", "grid", "H-8"), ("ffxiclopedia", "grid", "H-8"), ("ffxiclopedia", "grid", "H-9")),
+        )
+
+    def test_ledger_and_candidate_parent_cardinality_are_exact(self) -> None:
+        native = NativeObjective("mission", "Bastok", 96, "Ledger accounting", "missions.dat", 0)
+        spans = (
+            self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",)),
+            self._span(2, "fight", "Orcish Fodder", "enemy", ("West Ronfaure",)),
+            None,
+        )
+        bg = self._page("bg", 9601, native.title, spans)
+        ffxi = self._page("ffxiclopedia", 9602, native.title, spans)
+        resolution = self._resolve(
+            native,
+            bg,
+            ffxi,
+            (
+                self._point(101, "East Ronfaure", "Alpha", "npc", 1),
+                self._point(100, "West Ronfaure", "Orcish Fodder", "enemy", 2, raw_spawn_ids=(2, 3)),
+            ),
+            {101: "East Ronfaure", 100: "West Ronfaure"},
+        )
+
+        expected_action_ids = {
+            "mission:Bastok:96:step-001:claim-01",
+            "mission:Bastok:96:step-002:claim-01",
+            "mission:Bastok:96:step-003:context-01",
+        }
+        self.assertEqual({row.action_id for row in resolution.ledger}, expected_action_ids)
+        self.assertEqual(len(resolution.ledger), len(expected_action_ids))
+        self.assertTrue(
+            {row.status for row in resolution.ledger}.issubset(
+                {"catalogue-candidate", "instruction-only", "context-only", "conflict", "unresolved"}
+            )
+        )
+        self.assertNotIn("routable", {row.status for row in resolution.ledger})
+        allowed_reasons = {
+            "dual-source-exact-catalogue-match",
+            "single-source-independent-game-data",
+            "reviewed-role-members",
+            "reviewed-single-source-zone",
+            "reviewed-dynamic-target",
+            "reviewed-battlefield-metadata",
+            "reviewed-transport-metadata",
+            "missing-action-target",
+            "missing-zone",
+            "no-exact-catalogue-match",
+            "ambiguous-static-reference",
+            "dynamic-identity-required",
+            "source-conflict",
+            "single-source-needs-independent-corroboration",
+            "transport-metadata-required",
+            "complete-instruction",
+            "non-material-context-reason",
+            "unsupported-target-class",
+        }
+        self.assertTrue({row.reason for row in resolution.ledger}.issubset(allowed_reasons))
+        span_ids = [span_id for row in resolution.ledger for span_id in row.source_action_span_ids]
+        self.assertEqual(len(span_ids), len(set(span_ids)))
+        candidate_ids = [candidate.candidate_id for candidate in resolution.candidates]
+        self.assertEqual(len(candidate_ids), len(set(candidate_ids)))
+        ledger_by_id = {row.action_id: row for row in resolution.ledger}
+        for candidate in resolution.candidates:
+            self.assertIn(candidate.action_id, ledger_by_id)
+            self.assertIn(candidate.candidate_id, ledger_by_id[candidate.action_id].candidate_ids)
+            self.assertTrue(
+                set(candidate.source_action_span_ids).issubset(
+                    set(ledger_by_id[candidate.action_id].source_action_span_ids)
+                )
+            )
+        for row in resolution.ledger:
+            self.assertEqual(bool(row.candidate_ids), row.status == "catalogue-candidate")
+        group_ids = [group.group_id for group in resolution.groups]
+        self.assertEqual(len(group_ids), len(set(group_ids)))
+        candidate_by_id = {candidate.candidate_id: candidate for candidate in resolution.candidates}
+        seen_group_candidates: set[str] = set()
+        for group in resolution.groups:
+            self.assertIn(group.action_id, ledger_by_id)
+            self.assertEqual(len(group.candidate_ids), len(set(group.candidate_ids)))
+            for candidate_id in group.candidate_ids:
+                self.assertIn(candidate_id, candidate_by_id)
+                self.assertEqual(candidate_by_id[candidate_id].group_id, group.group_id)
+                self.assertNotIn(candidate_id, seen_group_candidates)
+                seen_group_candidates.add(candidate_id)
+
+    def test_mismatched_typed_relationship_cannot_supply_dual_source_support(self) -> None:
+        native = NativeObjective("mission", "Bastok", 100, "Typed mismatch", "missions.dat", 0)
+        bg_span = self._span(
+            1,
+            "talk",
+            "Alpha",
+            "npc",
+            ("East Ronfaure",),
+            relationship="talk-to",
+        )
+        ffxi_span = self._span(
+            1,
+            "trade",
+            "Alpha",
+            "npc",
+            ("East Ronfaure",),
+            relationship="trade-to",
+        )
+        resolution = self._resolve(
+            native,
+            self._page("bg", 10001, native.title, (bg_span,)),
+            self._page("ffxiclopedia", 10002, native.title, (ffxi_span,)),
+            (self._point(101, "East Ronfaure", "Alpha", "npc", 100001),),
+            {101: "East Ronfaure"},
+        )
+
+        self.assertEqual(len(resolution.ledger), 1)
+        self.assertEqual(resolution.ledger[0].status, "unresolved")
+        self.assertEqual(
+            resolution.ledger[0].reason,
+            "single-source-needs-independent-corroboration",
+        )
+        self.assertEqual(resolution.candidates, ())
+
+    def test_immutable_identity_must_be_congruent_with_kind_zone_raw_id_and_enemy_policy(self) -> None:
+        immutable = action_resolver.navigation_point_has_immutable_identity
+        static = self._point(101, "East Ronfaure", "Alpha", "npc", 1001)
+        self.assertTrue(immutable(static))
+        wrong_zone = dict(static, destination_id="npc:v1:999:1001")
+        wrong_kind = dict(static, destination_id="object:v1:101:1001")
+        wrong_raw_tail = dict(static, raw_identity="lsb:test:2002")
+        wrong_raw_source = dict(static, raw_identity="arbitrary:1001")
+        self.assertFalse(immutable(wrong_zone))
+        self.assertFalse(immutable(wrong_kind))
+        self.assertFalse(immutable(wrong_raw_tail))
+        self.assertFalse(immutable(wrong_raw_source))
+
+        raw_identity = "lsb:mob_spawn_points:group:34:mobname:Orcish_Fodder"
+        spawn_ids = (413697, 413698)
+        policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+        destination_id = nav_destination_generator.enemy_destination_id(
+            zone=101,
+            raw_identity=raw_identity,
+            raw_spawn_ids=spawn_ids,
+            policy_version=policy,
+        )
+        enemy = {
+            **self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 1, raw_spawn_ids=spawn_ids),
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "cluster_policy_version": policy,
+        }
+        self.assertTrue(immutable(enemy))
+        self.assertFalse(immutable(dict(enemy, destination_id=destination_id + "0")))
+        self.assertFalse(immutable(dict(enemy, raw_spawn_ids=(413697, 413699))))
+        self.assertFalse(immutable(dict(enemy, cluster_policy_version="complete-link-v2-h100-y20")))
+
+    def test_duplicate_canonical_zone_names_fail_closed(self) -> None:
+        native = NativeObjective("mission", "Bastok", 101, "Zone alias collision", "missions.dat", 0)
+        span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",))
+        bg = self._page("bg", 10101, native.title, (span,))
+        ffxi = self._page("ffxiclopedia", 10102, native.title, (span,))
+
+        with self.assertRaises(ObjectiveDestinationError):
+            self._resolve(
+                native,
+                bg,
+                ffxi,
+                (self._point(101, "East Ronfaure", "Alpha", "npc", 101001),),
+                {101: "East Ronfaure", 999: "East Ronfaure"},
+            )
+
+    def test_generated_review_and_lua_emit_the_nonroutable_action_ledger(self) -> None:
+        native = NativeObjective("mission", "Bastok", 98, "Generated ledger", "missions.dat", 0)
+        bg_span = self._span(1, "talk", "Alpha", "npc", ("East Ronfaure",))
+        ffxi_span = self._span(
+            1,
+            "talk",
+            "Alpha",
+            "npc",
+            ("East Ronfaure", "West Ronfaure"),
+        )
+        bg = self._page("bg", 9801, native.title, (bg_span,))
+        ffxi = self._page("ffxiclopedia", 9802, native.title, (ffxi_span,))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (bg, ffxi),
+                module_root=root / "modules",
+                data_root=root / "data",
+                navigation_points=(self._point(101, "East Ronfaure", "Alpha", "npc", 98001),),
+                navigation_zone_names={101: "East Ronfaure", 100: "West Ronfaure"},
+            )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+            lua = (root / "modules" / "mission_quest_reconcile_mission_bastok.lua").read_text(
+                encoding="utf-8"
+            )
+
+        ledger = review.get("action_resolution_ledger", [])
+        candidates = review.get("objective_destination_candidates", [])
+        review_items = review.get("objective_resolution_review_items", [])
+        self.assertEqual(len(ledger), 1)
+        self.assertEqual(ledger[0]["status"], "catalogue-candidate")
+        self.assertEqual(ledger[0]["candidate_count"], 1)
+        self.assertFalse(ledger[0]["route_ready"])
+        self.assertEqual(len(candidates), 1)
+        self.assertFalse(candidates[0]["route_ready"])
+        self.assertEqual(len(review_items), 1)
+        self.assertEqual(review_items[0]["zone_name"], "West Ronfaure")
+        self.assertEqual(
+            review_items[0]["reason"],
+            "single-source-needs-independent-corroboration",
+        )
+        self.assertFalse(review_items[0]["route_ready"])
+        self.assertIn("action_resolution_ledger = {", lua)
+        self.assertIn("objective_destination_candidates = {", lua)
+        self.assertIn("objective_resolution_review_items = {", lua)
+        self.assertNotIn('status = "routable"', lua)
+        self.assertNotIn("route_ready = true", lua)
+
+    def test_legacy_adapter_discards_free_text_route_authorization(self) -> None:
+        native, bg, ffxi, reconciled, _overrides = ObjectiveDestinationTests._fixture("mission")
+        override = {
+            "mission_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "unsafe-legacy-proof",
+                        "source_revisions": {"bg": 4001, "ffxiclopedia": 4002},
+                        "source_step_ids": [f"{native.key}:step-001"],
+                        "action": "obtain",
+                        "items": ["Orcish Axe"],
+                        "enemies": ["Orcish Fodder"],
+                        "zone": 101,
+                        "zone_name": "East Ronfaure",
+                        "camp_label": "legacy camp",
+                        "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+                        "route_evidence": "free text must never authorize",
+                        "canonical_ingress": {"edge_id": 1234, "from_zone": 100},
+                        "arrival_instruction": "Defeat Orcish Fodder.",
+                    }
+                ]
+            }
+        }
+        point = self._point(101, "East Ronfaure", "Orcish Fodder", "enemy", 1, raw_spawn_ids=(1,))
+        point["confidence"] = "proven"
+        rows = legacy_mission_resolver.resolve_reviewed_mission_destinations(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            override,
+            (point,),
+            {101: "East Ronfaure"},
+            ({"id": 1234, "from_zone": 100, "to_zone": 101},),
+        )
+
+        self.assertGreater(len(rows), 0)
+        self.assertTrue(all(row.route_evidence == "" for row in rows))
+        self.assertTrue(all(not hasattr(row, "route_ready") for row in rows))
+
+
 class GeneratedArtifactTests(unittest.TestCase):
     def test_navigation_catalog_loader_uses_exact_tsv_identity_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             destinations = root / "destinations.tsv"
             graph = root / "graph.tsv"
+            raw_enemy_identity = "lsb:mob_spawn_points:group:1:mobname:Tunnel_Worm"
+            enemy_destination_id = nav_destination_generator.enemy_destination_id(
+                zone=172,
+                raw_identity=raw_enemy_identity,
+                raw_spawn_ids=(1001, 1002),
+                policy_version=nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
+            )
             destinations.write_text(
                 "# comment\n"
-                "172\tMakarim\t-60.925\t-333.294\t8.471\tnpc\tcurrent-nav\tuntested\treview note\n",
+                "172\tLegacy\t1\t2\t3\tnpc\tmanual\n"
+                "172\tMakarim\t-60.925\t-333.294\t8.471\tnpc\tcurrent-nav\tuntested\treview note\n"
+                "172\tTunnel Worm\t4\t5\t6\tenemy\tlsb-mob-spawn-camps\tuntested\tcamp note\t"
+                f"{enemy_destination_id}\t{raw_enemy_identity}\t"
+                "1001,1002\tcomplete-link-v1-h120-y24\n",
                 encoding="utf-8",
             )
             graph.write_text(
@@ -5584,12 +6764,30 @@ class GeneratedArtifactTests(unittest.TestCase):
 
         self.assertEqual(len(catalog), 3)
         points, zone_names, edges = catalog
-        self.assertEqual(len(points), 1)
+        self.assertEqual(len(points), 3)
         self.assertEqual(points[0]["zone"], 172)
-        self.assertEqual(points[0]["name"], "Makarim")
+        self.assertEqual(points[0]["name"], "Legacy")
         self.assertEqual(points[0]["kind"], "npc")
-        self.assertEqual(points[0]["confidence"], "untested")
-        self.assertEqual(points[0]["note"], "review note")
+        self.assertEqual(points[0]["confidence"], "")
+        self.assertEqual(points[0].get("section", ""), "")
+        self.assertEqual(points[0]["note"], "")
+        self.assertEqual(points[0].get("destination_id", ""), "")
+        self.assertEqual(points[1]["name"], "Makarim")
+        self.assertEqual(points[1]["confidence"], "untested")
+        self.assertEqual(points[1].get("section", ""), "review note")
+        self.assertEqual(points[1]["note"], "review note")
+        self.assertEqual(points[1].get("destination_id", ""), "")
+        self.assertEqual(points[2].get("destination_id", ""), enemy_destination_id)
+        self.assertEqual(
+            points[2].get("raw_identity", ""),
+            "lsb:mob_spawn_points:group:1:mobname:Tunnel_Worm",
+        )
+        self.assertEqual(points[2].get("raw_spawn_ids", ()), (1001, 1002))
+        self.assertEqual(points[2].get("cluster_policy_version", ""), "complete-link-v1-h120-y24")
+        immutable = getattr(action_resolver, "navigation_point_has_immutable_identity", lambda _point: False)
+        self.assertFalse(immutable(points[0]))
+        self.assertFalse(immutable(points[1]))
+        self.assertTrue(immutable(points[2]))
         self.assertEqual(zone_names[172], "Zeruhn Mines")
         self.assertEqual(zone_names[234], "Bastok Mines")
         self.assertEqual(

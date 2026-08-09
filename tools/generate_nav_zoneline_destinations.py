@@ -13,20 +13,15 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import math
 import re
-from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 
-ROOT = Path(r"C:\Users\buu42\AccessXI")
-DESTINATIONS = ROOT / "data" / "ffxi-nav-destinations.tsv"
-GRAPH = ROOT / "data" / "ffxi-nav-zoneline-graph.tsv"
-ZONELINES = ROOT / "data" / "lsb_zonelines.sql"
-NPC_LIST = ROOT / "data" / "lsb_npc_list.sql"
-MOB_SPAWN_POINTS = ROOT / "third_party" / "LandSandBoat-server" / "sql" / "mob_spawn_points.sql"
-ZONE_IDS = ROOT / "third_party" / "LandSandBoat-server" / "documentation" / "ZoneIDs.txt"
+ROOT = Path(__file__).resolve().parents[1]
 
 GENERATED_SOURCE = "lsb-zoneline-all"
 GENERATED_NPC_SOURCE = "lsb-npc-list-all"
@@ -35,9 +30,11 @@ GENERATED_SOURCES = (GENERATED_SOURCE, GENERATED_NPC_SOURCE, GENERATED_ENEMY_SOU
 GENERATED_SECTION = "world-zonelines-2026-06-20"
 GENERATED_NPC_SECTION = "world-npcs-2026-06-20"
 GENERATED_ENEMY_SECTION = "world-enemy-camps-2026-07-01"
-SKIP_DISTANCE_YALMS = 2.0
 MOB_CLUSTER_DISTANCE_YALMS = 120.0
 MOB_CLUSTER_Y_DISTANCE_YALMS = 24.0
+STATIC_IDENTITY_SCHEMA_REVISION = "v1"
+ENEMY_IDENTITY_SCHEMA_REVISION = "v1"
+ENEMY_CLUSTER_POLICY_VERSION = "complete-link-v1-h120-y24"
 
 GRAPH_EDGE_OVERRIDES = {
     # Live /axi pos evidence for the Port San d'Oria -> Northern San d'Oria
@@ -122,6 +119,10 @@ class Destination:
     source: str
     confidence: str
     section: str
+    destination_id: str = ""
+    raw_identity: str = ""
+    raw_spawn_ids: tuple[int, ...] = ()
+    cluster_policy_version: str = ""
 
 
 @dataclass(frozen=True)
@@ -133,6 +134,22 @@ class MobSpawn:
     y: float
     min_level: int
     max_level: int
+    mobid: int
+    raw_identity: str
+
+
+@dataclass(frozen=True)
+class MobSpawnExclusion:
+    line_number: int
+    mobid: int
+    reason: str
+
+
+@dataclass(frozen=True)
+class MobSpawnParseAudit:
+    active_insert_count: int
+    spawns: tuple[MobSpawn, ...]
+    exclusions: tuple[MobSpawnExclusion, ...]
 
 
 OBJECT_NAME_PARTS = (
@@ -158,6 +175,58 @@ def clean_label(value: str) -> str:
     value = value.replace("_", " ").replace("`", "'").strip()
     value = re.sub(r"\s+", " ", value)
     return value
+
+
+def _identity_tail(raw_identity: str) -> str:
+    value = str(raw_identity or "").strip()
+    tail = value.rsplit(":", 1)[-1]
+    if not value or not re.fullmatch(r"[0-9]+", tail):
+        raise ValueError(f"Static navigation identity is not an exact numeric source record: {value!r}")
+    return tail
+
+
+def static_destination_id(
+    kind: str,
+    zone: int,
+    raw_identity: str,
+    *,
+    schema_revision: str = STATIC_IDENTITY_SCHEMA_REVISION,
+) -> str:
+    normalized_kind = clean_label(kind).casefold()
+    normalized_revision = clean_label(schema_revision).casefold()
+    if normalized_kind not in {"npc", "object", "area"}:
+        raise ValueError(f"Static navigation identity has unsupported kind {kind!r}.")
+    if int(zone) <= 0 or not re.fullmatch(r"v[0-9]+", normalized_revision):
+        raise ValueError("Static navigation identity needs a positive zone and versioned schema.")
+    return f"{normalized_kind}:{normalized_revision}:{int(zone)}:{_identity_tail(raw_identity)}"
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", clean_label(value).casefold()).strip("-") or "target"
+
+
+def enemy_destination_id(
+    *,
+    zone: int,
+    raw_identity: str,
+    raw_spawn_ids: tuple[int, ...],
+    policy_version: str,
+) -> str:
+    ids = tuple(sorted(int(value) for value in raw_spawn_ids))
+    if int(zone) <= 0 or not raw_identity or not ids or len(ids) != len(set(ids)):
+        raise ValueError("Enemy camp identity needs one zone, one raw identity, and unique spawn IDs.")
+    raw_name = raw_identity.split(":mobname:", 1)[-1]
+    payload = "\n".join(
+        (
+            ENEMY_IDENTITY_SCHEMA_REVISION,
+            str(int(zone)),
+            raw_identity,
+            ",".join(str(value) for value in ids),
+            policy_version,
+        )
+    ).encode("utf-8")
+    digest = hashlib.sha256(payload).hexdigest()[:20]
+    return f"camp:{ENEMY_IDENTITY_SCHEMA_REVISION}:{int(zone)}:{_slug(raw_name)}:{digest}"
 
 
 def parse_zone_ids(path: Path) -> dict[int, str]:
@@ -216,9 +285,9 @@ def parse_zonelines(path: Path) -> list[ZoneLine]:
 
 def parse_npc_list(path: Path) -> list[Destination]:
     rows: list[Destination] = []
-    pattern = re.compile(r"INSERT INTO `npc_list` VALUES \((.*)\);")
+    pattern = re.compile(r"^\s*INSERT INTO `npc_list` VALUES \((.*)\);\s*(?:--.*)?$")
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        match = pattern.search(line)
+        match = pattern.match(line)
         if not match:
             continue
         values = next(csv.reader([match.group(1)], quotechar="'", escapechar="\\"))
@@ -249,6 +318,7 @@ def parse_npc_list(path: Path) -> list[Destination]:
             continue
         zone = (npcid >> 12) & 0x0FFF
         kind = "object" if any(part in lower_name for part in OBJECT_NAME_PARTS) else "npc"
+        raw_identity = f"lsb:npc_list:{npcid}"
         rows.append(
             Destination(
                 zone=zone,
@@ -260,6 +330,8 @@ def parse_npc_list(path: Path) -> list[Destination]:
                 source=GENERATED_NPC_SOURCE,
                 confidence="untested",
                 section=GENERATED_NPC_SECTION,
+                destination_id=static_destination_id(kind, zone, raw_identity),
+                raw_identity=raw_identity,
             )
         )
     return rows
@@ -280,28 +352,91 @@ def mob_position_is_placeholder(x: float, y: float, z: float) -> bool:
     return abs(x - 1.0) < 0.001 and abs(y - 1.0) < 0.001 and abs(z - 1.0) < 0.001
 
 
-def parse_mob_spawn_points(path: Path) -> list[MobSpawn]:
+_MOB_INSERT_PREFIX = re.compile(r"^\s*INSERT\s+INTO\s+`mob_spawn_points`", re.IGNORECASE)
+_MOB_INSERT_ROW = re.compile(
+    r"^\s*INSERT\s+INTO\s+`mob_spawn_points`\s+VALUES\s*\((.*)\);\s*(?:--.*)?$",
+    re.IGNORECASE,
+)
+_ADDITIVE_NUMBER_TOKEN = re.compile(
+    r"[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?"
+)
+
+
+def _parse_additive_number(value: str, *, line_number: int, field_name: str) -> float:
+    expression = re.sub(r"\s+", "", str(value or ""))
+    cursor = 0
+    total = 0.0
+    tokens = 0
+    while cursor < len(expression):
+        match = _ADDITIVE_NUMBER_TOKEN.match(expression, cursor)
+        if match is None:
+            raise ValueError(
+                f"mob_spawn_points line {line_number} has unsupported numeric expression "
+                f"for {field_name}: {value!r}"
+            )
+        total += float(match.group(0))
+        cursor = match.end()
+        tokens += 1
+    if tokens == 0:
+        raise ValueError(
+            f"mob_spawn_points line {line_number} has unsupported numeric expression "
+            f"for {field_name}: {value!r}"
+        )
+    if not math.isfinite(total):
+        raise ValueError(
+            f"mob_spawn_points line {line_number} has non-finite numeric expression "
+            f"for {field_name}: {value!r}"
+        )
+    return total
+
+
+def _parse_mob_integer(value: str, *, line_number: int, field_name: str) -> int:
+    try:
+        return int(str(value or "0").strip())
+    except ValueError as error:
+        raise ValueError(
+            f"mob_spawn_points line {line_number} has invalid integer for {field_name}: {value!r}"
+        ) from error
+
+
+def audit_mob_spawn_points(path: Path) -> MobSpawnParseAudit:
     rows: list[MobSpawn] = []
-    pattern = re.compile(r"INSERT INTO `mob_spawn_points` VALUES \((.*)\);")
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        match = pattern.search(line)
-        if not match:
+    exclusions: list[MobSpawnExclusion] = []
+    active_insert_count = 0
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8", errors="replace").splitlines(),
+        start=1,
+    ):
+        if _MOB_INSERT_PREFIX.match(line) is None:
             continue
-        values = next(csv.reader([match.group(1)], quotechar="'", escapechar="\\"))
-        if len(values) < 10:
-            continue
+        active_insert_count += 1
+        match = _MOB_INSERT_ROW.match(line)
+        if match is None:
+            raise ValueError(f"Malformed active mob_spawn_points INSERT on line {line_number}.")
         try:
-            mobid = int(values[0])
-            min_level = int(values[5] or 0)
-            max_level = int(values[6] or 0)
-            x = float(values[7])
-            y = float(values[8])
-            z = float(values[9])
-        except ValueError:
+            values = next(csv.reader([match.group(1)], quotechar="'", escapechar="\\"))
+        except csv.Error as error:
+            raise ValueError(f"Malformed active mob_spawn_points values on line {line_number}.") from error
+        if len(values) < 10:
+            raise ValueError(
+                f"Active mob_spawn_points INSERT on line {line_number} has only {len(values)} fields."
+            )
+        mobid = _parse_mob_integer(values[0], line_number=line_number, field_name="mobid")
+        groupid = _parse_mob_integer(values[4], line_number=line_number, field_name="groupid")
+        min_level = _parse_mob_integer(values[5], line_number=line_number, field_name="minLevel")
+        max_level = _parse_mob_integer(values[6], line_number=line_number, field_name="maxLevel")
+        x = _parse_additive_number(values[7], line_number=line_number, field_name="pos_x")
+        y = _parse_additive_number(values[8], line_number=line_number, field_name="pos_y")
+        z = _parse_additive_number(values[9], line_number=line_number, field_name="pos_z")
+        raw_mobname = str(values[2] or "").strip()
+        name = clean_label((values[3] or raw_mobname or "").replace("_", " "))
+        if mob_name_is_placeholder(name):
+            exclusions.append(MobSpawnExclusion(line_number, mobid, "placeholder-name"))
             continue
-        name = clean_label((values[3] or values[2] or "").replace("_", " "))
-        if mob_name_is_placeholder(name) or mob_position_is_placeholder(x, y, z):
+        if mob_position_is_placeholder(x, y, z):
+            exclusions.append(MobSpawnExclusion(line_number, mobid, "placeholder-position"))
             continue
+        raw_identity = f"lsb:mob_spawn_points:group:{groupid}:mobname:{raw_mobname}"
         rows.append(
             MobSpawn(
                 zone=(mobid >> 12) & 0x0FFF,
@@ -311,22 +446,46 @@ def parse_mob_spawn_points(path: Path) -> list[MobSpawn]:
                 y=y,
                 min_level=min_level,
                 max_level=max_level,
+                mobid=mobid,
+                raw_identity=raw_identity,
             )
         )
-    return rows
+    if active_insert_count != len(rows) + len(exclusions):
+        raise ValueError("mob_spawn_points parsing did not account for every active INSERT exactly once.")
+    return MobSpawnParseAudit(active_insert_count, tuple(rows), tuple(exclusions))
 
 
-def enemy_camp_destination(spawns: list[MobSpawn]) -> Destination:
-    avg_x = sum(spawn.x for spawn in spawns) / len(spawns)
-    avg_z = sum(spawn.z for spawn in spawns) / len(spawns)
-    avg_y = sum(spawn.y for spawn in spawns) / len(spawns)
+def parse_mob_spawn_points(path: Path) -> list[MobSpawn]:
+    return list(audit_mob_spawn_points(path).spawns)
+
+
+def enemy_camp_destination(
+    spawns: list[MobSpawn],
+    *,
+    policy_version: str = ENEMY_CLUSTER_POLICY_VERSION,
+) -> Destination:
+    if not spawns:
+        raise ValueError("Enemy camp cannot be empty.")
+    ordered = sorted(spawns, key=lambda spawn: spawn.mobid)
+    zones = {spawn.zone for spawn in ordered}
+    identities = {spawn.raw_identity for spawn in ordered}
+    raw_spawn_ids = tuple(spawn.mobid for spawn in ordered)
+    if len(zones) != 1 or len(identities) != 1 or len(raw_spawn_ids) != len(set(raw_spawn_ids)):
+        raise ValueError("Enemy camp members must share one raw identity and have unique spawn IDs.")
+    avg_x = sum(spawn.x for spawn in ordered) / len(ordered)
+    avg_z = sum(spawn.z for spawn in ordered) / len(ordered)
+    avg_y = sum(spawn.y for spawn in ordered) / len(ordered)
     best = min(
-        spawns,
-        key=lambda spawn: ((spawn.x - avg_x) ** 2) + ((spawn.z - avg_z) ** 2) + (((spawn.y - avg_y) * 2.0) ** 2),
+        ordered,
+        key=lambda spawn: (
+            ((spawn.x - avg_x) ** 2) + ((spawn.z - avg_z) ** 2) + (((spawn.y - avg_y) * 2.0) ** 2),
+            spawn.mobid,
+        ),
     )
-    min_level = min(spawn.min_level for spawn in spawns)
-    max_level = max(spawn.max_level for spawn in spawns)
-    section = f"{GENERATED_ENEMY_SECTION}; spawns={len(spawns)}; levels={min_level}-{max_level}"
+    min_level = min(spawn.min_level for spawn in ordered)
+    max_level = max(spawn.max_level for spawn in ordered)
+    section = f"{GENERATED_ENEMY_SECTION}; spawns={len(ordered)}; levels={min_level}-{max_level}"
+    raw_identity = ordered[0].raw_identity
     return Destination(
         zone=best.zone,
         name=best.name,
@@ -337,51 +496,58 @@ def enemy_camp_destination(spawns: list[MobSpawn]) -> Destination:
         source=GENERATED_ENEMY_SOURCE,
         confidence="untested",
         section=section,
+        destination_id=enemy_destination_id(
+            zone=best.zone,
+            raw_identity=raw_identity,
+            raw_spawn_ids=raw_spawn_ids,
+            policy_version=policy_version,
+        ),
+        raw_identity=raw_identity,
+        raw_spawn_ids=raw_spawn_ids,
+        cluster_policy_version=policy_version,
     )
 
 
-def cluster_enemy_camps(spawns: list[MobSpawn]) -> list[Destination]:
+def _complete_link_member(cluster: list[MobSpawn], candidate: MobSpawn) -> bool:
+    distance_sq = MOB_CLUSTER_DISTANCE_YALMS * MOB_CLUSTER_DISTANCE_YALMS
+    return all(
+        ((spawn.x - candidate.x) ** 2) + ((spawn.z - candidate.z) ** 2) <= distance_sq
+        and abs(spawn.y - candidate.y) <= MOB_CLUSTER_Y_DISTANCE_YALMS
+        for spawn in cluster
+    )
+
+
+def cluster_enemy_camps(
+    spawns: list[MobSpawn],
+    *,
+    policy_version: str = ENEMY_CLUSTER_POLICY_VERSION,
+) -> list[Destination]:
+    if policy_version != ENEMY_CLUSTER_POLICY_VERSION:
+        raise ValueError(
+            f"Enemy cluster policy {policy_version!r} has no matching geometry implementation."
+        )
     grouped: dict[tuple[int, str], list[MobSpawn]] = defaultdict(list)
+    all_ids = [spawn.mobid for spawn in spawns]
+    if len(all_ids) != len(set(all_ids)):
+        raise ValueError("Enemy spawn input contains duplicate raw mob IDs.")
     for spawn in spawns:
-        grouped[(spawn.zone, spawn.name)].append(spawn)
+        grouped[(spawn.zone, spawn.raw_identity)].append(spawn)
 
     camps: list[Destination] = []
-    distance_sq = MOB_CLUSTER_DISTANCE_YALMS * MOB_CLUSTER_DISTANCE_YALMS
-    cell_size = MOB_CLUSTER_DISTANCE_YALMS
+    for group_key in sorted(grouped):
+        clusters: list[list[MobSpawn]] = []
+        for spawn in sorted(grouped[group_key], key=lambda value: value.mobid):
+            target = next((cluster for cluster in clusters if _complete_link_member(cluster, spawn)), None)
+            if target is None:
+                clusters.append([spawn])
+            else:
+                target.append(spawn)
+        camps.extend(enemy_camp_destination(cluster, policy_version=policy_version) for cluster in clusters)
 
-    for _, group_spawns in grouped.items():
-        grid: dict[tuple[int, int], list[int]] = defaultdict(list)
-        for index, spawn in enumerate(group_spawns):
-            grid[(math.floor(spawn.x / cell_size), math.floor(spawn.z / cell_size))].append(index)
-
-        seen = [False] * len(group_spawns)
-        for start_index, start_spawn in enumerate(group_spawns):
-            if seen[start_index]:
-                continue
-            component: list[MobSpawn] = []
-            pending: deque[int] = deque([start_index])
-            seen[start_index] = True
-            while pending:
-                index = pending.popleft()
-                spawn = group_spawns[index]
-                component.append(spawn)
-                grid_x = math.floor(spawn.x / cell_size)
-                grid_z = math.floor(spawn.z / cell_size)
-                for offset_x in (-1, 0, 1):
-                    for offset_z in (-1, 0, 1):
-                        for candidate_index in grid.get((grid_x + offset_x, grid_z + offset_z), []):
-                            if seen[candidate_index]:
-                                continue
-                            candidate = group_spawns[candidate_index]
-                            if (
-                                ((spawn.x - candidate.x) ** 2) + ((spawn.z - candidate.z) ** 2) <= distance_sq
-                                and abs(spawn.y - candidate.y) <= MOB_CLUSTER_Y_DISTANCE_YALMS
-                            ):
-                                seen[candidate_index] = True
-                                pending.append(candidate_index)
-            camps.append(enemy_camp_destination(component))
-
-    return camps
+    emitted_ids = sorted(raw_id for camp in camps for raw_id in camp.raw_spawn_ids)
+    if emitted_ids != sorted(all_ids):
+        raise ValueError("Enemy complete-link clustering did not conserve every raw spawn ID exactly once.")
+    return sorted(camps, key=lambda camp: (camp.zone, camp.name.casefold(), camp.destination_id))
 
 
 def read_destinations(path: Path) -> tuple[list[str], list[Destination]]:
@@ -392,8 +558,11 @@ def read_destinations(path: Path) -> tuple[list[str], list[Destination]]:
             continue
         parts = line.split("\t")
         if len(parts) < 7:
-            continue
+            raise ValueError(f"Malformed navigation destination row in {path}: {line!r}")
         try:
+            raw_spawn_ids: tuple[int, ...] = ()
+            if len(parts) >= 12 and parts[11].strip():
+                raw_spawn_ids = tuple(int(value) for value in parts[11].split(","))
             destinations.append(
                 Destination(
                     zone=int(parts[0]),
@@ -405,10 +574,14 @@ def read_destinations(path: Path) -> tuple[list[str], list[Destination]]:
                     source=parts[6],
                     confidence=parts[7] if len(parts) >= 8 else "",
                     section=parts[8] if len(parts) >= 9 else "",
+                    destination_id=parts[9].strip() if len(parts) >= 10 else "",
+                    raw_identity=parts[10].strip() if len(parts) >= 11 else "",
+                    raw_spawn_ids=raw_spawn_ids,
+                    cluster_policy_version=parts[12].strip() if len(parts) >= 13 else "",
                 )
             )
-        except ValueError:
-            continue
+        except ValueError as error:
+            raise ValueError(f"Malformed navigation destination row in {path}: {line!r}") from error
     return lines, destinations
 
 
@@ -420,6 +593,8 @@ def destination_duplicate_shadowed(destination: Destination, existing: list[Dest
     destination_name = clean_label(destination.name).lower()
     destination_kind = clean_label(destination.kind).lower()
     for old in existing:
+        if destination.destination_id and old.destination_id != destination.destination_id:
+            continue
         if old.zone != destination.zone:
             continue
         if clean_label(old.name).lower() != destination_name:
@@ -460,6 +635,7 @@ def destination_section(edge: ZoneLine) -> str:
 
 def generated_destination(edge: ZoneLine, name: str) -> Destination:
     override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
+    raw_identity = f"lsb:zonelines:{edge.zoneline_id}"
     return Destination(
         zone=edge.from_zone,
         name=name,
@@ -470,22 +646,13 @@ def generated_destination(edge: ZoneLine, name: str) -> Destination:
         source=override.get("source", GENERATED_SOURCE),
         confidence=override.get("confidence", "untested"),
         section=override.get("note", destination_section(edge)),
+        destination_id=static_destination_id("area", edge.from_zone, raw_identity),
+        raw_identity=raw_identity,
     )
 
 
 def apply_edge_policy(edges: list[ZoneLine]) -> list[ZoneLine]:
     return [edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS]
-
-
-def existing_nearby(destination: Destination, existing: list[Destination]) -> bool:
-    for old in existing:
-        if old.zone != destination.zone:
-            continue
-        if old.kind.lower() != "area":
-            continue
-        if distance_2d(old, destination) <= SKIP_DISTANCE_YALMS and abs(old.y - destination.y) <= 8.0:
-            return True
-    return False
 
 
 def generate_destinations(edges: list[ZoneLine], zone_names: dict[int, str], existing: list[Destination]) -> list[Destination]:
@@ -495,110 +662,200 @@ def generate_destinations(edges: list[ZoneLine], zone_names: dict[int, str], exi
         name = base_name(edge, zone_names)
         if base_counts[(edge.from_zone, name)] > 1 and edge.from_code:
             name = f"{name} {edge.from_code}"
-        destination = generated_destination(edge, name)
-        if not existing_nearby(destination, existing):
-            generated.append(destination)
+        generated.append(generated_destination(edge, name))
+    expected_ids = [static_destination_id("area", edge.from_zone, f"lsb:zonelines:{edge.zoneline_id}") for edge in edges]
+    actual_ids = [destination.destination_id for destination in generated]
+    if len(actual_ids) != len(set(actual_ids)) or sorted(actual_ids) != sorted(expected_ids):
+        raise ValueError("Zoneline destination generation did not conserve every active raw identity exactly once.")
     return generated
 
 
-def write_destination_file(path: Path, lines: list[str], generated: list[Destination]) -> None:
+def _render_destination_file(lines: list[str], generated: list[Destination]) -> bytes:
+    generated_ids = [row.destination_id for row in generated if row.destination_id]
+    if len(generated_ids) != len(set(generated_ids)):
+        raise ValueError("Generated navigation destinations contain duplicate immutable IDs.")
+    generated_id_set = set(generated_ids)
+
+    def generated_owned(line: str) -> bool:
+        if not line or line.startswith("#"):
+            return False
+        fields = line.split("\t")
+        return (
+            (len(fields) >= 7 and fields[6] in GENERATED_SOURCES)
+            or (len(fields) >= 10 and bool(fields[9]) and fields[9] in generated_id_set)
+        )
+
     retained = [
         line
         for line in lines
         if not (
             (line.startswith("# Generated from ") or line.startswith("# Generated rows are "))
-            or (
-                line
-                and not line.startswith("#")
-                and (
-                    any(f"\t{source}\t" in f"\t{line}\t" for source in GENERATED_SOURCES)
-                )
-            )
+            or generated_owned(line)
         )
     ]
     if retained and retained[-1] != "":
         retained.append("")
-    retained.append(f"# Generated from {ZONELINES}, {NPC_LIST}, and {MOB_SPAWN_POINTS} by tools/generate_nav_zoneline_destinations.py.")
+    retained.append(
+        "# Generated from LandSandBoat zonelines, npc_list, and mob_spawn_points "
+        "by tools/generate_nav_zoneline_destinations.py."
+    )
     retained.append("# Generated rows are untested until route evidence proves them.")
     for row in sorted(generated, key=lambda d: (d.zone, d.kind, d.name.lower(), d.x, d.z)):
         retained.append(
-            f"{row.zone}\t{row.name}\t{row.x:.3f}\t{row.z:.3f}\t{row.y:.3f}\t"
-            f"{row.kind}\t{row.source}\t{row.confidence}\t{row.section}"
-        )
-    path.write_text("\n".join(retained) + "\n", encoding="utf-8")
-
-
-def write_graph(path: Path, edges: list[ZoneLine], zone_names: dict[int, str]) -> None:
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle, delimiter="\t", lineterminator="\n")
-        writer.writerow(
-            [
-                "zoneline_id",
-                "from_zone",
-                "from_name",
-                "from_code",
-                "from_x",
-                "from_z",
-                "from_y",
-                "to_zone",
-                "to_name",
-                "to_code",
-                "to_x",
-                "to_z",
-                "to_y",
-                "source",
-                "confidence",
-                "note",
-            ]
-        )
-        for edge in sorted(edges, key=lambda e: (e.from_zone, e.to_zone, e.from_code, e.to_code, e.zoneline_id)):
-            override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
-            from_x = override.get("from_x", edge.from_x)
-            from_z = override.get("from_z", edge.from_z)
-            from_y = override.get("from_y", edge.from_y)
-            to_x = override.get("to_x", edge.to_x)
-            to_z = override.get("to_z", edge.to_z)
-            to_y = override.get("to_y", edge.to_y)
-            source = override.get("source", "lsb-zonelines")
-            confidence = override.get("confidence", "untested")
-            note = override.get("note", edge.note)
-            writer.writerow(
-                [
-                    edge.zoneline_id,
-                    edge.from_zone,
-                    zone_names.get(edge.from_zone, edge.from_label or f"Zone {edge.from_zone}"),
-                    edge.from_code,
-                    f"{from_x:.3f}",
-                    f"{from_z:.3f}",
-                    f"{from_y:.3f}",
-                    edge.to_zone,
-                    zone_names.get(edge.to_zone, edge.to_label or f"Zone {edge.to_zone}"),
-                    edge.to_code,
-                    f"{to_x:.3f}",
-                    f"{to_z:.3f}",
-                    f"{to_y:.3f}",
-                    source,
-                    confidence,
-                    note,
-                ]
+            "\t".join(
+                (
+                    str(row.zone),
+                    row.name,
+                    f"{row.x:.3f}",
+                    f"{row.z:.3f}",
+                    f"{row.y:.3f}",
+                    row.kind,
+                    row.source,
+                    row.confidence,
+                    row.section,
+                    row.destination_id,
+                    row.raw_identity,
+                    ",".join(str(value) for value in row.raw_spawn_ids),
+                    row.cluster_policy_version,
+                )
             )
+        )
+    final_ids = [
+        fields[9]
+        for line in retained
+        if line and not line.startswith("#")
+        for fields in [line.split("\t")]
+        if len(fields) >= 10 and fields[9]
+    ]
+    if len(final_ids) != len(set(final_ids)):
+        raise ValueError("Rendered navigation destinations contain duplicate immutable IDs.")
+    return ("\n".join(retained) + "\n").encode("utf-8")
+
+
+def _atomic_write_bytes(path: Path, content: bytes) -> None:
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_bytes(content)
+    temporary.replace(path)
+
+
+def _repo_destination_paths(repo_root: Path) -> tuple[Path, Path, Path, Path]:
+    root = repo_root.resolve()
+    paths = (
+        root / "data" / "ffxi-nav-destinations.tsv",
+        root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-destinations.tsv",
+        root / "data" / "ffxi-nav-zoneline-graph.tsv",
+        root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-zoneline-graph.tsv",
+    )
+    for path in paths:
+        try:
+            path.resolve().relative_to(root)
+        except ValueError as error:
+            raise ValueError(f"Navigation output escapes selected repository root: {path}") from error
+    return paths
+
+
+def write_destination_copies(
+    repo_root: Path,
+    lines: list[str],
+    generated: list[Destination],
+) -> str:
+    root_path, addon_path, root_graph, addon_graph = _repo_destination_paths(Path(repo_root))
+    required = (root_path, addon_path, root_graph, addon_graph)
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise ValueError(
+            "Selected repository root lacks the expected navigation data shape: " + ", ".join(missing)
+        )
+    if root_path.read_bytes() != addon_path.read_bytes():
+        raise ValueError(
+            "Repository and addon destination copies differ; refusing to discard one side during refresh."
+        )
+    graph_content = root_graph.read_bytes()
+    if addon_graph.read_bytes() != graph_content:
+        raise ValueError(
+            "Repository and addon graph copies differ; refusing a destination refresh with ambiguous route evidence."
+        )
+
+    content = _render_destination_file(lines, generated)
+    old_content = {path: path.read_bytes() for path in (root_path, addon_path)}
+    staged = [path.with_name(path.name + ".tmp") for path in (root_path, addon_path)]
+    try:
+        for temporary in staged:
+            temporary.write_bytes(content)
+        staged[0].replace(root_path)
+        staged[1].replace(addon_path)
+    except Exception:
+        for path, previous in old_content.items():
+            _atomic_write_bytes(path, previous)
+        raise
+    finally:
+        for temporary in staged:
+            temporary.unlink(missing_ok=True)
+
+    if root_path.read_bytes() != content or addon_path.read_bytes() != content:
+        raise OSError("Paired navigation destination outputs are not byte-identical after replacement.")
+    if root_graph.read_bytes() != graph_content or addon_graph.read_bytes() != graph_content:
+        raise OSError("Navigation graph evidence changed during destination-only replacement.")
+    return hashlib.sha256(content).hexdigest()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--repo-root", type=Path, default=ROOT, help="Selected AccessXI checkout for inputs and outputs.")
+    parser.add_argument(
+        "--third-party-root",
+        type=Path,
+        help="Read-only LandSandBoat checkout containing sql/ and documentation/.",
+    )
+    parser.add_argument("--zonelines", type=Path, help="Explicit read-only zonelines SQL input.")
+    parser.add_argument("--npc-list", type=Path, help="Explicit read-only npc_list SQL input.")
+    parser.add_argument("--mob-spawn-points", type=Path, help="Explicit read-only mob_spawn_points SQL input.")
+    parser.add_argument("--zone-ids", type=Path, help="Explicit read-only ZoneIDs input.")
     parser.add_argument("--dry-run", action="store_true", help="Report counts without writing files.")
-    parser.add_argument("--write", action="store_true", help="Write generated destination and graph files.")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Atomically write only the repository and addon destination TSV copies; graph files are untouched.",
+    )
     args = parser.parse_args()
 
-    zone_names = parse_zone_ids(ZONE_IDS)
-    parsed_edges = parse_zonelines(ZONELINES)
+    repo_root = args.repo_root.resolve()
+    if repo_root != ROOT.resolve():
+        raise ValueError(
+            "Navigation CLI output root must be the checkout containing this generator."
+        )
+    third_party_root = (
+        args.third_party_root.resolve()
+        if args.third_party_root is not None
+        else repo_root / "third_party" / "LandSandBoat-server"
+    )
+    destinations_path = repo_root / "data" / "ffxi-nav-destinations.tsv"
+    zonelines_path = (args.zonelines or repo_root / "data" / "lsb_zonelines.sql").resolve()
+    npc_list_path = (args.npc_list or repo_root / "data" / "lsb_npc_list.sql").resolve()
+    mob_spawn_points_path = (
+        args.mob_spawn_points or third_party_root / "sql" / "mob_spawn_points.sql"
+    ).resolve()
+    zone_ids_path = (args.zone_ids or third_party_root / "documentation" / "ZoneIDs.txt").resolve()
+    required_inputs = (
+        destinations_path,
+        zonelines_path,
+        npc_list_path,
+        mob_spawn_points_path,
+        zone_ids_path,
+    )
+    missing_inputs = [str(path) for path in required_inputs if not path.is_file()]
+    if missing_inputs:
+        raise FileNotFoundError("Navigation generator input is missing: " + ", ".join(missing_inputs))
+
+    zone_names = parse_zone_ids(zone_ids_path)
+    parsed_edges = parse_zonelines(zonelines_path)
     edges = apply_edge_policy(parsed_edges)
-    lines, existing = read_destinations(DESTINATIONS)
+    lines, existing = read_destinations(destinations_path)
     stable_existing = [row for row in existing if row.source not in GENERATED_SOURCES]
     generated_zonelines = generate_destinations(edges, zone_names, stable_existing)
-    generated_npcs_raw = parse_npc_list(NPC_LIST)
+    generated_npcs_raw = parse_npc_list(npc_list_path)
     generated_npcs = filter_generated_destinations(generated_npcs_raw, stable_existing, 8.0, 8.0)
-    mob_spawns = parse_mob_spawn_points(MOB_SPAWN_POINTS)
+    mob_spawns = parse_mob_spawn_points(mob_spawn_points_path)
     generated_enemy_camps = cluster_enemy_camps(mob_spawns)
     generated = generated_zonelines + generated_npcs + generated_enemy_camps
 
@@ -612,10 +869,14 @@ def main() -> int:
     print(f"post_write_zone_coverage={len(existing_zones | generated_zones)}")
 
     if args.write:
-        write_destination_file(DESTINATIONS, lines, generated)
-        write_graph(GRAPH, edges, zone_names)
-        print(f"wrote={DESTINATIONS}")
-        print(f"wrote={GRAPH}")
+        digest = write_destination_copies(repo_root, lines, generated)
+        print(f"wrote={repo_root / 'data' / 'ffxi-nav-destinations.tsv'}")
+        print(
+            "wrote="
+            f"{repo_root / 'ashita' / 'addons' / 'accessxi_reader' / 'data' / 'ffxi-nav-destinations.tsv'}"
+        )
+        print(f"destination_sha256={digest}")
+        print("graph_files=unchanged")
     elif not args.dry_run:
         print("No files written. Use --write to update nav data.")
     return 0

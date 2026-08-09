@@ -232,16 +232,29 @@ git commit -m "feat: preserve typed objective actions"
 ### Task 3: Resolve every supported action class against current nav data
 
 **Files:**
+- Modify: `tools/generate_nav_zoneline_destinations.py`
+- Create: `tools/test_nav_destination_generator.py`
 - Modify: `tools/objective_guides/objective_destinations.py`
+- Modify: `tools/objective_guides/mission_destinations.py`
+- Modify: `tools/objective_guides/cli.py`
+- Modify: `tools/objective_guides/reconcile.py`
 - Modify: `tools/objective_guides/generate_lua.py`
 - Modify: `tools/objective_guides/wikitext.py`
 - Modify: `tools/test_objective_guides.py`
+- Create: `tools/test_nav_destination_schema.ps1`
+- Create: `tools/lua_tests/test_nav_destination_schema.lua`
+- Modify: `data/mission-quest-guides/reviewed-overrides.json`
+- Modify: `data/ffxi-nav-destinations.tsv`
+- Modify: `ashita/addons/accessxi_reader/data/ffxi-nav-destinations.tsv`
 
 **Interfaces:**
-- Consumes: independently parsed source-step claims and the current 34,567-point nav catalog
-- Produces: `catalogue-candidate`, `instruction-only`, `context-only`,
-  `conflict`, or `unresolved` records with explicit evidence reasons. Task 3
-  cannot emit `routable`; only a current Task 4 contract can promote movement.
+- Consumes: Task 2 reconciled action identities/source-owned claims and the
+  current navigation catalogue enriched with raw source identity
+- Produces: one action-resolution ledger row per reconciled action plus zero or
+  more immutable destination candidates. Ledger status is exactly one of
+  `catalogue-candidate`, `instruction-only`, `context-only`, `conflict`, or
+  `unresolved`, with an enum evidence reason. Task 3 cannot emit `routable`;
+  only a current Task 4 contract can promote a candidate.
 
 - [ ] **Step 1: Write failing resolver tests for all action classes**
 
@@ -262,27 +275,94 @@ Use hand-checked fixtures to cover:
   Ambrotien, Endracion, and Grilau kept as exact separate choices;
 - every text-only note classified once rather than omitted.
 
-For Orcish Scouts, assert exactly two initial reviewed choices. West Ronfaure is
-named by both objective walkthroughs; East Ronfaure is named by BG Wiki and is
-independently corroborated by the current enemy-camp/game-data catalog. Do not
-silently add the other single-source zones without the same evidence review:
+Add navigation-identity fixtures proving:
+
+- legacy 7-column, current 9-column, and appended identity schemas all parse
+  without changing the first nine fields, both in Python and through the actual
+  ordinary-navigation Lua loader;
+- NPC/object/area rows retain exact raw source IDs;
+- enemy rows retain sorted raw spawn IDs and a versioned bounded complete-link
+  cluster identity; a chain of near spawns cannot bridge an oversized camp or
+  merge floors;
+- missing appended identity leaves a row discoverable to ordinary navigation
+  but ineligible as an immutable objective candidate.
+
+For Orcish Scouts, assert exactly two initial zone candidate groups. West
+Ronfaure is named by both objective walkthroughs; East Ronfaure is named by BG
+Wiki and independently corroborated by raw game-data identities. Do not silently
+add the other single-source zones without the same evidence review:
 
 ```python
-self.assertEqual(
-    [(row.zone_name, row.target_name) for row in rows],
-    [("East Ronfaure", "Orcish Fodder"), ("West Ronfaure", "Orcish Fodder")],
-)
+self.assertEqual([group.zone_name for group in groups], ["East Ronfaure", "West Ronfaure"])
 ```
+
+Do not inherit the old single-link camp counts. On a fixed raw-spawn fixture,
+assert every expected East/West raw spawn ID appears exactly once, every cluster
+satisfies the versioned diameter/floor bounds, and shuffled input produces the
+same clusters and IDs. Pin counts only to the output proven by that fixture.
+Every resulting camp identity remains in its group; no first camp is selected.
+Assert no East Ronfaure [S], Fort Ghelsba, Ghelsba Outpost, or La Theine
+candidate is silently admitted. The latter two remain separately reviewable
+under the same single-source-plus-independent-data rule used for East.
 
 - [ ] **Step 2: Run the focused tests and verify RED**
 
-Run: `tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides.ObjectiveDestinationTests -v`
+Run:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_nav_destination_generator -v
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides.ObjectiveDestinationTests -v
+```
 
 Expected: the resolver supports only the existing mission farming override and named-NPC review path.
 
-- [ ] **Step 3: Implement claim normalization and target classification**
+- [ ] **Step 3: Add immutable navigation source identities**
 
-Normalize zone names independently from linked entities. Select eligible nav kinds by action:
+Append optional fields after the existing nine TSV fields:
+
+```text
+destination_id  raw_identity  raw_spawn_ids  cluster_policy_version
+```
+
+NPC/object/area IDs derive from kind, zone, and exact raw source record ID.
+Enemy camp IDs derive from zone, source mob identity/name, sorted raw spawn IDs,
+and a versioned bounded complete-link policy. Preserve `mobid` before clustering
+and retain every member ID. Rows without those fields remain usable by ordinary
+navigation but identity-unavailable to this resolver. Regenerate repository and
+addon TSV copies together and assert their hashes match.
+
+Use an explicit static identity schema revision in canonical IDs, for example
+`npc:v1:<zone>:<raw-id>`. Golden tests prove NPC/object/area IDs are stable when
+coordinates or display metadata change and change when the identity-schema
+revision changes. `cluster_policy_version` separately versions enemy geometry.
+
+- [ ] **Step 4: Add the exact action-resolution ledger**
+
+Key the ledger by Task 2 reconciled action ID, not the old scalar step. Assert:
+
+```text
+set(reconciled_action_ids) == set(ledger.action_id)
+each ledger.action_id occurs exactly once
+each source_action_span_id belongs to exactly one reconciled action
+candidate IDs are unique
+each candidate has exactly one existing parent action_id
+catalogue-candidate rows have one or more children
+all other statuses have zero movement children
+```
+
+No candidate may be orphaned, multiply owned, or supported by a source span
+outside its parent reconciled action. Candidates are child records and never
+duplicate the primary ledger row. Use
+stable reason enums such as `missing-action-target`, `missing-zone`,
+`no-exact-catalogue-match`, `ambiguous-static-reference`,
+`dynamic-identity-required`, `source-conflict`,
+`single-source-needs-independent-corroboration`,
+`transport-metadata-required`, `complete-instruction`, and
+`non-material-context-reason`.
+
+- [ ] **Step 5: Implement target classification against typed claims**
+
+Select only actual catalogue kinds by typed action:
 
 ```python
 ACTION_KINDS = {
@@ -298,12 +378,20 @@ ACTION_KINDS = {
 
 Require an exact target name plus exact zone from the same typed source claim.
 Named NPCs must resolve to one point unless a revision-pinned role expands to an
-explicit member set. Enemy camps may resolve to several exact points, but each
-emitted point carries its exact coordinates and catalog-row fingerprint. `???`
-requires exact reviewed coordinates or a live candidate-set identity. Global
-name uniqueness, fuzzy matching, and first-row selection are never sufficient.
+explicit immutable member set. Add a `role_overrides` entry for San d'Orian gate
+guards, revision-pinned to Ambrotien, Endracion, and Grilau. Enemy camps retain
+every exact immutable instance in a zone group. `???` requires exact reviewed
+coordinates or a current live candidate-set identity. Battlefield and transport
+are typed metadata classes which may reference `object`/`area`/`npc` rows; they
+are not invented TSV kinds. Global name uniqueness, fuzzy matching, coordinate
+proximity, and first-row selection are never sufficient.
 
-- [ ] **Step 4: Generate truthful action and arrival speech**
+Dual-source target/zone/relationship agreement yields a catalogue candidate.
+One source plus raw identity-pinned independent game data may yield a candidate
+only when the other source does not contradict it. Preserve per-candidate source
+support and partial coordinate agreement.
+
+- [ ] **Step 6: Generate truthful action, classification, and speech**
 
 Use source items, enemies, and action without claiming completion. Keep distinct
 item/enemy destinations separate. Emit instruction-only records for complete
@@ -313,21 +401,29 @@ recorded; unresolved action-like notes remain visible and fail the coverage
 gate. Protect/touch/key-item-loss examples are explicit regression fixtures.
 Never silently omit a reconciled row.
 
-- [ ] **Step 5: Run focused and complete Python suites**
+Reduce `mission_destinations.py` to a compatibility adapter over the same
+catalogue-only resolver (or remove its public resolver if no callers remain).
+A direct regression invokes the legacy entry point and proves nonempty
+`route_evidence`, `confidence`, or ingress fields cannot authorize movement.
+
+- [ ] **Step 7: Run focused resolver, schema, and complete generator suites**
 
 Run:
 
 ```powershell
 tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides.ObjectiveDestinationTests -v
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_nav_destination_generator -v
+tools\test_nav_destination_schema.ps1
 tools\test_objective_guides.ps1
 ```
 
-Expected: every new action-class test and the complete generator suite pass.
+Expected: every new action-class test, the actual Lua loader schema regression,
+and the complete generator suite pass.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```powershell
-git add tools/objective_guides/objective_destinations.py tools/objective_guides/generate_lua.py tools/objective_guides/wikitext.py tools/test_objective_guides.py
+git add tools/generate_nav_zoneline_destinations.py tools/test_nav_destination_generator.py tools/objective_guides/objective_destinations.py tools/objective_guides/mission_destinations.py tools/objective_guides/cli.py tools/objective_guides/reconcile.py tools/objective_guides/generate_lua.py tools/objective_guides/wikitext.py tools/test_objective_guides.py tools/test_nav_destination_schema.ps1 tools/lua_tests/test_nav_destination_schema.lua data/mission-quest-guides/reviewed-overrides.json data/ffxi-nav-destinations.tsv ashita/addons/accessxi_reader/data/ffxi-nav-destinations.tsv
 git commit -m "feat: resolve objective action targets"
 ```
 
@@ -341,6 +437,7 @@ git commit -m "feat: resolve objective action targets"
 - Create: `data/mission-quest-guides/route-evidence-v2.jsonl`
 - Create: `data/mission-quest-guides/route-transitions.json`
 - Create: `data/mission-quest-guides/route-transition-evidence-v2.jsonl`
+- Create: `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`
 - Create: `ashita/addons/accessxi_reader/modules/mission_quest_route_transitions.lua`
 - Create: `ashita/addons/accessxi_reader/modules/mission_quest_route_policy.lua`
 - Create: `ashita/addons/accessxi_reader/modules/mission_quest_route_contracts.lua`
@@ -352,8 +449,8 @@ git commit -m "feat: resolve objective action targets"
 - Consumes: immutable destination instance, exact target-zone directed ingress,
   zone mesh, FFXINAV binary, transition registry, and exact-path probe protocol
 - Produces: hash-bound directed local-leg evidence plus separately referenced
-  transition evidence, and a Lua 5.1 runtime contract index; never a free-text
-  authorization flag
+  transition evidence, a Lua 5.1 runtime contract index, and a canonical plain
+  data runtime manifest; never a free-text authorization flag
 
 - [ ] **Step 1: Write failing probe, evidence, and transition tests**
 
@@ -372,6 +469,11 @@ Use a fake JSONL probe boundary and literal responses. Assert rejection for:
   wrong-post-state observed evidence;
 - ambiguous same-name destination instances or a camp cluster spanning floors or
   exceeding its maximum diameter.
+- a runtime manifest that contains itself, repeats/omits an artifact, contains
+  rooted or parent-traversal paths, or changes bytes without changing the
+  independently expected root digest;
+- a coordinated replacement of policy/transition/contract module fixture bytes
+  whose hashes do not match the separately expected manifest digest.
 
 Assert multiple valid directed ingresses remain distinct evidence records and
 that deterministic selection chooses the shortest eligible contract. Assert
@@ -397,7 +499,11 @@ the JSON `status` field represents reachability.
 
 Convert AccessXI `(x, z, y)` to navprobe `(x, y, z)` at the boundary.
 Read every acceptance threshold from the committed versioned route-proof policy;
-do not duplicate magic tolerances in the probe, generator, and runtime.
+the Python caller passes the selected policy values in each JSONL request. Do
+not duplicate magic tolerances in the probe, generator, and runtime. Accept an
+explicit `--third-party-root` defaulting to `<repo>/third_party`; validate the
+canonical FFXINAV/mesh paths stay below it. Never create or mutate a dependency
+mirror as a test side effect.
 
 - [ ] **Step 4: Implement immutable destination and evidence identities**
 
@@ -438,6 +544,37 @@ missing or stale addon transition modules fail closed. Generate
 `mission_quest_route_policy.lua` from the same policy and literal fixtures used
 by Python; byte/hash drift between the two representations fails the build.
 
+Generate `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`
+as deterministic plain data,
+not executable Lua. It contains addon-relative paths and SHA-256 values for the
+policy, transition, contract module, destination TSV, graph TSV, exact FFXINAV
+DLL, and every referenced mesh. The manifest never contains itself. Emit its
+exact SHA-256 separately for Task 5 to pin in non-generated reader code; that
+pin is the pre-load drift/corruption root. Reject rooted/parent-traversal
+fragments, duplicate or omitted required artifacts, and a mesh name/zone
+mismatch during generation. Tests define the exact TSV canonical bytes and
+prove changing any child artifact changes the rooted manifest digest. Hash the
+addon-owned destination and graph TSV bytes which production will parse, and
+resolve every declared path through a fixture using the actual addon-root shape.
+
+Expose an explicit CLI `--update-runtime-pin` operation which replaces exactly
+one marked manifest-digest literal in a caller-supplied reader path after every
+child artifact and the final manifest have reached their deterministic bytes.
+Zero or multiple markers fail without writing. Normal offline builds report the
+digest but do not mutate non-generated code. A `--runtime-ready` gate additionally
+requires the Task 5 route-runtime module as a hashed manifest child; Task 4 can
+exercise generation before that child exists, but cannot claim runtime-ready.
+
+The threat boundary is accidental/stale/coordinated artifact drift, not a
+malicious local actor who can rewrite bootstrap code. The explicit trusted
+computing base is the non-generated reader's minimal byte verifier plus
+`accessxi_sha256.lua`; release/package tests pin their source-to-payload hashes,
+and syntax/vector/smoke failure disables objective movement. The route-runtime
+module is not bootstrap code: Task 5 adds it as a rooted manifest child before
+loading it. Generated Lua never supplies its own expected hash and never
+executes before its exact bytes are checked against this independently pinned
+manifest.
+
 - [ ] **Step 7: Verify the contracts and delicate-route guards**
 
 Run:
@@ -447,14 +584,22 @@ tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective
 tools\test_nav_mesh_endpoint_approach.ps1
 tools\test_nav_lathine_shelf_escape.ps1
 tools\test_nav_metalworks_elevator.ps1
+tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_policy.lua
+tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_transitions.lua
+tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_contracts.lua
+git diff --check
 ```
 
 Expected: exact evidence tests and all existing route-safety harnesses pass.
+Also run a bounded native integration fixture against the worktree-local ignored
+dependencies: invalid end with process exit `0`, exact `FindPath` zero
+waypoints, and one known valid two-plus-waypoint leg. If dependencies are absent,
+report that prerequisite explicitly while keeping all pure Python tests active.
 
 - [ ] **Step 8: Commit**
 
 ```powershell
-git add tools/navprobe/Program.cs tools/objective_guides/route_evidence.py tools/objective_guides/cli.py tools/objective_guides/objective_destinations.py tools/objective_guides/generate_lua.py tools/test_objective_route_evidence.py data/mission-quest-guides/route-proof-policy.json data/mission-quest-guides/route-evidence-v2.jsonl data/mission-quest-guides/route-transitions.json data/mission-quest-guides/route-transition-evidence-v2.jsonl ashita/addons/accessxi_reader/modules/mission_quest_route_policy.lua ashita/addons/accessxi_reader/modules/mission_quest_route_transitions.lua ashita/addons/accessxi_reader/modules/mission_quest_route_contracts.lua
+git add tools/navprobe/Program.cs tools/objective_guides/route_evidence.py tools/objective_guides/cli.py tools/objective_guides/objective_destinations.py tools/objective_guides/generate_lua.py tools/test_objective_route_evidence.py data/mission-quest-guides/route-proof-policy.json data/mission-quest-guides/route-evidence-v2.jsonl data/mission-quest-guides/route-transitions.json data/mission-quest-guides/route-transition-evidence-v2.jsonl ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv ashita/addons/accessxi_reader/modules/mission_quest_route_policy.lua ashita/addons/accessxi_reader/modules/mission_quest_route_transitions.lua ashita/addons/accessxi_reader/modules/mission_quest_route_contracts.lua
 git commit -m "feat: verify objective route contracts"
 ```
 
@@ -462,11 +607,19 @@ git commit -m "feat: verify objective route contracts"
 
 **Files:**
 - Create: `ashita/addons/accessxi_reader/modules/accessxi_sha256.lua`
+- Create: `ashita/addons/accessxi_reader/modules/mission_quest_route_runtime.lua`
+- Modify: `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`
 - Modify: `ashita/addons/accessxi_reader/modules/mission_quest_guides.lua`
 - Modify: `ashita/addons/accessxi_reader/modules/mission_quest_navigation.lua`
+- Modify: `ashita/addons/accessxi_reader/modules/metalworks_elevator_navigation.lua`
 - Modify: `ashita/addons/accessxi_reader/accessxi_reader.lua`
+- Create: `tools/lua_tests/test_accessxi_sha256.lua`
+- Create: `tools/test_accessxi_sha256.ps1`
+- Create: `tools/lua_tests/test_mission_quest_route_runtime.lua`
+- Create: `tools/test_mission_quest_route_runtime.ps1`
 - Modify: `tools/lua_tests/test_mission_quest_guides.lua`
 - Modify: `tools/lua_tests/test_mission_quest_navigation.lua`
+- Modify: `tools/test_nav_metalworks_elevator.ps1`
 
 **Interfaces:**
 - Consumes: `GuideState:objective_destinations(native_key)`
@@ -486,10 +639,22 @@ Assert:
 - matching disk-restored mission `0x056`, key-item `0x055`, quest, or inventory
   values still block without current-session packet provenance and session epoch;
 - changed destination, mesh, DLL, policy, ingress, or transition hashes block route start;
+- the manifest hash is pinned outside generated artifacts; manifest bytes are
+  checked before parsing, and each generated Lua file is read, hashed, and
+  loaded from those same accepted bytes before any module code can execute;
+- a mismatched generated-Lua fixture which would set a flag if executed is
+  rejected with the flag still unset;
+- ordinary-navigation-first native loading is recorded as trusted only when the
+  integrity observer was already active; same-mesh reuse, DLL/mesh replacement
+  after load, or a failed exact stat blocks objective use without breaking
+  ordinary navigation;
 - a missing runtime contract index, missing contract ID, or legacy free-text
   `route_evidence` blocks movement;
 - the objective-only zone BFS rejects every `observed`/`untested` prefix edge,
   including an unproven edge before a proven final ingress;
+- the separate objective BFS handles reverse-only edges, cycles, and shuffled
+  input deterministically, revalidates every directed prefix edge, and never
+  calls the permissive ordinary BFS;
 - an exact ingress and proven post-transition anchor work, while an arbitrary
   same-floor start, disconnected component, or wrong floor cannot reuse an
   ingress proof or bypass a required lift/door/transport stage;
@@ -497,15 +662,34 @@ Assert:
   start/end, zero/one waypoint, fallback use, non-finite/malformed/wrong-zone
   waypoints, excessive segment length, endpoint error, inadequate clearance,
   and transition-corridor crossings using the same literal fixtures as Python;
+- native spies prove an objective leg calls `IsValidPosition` and clearance
+  checks, then exactly one `FindPath`, immediately consumes `Get_WayPoints`, and
+  calls `FindClosestPath` zero times; a control ordinary route retains the
+  existing permissive helper;
 - same-name/different-World change during selection or an active route clears
   the selection and cancels objective-owned routes only, leaving ordinary
   navigation untouched.
+- an objective elevator/lift stage is bound to owner name/native World ID,
+  session epoch, objective/stage/destination/contract identity, transition
+  direction/revision/hash, exact pre/post anchors, and expected live state;
+  wrong interaction/state/anchor, timeout, or any mid-transition identity/hash
+  change cancels only the objective route while ordinary elevator behavior is
+  unchanged.
 
 - [ ] **Step 2: Run and verify RED**
 
-Run: `tools\test_mission_quest_navigation.ps1`
+Run:
 
-Expected: no shared quest expansion and no instruction-only row handling.
+```powershell
+tools\test_accessxi_sha256.ps1
+tools\test_mission_quest_route_runtime.ps1
+tools\test_mission_quest_navigation.ps1
+tools\test_nav_metalworks_elevator.ps1
+```
+
+Expected: the SHA/runtime harnesses are missing, no shared quest expansion or
+instruction-only row handling exists, and the elevator lacks objective-owned
+authorization state.
 
 - [ ] **Step 3: Add shared guide access**
 
@@ -517,15 +701,47 @@ Generalize `expand_active_mission_destinations` into `expand_active_objective_de
 
 - [ ] **Step 5: Load and validate the runtime contract index**
 
-Load the generated Lua 5.1 contract module fail-closed. Add a bundled streaming
-SHA-256 implementation using LuaJIT's bit operations and test it against fixed
-vectors. Cache hashes for the current add-on session, but hash the actual loaded
-FFXINAV DLL, zone mesh, destination TSV, graph TSV, and generated transition
-artifact before authorizing their contracts. Compare current destination,
-ingress, and transition fields exactly to the contract index. Packaging tests
-must prove the installed copies and generated policy, transition, and contract
-modules are the tested copies. A missing/malformed/stale transition module or
-policy revision blocks movement.
+Pin the exact Task 4 manifest SHA-256 in a non-generated reader constant. Read
+the plain manifest bytes once, hash them, and parse that same accepted string.
+For each generated Lua artifact,
+read its exact bytes once, compare those bytes to the rooted manifest, then
+`loadstring` and execute only that accepted byte string; never call `loadfile`
+first. Reject malformed/duplicate/missing manifest rows and schema/revision
+drift. A missing/malformed/stale policy, transition, contract, or manifest
+blocks objective movement.
+
+After the route-runtime module and the single reader marker exist, execute the
+first real pin checkpoint explicitly:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli manifest --repo-root . --runtime-ready --update-runtime-pin ashita/addons/accessxi_reader/accessxi_reader.lua
+```
+
+Reparse the one marker and independently hash the exact addon-owned manifest
+bytes in the focused harness. `--runtime-ready` also proves the route-runtime
+module is a rooted child before the reader may load it.
+
+Add a bundled streaming SHA-256 implementation using LuaJIT's bit operations.
+Its dedicated plain-Lua harness supplies the complete deterministic bit shim and
+runs the NIST empty, `abc`, long-message, million-`a`, binary `00..ff`, and every
+0..63 block-remainder vector. Test missing/partial/synthetic read failures and
+cache hits/invalidations. Define an injected production `accessxi_file_stat`
+which returns file-size high/low and FILETIME high/low as exact 32-bit words.
+Stat before and after streaming; cache only by canonical full path plus all four
+words, never cache failures or a file that changes during the read. At live
+addon load, smoke-test LuaJIT `bit` and the `abc` vector; failure leaves ordinary
+navigation available but disables objective movement for that session.
+
+Install the integrity observer before any navigation load. Immediately before
+the first existing `ffi.load`, record canonical DLL path, rooted digest, and
+exact stat identity; immediately before every `LoadMesh`, do the same for that
+mesh. If ordinary navigation reaches either seam without a working rooted
+observer, record the loaded identity as untrusted for objective use rather than
+retroactively blessing it. Recheck recorded stat identity before every
+objective native call, including the existing same-mesh fast path. Hash only
+the active contract's DLL/mesh, destination TSV, graph TSV, and generated
+artifacts—not the full mesh directory. Compare current destination, ingress,
+and transition fields exactly to the accepted contract index.
 
 - [ ] **Step 6: Implement `I` semantics and contract enforcement**
 
@@ -539,29 +755,55 @@ transition is in progress, and resume only after its expected post-state and
 post-anchor are observed. Never substitute a direct mesh route for a required
 transition.
 
-Objective-owned same-zone movement uses an exact runtime path helper:
-`IsValidPosition` for both endpoints, `FindPath` only, at least two finite
-waypoints, and the complete generated policy predicate: endpoint error and
-clearance, finite/path-zone-valid waypoints, maximum segment length, and
-transition-corridor classification. It never calls the ordinary
-`FindClosestPath` fallback. Python and Lua run the same versioned literal
-pass/reject fixtures. An arbitrary current position needs its own accepted
-dynamic exact leg or a proven current-start anchor; it cannot inherit
-canonical-ingress evidence.
+Implement `accessxi.nav_objective_proven_zoneline_path` separately from ordinary
+`nav_zoneline_path`. Filter adjacency before enqueue: only exact directed rows
+whose current row/hash is `proven`, or whose reviewed transition contract is
+currently eligible, may enter the queue. Use deterministic ordering and a
+visited set, then revalidate every prefix and final edge against the same
+contract snapshot. Objective code never calls the ordinary BFS; ordinary
+navigation remains unchanged.
+
+Objective-owned same-zone movement uses a separately named and injected
+`accessxi.nav_compute_exact_objective_leg`. Keep ordinary
+`nav_compute_mesh_route` behavior unchanged. The exact helper checks
+`IsValidPosition` and clearance for both endpoints, calls `FindPath` exactly
+once and never `FindClosestPath`, consumes that call's waypoints immediately,
+requires at least two finite points, then applies the complete generated policy:
+requested endpoint error, finite/path-zone-valid waypoints, maximum segment
+length, clearance, and transition-corridor classification. Python and Lua run
+the same versioned literal pass/reject fixtures. An arbitrary current position
+needs its own accepted dynamic exact leg or a proven current-start anchor; it
+cannot inherit canonical-ingress evidence.
+
+Add an objective-only mode to `metalworks_elevator_navigation.lua` rather than
+reusing its generic state anonymously. It receives the exact helper and a full
+authorization snapshot: owner name/native World ID, session epoch,
+objective/stage/destination/contract IDs, transition direction/revision/hash,
+exact pre/post anchors, expected live state, and timeout. Revalidate on every
+poll, suspend only the objective replanner, and resume only after both post-state
+and post-anchor. Any mismatch cancels only the objective route. Objective mode
+never calls the permissive path helper; ordinary Metalworks/Palborough elevator
+behavior remains unchanged.
 
 - [ ] **Step 7: Run focused tests and Lua syntax**
 
 Run:
 
 ```powershell
+tools\test_accessxi_sha256.ps1
+tools\test_mission_quest_route_runtime.ps1
 tools\test_mission_quest_navigation.ps1
+tools\test_nav_metalworks_elevator.ps1
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_guides.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_navigation.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/accessxi_sha256.lua
+tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_runtime.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_policy.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_transitions.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/mission_quest_route_contracts.lua
+tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/modules/metalworks_elevator_navigation.lua
 tools\check_lua51_syntax.ps1 ashita/addons/accessxi_reader/accessxi_reader.lua
+git diff --check
 ```
 
 Expected: focused behavior and Lua 5.1 syntax pass.
@@ -569,7 +811,7 @@ Expected: focused behavior and Lua 5.1 syntax pass.
 - [ ] **Step 8: Commit**
 
 ```powershell
-git add ashita/addons/accessxi_reader/accessxi_reader.lua ashita/addons/accessxi_reader/modules/accessxi_sha256.lua ashita/addons/accessxi_reader/modules/mission_quest_guides.lua ashita/addons/accessxi_reader/modules/mission_quest_navigation.lua tools/lua_tests/test_mission_quest_guides.lua tools/lua_tests/test_mission_quest_navigation.lua
+git add ashita/addons/accessxi_reader/accessxi_reader.lua ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv ashita/addons/accessxi_reader/modules/accessxi_sha256.lua ashita/addons/accessxi_reader/modules/mission_quest_route_runtime.lua ashita/addons/accessxi_reader/modules/mission_quest_guides.lua ashita/addons/accessxi_reader/modules/mission_quest_navigation.lua ashita/addons/accessxi_reader/modules/metalworks_elevator_navigation.lua tools/lua_tests/test_accessxi_sha256.lua tools/test_accessxi_sha256.ps1 tools/lua_tests/test_mission_quest_route_runtime.lua tools/test_mission_quest_route_runtime.ps1 tools/lua_tests/test_mission_quest_guides.lua tools/lua_tests/test_mission_quest_navigation.lua tools/test_nav_metalworks_elevator.ps1
 git commit -m "feat: navigate ordered mission and quest steps"
 ```
 
@@ -581,7 +823,12 @@ git commit -m "feat: navigate ordered mission and quest steps"
 - Modify: `data/mission-quest-guides/coverage.json`
 - Modify: `data/mission-quest-guides/coverage.md`
 - Modify: `data/mission-quest-guides/target-review.json`
+- Modify: `data/mission-quest-guides/route-evidence-v2.jsonl`
+- Modify: `data/mission-quest-guides/route-transitions.json` when transition review changes
+- Modify: `data/mission-quest-guides/route-transition-evidence-v2.jsonl` when transition review changes
+- Modify: `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`
 - Modify: generated `ashita/addons/accessxi_reader/modules/mission_quest_*.lua`
+- Modify: the marked manifest-digest literal in `ashita/addons/accessxi_reader/accessxi_reader.lua`
 
 **Interfaces:**
 - Consumes: current installed FFXI DATs, BG Wiki API, FFXIclopedia API, reviewed overrides, route-evidence cache
@@ -608,16 +855,19 @@ Run:
 ```powershell
 tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli routes --repo-root . --refresh
 tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli build --repo-root . --ffxi-root 'C:\Program Files (x86)\PlayOnline\SquareEnix\FINAL FANTASY XI' --offline
+tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli manifest --repo-root . --runtime-ready --update-runtime-pin ashita/addons/accessxi_reader/accessxi_reader.lua
 ```
 
 - [ ] **Step 4: Verify deterministic regeneration**
 
-Hash generated data and Lua modules, rerun the same offline build, and assert the hashes do not change.
+Hash generated data, manifest, Lua modules, and the pinned reader, rerun the same
+offline build plus explicit pin update, and assert the hashes do not change.
+Reparse the reader marker and prove it equals the exact manifest bytes.
 
 - [ ] **Step 5: Commit the refreshed corpus**
 
 ```powershell
-git add data/mission-quest-guides ashita/addons/accessxi_reader/modules/mission_quest_*.lua
+git add data/mission-quest-guides ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv ashita/addons/accessxi_reader/modules/mission_quest_*.lua ashita/addons/accessxi_reader/accessxi_reader.lua
 git commit -m "data: refresh complete objective guidance"
 ```
 
@@ -629,6 +879,13 @@ git commit -m "data: refresh complete objective guidance"
 - Modify: `data/mission-quest-guides/reviewed-overrides.json`
 - Modify: `data/mission-quest-guides/coverage.json`
 - Modify: `data/mission-quest-guides/coverage.md`
+- Modify: `data/mission-quest-guides/target-review.json`
+- Modify: `data/mission-quest-guides/route-evidence-v2.jsonl`
+- Modify: `data/mission-quest-guides/route-transitions.json` when transition review changes
+- Modify: `data/mission-quest-guides/route-transition-evidence-v2.jsonl` when transition review changes
+- Modify: `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`
+- Modify: generated `ashita/addons/accessxi_reader/modules/mission_quest_*.lua`
+- Modify: the marked manifest-digest literal in `ashita/addons/accessxi_reader/accessxi_reader.lua`
 
 **Interfaces:**
 - Consumes: native classification, reconciled material steps, generated destinations and instructions
@@ -688,8 +945,10 @@ resolves the exact target. Classify actual client sentinels with their native
 record offsets and exclusion reason. Preserve real source conflicts visibly.
 
 After every override/classification batch, rerun `routes --refresh`, rebuild the
-generated Lua offline, and rerun the audit. Continue until another iteration
-produces byte-identical corpus, evidence, runtime contracts, and audit artifacts.
+generated Lua offline, regenerate the runtime-ready addon manifest, update the
+single reader pin, and rerun the audit. Continue until another iteration
+produces byte-identical corpus, evidence, runtime contracts, manifest, reader
+pin, and audit artifacts.
 The gate must prove every override appears in the current output and every
 automatic entry resolves a current runtime contract.
 
@@ -701,6 +960,7 @@ Run:
 tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_coverage -v
 tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli routes --repo-root . --refresh
 tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli build --repo-root . --ffxi-root 'C:\Program Files (x86)\PlayOnline\SquareEnix\FINAL FANTASY XI' --offline
+tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.cli manifest --repo-root . --runtime-ready --update-runtime-pin ashita/addons/accessxi_reader/accessxi_reader.lua
 tools\.objective-guides-venv\Scripts\python.exe -m tools.objective_guides.audit --repo-root .
 ```
 
@@ -713,13 +973,15 @@ fixed-point iteration must make no changes.
 - [ ] **Step 6: Commit**
 
 ```powershell
-git add tools/objective_guides/audit.py tools/test_objective_coverage.py data/mission-quest-guides/reviewed-overrides.json data/mission-quest-guides/coverage.json data/mission-quest-guides/coverage.md ashita/addons/accessxi_reader/modules/mission_quest_*.lua
+git add tools/objective_guides/audit.py tools/test_objective_coverage.py data/mission-quest-guides/reviewed-overrides.json data/mission-quest-guides/coverage.json data/mission-quest-guides/coverage.md data/mission-quest-guides/target-review.json data/mission-quest-guides/route-evidence-v2.jsonl data/mission-quest-guides/route-transitions.json data/mission-quest-guides/route-transition-evidence-v2.jsonl ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv ashita/addons/accessxi_reader/modules/mission_quest_*.lua ashita/addons/accessxi_reader/accessxi_reader.lua
 git commit -m "data: complete mission and quest navigation coverage"
 ```
 
 ### Task 8: Validate, deploy, publish, and verify the updater payload
 
 **Files:**
+- Modify: `tools/package_accessxi_installer.ps1`
+- Modify: `tools/test_accessxi_installer_package.ps1`
 - Sync: `ashita/addons/accessxi_reader` to `C:\Users\buu42\Ashita\addons\accessxi_reader`
 - Build: new `AccessXI-Ashita-Installer.zip`
 - Publish: next GitHub release from merged `main`
@@ -746,24 +1008,36 @@ for every changed file. Do not modify unrelated addons.
 
 Verify the new build identifier loads, expansion contexts produce no `tonumber`
 failure, Orcish Scouts exposes both confirmed kill choices, and objective rows
-start or truthfully block according to current-session evidence.
+start or truthfully block according to current-session evidence. Require the
+one-time production LuaJIT `bit` plus SHA-256 `abc` smoke result in the live log;
+failure blocks objective movement and release.
 
 - [ ] **Step 4: Package and test the updater payload**
 
 Build a new `AccessXI-Ashita-Installer.zip`, retain the existing installer EXE
 byte-for-byte, run package/updater/public-hygiene checks, and compare packaged
 addon hashes to the tested repository files. Assert the ZIP includes the exact
-tested SHA-256 module, runtime contract index, transition and route-policy Lua
-modules, destination TSV, graph TSV, FFXINAV DLL, and every
-referenced zone mesh; no contract may reference an absent or hash-mismatched
-packaged file.
+tested SHA-256 and route-runtime modules, independently rooted plain manifest,
+runtime contract index, transition and route-policy Lua modules, destination
+TSV, graph TSV, FFXINAV DLL, and every referenced zone mesh. Extend the package
+manifest and test to SHA-256-compare source versus payload for each artifact.
+Parse every declared relative path, reject rooted/traversal/canonical escape,
+and require the reader's pinned manifest digest to match the packaged manifest.
+No contract may reference an absent or hash-mismatched packaged file.
 
-- [ ] **Step 5: Merge and release**
+- [ ] **Step 5: Commit package-integrity changes**
+
+```powershell
+git add tools/package_accessxi_installer.ps1 tools/test_accessxi_installer_package.ps1
+git commit -m "build: verify objective route payload integrity"
+```
+
+- [ ] **Step 6: Merge and release**
 
 Push the branch, merge it to public `main`, publish the next non-prerelease tag,
 and attach the new ZIP, unchanged EXE, and setup guide.
 
-- [ ] **Step 6: Verify GitHub latest release**
+- [ ] **Step 7: Verify GitHub latest release**
 
 Confirm the latest-release API returns the new tag, merged commit, exact asset
 names, uploaded states, sizes, and SHA-256 digests. Download or compare the ZIP

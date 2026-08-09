@@ -933,6 +933,90 @@ class WikitextParserTests(unittest.TestCase):
             [("talk", "talk-to", "Cid")],
         )
 
+    def test_typed_evidence_is_local_to_each_action_clause(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Clause Local Evidence",
+            page_id=9300,
+            revision_id=91,
+            parent_revision_id=90,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Go to [[West Ronfaure]], then talk to [[Makarim]] in [[Zeruhn Mines]].\n"
+                "*Defeat [[Mob A]] in [[East Ronfaure]] at (H-8) on map 1, then trade "
+                "{{Item}}[[Stone]] to [[NPC A]] in [[West Ronfaure]] at (H-9) on map 2.\n"
+                "*Use [[Switch A]], then trade {{KI}}[[Dawn Talisman]] to [[NPC A]].\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        travel, talk = parsed.steps[0].action_spans
+        self.assertEqual((travel.action, travel.target, travel.zone_mentions), (
+            "travel",
+            "West Ronfaure",
+            ("West Ronfaure",),
+        ))
+        self.assertEqual((talk.action, talk.target, talk.zone_mentions), (
+            "talk",
+            "Makarim",
+            ("Zeruhn Mines",),
+        ))
+
+        fight, trade = parsed.steps[1].action_spans
+        self.assertEqual(
+            (
+                fight.target,
+                fight.item_mentions,
+                fight.zone_mentions,
+                fight.map_numbers,
+                fight.grid_coordinates,
+            ),
+            ("Mob A", (), ("East Ronfaure",), ("1",), ("H-8",)),
+        )
+        self.assertEqual(
+            (
+                trade.target,
+                trade.item_mentions,
+                trade.zone_mentions,
+                trade.map_numbers,
+                trade.grid_coordinates,
+            ),
+            ("NPC A", ("Stone",), ("West Ronfaure",), ("2",), ("H-9",)),
+        )
+
+        use, key_trade = parsed.steps[2].action_spans
+        self.assertEqual(use.key_item_mentions, ())
+        self.assertEqual(key_trade.target, "NPC A")
+        self.assertEqual(key_trade.key_item_mentions, ("Dawn Talisman",))
+
+    def test_reversed_obtain_chain_preserves_surrounding_actions(self) -> None:
+        page = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Surrounding Actions",
+            page_id=9301,
+            revision_id=92,
+            parent_revision_id=91,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Talk to [[Cid]], then obtain an [[Orcish Axe]] by defeating "
+                "[[Orcish Fodder]], then examine the ???.\n"
+            ),
+        )
+
+        spans = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual(
+            [(span.action, span.target) for span in spans],
+            [("talk", "Cid"), ("fight", "Orcish Fodder"), ("examine", "???")],
+        )
+        self.assertEqual(spans[1].result_items, ("Orcish Axe",))
+        self.assertEqual(spans[1].result_relation, "obtain-from")
+
     def test_typed_mentions_keep_prose_zones_unlinked_objects_and_question_marks(self) -> None:
         page = PageRevision(
             site="bg",
@@ -1532,6 +1616,54 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(claim.comparison, "corroborated")
         self.assertNotIn("action", reconciled.steps[0].conflicting_fields)
 
+    def test_reconciliation_conflicts_only_compare_aligned_action_claims(self) -> None:
+        def page(site: str, page_id: int, second_target: str) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title="Two Talks",
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Talk to [[Alpha]], then talk to [[{second_target}]].\n"
+                    ),
+                )
+            )
+
+        identical = reconcile_objectives(
+            "quest:other_areas:81",
+            page("bg", 811, "Beta"),
+            page("ffxiclopedia", 812, "Beta"),
+        )
+        self.assertEqual(identical.steps[0].comparison, "corroborated")
+        self.assertEqual(
+            [(claim.target, claim.comparison) for claim in identical.steps[0].claims],
+            [("Alpha", "corroborated"), ("Beta", "corroborated")],
+        )
+        self.assertNotIn("target_identity", identical.steps[0].conflicting_fields)
+
+        disagreement = reconcile_objectives(
+            "quest:other_areas:82",
+            page("bg", 821, "Beta"),
+            page("ffxiclopedia", 822, "Gamma"),
+        )
+        self.assertEqual(
+            [(claim.target, claim.comparison) for claim in disagreement.steps[0].claims],
+            [("Alpha", "corroborated"), ("", "conflict")],
+        )
+        self.assertEqual(
+            [
+                (candidate.value, candidate.comparison)
+                for candidate in disagreement.steps[0].claims[0].candidates
+                if candidate.field == "target"
+            ],
+            [("Alpha", "corroborated")],
+        )
+
 
 class ObjectiveDestinationTests(unittest.TestCase):
     @staticmethod
@@ -1702,6 +1834,30 @@ class ObjectiveDestinationTests(unittest.TestCase):
         with self.assertRaises(ObjectiveDestinationError):
             self._resolve(native, bg, ffxi, reconciled, overrides)
 
+    def test_destination_requires_every_pinned_source_revision_to_be_present(self) -> None:
+        native, bg, _ffxi, _reconciled, overrides = self._fixture("mission")
+        bg_only = reconcile_objectives(native.key, bg, None)
+
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native,
+                bg_only,
+                bg,
+                None,
+                overrides,
+                (
+                    {
+                        "zone": 101,
+                        "name": "Orcish Fodder",
+                        "kind": "enemy",
+                        "x": 123.0,
+                        "z": 45.0,
+                        "y": -2.0,
+                    },
+                ),
+                {101: "East Ronfaure"},
+            )
+
     def test_destination_rejects_a_point_that_disagrees_with_its_exact_reference(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("mission")
         overrides["objective_destination_overrides"][native.key][0]["target_point"] = [
@@ -1712,6 +1868,41 @@ class ObjectiveDestinationTests(unittest.TestCase):
 
         with self.assertRaises(ObjectiveDestinationError):
             self._resolve(native, bg, ffxi, reconciled, overrides)
+
+    def test_destination_requires_complete_finite_catalogue_coordinates(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("mission")
+        invalid_points = (
+            {"zone": 101, "name": "Orcish Fodder", "kind": "enemy", "z": 45.0, "y": -2.0},
+            {"zone": 101, "name": "Orcish Fodder", "kind": "enemy", "x": 123.0, "y": -2.0},
+            {"zone": 101, "name": "Orcish Fodder", "kind": "enemy", "x": 123.0, "z": 45.0},
+            {
+                "zone": 101,
+                "name": "Orcish Fodder",
+                "kind": "enemy",
+                "x": float("nan"),
+                "z": 45.0,
+                "y": -2.0,
+            },
+            {
+                "zone": 101,
+                "name": "Orcish Fodder",
+                "kind": "enemy",
+                "x": 123.0,
+                "z": float("inf"),
+                "y": -2.0,
+            },
+        )
+        for point in invalid_points:
+            with self.subTest(point=point), self.assertRaises(ObjectiveDestinationError):
+                resolve_reviewed_objective_destinations(
+                    native,
+                    reconciled,
+                    bg,
+                    ffxi,
+                    overrides,
+                    (point,),
+                    {101: "East Ronfaure"},
+                )
 
     def test_destination_order_is_stable_and_native_qualified(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("quest")

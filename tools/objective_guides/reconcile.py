@@ -146,12 +146,14 @@ def _intersection(left: tuple[str, ...], right: tuple[str, ...]) -> set[str]:
 def _span_values(span: SourceActionSpan | None) -> dict[str, tuple[str, ...]]:
     if span is None:
         return {}
+    key_item_keys = {value.casefold() for value in span.key_item_mentions}
     return {
         "target": (span.target,) if span.target else (),
         "npc": span.npc_mentions,
         "object": span.object_mentions,
         "enemy": span.enemy_mentions,
-        "item": span.item_mentions,
+        "item": tuple(value for value in span.item_mentions if value.casefold() not in key_item_keys),
+        "key-item": span.key_item_mentions,
         "transport": span.transport_mentions,
         "zone": span.zone_mentions,
         "map": span.map_numbers,
@@ -167,7 +169,9 @@ def _candidate_rows(
     left_values = _span_values(left)
     right_values = _span_values(right)
     rows: list[ReconciledCandidate] = []
-    for field in ("target", "npc", "object", "enemy", "item", "transport", "zone", "map", "grid", "result-item"):
+    for field in (
+        "target", "npc", "object", "enemy", "item", "key-item", "transport", "zone", "map", "grid", "result-item"
+    ):
         left_by_key = {value.casefold(): value for value in left_values.get(field, ())}
         right_by_key = {value.casefold(): value for value in right_values.get(field, ())}
         for key in sorted(set(left_by_key).union(right_by_key)):
@@ -395,19 +399,6 @@ def _comparison(left: SourceStep | None, right: SourceStep | None) -> tuple[str,
         agreed.append("key_items")
     if _intersection(left.items, right.items):
         agreed.append("items")
-
-    immutable_kinds = {"npc", "object", "enemy", "question-mark", "entrance", "transport"}
-    for left_span in left.action_spans:
-        for right_span in right.action_spans:
-            if (
-                left_span.action == right_span.action
-                and left_span.target_kind == right_span.target_kind
-                and left_span.target_kind in immutable_kinds
-                and left_span.target
-                and right_span.target
-                and left_span.target.casefold() != right_span.target.casefold()
-            ):
-                conflicts.append("target_identity")
 
     if conflicts:
         return "conflict", tuple(agreed), tuple(conflicts)

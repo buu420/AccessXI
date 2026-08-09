@@ -326,13 +326,16 @@ def _action_for_verb(verb: str) -> tuple[str, str]:
     return "use", "use-object"
 
 
-def _result_item_after(text: str, start: int) -> str:
-    match = re.search(
-        r"\b(?:obtain|receive|collect)\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|[.;]|$)",
-        text[start:],
-        re.IGNORECASE,
+def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
+    return _unique(
+        value
+        for value in values
+        if re.search(
+            rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])",
+            clause,
+            re.IGNORECASE,
+        )
     )
-    return _trim_target(match.group(1)) if match else ""
 
 
 def _extract_action_spans(
@@ -346,38 +349,6 @@ def _extract_action_spans(
     marked_items: tuple[str, ...],
     key_items: tuple[str, ...],
 ) -> tuple[SourceActionSpan, ...]:
-    reversed_chain = re.search(
-        r"\b(?:obtain|receive|collect)\s+(?:the\s+|an?\s+)?(?P<item>.+?)\s+by\s+"
-        r"(?:defeating|killing|slaying)\s+(?:the\s+)?(?P<enemy>.+?)(?=\s+in\b|\s+at\b|[.;]|$)",
-        text,
-        re.IGNORECASE,
-    )
-    if reversed_chain:
-        item = _trim_target(reversed_chain.group("item"))
-        enemy = _trim_target(reversed_chain.group("enemy"))
-        return (
-            SourceActionSpan(
-                source_step_order=source_step_order,
-                order=1,
-                text_start=reversed_chain.start(),
-                text_end=reversed_chain.end(),
-                supporting_clause=_clean(reversed_chain.group(0)),
-                action="fight",
-                verb="defeat",
-                relationship="defeat-to-obtain",
-                target=enemy,
-                target_kind="enemy",
-                enemy_mentions=(enemy,) if enemy else (),
-                item_mentions=(item,) if item else (),
-                zone_mentions=zones,
-                temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in zones) else "",
-                map_numbers=maps,
-                grid_coordinates=coordinates,
-                result_items=(item,) if item else (),
-                result_relation="obtain-from",
-            ),
-        )
-
     matches = list(_ACTION_MATCH.finditer(text))
     warning_match = re.search(
         r"\b(?:leaving|exiting)\b.+?\b(?:lose|loses|removes?)\b.+?(?=[.;]|$)",
@@ -405,11 +376,18 @@ def _extract_action_spans(
         }:
             action, relationship = "warning", "required-state-warning"
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        clause = _clean(text[match.start() : end]).strip(" ,")
-        remainder = text[match.end() :]
+        raw_clause = text[match.start() : end]
+        clause = _clean(raw_clause).strip(" ,")
+        remainder = text[match.end() : end]
+        clause_zones = _extract_zone_mentions(raw_clause)
+        clause_maps = _extract_map_numbers(raw_clause)
+        clause_coordinates = _extract_coordinates(raw_clause)
+        clause_marked_items = _values_in_clause(marked_items, raw_clause)
+        clause_key_items = _values_in_clause(key_items, raw_clause)
         target = ""
         target_kind = ""
         item_mentions: tuple[str, ...] = ()
+        key_item_mentions = clause_key_items
         npc_mentions: tuple[str, ...] = ()
         object_mentions: tuple[str, ...] = ()
         enemy_mentions: tuple[str, ...] = ()
@@ -417,7 +395,8 @@ def _extract_action_spans(
 
         if action == "trade":
             trade = re.match(
-                r"\s+(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?(.+?)(?=,?\s+then\b|[.;]|$)",
+                r"\s+(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?"
+                r"(.+?)(?=\s+(?:in|at)\b|\s+on\s+map\b|\s*\([A-P]-\d{1,2}\)|[.;,]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -448,7 +427,7 @@ def _extract_action_spans(
                 npc_mentions = (target,) if target else ()
         elif action == "fight":
             fought = re.match(
-                r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
+                r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
                 r"\s+and\s+(?:re-examine|examine|touch|click)\b|[.;,]|$)",
                 remainder,
                 re.IGNORECASE,
@@ -481,7 +460,7 @@ def _extract_action_spans(
             target_kind = "item" if target else ""
             item_mentions = (target,) if target else ()
         elif action == "travel":
-            target = next((zone for zone in zones if zone.casefold() in text[match.start() :].casefold() or zone.endswith(" [S]")), "")
+            target = clause_zones[0] if clause_zones else ""
             target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
             if relationship == "board-transport":
                 boarded = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;,]|$)", remainder, re.IGNORECASE)
@@ -496,9 +475,9 @@ def _extract_action_spans(
             target = _trim_target(protected.group(1)) if protected else ""
             target_kind = "role" if target else ""
         elif action == "warning":
-            target = key_items[0] if key_items else ""
+            target = clause_key_items[0] if clause_key_items else ""
             target_kind = "key-item" if target else "state"
-            item_mentions = key_items
+            item_mentions = clause_key_items
             clause = _clean(warning_match.group(0)) if warning_match else clause
         elif action in {"use", "select"}:
             used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[.;,]|$)", remainder, re.IGNORECASE)
@@ -506,10 +485,7 @@ def _extract_action_spans(
             target_kind = "menu-choice" if action == "select" else "object"
             object_mentions = (target,) if target and action == "use" else ()
 
-        result_item = _result_item_after(text, match.end()) if action in {"fight", "examine"} else ""
-        if result_item:
-            relationship = "defeat-to-obtain" if action == "fight" else "examine-to-obtain"
-        item_mentions = _unique((*item_mentions, *marked_items, *key_items, *((result_item,) if result_item else ())))
+        item_mentions = _unique((*item_mentions, *clause_marked_items, *clause_key_items))
         spans.append(
             SourceActionSpan(
                 source_step_order=source_step_order,
@@ -527,19 +503,58 @@ def _extract_action_spans(
                 object_mentions=object_mentions,
                 enemy_mentions=enemy_mentions,
                 item_mentions=item_mentions,
+                key_item_mentions=key_item_mentions,
                 transport_mentions=transport_mentions,
-                zone_mentions=zones,
-                temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in zones) else "",
-                map_numbers=maps,
-                grid_coordinates=coordinates,
-                result_items=(result_item,) if result_item else (),
-                result_relation="obtain-from" if result_item else "",
+                zone_mentions=clause_zones,
+                temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in clause_zones) else "",
+                map_numbers=clause_maps,
+                grid_coordinates=clause_coordinates,
             )
         )
 
-    obtain_indexes = [index for index, span in enumerate(spans) if span.action == "obtain"]
-    if len(spans) == 2 and obtain_indexes == [1] and spans[0].action in {"fight", "examine"}:
-        spans.pop()
+    collapsed: list[SourceActionSpan] = []
+    index = 0
+    while index < len(spans):
+        span = spans[index]
+        next_span = spans[index + 1] if index + 1 < len(spans) else None
+        if (
+            len(spans) == 2
+            and span.action in {"fight", "examine"}
+            and next_span is not None
+            and next_span.action == "obtain"
+        ):
+            collapsed.append(
+                replace(
+                    span,
+                    text_end=next_span.text_end,
+                    supporting_clause=_clean(text[span.text_start : next_span.text_end]).strip(" ,"),
+                    relationship="defeat-to-obtain" if span.action == "fight" else "examine-to-obtain",
+                    item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
+                    key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
+                    result_items=(next_span.target,) if next_span.target else (),
+                    result_relation="obtain-from",
+                )
+            )
+            index += 2
+            continue
+        if span.action == "obtain" and next_span is not None and next_span.action == "fight":
+            collapsed.append(
+                replace(
+                    next_span,
+                    text_start=span.text_start,
+                    supporting_clause=_clean(text[span.text_start : next_span.text_end]).strip(" ,"),
+                    relationship="defeat-to-obtain",
+                    item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
+                    key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
+                    result_items=(span.target,) if span.target else (),
+                    result_relation="obtain-from",
+                )
+            )
+            index += 2
+            continue
+        collapsed.append(span)
+        index += 1
+    spans = collapsed
     return tuple(replace(span, order=order) for order, span in enumerate(spans, start=1))
 
 

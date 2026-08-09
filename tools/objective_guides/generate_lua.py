@@ -162,6 +162,7 @@ def _source_action_span_lua(span: SourceActionSpan, indent: str) -> list[str]:
         f"{inner}object_mentions = {_lua_array(span.object_mentions)},",
         f"{inner}enemy_mentions = {_lua_array(span.enemy_mentions)},",
         f"{inner}item_mentions = {_lua_array(span.item_mentions)},",
+        f"{inner}key_item_mentions = {_lua_array(span.key_item_mentions)},",
         f"{inner}transport_mentions = {_lua_array(span.transport_mentions)},",
         f"{inner}zone_mentions = {_lua_array(span.zone_mentions)},",
         f"{inner}temporal_zone_variant = {lua_quote(span.temporal_zone_variant)},",

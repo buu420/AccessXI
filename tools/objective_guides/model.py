@@ -40,6 +40,7 @@ class SourceActionSpan:
     object_mentions: tuple[str, ...] = ()
     enemy_mentions: tuple[str, ...] = ()
     item_mentions: tuple[str, ...] = ()
+    key_item_mentions: tuple[str, ...] = ()
     transport_mentions: tuple[str, ...] = ()
     zone_mentions: tuple[str, ...] = ()
     temporal_zone_variant: str = ""

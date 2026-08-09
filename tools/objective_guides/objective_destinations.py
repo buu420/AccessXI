@@ -142,10 +142,10 @@ def _same_source_target_zone(
     return False
 
 
-def _point_tuple(point: Mapping[str, Any]) -> tuple[float, float, float] | None:
+def _point_tuple(point: Mapping[str, Any]) -> tuple[float, float, float]:
     values = (point.get("x"), point.get("z"), point.get("y"))
     if any(value is None or str(value).strip() == "" for value in values):
-        return None
+        raise ObjectiveDestinationError("Reviewed objective destination lacks complete target coordinates.")
     result = tuple(float(value) for value in values)
     if not all(math.isfinite(value) for value in result):
         raise ObjectiveDestinationError("Reviewed objective destination has non-finite target coordinates.")
@@ -208,6 +208,11 @@ def resolve_reviewed_objective_destinations(
         revisions = raw.get("source_revisions")
         if not isinstance(revisions, Mapping):
             raise ObjectiveDestinationError(f"Reviewed objective destination {stable_id!r} lacks source revisions.")
+        for site in revisions:
+            if site not in pages or pages[site] is None:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} pins unavailable source {site!r}."
+                )
         for site, page in pages.items():
             if page is not None and int(revisions.get(site, 0) or 0) != page.revision_id:
                 raise ObjectiveDestinationError(
@@ -229,6 +234,8 @@ def resolve_reviewed_objective_destinations(
         enemies = _strings(raw.get("enemies", []), "enemies")
         all_spans = tuple(span for spans in source_spans.values() for span in spans)
         item_claims = _typed_values(all_spans, "item_mentions").union(
+            _typed_values(all_spans, "key_item_mentions")
+        ).union(
             _typed_values(all_spans, "result_items")
         )
         enemy_claims = _typed_values(all_spans, "enemy_mentions")

@@ -53,6 +53,7 @@
 /tmp/
 /scratch/
 /backups/
+/.superpowers/sdd/
 *.bak
 *.bak*
 *~

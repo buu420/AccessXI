@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import mwparserfromhell
@@ -39,6 +39,16 @@ _NYZUL_PROGRESS_SECTIONS = {
 
 class WikitextError(ValueError):
     """Raised when a source page cannot safely become objective guidance."""
+
+
+@dataclass(frozen=True, slots=True)
+class _EntityOccurrence:
+    canonical: str
+    display: str
+    start: int
+    end: int
+    role: str = ""
+    target_identity: bool = True
 
 
 def _clean(value: object) -> str:
@@ -106,6 +116,23 @@ def _template_location(template: Template) -> tuple[str, str, str, str]:
     return zone, text, map_label, position
 
 
+def _template_entity_value(template: Template) -> str:
+    positional = _positional_parameters(template)
+    return (
+        (positional[0] if positional else "")
+        or _template_parameter(
+            template,
+            "item",
+            "key item",
+            "keyitem",
+            "ki",
+            "name",
+            "text",
+            "label",
+        )
+    )
+
+
 def _readable_template_values(template: Template) -> tuple[str, ...]:
     ignored_names = {
         "align",
@@ -142,14 +169,18 @@ def _render_template(template: Template, warnings: list[str]) -> str:
             parts.append(position)
         return " ".join(part for part in parts if part)
     if key in {"ki", "keyitem", "keyitems"}:
-        values = _positional_parameters(template)
-        return "key item " + (values[0] if values else "")
+        return "key item " + _template_entity_value(template)
     if key in {"item", "itemicon", "itemlink"}:
-        values = _positional_parameters(template)
-        return values[0] if values else ""
+        return _template_entity_value(template)
     if key in {"tooltip", "abbr"}:
         return _template_parameter(template, "text", "1") or " ".join(_readable_template_values(template))
-    if key in {"color", "fontcolor", "small", "nowrap", "nobr", "verification", "mob", "npc", "zone"}:
+    if key in {"color", "fontcolor"}:
+        values = _positional_parameters(template)
+        return (
+            _template_parameter(template, "text", "label", "2")
+            or (values[-1] if len(values) >= 2 else "")
+        )
+    if key in {"small", "nowrap", "nobr", "verification", "mob", "npc", "zone"}:
         return " ".join(_readable_template_values(template))
     if key == "!":
         return "|"
@@ -161,18 +192,96 @@ def _render_template(template: Template, warnings: list[str]) -> str:
     return " ".join(readable)
 
 
-def _wikilink_label(link: Wikilink) -> str:
+def _render_link_display(value: object) -> str:
+    code = mwparserfromhell.parse(str(value or ""))
+    warnings: list[str] = []
+    for template in reversed(list(code.filter_templates(recursive=True))):
+        code.replace(template, _render_template(template, warnings))
+    return _clean(code.strip_code(normalize=True, collapse=True))
+
+
+def _wikilink_identity(link: Wikilink) -> tuple[str, str]:
     target = _clean(link.title)
     if not target or ":" in target and target.split(":", 1)[0].casefold() in {
         "category",
         "file",
         "image",
     }:
-        return ""
+        return "", ""
     if len(target) >= 3 and target[2:3] == ":":
-        return ""
-    display = _strip_code(link.text) if link.text is not None else target
-    return display or target
+        return "", ""
+    display = _render_link_display(link.text) if link.text is not None else target
+    return target, (display or target)
+
+
+def _wikilink_label(link: Wikilink) -> str:
+    return _wikilink_identity(link)[1]
+
+
+def _template_entity_role(template: Template) -> str:
+    key = _name_key(template.name)
+    if key in {"ki", "keyitem", "keyitems"}:
+        return "key-item"
+    if key in {"item", "itemicon", "itemlink"}:
+        return "item"
+    return ""
+
+
+def _set_link_role(roles: dict[int, str], link: Wikilink, role: str) -> None:
+    if not role:
+        return
+    previous = roles.get(id(link), "")
+    if not previous or role == "key-item":
+        roles[id(link)] = role
+
+
+def _structural_entity_roles(
+    code: object,
+) -> tuple[dict[int, str], dict[int, tuple[str, str, str]]]:
+    roles: dict[int, str] = {}
+    template_entities: dict[int, tuple[str, str, str]] = {}
+    for template in code.filter_templates(recursive=True):
+        role = _template_entity_role(template)
+        if not role:
+            continue
+        contained_links: list[Wikilink] = []
+        for parameter in template.params:
+            for link in parameter.value.filter_wikilinks(recursive=True):
+                contained_links.append(link)
+                _set_link_role(roles, link, role)
+        entity_name = _template_entity_value(template)
+        if entity_name and not contained_links:
+            template_entities[id(template)] = (entity_name, entity_name, role)
+
+    def mark_adjacent(wikicode: object) -> None:
+        pending: tuple[Template, str, str] | None = None
+        for node in wikicode.nodes:
+            if isinstance(node, Template):
+                role = _template_entity_role(node)
+                has_link = any(
+                    parameter.value.filter_wikilinks(recursive=True)
+                    for parameter in node.params
+                )
+                entity_name = _template_entity_value(node) if role else ""
+                pending = (node, role, entity_name) if role and not has_link else None
+                for parameter in node.params:
+                    mark_adjacent(parameter.value)
+                continue
+            if not str(node).strip():
+                continue
+            if isinstance(node, Wikilink) and pending is not None:
+                template, role, expected_name = pending
+                canonical, display = _wikilink_identity(node)
+                if not expected_name or _name_key(expected_name) in {
+                    _name_key(canonical),
+                    _name_key(display),
+                }:
+                    _set_link_role(roles, node, role)
+                    template_entities.pop(id(template), None)
+            pending = None
+
+    mark_adjacent(code)
+    return roles, template_entities
 
 
 def _render_fragment(
@@ -180,20 +289,23 @@ def _render_fragment(
 ) -> tuple[
     str,
     tuple[str, ...],
-    tuple[tuple[str, int, int], ...],
+    tuple[_EntityOccurrence, ...],
     tuple[str, ...],
     tuple[str, ...],
     tuple[str, ...],
 ]:
     code = mwparserfromhell.parse(fragment)
     warnings: list[str] = []
-    links: list[str] = []
+    structural_roles, template_entities = _structural_entity_roles(code)
+    entities: list[tuple[str, str, str, bool]] = []
     for link in list(code.filter_wikilinks(recursive=True)):
-        label = _wikilink_label(link)
-        if label:
-            link_index = len(links)
-            links.append(label)
-            code.replace(link, f"\ue000{link_index}\ue001{label}\ue002")
+        canonical, display = _wikilink_identity(link)
+        if canonical and display:
+            entity_index = len(entities)
+            entities.append(
+                (canonical, display, structural_roles.get(id(link), ""), True)
+            )
+            code.replace(link, f"\ue000{entity_index}\ue001{display}\ue002")
         else:
             code.replace(link, "")
 
@@ -207,7 +319,21 @@ def _render_fragment(
                 locations.append(zone)
             if map_label:
                 map_labels.append(map_label)
-        code.replace(template, _render_template(template, warnings))
+        replacement = _render_template(template, warnings)
+        template_entity = template_entities.get(id(template))
+        if template_entity is not None:
+            canonical, display, role = template_entity
+            display_start = replacement.find(display)
+            if display_start >= 0:
+                entity_index = len(entities)
+                entities.append((canonical, display, role, False))
+                display_end = display_start + len(display)
+                replacement = (
+                    replacement[:display_start]
+                    + f"\ue000{entity_index}\ue001{display}\ue002"
+                    + replacement[display_end:]
+                )
+        code.replace(template, replacement)
 
     rendered = _clean(code.strip_code(normalize=True, collapse=True))
     rendered = re.sub(r"(?<=[A-Za-z0-9])(\?{3})", r" \1", rendered)
@@ -215,25 +341,39 @@ def _render_fragment(
     rendered = re.sub(r"(\?{3})(?=\ue000\d+\ue001[A-Za-z0-9])", r"\1 ", rendered)
     rendered = re.sub(r"\s+([,.;:!?])", r"\1", rendered)
     plain_parts: list[str] = []
-    link_occurrences: list[tuple[str, int, int]] = []
+    entity_occurrences: list[_EntityOccurrence] = []
     cursor = 0
     plain_length = 0
     for marker in re.finditer(r"\ue000(\d+)\ue001(.*?)\ue002", rendered):
         prefix = rendered[cursor : marker.start()]
         plain_parts.append(prefix)
         plain_length += len(prefix)
-        link_index = int(marker.group(1))
-        label = marker.group(2)
-        plain_parts.append(label)
-        link_occurrences.append((links[link_index], plain_length, plain_length + len(label)))
-        plain_length += len(label)
+        entity_index = int(marker.group(1))
+        display = marker.group(2)
+        canonical, _original_display, role, target_identity = entities[entity_index]
+        plain_parts.append(display)
+        entity_occurrences.append(
+            _EntityOccurrence(
+                canonical=canonical,
+                display=display,
+                start=plain_length,
+                end=plain_length + len(display),
+                role=role,
+                target_identity=target_identity,
+            )
+        )
+        plain_length += len(display)
         cursor = marker.end()
     plain_parts.append(rendered[cursor:])
     rendered = "".join(plain_parts)
     return (
         rendered,
-        _unique(links),
-        tuple(link_occurrences),
+        _unique(
+            occurrence.canonical
+            for occurrence in entity_occurrences
+            if occurrence.target_identity
+        ),
+        tuple(entity_occurrences),
         _unique(locations),
         _unique((*map_labels, *_extract_map_numbers(rendered))),
         _unique(warnings),
@@ -246,14 +386,6 @@ def _extract_coordinates(value: str) -> tuple[str, ...]:
 
 def _extract_map_numbers(value: str) -> tuple[str, ...]:
     return _unique(match.group(1) for match in re.finditer(r"\bmap\s*(?:number\s*)?([0-9]+|north|south|east|west)\b", value, re.IGNORECASE))
-
-
-def _extract_marked_links(fragment: str, template_names: str) -> tuple[str, ...]:
-    pattern = re.compile(
-        rf"\{{\{{\s*(?:{template_names})\b[^}}]*\}}\}}\s*\[\[([^\]|]+)(?:\|[^\]]+)?\]\]",
-        re.IGNORECASE,
-    )
-    return _unique(match.group(1) for match in pattern.finditer(fragment))
 
 
 def _authoritative_zone_names() -> tuple[str, ...]:
@@ -382,19 +514,21 @@ def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
 
 
 def _links_in_range(
-    link_occurrences: tuple[tuple[str, int, int], ...],
+    link_occurrences: tuple[_EntityOccurrence, ...],
     start: int,
     end: int,
 ) -> tuple[str, ...]:
     return _unique(
-        value
-        for value, link_start, link_end in link_occurrences
-        if start <= link_start and link_end <= end
+        occurrence.canonical
+        for occurrence in link_occurrences
+        if occurrence.target_identity
+        and start <= occurrence.start
+        and occurrence.end <= end
     )
 
 
 def _links_in_match(
-    link_occurrences: tuple[tuple[str, int, int], ...],
+    link_occurrences: tuple[_EntityOccurrence, ...],
     offset: int,
     match: re.Match[str],
     group: int,
@@ -403,6 +537,41 @@ def _links_in_match(
         link_occurrences,
         offset + match.start(group),
         offset + match.end(group),
+    )
+
+
+def _links_with_role_in_range(
+    link_occurrences: tuple[_EntityOccurrence, ...],
+    start: int,
+    end: int,
+    *roles: str,
+) -> tuple[str, ...]:
+    wanted = set(roles)
+    return _unique(
+        occurrence.canonical
+        for occurrence in link_occurrences
+        if occurrence.role in wanted
+        and start <= occurrence.start
+        and occurrence.end <= end
+    )
+
+
+def _canonical_zone_links_in_range(
+    link_occurrences: tuple[_EntityOccurrence, ...],
+    start: int,
+    end: int,
+) -> tuple[str, ...]:
+    zones = {
+        zone.casefold(): zone
+        for zone in _authoritative_zone_names()
+    }
+    return _unique(
+        zones[occurrence.canonical.casefold()]
+        for occurrence in link_occurrences
+        if occurrence.target_identity
+        and start <= occurrence.start
+        and occurrence.end <= end
+        and occurrence.canonical.casefold() in zones
     )
 
 
@@ -422,6 +591,8 @@ def _refine_linked_target(
         return candidates[0], candidates
     if len(candidates) > 1:
         return "", candidates
+    if target.casefold() in excluded:
+        return "", ()
     return target, ((target,) if target else ())
 
 
@@ -429,7 +600,7 @@ def _period_is_internal_abbreviation(
     value: str,
     end: int,
     *,
-    next_is_exact_link: bool,
+    next_is_qualified_link: bool,
 ) -> bool:
     continuation = value[end:].lstrip()
     if not continuation or _NEW_SENTENCE_EVENT.match(continuation):
@@ -443,7 +614,7 @@ def _period_is_internal_abbreviation(
     )
     if initialism:
         token = initialism.group(1).casefold()
-        if next_is_exact_link:
+        if next_is_qualified_link:
             prefix = value[:end]
             if token in {"e.g.", "i.e."} and re.search(
                 r"(?:^\s+(?:an?\s+)?enemy|\b(?:defeat|fight|kill|slay|destroy)\b[^.!?]*)"
@@ -486,7 +657,7 @@ def _strong_sentence_boundaries(
     value: str,
     *,
     text_offset: int = 0,
-    link_occurrences: tuple[tuple[str, int, int], ...] = (),
+    link_occurrences: tuple[_EntityOccurrence, ...] = (),
 ) -> tuple[tuple[int, int], ...]:
     boundaries: list[tuple[int, int]] = []
     for match in re.finditer(r"[.!?]+", value):
@@ -509,14 +680,29 @@ def _strong_sentence_boundaries(
             continuation_start = end
             while continuation_start < len(value) and value[continuation_start].isspace():
                 continuation_start += 1
-            next_is_exact_link = any(
-                link_start == text_offset + continuation_start
-                for _label, link_start, _link_end in link_occurrences
+            following_links = sorted(
+                (
+                    occurrence
+                    for occurrence in link_occurrences
+                    if occurrence.target_identity
+                    and occurrence.start >= text_offset + continuation_start
+                    and occurrence.start <= text_offset + len(value)
+                ),
+                key=lambda occurrence: occurrence.start,
             )
+            next_is_qualified_link = False
+            if following_links:
+                link_start = following_links[0].start - text_offset
+                qualifier = value[continuation_start:link_start]
+                next_is_qualified_link = re.fullmatch(
+                    r"\s*(?:(?:the|an?)\s+)?",
+                    qualifier,
+                    re.IGNORECASE,
+                ) is not None
             if _period_is_internal_abbreviation(
                 value,
                 end,
-                next_is_exact_link=next_is_exact_link,
+                next_is_qualified_link=next_is_qualified_link,
             ):
                 continue
         boundary_start = start
@@ -532,12 +718,10 @@ def _extract_action_spans(
     text: str,
     *,
     source_step_order: int,
-    link_occurrences: tuple[tuple[str, int, int], ...],
+    link_occurrences: tuple[_EntityOccurrence, ...],
     zones: tuple[str, ...],
     maps: tuple[str, ...],
     coordinates: tuple[str, ...],
-    marked_items: tuple[str, ...],
-    key_items: tuple[str, ...],
 ) -> tuple[SourceActionSpan, ...]:
     matches = list(_ACTION_MATCH.finditer(text))
     warning_match = re.search(
@@ -636,15 +820,30 @@ def _extract_action_spans(
         raw_clause = text[start:end]
         clause = _clean(raw_clause).strip(" ,")
         remainder = text[match.end() : end]
-        clause_zones = _extract_zone_mentions(raw_clause)
+        clause_zones = _unique(
+            (
+                *_extract_zone_mentions(raw_clause),
+                *_canonical_zone_links_in_range(link_occurrences, start, end),
+            )
+        )
         clause_maps = _extract_map_numbers(raw_clause)
         clause_coordinates = _extract_coordinates(raw_clause)
         if index in suppressed_location_evidence:
             clause_zones = ()
             clause_maps = ()
             clause_coordinates = ()
-        clause_marked_items = _values_in_clause(marked_items, raw_clause)
-        clause_key_items = _values_in_clause(key_items, raw_clause)
+        clause_marked_items = _links_with_role_in_range(
+            link_occurrences,
+            start,
+            end,
+            "item",
+        )
+        clause_key_items = _links_with_role_in_range(
+            link_occurrences,
+            start,
+            end,
+            "key-item",
+        )
         excluded_target_links = _unique((*clause_zones, *clause_marked_items, *clause_key_items))
         target = ""
         target_kind = ""
@@ -1178,9 +1377,24 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         if not rendered:
             continue
         coordinates = _extract_coordinates(rendered)
-        key_items = _extract_marked_links(fragment, r"KI|KeyItem|KeyItems")
-        items = _extract_marked_links(fragment, r"Item|ItemIcon|ItemLink")
-        typed_zones = _extract_zone_mentions(rendered, locations)
+        key_items = _links_with_role_in_range(
+            link_occurrences,
+            0,
+            len(rendered),
+            "key-item",
+        )
+        items = _links_with_role_in_range(
+            link_occurrences,
+            0,
+            len(rendered),
+            "item",
+        )
+        typed_zones = _unique(
+            (
+                *_extract_zone_mentions(rendered, locations),
+                *_canonical_zone_links_in_range(link_occurrences, 0, len(rendered)),
+            )
+        )
         zones = _unique((*locations, *typed_zones))
         action_spans = _extract_action_spans(
             rendered,
@@ -1189,11 +1403,15 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
             zones=typed_zones,
             maps=maps,
             coordinates=coordinates,
-            marked_items=items,
-            key_items=key_items,
         )
         action = _classify_action(rendered)
-        spoken = _spoken_step(rendered, action, links, coordinates, maps)
+        spoken = _spoken_step(
+            rendered,
+            action,
+            _unique(occurrence.display for occurrence in link_occurrences),
+            coordinates,
+            maps,
+        )
         steps.append(
             SourceStep(
                 order=len(steps) + 1,

@@ -1476,6 +1476,225 @@ class WikitextParserTests(unittest.TestCase):
                         ("NPC B", ("NPC B",), ("West Ronfaure",)),
                     )
 
+    def test_safe_wrapper_and_article_keep_linked_qualifier_targets_clause_local(self) -> None:
+        cases = (
+            (
+                "Defeat the N.M. {{Color|red|[[Bugallug]]}} in [[Oldton Movalpolos]], "
+                "then talk to [[Cid]] in [[Metalworks]].",
+                "Defeat the N.M. Bugallug in Oldton Movalpolos, then talk to Cid in Metalworks.",
+                (0, 47),
+                (51, 77),
+                ("Bugallug", ("Bugallug",), ("Oldton Movalpolos",)),
+                ("Cid", ("Cid",), ("Metalworks",)),
+            ),
+            (
+                "Defeat an enemy, e.g. the [[Mob A]] in [[East Ronfaure]], then talk to "
+                "[[NPC B]] in [[West Ronfaure]].",
+                "Defeat an enemy, e.g. the Mob A in East Ronfaure, then talk to NPC B in West Ronfaure.",
+                (0, 50),
+                (54, 85),
+                ("Mob A", ("Mob A",), ("East Ronfaure",)),
+                ("NPC B", ("NPC B",), ("West Ronfaure",)),
+            ),
+        )
+        for (
+            instruction,
+            expected_source,
+            expected_fight_range,
+            expected_talk_range,
+            expected_fight,
+            expected_talk,
+        ) in cases:
+            with self.subTest(instruction=instruction):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Qualified Wrapped Target",
+                    page_id=9325,
+                    revision_id=116,
+                    parent_revision_id=115,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                )
+
+                step = parse_objective_page(page).steps[0]
+                fight, talk = step.action_spans
+
+                self.assertEqual(step.source_text, expected_source)
+                self.assertEqual((fight.text_start, fight.text_end), expected_fight_range)
+                self.assertEqual((talk.text_start, talk.text_end), expected_talk_range)
+                self.assertEqual(
+                    (fight.target, fight.enemy_mentions, fight.zone_mentions),
+                    expected_fight,
+                )
+                self.assertEqual(
+                    (talk.target, talk.npc_mentions, talk.zone_mentions),
+                    expected_talk,
+                )
+                self.assertNotRegex(step.source_text, "[\ue000-\ue002]")
+                self.assertNotRegex(step.spoken_text, "[\ue000-\ue002]")
+
+    def test_link_aliases_preserve_canonical_identity_and_display_only_speech(self) -> None:
+        def step(instruction: str) -> SourceStep:
+            page = PageRevision(
+                site="bg",
+                api_url="https://www.bg-wiki.com/api.php",
+                canonical_title="Canonical Link Identity",
+                page_id=9326,
+                revision_id=117,
+                parent_revision_id=116,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+            )
+            return parse_objective_page(page).steps[0]
+
+        single = step("Defeat [[Mob A|Mob Alpha]] in [[East Ronfaure]].")
+        (single_fight,) = single.action_spans
+        self.assertEqual(single.source_text, "Defeat Mob Alpha in East Ronfaure.")
+        self.assertEqual(single.linked_entities, ("Mob A", "East Ronfaure"))
+        self.assertEqual(
+            (single_fight.target, single_fight.enemy_mentions),
+            ("Mob A", ("Mob A",)),
+        )
+
+        ambiguous = step(
+            "Defeat [[Mob A|Mob]] and [[Mob B|Mob]] in [[East Ronfaure]]."
+        ).action_spans[0]
+        self.assertEqual(ambiguous.target, "")
+        self.assertEqual(ambiguous.enemy_mentions, ("Mob A", "Mob B"))
+
+        repeated = step(
+            "Defeat [[Mob A|Mob]] and [[Mob A|the same mob]] in [[East Ronfaure]]."
+        ).action_spans[0]
+        self.assertEqual((repeated.target, repeated.enemy_mentions), ("Mob A", ("Mob A",)))
+
+        zone_alias = step(
+            "Defeat [[Mob A]] in [[East Ronfaure|the forest]]."
+        )
+        self.assertEqual(
+            zone_alias.source_text,
+            "Defeat Mob A in the forest.",
+        )
+        self.assertEqual(zone_alias.linked_entities, ("Mob A", "East Ronfaure"))
+        self.assertEqual(zone_alias.action_spans[0].zone_mentions, ("East Ronfaure",))
+
+    def test_long_spoken_step_uses_link_display_labels_not_hidden_canonical_titles(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Long Display Alias",
+            page_id=9328,
+            revision_id=119,
+            parent_revision_id=118,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Talk to [[Hidden Canonical Title (disambiguation)|Visible NPC]] in "
+                "[[East Ronfaure]]. "
+                + ("This visible instruction remains part of the walkthrough. " * 12)
+                + "\n"
+            ),
+        )
+
+        step = parse_objective_page(page).steps[0]
+
+        self.assertGreater(len(step.source_text), 420)
+        self.assertIn("Visible NPC", step.spoken_text)
+        self.assertNotIn("Hidden Canonical Title", step.spoken_text)
+        self.assertNotRegex(step.spoken_text, "[\ue000-\ue002]")
+
+    def test_contained_template_links_keep_item_and_target_roles_separate(self) -> None:
+        cases = (
+            ("{{Item|[[Bronze Key]]}}", "Bronze Key", False, True),
+            ("{{ItemIcon|[[Bronze Key]]}}", "Bronze Key", False, True),
+            ("{{KI|[[Bronze Key]]}}", "Bronze Key", True, True),
+            ("{{Item|name=[[Bronze Key]]}}", "Bronze Key", False, True),
+            ("{{ItemIcon|item=[[Bronze Key]]}}", "Bronze Key", False, True),
+            ("{{KI|name=[[Bronze Key]]}}", "Bronze Key", True, True),
+            (
+                "{{Item|{{Color|red|[[Bronze Key]]}}}}",
+                "Bronze Key",
+                False,
+                True,
+            ),
+            ("{{Item}}[[Bronze Key]]", "Bronze Key", False, True),
+            (
+                "{{ItemIcon|Giant Shell Bug|22}} [[Giant Shell Bug]]",
+                "Giant Shell Bug",
+                False,
+                True,
+            ),
+            (
+                "{{ItemIcon|Gallant Leggings|22}}",
+                "Gallant Leggings",
+                False,
+                False,
+            ),
+        )
+        for item_syntax, item_name, is_key_item, is_linked_item in cases:
+            with self.subTest(item_syntax=item_syntax):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Structural Item Role",
+                    page_id=9327,
+                    revision_id=118,
+                    parent_revision_id=117,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Use {item_syntax} on [[Locked Door]] in [[East Ronfaure]].\n"
+                    ),
+                )
+
+                step = parse_objective_page(page).steps[0]
+                (use,) = step.action_spans
+
+                self.assertEqual((use.target, use.object_mentions), ("Locked Door", ("Locked Door",)))
+                self.assertIn(item_name, use.item_mentions)
+                self.assertEqual(use.key_item_mentions, (item_name,) if is_key_item else ())
+                expected_links = (
+                    (item_name, "Locked Door", "East Ronfaure")
+                    if is_linked_item
+                    else ("Locked Door", "East Ronfaure")
+                )
+                self.assertEqual(step.linked_entities, expected_links)
+
+        unrelated = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Unrelated Adjacent Item Link",
+            page_id=9329,
+            revision_id=120,
+            parent_revision_id=119,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Use {{ItemIcon|Bronze Key|22}} [[Locked Door]] in [[East Ronfaure]].\n"
+            ),
+        )
+        (unrelated_use,) = parse_objective_page(unrelated).steps[0].action_spans
+        self.assertEqual(unrelated_use.target, "Locked Door")
+        self.assertIn("Bronze Key", unrelated_use.item_mentions)
+        self.assertNotIn("Locked Door", unrelated_use.item_mentions)
+
+        item_only = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Typed Item Is Not Object",
+            page_id=9330,
+            revision_id=121,
+            parent_revision_id=120,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Use {{ItemIcon|Gallant Leggings|22}} in [[East Ronfaure]].\n"
+            ),
+        )
+        (item_only_use,) = parse_objective_page(item_only).steps[0].action_spans
+        self.assertEqual((item_only_use.target, item_only_use.object_mentions), ("", ()))
+        self.assertEqual(item_only_use.item_mentions, ("Gallant Leggings",))
+
     def test_exact_clause_link_refines_decorated_target_without_cross_clause_borrowing(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -2384,6 +2603,91 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 },
             ),
             {101: "East Ronfaure"},
+        )
+
+    @staticmethod
+    def _resolve_literal_instruction(
+        *,
+        native_id: int,
+        instruction: str,
+        claim_order: int,
+        action: str,
+        target_name: str,
+        target_kind: str,
+        zone: int,
+        zone_name: str,
+        items: tuple[str, ...] = (),
+        enemies: tuple[str, ...] = (),
+    ) -> tuple[ReviewedObjectiveDestination, ...]:
+        native = NativeObjective(
+            "quest",
+            "other_areas",
+            native_id,
+            f"Literal destination fixture {native_id}",
+            "quests.dat",
+            0,
+        )
+        bg_revision = 10000 + (native_id * 2)
+        ffxiclopedia_revision = bg_revision + 1
+
+        def page(site: str, revision_id: int) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title=native.title,
+                    page_id=revision_id,
+                    revision_id=revision_id,
+                    parent_revision_id=revision_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                )
+            )
+
+        bg = page("bg", bg_revision)
+        ffxiclopedia = page("ffxiclopedia", ffxiclopedia_revision)
+        reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
+        step_id = f"{native.key}:step-001"
+        overrides = {
+            "objective_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "literal-destination-probe",
+                        "source_revisions": {
+                            "bg": bg_revision,
+                            "ffxiclopedia": ffxiclopedia_revision,
+                        },
+                        "source_step_ids": [step_id],
+                        "source_claim_ids": [f"{step_id}:claim-{claim_order:02d}"],
+                        "action": action,
+                        "items": list(items),
+                        "enemies": list(enemies),
+                        "destination_id": f"{target_kind}:{zone}:literal:{native_id}",
+                        "zone": zone,
+                        "zone_name": zone_name,
+                        "label": f"{target_name} in {zone_name}",
+                        "reference": {"name": target_name, "kind": target_kind},
+                        "arrival_instruction": f"{action.title()} {target_name}.",
+                    }
+                ]
+            }
+        }
+        point = {
+            "zone": zone,
+            "name": target_name,
+            "kind": target_kind,
+            "x": 1.0,
+            "z": 2.0,
+            "y": 3.0,
+        }
+        return resolve_reviewed_objective_destinations(
+            native,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            overrides,
+            (point,),
+            {zone: zone_name},
         )
 
     def test_missions_and_quests_use_the_same_immutable_destination_type(self) -> None:
@@ -3532,6 +3836,252 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     "Defeat [[Mob A]] and [[Mob B]] in [[East Ronfaure]].",
                     ambiguous_target,
                 )
+
+    def test_paired_destination_keeps_wrapped_and_article_qualifiers_claim_local(self) -> None:
+        cases = (
+            (
+                201,
+                "Defeat the N.M. {{Color|red|[[Bugallug]]}} in [[Oldton Movalpolos]], "
+                "then talk to [[Cid]] in [[Metalworks]].",
+                "Bugallug",
+                "Oldton Movalpolos",
+                "Cid",
+                "Metalworks",
+            ),
+            (
+                202,
+                "Defeat an enemy, e.g. the [[Mob A]] in [[East Ronfaure]], then talk to "
+                "[[NPC B]] in [[West Ronfaure]].",
+                "Mob A",
+                "East Ronfaure",
+                "NPC B",
+                "West Ronfaure",
+            ),
+        )
+        for native_id, instruction, enemy, enemy_zone, npc, npc_zone in cases:
+            with self.subTest(native_id=native_id, route="fight-correct"):
+                rows = self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="fight",
+                    target_name=enemy,
+                    target_kind="enemy",
+                    zone=201,
+                    zone_name=enemy_zone,
+                    enemies=(enemy,),
+                )
+                self.assertEqual((rows[0].target_name, rows[0].zone_name), (enemy, enemy_zone))
+
+            with self.subTest(native_id=native_id, route="talk-correct"):
+                rows = self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=2,
+                    action="talk",
+                    target_name=npc,
+                    target_kind="npc",
+                    zone=202,
+                    zone_name=npc_zone,
+                )
+                self.assertEqual((rows[0].target_name, rows[0].zone_name), (npc, npc_zone))
+
+            with self.subTest(native_id=native_id, route="fight-cross-zone"), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="fight",
+                    target_name=enemy,
+                    target_kind="enemy",
+                    zone=202,
+                    zone_name=npc_zone,
+                    enemies=(enemy,),
+                )
+
+            with self.subTest(native_id=native_id, route="talk-cross-zone"), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=2,
+                    action="talk",
+                    target_name=npc,
+                    target_kind="npc",
+                    zone=201,
+                    zone_name=enemy_zone,
+                )
+
+    def test_paired_destination_uses_canonical_link_identity_not_display_aliases(self) -> None:
+        single = "Defeat [[Mob A|Mob Alpha]] in [[East Ronfaure]]."
+        rows = self._resolve_literal_instruction(
+            native_id=203,
+            instruction=single,
+            claim_order=1,
+            action="fight",
+            target_name="Mob A",
+            target_kind="enemy",
+            zone=203,
+            zone_name="East Ronfaure",
+            enemies=("Mob A",),
+        )
+        self.assertEqual(rows[0].target_name, "Mob A")
+
+        with self.subTest(case="display-alias"), self.assertRaises(ObjectiveDestinationError):
+            self._resolve_literal_instruction(
+                native_id=203,
+                instruction=single,
+                claim_order=1,
+                action="fight",
+                target_name="Mob Alpha",
+                target_kind="enemy",
+                zone=203,
+                zone_name="East Ronfaure",
+                enemies=("Mob Alpha",),
+            )
+
+        ambiguous = "Defeat [[Mob A|Mob]] and [[Mob B|Mob]] in [[East Ronfaure]]."
+        for target_name in ("Mob", "Mob A", "Mob B"):
+            with self.subTest(case="distinct-canonical-ambiguity", target_name=target_name), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=204,
+                    instruction=ambiguous,
+                    claim_order=1,
+                    action="fight",
+                    target_name=target_name,
+                    target_kind="enemy",
+                    zone=204,
+                    zone_name="East Ronfaure",
+                    enemies=(target_name,),
+                )
+
+        repeated = "Defeat [[Mob A|Mob]] and [[Mob A|the same mob]] in [[East Ronfaure]]."
+        rows = self._resolve_literal_instruction(
+            native_id=205,
+            instruction=repeated,
+            claim_order=1,
+            action="fight",
+            target_name="Mob A",
+            target_kind="enemy",
+            zone=205,
+            zone_name="East Ronfaure",
+            enemies=("Mob A",),
+        )
+        self.assertEqual(rows[0].target_name, "Mob A")
+
+        zone_alias_rows = self._resolve_literal_instruction(
+            native_id=212,
+            instruction="Defeat [[Mob A]] in [[East Ronfaure|the forest]].",
+            claim_order=1,
+            action="fight",
+            target_name="Mob A",
+            target_kind="enemy",
+            zone=212,
+            zone_name="East Ronfaure",
+            enemies=("Mob A",),
+        )
+        self.assertEqual(zone_alias_rows[0].zone_name, "East Ronfaure")
+
+        for native_id, instruction in (
+            (206, "Defeat [[Mob A (monster)|Mob A]] in [[East Ronfaure]]."),
+            (207, "Defeat [[Mission 1-1|Mob A]] in [[East Ronfaure]]."),
+        ):
+            with self.subTest(case="unmapped-canonical-title", instruction=instruction), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="fight",
+                    target_name="Mob A",
+                    target_kind="enemy",
+                    zone=native_id,
+                    zone_name="East Ronfaure",
+                    enemies=("Mob A",),
+                )
+
+    def test_paired_destination_accepts_structurally_typed_contained_items(self) -> None:
+        for native_id, item_syntax, item_name in (
+            (208, "{{Item|[[Bronze Key]]}}", "Bronze Key"),
+            (209, "{{ItemIcon|[[Bronze Key]]}}", "Bronze Key"),
+            (210, "{{KI|[[Bronze Key]]}}", "Bronze Key"),
+            (214, "{{Item|name=[[Bronze Key]]}}", "Bronze Key"),
+            (215, "{{ItemIcon|item=[[Bronze Key]]}}", "Bronze Key"),
+            (216, "{{KI|name=[[Bronze Key]]}}", "Bronze Key"),
+            (
+                217,
+                "{{Item|{{Color|red|[[Bronze Key]]}}}}",
+                "Bronze Key",
+            ),
+            (211, "{{Item}}[[Bronze Key]]", "Bronze Key"),
+            (
+                213,
+                "{{ItemIcon|Giant Shell Bug|22}} [[Giant Shell Bug]]",
+                "Giant Shell Bug",
+            ),
+            (
+                218,
+                "{{ItemIcon|Gallant Leggings|22}}",
+                "Gallant Leggings",
+            ),
+        ):
+            instruction = (
+                f"Use {item_syntax} on [[Locked Door]] in [[East Ronfaure]]."
+            )
+            with self.subTest(item_syntax=item_syntax, route="exact-item"):
+                rows = self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="use",
+                    target_name="Locked Door",
+                    target_kind="object",
+                    zone=native_id,
+                    zone_name="East Ronfaure",
+                    items=(item_name,),
+                )
+                self.assertEqual(
+                    (rows[0].target_name, rows[0].items),
+                    ("Locked Door", (item_name,)),
+                )
+
+            with self.subTest(item_syntax=item_syntax, route="wrong-item"), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="use",
+                    target_name="Locked Door",
+                    target_kind="object",
+                    zone=native_id,
+                    zone_name="East Ronfaure",
+                    items=("Iron Key",),
+                )
+
+        with self.subTest(route="typed-item-is-not-object"), self.assertRaises(
+            ObjectiveDestinationError
+        ):
+            self._resolve_literal_instruction(
+                native_id=219,
+                instruction=(
+                    "Use {{ItemIcon|Gallant Leggings|22}} in [[East Ronfaure]]."
+                ),
+                claim_order=1,
+                action="use",
+                target_name="Gallant Leggings",
+                target_kind="object",
+                zone=219,
+                zone_name="East Ronfaure",
+                items=("Gallant Leggings",),
+            )
 
     def test_destination_accepts_exact_punctuated_target_identities(self) -> None:
         cases = (

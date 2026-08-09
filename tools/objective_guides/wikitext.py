@@ -292,6 +292,8 @@ _ACTION_MATCH = re.compile(
     re.IGNORECASE,
 )
 
+_COMMON_ABBREVIATIONS = frozenset({"dr", "etc", "lv", "mr", "mrs", "ms", "no"})
+
 
 def _trim_target(value: str) -> str:
     value = _clean(value).strip(" ,.;:!?")
@@ -362,6 +364,9 @@ def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
                 value[:end],
             ):
                 continue
+            abbreviation = re.search(r"([A-Za-z]+)\.$", value[:end])
+            if abbreviation and abbreviation.group(1).casefold() in _COMMON_ABBREVIATIONS:
+                continue
         boundary_start = start
         if len(run) > 1 and run[-1] in ".!" and (
             run.startswith("???") or run.startswith("...")
@@ -419,10 +424,11 @@ def _extract_action_spans(
         between = text[matches[index - 1].end() : matches[index].start()]
         strong_boundaries = _strong_sentence_boundaries(between)
         if strong_boundaries:
-            boundary = strong_boundaries[-1]
+            first_boundary = strong_boundaries[0]
+            last_boundary = strong_boundaries[-1]
             offset = matches[index - 1].end()
-            clause_ends[index - 1] = offset + boundary[0]
-            clause_starts[index] = offset + boundary[1]
+            clause_ends[index - 1] = offset + first_boundary[0]
+            clause_starts[index] = offset + last_boundary[1]
             continue
         connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
         if connectors:
@@ -446,6 +452,11 @@ def _extract_action_spans(
             continue
         if len(_extract_zone_mentions(between)) > 1:
             suppressed_location_evidence.add(index - 1)
+    for index, match in enumerate(matches):
+        trailing_start = match.end()
+        boundaries = _strong_sentence_boundaries(text[trailing_start : clause_ends[index]])
+        if boundaries:
+            clause_ends[index] = trailing_start + boundaries[0][0]
     spans: list[SourceActionSpan] = []
     for index, match in enumerate(matches):
         verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)
@@ -483,7 +494,7 @@ def _extract_action_spans(
         if action == "trade":
             trade = re.match(
                 r"\s+(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?"
-                r"(.+?)(?=\s+(?:in|at)\b|\s+on\s+map\b|\s*\([A-P]-\d{1,2}\)|[.;,]|$)",
+                r"(.+?)(?=\s+(?:in|at)\b|\s+on\s+map\b|\s*\([A-P]-\d{1,2}\)|[;,]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -496,13 +507,13 @@ def _extract_action_spans(
         elif action == "talk":
             if verb.casefold() in {"return to", "report to", "visit"}:
                 talked = re.match(
-                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[.;,]|$)",
+                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
                     remainder,
                     re.IGNORECASE,
                 )
             else:
                 talked = re.match(
-                    r"\s+(?:to|with)\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[.;,]|$)",
+                    r"\s+(?:to|with)\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
                     remainder,
                     re.IGNORECASE,
                 )
@@ -515,7 +526,7 @@ def _extract_action_spans(
         elif action == "fight":
             fought = re.match(
                 r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
-                r"\s+and\s+(?:re-examine|examine|touch|click)\b|[.;,]|$)",
+                r"\s+and\s+(?:re-examine|examine|touch|click)\b|[;,]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -525,7 +536,7 @@ def _extract_action_spans(
         elif action == "examine":
             examined = re.match(
                 r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect|enter)\b|"
-                r"\s+again\b|\s+(?:in|at)\b|[.;,]|$)",
+                r"\s+again\b|\s+(?:in|at)\b|[;,]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -539,7 +550,7 @@ def _extract_action_spans(
             object_mentions = (target,) if target else ()
         elif action == "obtain":
             obtained = re.match(
-                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[.,;]|$)",
+                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[,;]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -550,15 +561,15 @@ def _extract_action_spans(
             target = clause_zones[0] if clause_zones else ""
             target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
             if relationship == "board-transport":
-                boarded = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;,]|$)", remainder, re.IGNORECASE)
+                boarded = re.match(r"\s+(?:the\s+)?(.+?)(?=[;,]|$)", remainder, re.IGNORECASE)
                 target = _trim_target(boarded.group(1)) if boarded else target
                 transport_mentions = (target,) if target else ()
             elif relationship == "enter-through" and not target:
-                entered = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;,]|$)", remainder, re.IGNORECASE)
+                entered = re.match(r"\s+(?:the\s+)?(.+?)(?=[;,]|$)", remainder, re.IGNORECASE)
                 target = _trim_target(entered.group(1)) if entered else ""
                 target_kind = "entrance" if target else ""
         elif action == "protect":
-            protected = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;]|$)", remainder, re.IGNORECASE)
+            protected = re.match(r"\s+(?:the\s+)?(.+?)(?=[;]|$)", remainder, re.IGNORECASE)
             target = _trim_target(protected.group(1)) if protected else ""
             target_kind = "role" if target else ""
         elif action == "warning":
@@ -567,7 +578,7 @@ def _extract_action_spans(
             item_mentions = clause_key_items
             clause = _clean(warning_match.group(0)) if warning_match else clause
         elif action in {"use", "select"}:
-            used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[.;,]|$)", remainder, re.IGNORECASE)
+            used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[;,]|$)", remainder, re.IGNORECASE)
             target = _trim_target(used.group(1)) if used else ""
             target_kind = "menu-choice" if action == "select" else "object"
             object_mentions = (target,) if target and action == "use" else ()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 import re
 from collections.abc import Iterable, Mapping
@@ -277,26 +276,6 @@ def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "target"
 
 
-def _legacy_destination_id(
-    zone: int,
-    target_name: str,
-    target_kind: str,
-    point: Mapping[str, Any],
-) -> str:
-    identity = {
-        "kind": target_kind,
-        "name": target_name,
-        "point": _point_tuple(point),
-        "source": _clean(point.get("source", "")),
-        "zone": zone,
-    }
-    digest = hashlib.sha256(
-        json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()[:16]
-    prefix = "camp" if target_kind == "enemy" else "reference"
-    return f"{prefix}:{zone}:{_slug(target_name)}:{digest}"
-
-
 def _unique_values(values: Iterable[object]) -> tuple[str, ...]:
     result: list[str] = []
     seen: set[str] = set()
@@ -378,6 +357,29 @@ def navigation_point_has_immutable_identity(point: Mapping[str, Any]) -> bool:
         and not _point_spawn_ids(point)
         and not _clean(point.get("cluster_policy_version", ""))
     )
+
+
+def _logical_navigation_points(
+    points: Iterable[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], ...]:
+    """Collapse only rows at exactly the same complete physical coordinates."""
+
+    groups: dict[tuple[float, float, float], list[Mapping[str, Any]]] = {}
+    for point in points:
+        groups.setdefault(_point_tuple(point), []).append(point)
+
+    def representative(rows: list[Mapping[str, Any]]) -> Mapping[str, Any]:
+        return min(
+            rows,
+            key=lambda point: (
+                0 if navigation_point_has_immutable_identity(point) else 1,
+                _clean(point.get("destination_id", "")),
+                _clean(point.get("raw_identity", "")),
+                _clean(point.get("source", "")),
+            ),
+        )
+
+    return tuple(representative(groups[coordinates]) for coordinates in sorted(groups))
 
 
 def _source_pages(
@@ -730,14 +732,34 @@ def _reviewed_candidates(
         point = matches[0]
         zone = int(point.get("zone", 0) or 0)
         zone_name = _clean(zone_names.get(zone, ""))
-        claimed_zones = {
-            value.casefold()
+        point_name = _clean(point.get("name", ""))
+        point_kind = _clean(point.get("kind", "")).casefold()
+        typed_source_spans = tuple(
+            span
             for _site, span, _span_id, _revision in span_rows
-            for value in span.zone_mentions
-        }
-        if claimed_zones and zone_name.casefold() not in claimed_zones:
+            if _normalized_action(span.action) == action
+        )
+        if (
+            not typed_source_spans
+            or any(
+                not span.target or span.target.casefold() != point_name.casefold()
+                for span in typed_source_spans
+            )
+        ):
             raise ObjectiveDestinationError(
-                f"Reviewed action override {action_id!r} destination zone is absent from its source claim."
+                f"Reviewed action override {action_id!r} destination does not match its typed source target."
+            )
+        if point_kind not in ACTION_KINDS.get(action, ()):
+            raise ObjectiveDestinationError(
+                f"Reviewed action override {action_id!r} has an incompatible destination kind."
+            )
+        if any(
+            zone_name.casefold()
+            not in {value.casefold() for value in span.zone_mentions}
+            for span in typed_source_spans
+        ):
+            raise ObjectiveDestinationError(
+                f"Reviewed action override {action_id!r} destination zone is absent from its source zone evidence."
             )
         if metadata_class == "dynamic" and raw.get("target_point") is not None:
             target_point = raw.get("target_point")
@@ -812,6 +834,10 @@ def _role_candidates(
         point = matches[0]
         zone = int(point.get("zone", 0) or 0)
         zone_name = _clean(zone_names.get(zone, ""))
+        if _clean(point.get("kind", "")).casefold() != "npc":
+            raise ObjectiveDestinationError(
+                f"Role override {action_id!r} member must be an exact NPC destination."
+            )
         source_site = _clean(member.get("source_site", "")).casefold()
         source_page = pages.get(source_site)
         source_step_id = _clean(member.get("source_step_id", ""))
@@ -1465,7 +1491,7 @@ def resolve_objective_actions(
     )
 
 
-def resolve_reviewed_objective_destinations(
+def _resolve_reviewed_objective_destinations_strict(
     native: NativeObjective,
     reconciled: ReconciledObjective,
     bg: ParsedObjective | None,
@@ -1564,12 +1590,65 @@ def resolve_reviewed_objective_destinations(
             and _clean(point.get("name", "")).casefold() == target_name.casefold()
             and _clean(point.get("kind", "")).casefold() == target_kind
         ]
-        if len(matches) != 1:
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination {stable_id!r} resolves to {len(matches)} current nav points."
+        destination_id = _clean(raw.get("destination_id", ""))
+        if legacy:
+            logical_matches = _logical_navigation_points(matches)
+            if len(logical_matches) != 1:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} resolves to "
+                    f"{len(logical_matches)} logical current nav points."
+                )
+            same_point = [
+                point
+                for point in matches
+                if _point_tuple(point) == _point_tuple(logical_matches[0])
+                and navigation_point_has_immutable_identity(point)
+            ]
+            immutable_ids = {
+                _clean(point.get("destination_id", "")) for point in same_point
+            }
+            if len(immutable_ids) != 1:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} lacks one immutable destination."
+                )
+            selected_id = next(iter(immutable_ids))
+            if destination_id and destination_id != selected_id:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} destination_id is stale."
+                )
+            destination_id = selected_id
+            selected_point = min(
+                (point for point in same_point if _clean(point.get("destination_id", "")) == selected_id),
+                key=lambda point: (
+                    _clean(point.get("raw_identity", "")),
+                    _clean(point.get("source", "")),
+                ),
             )
+        else:
+            if not destination_id:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} lacks immutable destination_id."
+                )
+            immutable_matches = [
+                point for point in matches if navigation_point_has_immutable_identity(point)
+            ]
+            if not immutable_matches:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} has no immutable destination."
+                )
+            exact_id_matches = [
+                point
+                for point in immutable_matches
+                if _clean(point.get("destination_id", "")) == destination_id
+            ]
+            if len(exact_id_matches) != 1:
+                raise ObjectiveDestinationError(
+                    f"Reviewed objective destination {stable_id!r} destination_id does not match "
+                    "one current immutable point."
+                )
+            selected_point = exact_id_matches[0]
 
-        target_point = _point_tuple(matches[0])
+        target_point = _point_tuple(selected_point)
         raw_point = raw.get("target_point")
         if raw_point is not None:
             if not isinstance(raw_point, (list, tuple)) or len(raw_point) != 3:
@@ -1586,15 +1665,6 @@ def resolve_reviewed_objective_destinations(
                     f"Reviewed objective destination {stable_id!r} target_point disagrees with its exact reference."
                 )
             target_point = reviewed_point  # type: ignore[assignment]
-        destination_id = _clean(raw.get("destination_id", ""))
-        if legacy:
-            destination_id = destination_id or _legacy_destination_id(
-                zone, target_name, target_kind, matches[0]
-            )
-        if not destination_id:
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination {stable_id!r} lacks immutable destination_id."
-            )
         label = _clean(raw.get("label", "")) or _clean(raw.get("camp_label", ""))
         arrival_instruction = _clean(raw.get("arrival_instruction", ""))
         if not label or not arrival_instruction:
@@ -1655,4 +1725,56 @@ def resolve_reviewed_objective_destinations(
                 ),
             )
         )
+    return tuple(sorted(results, key=lambda row: row.stable_id))
+
+
+def resolve_reviewed_objective_destinations(
+    native: NativeObjective,
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    reviewed_overrides: Mapping[str, Any] | None,
+    navigation_points: Iterable[Mapping[str, Any]],
+    navigation_zone_names: Mapping[int, str],
+    navigation_edges: Iterable[Mapping[str, Any]] = (),
+) -> tuple[ReviewedObjectiveDestination, ...]:
+    """Resolve current overrides while treating the legacy table as fail-closed input."""
+
+    rows = _override_rows(reviewed_overrides, native)
+    if not rows:
+        return ()
+    points = tuple(navigation_points)
+    edges = tuple(navigation_edges)
+    results: list[ReviewedObjectiveDestination] = []
+    seen_ids: set[str] = set()
+    for raw, legacy in rows:
+        isolated_overrides = {
+            (
+                "mission_destination_overrides"
+                if legacy
+                else "objective_destination_overrides"
+            ): {native.key: [raw]}
+        }
+        try:
+            resolved = _resolve_reviewed_objective_destinations_strict(
+                native,
+                reconciled,
+                bg,
+                ffxiclopedia,
+                isolated_overrides,
+                points,
+                navigation_zone_names,
+                edges,
+            )
+        except ObjectiveDestinationError:
+            if legacy:
+                continue
+            raise
+        for row in resolved:
+            if row.stable_id in seen_ids:
+                raise ObjectiveDestinationError(
+                    f"Duplicate reviewed objective destination id {row.stable_id!r}."
+                )
+            seen_ids.add(row.stable_id)
+            results.append(row)
     return tuple(sorted(results, key=lambda row: row.stable_id))

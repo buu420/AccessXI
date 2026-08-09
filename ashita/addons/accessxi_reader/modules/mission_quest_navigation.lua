@@ -367,6 +367,26 @@ local function effective_kind(point)
     return clean(point ~= nil and point.kind or ''):lower();
 end
 
+local function same_exact_physical_point(left, right)
+    local left_x = tonumber(type(left) == 'table' and left.x or nil);
+    local left_z = tonumber(type(left) == 'table' and left.z or nil);
+    local left_y = tonumber(type(left) == 'table' and left.y or nil);
+    local right_x = tonumber(type(right) == 'table' and right.x or nil);
+    local right_z = tonumber(type(right) == 'table' and right.z or nil);
+    local right_y = tonumber(type(right) == 'table' and right.y or nil);
+    return left_x ~= nil and left_z ~= nil and left_y ~= nil
+        and right_x ~= nil and right_z ~= nil and right_y ~= nil
+        and left_x == right_x and left_z == right_z and left_y == right_y;
+end
+
+local function referenced_target_rank(point)
+    return table.concat({
+        clean(point ~= nil and point.destination_id or ''),
+        clean(point ~= nil and point.raw_identity or ''),
+        clean(point ~= nil and point.source or ''),
+    }, '\t');
+end
+
 local function referenced_target(reference)
     if (type(reference) ~= 'table') then
         return nil;
@@ -383,8 +403,16 @@ local function referenced_target(reference)
         if ((tonumber(point.zone) or 0) == wanted_zone
             and clean(point.name):lower() == wanted_name
             and (wanted_kind == '' or effective_kind(point) == wanted_kind)) then
-            match = point;
-            match_count = match_count + 1;
+            if (match == nil) then
+                match = point;
+                match_count = 1;
+            elseif (same_exact_physical_point(match, point)) then
+                if (referenced_target_rank(point) < referenced_target_rank(match)) then
+                    match = point;
+                end
+            else
+                match_count = match_count + 1;
+            end
         end
     end
     if (match_count ~= 1) then

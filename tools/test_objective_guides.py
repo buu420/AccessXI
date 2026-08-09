@@ -3027,6 +3027,18 @@ class MatchingTests(unittest.TestCase):
             all(target["reference"]["name"] != "Trodden Snow" for target in targets.values())
         )
 
+    def test_reviewed_target_key_migration_preserves_collision_chain_values(self) -> None:
+        path = Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json"
+        targets = json.loads(path.read_text(encoding="utf-8"))["target_overrides"]
+
+        self.assertEqual(len(targets), 505)
+        self.assertEqual(targets["mission:Bastok:13:step-002"]["reference"]["name"], "Lucius")
+        self.assertEqual(targets["mission:Bastok:13:step-003"]["reference"]["name"], "Goggehn")
+        for native_id in range(39, 44):
+            prefix = f"mission:Chains of Promathia:{native_id}"
+            self.assertEqual(targets[f"{prefix}:step-038"]["reference"]["name"], "Monberaux")
+            self.assertEqual(targets[f"{prefix}:step-039"]["reference"]["name"], "Pherimociel")
+
     def test_exact_mission_context_number_title_and_redirect_alias_match(self) -> None:
         native = NativeObjective(
             kind="mission",
@@ -3460,6 +3472,56 @@ class ReconciliationTests(unittest.TestCase):
 
 
 class ObjectiveDestinationTests(unittest.TestCase):
+    FIXTURE_CAMP_ID = "camp:v1:101:orcish-fodder:8e9715f6e64706a1d634"
+    FIXTURE_CAMP_RAW_IDENTITY = "lsb:mob_spawn_points:group:13:mobname:Orcish_Fodder"
+    FIXTURE_CAMP_RAW_SPAWN_IDS = (17191174, 17191228)
+
+    @staticmethod
+    def _catalogue_point(
+        zone: int,
+        name: str,
+        kind: str,
+        raw_record_id: int,
+        *,
+        x: float = 1.0,
+        z: float = 2.0,
+        y: float = 3.0,
+    ) -> dict:
+        if kind == "enemy":
+            raw_identity = (
+                f"lsb:mob_spawn_points:group:{raw_record_id}:mobname:"
+                + name.replace(" ", "_")
+            )
+            raw_spawn_ids = (raw_record_id,)
+            policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+            destination_id = nav_destination_generator.enemy_destination_id(
+                zone=zone,
+                raw_identity=raw_identity,
+                raw_spawn_ids=raw_spawn_ids,
+                policy_version=policy,
+            )
+        else:
+            raw_identity = (
+                f"lsb:zonelines:{raw_record_id}"
+                if kind == "area"
+                else f"lsb:npc_list:{raw_record_id}"
+            )
+            raw_spawn_ids = ()
+            policy = ""
+            destination_id = f"{kind}:v1:{zone}:{raw_record_id}"
+        return {
+            "zone": zone,
+            "name": name,
+            "kind": kind,
+            "x": x,
+            "z": z,
+            "y": y,
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "raw_spawn_ids": raw_spawn_ids,
+            "cluster_policy_version": policy,
+        }
+
     @staticmethod
     def _source_page(site: str, page_id: int, revision_id: int) -> ParsedObjective:
         span = SourceActionSpan(
@@ -3522,7 +3584,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "action": "obtain",
             "items": ["Orcish Axe"],
             "enemies": ["Orcish Fodder"],
-            "destination_id": "camp:101:orcish-fodder:fixture-hash",
+            "destination_id": cls.FIXTURE_CAMP_ID,
             "zone": 101,
             "zone_name": "East Ronfaure",
             "label": "Orcish Fodder camp in East Ronfaure",
@@ -3555,6 +3617,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     "z": 45.0,
                     "y": -2.0,
                     "confidence": "untested",
+                    "destination_id": ObjectiveDestinationTests.FIXTURE_CAMP_ID,
+                    "raw_identity": ObjectiveDestinationTests.FIXTURE_CAMP_RAW_IDENTITY,
+                    "raw_spawn_ids": ObjectiveDestinationTests.FIXTURE_CAMP_RAW_SPAWN_IDS,
+                    "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
                 },
             ),
             {101: "East Ronfaure"},
@@ -3605,6 +3671,29 @@ class ObjectiveDestinationTests(unittest.TestCase):
         ffxiclopedia = page("ffxiclopedia", ffxiclopedia_revision)
         reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
         step_id = f"{native.key}:step-001"
+        raw_record_id = (zone * 100000) + native_id
+        if target_kind == "enemy":
+            raw_identity = (
+                f"lsb:mob_spawn_points:group:{native_id}:mobname:"
+                + target_name.replace(" ", "_")
+            )
+            raw_spawn_ids = (raw_record_id,)
+            cluster_policy_version = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+            destination_id = nav_destination_generator.enemy_destination_id(
+                zone=zone,
+                raw_identity=raw_identity,
+                raw_spawn_ids=raw_spawn_ids,
+                policy_version=cluster_policy_version,
+            )
+        else:
+            raw_identity = (
+                f"lsb:zonelines:{raw_record_id}"
+                if target_kind == "area"
+                else f"lsb:npc_list:{raw_record_id}"
+            )
+            raw_spawn_ids = ()
+            cluster_policy_version = ""
+            destination_id = f"{target_kind}:v1:{zone}:{raw_record_id}"
         overrides = {
             "objective_destination_overrides": {
                 native.key: [
@@ -3619,7 +3708,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                         "action": action,
                         "items": list(items),
                         "enemies": list(enemies),
-                        "destination_id": f"{target_kind}:{zone}:literal:{native_id}",
+                        "destination_id": destination_id,
                         "zone": zone,
                         "zone_name": zone_name,
                         "label": f"{target_name} in {zone_name}",
@@ -3636,6 +3725,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "x": 1.0,
             "z": 2.0,
             "y": 3.0,
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "raw_spawn_ids": raw_spawn_ids,
+            "cluster_policy_version": cluster_policy_version,
         }
         return resolve_reviewed_objective_destinations(
             native,
@@ -3657,7 +3750,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             self.assertTrue(rows[0].stable_id.startswith(fixture[0].key + ":destination:"))
             self.assertEqual(rows[0].source_step_ids, (f"{fixture[0].key}:step-001",))
             self.assertEqual(rows[0].source_claim_ids, (f"{fixture[0].key}:step-001:claim-01",))
-            self.assertEqual(rows[0].destination_id, "camp:101:orcish-fodder:fixture-hash")
+            self.assertEqual(rows[0].destination_id, self.FIXTURE_CAMP_ID)
             self.assertEqual(rows[0].target_point, (123.0, 45.0, -2.0))
             self.assertEqual(
                 rows[0].source_revisions,
@@ -3666,6 +3759,54 @@ class ObjectiveDestinationTests(unittest.TestCase):
             self.assertEqual(rows[0].eligibility, "catalogue")
             results.append(type(rows[0]))
         self.assertIs(results[0], results[1])
+
+    def test_nonlegacy_override_rejects_identityless_navigation_point(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("quest")
+        with self.assertRaisesRegex(ObjectiveDestinationError, "immutable destination"):
+            resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (
+                    {
+                        "zone": 101,
+                        "name": "Orcish Fodder",
+                        "kind": "enemy",
+                        "x": 123.0,
+                        "z": 45.0,
+                        "y": -2.0,
+                    },
+                ),
+                {101: "East Ronfaure"},
+            )
+
+    def test_nonlegacy_override_rejects_a_different_immutable_destination_id(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("quest")
+        with self.assertRaisesRegex(ObjectiveDestinationError, "destination_id"):
+            resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (
+                    {
+                        "zone": 101,
+                        "name": "Orcish Fodder",
+                        "kind": "enemy",
+                        "x": 289.535,
+                        "z": 150.856,
+                        "y": -50.375,
+                        "destination_id": "camp:v1:101:orcish-fodder:6c7a4f36673f6091fd2c",
+                        "raw_identity": "lsb:mob_spawn_points:group:13:mobname:Orcish_Fodder",
+                        "raw_spawn_ids": (17191007,),
+                        "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
+                    },
+                ),
+                {101: "East Ronfaure"},
+            )
 
     def test_quest_destination_emits_only_the_shared_runtime_field(self) -> None:
         native, bg, ffxi, _reconciled, overrides = self._fixture("quest")
@@ -3685,6 +3826,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                         "x": 123.0,
                         "z": 45.0,
                         "y": -2.0,
+                        "destination_id": self.FIXTURE_CAMP_ID,
+                        "raw_identity": self.FIXTURE_CAMP_RAW_IDENTITY,
+                        "raw_spawn_ids": self.FIXTURE_CAMP_RAW_SPAWN_IDS,
+                        "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
                     },
                 ),
                 navigation_zone_names={101: "East Ronfaure"},
@@ -3825,7 +3970,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "action": "talk",
             "items": [],
             "enemies": [],
-            "destination_id": "npc:101:alpha:fixture",
+            "destination_id": "npc:v1:101:101083",
             "zone": 101,
             "zone_name": "East Ronfaure",
             "label": "Alpha in East Ronfaure",
@@ -3833,9 +3978,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "arrival_instruction": "Talk to Alpha.",
         }
         overrides = {"objective_destination_overrides": {native.key: [override]}}
-        points = (
-            {"zone": 101, "name": "Alpha", "kind": "npc", "x": 1.0, "z": 2.0, "y": 3.0},
-        )
+        points = (self._catalogue_point(101, "Alpha", "npc", 101083),)
 
         rows = resolve_reviewed_objective_destinations(
             native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
@@ -3881,7 +4024,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "action": "fight",
             "items": ["Scholar Stone"],
             "enemies": ["Orcish Fodder"],
-            "destination_id": "enemy:101:orcish-fodder:fixture",
+            "destination_id": "",
             "zone": 101,
             "zone_name": "East Ronfaure",
             "label": "Orcish Fodder in East Ronfaure",
@@ -3889,16 +4032,9 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "arrival_instruction": "Defeat Orcish Fodder.",
         }
         overrides = {"objective_destination_overrides": {native.key: [override]}}
-        points = (
-            {
-                "zone": 101,
-                "name": "Orcish Fodder",
-                "kind": "enemy",
-                "x": 1.0,
-                "z": 2.0,
-                "y": 3.0,
-            },
-        )
+        point = self._catalogue_point(101, "Orcish Fodder", "enemy", 101084)
+        override["destination_id"] = point["destination_id"]
+        points = (point,)
 
         with self.assertRaises(ObjectiveDestinationError):
             resolve_reviewed_objective_destinations(
@@ -3945,7 +4081,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "items": [],
             "enemies": ["Mob A"],
             "grid_coordinates": ["H-8"],
-            "destination_id": "enemy:100:mob-a:fixture",
+            "destination_id": "",
             "zone": 100,
             "zone_name": "West Ronfaure",
             "label": "unsafe Mob A in West Ronfaure",
@@ -3953,14 +4089,8 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "arrival_instruction": "Defeat Mob A.",
         }
         overrides = {"objective_destination_overrides": {native.key: [override]}}
-        west_point = {
-            "zone": 100,
-            "name": "Mob A",
-            "kind": "enemy",
-            "x": 1.0,
-            "z": 2.0,
-            "y": 3.0,
-        }
+        west_point = self._catalogue_point(100, "Mob A", "enemy", 100085)
+        override["destination_id"] = west_point["destination_id"]
 
         with self.assertRaises(ObjectiveDestinationError):
             resolve_reviewed_objective_destinations(
@@ -3977,13 +4107,13 @@ class ObjectiveDestinationTests(unittest.TestCase):
             {
                 "id": "mob-a-east",
                 "grid_coordinates": [],
-                "destination_id": "enemy:101:mob-a:fixture",
                 "zone": 101,
                 "zone_name": "East Ronfaure",
                 "label": "Mob A in East Ronfaure",
             }
         )
-        east_point = {**west_point, "zone": 101}
+        east_point = self._catalogue_point(101, "Mob A", "enemy", 101085)
+        override["destination_id"] = east_point["destination_id"]
         rows = resolve_reviewed_objective_destinations(
             native,
             reconciled,
@@ -4029,7 +4159,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                             "items": [],
                             "enemies": ["Mob A"],
                             "grid_coordinates": grid,
-                            "destination_id": f"enemy:{zone}:mob-a:fixture",
+                            "destination_id": "",
                             "zone": zone,
                             "zone_name": zone_name,
                             "label": f"Mob A in {zone_name}",
@@ -4039,14 +4169,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     ]
                 }
             }
-            point = {
-                "zone": zone,
-                "name": "Mob A",
-                "kind": "enemy",
-                "x": 1.0,
-                "z": 2.0,
-                "y": 3.0,
-            }
+            point = self._catalogue_point(zone, "Mob A", "enemy", (zone * 1000) + 86)
+            overrides["objective_destination_overrides"][native.key][0][
+                "destination_id"
+            ] = point["destination_id"]
             return resolve_reviewed_objective_destinations(
                 native,
                 reconciled,
@@ -4533,7 +4659,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                             "action": action,
                             "items": [],
                             "enemies": enemies,
-                            "destination_id": f"{kind}:{zone}:linked-initialism:fixture",
+                            "destination_id": "",
                             "zone": zone,
                             "zone_name": zone_name,
                             "label": f"{target} in {zone_name}",
@@ -4543,14 +4669,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     ]
                 }
             }
-            point = {
-                "zone": zone,
-                "name": target,
-                "kind": kind,
-                "x": 1.0,
-                "z": 2.0,
-                "y": 3.0,
-            }
+            point = self._catalogue_point(zone, target, kind, (zone * 1000) + 96)
+            overrides["objective_destination_overrides"][native.key][0][
+                "destination_id"
+            ] = point["destination_id"]
             return resolve_reviewed_objective_destinations(
                 native,
                 reconciled,
@@ -4641,7 +4763,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                             "action": action,
                             "items": [],
                             "enemies": enemies,
-                            "destination_id": f"{kind}:{zone}:example-initialism:fixture",
+                            "destination_id": "",
                             "zone": zone,
                             "zone_name": zone_name,
                             "label": f"{target} in {zone_name}",
@@ -4651,14 +4773,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     ]
                 }
             }
-            point = {
-                "zone": zone,
-                "name": target,
-                "kind": kind,
-                "x": 1.0,
-                "z": 2.0,
-                "y": 3.0,
-            }
+            point = self._catalogue_point(zone, target, kind, (zone * 1000) + 98)
+            overrides["objective_destination_overrides"][native.key][0][
+                "destination_id"
+            ] = point["destination_id"]
             return resolve_reviewed_objective_destinations(
                 native, reconciled, bg, ffxi, overrides, (point,), {zone: zone_name}
             )
@@ -4735,7 +4853,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                             "action": "fight",
                             "items": [],
                             "enemies": [target_name],
-                            "destination_id": "enemy:101:linked-target:fixture",
+                            "destination_id": "",
                             "zone": 101,
                             "zone_name": "East Ronfaure",
                             "label": f"{target_name} in East Ronfaure",
@@ -4745,14 +4863,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     ]
                 }
             }
-            point = {
-                "zone": 101,
-                "name": target_name,
-                "kind": "enemy",
-                "x": 1.0,
-                "z": 2.0,
-                "y": 3.0,
-            }
+            point = self._catalogue_point(101, target_name, "enemy", 101094)
+            overrides["objective_destination_overrides"][native.key][0][
+                "destination_id"
+            ] = point["destination_id"]
             return resolve_reviewed_objective_destinations(
                 native,
                 reconciled,
@@ -5387,7 +5501,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
                                 "action": action,
                                 "items": [],
                                 "enemies": [target_name] if target_kind == "enemy" else [],
-                                "destination_id": f"{target_kind}:101:punctuated:fixture",
+                                "destination_id": "",
                                 "zone": 101,
                                 "zone_name": "East Ronfaure",
                                 "label": f"{target_name} in East Ronfaure",
@@ -5397,14 +5511,15 @@ class ObjectiveDestinationTests(unittest.TestCase):
                         ]
                     }
                 }
-                point = {
-                    "zone": 101,
-                    "name": target_name,
-                    "kind": target_kind,
-                    "x": 1.0,
-                    "z": 2.0,
-                    "y": 3.0,
-                }
+                point = self._catalogue_point(
+                    101,
+                    target_name,
+                    target_kind,
+                    101000 + native_id,
+                )
+                overrides["objective_destination_overrides"][native.key][0][
+                    "destination_id"
+                ] = point["destination_id"]
 
                 rows = resolve_reviewed_objective_destinations(
                     native,
@@ -5422,9 +5537,9 @@ class ObjectiveDestinationTests(unittest.TestCase):
         first = overrides["objective_destination_overrides"][native.key][0]
         second = dict(first)
         first["id"] = "zeta-camp"
-        first["destination_id"] = "camp:101:orcish-fodder:zeta"
+        first["destination_id"] = self.FIXTURE_CAMP_ID
         second["id"] = "alpha-camp"
-        second["destination_id"] = "camp:101:orcish-fodder:alpha"
+        second["destination_id"] = self.FIXTURE_CAMP_ID
         overrides["objective_destination_overrides"][native.key] = [first, second]
 
         rows = self._resolve(native, bg, ffxi, reconciled, overrides)
@@ -5463,8 +5578,53 @@ class ObjectiveDestinationTests(unittest.TestCase):
         rows = self._resolve(native, bg, ffxi, reconciled, legacy)
 
         self.assertEqual(rows[0].eligibility, "catalogue")
+        self.assertEqual(rows[0].destination_id, self.FIXTURE_CAMP_ID)
         self.assertEqual(rows[0].route_contract_id, "")
         self.assertFalse(rows[0].instruction_only)
+
+    def test_identityless_legacy_target_is_catalogue_ineligible(self) -> None:
+        native, bg, ffxi, reconciled, _overrides = self._fixture("mission")
+        legacy = {
+            "mission_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "legacy-camp",
+                        "source_revisions": {"bg": 4001, "ffxiclopedia": 4002},
+                        "source_step_ids": [f"{native.key}:step-001"],
+                        "action": "obtain",
+                        "items": ["Orcish Axe"],
+                        "enemies": ["Orcish Fodder"],
+                        "zone": 101,
+                        "zone_name": "East Ronfaure",
+                        "camp_label": "legacy Orcish Fodder camp",
+                        "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+                        "route_evidence": "navprobe:legacy-free-text-proof",
+                        "arrival_instruction": "Defeat Orcish Fodder until you obtain an Orcish Axe.",
+                    }
+                ]
+            }
+        }
+
+        rows = resolve_reviewed_objective_destinations(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            legacy,
+            (
+                {
+                    "zone": 101,
+                    "name": "Orcish Fodder",
+                    "kind": "enemy",
+                    "x": 123.0,
+                    "z": 45.0,
+                    "y": -2.0,
+                },
+            ),
+            {101: "East Ronfaure"},
+        )
+
+        self.assertEqual(rows, ())
 
     def test_target_and_unrelated_zone_from_different_sources_cannot_form_destination(self) -> None:
         native = NativeObjective("quest", "other_areas", 8, "Split Claims", "quests.dat", 0)
@@ -5824,6 +5984,69 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             overrides or {},
             points,
             zone_names,
+        )
+
+    def _resolve_metadata_override(
+        self,
+        *,
+        native_id: int,
+        action: str,
+        source_target: str,
+        source_kind: str,
+        zone: int,
+        zone_name: str,
+        metadata_class: str,
+        point_name: str,
+        point_kind: str,
+        source_zones: tuple[str, ...] | None = None,
+    ) -> object:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            native_id,
+            f"Metadata trust fixture {native_id}",
+            "missions.dat",
+            0,
+        )
+        span = self._span(
+            1,
+            action,
+            source_target,
+            source_kind,
+            (zone_name,) if source_zones is None else source_zones,
+        )
+        bg_revision = 10000 + native_id
+        ffxiclopedia_revision = 20000 + native_id
+        bg = self._page("bg", bg_revision, native.title, (span,))
+        ffxi = self._page("ffxiclopedia", ffxiclopedia_revision, native.title, (span,))
+        action_id = f"{native.key}:step-001:claim-01"
+        point = self._point(
+            zone,
+            zone_name,
+            point_name,
+            point_kind,
+            30000 + native_id,
+            raw_spawn_ids=(30000 + native_id,) if point_kind == "enemy" else (),
+        )
+        metadata = {
+            "source_revisions": {
+                "bg": bg_revision,
+                "ffxiclopedia": ffxiclopedia_revision,
+            },
+            "class": metadata_class,
+            "destination_ids": [point["destination_id"]],
+        }
+        if metadata_class == "battlefield":
+            metadata["battlefield_id"] = "horlais-peak"
+        else:
+            metadata["transport_id"] = "palborough-mines-lift"
+        return self._resolve(
+            native,
+            bg,
+            ffxi,
+            (point,),
+            {zone: zone_name},
+            {"action_metadata_overrides": {action_id: metadata}},
         )
 
     def test_exact_typed_actions_use_only_the_current_catalogue_kinds(self) -> None:
@@ -6252,6 +6475,39 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
                     override,
                 )
 
+    def test_revision_pinned_role_member_rejects_object_with_matching_name_and_zone(self) -> None:
+        native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
+        bg, ffxi = self._pinned_orcish_pages()
+        action_id = "mission:San d'Oria:1:step-001:claim-01"
+        override = {
+            "role_overrides": {
+                action_id: {
+                    "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
+                    "source_roles": ["Gate Guard", "San d'Orian Gate Guard"],
+                    "allowed_zones": ["Southern San d'Oria", "Northern San d'Oria"],
+                    "members": [
+                        {
+                            "destination_id": "object:v1:230:17719394",
+                            "name": "Ambrotien",
+                            "zone": 230,
+                            "source_site": "bg",
+                            "source_step_id": "mission:San d'Oria:1:bg:step-002",
+                        }
+                    ],
+                }
+            }
+        }
+
+        with self.assertRaisesRegex(ObjectiveDestinationError, "NPC"):
+            self._resolve(
+                native,
+                bg,
+                ffxi,
+                (self._point(230, "Southern San d'Oria", "Ambrotien", "object", 17719394),),
+                {230: "Southern San d'Oria", 231: "Northern San d'Oria"},
+                override,
+            )
+
     def test_instruction_context_and_unresolved_actions_are_each_accounted_once(self) -> None:
         native = NativeObjective("mission", "Bastok", 92, "Instruction accounting", "missions.dat", 0)
         spans = (
@@ -6390,6 +6646,105 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         self.assertEqual(by_class["dynamic"].destination_id, "object:v1:101:1011")
         self.assertEqual(by_class["battlefield"].battlefield_id, "horlais-peak")
         self.assertEqual(by_class["transport"].transport_id, "palborough-mines-lift")
+
+    def test_battlefield_override_rejects_unrelated_orc_identity(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "typed source target"):
+            self._resolve_metadata_override(
+                native_id=951,
+                action="travel",
+                source_target="Horlais Peak entrance",
+                source_kind="entrance",
+                zone=142,
+                zone_name="Yughott Grotto",
+                metadata_class="battlefield",
+                point_name="Unrelated Orc",
+                point_kind="enemy",
+            )
+
+    def test_transport_override_rejects_cid_identity(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "typed source target"):
+            self._resolve_metadata_override(
+                native_id=952,
+                action="use",
+                source_target="Mine lift",
+                source_kind="transport",
+                zone=143,
+                zone_name="Palborough Mines",
+                metadata_class="transport",
+                point_name="Cid",
+                point_kind="npc",
+            )
+
+    def test_battlefield_override_rejects_stale_area_name(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "typed source target"):
+            self._resolve_metadata_override(
+                native_id=953,
+                action="travel",
+                source_target="Horlais Peak entrance",
+                source_kind="entrance",
+                zone=142,
+                zone_name="Yughott Grotto",
+                metadata_class="battlefield",
+                point_name="Unrelated entrance",
+                point_kind="area",
+            )
+
+    def test_transport_override_rejects_stale_object_name(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "typed source target"):
+            self._resolve_metadata_override(
+                native_id=954,
+                action="use",
+                source_target="Mine lift",
+                source_kind="transport",
+                zone=143,
+                zone_name="Palborough Mines",
+                metadata_class="transport",
+                point_name="Wrong lift",
+                point_kind="object",
+            )
+
+    def test_battlefield_override_rejects_enemy_kind_when_name_matches(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "destination kind"):
+            self._resolve_metadata_override(
+                native_id=955,
+                action="travel",
+                source_target="Horlais Peak entrance",
+                source_kind="entrance",
+                zone=142,
+                zone_name="Yughott Grotto",
+                metadata_class="battlefield",
+                point_name="Horlais Peak entrance",
+                point_kind="enemy",
+            )
+
+    def test_transport_override_rejects_enemy_kind_when_name_matches(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "destination kind"):
+            self._resolve_metadata_override(
+                native_id=956,
+                action="use",
+                source_target="Mine lift",
+                source_kind="transport",
+                zone=143,
+                zone_name="Palborough Mines",
+                metadata_class="transport",
+                point_name="Mine lift",
+                point_kind="enemy",
+            )
+
+    def test_transport_override_rejects_claim_without_same_claim_zone(self) -> None:
+        with self.assertRaisesRegex(ObjectiveDestinationError, "source zone"):
+            self._resolve_metadata_override(
+                native_id=957,
+                action="use",
+                source_target="Mine lift",
+                source_kind="transport",
+                zone=143,
+                zone_name="Palborough Mines",
+                metadata_class="transport",
+                point_name="Mine lift",
+                point_kind="object",
+                source_zones=(),
+            )
 
     def test_distinct_item_sources_have_truthful_separate_instructions(self) -> None:
         native = NativeObjective("mission", "Bastok", 97, "Separate drops", "missions.dat", 0)
@@ -7039,8 +7394,36 @@ class GeneratedArtifactTests(unittest.TestCase):
         }
         return natives, pages, overrides
 
-    def test_reviewed_mission_destination_is_emitted(self) -> None:
+    @staticmethod
+    def _amber_nav_point(raw_spawn_id: int, x: float, z: float, y: float) -> dict:
+        raw_identity = "lsb:mob_spawn_points:group:7:mobname:Amber_Quadav"
+        policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+        destination_id = nav_destination_generator.enemy_destination_id(
+            zone=143,
+            raw_identity=raw_identity,
+            raw_spawn_ids=(raw_spawn_id,),
+            policy_version=policy,
+        )
+        return {
+            "zone": 143,
+            "name": "Amber Quadav",
+            "kind": "enemy",
+            "x": x,
+            "z": z,
+            "y": y,
+            "confidence": "untested",
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "raw_spawn_ids": (raw_spawn_id,),
+            "cluster_policy_version": policy,
+        }
+
+    def test_legacy_farming_destination_with_distinct_camps_is_review_only(self) -> None:
         natives, pages, overrides = self._mission_destination_fixture()
+        points = (
+            self._amber_nav_point(17362953, 58.904, 123.259, -0.483),
+            self._amber_nav_point(17362981, 104.811, 187.422, -2.108),
+        )
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_guide_artifacts(
@@ -7049,17 +7432,7 @@ class GeneratedArtifactTests(unittest.TestCase):
                 module_root=root / "modules",
                 data_root=root / "data",
                 reviewed_overrides=overrides,
-                navigation_points=(
-                    {
-                        "zone": 143,
-                        "name": "Amber Quadav",
-                        "kind": "enemy",
-                        "x": 142.0,
-                        "z": 154.0,
-                        "y": -0.076,
-                        "confidence": "untested",
-                    },
-                ),
+                navigation_points=points,
                 navigation_zone_names={143: "Palborough Mines"},
             )
             reconcile = (
@@ -7069,22 +7442,26 @@ class GeneratedArtifactTests(unittest.TestCase):
                 (root / "data" / "target-review.json").read_text(encoding="utf-8")
             )
 
-        self.assertIn("objective_destinations = {", reconcile)
+        self.assertNotIn("objective_destinations = {", reconcile)
         self.assertNotIn("mission_destinations = {", reconcile)
-        self.assertIn('stable_id = "mission:Bastok:3:destination:palborough-lower-amber"', reconcile)
-        self.assertIn('items = { "Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs" }', reconcile)
-        self.assertIn('enemies = { "Amber Quadav" }', reconcile)
-        self.assertIn('name = "Amber Quadav"', reconcile)
-        self.assertIn('eligibility = "catalogue"', reconcile)
+        self.assertIn("objective_destination_candidates = {", reconcile)
         self.assertNotIn("route_evidence", reconcile)
-        self.assertEqual(review["objective_destinations"][0]["classification"], "catalogue-candidate")
-        self.assertFalse(review["objective_destinations"][0]["route_ready"])
+        self.assertEqual(review["objective_destinations"], [])
+        candidates = [
+            row for row in review["objective_destination_candidates"]
+            if row["native_key"] == "mission:Bastok:3"
+        ]
+        self.assertEqual(
+            {row["destination_id"] for row in candidates},
+            {point["destination_id"] for point in points},
+        )
+        self.assertTrue(all(row["route_ready"] is False for row in candidates))
 
-    def test_reviewed_mission_destination_rejects_unknown_canonical_ingress(self) -> None:
+    def test_legacy_mission_destination_with_unknown_ingress_is_skipped(self) -> None:
         natives, pages, overrides = self._mission_destination_fixture()
         destination = overrides["mission_destination_overrides"]["mission:Bastok:3"][0]
         destination["canonical_ingress"] = {"edge_id": 999999, "from_zone": 106}
-        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_guide_artifacts(
                 natives,
@@ -7092,22 +7469,18 @@ class GeneratedArtifactTests(unittest.TestCase):
                 module_root=root / "modules",
                 data_root=root / "data",
                 reviewed_overrides=overrides,
-                navigation_points=(
-                    {
-                        "zone": 143,
-                        "name": "Amber Quadav",
-                        "kind": "enemy",
-                        "confidence": "untested",
-                    },
-                ),
+                navigation_points=(self._amber_nav_point(17362953, 58.904, 123.259, -0.483),),
                 navigation_zone_names={143: "Palborough Mines"},
             )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
 
-    def test_reviewed_mission_destination_rejects_unclaimed_item(self) -> None:
+        self.assertEqual(review["objective_destinations"], [])
+
+    def test_legacy_mission_destination_with_unclaimed_item_is_skipped(self) -> None:
         natives, pages, overrides = self._mission_destination_fixture()
         destination = overrides["mission_destination_overrides"]["mission:Bastok:3"][0]
         destination["items"] = [*destination["items"], "Imaginary Fetich"]
-        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_guide_artifacts(
                 natives,
@@ -7115,16 +7488,12 @@ class GeneratedArtifactTests(unittest.TestCase):
                 module_root=root / "modules",
                 data_root=root / "data",
                 reviewed_overrides=overrides,
-                navigation_points=(
-                    {
-                        "zone": 143,
-                        "name": "Amber Quadav",
-                        "kind": "enemy",
-                        "confidence": "untested",
-                    },
-                ),
+                navigation_points=(self._amber_nav_point(17362953, 58.904, 123.259, -0.483),),
                 navigation_zone_names={143: "Palborough Mines"},
             )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(review["objective_destinations"], [])
 
     def test_every_reconciled_row_enters_review_once_with_typed_claims(self) -> None:
         native = NativeObjective("quest", "other_areas", 77, "Audit Stream", "quests.dat", 0)
@@ -7340,15 +7709,15 @@ class GeneratedArtifactTests(unittest.TestCase):
 
         self.assertIsNone(review["steps"][0].get("proposed_navigation_target"))
 
-    def test_reviewed_named_npc_target_rejects_ambiguous_nav_point(self) -> None:
+    def test_reviewed_named_npc_target_with_distinct_points_fails_closed_without_aborting(self) -> None:
         natives, pages = self._named_npc_target_fixture()
         duplicate_points = (
             {"zone": 172, "name": "Makarim", "kind": "npc", "x": 1, "z": 2, "y": 3},
             {"zone": 172, "name": "Makarim", "kind": "npc", "x": 4, "z": 5, "y": 6},
         )
-        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            build_guide_artifacts(
+            result = build_guide_artifacts(
                 natives,
                 pages,
                 module_root=root / "modules",
@@ -7357,6 +7726,57 @@ class GeneratedArtifactTests(unittest.TestCase):
                 navigation_points=duplicate_points,
                 navigation_zone_names={172: "Zeruhn Mines"},
             )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+            coverage = json.loads((root / "data" / "coverage.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result["counts"]["verified_navigation"], 0)
+        failure = review["reviewed_target_failures"][0]
+        self.assertEqual(failure["override_step_id"], "mission:Bastok:1:step-001")
+        self.assertEqual(failure["reason"], "current-navigation-ambiguous")
+        self.assertEqual(failure["candidate_step_ids"], ["mission:Bastok:1:step-001"])
+        self.assertFalse(failure["route_ready"])
+        self.assertEqual(
+            coverage["objectives"]["mission:Bastok:1"]["reviewed_target_failures"],
+            [failure],
+        )
+
+    def test_reviewed_named_npc_target_accepts_physically_identical_duplicate_rows(self) -> None:
+        natives, pages = self._named_npc_target_fixture()
+        duplicate_points = (
+            {
+                "zone": 172,
+                "name": "Makarim",
+                "kind": "npc",
+                "x": -60.925,
+                "z": -333.294,
+                "y": 8.471,
+                "source": "legacy-reference",
+            },
+            {
+                "zone": 172,
+                "name": "Makarim",
+                "kind": "npc",
+                "x": -60.925,
+                "z": -333.294,
+                "y": 8.471,
+                "source": "lsb-npc-list-all",
+                "destination_id": "npc:v1:172:17481828",
+                "raw_identity": "lsb:npc_list:17481828",
+            },
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=self._named_npc_target_overrides(),
+                navigation_points=duplicate_points,
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+
+        self.assertEqual(result["counts"]["verified_navigation"], 1)
 
     def test_reviewed_named_npc_target_rejects_changed_source_revision(self) -> None:
         natives, pages = self._named_npc_target_fixture()
@@ -7374,25 +7794,36 @@ class GeneratedArtifactTests(unittest.TestCase):
                 navigation_zone_names={172: "Zeruhn Mines"},
             )
 
-    def test_reviewed_named_npc_target_requires_dual_source_name_and_talk_action(self) -> None:
+    def test_stale_reviewed_named_npc_target_fails_closed_without_aborting(self) -> None:
         nav_points = ({"zone": 172, "name": "Makarim", "kind": "npc"},)
         invalid_fixtures = (
-            self._named_npc_target_fixture(ffxi_name="Naji"),
-            self._named_npc_target_fixture(ffxi_action="examine"),
+            (self._named_npc_target_fixture(ffxi_name="Naji"), "source-claim-no-match"),
+            (
+                self._named_npc_target_fixture(ffxi_action="examine"),
+                "source-claim-evidence-insufficient-at-key",
+            ),
         )
-        for natives, pages in invalid_fixtures:
+        for (natives, pages), expected_reason in invalid_fixtures:
             with self.subTest(pages=pages), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
-                with self.assertRaises(GenerationError):
-                    build_guide_artifacts(
-                        natives,
-                        pages,
-                        module_root=root / "modules",
-                        data_root=root / "data",
-                        reviewed_overrides=self._named_npc_target_overrides(),
-                        navigation_points=nav_points,
-                        navigation_zone_names={172: "Zeruhn Mines"},
-                    )
+                result = build_guide_artifacts(
+                    natives,
+                    pages,
+                    module_root=root / "modules",
+                    data_root=root / "data",
+                    reviewed_overrides=self._named_npc_target_overrides(),
+                    navigation_points=nav_points,
+                    navigation_zone_names={172: "Zeruhn Mines"},
+                )
+                self.assertEqual(result["counts"]["verified_navigation"], 0)
+                review = json.loads(
+                    (root / "data" / "target-review.json").read_text(encoding="utf-8")
+                )
+                failure = review["reviewed_target_failures"][0]
+                self.assertEqual(failure["override_step_id"], "mission:Bastok:1:step-001")
+                self.assertEqual(failure["reason"], expected_reason)
+                self.assertEqual(failure["candidate_step_ids"], [])
+                self.assertFalse(failure["route_ready"])
 
     def _fixture_overrides(self) -> dict:
         overrides = json.loads(

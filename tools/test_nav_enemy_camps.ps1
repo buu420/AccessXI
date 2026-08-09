@@ -57,11 +57,35 @@ if (-not (Test-Path -LiteralPath $python)) {
     throw "Objective guide Python environment is missing: $python"
 }
 
-& $python -m unittest `
-    'tools.test_nav_destination_generator.NavDestinationGeneratorTests.test_complete_link_clustering_conserves_ids_splits_chains_and_floors' `
-    'tools.test_nav_destination_generator.NavDestinationGeneratorTests.test_clustering_rejects_a_policy_version_without_matching_geometry'
-if ($LASTEXITCODE -ne 0) {
-    throw 'Generator enemy-camp behavior tests failed.'
+function Get-Sha256 {
+    param([string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            return [System.BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '')
+        }
+        finally {
+            $hasher.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
+Push-Location -LiteralPath $root
+try {
+    & $python -m unittest `
+        'tools.test_nav_destination_generator.NavDestinationGeneratorTests.test_complete_link_clustering_conserves_ids_splits_chains_and_floors' `
+        'tools.test_nav_destination_generator.NavDestinationGeneratorTests.test_clustering_rejects_a_policy_version_without_matching_geometry'
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Generator enemy-camp behavior tests failed.'
+    }
+}
+finally {
+    Pop-Location
 }
 
 Assert-Match `
@@ -87,12 +111,12 @@ foreach ($path in $dataPaths) {
         -Message 'West Ronfaure Orcish Fodder should exist as a zone-wide enemy camp destination.'
 }
 
-$sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceDataPath).Hash
-$addonHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addonDataPath).Hash
+$sourceHash = Get-Sha256 -Path $sourceDataPath
+$addonHash = Get-Sha256 -Path $addonDataPath
 Assert-Equal -Actual $addonHash -Expected $sourceHash -Message 'Source addon nav destination data should match root nav destination data.'
 if (-not [string]::IsNullOrWhiteSpace($LiveAddonRoot)) {
     $liveDataPath = Join-Path $LiveAddonRoot 'data\ffxi-nav-destinations.tsv'
-    $liveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $liveDataPath).Hash
+    $liveHash = Get-Sha256 -Path $liveDataPath
     Assert-Equal -Actual $liveHash -Expected $sourceHash -Message 'Explicit live Ashita nav destination data should match root nav destination data.'
 }
 

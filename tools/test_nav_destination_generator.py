@@ -147,6 +147,18 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             for mobid, x, y, z in ids_and_points
         )
 
+    @staticmethod
+    def _parse_single_mob_x(expression: str) -> float:
+        zone_base = 169 << 12
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "mob_spawn_points.sql"
+            path.write_text(
+                "INSERT INTO `mob_spawn_points` VALUES "
+                f"({zone_base + 32},0,'Numeric','Numeric',1,1,1,{expression},3,4,0);\n",
+                encoding="utf-8",
+            )
+            return navgen.parse_mob_spawn_points(path)[0].x
+
     def test_complete_link_clustering_conserves_ids_splits_chains_and_floors(self) -> None:
         zone_base = 101 << 12
         fixture = [
@@ -409,6 +421,21 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "non-finite numeric expression"):
                 navgen.parse_mob_spawn_points(path)
 
+    def test_mob_parser_rejects_adjacent_decimal_tokens(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported numeric expression"):
+            self._parse_single_mob_x("1.2.3")
+
+    def test_mob_parser_rejects_fraction_after_exponent(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported numeric expression"):
+            self._parse_single_mob_x("1e2.5")
+
+    def test_mob_parser_rejects_whitespace_joined_tokens(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported numeric expression"):
+            self._parse_single_mob_x("1 2")
+
+    def test_mob_parser_accepts_signed_additive_exponents(self) -> None:
+        self.assertEqual(self._parse_single_mob_x(" -1e2 - 2.5e-1 "), -100.25)
+
     def test_npc_parser_ignores_commented_insert_like_rows(self) -> None:
         commented_id = (230 << 12) + 401
         active_id = (230 << 12) + 402
@@ -424,6 +451,35 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             rows = navgen.parse_npc_list(path)
 
         self.assertEqual([row.raw_identity for row in rows], [f"lsb:npc_list:{active_id}"])
+
+    def test_enemy_camp_harness_imports_tests_from_selected_root_outside_caller_cwd(self) -> None:
+        repo_root = Path(navgen.__file__).resolve().parents[1]
+        harness = repo_root / "tools" / "test_nav_enemy_camps.ps1"
+        with tempfile.TemporaryDirectory() as temporary:
+            completed = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(harness),
+                    "-Root",
+                    str(repo_root),
+                ],
+                cwd=temporary,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            completed.stdout + completed.stderr,
+        )
+        self.assertIn("nav enemy camp checks ok", completed.stdout)
 
     def test_paired_destination_writes_are_repo_scoped_and_byte_identical(self) -> None:
         writer = getattr(navgen, "write_destination_copies", None)

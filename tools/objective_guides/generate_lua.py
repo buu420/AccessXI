@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import unicodedata
@@ -961,6 +962,126 @@ def _reviewed_target_overrides(reviewed_overrides: Mapping[str, Any] | None) -> 
     return targets
 
 
+def _logical_reviewed_target_points(
+    points: Iterable[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], ...]:
+    groups: dict[tuple[float, float, float], list[Mapping[str, Any]]] = defaultdict(list)
+    for point in points:
+        raw_coordinates = (point.get("x"), point.get("z"), point.get("y"))
+        if any(value is None or str(value).strip() == "" for value in raw_coordinates):
+            raise GenerationError("Reviewed navigation target lacks complete current coordinates.")
+        try:
+            coordinates = tuple(float(value) for value in raw_coordinates)
+        except (TypeError, ValueError) as error:
+            raise GenerationError("Reviewed navigation target has malformed current coordinates.") from error
+        if not all(math.isfinite(value) for value in coordinates):
+            raise GenerationError("Reviewed navigation target has non-finite current coordinates.")
+        groups[coordinates].append(point)
+
+    return tuple(
+        min(
+            groups[coordinates],
+            key=lambda point: (
+                0 if str(point.get("destination_id", "")).strip() else 1,
+                str(point.get("destination_id", "")).strip(),
+                str(point.get("raw_identity", "")).strip(),
+                str(point.get("source", "")).strip(),
+            ),
+        )
+        for coordinates in sorted(groups)
+    )
+
+
+def _reviewed_target_source_candidate_ids(
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    *,
+    name: str,
+    zone_name: str,
+) -> tuple[str, ...]:
+    wanted_name = name.casefold()
+    candidates: list[str] = []
+    for step in reconciled.steps:
+        if (
+            step.action.casefold() != "talk"
+            or step.comparison == "conflict"
+            or "action" not in step.agreed_fields
+            or "entities" not in step.agreed_fields
+        ):
+            continue
+        bg_step = _source_step_for_order(bg, step.source_orders[0])
+        ffxi_step = _source_step_for_order(ffxiclopedia, step.source_orders[1])
+        if bg_step is None or ffxi_step is None:
+            continue
+        if not _source_directs_talk_to(bg_step, name) or not _source_directs_talk_to(
+            ffxi_step, name
+        ):
+            continue
+        bg_names = _casefold_values(
+            value for span in bg_step.action_spans for value in span.npc_mentions
+        )
+        ffxi_names = _casefold_values(
+            value for span in ffxi_step.action_spans for value in span.npc_mentions
+        )
+        if wanted_name not in bg_names or wanted_name not in ffxi_names:
+            continue
+        if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(
+            ffxi_step, zone_name
+        ):
+            continue
+        candidates.append(step.stable_step_id)
+    return tuple(candidates)
+
+
+def _reviewed_target_key_mentions_name(
+    step: ReconciledStep,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    name: str,
+) -> bool:
+    wanted_name = name.casefold()
+    source_steps = (
+        _source_step_for_order(bg, step.source_orders[0]),
+        _source_step_for_order(ffxiclopedia, step.source_orders[1]),
+    )
+    return all(
+        source_step is not None
+        and wanted_name
+        in f"{source_step.source_text}\n{source_step.spoken_text}".casefold()
+        for source_step in source_steps
+    )
+
+
+def _reviewed_target_failure(
+    *,
+    native_key: str,
+    override_step_id: str,
+    reason: str,
+    candidate_step_ids: tuple[str, ...],
+    source_revisions: Mapping[str, Any],
+    reference: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "override_step_id": override_step_id,
+        "reason": reason,
+        "candidate_step_ids": list(candidate_step_ids),
+        "source_revisions": {
+            str(site): int(revision)
+            for site, revision in sorted(source_revisions.items())
+        },
+        "reference": {
+            "zone": int(reference.get("zone", 0) or 0),
+            "zone_name": str(reference.get("zone_name", "")).strip(),
+            "name": str(reference.get("name", "")).strip(),
+            "kind": str(reference.get("kind", "")).strip().casefold(),
+        },
+        "classification": "unresolved",
+        "route_ready": False,
+    }
+
+
 def _resolve_reviewed_navigation_targets(
     native_key: str,
     reconciled: ReconciledObjective,
@@ -969,10 +1090,11 @@ def _resolve_reviewed_navigation_targets(
     reviewed_overrides: Mapping[str, Any] | None,
     navigation_points: tuple[Mapping[str, Any], ...],
     navigation_zone_names: Mapping[int, str],
-) -> ReconciledObjective:
+) -> tuple[ReconciledObjective, tuple[dict[str, Any], ...]]:
     all_targets = _reviewed_target_overrides(reviewed_overrides)
     step_lookup = {step.stable_step_id: step for step in reconciled.steps}
     updates: dict[str, ReconciledStep] = {}
+    failures: list[dict[str, Any]] = []
     for stable_step_id, raw_target in all_targets.items():
         stable_step_id = str(stable_step_id)
         if not stable_step_id.startswith(native_key + ":step-"):
@@ -1011,41 +1133,52 @@ def _resolve_reviewed_navigation_targets(
             )
         if not arrival_instruction:
             raise GenerationError(f"Reviewed target {stable_step_id!r} lacks arrival instructions.")
-        if step.action.casefold() != "talk" or step.comparison == "conflict":
-            raise GenerationError(f"Reviewed target {stable_step_id!r} is not a safe talk step.")
-        if "action" not in step.agreed_fields or "entities" not in step.agreed_fields:
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} is not independently corroborated."
-            )
-
-        bg_order, ffxi_order = step.source_orders
-        bg_step = _source_step_for_order(bg, bg_order)
-        ffxi_step = _source_step_for_order(ffxiclopedia, ffxi_order)
-        wanted_name = name.casefold()
-        if bg_step is None or ffxi_step is None:
-            raise GenerationError(f"Reviewed target {stable_step_id!r} lacks two source steps.")
-        if not _source_directs_talk_to(bg_step, name) or not _source_directs_talk_to(ffxi_step, name):
-            raise GenerationError(f"Reviewed target {stable_step_id!r} has conflicting source actions.")
-        bg_names = _casefold_values(
-            value for span in bg_step.action_spans for value in span.npc_mentions
+        candidate_step_ids = _reviewed_target_source_candidate_ids(
+            reconciled,
+            bg,
+            ffxiclopedia,
+            name=name,
+            zone_name=zone_name,
         )
-        ffxi_names = _casefold_values(
-            value for span in ffxi_step.action_spans for value in span.npc_mentions
-        )
-        if wanted_name not in bg_names or wanted_name not in ffxi_names:
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} is not named by both source steps."
+        if stable_step_id not in candidate_step_ids:
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason=(
+                        (
+                            "source-claim-evidence-insufficient-at-key"
+                            if _reviewed_target_key_mentions_name(
+                                step, bg, ffxiclopedia, name
+                            )
+                            else "source-claim-no-match"
+                        )
+                        if not candidate_step_ids
+                        else "source-claim-step-shift"
+                        if len(candidate_step_ids) == 1
+                        else "source-claim-ambiguous"
+                    ),
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
-        if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(ffxi_step, zone_name):
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} does not have dual-source zone evidence."
-            )
+            continue
 
         current_zone_name = str(navigation_zone_names.get(zone, "")).strip()
         if not current_zone_name or current_zone_name.casefold() != zone_name.casefold():
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} zone does not match current navigation data."
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason="current-navigation-zone-mismatch",
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
+            continue
+        wanted_name = name.casefold()
         matches = [
             point
             for point in navigation_points
@@ -1053,10 +1186,23 @@ def _resolve_reviewed_navigation_targets(
             and str(point.get("name", "")).strip().casefold() == wanted_name
             and str(point.get("kind", "")).strip().casefold() == kind
         ]
-        if len(matches) != 1:
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} resolves to {len(matches)} current nav points."
+        logical_matches = _logical_reviewed_target_points(matches)
+        if len(logical_matches) != 1:
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason=(
+                        "current-navigation-missing"
+                        if not logical_matches
+                        else "current-navigation-ambiguous"
+                    ),
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
+            continue
         updates[stable_step_id] = replace(
             step,
             route_ready=True,
@@ -1070,12 +1216,12 @@ def _resolve_reviewed_navigation_targets(
             ),
         )
 
-    if not updates:
-        return reconciled
-    return replace(
-        reconciled,
-        steps=tuple(updates.get(step.stable_step_id, step) for step in reconciled.steps),
-    )
+    if updates:
+        reconciled = replace(
+            reconciled,
+            steps=tuple(updates.get(step.stable_step_id, step) for step in reconciled.steps),
+        )
+    return reconciled, tuple(failures)
 
 
 def _section_heading_key(instruction: str) -> str:
@@ -1303,6 +1449,7 @@ def build_guide_artifacts(
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
+    target_review_target_failures: list[dict[str, Any]] = []
     target_review_objective_destinations: list[dict[str, Any]] = []
     target_review_action_ledger: list[dict[str, Any]] = []
     target_review_candidates: list[dict[str, Any]] = []
@@ -1322,9 +1469,10 @@ def build_guide_artifacts(
         default_step_id = ""
         runtime_objective_key = ""
         route_steps: set[str] = set()
+        reviewed_target_failures: tuple[dict[str, Any], ...] = ()
         if matched:
             reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
-            reconciled = _resolve_reviewed_navigation_targets(
+            reconciled, reviewed_target_failures = _resolve_reviewed_navigation_targets(
                 native.key,
                 reconciled,
                 bg,
@@ -1332,6 +1480,10 @@ def build_guide_artifacts(
                 reviewed_overrides,
                 nav_points,
                 nav_zone_names,
+            )
+            target_review_target_failures.extend(reviewed_target_failures)
+            resolved_reviewed_target_steps.update(
+                failure["override_step_id"] for failure in reviewed_target_failures
             )
             try:
                 action_resolution = resolve_objective_actions(
@@ -1581,6 +1733,7 @@ def build_guide_artifacts(
             "automatic_stages": automatic_stages,
             "default_step_id": default_step_id,
             "route_ready": bool(route_steps),
+            "reviewed_target_failures": list(reviewed_target_failures),
             "automatic_stage": bool(automatic_stages),
         }
 
@@ -1713,6 +1866,10 @@ def build_guide_artifacts(
             "objective_destinations": sorted(
                 target_review_objective_destinations,
                 key=lambda row: (row["native_key"], row["stable_id"]),
+            ),
+            "reviewed_target_failures": sorted(
+                target_review_target_failures,
+                key=lambda row: (row["native_key"], row["override_step_id"]),
             ),
             "steps": sorted(
                 target_review_steps,

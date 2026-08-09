@@ -357,25 +357,26 @@ _MOB_INSERT_ROW = re.compile(
     r"^\s*INSERT\s+INTO\s+`mob_spawn_points`\s+VALUES\s*\((.*)\);\s*(?:--.*)?$",
     re.IGNORECASE,
 )
-_ADDITIVE_NUMBER_TOKEN = re.compile(
-    r"[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?"
+_UNSIGNED_NUMBER_PATTERN = r"(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?"
+_ADDITIVE_NUMBER_EXPRESSION = re.compile(
+    rf"^\s*[+-]?\s*{_UNSIGNED_NUMBER_PATTERN}"
+    rf"(?:\s*[+-]\s*{_UNSIGNED_NUMBER_PATTERN})*\s*$"
 )
+_ADDITIVE_NUMBER_TOKEN = re.compile(rf"([+-]?)\s*({_UNSIGNED_NUMBER_PATTERN})")
 
 
 def _parse_additive_number(value: str, *, line_number: int, field_name: str) -> float:
-    expression = re.sub(r"\s+", "", str(value or ""))
-    cursor = 0
+    expression = str(value or "")
+    if _ADDITIVE_NUMBER_EXPRESSION.fullmatch(expression) is None:
+        raise ValueError(
+            f"mob_spawn_points line {line_number} has unsupported numeric expression "
+            f"for {field_name}: {value!r}"
+        )
     total = 0.0
     tokens = 0
-    while cursor < len(expression):
-        match = _ADDITIVE_NUMBER_TOKEN.match(expression, cursor)
-        if match is None:
-            raise ValueError(
-                f"mob_spawn_points line {line_number} has unsupported numeric expression "
-                f"for {field_name}: {value!r}"
-            )
-        total += float(match.group(0))
-        cursor = match.end()
+    for match in _ADDITIVE_NUMBER_TOKEN.finditer(expression):
+        sign = -1.0 if match.group(1) == "-" else 1.0
+        total += sign * float(match.group(2))
         tokens += 1
     if tokens == 0:
         raise ValueError(

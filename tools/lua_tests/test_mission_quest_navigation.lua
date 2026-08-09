@@ -582,8 +582,25 @@ assert(manual_target.objective_native_key == 'mission:Bastok:1')
 assert(manual_target.objective_character_identity == current_identity)
 assert(manual_target.arrival_instruction == 'Talk to Makarim.')
 
--- Exact references fail closed when current nav data is ambiguous, the step is
--- not a movement-safe talk action, or the active-objective packet is stale.
+-- Retained legacy and immutable rows at the exact same physical point are one
+-- logical target. Distinct same-name points remain ambiguous and fail closed.
+accessxi.nav_points:append(T{
+    zone = 172,
+    name = 'Makarim',
+    x = -60.925,
+    z = -333.294,
+    y = 8.471,
+    kind = 'npc',
+    source = 'exact-geometry-duplicate-test-point',
+})
+local duplicate_target = accessxi.nav_mission_quest_guide_route_descriptor(
+    'mission:Bastok:1',
+    makarim_step.stable_step_id,
+    makarim_step)
+assert(type(duplicate_target) == 'table')
+assert(duplicate_target.zone == 172 and duplicate_target.name == 'Makarim')
+accessxi.nav_points[#accessxi.nav_points] = nil
+
 accessxi.nav_points:append(T{
     zone = 172,
     name = 'Makarim',

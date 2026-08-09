@@ -54,6 +54,7 @@ local mission_values = {
     ["A Moogle Kupo d'Etat"] = 15,
     ['A Shantotto Ascension'] = 15,
 }
+local mission_value_packet_age = 10
 
 local mission_rows = {
     ["San d'Oria"] = T{
@@ -74,6 +75,7 @@ local mission_rows = {
             next_mission_id = 3,
             orders = 'Lion is waiting in the room at the end of the second-floor hallway in Norg.',
         },
+        { label = "Kazham's Chieftainess", mission_id = 3, next_mission_id = 4 },
     },
     ['The Voracious Resurgence'] = T{
         { label = 'False TVR mission from TalesBeginning bits', mission_id = 188, next_mission_id = 189 },
@@ -190,7 +192,7 @@ accessxi = {
     restore_quest_packet_cache_if_needed = function() end,
     restore_key_items_packet_cache_if_needed = function() end,
     load_mission_rom_rows = function(context) return mission_rows[context] end,
-    current_mission_value_for_context = function(context) return mission_values[context], 10 end,
+    current_mission_value_for_context = function(context) return mission_values[context], mission_value_packet_age end,
     mission_rom_current_row = function(rows, value)
         local best = nil
         for _, row in ipairs(rows or {}) do
@@ -364,6 +366,17 @@ local welcome = assert(find(missions, "Welcome t'Norg"))
 assert(welcome.objective_native_details:find('second-floor hallway', 1, true) ~= nil)
 assert(accessxi.nav_mission_quest_item_speech(welcome, 1, #missions):find('Native mission orders:', 1, true) ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
+mission_values['Rise of the Zilart'] = 3
+mission_value_packet_age = 60
+logs:clear()
+local rows = accessxi.nav_mission_quest_active_items('mission')
+local zilart = assert(find(rows, "Kazham's Chieftainess"))
+assert(zilart.mission_context == 'Rise of the Zilart')
+for _, line in ipairs(logs) do
+    assert(line:find('base out of range', 1, true) == nil)
+end
+mission_values['Rise of the Zilart'] = 2
+mission_value_packet_age = 10
 local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
 mission_values['Chains of Promathia'] = 1
 accessxi.load_mission_rom_rows = function(context)

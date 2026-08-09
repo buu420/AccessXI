@@ -974,7 +974,8 @@ local function active_missions()
                 and packet_key ~= '' and packet_key ~= 'tales'
                 and auxiliary_mission_state_ready(context)
                 and type(accessxi.current_mission_value_for_context) == 'function') then
-                local value = tonumber(accessxi.current_mission_value_for_context(context));
+                local raw_value = accessxi.current_mission_value_for_context(context);
+                local value = tonumber(raw_value);
                 local terminal = value == nil or value <= 0 or value == 65535
                     or ((packet_key == 'acp' or packet_key == 'mkd' or packet_key == 'asa') and value >= 15);
                 if (not terminal) then

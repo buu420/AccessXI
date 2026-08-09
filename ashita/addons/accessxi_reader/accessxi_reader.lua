@@ -72718,6 +72718,18 @@ function accessxi.nav_copy_point(point)
         arrival_instruction = nav_clean_field(point.arrival_instruction or ''),
         objective_source = nav_clean_field(point.objective_source or ''),
         objective_character_identity = nav_clean_field(point.objective_character_identity or ''),
+        objective_native_key = nav_clean_field(point.objective_native_key or ''),
+        guide_step_id = nav_clean_field(point.guide_step_id or ''),
+        objective_destination_id = nav_clean_field(point.objective_destination_id or ''),
+        objective_action = nav_clean_field(point.objective_action or ''),
+        objective_items_text = nav_clean_field(point.objective_items_text or ''),
+        objective_enemies_text = nav_clean_field(point.objective_enemies_text or ''),
+        objective_camp_label = nav_clean_field(point.objective_camp_label or ''),
+        objective_destination_zone_name = nav_clean_field(point.objective_destination_zone_name or ''),
+        objective_canonical_edge_id = tonumber(point.objective_canonical_edge_id),
+        objective_canonical_from_zone = tonumber(point.objective_canonical_from_zone),
+        objective_transport_id = nav_clean_field(point.objective_transport_id or ''),
+        objective_route_evidence = nav_clean_field(point.objective_route_evidence or ''),
         route_context_label = nav_clean_field(point.route_context_label or ''),
     };
 end

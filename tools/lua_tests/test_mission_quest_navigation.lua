@@ -148,6 +148,8 @@ accessxi = {
         T{ zone = 230, name = 'Ambrotien', x = 93.419, z = -57.347, y = 0.999, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 231, name = 'Grilau', x = -241.987, z = 57.887, y = 7.999, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 234, name = 'Rashid', x = -8.444, z = -123.575, y = -1.000, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 143, name = 'Amber Quadav', x = 142.000, z = 154.000, y = -0.076, kind = 'enemy', source = 'current-nav-data' },
+        T{ zone = 143, name = 'Onyx Quadav', x = 220.313, z = 88.193, y = -32.280, kind = 'enemy', source = 'current-nav-data' },
     },
     quests_menu_data = {
         quest_log_order = T{ 'sandoria', 'aht_urhgan' },
@@ -229,7 +231,55 @@ accessxi = {
     escape_probe_log_text = function(value) return tostring(value or '') end,
     mission_quest_guide_index = {
         ['mission:Bastok:2'] = { status = 'guide', title = 'A Geological Survey' },
+        ['mission:Bastok:3'] = { status = 'verified-navigation', title = 'Fetichism' },
         ['quest:sandoria:2'] = { status = 'guide', title = 'The Pickpocket' },
+    },
+    objective_guides = {
+        mission_destinations = function(_, native_key)
+            if native_key ~= 'mission:Bastok:3' then return T{} end
+            return T{
+                {
+                    stable_id = 'mission:Bastok:3:palborough-lower-amber',
+                    source_step_ids = { 'mission:Bastok:3:step-003', 'mission:Bastok:3:step-006' },
+                    action = 'farm',
+                    items = { 'Fetich Head', 'Fetich Torso', 'Fetich Arms', 'Fetich Legs' },
+                    enemies = { 'Amber Quadav' },
+                    zone = 143,
+                    zone_name = 'Palborough Mines',
+                    camp_label = 'lower camp',
+                    navigation_target = {
+                        type = 'static-reference',
+                        reference = { zone = 143, zone_name = 'Palborough Mines', name = 'Amber Quadav', kind = 'enemy' },
+                    },
+                    canonical_ingress_edge_id = 947466874,
+                    canonical_ingress_from_zone = 106,
+                    transport_id = '',
+                    route_evidence = 'navprobe:lower',
+                    arrival_instruction = 'Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Amber Quadav.',
+                    route_ready = true,
+                },
+                {
+                    stable_id = 'mission:Bastok:3:palborough-upper-quadav',
+                    source_step_ids = { 'mission:Bastok:3:step-003', 'mission:Bastok:3:step-006' },
+                    action = 'farm',
+                    items = { 'Fetich Head', 'Fetich Torso', 'Fetich Arms', 'Fetich Legs' },
+                    enemies = { 'Greater Quadav', 'Onyx Quadav', 'Veteran Quadav' },
+                    zone = 143,
+                    zone_name = 'Palborough Mines',
+                    camp_label = 'upper camp by elevator',
+                    navigation_target = {
+                        type = 'static-reference',
+                        reference = { zone = 143, zone_name = 'Palborough Mines', name = 'Onyx Quadav', kind = 'enemy' },
+                    },
+                    canonical_ingress_edge_id = 947466874,
+                    canonical_ingress_from_zone = 106,
+                    transport_id = 'palborough-mines-lift',
+                    route_evidence = 'navprobe:upper',
+                    arrival_instruction = 'Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Greater Quadav, Onyx Quadav, and Veteran Quadav.',
+                    route_ready = true,
+                },
+            }
+        end,
     },
 }
 
@@ -268,6 +318,21 @@ local function find(items, name)
         if item.name == name then return item end
     end
     return nil
+end
+
+local function find_destination(items, stable_id)
+    for _, item in ipairs(items or {}) do
+        if item.objective_destination_id == stable_id then return item end
+    end
+    return nil
+end
+
+local function count_named(items, name)
+    local count = 0
+    for _, item in ipairs(items or {}) do
+        if item.name == name then count = count + 1 end
+    end
+    return count
 end
 
 local function set_live_identity(identity)
@@ -355,6 +420,59 @@ accessxi.mission_packet_identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
 accessxi.mission_packet_identity = current_identity
 
+-- A source-reviewed farming mission expands into one stable browser row per
+-- distinct routeable camp. The exact highlighted row is revalidated before I
+-- starts its route, including current-session and World-qualified ownership.
+accessxi.mission_packet_main.nation_mission = 2
+missions = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(missions, 'Fetichism') == 2)
+local lower_fetich = assert(find_destination(missions, 'mission:Bastok:3:palborough-lower-amber'))
+local upper_fetich = assert(find_destination(missions, 'mission:Bastok:3:palborough-upper-quadav'))
+assert(lower_fetich.objective_available == true)
+assert(lower_fetich.objective_items_text == 'Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs')
+assert(lower_fetich.objective_enemies_text == 'Amber Quadav')
+assert(lower_fetich.objective_camp_label == 'lower camp')
+assert(lower_fetich.objective_canonical_edge_id == 947466874)
+assert(lower_fetich.objective_canonical_from_zone == 106)
+assert(upper_fetich.objective_transport_id == 'palborough-mines-lift')
+assert(upper_fetich.objective_enemies_text == 'Greater Quadav, Onyx Quadav, and Veteran Quadav')
+local lower_speech = accessxi.nav_mission_quest_item_speech(lower_fetich, 1, #missions)
+assert(lower_speech:find('Mission destination:', 1, true) ~= nil)
+assert(lower_speech:find('Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs', 1, true) ~= nil)
+assert(lower_speech:find('Amber Quadav', 1, true) ~= nil)
+assert(lower_speech:find('Palborough Mines lower camp', 1, true) ~= nil)
+local lower_count_suffix = ('1 of %d.'):fmt(#missions)
+assert(lower_speech:sub(-#lower_count_suffix) == lower_count_suffix)
+local upper_speech = accessxi.nav_mission_quest_item_speech(upper_fetich, 2, #missions)
+assert(upper_speech:find('Greater Quadav, Onyx Quadav, and Veteran Quadav', 1, true) ~= nil)
+assert(upper_speech:find('upper camp by elevator', 1, true) ~= nil)
+
+local lower_target, lower_message, lower_mode = accessxi.nav_mission_quest_prepare_route(lower_fetich, { zone = 234 })
+assert(lower_mode == 'ready' and lower_target ~= nil and lower_message == '')
+assert(lower_target.zone == 143 and lower_target.name == 'Amber Quadav')
+assert(lower_target.objective_destination_id == lower_fetich.objective_destination_id)
+assert(lower_target.objective_canonical_edge_id == 947466874)
+
+accessxi.mission_packet_source = 'cache'
+local stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(lower_fetich, { zone = 234 })
+assert(stale_target == nil and stale_mode == 'blocked' and stale_message ~= '')
+accessxi.mission_packet_source = 'packet_in_056'
+
+local other_world_row = lower_fetich
+set_live_identity('alpha:2002')
+local fresh_other_world_row = assert(find_destination(
+    accessxi.nav_mission_quest_active_items('mission'),
+    'mission:Bastok:3:palborough-lower-amber'))
+stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(other_world_row, { zone = 234 })
+assert(stale_target == nil and stale_mode == 'blocked' and stale_message:find('another character', 1, true) ~= nil)
+assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_other_world_row, { zone = 234 })) == 'ready')
+set_live_identity('alpha:1001')
+accessxi.mission_packet_main.nation_mission = 1
+
+local unsupported_welcome = assert(find(accessxi.nav_mission_quest_active_items('mission'), "Welcome t'Norg"))
+assert(count_named(accessxi.nav_mission_quest_active_items('mission'), "Welcome t'Norg") == 1)
+assert(unsupported_welcome.objective_available == false)
+
 -- When there is no active nation mission, only source-backed gate-guard
 -- missions currently available to this character are added. Their route goes
 -- directly to the nearest exact guard in the player's current city zone.
@@ -364,6 +482,7 @@ local available_zeruhn = assert(find(missions, 'The Zeruhn Report'))
 assert(find(missions, 'A Geological Survey') == nil)
 assert(available_zeruhn.mission_availability == 'available-to-start')
 assert(available_zeruhn.objective_available == true)
+assert(available_zeruhn.objective_destination_id == nil or available_zeruhn.objective_destination_id == '')
 local available_speech = accessxi.nav_mission_quest_item_speech(available_zeruhn, 1, #missions)
 assert(available_speech:find('Available mission.', 1, true) ~= nil)
 assert(available_speech:find('Press I to start navigation.', 1, true) ~= nil)

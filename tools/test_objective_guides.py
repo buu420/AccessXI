@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 import struct
 import tempfile
@@ -5577,10 +5578,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
 
         rows = self._resolve(native, bg, ffxi, reconciled, legacy)
 
-        self.assertEqual(rows[0].eligibility, "catalogue")
-        self.assertEqual(rows[0].destination_id, self.FIXTURE_CAMP_ID)
-        self.assertEqual(rows[0].route_contract_id, "")
-        self.assertFalse(rows[0].instruction_only)
+        self.assertEqual(rows, ())
 
     def test_identityless_legacy_target_is_catalogue_ineligible(self) -> None:
         native, bg, ffxi, reconciled, _overrides = self._fixture("mission")
@@ -6977,9 +6975,55 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             "cluster_policy_version": policy,
         }
         self.assertTrue(immutable(enemy))
+        self.assertFalse(immutable(dict(enemy, name="Amber Quadav")))
         self.assertFalse(immutable(dict(enemy, destination_id=destination_id + "0")))
         self.assertFalse(immutable(dict(enemy, raw_spawn_ids=(413697, 413699))))
         self.assertFalse(immutable(dict(enemy, cluster_policy_version="complete-link-v2-h100-y20")))
+        for display_name, raw_name in (
+            ("Amber", "Amber_Quadav"),
+            ("Garuda", "Garuda_Prime_ASA"),
+            ("Tonberry's", "Tonberrys_Avatar"),
+            ("Invincible", "Invincible_Shield"),
+            ("Goblin", "Goblin_Brigand"),
+        ):
+            with self.subTest(display_name=display_name, raw_name=raw_name):
+                raw_identity = f"lsb:mob_spawn_points:group:34:mobname:{raw_name}"
+                truncated = dict(
+                    enemy,
+                    name=display_name,
+                    raw_identity=raw_identity,
+                    destination_id=nav_destination_generator.enemy_destination_id(
+                        zone=101,
+                        raw_identity=raw_identity,
+                        raw_spawn_ids=spawn_ids,
+                        policy_version=policy,
+                    ),
+                )
+                self.assertFalse(immutable(truncated))
+        snow_raw_identity = "lsb:mob_spawn_points:group:9:mobname:Snow_Devil_blm"
+        snow_devil = dict(
+            enemy,
+            name="Snow Devil",
+            raw_identity=snow_raw_identity,
+            destination_id=nav_destination_generator.enemy_destination_id(
+                zone=101,
+                raw_identity=snow_raw_identity,
+                raw_spawn_ids=spawn_ids,
+                policy_version=policy,
+            ),
+        )
+        self.assertTrue(immutable(snow_devil))
+        reviewed_name_rows = "".join(
+            f"{raw_name}\t{display_name}\n"
+            for raw_name, display_name in sorted(
+                action_resolver._ENEMY_REVIEWED_DISPLAY_NAMES.items()
+            )
+        )
+        self.assertEqual(len(action_resolver._ENEMY_REVIEWED_DISPLAY_NAMES), 104)
+        self.assertEqual(
+            hashlib.sha256(reviewed_name_rows.encode("utf-8")).hexdigest(),
+            "a88697fc5048b62f60c5d19a86e6075826da94fa01669f46b006e03a4f1dc87d",
+        )
 
     def test_duplicate_canonical_zone_names_fail_closed(self) -> None:
         native = NativeObjective("mission", "Bastok", 101, "Zone alias collision", "missions.dat", 0)
@@ -7081,9 +7125,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             ({"id": 1234, "from_zone": 100, "to_zone": 101},),
         )
 
-        self.assertGreater(len(rows), 0)
-        self.assertTrue(all(row.route_evidence == "" for row in rows))
-        self.assertTrue(all(not hasattr(row, "route_ready") for row in rows))
+        self.assertEqual(rows, ())
 
 
 class GeneratedArtifactTests(unittest.TestCase):
@@ -7395,6 +7437,214 @@ class GeneratedArtifactTests(unittest.TestCase):
         return natives, pages, overrides
 
     @staticmethod
+    def _pinned_fetichism_pages() -> tuple[ParsedObjective, ParsedObjective]:
+        bg_content = """{{Mission Header
+|Mission Name=Fetichism
+|Expansion=bastok
+|Start=Any Bastok [[Gate Guard]]
+|Description=Hunt the [[Quadav]] in the [[Palborough Mines]] and collect the four parts of a Quadav fetich.
+|Level=
+|Repeatable=Yes
+|Previous=Bastok Mission 1-2{{!}}A Geological Survey
+|Next=Bastok Mission 2-1{{!}}The Crystal Line
+|Title=
+|Reward=*[[Image:Bastok_icon.png|22px|link=Bastok]] Rank 2
+*1,000 [[Gil]]
+|Image=Fetichism.jpg
+}}
+
+==Walkthrough==
+* Speak to any Bastokan [[Gate Guard]] to accept the Mission.
+* You will have to obtain 4 Fetich pieces ({{ItemIcon|Fetich Head|22}} {{tooltip|text=[[Fetich Head]]|tooltip=[[File:Fetich Head description.png]]}}, {{ItemIcon|Fetich Torso|22}} {{tooltip|text=[[Fetich Torso]]|tooltip=[[File:Fetich Torso description.png]]}}, {{ItemIcon|Fetich Arms|22}} {{tooltip|text=[[Fetich Arms]]|tooltip=[[File:Fetich Arms description.png]]}} and {{ItemIcon|Fetich Legs|22}} {{tooltip|text=[[Fetich Legs]]|tooltip=[[File:Fetich Legs description.png]]}}.)
+**The Fetich pieces are not Exclusive, and can be traded or purchased from Bazaars or the [[Auction House]]. ([[File:Auction House 16.png|link=]] ➞ Others ➞ Beast-made)
+**Alternatively, you can kill [[Quadav]]s  ([[Amber Quadav]], [[Greater Quadav]], [[Onyx Quadav]], [[Veteran Quadav]]) in [[Palborough Mines]] which drop the 4 Fetich pieces.
+*If you elect to get these items yourself and not purchase them, travel to (K-3) in [[North Gustaberg]] to enter [[Palborough Mines]].
+** You can reach [[North Gustaberg]] from [[Port Bastok]] (L-7) or [[South Gustaberg]] by zoning at (H-5).
+**To get to the higher level Quadav, travel north until you hit the big room at (G-7). Make your way over to (H-7) and head south, turning right at the split, followed by a left. This will put you on a straight path down to (H-9) where you'll follow the bend into a circular room, followed by another bend twisting north and finally end up at the elevator in the center.
+** Take the elevator up to the second floor by pulling the lever to make it go up and down.
+** This entire floor is filled with [[Onyx Quadav]], [[Greater Quadav]], and [[Veteran Quadav]] about Lv.13 (Be careful of [[Zi'Ghi Boneeater]], a Lvl.15-16 NM).
+** '''⚠ Note:''' Using the boat at (H-8) on the second floor will transport you to [[Zeruhn Mines]] and will place you on the other side of a guarded gate. You <u>won't be able to pass this gate to get back</u>, so be careful.
+*Once you obtained your 4 Fetich pieces, trade them simultaneously to one of the Bastok [[Gate Guard]]s to complete the Mission.
+
+===Maps===
+<gallery>
+File:Palborough Mines-map1.jpg | Palborough Mines Map 1
+File:Palborough Mines-map2.jpg | Palborough Mines Map 2
+File:Palborough Mines-map3.jpg | Palborough Mines Map 3
+</gallery>
+
+==Notes==
+*The second tier Quadavs in [[Konschtat Highlands]] or [[Pashhow Marshlands]] ([[Onyx Quadav]], [[Greater Quadav]], and [[Veteran Quadav]]) also drop Fetich pieces.
+
+[[Category:Missions]][[Category:Bastok Missions]]"""
+        ffxi_content = """[[de:Bastok-Mission 1-3]][[category:Missions]][[Category:Bastok Missions]]
+{{Mission
+|name=Fetichism
+|number=1-3
+|requirements=
+|level=
+|npc=Any [[Bastok Gate Guard]]
+|title=
+|reward=Rank 2<br>1000gil
+|items=[[Fetich Head]]<br>[[Fetich Arms]]<br>[[Fetich Torso]]<br>[[Fetich Legs]]
+|repeatable=Yes
+|previous=[[A Geological Survey]]
+|next=[[The Crystal Line]]
+|cutscenes=
+{{Mission/Cutscene|Fetichism|[[Lamepaue]] [[Bastok Markets]] (I-8)}}
+{{Mission/Cutscene|Fetichism|[[Taulluque]] [[Metalworks]] (I-8)}}
+{{Mission/Cutscene|Fetichism|[[Dalba]] [[Port Bastok]] (D-7)}}
+{{Mission/Cutscene|Fetichism|[[Gorvik]] [[Bastok Mines]] (I-9)}}
+{{Quest/Cutscene|Werei's Disappearance|[[Gorvik]] [[Bastok Mines]] (I-9)}} {{Verification}}
+}}
+
+''Recommended: Level 15+ job, preferably [[Thief]].''
+== Walkthrough ==
+
+#Receive the mission from a [[Bastok Gate Guard]].
+#Trade each of the following items to a guard to complete the mission.
+#*[[Fetich Head]] | [[Fetich Arms]] | [[Fetich Torso]] | [[Fetich Legs]]
+#**These items can be purchased from the [[Auction House]]. They drop from the following varieties of [[Quadav]]:
+#***Amber, Brass, Greater, Old, Onyx, and Veteran.
+#**[[Palborough Mines]] is a great place for farming due to the high density of Quadav; you need only ignore Amethyst, Copper, and Young Quadav.
+#***[[Palborough Mines/Maps|Palborough Mines]] can be reached from [[North Gustaberg/Maps|North Gustaberg]] at (K-3). It can also be reached by the [[Home Point]] if you've been there before or teleporting to "Waughroon Shrine" via [[Domenic]] (J-7) in [[Lower Jeuno/Maps|Lower Jeuno]] if you have completed [[Beyond Infinity]].
+#**The cutscene will differ notably depending on which [[Bastok Gate Guard]] you trade the items to. To view all of the cutscenes you will need four sets of items; however, as they are {{Rare|nc}}, you will need to farm each set one at a time.
+#''Optional:'' Talk to [[Gumbah]] (J-7) in an upper-level house in [[Bastok Mines]] for an extra cutscene. {{Verification}}
+
+{{Mission/Description
+|orders= Hunt the Quadav in the Palborough Mines and collect the four parts of a Quadav fetich.
+}}
+
+{{spoiler2}}"""
+        revisions = (
+            PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Bastok Mission 1-3",
+                303,
+                754820,
+                754819,
+                "2026-01-01T00:00:00Z",
+                bg_content,
+                ("Fetichism",),
+            ),
+            PageRevision(
+                "ffxiclopedia",
+                "https://ffxiclopedia.fandom.com/api.php",
+                "Fetichism",
+                404,
+                1748519,
+                1748518,
+                "2026-01-01T00:00:00Z",
+                ffxi_content,
+            ),
+        )
+        if revisions[0].content_sha256 != "9b81d1d8867dc3971af3ae07fe75cc0855addee18ce6299bbec501d551a46d52":
+            raise AssertionError("Pinned Fetichism BG content changed.")
+        if revisions[1].content_sha256 != "95280cd294e8e7de21f43cf30cb8b3f839c9a0bcf9d06f6b08da47afabc17f5b":
+            raise AssertionError("Pinned Fetichism FFXIclopedia content changed.")
+        return tuple(parse_objective_page(revision) for revision in revisions)  # type: ignore[return-value]
+
+    @staticmethod
+    def _quadav_nav_point(name: str, raw_spawn_id: int, x: float, z: float, y: float) -> dict:
+        raw_identity = f"lsb:mob_spawn_points:group:7:mobname:{name.replace(' ', '_')}"
+        policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
+        destination_id = nav_destination_generator.enemy_destination_id(
+            zone=143,
+            raw_identity=raw_identity,
+            raw_spawn_ids=(raw_spawn_id,),
+            policy_version=policy,
+        )
+        return {
+            "zone": 143,
+            "zone_name": "Palborough Mines",
+            "name": name,
+            "kind": "enemy",
+            "x": x,
+            "z": z,
+            "y": y,
+            "source": "lsb-test-fixture",
+            "confidence": "untested",
+            "destination_id": destination_id,
+            "raw_identity": raw_identity,
+            "raw_spawn_ids": (raw_spawn_id,),
+            "cluster_policy_version": policy,
+        }
+
+    @staticmethod
+    def _fetichism_action_migration() -> dict:
+        return {
+            "mission:Bastok:3": {
+                "action_id": "mission:Bastok:3:step-006:claim-01",
+                "source_revisions": {"bg": 754820, "ffxiclopedia": 1748519},
+                "zone": 143,
+                "zone_name": "Palborough Mines",
+                "items": ["Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs"],
+                "legacy_source_step_ids": [
+                    "mission:Bastok:3:step-003",
+                    "mission:Bastok:3:step-006",
+                ],
+                "legacy_source_claim_ids": [],
+                "source_facts": {
+                    "bg": {
+                        "item_step_id": "mission:Bastok:3:bg:step-002",
+                        "farming_step_id": "mission:Bastok:3:bg:step-004",
+                    },
+                    "ffxiclopedia": {
+                        "item_step_id": "mission:Bastok:3:ffxiclopedia:step-003",
+                        "drop_step_id": "mission:Bastok:3:ffxiclopedia:step-004",
+                        "enemy_step_id": "mission:Bastok:3:ffxiclopedia:step-005",
+                        "farming_zone_step_id": "mission:Bastok:3:ffxiclopedia:step-006",
+                    },
+                },
+                "mappings": [
+                    {
+                        "legacy_override_id": "palborough-lower-amber",
+                        "enemy_groups": [
+                            {
+                                "id": "amber-quadav",
+                                "enemy": "Amber Quadav",
+                                "source_mentions": {
+                                    "bg": "Amber Quadav",
+                                    "ffxiclopedia": "Amber",
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "legacy_override_id": "palborough-upper-quadav",
+                        "enemy_groups": [
+                            {
+                                "id": "greater-quadav",
+                                "enemy": "Greater Quadav",
+                                "source_mentions": {
+                                    "bg": "Greater Quadav",
+                                    "ffxiclopedia": "Greater",
+                                },
+                            },
+                            {
+                                "id": "onyx-quadav",
+                                "enemy": "Onyx Quadav",
+                                "source_mentions": {
+                                    "bg": "Onyx Quadav",
+                                    "ffxiclopedia": "Onyx",
+                                },
+                            },
+                            {
+                                "id": "veteran-quadav",
+                                "enemy": "Veteran Quadav",
+                                "source_mentions": {
+                                    "bg": "Veteran Quadav",
+                                    "ffxiclopedia": "Veteran",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }
+        }
+
+    @staticmethod
     def _amber_nav_point(raw_spawn_id: int, x: float, z: float, y: float) -> dict:
         raw_identity = "lsb:mob_spawn_points:group:7:mobname:Amber_Quadav"
         policy = nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION
@@ -7494,6 +7744,491 @@ class GeneratedArtifactTests(unittest.TestCase):
             review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
 
         self.assertEqual(review["objective_destinations"], [])
+
+    def test_pinned_fetichism_migrates_every_legacy_row_to_four_exact_enemy_groups(self) -> None:
+        native = NativeObjective("mission", "Bastok", 3, "Fetichism", "missions.dat", 0, 2)
+        bg, ffxi = self._pinned_fetichism_pages()
+        checked_in = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "data"
+                / "mission-quest-guides"
+                / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        expected_migration = self._fetichism_action_migration()
+        self.assertEqual(
+            checked_in.get("legacy_action_migrations"),
+            expected_migration,
+            "the reviewed migration must be revision-pinned and checked in",
+        )
+        overrides = {
+            "mission_destination_overrides": {
+                native.key: checked_in["mission_destination_overrides"][native.key]
+            },
+            "legacy_action_migrations": expected_migration,
+        }
+        points = (
+            self._quadav_nav_point("Amber Quadav", 17362953, 58.904, 123.259, -0.483),
+            self._quadav_nav_point("Amber Quadav", 17362981, 104.811, 187.422, -2.108),
+            self._quadav_nav_point("Greater Quadav", 17363001, 201.0, 301.0, 8.0),
+            self._quadav_nav_point("Onyx Quadav", 17363011, 221.0, 321.0, 12.0),
+            self._quadav_nav_point("Onyx Quadav", 17363012, 331.0, 431.0, 16.0),
+            self._quadav_nav_point("Veteran Quadav", 17363021, 241.0, 341.0, 12.0),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (bg, ffxi),
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=points,
+                navigation_zone_names={143: "Palborough Mines"},
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            review = json.loads(
+                (root / "data" / "target-review.json").read_text(encoding="utf-8")
+            )
+
+        action_id = "mission:Bastok:3:step-006:claim-01"
+        groups = [
+            row
+            for row in review["objective_destination_groups"]
+            if row["native_key"] == native.key and row["action_id"] == action_id
+        ]
+        self.assertEqual(
+            [row["group_id"] for row in groups],
+            [
+                f"{action_id}:group:amber-quadav",
+                f"{action_id}:group:greater-quadav",
+                f"{action_id}:group:onyx-quadav",
+                f"{action_id}:group:veteran-quadav",
+            ],
+        )
+        self.assertEqual([row["candidate_count"] for row in groups], [2, 1, 2, 1])
+        candidates = [
+            row
+            for row in review["objective_destination_candidates"]
+            if row["native_key"] == native.key and row["action_id"] == action_id
+        ]
+        self.assertEqual(
+            {row["destination_id"] for row in candidates},
+            {point["destination_id"] for point in points},
+        )
+        self.assertEqual(
+            {row["target_name"] for row in candidates},
+            {"Amber Quadav", "Greater Quadav", "Onyx Quadav", "Veteran Quadav"},
+        )
+        expected_items = {"Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs"}
+        self.assertTrue(all(set(row["items"]) == expected_items for row in candidates))
+        self.assertTrue(all(row["enemies"] == [row["target_name"]] for row in candidates))
+        self.assertTrue(all(row["result_relation"] == "obtain-from" for row in candidates))
+        self.assertTrue(all(row["route_ready"] is False for row in candidates + groups))
+        ledger = next(
+            row
+            for row in review["action_resolution_ledger"]
+            if row["native_key"] == native.key and row["action_id"] == action_id
+        )
+        self.assertEqual(ledger["status"], "catalogue-candidate")
+        self.assertEqual(ledger["candidate_count"], 6)
+        self.assertTrue(
+            any(source_id.endswith(":farming-items-fact-01") for source_id in ledger["source_action_span_ids"])
+        )
+        self.assertTrue(
+            all(
+                set(row["source_action_span_ids"]).issubset(ledger["source_action_span_ids"])
+                for row in candidates + groups
+            )
+        )
+        outcomes = [
+            row for row in review["legacy_destination_outcomes"] if row["native_key"] == native.key
+        ]
+        self.assertEqual(
+            [row["legacy_override_id"] for row in outcomes],
+            [
+                "mission:Bastok:3:destination:palborough-lower-amber",
+                "mission:Bastok:3:destination:palborough-upper-quadav",
+            ],
+        )
+        self.assertEqual([row["classification"] for row in outcomes], ["catalogue-candidate"] * 2)
+        self.assertEqual([row["reason"] for row in outcomes], ["migrated-to-action-candidates"] * 2)
+        self.assertEqual([len(row["group_ids"]) for row in outcomes], [1, 3])
+        self.assertTrue(all(row["route_ready"] is False for row in outcomes))
+        self.assertEqual(review["objective_destinations"], [])
+        self.assertNotIn("objective_destinations = {", reconcile)
+        self.assertNotIn("route_evidence", reconcile)
+        self.assertNotIn("canonical_ingress", reconcile)
+
+    def test_checked_navigation_catalog_retains_all_27_fetichism_enemy_camps(self) -> None:
+        native = NativeObjective("mission", "Bastok", 3, "Fetichism", "missions.dat", 0, 2)
+        bg, ffxi = self._pinned_fetichism_pages()
+        repo_root = Path(__file__).parents[1]
+        checked_in = json.loads(
+            (
+                repo_root / "data" / "mission-quest-guides" / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        points, zone_names, edges = _load_navigation_catalog(
+            repo_root / "data" / "ffxi-nav-destinations.tsv",
+            repo_root / "data" / "ffxi-nav-zoneline-graph.tsv",
+        )
+        enemy_points = [point for point in points if point["kind"] == "enemy"]
+        self.assertEqual(len(enemy_points), 24040)
+        self.assertEqual(
+            [
+                (point["name"], point["raw_identity"])
+                for point in enemy_points
+                if not action_resolver.navigation_point_has_immutable_identity(point)
+            ],
+            [],
+        )
+        overrides = {
+            "mission_destination_overrides": {
+                native.key: checked_in["mission_destination_overrides"][native.key]
+            },
+            "legacy_action_migrations": {
+                native.key: checked_in["legacy_action_migrations"][native.key]
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (bg, ffxi),
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=points,
+                navigation_zone_names=zone_names,
+                navigation_edges=edges,
+            )
+            review = json.loads(
+                (root / "data" / "target-review.json").read_text(encoding="utf-8")
+            )
+
+        action_id = "mission:Bastok:3:step-006:claim-01"
+        candidates = [
+            row
+            for row in review["objective_destination_candidates"]
+            if row["native_key"] == native.key and row["action_id"] == action_id
+        ]
+        groups = [
+            row
+            for row in review["objective_destination_groups"]
+            if row["native_key"] == native.key and row["action_id"] == action_id
+        ]
+        candidate_by_id = {row["candidate_id"]: row for row in candidates}
+        group_counts = {}
+        for group in groups:
+            target_names = {
+                candidate_by_id[candidate_id]["target_name"]
+                for candidate_id in group["candidate_ids"]
+            }
+            self.assertEqual(len(target_names), 1)
+            group_counts[next(iter(target_names))] = group["candidate_count"]
+        self.assertEqual(
+            group_counts,
+            {
+                "Amber Quadav": 8,
+                "Greater Quadav": 6,
+                "Onyx Quadav": 6,
+                "Veteran Quadav": 7,
+            },
+        )
+        self.assertEqual(len(candidates), 27)
+        self.assertEqual(len({row["candidate_id"] for row in candidates}), 27)
+        self.assertEqual(len({row["destination_id"] for row in candidates}), 27)
+        canonical = "".join(
+            f'{row["target_name"]}\t{row["destination_id"]}\n'
+            for row in sorted(
+                candidates,
+                key=lambda row: (row["target_name"], row["destination_id"]),
+            )
+        )
+        self.assertEqual(
+            hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            "98c0a43d129eea7521ed1742321045d3b1f22a5053fd5121bc6f6dc08c875cd6",
+        )
+        self.assertEqual(len(review["legacy_destination_outcomes"]), 2)
+        self.assertTrue(all(row["route_ready"] is False for row in candidates + groups))
+
+    def test_unmapped_legacy_destination_is_explicitly_unresolved(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        destination = overrides["mission_destination_overrides"]["mission:Bastok:3"][0]
+        destination["canonical_ingress"] = {"edge_id": 947466874, "from_zone": 106}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(self._amber_nav_point(17362953, 58.904, 123.259, -0.483),),
+                navigation_zone_names={143: "Palborough Mines"},
+                navigation_edges=(
+                    {"id": 947466874, "from_zone": 106, "to_zone": 143},
+                ),
+            )
+            review = json.loads(
+                (root / "data" / "target-review.json").read_text(encoding="utf-8")
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+
+        self.assertEqual(review["objective_destinations"], [])
+        self.assertEqual(
+            review["legacy_destination_outcomes"],
+            [
+                {
+                    "native_key": "mission:Bastok:3",
+                    "legacy_override_id": "mission:Bastok:3:destination:palborough-lower-amber",
+                    "action_id": "",
+                    "classification": "unresolved",
+                    "reason": "legacy-action-migration-required",
+                    "candidate_ids": [],
+                    "candidate_count": 0,
+                    "group_ids": [],
+                    "source_action_span_ids": [],
+                    "source_revisions": {"bg": 3003, "ffxiclopedia": 4004},
+                    "legacy_review_metadata": {
+                        "zone": 143,
+                        "zone_name": "Palborough Mines",
+                        "target_name": "Amber Quadav",
+                        "target_kind": "enemy",
+                        "canonical_ingress_edge_id": 947466874,
+                        "canonical_ingress_from_zone": 106,
+                        "transport_id": "",
+                        "route_evidence": (
+                            "navprobe:Palborough_Mines.nav:"
+                            "north-gustaberg-entry-to-lower-amber:2026-08-08"
+                        ),
+                    },
+                    "route_ready": False,
+                }
+            ],
+        )
+        self.assertNotIn("objective_destinations = {", reconcile)
+        self.assertNotIn("route_evidence", reconcile)
+        self.assertNotIn("canonical_ingress", reconcile)
+        self.assertNotIn("route_ready = true", reconcile)
+
+    def test_legacy_farming_migration_rejects_stale_revision_or_source_fact(self) -> None:
+        native = NativeObjective("mission", "Bastok", 3, "Fetichism", "missions.dat", 0, 2)
+        bg, ffxi = self._pinned_fetichism_pages()
+        checked_in = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "data"
+                / "mission-quest-guides"
+                / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        base = {
+            "mission_destination_overrides": {
+                native.key: checked_in["mission_destination_overrides"][native.key]
+            },
+            "legacy_action_migrations": self._fetichism_action_migration(),
+        }
+        mutations = {
+            "revision": ("source_revisions", "bg", 754819),
+            "item-step": ("source_facts", "bg", "item_step_id", "mission:Bastok:3:bg:step-003"),
+            "enemy-step": (
+                "source_facts",
+                "ffxiclopedia",
+                "enemy_step_id",
+                "mission:Bastok:3:ffxiclopedia:step-004",
+            ),
+            "zone-step": (
+                "source_facts",
+                "ffxiclopedia",
+                "farming_zone_step_id",
+                "mission:Bastok:3:ffxiclopedia:step-007",
+            ),
+        }
+        for label, path in mutations.items():
+            overrides = json.loads(json.dumps(base))
+            cursor = overrides["legacy_action_migrations"][native.key]
+            for key in path[:-2]:
+                cursor = cursor[key]
+            cursor[path[-2]] = path[-1]
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                with self.assertRaises(GenerationError):
+                    build_guide_artifacts(
+                        (native,),
+                        (bg, ffxi),
+                        module_root=root / "modules",
+                        data_root=root / "data",
+                        reviewed_overrides=overrides,
+                        navigation_points=(
+                            self._quadav_nav_point(
+                                "Amber Quadav", 17362953, 58.904, 123.259, -0.483
+                            ),
+                        ),
+                        navigation_zone_names={143: "Palborough Mines"},
+                    )
+
+    def test_legacy_farming_migration_fails_closed_on_a_distinct_identityless_camp(self) -> None:
+        native = NativeObjective("mission", "Bastok", 3, "Fetichism", "missions.dat", 0, 2)
+        bg, ffxi = self._pinned_fetichism_pages()
+        checked_in = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "data"
+                / "mission-quest-guides"
+                / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        legacy_row = checked_in["mission_destination_overrides"][native.key][0]
+        migration = self._fetichism_action_migration()[native.key]
+        migration["mappings"] = migration["mappings"][:1]
+        identityless = self._quadav_nav_point("Amber Quadav", 17362999, 999.0, 999.0, 0.0)
+        identityless.update(destination_id="", raw_identity="", raw_spawn_ids=(), cluster_policy_version="")
+        overrides = {
+            "mission_destination_overrides": {native.key: [legacy_row]},
+            "legacy_action_migrations": {native.key: migration},
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (bg, ffxi),
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(
+                    self._quadav_nav_point("Amber Quadav", 17362953, 58.904, 123.259, -0.483),
+                    identityless,
+                ),
+                navigation_zone_names={143: "Palborough Mines"},
+            )
+            review = json.loads(
+                (root / "data" / "target-review.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(review["objective_destination_candidates"], [])
+        self.assertEqual(review["objective_destination_groups"], [])
+        (outcome,) = review["legacy_destination_outcomes"]
+        self.assertEqual(outcome["classification"], "unresolved")
+        self.assertEqual(outcome["reason"], "legacy-action-migration-catalogue-ambiguous")
+        self.assertEqual(outcome["candidate_ids"], [])
+        self.assertFalse(outcome["route_ready"])
+
+    def test_legacy_farming_migration_rejects_stale_legacy_source_steps(self) -> None:
+        native = NativeObjective("mission", "Bastok", 3, "Fetichism", "missions.dat", 0, 2)
+        bg, ffxi = self._pinned_fetichism_pages()
+        checked_in = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "data"
+                / "mission-quest-guides"
+                / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        legacy_rows = json.loads(
+            json.dumps(checked_in["mission_destination_overrides"][native.key])
+        )
+        legacy_rows[0]["source_step_ids"] = [
+            "mission:Bastok:3:step-004",
+            "mission:Bastok:3:step-006",
+        ]
+        overrides = {
+            "mission_destination_overrides": {native.key: legacy_rows},
+            "legacy_action_migrations": self._fetichism_action_migration(),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    (native,),
+                    (bg, ffxi),
+                    module_root=root / "modules",
+                    data_root=root / "data",
+                    reviewed_overrides=overrides,
+                    navigation_points=(
+                        self._quadav_nav_point(
+                            "Amber Quadav", 17362953, 58.904, 123.259, -0.483
+                        ),
+                        self._quadav_nav_point(
+                            "Greater Quadav", 17363001, 201.0, 301.0, 8.0
+                        ),
+                        self._quadav_nav_point(
+                            "Onyx Quadav", 17363011, 221.0, 321.0, 12.0
+                        ),
+                        self._quadav_nav_point(
+                            "Veteran Quadav", 17363021, 241.0, 341.0, 12.0
+                        ),
+                    ),
+                    navigation_zone_names={143: "Palborough Mines"},
+                )
+
+    def test_unknown_legacy_action_migration_native_key_fails_generation(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        overrides["legacy_action_migrations"] = {
+            "mission:Bastok:999": {
+                "action_id": "mission:Bastok:999:step-001:claim-01"
+            }
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    natives,
+                    pages,
+                    module_root=root / "modules",
+                    data_root=root / "data",
+                    reviewed_overrides=overrides,
+                    navigation_points=(
+                        self._amber_nav_point(17362953, 58.904, 123.259, -0.483),
+                    ),
+                    navigation_zone_names={143: "Palborough Mines"},
+                )
+
+    def test_unknown_legacy_destination_native_key_fails_generation(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        orphan = json.loads(
+            json.dumps(overrides["mission_destination_overrides"]["mission:Bastok:3"])
+        )
+        overrides["mission_destination_overrides"]["mission:Bastok:999"] = orphan
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    natives,
+                    pages,
+                    module_root=root / "modules",
+                    data_root=root / "data",
+                    reviewed_overrides=overrides,
+                    navigation_points=(
+                        self._amber_nav_point(17362953, 58.904, 123.259, -0.483),
+                    ),
+                    navigation_zone_names={143: "Palborough Mines"},
+                )
+
+    def test_legacy_action_migration_with_empty_override_list_fails_generation(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        overrides["mission_destination_overrides"]["mission:Bastok:3"] = []
+        overrides["legacy_action_migrations"] = self._fetichism_action_migration()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(GenerationError):
+                build_guide_artifacts(
+                    natives,
+                    pages,
+                    module_root=root / "modules",
+                    data_root=root / "data",
+                    reviewed_overrides=overrides,
+                    navigation_points=(
+                        self._amber_nav_point(17362953, 58.904, 123.259, -0.483),
+                    ),
+                    navigation_zone_names={143: "Palborough Mines"},
+                )
 
     def test_every_reconciled_row_enters_review_once_with_typed_claims(self) -> None:
         native = NativeObjective("quest", "other_areas", 77, "Audit Stream", "quests.dat", 0)
@@ -7836,6 +8571,8 @@ class GeneratedArtifactTests(unittest.TestCase):
         }
         overrides["shared_page_groups"] = []
         overrides["target_overrides"] = {}
+        overrides["mission_destination_overrides"] = {}
+        overrides["legacy_action_migrations"] = {}
         return overrides
 
     def _native_rows(self) -> tuple[NativeObjective, ...]:

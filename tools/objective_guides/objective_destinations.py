@@ -4,10 +4,12 @@ import hashlib
 import math
 import re
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
 from typing import Any
 
 from .model import NativeObjective, ParsedObjective, SourceActionSpan
 from .reconcile import (
+    LegacyDestinationOutcome,
     ObjectiveActionLedgerRow,
     ObjectiveActionResolution,
     ObjectiveDestinationCandidate,
@@ -46,6 +48,112 @@ INSTRUCTION_ONLY_ACTIONS = {"wait", "select", "choose", "menu", "warning"}
 CONTEXT_REASONS = {"heading", "historical-explanation", "reward", "optional-background"}
 ENEMY_IDENTITY_SCHEMA_REVISION = "v1"
 ENEMY_CLUSTER_POLICY_VERSION = "complete-link-v1-h120-y24"
+_ENEMY_REVIEWED_DISPLAY_NAMES = {
+    "Alexander_NP": "Alexander",
+    "Alexander_WTC": "Alexander",
+    "Amnaf_BLU": "Amnaf",
+    "Amnaf_Psycheflayer": "Amnaf",
+    "Archaic_Rampart_1": "Archaic Rampart",
+    "Archaic_Rampart_2": "Archaic Rampart",
+    "Archaic_Rampart_3": "Archaic Rampart",
+    "Ark_Angel_EV_CP": "Ark Angel EV",
+    "Ark_Angel_GK_CP": "Ark Angel GK",
+    "Ark_Angel_HM_CP": "Ark Angel HM",
+    "Ark_Angel_MR_CP": "Ark Angel MR",
+    "Ark_Angel_TT_CP": "Ark Angel TT",
+    "Ark_Angels_Adamant_CP": "Ark Angel's Adamantoise",
+    "Ark_Angels_Behemoth_CP": "Ark Angel's Behemoth",
+    "Ark_Angels_Wyvern_CP": "Ark Angel's Wyvern",
+    "Ashu_Talif_Crew_mnk": "Ashu Talif Crew",
+    "Ashu_Talif_Crew_rdm": "Ashu Talif Crew",
+    "Ashu_Talif_Crew_rng": "Ashu Talif Crew",
+    "Atori-Tutori_qm": "Atori-Tutori ???",
+    "Awzdei_Fast": "Aw'zdei",
+    "Awzdei_Still": "Aw'zdei",
+    "Bahamut_bv2": "Bahamut",
+    "Bloodsucker_NM": "Bloodsucker",
+    "Diabolos_DN": "Diabolos",
+    "Diabolos_WD": "Diabolos",
+    "Ealdnarche_2": "Eald'narche",
+    "Ealdnarche_CP": "Eald'narche",
+    "Eoaern_BST": "Eo'aern",
+    "Eoaern_DRG": "Eo'aern",
+    "Eoaern_SMN": "Eo'aern",
+    "Eozdei_Still": "Eo'zdei",
+    "Friars_Lantern_Grow": "Friar's Lantern",
+    "Garuda_Prime_ASA": "Garuda Prime",
+    "Garuda_Prime_TBW": "Garuda Prime",
+    "Garuda_Prime_TSTBW": "Garuda Prime",
+    "Garuda_Prime_WTB": "Garuda Prime",
+    "Ghul-I-Beaban_BLM": "Ghul-I-Beaban",
+    "Ghul-I-Beaban_DRK": "Ghul-I-Beaban",
+    "Ifrit_Prime_ASA": "Ifrit Prime",
+    "Ifrit_Prime_TBF": "Ifrit Prime",
+    "Ifrit_Prime_TSTBF": "Ifrit Prime",
+    "Ifrit_Prime_WTB": "Ifrit Prime",
+    "Imp_Bandsman_Add": "Imp Bandsman",
+    "Ixaern_DRG": "Ix'aern",
+    "Ixaern_DRGs_Wynav": "Aern's Wynav",
+    "Ixaern_DRK": "Ix'aern",
+    "Ixaern_MNK": "Ix'aern",
+    "Ixzdei_BLM": "Ix'zdei",
+    "Ixzdei_RDM": "Ix'zdei",
+    "Jormungand_bv2": "Jormungand",
+    "Kamlanaut_CP": "Kam'lanaut",
+    "Kfghrah_BLM": "Kf'ghrah",
+    "Kfghrah_WHM": "Kf'ghrah",
+    "Lamia_Exon_BLM": "Lamia Exon",
+    "Lamia_Exon_COR": "Lamia Exon",
+    "Leviathan_Prime_ASA": "Leviathan Prime",
+    "Leviathan_Prime_TBW": "Leviathan Prime",
+    "Leviathan_Prime_TSTBW": "Leviathan Prime",
+    "Leviathan_Prime_WTB": "Leviathan Prime",
+    "Magnes_Quadav_NM": "Magnes Quadav",
+    "Memory_Receptacle_Red": "Memory Receptacle",
+    "Memory_Receptacle_Shield": "Memory Receptacle",
+    "Mountain_Worm_NM": "Mountain Worm",
+    "Nickel_Quadav_NM": "Nickel Quadav",
+    "Omaern_BST": "Om'aern",
+    "Omaern_DRG": "Om'aern",
+    "Omaern_SMN": "Om'aern",
+    "Orbital_CP": "Orbital",
+    "Ouryu_bv2": "Ouryu",
+    "Pandemonium_Lamp_Avatar": "Pandemonium Lamp",
+    "Pandemonium_Warden_HNM": "Pandemonium Warden",
+    "Phantom_Puk_Clone": "Phantom Puk",
+    "Promathia_2": "Promathia",
+    "Puffer_Pugil_Brigand": "Puffer Pugil",
+    "Ramuh_Prime_ASA": "Ramuh Prime",
+    "Ramuh_Prime_TBL": "Ramuh Prime",
+    "Ramuh_Prime_TSTBL": "Ramuh Prime",
+    "Ramuh_Prime_WTB": "Ramuh Prime",
+    "Scythe_Victim_blm": "Scythe Victim",
+    "Scythe_Victim_war": "Scythe Victim",
+    "Shadow_Lord_Phase_1": "Shadow Lord",
+    "Shadow_Lord_Phase_2": "Shadow Lord",
+    "Shikaree_X_HW": "Shikaree X",
+    "Shikaree_X_ROS_TWT": "Shikaree X",
+    "Shikaree_Y_HW": "Shikaree Y",
+    "Shikaree_Y_ROS_TWT": "Shikaree Y",
+    "Shikaree_Z_HW": "Shikaree Z",
+    "Shikaree_Z_ROS": "Shikaree Z",
+    "Shiva_Prime_ASA": "Shiva Prime",
+    "Shiva_Prime_TBI": "Shiva Prime",
+    "Shiva_Prime_TSTBI": "Shiva Prime",
+    "Shiva_Prime_WTB": "Shiva Prime",
+    "Skeleton_Esquire_NM": "Skeleton Esquire",
+    "Snow_Devil_blm": "Snow Devil",
+    "Snow_Devil_war": "Snow Devil",
+    "Tiamat_bv2": "Tiamat",
+    "Titan_Prime_ASA": "Titan Prime",
+    "Titan_Prime_HTBF": "Titan Prime",
+    "Titan_Prime_TBE": "Titan Prime",
+    "Titan_Prime_TSTBE": "Titan Prime",
+    "Titan_Prime_WTB": "Titan Prime",
+    "Vrtra_bv2": "Vrtra",
+    "Wanderer_enm": "Wanderer",
+    "Zeid_2": "Zeid",
+}
 
 
 def _clean(value: object) -> str:
@@ -71,27 +179,38 @@ def _strings(value: object, field: str, *, required: bool = False) -> tuple[str,
 def _override_rows(
     reviewed_overrides: Mapping[str, Any] | None,
     native: NativeObjective,
-) -> tuple[tuple[Mapping[str, Any], bool], ...]:
+) -> tuple[Mapping[str, Any], ...]:
     if not isinstance(reviewed_overrides, Mapping):
         return ()
     shared = reviewed_overrides.get("objective_destination_overrides", {})
-    legacy = reviewed_overrides.get("mission_destination_overrides", {})
-    rows: list[tuple[Mapping[str, Any], bool]] = []
+    rows: list[Mapping[str, Any]] = []
     if isinstance(shared, Mapping) and native.key in shared:
         raw_rows = shared[native.key]
         if not isinstance(raw_rows, list) or any(not isinstance(row, Mapping) for row in raw_rows):
             raise ObjectiveDestinationError(
                 f"Reviewed objective destinations for {native.key!r} must be a list of objects."
             )
-        rows.extend((row, False) for row in raw_rows)
-    if native.kind == "mission" and isinstance(legacy, Mapping) and native.key in legacy:
-        raw_rows = legacy[native.key]
-        if not isinstance(raw_rows, list) or any(not isinstance(row, Mapping) for row in raw_rows):
-            raise ObjectiveDestinationError(
-                f"Legacy mission destinations for {native.key!r} must be a list of objects."
-            )
-        rows.extend((row, True) for row in raw_rows)
+        rows.extend(raw_rows)
     return tuple(rows)
+
+
+def _legacy_override_rows(
+    reviewed_overrides: Mapping[str, Any] | None,
+    native: NativeObjective,
+) -> tuple[Mapping[str, Any], ...]:
+    if native.kind != "mission" or not isinstance(reviewed_overrides, Mapping):
+        return ()
+    root = reviewed_overrides.get("mission_destination_overrides", {})
+    if not isinstance(root, Mapping):
+        raise ObjectiveDestinationError("Legacy mission destination overrides must be an object.")
+    raw_rows = root.get(native.key, ())
+    if raw_rows in (None, ()):
+        return ()
+    if not isinstance(raw_rows, list) or any(not isinstance(row, Mapping) for row in raw_rows):
+        raise ObjectiveDestinationError(
+            f"Legacy mission destinations for {native.key!r} must be a list of objects."
+        )
+    return tuple(raw_rows)
 
 
 def _claims_action(span: SourceActionSpan, action: str) -> bool:
@@ -319,6 +438,31 @@ def _enemy_destination_id(
     return f"camp:{ENEMY_IDENTITY_SCHEMA_REVISION}:{zone}:{_slug(raw_name)}:{digest}"
 
 
+def _enemy_name_tokens(value: str) -> tuple[str, ...]:
+    result: list[str] = []
+    for raw_token in re.split(r"[_\s]+", value.casefold().replace("`", "'")):
+        token = "".join(character for character in raw_token if character.isalnum())
+        if not token:
+            continue
+        if token == "s" and result:
+            result[-1] += token
+        else:
+            result.append(token)
+    return tuple(result)
+
+
+def _enemy_display_name_matches_identity(display_name: str, raw_identity: str) -> bool:
+    raw_name = raw_identity.split(":mobname:", 1)[-1]
+    display_tokens = _enemy_name_tokens(display_name)
+    raw_tokens = _enemy_name_tokens(raw_name)
+    if display_tokens and display_tokens == raw_tokens:
+        return True
+    reviewed_display_name = _ENEMY_REVIEWED_DISPLAY_NAMES.get(raw_name)
+    return reviewed_display_name is not None and display_tokens == _enemy_name_tokens(
+        reviewed_display_name
+    )
+
+
 def navigation_point_has_immutable_identity(point: Mapping[str, Any]) -> bool:
     try:
         zone = int(point.get("zone", 0) or 0)
@@ -338,6 +482,9 @@ def navigation_point_has_immutable_identity(point: Mapping[str, Any]) -> bool:
         if (
             policy != ENEMY_CLUSTER_POLICY_VERSION
             or not re.fullmatch(r"lsb:mob_spawn_points:group:[0-9]+:mobname:.+", raw_identity)
+            or not _enemy_display_name_matches_identity(
+                _clean(point.get("name", "")), raw_identity
+            )
             or not spawn_ids
             or tuple(sorted(spawn_ids)) != spawn_ids
             or len(spawn_ids) != len(set(spawn_ids))
@@ -357,29 +504,6 @@ def navigation_point_has_immutable_identity(point: Mapping[str, Any]) -> bool:
         and not _point_spawn_ids(point)
         and not _clean(point.get("cluster_policy_version", ""))
     )
-
-
-def _logical_navigation_points(
-    points: Iterable[Mapping[str, Any]],
-) -> tuple[Mapping[str, Any], ...]:
-    """Collapse only rows at exactly the same complete physical coordinates."""
-
-    groups: dict[tuple[float, float, float], list[Mapping[str, Any]]] = {}
-    for point in points:
-        groups.setdefault(_point_tuple(point), []).append(point)
-
-    def representative(rows: list[Mapping[str, Any]]) -> Mapping[str, Any]:
-        return min(
-            rows,
-            key=lambda point: (
-                0 if navigation_point_has_immutable_identity(point) else 1,
-                _clean(point.get("destination_id", "")),
-                _clean(point.get("raw_identity", "")),
-                _clean(point.get("source", "")),
-            ),
-        )
-
-    return tuple(representative(groups[coordinates]) for coordinates in sorted(groups))
 
 
 def _source_pages(
@@ -1339,6 +1463,664 @@ def _claim_resolution(
     )
 
 
+def _legacy_override_stable_id(native: NativeObjective, raw: Mapping[str, Any]) -> str:
+    short_id = _clean(raw.get("id", "")).casefold()
+    if not _STABLE_ID.fullmatch(short_id):
+        raise ObjectiveDestinationError(
+            f"Legacy objective destination for {native.key!r} has invalid id {short_id!r}."
+        )
+    return f"{native.key}:destination:{short_id}"
+
+
+def _legacy_review_metadata(
+    raw: Mapping[str, Any],
+) -> tuple[int, str, str, str, int, int, str, str]:
+    reference = raw.get("reference", {})
+    if not isinstance(reference, Mapping):
+        raise ObjectiveDestinationError("Legacy objective destination reference must be an object.")
+    ingress = raw.get("canonical_ingress", {})
+    if ingress is None:
+        ingress = {}
+    if not isinstance(ingress, Mapping):
+        raise ObjectiveDestinationError("Legacy objective destination canonical_ingress must be an object.")
+    return (
+        int(raw.get("zone", 0) or 0),
+        _clean(raw.get("zone_name", "")),
+        _clean(reference.get("name", "")),
+        _clean(reference.get("kind", "")).casefold(),
+        int(ingress.get("edge_id", 0) or 0),
+        int(ingress.get("from_zone", 0) or 0),
+        _clean(raw.get("transport_id", "")),
+        _clean(raw.get("route_evidence", "")),
+    )
+
+
+def _legacy_outcome(
+    *,
+    native: NativeObjective,
+    raw: Mapping[str, Any],
+    action_id: str,
+    classification: str,
+    reason: str,
+    candidate_ids: tuple[str, ...] = (),
+    group_ids: tuple[str, ...] = (),
+    source_action_span_ids: tuple[str, ...] = (),
+    source_revisions: tuple[tuple[str, int], ...] = (),
+) -> LegacyDestinationOutcome:
+    (
+        zone,
+        zone_name,
+        target_name,
+        target_kind,
+        ingress_edge_id,
+        ingress_from_zone,
+        transport_id,
+        route_evidence,
+    ) = _legacy_review_metadata(raw)
+    return LegacyDestinationOutcome(
+        legacy_override_id=_legacy_override_stable_id(native, raw),
+        action_id=action_id,
+        classification=classification,
+        reason=reason,
+        candidate_ids=candidate_ids,
+        group_ids=group_ids,
+        source_action_span_ids=source_action_span_ids,
+        source_revisions=source_revisions,
+        zone=zone,
+        zone_name=zone_name,
+        target_name=target_name,
+        target_kind=target_kind,
+        canonical_ingress_edge_id=ingress_edge_id,
+        canonical_ingress_from_zone=ingress_from_zone,
+        transport_id=transport_id,
+        route_evidence=route_evidence,
+        route_ready=False,
+    )
+
+
+def _source_fact_step(
+    *,
+    native: NativeObjective,
+    page: ParsedObjective,
+    site: str,
+    source_step_id: object,
+) -> tuple[Any, str]:
+    stable_step_id = _clean(source_step_id)
+    source_step = next(
+        (
+            step
+            for step in page.steps
+            if stable_step_id == f"{native.key}:{site}:step-{step.order:03d}"
+        ),
+        None,
+    )
+    if source_step is None:
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} references stale source step {stable_step_id!r}."
+        )
+    return source_step, stable_step_id
+
+
+def _contains_exact_text(text: str, value: str) -> bool:
+    return re.search(
+        rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])",
+        text,
+        re.IGNORECASE,
+    ) is not None
+
+
+def _immutable_enemy_instances(
+    matches: Iterable[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], ...] | None:
+    by_coordinates: dict[tuple[float, float, float], list[Mapping[str, Any]]] = {}
+    for point in matches:
+        by_coordinates.setdefault(_point_tuple(point), []).append(point)
+    selected: list[Mapping[str, Any]] = []
+    for coordinates in sorted(by_coordinates):
+        rows = by_coordinates[coordinates]
+        immutable = [row for row in rows if navigation_point_has_immutable_identity(row)]
+        destination_ids = {_clean(row.get("destination_id", "")) for row in immutable}
+        if len(destination_ids) != 1:
+            return None
+        destination_id = next(iter(destination_ids))
+        selected.append(
+            min(
+                (row for row in immutable if _clean(row.get("destination_id", "")) == destination_id),
+                key=lambda row: (
+                    _clean(row.get("raw_identity", "")),
+                    _point_spawn_ids(row),
+                    _clean(row.get("source", "")),
+                ),
+            )
+        )
+    destination_ids = [_clean(point.get("destination_id", "")) for point in selected]
+    if len(destination_ids) != len(set(destination_ids)):
+        return None
+    return tuple(sorted(selected, key=lambda point: _clean(point.get("destination_id", ""))))
+
+
+def _legacy_migration_candidate(
+    *,
+    action_id: str,
+    point: Mapping[str, Any],
+    zone_name: str,
+    enemy: str,
+    items: tuple[str, ...],
+    group_id: str,
+    source_action_span_ids: tuple[str, ...],
+    source_revisions: tuple[tuple[str, int], ...],
+    span_rows: tuple[tuple[str, SourceActionSpan, str, int], ...],
+) -> ObjectiveDestinationCandidate:
+    destination_id = _clean(point.get("destination_id", ""))
+    coordinate_support, coordinate_comparison = _coordinate_evidence(span_rows)
+    return ObjectiveDestinationCandidate(
+        candidate_id=_candidate_id(action_id, destination_id),
+        action_id=action_id,
+        source_action_span_ids=source_action_span_ids,
+        source_sites=tuple(site for site, _revision in source_revisions),
+        source_revisions=source_revisions,
+        coordinate_support=coordinate_support,
+        coordinate_comparison=coordinate_comparison,
+        action="fight",
+        items=items,
+        enemies=(enemy,),
+        result_relation="obtain-from",
+        destination_id=destination_id,
+        zone=int(point.get("zone", 0) or 0),
+        zone_name=zone_name,
+        target_name=enemy,
+        target_kind="enemy",
+        target_point=_point_tuple(point),
+        raw_identity=_clean(point.get("raw_identity", "")),
+        raw_spawn_ids=_point_spawn_ids(point),
+        cluster_policy_version=_clean(point.get("cluster_policy_version", "")),
+        evidence_level="reviewed-legacy-action-migration",
+        group_id=group_id,
+        metadata_class="legacy-action-migration",
+        transport_id="",
+        battlefield_id="",
+        label=f"{enemy} in {zone_name}",
+        arrival_instruction=(
+            f"Defeat {enemy} in {zone_name} to obtain {_format_items(items)}."
+        ),
+        route_ready=False,
+    )
+
+
+def _apply_legacy_action_migrations(
+    *,
+    native: NativeObjective,
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    reviewed_overrides: Mapping[str, Any] | None,
+    points: tuple[Mapping[str, Any], ...],
+    zone_names: Mapping[int, str],
+    ledger: tuple[ObjectiveActionLedgerRow, ...],
+    candidates: tuple[ObjectiveDestinationCandidate, ...],
+    groups: tuple[ObjectiveDestinationGroup, ...],
+) -> tuple[
+    tuple[ObjectiveActionLedgerRow, ...],
+    tuple[ObjectiveDestinationCandidate, ...],
+    tuple[ObjectiveDestinationGroup, ...],
+    tuple[LegacyDestinationOutcome, ...],
+]:
+    legacy_rows = _legacy_override_rows(reviewed_overrides, native)
+    if not legacy_rows:
+        return ledger, candidates, groups, ()
+    stable_rows: dict[str, Mapping[str, Any]] = {}
+    for raw in legacy_rows:
+        stable_id = _legacy_override_stable_id(native, raw)
+        if stable_id in stable_rows:
+            raise ObjectiveDestinationError(f"Duplicate legacy objective destination id {stable_id!r}.")
+        stable_rows[stable_id] = raw
+
+    migration_root = (
+        reviewed_overrides.get("legacy_action_migrations", {})
+        if isinstance(reviewed_overrides, Mapping)
+        else {}
+    )
+    if not isinstance(migration_root, Mapping):
+        raise ObjectiveDestinationError("legacy_action_migrations must be an object.")
+    raw_migration = migration_root.get(native.key)
+    if raw_migration is None:
+        return (
+            ledger,
+            candidates,
+            groups,
+            tuple(
+                _legacy_outcome(
+                    native=native,
+                    raw=raw,
+                    action_id="",
+                    classification="unresolved",
+                    reason="legacy-action-migration-required",
+                    source_revisions=tuple(
+                        sorted(
+                            (str(site), int(revision or 0))
+                            for site, revision in (
+                                raw.get("source_revisions", {}).items()
+                                if isinstance(raw.get("source_revisions"), Mapping)
+                                else ()
+                            )
+                        )
+                    ),
+                )
+                for _stable_id, raw in sorted(stable_rows.items())
+            ),
+        )
+    if not isinstance(raw_migration, Mapping):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} must be an object."
+        )
+
+    pages = _source_pages(bg, ffxiclopedia)
+    action_id = _clean(raw_migration.get("action_id", ""))
+    _validate_action_override_revisions(action_id, raw_migration, pages)
+    source_revisions = tuple(
+        (site, page.revision_id)
+        for site, page in pages.items()
+        if page is not None
+    )
+    if bg is None or ffxiclopedia is None:
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} requires both pinned source pages."
+        )
+    parent_index = next(
+        (index for index, row in enumerate(ledger) if row.action_id == action_id),
+        None,
+    )
+    parent_claim: tuple[ReconciledStep, ReconciledActionClaim] | None = next(
+        (
+            (step, claim)
+            for step in reconciled.steps
+            for claim in step.claims
+            if claim.stable_claim_id == action_id
+        ),
+        None,
+    )
+    if parent_index is None or parent_claim is None:
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} references stale action {action_id!r}."
+        )
+    parent = ledger[parent_index]
+    if (
+        _normalized_action(parent.action) != "fight"
+        or parent.status != "unresolved"
+        or parent.reason != "missing-action-target"
+        or parent.candidate_ids
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} no longer matches one targetless fight claim."
+        )
+    parent_step, parent_claim_row = parent_claim
+    span_rows = _span_rows(native, parent_step, parent_claim_row, bg, ffxiclopedia)
+
+    zone = int(raw_migration.get("zone", 0) or 0)
+    zone_name = _clean(raw_migration.get("zone_name", ""))
+    if zone <= 0 or _clean(zone_names.get(zone, "")).casefold() != zone_name.casefold():
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} has stale navigation zone metadata."
+        )
+    items = _strings(raw_migration.get("items"), "items", required=True)
+    legacy_source_step_ids = _strings(
+        raw_migration.get("legacy_source_step_ids"),
+        "legacy_source_step_ids",
+        required=True,
+    )
+    legacy_source_claim_ids = _strings(
+        raw_migration.get("legacy_source_claim_ids", []),
+        "legacy_source_claim_ids",
+    )
+    reconciled_step_ids = {step.stable_step_id for step in reconciled.steps}
+    reconciled_claim_ids = {
+        claim.stable_claim_id for step in reconciled.steps for claim in step.claims
+    }
+    if not set(legacy_source_step_ids).issubset(reconciled_step_ids) or not set(
+        legacy_source_claim_ids
+    ).issubset(reconciled_claim_ids):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} references stale reconciled evidence."
+        )
+    source_facts = raw_migration.get("source_facts")
+    if not isinstance(source_facts, Mapping) or set(source_facts) != {"bg", "ffxiclopedia"}:
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} lacks exact source fact maps."
+        )
+    expected_fact_fields = {
+        "bg": {"item_step_id", "farming_step_id"},
+        "ffxiclopedia": {
+            "item_step_id",
+            "drop_step_id",
+            "enemy_step_id",
+            "farming_zone_step_id",
+        },
+    }
+    fact_rows: dict[tuple[str, str], tuple[Any, str, str]] = {}
+    fact_suffixes = {
+        "item_step_id": "farming-items-fact-01",
+        "farming_step_id": "farming-claim-fact-01",
+        "drop_step_id": "farming-drop-fact-01",
+        "enemy_step_id": "farming-enemies-fact-01",
+        "farming_zone_step_id": "farming-zone-fact-01",
+    }
+    for site, page in (("bg", bg), ("ffxiclopedia", ffxiclopedia)):
+        site_facts = source_facts.get(site)
+        if not isinstance(site_facts, Mapping) or set(site_facts) != expected_fact_fields[site]:
+            raise ObjectiveDestinationError(
+                f"Legacy action migration for {native.key!r} has malformed {site} source facts."
+            )
+        for field in sorted(site_facts):
+            step, source_step_id = _source_fact_step(
+                native=native,
+                page=page,
+                site=site,
+                source_step_id=site_facts[field],
+            )
+            fact_rows[(site, field)] = (
+                step,
+                source_step_id,
+                f"{source_step_id}:{fact_suffixes[field]}",
+            )
+
+    mappings = raw_migration.get("mappings")
+    if not isinstance(mappings, list) or not mappings or any(
+        not isinstance(row, Mapping) for row in mappings
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} lacks mapping rows."
+        )
+    mapping_by_stable_id: dict[str, Mapping[str, Any]] = {}
+    configured_groups: list[tuple[str, str, Mapping[str, str]]] = []
+    for mapping in mappings:
+        short_id = _clean(mapping.get("legacy_override_id", "")).casefold()
+        stable_id = f"{native.key}:destination:{short_id}"
+        if not _STABLE_ID.fullmatch(short_id) or stable_id in mapping_by_stable_id:
+            raise ObjectiveDestinationError(
+                f"Legacy action migration for {native.key!r} repeats or malforms an override id."
+            )
+        mapping_by_stable_id[stable_id] = mapping
+        raw_groups = mapping.get("enemy_groups")
+        if not isinstance(raw_groups, list) or not raw_groups or any(
+            not isinstance(group, Mapping) for group in raw_groups
+        ):
+            raise ObjectiveDestinationError(
+                f"Legacy action migration mapping {short_id!r} lacks enemy groups."
+            )
+        for raw_group in raw_groups:
+            group_short_id = _clean(raw_group.get("id", "")).casefold()
+            enemy = _clean(raw_group.get("enemy", ""))
+            mentions = raw_group.get("source_mentions")
+            if (
+                not _STABLE_ID.fullmatch(group_short_id)
+                or not enemy
+                or not isinstance(mentions, Mapping)
+                or set(mentions) != {"bg", "ffxiclopedia"}
+            ):
+                raise ObjectiveDestinationError(
+                    f"Legacy action migration mapping {short_id!r} has a malformed enemy group."
+                )
+            cleaned_mentions = {
+                site: _clean(value) for site, value in mentions.items()
+            }
+            if (
+                not all(cleaned_mentions.values())
+                or cleaned_mentions["bg"].casefold() != enemy.casefold()
+                or cleaned_mentions["ffxiclopedia"].casefold()
+                != re.sub(r"\s+quadav$", "", enemy, flags=re.IGNORECASE).casefold()
+            ):
+                raise ObjectiveDestinationError(
+                    f"Legacy action migration group {group_short_id!r} has stale source aliases."
+                )
+            configured_groups.append((group_short_id, enemy, cleaned_mentions))
+    if set(mapping_by_stable_id).difference(stable_rows):
+        unknown = sorted(set(mapping_by_stable_id).difference(stable_rows))[0]
+        raise ObjectiveDestinationError(
+            f"Legacy action migration references unknown override {unknown!r}."
+        )
+    group_ids = [row[0] for row in configured_groups]
+    enemy_names = [row[1].casefold() for row in configured_groups]
+    if len(group_ids) != len(set(group_ids)) or len(enemy_names) != len(set(enemy_names)):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} repeats an enemy group."
+        )
+
+    all_enemies = tuple(row[1] for row in configured_groups)
+    item_keys = {item.casefold() for item in items}
+    bg_item_step = fact_rows[("bg", "item_step_id")][0]
+    ffxi_item_step = fact_rows[("ffxiclopedia", "item_step_id")][0]
+    if not item_keys.issubset(
+        {_clean(value).casefold() for value in (*bg_item_step.items, *bg_item_step.linked_entities)}
+    ) or not item_keys.issubset(
+        {_clean(value).casefold() for value in (*ffxi_item_step.items, *ffxi_item_step.linked_entities)}
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} item facts no longer match both sources."
+        )
+    bg_farming_step = fact_rows[("bg", "farming_step_id")][0]
+    bg_entities = {_clean(value).casefold() for value in bg_farming_step.linked_entities}
+    if (
+        bg_farming_step.action != "fight"
+        or tuple(value.casefold() for value in bg_farming_step.zone_candidates)
+        != (zone_name.casefold(),)
+        or not {enemy.casefold() for enemy in all_enemies}.issubset(bg_entities)
+        or re.search(r"\bkill\b.*\bdrop\b.*\bfetich pieces\b", bg_farming_step.spoken_text, re.IGNORECASE)
+        is None
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} BG farming fact is stale."
+        )
+    ffxi_drop_step = fact_rows[("ffxiclopedia", "drop_step_id")][0]
+    ffxi_enemy_step = fact_rows[("ffxiclopedia", "enemy_step_id")][0]
+    ffxi_zone_step = fact_rows[("ffxiclopedia", "farming_zone_step_id")][0]
+    if (
+        ffxi_drop_step.action != "note"
+        or ffxi_drop_step.action_spans
+        or re.search(r"\bdrop from\b.*\bquadav\b", ffxi_drop_step.spoken_text, re.IGNORECASE)
+        is None
+        or ffxi_enemy_step.action != "note"
+        or ffxi_enemy_step.action_spans
+        or ffxi_zone_step.action != "note"
+        or ffxi_zone_step.action_spans
+        or tuple(value.casefold() for value in ffxi_zone_step.zone_candidates)
+        != (zone_name.casefold(),)
+        or re.search(r"\bgreat place for farming\b.*\bquadav\b", ffxi_zone_step.spoken_text, re.IGNORECASE)
+        is None
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} FFXIclopedia facts are stale."
+        )
+    for _group_short_id, _enemy, mentions in configured_groups:
+        if not _contains_exact_text(bg_farming_step.spoken_text, mentions["bg"]) or not _contains_exact_text(
+            ffxi_enemy_step.spoken_text, mentions["ffxiclopedia"]
+        ):
+            raise ObjectiveDestinationError(
+                f"Legacy action migration for {native.key!r} enemy facts are stale."
+            )
+
+    base_fact_ids = tuple(
+        row[2]
+        for _key, row in sorted(fact_rows.items())
+    )
+    support_ids = tuple(dict.fromkeys((*parent.source_action_span_ids, *base_fact_ids)))
+    consumed_source_steps = {row[1] for row in fact_rows.values()}
+    updated_ledger: list[ObjectiveActionLedgerRow] = []
+    for row in ledger:
+        if row.action_id == action_id:
+            updated_ledger.append(row)
+            continue
+        retained_source_ids = tuple(
+            source_id
+            for source_id in row.source_action_span_ids
+            if not (
+                source_id.endswith(":context")
+                and source_id.removesuffix(":context") in consumed_source_steps
+            )
+        )
+        if retained_source_ids:
+            updated_ledger.append(replace(row, source_action_span_ids=retained_source_ids))
+
+    new_candidates: list[ObjectiveDestinationCandidate] = []
+    new_groups: list[ObjectiveDestinationGroup] = []
+    outcomes: list[LegacyDestinationOutcome] = []
+    group_rows_by_mapping: dict[str, list[tuple[str, str, Mapping[str, str]]]] = {}
+    for stable_id, mapping in mapping_by_stable_id.items():
+        group_rows_by_mapping[stable_id] = []
+        for raw_group in mapping["enemy_groups"]:
+            group_short_id = _clean(raw_group.get("id", "")).casefold()
+            group_rows_by_mapping[stable_id].append(
+                next(row for row in configured_groups if row[0] == group_short_id)
+            )
+
+    for stable_id, raw in sorted(stable_rows.items()):
+        mapping = mapping_by_stable_id.get(stable_id)
+        if mapping is None:
+            outcomes.append(
+                _legacy_outcome(
+                    native=native,
+                    raw=raw,
+                    action_id="",
+                    classification="unresolved",
+                    reason="legacy-action-migration-required",
+                    source_revisions=tuple(
+                        sorted(
+                            (str(site), int(revision or 0))
+                            for site, revision in (
+                                raw.get("source_revisions", {}).items()
+                                if isinstance(raw.get("source_revisions"), Mapping)
+                                else ()
+                            )
+                        )
+                    ),
+                )
+            )
+            continue
+        mapped_groups = group_rows_by_mapping[stable_id]
+        raw_revisions = raw.get("source_revisions")
+        raw_source_step_ids = _strings(raw.get("source_step_ids", []), "source_step_ids")
+        raw_source_claim_ids = _strings(raw.get("source_claim_ids", []), "source_claim_ids")
+        raw_items = _strings(raw.get("items", []), "items")
+        raw_enemies = _strings(raw.get("enemies", []), "enemies")
+        raw_reference = raw.get("reference")
+        if (
+            not isinstance(raw_revisions, Mapping)
+            or {str(site): int(revision or 0) for site, revision in raw_revisions.items()}
+            != dict(source_revisions)
+            or _clean(raw.get("action", "")).casefold() != "farm"
+            or raw_source_step_ids != legacy_source_step_ids
+            or raw_source_claim_ids != legacy_source_claim_ids
+            or {value.casefold() for value in raw_items} != item_keys
+            or tuple(value.casefold() for value in raw_enemies)
+            != tuple(enemy.casefold() for _group_id, enemy, _mentions in mapped_groups)
+            or int(raw.get("zone", 0) or 0) != zone
+            or _clean(raw.get("zone_name", "")).casefold() != zone_name.casefold()
+            or not isinstance(raw_reference, Mapping)
+            or _clean(raw_reference.get("kind", "")).casefold() != "enemy"
+            or _clean(raw_reference.get("name", "")).casefold()
+            not in {enemy.casefold() for _group_id, enemy, _mentions in mapped_groups}
+        ):
+            raise ObjectiveDestinationError(
+                f"Legacy action migration for {stable_id!r} no longer matches its legacy identity."
+            )
+
+        pending_candidates: list[ObjectiveDestinationCandidate] = []
+        pending_groups: list[ObjectiveDestinationGroup] = []
+        ambiguous = False
+        for group_short_id, enemy, _mentions in mapped_groups:
+            matches = tuple(
+                point
+                for point in points
+                if int(point.get("zone", 0) or 0) == zone
+                and _clean(point.get("name", "")).casefold() == enemy.casefold()
+                and _clean(point.get("kind", "")).casefold() == "enemy"
+            )
+            immutable = _immutable_enemy_instances(matches) if matches else ()
+            if not matches or immutable is None or not immutable:
+                ambiguous = True
+                break
+            group_id = f"{action_id}:group:{group_short_id}"
+            group_candidates = tuple(
+                _legacy_migration_candidate(
+                    action_id=action_id,
+                    point=point,
+                    zone_name=zone_name,
+                    enemy=enemy,
+                    items=items,
+                    group_id=group_id,
+                    source_action_span_ids=support_ids,
+                    source_revisions=source_revisions,
+                    span_rows=span_rows,
+                )
+                for point in immutable
+            )
+            pending_candidates.extend(group_candidates)
+            pending_groups.append(
+                ObjectiveDestinationGroup(
+                    group_id=group_id,
+                    action_id=action_id,
+                    zone=zone,
+                    zone_name=zone_name,
+                    candidate_ids=tuple(candidate.candidate_id for candidate in group_candidates),
+                    evidence_level="reviewed-legacy-action-migration",
+                    source_action_span_ids=support_ids,
+                    route_ready=False,
+                )
+            )
+        if ambiguous:
+            outcomes.append(
+                _legacy_outcome(
+                    native=native,
+                    raw=raw,
+                    action_id=action_id,
+                    classification="unresolved",
+                    reason="legacy-action-migration-catalogue-ambiguous",
+                    source_action_span_ids=support_ids,
+                    source_revisions=source_revisions,
+                )
+            )
+            continue
+        new_candidates.extend(pending_candidates)
+        new_groups.extend(pending_groups)
+        outcomes.append(
+            _legacy_outcome(
+                native=native,
+                raw=raw,
+                action_id=action_id,
+                classification="catalogue-candidate",
+                reason="migrated-to-action-candidates",
+                candidate_ids=tuple(candidate.candidate_id for candidate in pending_candidates),
+                group_ids=tuple(group.group_id for group in pending_groups),
+                source_action_span_ids=support_ids,
+                source_revisions=source_revisions,
+            )
+        )
+
+    all_candidates = tuple((*candidates, *new_candidates))
+    all_groups = tuple((*groups, *new_groups))
+    migrated_candidate_ids = tuple(candidate.candidate_id for candidate in new_candidates)
+    parent_position = next(
+        index for index, row in enumerate(updated_ledger) if row.action_id == action_id
+    )
+    updated_parent = updated_ledger[parent_position]
+    if migrated_candidate_ids:
+        updated_parent = replace(
+            updated_parent,
+            source_action_span_ids=support_ids,
+            status="catalogue-candidate",
+            reason="reviewed-legacy-action-migration",
+            candidate_ids=tuple((*updated_parent.candidate_ids, *migrated_candidate_ids)),
+        )
+    else:
+        updated_parent = replace(updated_parent, source_action_span_ids=support_ids)
+    updated_ledger[parent_position] = updated_parent
+    return (
+        tuple(updated_ledger),
+        all_candidates,
+        tuple(sorted(all_groups, key=lambda group: group.group_id)),
+        tuple(sorted(outcomes, key=lambda outcome: outcome.legacy_override_id)),
+    )
+
+
 def resolve_objective_actions(
     native: NativeObjective,
     reconciled: ReconciledObjective,
@@ -1428,6 +2210,27 @@ def resolve_objective_actions(
             )
         )
 
+    (
+        migrated_ledger,
+        migrated_candidates,
+        migrated_groups,
+        legacy_destination_outcomes,
+    ) = _apply_legacy_action_migrations(
+        native=native,
+        reconciled=reconciled,
+        bg=bg,
+        ffxiclopedia=ffxiclopedia,
+        reviewed_overrides=reviewed_overrides,
+        points=points,
+        zone_names=zone_names,
+        ledger=tuple(ledger),
+        candidates=tuple(candidates),
+        groups=tuple(groups),
+    )
+    ledger = list(migrated_ledger)
+    candidates = list(migrated_candidates)
+    groups = list(migrated_groups)
+
     action_ids = [row.action_id for row in ledger]
     if len(action_ids) != len(set(action_ids)):
         raise ObjectiveDestinationError("Objective action-resolution ledger contains duplicate action IDs.")
@@ -1469,6 +2272,10 @@ def resolve_objective_actions(
             ):
                 raise ObjectiveDestinationError("Objective destination group membership is inconsistent.")
             grouped_candidate_ids.add(candidate_id)
+        if not set(group.source_action_span_ids).issubset(
+            ledger_by_id[group.action_id].source_action_span_ids
+        ):
+            raise ObjectiveDestinationError("Objective destination group uses evidence outside its parent action.")
     expected_grouped = {candidate.candidate_id for candidate in candidates if candidate.group_id}
     if grouped_candidate_ids != expected_grouped:
         raise ObjectiveDestinationError("Grouped objective candidates are not conserved exactly once.")
@@ -1483,11 +2290,38 @@ def resolve_objective_actions(
             or not set(item.source_action_span_ids).issubset(parent.source_action_span_ids)
         ):
             raise ObjectiveDestinationError("Objective resolution review item has invalid provenance.")
+    outcome_ids = [outcome.legacy_override_id for outcome in legacy_destination_outcomes]
+    if len(outcome_ids) != len(set(outcome_ids)):
+        raise ObjectiveDestinationError("Legacy destination outcomes contain duplicate override IDs.")
+    if set(outcome_ids) != {
+        _legacy_override_stable_id(native, raw)
+        for raw in _legacy_override_rows(reviewed_overrides, native)
+    }:
+        raise ObjectiveDestinationError("Legacy destination overrides are not accounted exactly once.")
+    group_by_id = {group.group_id: group for group in groups}
+    for outcome in legacy_destination_outcomes:
+        if outcome.route_ready or outcome.classification not in {"catalogue-candidate", "unresolved"}:
+            raise ObjectiveDestinationError("Legacy destination outcome has an invalid route state.")
+        if outcome.classification == "catalogue-candidate":
+            if (
+                not outcome.action_id
+                or not outcome.candidate_ids
+                or not outcome.group_ids
+                or any(candidate_id not in candidate_by_id for candidate_id in outcome.candidate_ids)
+                or any(group_id not in group_by_id for group_id in outcome.group_ids)
+                or not set(outcome.source_action_span_ids).issubset(
+                    ledger_by_id[outcome.action_id].source_action_span_ids
+                )
+            ):
+                raise ObjectiveDestinationError("Migrated legacy destination outcome is inconsistent.")
+        elif outcome.candidate_ids or outcome.group_ids:
+            raise ObjectiveDestinationError("Unresolved legacy destination outcome has movement children.")
     return ObjectiveActionResolution(
         tuple(ledger),
         tuple(candidates),
         tuple(groups),
         tuple(review_items),
+        legacy_destination_outcomes,
     )
 
 
@@ -1509,7 +2343,7 @@ def _resolve_reviewed_objective_destinations_strict(
     edges = tuple(navigation_edges)
     results: list[ReviewedObjectiveDestination] = []
     seen_ids: set[str] = set()
-    for raw, legacy in rows:
+    for raw in rows:
         short_id = _clean(raw.get("id", "")).casefold()
         if not _STABLE_ID.fullmatch(short_id):
             raise ObjectiveDestinationError(
@@ -1591,62 +2425,28 @@ def _resolve_reviewed_objective_destinations_strict(
             and _clean(point.get("kind", "")).casefold() == target_kind
         ]
         destination_id = _clean(raw.get("destination_id", ""))
-        if legacy:
-            logical_matches = _logical_navigation_points(matches)
-            if len(logical_matches) != 1:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} resolves to "
-                    f"{len(logical_matches)} logical current nav points."
-                )
-            same_point = [
-                point
-                for point in matches
-                if _point_tuple(point) == _point_tuple(logical_matches[0])
-                and navigation_point_has_immutable_identity(point)
-            ]
-            immutable_ids = {
-                _clean(point.get("destination_id", "")) for point in same_point
-            }
-            if len(immutable_ids) != 1:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} lacks one immutable destination."
-                )
-            selected_id = next(iter(immutable_ids))
-            if destination_id and destination_id != selected_id:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} destination_id is stale."
-                )
-            destination_id = selected_id
-            selected_point = min(
-                (point for point in same_point if _clean(point.get("destination_id", "")) == selected_id),
-                key=lambda point: (
-                    _clean(point.get("raw_identity", "")),
-                    _clean(point.get("source", "")),
-                ),
+        if not destination_id:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination {stable_id!r} lacks immutable destination_id."
             )
-        else:
-            if not destination_id:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} lacks immutable destination_id."
-                )
-            immutable_matches = [
-                point for point in matches if navigation_point_has_immutable_identity(point)
-            ]
-            if not immutable_matches:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} has no immutable destination."
-                )
-            exact_id_matches = [
-                point
-                for point in immutable_matches
-                if _clean(point.get("destination_id", "")) == destination_id
-            ]
-            if len(exact_id_matches) != 1:
-                raise ObjectiveDestinationError(
-                    f"Reviewed objective destination {stable_id!r} destination_id does not match "
-                    "one current immutable point."
-                )
-            selected_point = exact_id_matches[0]
+        immutable_matches = [
+            point for point in matches if navigation_point_has_immutable_identity(point)
+        ]
+        if not immutable_matches:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination {stable_id!r} has no immutable destination."
+            )
+        exact_id_matches = [
+            point
+            for point in immutable_matches
+            if _clean(point.get("destination_id", "")) == destination_id
+        ]
+        if len(exact_id_matches) != 1:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination {stable_id!r} destination_id does not match "
+                "one current immutable point."
+            )
+        selected_point = exact_id_matches[0]
 
         target_point = _point_tuple(selected_point)
         raw_point = raw.get("target_point")
@@ -1738,7 +2538,7 @@ def resolve_reviewed_objective_destinations(
     navigation_zone_names: Mapping[int, str],
     navigation_edges: Iterable[Mapping[str, Any]] = (),
 ) -> tuple[ReviewedObjectiveDestination, ...]:
-    """Resolve current overrides while treating the legacy table as fail-closed input."""
+    """Resolve only immutable shared overrides; legacy rows are audit-only migration input."""
 
     rows = _override_rows(reviewed_overrides, native)
     if not rows:
@@ -1747,29 +2547,20 @@ def resolve_reviewed_objective_destinations(
     edges = tuple(navigation_edges)
     results: list[ReviewedObjectiveDestination] = []
     seen_ids: set[str] = set()
-    for raw, legacy in rows:
+    for raw in rows:
         isolated_overrides = {
-            (
-                "mission_destination_overrides"
-                if legacy
-                else "objective_destination_overrides"
-            ): {native.key: [raw]}
+            "objective_destination_overrides": {native.key: [raw]}
         }
-        try:
-            resolved = _resolve_reviewed_objective_destinations_strict(
-                native,
-                reconciled,
-                bg,
-                ffxiclopedia,
-                isolated_overrides,
-                points,
-                navigation_zone_names,
-                edges,
-            )
-        except ObjectiveDestinationError:
-            if legacy:
-                continue
-            raise
+        resolved = _resolve_reviewed_objective_destinations_strict(
+            native,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            isolated_overrides,
+            points,
+            navigation_zone_names,
+            edges,
+        )
         for row in resolved:
             if row.stable_id in seen_ids:
                 raise ObjectiveDestinationError(

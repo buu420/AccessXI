@@ -542,6 +542,84 @@
       "review_basis": "Pinned BG target-location fact plus exact raw LandSandBoat spawn identities"
     }
   },
+  "legacy_action_migrations": {
+    "mission:Bastok:3": {
+      "action_id": "mission:Bastok:3:step-006:claim-01",
+      "source_revisions": {
+        "bg": 754820,
+        "ffxiclopedia": 1748519
+      },
+      "zone": 143,
+      "zone_name": "Palborough Mines",
+      "items": [
+        "Fetich Head",
+        "Fetich Torso",
+        "Fetich Arms",
+        "Fetich Legs"
+      ],
+      "legacy_source_step_ids": [
+        "mission:Bastok:3:step-003",
+        "mission:Bastok:3:step-006"
+      ],
+      "legacy_source_claim_ids": [],
+      "source_facts": {
+        "bg": {
+          "item_step_id": "mission:Bastok:3:bg:step-002",
+          "farming_step_id": "mission:Bastok:3:bg:step-004"
+        },
+        "ffxiclopedia": {
+          "item_step_id": "mission:Bastok:3:ffxiclopedia:step-003",
+          "drop_step_id": "mission:Bastok:3:ffxiclopedia:step-004",
+          "enemy_step_id": "mission:Bastok:3:ffxiclopedia:step-005",
+          "farming_zone_step_id": "mission:Bastok:3:ffxiclopedia:step-006"
+        }
+      },
+      "mappings": [
+        {
+          "legacy_override_id": "palborough-lower-amber",
+          "enemy_groups": [
+            {
+              "id": "amber-quadav",
+              "enemy": "Amber Quadav",
+              "source_mentions": {
+                "bg": "Amber Quadav",
+                "ffxiclopedia": "Amber"
+              }
+            }
+          ]
+        },
+        {
+          "legacy_override_id": "palborough-upper-quadav",
+          "enemy_groups": [
+            {
+              "id": "greater-quadav",
+              "enemy": "Greater Quadav",
+              "source_mentions": {
+                "bg": "Greater Quadav",
+                "ffxiclopedia": "Greater"
+              }
+            },
+            {
+              "id": "onyx-quadav",
+              "enemy": "Onyx Quadav",
+              "source_mentions": {
+                "bg": "Onyx Quadav",
+                "ffxiclopedia": "Onyx"
+              }
+            },
+            {
+              "id": "veteran-quadav",
+              "enemy": "Veteran Quadav",
+              "source_mentions": {
+                "bg": "Veteran Quadav",
+                "ffxiclopedia": "Veteran"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
   "mission_destination_overrides": {
     "mission:Bastok:3": [
       {

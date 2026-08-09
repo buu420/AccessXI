@@ -113,6 +113,7 @@ class ObjectiveDestinationGroup:
     zone_name: str
     candidate_ids: tuple[str, ...]
     evidence_level: str
+    source_action_span_ids: tuple[str, ...] = ()
     route_ready: bool = False
 
 
@@ -129,11 +130,33 @@ class ObjectiveResolutionReviewItem:
 
 
 @dataclass(frozen=True, slots=True)
+class LegacyDestinationOutcome:
+    legacy_override_id: str
+    action_id: str
+    classification: str
+    reason: str
+    candidate_ids: tuple[str, ...]
+    group_ids: tuple[str, ...]
+    source_action_span_ids: tuple[str, ...]
+    source_revisions: tuple[tuple[str, int], ...]
+    zone: int
+    zone_name: str
+    target_name: str
+    target_kind: str
+    canonical_ingress_edge_id: int = 0
+    canonical_ingress_from_zone: int = 0
+    transport_id: str = ""
+    route_evidence: str = ""
+    route_ready: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class ObjectiveActionResolution:
     ledger: tuple[ObjectiveActionLedgerRow, ...]
     candidates: tuple[ObjectiveDestinationCandidate, ...]
     groups: tuple[ObjectiveDestinationGroup, ...]
     review_items: tuple[ObjectiveResolutionReviewItem, ...] = ()
+    legacy_destination_outcomes: tuple[LegacyDestinationOutcome, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

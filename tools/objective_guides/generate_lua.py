@@ -21,6 +21,7 @@ from .objective_destinations import (
 )
 from .model import NativeObjective, ParsedObjective, SourceActionSpan, SourceStep
 from .reconcile import (
+    LegacyDestinationOutcome,
     ReconciledActionClaim,
     ObjectiveActionLedgerRow,
     ObjectiveDestinationCandidate,
@@ -469,6 +470,7 @@ def _objective_group_lua(group: ObjectiveDestinationGroup) -> list[str]:
         f"        zone_name = {lua_quote(group.zone_name)},",
         f"        candidate_ids = {_lua_array(group.candidate_ids)},",
         f"        evidence_level = {lua_quote(group.evidence_level)},",
+        f"        source_action_span_ids = {_lua_array(group.source_action_span_ids)},",
         "        route_ready = false,",
         "      },",
     ]
@@ -543,6 +545,36 @@ def _objective_group_review_row(
         "candidate_ids": list(group.candidate_ids),
         "candidate_count": len(group.candidate_ids),
         "evidence_level": group.evidence_level,
+        "source_action_span_ids": list(group.source_action_span_ids),
+        "route_ready": False,
+    }
+
+
+def _legacy_destination_outcome_review_row(
+    native_key: str,
+    outcome: LegacyDestinationOutcome,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "legacy_override_id": outcome.legacy_override_id,
+        "action_id": outcome.action_id,
+        "classification": outcome.classification,
+        "reason": outcome.reason,
+        "candidate_ids": list(outcome.candidate_ids),
+        "candidate_count": len(outcome.candidate_ids),
+        "group_ids": list(outcome.group_ids),
+        "source_action_span_ids": list(outcome.source_action_span_ids),
+        "source_revisions": dict(outcome.source_revisions),
+        "legacy_review_metadata": {
+            "zone": outcome.zone,
+            "zone_name": outcome.zone_name,
+            "target_name": outcome.target_name,
+            "target_kind": outcome.target_kind,
+            "canonical_ingress_edge_id": outcome.canonical_ingress_edge_id,
+            "canonical_ingress_from_zone": outcome.canonical_ingress_from_zone,
+            "transport_id": outcome.transport_id,
+            "route_evidence": outcome.route_evidence,
+        },
         "route_ready": False,
     }
 
@@ -1427,6 +1459,59 @@ def build_guide_artifacts(
         _license_id(revision)
 
     native_by_key = {native.key: native for native in natives}
+    legacy_override_root = (
+        reviewed_overrides.get("mission_destination_overrides", {})
+        if isinstance(reviewed_overrides, Mapping)
+        else {}
+    )
+    legacy_migration_root = (
+        reviewed_overrides.get("legacy_action_migrations", {})
+        if isinstance(reviewed_overrides, Mapping)
+        else {}
+    )
+    if not isinstance(legacy_override_root, Mapping) or not isinstance(
+        legacy_migration_root, Mapping
+    ):
+        raise GenerationError("Legacy destination override sections must be objects.")
+    unknown_legacy_keys = set(legacy_override_root).difference(native_by_key)
+    unknown_migration_keys = set(legacy_migration_root).difference(legacy_override_root)
+    if unknown_legacy_keys:
+        raise GenerationError(
+            "Legacy destination overrides reference unknown native keys: "
+            + ", ".join(sorted(unknown_legacy_keys)[:5])
+        )
+    if unknown_migration_keys:
+        raise GenerationError(
+            "Legacy action migrations have no matching legacy override rows: "
+            + ", ".join(sorted(unknown_migration_keys)[:5])
+        )
+    empty_migration_keys = sorted(
+        native_key
+        for native_key in legacy_migration_root
+        if not isinstance(legacy_override_root.get(native_key), list)
+        or not legacy_override_root[native_key]
+    )
+    if empty_migration_keys:
+        raise GenerationError(
+            "Legacy action migrations have empty legacy override lists: "
+            + ", ".join(empty_migration_keys[:5])
+        )
+    expected_legacy_outcome_ids: set[str] = set()
+    for native_key, raw_rows in legacy_override_root.items():
+        if native_by_key[native_key].kind != "mission" or not isinstance(raw_rows, list):
+            raise GenerationError(
+                f"Legacy destinations for {native_key!r} must be a mission list."
+            )
+        for raw in raw_rows:
+            if not isinstance(raw, Mapping):
+                raise GenerationError(
+                    f"Legacy destinations for {native_key!r} must contain objects."
+                )
+            short_id = str(raw.get("id", "")).strip().casefold()
+            stable_id = f"{native_key}:destination:{short_id}"
+            if not short_id or stable_id in expected_legacy_outcome_ids:
+                raise GenerationError(f"Legacy destination id {stable_id!r} is missing or duplicated.")
+            expected_legacy_outcome_ids.add(stable_id)
     source_maps: dict[str, dict[str, ParsedObjective]] = {}
     ambiguous_by_site: dict[str, set[str]] = {}
     reports: dict[str, MatchingReport] = {}
@@ -1455,6 +1540,7 @@ def build_guide_artifacts(
     target_review_candidates: list[dict[str, Any]] = []
     target_review_groups: list[dict[str, Any]] = []
     target_review_resolution_items: list[dict[str, Any]] = []
+    target_review_legacy_outcomes: list[dict[str, Any]] = []
     resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
@@ -1527,6 +1613,10 @@ def build_guide_artifacts(
             for item in action_resolution.review_items:
                 target_review_resolution_items.append(
                     _objective_review_item_row(native.key, item)
+                )
+            for outcome in action_resolution.legacy_destination_outcomes:
+                target_review_legacy_outcomes.append(
+                    _legacy_destination_outcome_review_row(native.key, outcome)
                 )
             try:
                 objective_destinations = resolve_reviewed_objective_destinations(
@@ -1734,6 +1824,12 @@ def build_guide_artifacts(
             "default_step_id": default_step_id,
             "route_ready": bool(route_steps),
             "reviewed_target_failures": list(reviewed_target_failures),
+            "legacy_destination_outcomes": [
+                _legacy_destination_outcome_review_row(native.key, outcome)
+                for outcome in (
+                    action_resolution.legacy_destination_outcomes if matched else ()
+                )
+            ],
             "automatic_stage": bool(automatic_stages),
         }
 
@@ -1744,6 +1840,19 @@ def build_guide_artifacts(
         sample = ", ".join(sorted(unresolved_reviewed_targets)[:5])
         raise GenerationError(
             f"Reviewed targets no longer resolve to current guide steps: {sample}"
+        )
+    actual_legacy_outcome_ids = [
+        row["legacy_override_id"] for row in target_review_legacy_outcomes
+    ]
+    if (
+        len(actual_legacy_outcome_ids) != len(set(actual_legacy_outcome_ids))
+        or set(actual_legacy_outcome_ids) != expected_legacy_outcome_ids
+    ):
+        missing = sorted(expected_legacy_outcome_ids.difference(actual_legacy_outcome_ids))
+        extra = sorted(set(actual_legacy_outcome_ids).difference(expected_legacy_outcome_ids))
+        raise GenerationError(
+            "Legacy destination outcome accounting mismatch; "
+            f"missing={missing[:5]}, extra={extra[:5]}."
         )
 
     module_root = Path(module_root)
@@ -1862,6 +1971,10 @@ def build_guide_artifacts(
             "objective_resolution_review_items": sorted(
                 target_review_resolution_items,
                 key=lambda row: (row["native_key"], row["review_id"]),
+            ),
+            "legacy_destination_outcomes": sorted(
+                target_review_legacy_outcomes,
+                key=lambda row: (row["native_key"], row["legacy_override_id"]),
             ),
             "objective_destinations": sorted(
                 target_review_objective_destinations,

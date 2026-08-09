@@ -148,9 +148,12 @@ def _span_supports_destination(
         "transport": "transport_mentions",
         "question-mark": "object_mentions",
     }.get(target_kind, "")
+    typed_mentions = tuple(getattr(span, kind_field)) if kind_field else ()
+    if not span.target and len({value.casefold() for value in typed_mentions}) > 1:
+        return False
     targets = {span.target.casefold()} if span.target else set()
     if kind_field:
-        targets.update(value.casefold() for value in getattr(span, kind_field))
+        targets.update(value.casefold() for value in typed_mentions)
     if target_name.casefold() not in targets:
         return False
     if zone_name.casefold() not in {value.casefold() for value in span.zone_mentions}:

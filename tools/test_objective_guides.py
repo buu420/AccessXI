@@ -1203,6 +1203,26 @@ class WikitextParserTests(unittest.TestCase):
             ("NPC B", ("West Ronfaure",), ("H-8",)),
         )
 
+    def test_link_occurrence_tracking_preserves_question_mark_spacing(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Linked Question Spacing",
+            page_id=9324,
+            revision_id=115,
+            parent_revision_id=114,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Talk to [[Cid]]??? then examine the ???[[Object]].\n"
+            ),
+        )
+
+        source_text = parse_objective_page(page).steps[0].source_text
+
+        self.assertEqual(source_text, "Talk to Cid??? then examine the??? Object.")
+        self.assertNotRegex(source_text, "[\ue000-\ue002]")
+
     def test_initialism_abbreviations_do_not_split_one_action_clause(self) -> None:
         for abbreviation in ("e.g.", "i.e."):
             with self.subTest(abbreviation=abbreviation):
@@ -1321,6 +1341,33 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(trade.zone_mentions, ("East Ronfaure",))
         self.assertEqual(talk.zone_mentions, ("West Ronfaure",))
 
+    def test_lowercase_sentence_after_contextual_abbreviation_does_not_leak(self) -> None:
+        for abbreviation in ("etc.", "N.M."):
+            for following_context in ("a cutscene occurs", "something happens"):
+                with self.subTest(
+                    abbreviation=abbreviation,
+                    following_context=following_context,
+                ):
+                    page = PageRevision(
+                        site="bg",
+                        api_url="https://www.bg-wiki.com/api.php",
+                        canonical_title="Lowercase Abbreviation Boundary",
+                        page_id=9322,
+                        revision_id=113,
+                        parent_revision_id=112,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=(
+                            "{{Quest Header}}\n==Walkthrough==\n"
+                            f"*Defeat [[Mob A]] in [[East Ronfaure]], {abbreviation} "
+                            f"{following_context} in [[West Ronfaure]].\n"
+                        ),
+                    )
+
+                    (fight,) = parse_objective_page(page).steps[0].action_spans
+
+                    self.assertEqual(fight.zone_mentions, ("East Ronfaure",))
+                    self.assertNotIn("West Ronfaure", fight.supporting_clause)
+
     def test_multi_initialism_is_terminal_only_before_new_sentence_context(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -1369,6 +1416,66 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(continuing_fight.zone_mentions, ("East Ronfaure",))
         self.assertEqual(continuing_talk.zone_mentions, ("West Ronfaure",))
 
+    def test_multi_initialism_before_exact_linked_target_stays_in_action_clause(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Linked Initialism Target",
+            page_id=9321,
+            revision_id=112,
+            parent_revision_id=111,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Defeat the N.M. [[Bugallug]] in [[Oldton Movalpolos]], then talk to "
+                "[[Cid]] in [[Metalworks]].\n"
+            ),
+        )
+
+        fight, talk = parse_objective_page(page).steps[0].action_spans
+
+        with self.subTest(action="fight"):
+            self.assertEqual(
+                (fight.target, fight.enemy_mentions, fight.zone_mentions),
+                ("Bugallug", ("Bugallug",), ("Oldton Movalpolos",)),
+            )
+        with self.subTest(action="talk"):
+            self.assertEqual(
+                (talk.target, talk.npc_mentions, talk.zone_mentions),
+                ("Cid", ("Cid",), ("Metalworks",)),
+            )
+
+    def test_example_initialism_before_exact_link_stays_in_action_clause(self) -> None:
+        for initialism in ("e.g.", "i.e."):
+            with self.subTest(initialism=initialism):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Linked Example Target",
+                    page_id=9323,
+                    revision_id=114,
+                    parent_revision_id=113,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Defeat an enemy, {initialism} [[Mob A]] in [[East Ronfaure]], "
+                        "then talk to [[NPC B]] in [[West Ronfaure]].\n"
+                    ),
+                )
+
+                fight, talk = parse_objective_page(page).steps[0].action_spans
+
+                with self.subTest(initialism=initialism, action="fight"):
+                    self.assertEqual(
+                        (fight.target, fight.enemy_mentions, fight.zone_mentions),
+                        ("Mob A", ("Mob A",), ("East Ronfaure",)),
+                    )
+                with self.subTest(initialism=initialism, action="talk"):
+                    self.assertEqual(
+                        (talk.target, talk.npc_mentions, talk.zone_mentions),
+                        ("NPC B", ("NPC B",), ("West Ronfaure",)),
+                    )
+
     def test_exact_clause_link_refines_decorated_target_without_cross_clause_borrowing(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -1401,6 +1508,18 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(unlinked_fight.target, "Lv. 75 foe")
         self.assertNotIn("NPC B", unlinked_fight.enemy_mentions)
         self.assertEqual(talk.target, "NPC B")
+
+        repeated_fight, repeated_talk = spans(
+            "Defeat the Lv. 75 Mob A in [[East Ronfaure]], then talk to [[Mob A]] in "
+            "[[West Ronfaure]]."
+        )
+        with self.subTest(action="unlinked-repeated-fight"):
+            self.assertEqual(
+                (repeated_fight.target, repeated_fight.enemy_mentions),
+                ("Lv. 75 Mob A", ("Lv. 75 Mob A",)),
+            )
+        with self.subTest(action="linked-repeated-talk"):
+            self.assertEqual(repeated_talk.target, "Mob A")
 
     def test_unlinked_sparkling_object_normalization_remains_consistent(self) -> None:
         page = PageRevision(
@@ -2964,6 +3083,76 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 native, reconciled, bg, ffxi, overrides, (point,), {100: "West Ronfaure"}
             )
 
+    def test_destination_rejects_lowercase_sentence_after_contextual_abbreviation(self) -> None:
+        native = NativeObjective(
+            "quest", "other_areas", 97, "Lowercase Abbreviation Boundary", "quests.dat", 0
+        )
+
+        def resolve(abbreviation: str, following_context: str):
+            instruction = (
+                f"Defeat [[Mob A]] in [[East Ronfaure]], {abbreviation} "
+                f"{following_context} in [[West Ronfaure]]."
+            )
+
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title=native.title,
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 971)
+            ffxi = page("ffxiclopedia", 972)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": "unsafe-lowercase-abbreviation-context",
+                            "source_revisions": {"bg": 971, "ffxiclopedia": 972},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-01"],
+                            "action": "fight",
+                            "items": [],
+                            "enemies": ["Mob A"],
+                            "destination_id": "enemy:105:lowercase-context:fixture",
+                            "zone": 105,
+                            "zone_name": "West Ronfaure",
+                            "label": "Mob A in West Ronfaure",
+                            "reference": {"name": "Mob A", "kind": "enemy"},
+                            "arrival_instruction": "Defeat Mob A.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": 105,
+                "name": "Mob A",
+                "kind": "enemy",
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, (point,), {105: "West Ronfaure"}
+            )
+
+        for abbreviation in ("etc.", "N.M."):
+            for following_context in ("a cutscene occurs", "something happens"):
+                with self.subTest(
+                    abbreviation=abbreviation,
+                    following_context=following_context,
+                ), self.assertRaises(ObjectiveDestinationError):
+                    resolve(abbreviation, following_context)
+
     def test_destination_rejects_context_after_terminal_multi_initialism(self) -> None:
         native = NativeObjective(
             "quest", "other_areas", 95, "Terminal Multi Initialism", "quests.dat", 0
@@ -3040,6 +3229,218 @@ class ObjectiveDestinationTests(unittest.TestCase):
             ):
                 resolve(instruction, grid)
 
+    def test_destination_keeps_linked_initialism_target_claim_local(self) -> None:
+        native = NativeObjective(
+            "quest", "other_areas", 96, "Linked Initialism Target", "quests.dat", 0
+        )
+        instruction = (
+            "Defeat the N.M. [[Bugallug]] in [[Oldton Movalpolos]], then talk to "
+            "[[Cid]] in [[Metalworks]]."
+        )
+
+        def page(site: str, page_id: int) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title=native.title,
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                )
+            )
+
+        bg = page("bg", 961)
+        ffxi = page("ffxiclopedia", 962)
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+
+        def resolve(
+            *, claim_order: int, action: str, target: str, kind: str, zone: int, zone_name: str
+        ):
+            enemies = [target] if action == "fight" else []
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": f"linked-initialism-{action}-{zone}",
+                            "source_revisions": {"bg": 961, "ffxiclopedia": 962},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-{claim_order:02d}"],
+                            "action": action,
+                            "items": [],
+                            "enemies": enemies,
+                            "destination_id": f"{kind}:{zone}:linked-initialism:fixture",
+                            "zone": zone,
+                            "zone_name": zone_name,
+                            "label": f"{target} in {zone_name}",
+                            "reference": {"name": target, "kind": kind},
+                            "arrival_instruction": f"{action.title()} {target}.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": zone,
+                "name": target,
+                "kind": kind,
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (point,),
+                {zone: zone_name},
+            )
+
+        with self.subTest(route="fight-correct"):
+            fight_rows = resolve(
+                claim_order=1,
+                action="fight",
+                target="Bugallug",
+                kind="enemy",
+                zone=103,
+                zone_name="Oldton Movalpolos",
+            )
+            self.assertEqual(fight_rows[0].target_name, "Bugallug")
+
+        with self.subTest(route="talk-correct"):
+            talk_rows = resolve(
+                claim_order=2,
+                action="talk",
+                target="Cid",
+                kind="npc",
+                zone=104,
+                zone_name="Metalworks",
+            )
+            self.assertEqual(talk_rows[0].target_name, "Cid")
+
+        for claim_order, action, target, kind, zone, zone_name in (
+            (1, "fight", "Bugallug", "enemy", 104, "Metalworks"),
+            (2, "talk", "Cid", "npc", 103, "Oldton Movalpolos"),
+        ):
+            with self.subTest(action=action, zone_name=zone_name), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                resolve(
+                    claim_order=claim_order,
+                    action=action,
+                    target=target,
+                    kind=kind,
+                    zone=zone,
+                    zone_name=zone_name,
+                )
+
+    def test_destination_keeps_example_initialism_target_claim_local(self) -> None:
+        native = NativeObjective(
+            "quest", "other_areas", 98, "Linked Example Target", "quests.dat", 0
+        )
+
+        def resolve(initialism: str, *, claim_order: int, action: str, target: str, kind: str,
+                    zone: int, zone_name: str):
+            instruction = (
+                f"Defeat an enemy, {initialism} [[Mob A]] in [[East Ronfaure]], then "
+                "talk to [[NPC B]] in [[West Ronfaure]]."
+            )
+
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title=native.title,
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 981)
+            ffxi = page("ffxiclopedia", 982)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            enemies = [target] if action == "fight" else []
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": f"example-initialism-{initialism.replace('.', '')}-{action}-{zone}",
+                            "source_revisions": {"bg": 981, "ffxiclopedia": 982},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-{claim_order:02d}"],
+                            "action": action,
+                            "items": [],
+                            "enemies": enemies,
+                            "destination_id": f"{kind}:{zone}:example-initialism:fixture",
+                            "zone": zone,
+                            "zone_name": zone_name,
+                            "label": f"{target} in {zone_name}",
+                            "reference": {"name": target, "kind": kind},
+                            "arrival_instruction": f"{action.title()} {target}.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": zone,
+                "name": target,
+                "kind": kind,
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, (point,), {zone: zone_name}
+            )
+
+        for initialism in ("e.g.", "i.e."):
+            with self.subTest(initialism=initialism, route="fight-correct"):
+                self.assertEqual(
+                    resolve(
+                        initialism,
+                        claim_order=1,
+                        action="fight",
+                        target="Mob A",
+                        kind="enemy",
+                        zone=106,
+                        zone_name="East Ronfaure",
+                    )[0].target_name,
+                    "Mob A",
+                )
+            with self.subTest(initialism=initialism, route="talk-correct"):
+                self.assertEqual(
+                    resolve(
+                        initialism,
+                        claim_order=2,
+                        action="talk",
+                        target="NPC B",
+                        kind="npc",
+                        zone=107,
+                        zone_name="West Ronfaure",
+                    )[0].target_name,
+                    "NPC B",
+                )
+            with self.subTest(initialism=initialism, route="talk-wrong-zone"):
+                with self.assertRaises(ObjectiveDestinationError):
+                    resolve(
+                        initialism,
+                        claim_order=2,
+                        action="talk",
+                        target="NPC B",
+                        kind="npc",
+                        zone=106,
+                        zone_name="East Ronfaure",
+                    )
+
     def test_destination_uses_only_exact_linked_target_from_selected_clause(self) -> None:
         native = NativeObjective("quest", "other_areas", 94, "Linked Target", "quests.dat", 0)
 
@@ -3113,6 +3514,24 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 "[[West Ronfaure]].",
                 "NPC B",
             )
+
+        with self.subTest(case="repeated-later-link"), self.assertRaises(
+            ObjectiveDestinationError
+        ):
+            resolve(
+                "Defeat the Lv. 75 Mob A in [[East Ronfaure]], then talk to [[Mob A]] in "
+                "[[West Ronfaure]].",
+                "Mob A",
+            )
+
+        for ambiguous_target in ("Mob A", "Mob B"):
+            with self.subTest(ambiguous_target=ambiguous_target), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                resolve(
+                    "Defeat [[Mob A]] and [[Mob B]] in [[East Ronfaure]].",
+                    ambiguous_target,
+                )
 
     def test_destination_accepts_exact_punctuated_target_identities(self) -> None:
         cases = (

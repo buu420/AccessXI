@@ -177,15 +177,23 @@ def _wikilink_label(link: Wikilink) -> str:
 
 def _render_fragment(
     fragment: str,
-) -> tuple[str, tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+) -> tuple[
+    str,
+    tuple[str, ...],
+    tuple[tuple[str, int, int], ...],
+    tuple[str, ...],
+    tuple[str, ...],
+    tuple[str, ...],
+]:
     code = mwparserfromhell.parse(fragment)
     warnings: list[str] = []
     links: list[str] = []
     for link in list(code.filter_wikilinks(recursive=True)):
         label = _wikilink_label(link)
         if label:
+            link_index = len(links)
             links.append(label)
-            code.replace(link, label)
+            code.replace(link, f"\ue000{link_index}\ue001{label}\ue002")
         else:
             code.replace(link, "")
 
@@ -204,10 +212,28 @@ def _render_fragment(
     rendered = _clean(code.strip_code(normalize=True, collapse=True))
     rendered = re.sub(r"(?<=[A-Za-z0-9])(\?{3})", r" \1", rendered)
     rendered = re.sub(r"(\?{3})(?=[A-Za-z0-9])", r"\1 ", rendered)
+    rendered = re.sub(r"(\?{3})(?=\ue000\d+\ue001[A-Za-z0-9])", r"\1 ", rendered)
     rendered = re.sub(r"\s+([,.;:!?])", r"\1", rendered)
+    plain_parts: list[str] = []
+    link_occurrences: list[tuple[str, int, int]] = []
+    cursor = 0
+    plain_length = 0
+    for marker in re.finditer(r"\ue000(\d+)\ue001(.*?)\ue002", rendered):
+        prefix = rendered[cursor : marker.start()]
+        plain_parts.append(prefix)
+        plain_length += len(prefix)
+        link_index = int(marker.group(1))
+        label = marker.group(2)
+        plain_parts.append(label)
+        link_occurrences.append((links[link_index], plain_length, plain_length + len(label)))
+        plain_length += len(label)
+        cursor = marker.end()
+    plain_parts.append(rendered[cursor:])
+    rendered = "".join(plain_parts)
     return (
         rendered,
         _unique(links),
+        tuple(link_occurrences),
         _unique(locations),
         _unique((*map_labels, *_extract_map_numbers(rendered))),
         _unique(warnings),
@@ -294,11 +320,18 @@ _ACTION_MATCH = re.compile(
 
 _NAME_ABBREVIATIONS = frozenset({"dr", "mr", "mrs", "ms"})
 _NUMERIC_ABBREVIATIONS = frozenset({"lv", "no"})
-_NEW_SENTENCE_CONTEXT = re.compile(
-    r"(?:a|an|the)\s+(?:cutscene|event|scene)\b|"
+_NEW_SENTENCE_EVENT = re.compile(
+    r"(?:a|an|the)\s+(?:cutscene|event|scene)\b",
+    re.IGNORECASE,
+)
+_NEW_SENTENCE_LEADER = re.compile(
     r"(?:at|in|on|inside|outside|near|from)\b|"
     r"(?:talk|speak|defeat|kill|slay|trade|obtain|receive|collect|examine|check|inspect|"
     r"touch|use|select|return|report|visit|go|travel|enter|exit|leave)\b",
+    re.IGNORECASE,
+)
+_PROVEN_ABBREVIATION_CONTINUATION = re.compile(
+    r"(?:details?|encounters?|in|to)\b",
     re.IGNORECASE,
 )
 
@@ -348,16 +381,41 @@ def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
     )
 
 
+def _links_in_range(
+    link_occurrences: tuple[tuple[str, int, int], ...],
+    start: int,
+    end: int,
+) -> tuple[str, ...]:
+    return _unique(
+        value
+        for value, link_start, link_end in link_occurrences
+        if start <= link_start and link_end <= end
+    )
+
+
+def _links_in_match(
+    link_occurrences: tuple[tuple[str, int, int], ...],
+    offset: int,
+    match: re.Match[str],
+    group: int,
+) -> tuple[str, ...]:
+    return _links_in_range(
+        link_occurrences,
+        offset + match.start(group),
+        offset + match.end(group),
+    )
+
+
 def _refine_linked_target(
     raw_target: str,
-    clause_links: tuple[str, ...],
+    target_links: tuple[str, ...],
     excluded_links: tuple[str, ...],
 ) -> tuple[str, tuple[str, ...]]:
     target = _trim_target(raw_target)
     excluded = {value.casefold() for value in excluded_links}
     candidates = tuple(
         value
-        for value in _values_in_clause(clause_links, raw_target)
+        for value in target_links
         if value.casefold() not in excluded
     )
     if len(candidates) == 1:
@@ -367,11 +425,16 @@ def _refine_linked_target(
     return target, ((target,) if target else ())
 
 
-def _period_is_internal_abbreviation(value: str, end: int) -> bool:
+def _period_is_internal_abbreviation(
+    value: str,
+    end: int,
+    *,
+    next_is_exact_link: bool,
+) -> bool:
     continuation = value[end:].lstrip()
-    if not continuation or (
-        continuation[0].isupper() and _NEW_SENTENCE_CONTEXT.match(continuation)
-    ):
+    if not continuation or _NEW_SENTENCE_EVENT.match(continuation):
+        return False
+    if continuation[0].isupper() and _NEW_SENTENCE_LEADER.match(continuation):
         return False
 
     initialism = re.search(
@@ -380,7 +443,23 @@ def _period_is_internal_abbreviation(value: str, end: int) -> bool:
     )
     if initialism:
         token = initialism.group(1).casefold()
-        if continuation[0].islower():
+        if next_is_exact_link:
+            prefix = value[:end]
+            if token in {"e.g.", "i.e."} and re.search(
+                r"(?:^\s+(?:an?\s+)?enemy|\b(?:defeat|fight|kill|slay|destroy)\b[^.!?]*)"
+                r",\s*(?:e\.g\.|i\.e\.)$",
+                prefix,
+                re.IGNORECASE,
+            ):
+                return True
+            if re.search(
+                r"(?:^|\b(?:defeat|fight|kill|slay|destroy))\s+(?:the\s+)?"
+                r"(?:[A-Za-z]\.){2,}$",
+                prefix,
+                re.IGNORECASE,
+            ):
+                return True
+        if _PROVEN_ABBREVIATION_CONTINUATION.match(continuation):
             return True
         if token in {"e.g.", "i.e."} and re.match(
             r"[^.!?]*,\s*(?:to|in|at|on)\b",
@@ -399,11 +478,16 @@ def _period_is_internal_abbreviation(value: str, end: int) -> bool:
     if token in _NAME_ABBREVIATIONS:
         return re.match(r"[A-Z][A-Za-z'-]+\b", continuation) is not None
     if token == "etc":
-        return continuation[0].islower()
+        return _PROVEN_ABBREVIATION_CONTINUATION.match(continuation) is not None
     return False
 
 
-def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
+def _strong_sentence_boundaries(
+    value: str,
+    *,
+    text_offset: int = 0,
+    link_occurrences: tuple[tuple[str, int, int], ...] = (),
+) -> tuple[tuple[int, int], ...]:
     boundaries: list[tuple[int, int]] = []
     for match in re.finditer(r"[.!?]+", value):
         start, end = match.span()
@@ -422,7 +506,18 @@ def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
                 and value[end].isdigit()
             ):
                 continue
-            if _period_is_internal_abbreviation(value, end):
+            continuation_start = end
+            while continuation_start < len(value) and value[continuation_start].isspace():
+                continuation_start += 1
+            next_is_exact_link = any(
+                link_start == text_offset + continuation_start
+                for _label, link_start, _link_end in link_occurrences
+            )
+            if _period_is_internal_abbreviation(
+                value,
+                end,
+                next_is_exact_link=next_is_exact_link,
+            ):
                 continue
         boundary_start = start
         if len(run) > 1 and run[-1] in ".!" and (
@@ -437,7 +532,7 @@ def _extract_action_spans(
     text: str,
     *,
     source_step_order: int,
-    links: tuple[str, ...],
+    link_occurrences: tuple[tuple[str, int, int], ...],
     zones: tuple[str, ...],
     maps: tuple[str, ...],
     coordinates: tuple[str, ...],
@@ -465,7 +560,10 @@ def _extract_action_spans(
     if matches:
         clause_starts[0] = 0
         leading = text[: matches[0].start()]
-        strong_boundaries = _strong_sentence_boundaries(leading)
+        strong_boundaries = _strong_sentence_boundaries(
+            leading,
+            link_occurrences=link_occurrences,
+        )
         subordinate = re.match(
             r"\s*(?:after|before|while|upon|once)\s+(?:talking|speaking|visiting|defeating|fighting|"
             r"killing|examining|touching|using|entering|exiting|travelling|traveling)\b",
@@ -479,7 +577,11 @@ def _extract_action_spans(
             clause_starts[0] = punctuation[-1].end()
     for index in range(1, len(matches)):
         between = text[matches[index - 1].end() : matches[index].start()]
-        strong_boundaries = _strong_sentence_boundaries(between)
+        strong_boundaries = _strong_sentence_boundaries(
+            between,
+            text_offset=matches[index - 1].end(),
+            link_occurrences=link_occurrences,
+        )
         if strong_boundaries:
             first_boundary = strong_boundaries[0]
             last_boundary = strong_boundaries[-1]
@@ -511,7 +613,11 @@ def _extract_action_spans(
             suppressed_location_evidence.add(index - 1)
     for index, match in enumerate(matches):
         trailing_start = match.end()
-        boundaries = _strong_sentence_boundaries(text[trailing_start : clause_ends[index]])
+        boundaries = _strong_sentence_boundaries(
+            text[trailing_start : clause_ends[index]],
+            text_offset=trailing_start,
+            link_occurrences=link_occurrences,
+        )
         if boundaries:
             clause_ends[index] = trailing_start + boundaries[0][0]
     spans: list[SourceActionSpan] = []
@@ -539,7 +645,6 @@ def _extract_action_spans(
             clause_coordinates = ()
         clause_marked_items = _values_in_clause(marked_items, raw_clause)
         clause_key_items = _values_in_clause(key_items, raw_clause)
-        clause_links = _values_in_clause(links, raw_clause)
         excluded_target_links = _unique((*clause_zones, *clause_marked_items, *clause_key_items))
         target = ""
         target_kind = ""
@@ -560,7 +665,9 @@ def _extract_action_spans(
             if trade:
                 item = _trim_target(trade.group(1))
                 target, npc_mentions = _refine_linked_target(
-                    trade.group(2), clause_links, excluded_target_links
+                    trade.group(2),
+                    _links_in_match(link_occurrences, match.end(), trade, 2),
+                    excluded_target_links,
                 )
                 item_mentions = (item,) if item else ()
                 target_kind = "npc"
@@ -579,7 +686,9 @@ def _extract_action_spans(
                 )
             if talked:
                 target, npc_mentions = _refine_linked_target(
-                    talked.group(1), clause_links, excluded_target_links
+                    talked.group(1),
+                    _links_in_match(link_occurrences, match.end(), talked, 1),
+                    excluded_target_links,
                 )
             if target.casefold() in {"him", "her", "them", "it"}:
                 target_kind = "role"
@@ -588,14 +697,24 @@ def _extract_action_spans(
                 target_kind = "npc" if target or npc_mentions else ""
         elif action == "fight":
             fought = re.match(
-                r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
-                r"\s+and\s+(?:re-examine|examine|touch|click)\b|[;,]|$)",
+                r"\s+(?:an?\s+)?enemy\s*,\s*(?:e\.g\.|i\.e\.)\s+(.+?)"
+                r"(?=\s+(?:in|at|for)\b|[;,]|$)",
                 remainder,
                 re.IGNORECASE,
             )
+            if fought is None:
+                fought = re.match(
+                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|"
+                    r"\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
+                    r"\s+and\s+(?:re-examine|examine|touch|click)\b|[;,]|$)",
+                    remainder,
+                    re.IGNORECASE,
+                )
             if fought:
                 target, enemy_mentions = _refine_linked_target(
-                    fought.group(1), clause_links, excluded_target_links
+                    fought.group(1),
+                    _links_in_match(link_occurrences, match.end(), fought, 1),
+                    excluded_target_links,
                 )
             target_kind = "enemy" if target or enemy_mentions else ""
         elif action == "examine":
@@ -611,7 +730,13 @@ def _extract_action_spans(
                 object_mentions = (target,)
             else:
                 target, object_mentions = _refine_linked_target(
-                    raw_target, clause_links, excluded_target_links
+                    raw_target,
+                    (
+                        _links_in_match(link_occurrences, match.end(), examined, 1)
+                        if examined is not None
+                        else ()
+                    ),
+                    excluded_target_links,
                 )
                 target = re.sub(r"^sparkling\s+", "", target, flags=re.IGNORECASE)
                 if target:
@@ -650,7 +775,9 @@ def _extract_action_spans(
             used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[;,]|$)", remainder, re.IGNORECASE)
             if used:
                 target, object_mentions = _refine_linked_target(
-                    used.group(1), clause_links, excluded_target_links
+                    used.group(1),
+                    _links_in_match(link_occurrences, match.end(), used, 1),
+                    excluded_target_links,
                 )
             target_kind = "menu-choice" if action == "select" else "object"
             if action == "select":
@@ -1047,7 +1174,7 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
                 marker, fragment = "*", candidate
         if not fragment.strip():
             continue
-        rendered, links, locations, maps, warnings = _render_fragment(fragment)
+        rendered, links, link_occurrences, locations, maps, warnings = _render_fragment(fragment)
         if not rendered:
             continue
         coordinates = _extract_coordinates(rendered)
@@ -1058,7 +1185,7 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         action_spans = _extract_action_spans(
             rendered,
             source_step_order=len(steps) + 1,
-            links=links,
+            link_occurrences=link_occurrences,
             zones=typed_zones,
             maps=maps,
             coordinates=coordinates,

@@ -1017,6 +1017,61 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(spans[1].result_items, ("Orcish Axe",))
         self.assertEqual(spans[1].result_relation, "obtain-from")
 
+    def test_leading_location_evidence_belongs_to_the_first_action_clause(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Leading Evidence",
+            page_id=9302,
+            revision_id=93,
+            parent_revision_id=92,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*In [[East Ronfaure]] at (H-8) on map 1, defeat [[Orcish Fodder]].\n"
+            ),
+        )
+
+        span = parse_objective_page(page).steps[0].action_spans[0]
+
+        self.assertEqual(span.text_start, 0)
+        self.assertEqual(span.zone_mentions, ("East Ronfaure",))
+        self.assertEqual(span.grid_coordinates, ("H-8",))
+        self.assertEqual(span.map_numbers, ("1",))
+        self.assertTrue(span.supporting_clause.startswith("In East Ronfaure"))
+
+    def test_only_explicit_obtain_from_syntax_collapses_actions(self) -> None:
+        def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                site="ffxiclopedia",
+                api_url="https://ffxiclopedia.fandom.com/api.php",
+                canonical_title="Explicit Obtain Relation",
+                page_id=9303,
+                revision_id=94,
+                parent_revision_id=93,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        obtain_then_fight = spans(
+            "Obtain a [[Bronze Key]], then defeat the [[Gate Guardian]]."
+        )
+        self.assertEqual(
+            [(span.action, span.target) for span in obtain_then_fight],
+            [("obtain", "Bronze Key"), ("fight", "Gate Guardian")],
+        )
+        self.assertTrue(all(not span.result_relation for span in obtain_then_fight))
+
+        fight_then_obtain = spans(
+            "Defeat the [[Gate Guardian]], then obtain a [[Bronze Key]] from a chest."
+        )
+        self.assertEqual(
+            [(span.action, span.target) for span in fight_then_obtain],
+            [("fight", "Gate Guardian"), ("obtain", "Bronze Key")],
+        )
+        self.assertTrue(all(not span.result_relation for span in fight_then_obtain))
+
     def test_typed_mentions_keep_prose_zones_unlinked_objects_and_question_marks(self) -> None:
         page = PageRevision(
             site="bg",
@@ -1724,6 +1779,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             "id": "orcish-fodder-east-ronfaure",
             "source_revisions": {"bg": 4001, "ffxiclopedia": 4002},
             "source_step_ids": [f"{native.key}:step-001"],
+            "source_claim_ids": [f"{native.key}:step-001:claim-01"],
             "action": "obtain",
             "items": ["Orcish Axe"],
             "enemies": ["Orcish Fodder"],
@@ -1774,6 +1830,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
             self.assertIsInstance(rows[0], ReviewedObjectiveDestination)
             self.assertTrue(rows[0].stable_id.startswith(fixture[0].key + ":destination:"))
             self.assertEqual(rows[0].source_step_ids, (f"{fixture[0].key}:step-001",))
+            self.assertEqual(rows[0].source_claim_ids, (f"{fixture[0].key}:step-001:claim-01",))
             self.assertEqual(rows[0].destination_id, "camp:101:orcish-fodder:fixture-hash")
             self.assertEqual(rows[0].target_point, (123.0, 45.0, -2.0))
             self.assertEqual(
@@ -1815,7 +1872,12 @@ class ObjectiveDestinationTests(unittest.TestCase):
         self.assertNotIn("mission_destinations = {", reconcile)
         self.assertIn('["bg"] = 4001', reconcile)
         self.assertIn('["ffxiclopedia"] = 4002', reconcile)
+        self.assertIn(f'{native.key}:step-001:claim-01', reconcile)
         self.assertEqual(review["objective_destinations"][0]["native_key"], native.key)
+        self.assertEqual(
+            review["objective_destinations"][0]["source_claim_ids"],
+            [f"{native.key}:step-001:claim-01"],
+        )
         self.assertEqual(
             review["objective_destinations"][0]["source_revisions"],
             {"bg": 4001, "ffxiclopedia": 4002},
@@ -1903,6 +1965,125 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     (point,),
                     {101: "East Ronfaure"},
                 )
+
+    def test_destination_conflict_isolated_to_the_selected_claim(self) -> None:
+        native = NativeObjective("quest", "other_areas", 83, "Claim Isolation", "quests.dat", 0)
+
+        def page(site: str, page_id: int, second_target: str) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title="Claim Isolation",
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Talk to [[Alpha]] in [[East Ronfaure]], then talk to "
+                        f"[[{second_target}]] in [[West Ronfaure]].\n"
+                    ),
+                )
+            )
+
+        bg = page("bg", 831, "Beta")
+        ffxi = page("ffxiclopedia", 832, "Gamma")
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+        override = {
+            "id": "alpha-east-ronfaure",
+            "source_revisions": {"bg": 831, "ffxiclopedia": 832},
+            "source_step_ids": [step_id],
+            "source_claim_ids": [f"{step_id}:claim-01"],
+            "action": "talk",
+            "items": [],
+            "enemies": [],
+            "destination_id": "npc:101:alpha:fixture",
+            "zone": 101,
+            "zone_name": "East Ronfaure",
+            "label": "Alpha in East Ronfaure",
+            "reference": {"name": "Alpha", "kind": "npc"},
+            "arrival_instruction": "Talk to Alpha.",
+        }
+        overrides = {"objective_destination_overrides": {native.key: [override]}}
+        points = (
+            {"zone": 101, "name": "Alpha", "kind": "npc", "x": 1.0, "z": 2.0, "y": 3.0},
+        )
+
+        rows = resolve_reviewed_objective_destinations(
+            native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
+        )
+
+        self.assertEqual(rows[0].source_claim_ids, (f"{step_id}:claim-01",))
+        override["source_claim_ids"] = [f"{step_id}:claim-02"]
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
+            )
+
+    def test_destination_items_and_enemies_must_belong_to_the_selected_claim(self) -> None:
+        native = NativeObjective("quest", "other_areas", 84, "Claim Local Destination", "quests.dat", 0)
+
+        def page(site: str, page_id: int) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title="Claim Local Destination",
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        "*Defeat [[Orcish Fodder]] in [[East Ronfaure]], then trade "
+                        "an {{Item}}[[Scholar Stone]] to [[Cid]] in [[West Ronfaure]].\n"
+                    ),
+                )
+            )
+
+        bg = page("bg", 841)
+        ffxi = page("ffxiclopedia", 842)
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+        override = {
+            "id": "orcish-fodder-east-ronfaure",
+            "source_revisions": {"bg": 841, "ffxiclopedia": 842},
+            "source_step_ids": [step_id],
+            "source_claim_ids": [f"{step_id}:claim-01"],
+            "action": "fight",
+            "items": ["Scholar Stone"],
+            "enemies": ["Orcish Fodder"],
+            "destination_id": "enemy:101:orcish-fodder:fixture",
+            "zone": 101,
+            "zone_name": "East Ronfaure",
+            "label": "Orcish Fodder in East Ronfaure",
+            "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+            "arrival_instruction": "Defeat Orcish Fodder.",
+        }
+        overrides = {"objective_destination_overrides": {native.key: [override]}}
+        points = (
+            {
+                "zone": 101,
+                "name": "Orcish Fodder",
+                "kind": "enemy",
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            },
+        )
+
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
+            )
+
+        override["items"] = []
+        rows = resolve_reviewed_objective_destinations(
+            native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
+        )
+        self.assertEqual(rows[0].enemies, ("Orcish Fodder",))
 
     def test_destination_order_is_stable_and_native_qualified(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("quest")

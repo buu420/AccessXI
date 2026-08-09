@@ -286,7 +286,7 @@ def _extract_zone_mentions(
 
 _ACTION_MATCH = re.compile(
     r"\b(?P<verb>re-examine|examine|touch|click|inspect|check|trade|give|hand over|deliver|"
-    r"talk|speak|return to|report to|visit|defeat|defeating|fight|kill|killing|slay|destroy|obtain|receive|collect|"
+    r"talk|speak|return to|report to|visit|defeat|defeating|fight|kill|killing|slay|slaying|destroy|obtain|receive|collect|"
     r"purchase|go to|head to|travel to|enter|exit|zone into|proceed to|make your way to|"
     r"wait|use|activate|light|open|protect|select|choose|board)\b",
     re.IGNORECASE,
@@ -305,7 +305,7 @@ def _action_for_verb(verb: str) -> tuple[str, str]:
         return "talk", "talk-to"
     if key in {"trade", "give", "hand over", "deliver"}:
         return "trade", "trade-to"
-    if key in {"defeat", "defeating", "fight", "kill", "killing", "slay", "destroy"}:
+    if key in {"defeat", "defeating", "fight", "kill", "killing", "slay", "slaying", "destroy"}:
         return "fight", "defeat-enemy"
     if key in {"re-examine", "examine", "touch", "click", "inspect", "check"}:
         return "examine", "examine-object"
@@ -364,6 +364,18 @@ def _extract_action_spans(
             offset = warning_match.start()
             matches[-1] = _OffsetMatch(synthetic, offset)
     matches = sorted((match for match in matches if match is not None), key=lambda match: match.start())
+    clause_starts = [match.start() for match in matches]
+    clause_ends = [matches[index + 1].start() if index + 1 < len(matches) else len(text) for index in range(len(matches))]
+    if matches:
+        clause_starts[0] = 0
+    for index in range(1, len(matches)):
+        between = text[matches[index - 1].end() : matches[index].start()]
+        connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
+        if connectors:
+            connector = connectors[-1]
+            offset = matches[index - 1].end()
+            clause_ends[index - 1] = offset + connector.start()
+            clause_starts[index] = offset + connector.end()
     spans: list[SourceActionSpan] = []
     for index, match in enumerate(matches):
         verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)
@@ -375,8 +387,9 @@ def _extract_action_spans(
             "removes",
         }:
             action, relationship = "warning", "required-state-warning"
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        raw_clause = text[match.start() : end]
+        start = clause_starts[index]
+        end = clause_ends[index]
+        raw_clause = text[start:end]
         clause = _clean(raw_clause).strip(" ,")
         remainder = text[match.end() : end]
         clause_zones = _extract_zone_mentions(raw_clause)
@@ -452,7 +465,7 @@ def _extract_action_spans(
             object_mentions = (target,) if target else ()
         elif action == "obtain":
             obtained = re.match(
-                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[.;]|$)",
+                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[.,;]|$)",
                 remainder,
                 re.IGNORECASE,
             )
@@ -490,7 +503,7 @@ def _extract_action_spans(
             SourceActionSpan(
                 source_step_order=source_step_order,
                 order=len(spans) + 1,
-                text_start=match.start(),
+                text_start=start,
                 text_end=end,
                 supporting_clause=clause,
                 action=action,
@@ -517,11 +530,21 @@ def _extract_action_spans(
     while index < len(spans):
         span = spans[index]
         next_span = spans[index + 1] if index + 1 < len(spans) else None
+        forward_relation = bool(
+            next_span is not None
+            and next_span.verb in {"obtain", "receive", "collect"}
+            and re.search(r"\bto\s*$", text[span.text_start : span.text_end], re.IGNORECASE)
+        )
         if (
-            len(spans) == 2
-            and span.action in {"fight", "examine"}
+            span.action in {"fight", "examine"}
             and next_span is not None
             and next_span.action == "obtain"
+            and forward_relation
+            and not (
+                span.action == "examine"
+                and collapsed
+                and collapsed[-1].action == "fight"
+            )
         ):
             collapsed.append(
                 replace(
@@ -537,7 +560,17 @@ def _extract_action_spans(
             )
             index += 2
             continue
-        if span.action == "obtain" and next_span is not None and next_span.action == "fight":
+        reversed_relation = bool(
+            next_span is not None
+            and next_span.verb in {"defeating", "killing", "slaying"}
+            and re.search(r"\bby\s*$", text[span.text_start : span.text_end], re.IGNORECASE)
+        )
+        if (
+            span.action == "obtain"
+            and next_span is not None
+            and next_span.action == "fight"
+            and reversed_relation
+        ):
             collapsed.append(
                 replace(
                     next_span,

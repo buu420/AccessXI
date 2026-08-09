@@ -365,6 +365,7 @@ def _objective_destination_lua(destination: ReviewedObjectiveDestination) -> lis
         "      {",
         f"        stable_id = {lua_quote(destination.stable_id)},",
         f"        source_step_ids = {_lua_array(destination.source_step_ids)},",
+        f"        source_claim_ids = {_lua_array(destination.source_claim_ids)},",
         "        source_revisions = {",
         *(
             f"          [{lua_quote(site)}] = {revision_id},"
@@ -1145,6 +1146,7 @@ def build_guide_artifacts(
                         "native_key": native.key,
                         "stable_id": destination.stable_id,
                         "source_step_ids": list(destination.source_step_ids),
+                        "source_claim_ids": list(destination.source_claim_ids),
                         "source_revisions": dict(destination.source_revisions),
                         "action": destination.action,
                         "items": list(destination.items),

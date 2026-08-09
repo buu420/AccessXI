@@ -57,6 +57,7 @@ class ReviewedObjectiveDestination:
     transport_id: str = ""
     instruction_only: bool = False
     source_revisions: tuple[tuple[str, int], ...] = ()
+    source_claim_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

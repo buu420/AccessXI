@@ -8,7 +8,12 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .model import NativeObjective, ParsedObjective, SourceActionSpan
-from .reconcile import ReconciledObjective, ReviewedObjectiveDestination
+from .reconcile import (
+    ReconciledActionClaim,
+    ReconciledObjective,
+    ReconciledStep,
+    ReviewedObjectiveDestination,
+)
 
 
 class ObjectiveDestinationError(ValueError):
@@ -65,46 +70,6 @@ def _override_rows(
     return tuple(rows)
 
 
-def _source_step_spans(
-    source_step_ids: tuple[str, ...],
-    reconciled: ReconciledObjective,
-    bg: ParsedObjective | None,
-    ffxiclopedia: ParsedObjective | None,
-) -> dict[str, tuple[SourceActionSpan, ...]]:
-    step_lookup = {step.stable_step_id: step for step in reconciled.steps}
-    source_pages = {"bg": bg, "ffxiclopedia": ffxiclopedia}
-    result: dict[str, list[SourceActionSpan]] = {"bg": [], "ffxiclopedia": []}
-    for stable_step_id in source_step_ids:
-        step = step_lookup.get(stable_step_id)
-        if step is None:
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination references unknown step {stable_step_id!r}."
-            )
-        if step.comparison == "conflict":
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination depends on conflicted step {stable_step_id!r}."
-            )
-        for source_index, site in enumerate(("bg", "ffxiclopedia")):
-            source_order = step.source_orders[source_index]
-            page = source_pages[site]
-            if page is None or source_order <= 0:
-                continue
-            source_step = next((row for row in page.steps if row.order == source_order), None)
-            if source_step is not None:
-                result[site].extend(source_step.action_spans)
-    return {site: tuple(spans) for site, spans in result.items()}
-
-
-def _typed_values(spans: Iterable[SourceActionSpan], field: str) -> set[str]:
-    values: set[str] = set()
-    for span in spans:
-        for value in getattr(span, field):
-            cleaned = _clean(value)
-            if cleaned:
-                values.add(cleaned.casefold())
-    return values
-
-
 def _claims_action(span: SourceActionSpan, action: str) -> bool:
     if span.action == action:
         return True
@@ -113,33 +78,161 @@ def _claims_action(span: SourceActionSpan, action: str) -> bool:
     return action == "obtain" and span.action == "obtain"
 
 
-def _same_source_target_zone(
-    source_spans: Mapping[str, tuple[SourceActionSpan, ...]],
+def _source_claim_rows(
+    source_step_ids: tuple[str, ...],
+    reconciled: ReconciledObjective,
+) -> tuple[tuple[ReconciledStep, ReconciledActionClaim], ...]:
+    step_lookup = {step.stable_step_id: step for step in reconciled.steps}
+    result: list[tuple[ReconciledStep, ReconciledActionClaim]] = []
+    for stable_step_id in source_step_ids:
+        step = step_lookup.get(stable_step_id)
+        if step is None:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination references unknown step {stable_step_id!r}."
+            )
+        result.extend((step, claim) for claim in step.claims)
+    return tuple(result)
+
+
+def _claim_source_spans(
+    step: ReconciledStep,
+    claim: ReconciledActionClaim,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+) -> dict[str, tuple[SourceActionSpan, ...]]:
+    source_pages = {"bg": bg, "ffxiclopedia": ffxiclopedia}
+    span_orders = {"bg": claim.bg_span_order, "ffxiclopedia": claim.ffxiclopedia_span_order}
+    result: dict[str, tuple[SourceActionSpan, ...]] = {}
+    for source_index, site in enumerate(("bg", "ffxiclopedia")):
+        page = source_pages[site]
+        source_order = step.source_orders[source_index]
+        span_order = span_orders[site]
+        if page is None or source_order <= 0 or span_order <= 0:
+            result[site] = ()
+            continue
+        source_step = next((row for row in page.steps if row.order == source_order), None)
+        source_span = (
+            next((span for span in source_step.action_spans if span.order == span_order), None)
+            if source_step is not None
+            else None
+        )
+        result[site] = (source_span,) if source_span is not None else ()
+    return result
+
+
+def _span_supports_destination(
+    span: SourceActionSpan,
+    *,
     action: str,
     target_name: str,
     target_kind: str,
     zone_name: str,
+    items: tuple[str, ...],
+    enemies: tuple[str, ...],
+    result_relation: str,
+    map_numbers: tuple[str, ...],
+    grid_coordinates: tuple[str, ...],
 ) -> bool:
-    target_key = target_name.casefold()
-    zone_key = zone_name.casefold()
+    if not _claims_action(span, action):
+        return False
+    compatible_kinds = {target_kind}
+    if target_kind == "area":
+        compatible_kinds.add("object")
+    if span.target_kind not in compatible_kinds:
+        return False
     kind_field = {
         "npc": "npc_mentions",
         "object": "object_mentions",
         "area": "object_mentions",
         "enemy": "enemy_mentions",
         "transport": "transport_mentions",
+        "question-mark": "object_mentions",
     }.get(target_kind, "")
-    for spans in source_spans.values():
-        for span in spans:
-            if not _claims_action(span, action):
-                continue
-            targets = {span.target.casefold()} if span.target else set()
-            if kind_field:
-                targets.update(value.casefold() for value in getattr(span, kind_field))
-            zones = {value.casefold() for value in span.zone_mentions}
-            if target_key in targets and zone_key in zones:
-                return True
-    return False
+    targets = {span.target.casefold()} if span.target else set()
+    if kind_field:
+        targets.update(value.casefold() for value in getattr(span, kind_field))
+    if target_name.casefold() not in targets:
+        return False
+    if zone_name.casefold() not in {value.casefold() for value in span.zone_mentions}:
+        return False
+    item_claims = {
+        value.casefold()
+        for value in (*span.item_mentions, *span.key_item_mentions, *span.result_items)
+    }
+    enemy_claims = {value.casefold() for value in span.enemy_mentions}
+    if any(value.casefold() not in item_claims for value in items):
+        return False
+    if any(value.casefold() not in enemy_claims for value in enemies):
+        return False
+    if result_relation and span.result_relation.casefold() != result_relation.casefold():
+        return False
+    map_claims = {value.casefold() for value in span.map_numbers}
+    grid_claims = {value.casefold() for value in span.grid_coordinates}
+    if any(value.casefold() not in map_claims for value in map_numbers):
+        return False
+    if any(value.casefold() not in grid_claims for value in grid_coordinates):
+        return False
+    return True
+
+
+def _select_source_claim(
+    source_step_ids: tuple[str, ...],
+    requested_claim_ids: tuple[str, ...],
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    *,
+    action: str,
+    target_name: str,
+    target_kind: str,
+    zone_name: str,
+    items: tuple[str, ...],
+    enemies: tuple[str, ...],
+    result_relation: str,
+    map_numbers: tuple[str, ...],
+    grid_coordinates: tuple[str, ...],
+) -> tuple[tuple[str, ...], dict[str, tuple[SourceActionSpan, ...]]]:
+    claim_rows = _source_claim_rows(source_step_ids, reconciled)
+    if len(requested_claim_ids) > 1:
+        raise ObjectiveDestinationError("Reviewed objective destination must select exactly one source claim.")
+    if requested_claim_ids:
+        selected = [row for row in claim_rows if row[1].stable_claim_id == requested_claim_ids[0]]
+        if len(selected) != 1:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination references unknown claim {requested_claim_ids[0]!r}."
+            )
+    else:
+        selected = list(claim_rows)
+
+    matches: list[
+        tuple[ReconciledStep, ReconciledActionClaim, dict[str, tuple[SourceActionSpan, ...]]]
+    ] = []
+    for step, claim in selected:
+        if claim.comparison == "conflict":
+            continue
+        source_spans = _claim_source_spans(step, claim, bg, ffxiclopedia)
+        if any(
+            _span_supports_destination(
+                span,
+                action=action,
+                target_name=target_name,
+                target_kind=target_kind,
+                zone_name=zone_name,
+                items=items,
+                enemies=enemies,
+                result_relation=result_relation,
+                map_numbers=map_numbers,
+                grid_coordinates=grid_coordinates,
+            )
+            for spans in source_spans.values()
+            for span in spans
+        ):
+            matches.append((step, claim, source_spans))
+    if len(matches) != 1:
+        reason = "conflicted or unsupported" if requested_claim_ids else "ambiguous or unsupported"
+        raise ObjectiveDestinationError(f"Reviewed objective destination source claim is {reason}.")
+    _step, claim, source_spans = matches[0]
+    return (claim.stable_claim_id,), source_spans
 
 
 def _point_tuple(point: Mapping[str, Any]) -> tuple[float, float, float]:
@@ -220,11 +313,7 @@ def resolve_reviewed_objective_destinations(
                 )
 
         source_step_ids = _strings(raw.get("source_step_ids"), "source_step_ids", required=True)
-        source_spans = _source_step_spans(source_step_ids, reconciled, bg, ffxiclopedia)
-        if not any(source_spans.values()):
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination {stable_id!r} has no typed source action spans."
-            )
+        source_claim_ids = _strings(raw.get("source_claim_ids", []), "source_claim_ids")
         action = _clean(raw.get("action", "")).casefold()
         if action not in _SUPPORTED_ACTIONS:
             raise ObjectiveDestinationError(
@@ -232,22 +321,9 @@ def resolve_reviewed_objective_destinations(
             )
         items = _strings(raw.get("items", []), "items")
         enemies = _strings(raw.get("enemies", []), "enemies")
-        all_spans = tuple(span for spans in source_spans.values() for span in spans)
-        item_claims = _typed_values(all_spans, "item_mentions").union(
-            _typed_values(all_spans, "key_item_mentions")
-        ).union(
-            _typed_values(all_spans, "result_items")
-        )
-        enemy_claims = _typed_values(all_spans, "enemy_mentions")
-        missing_claims = [
-            *[value for value in items if value.casefold() not in item_claims],
-            *[value for value in enemies if value.casefold() not in enemy_claims],
-        ]
-        if missing_claims:
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination {stable_id!r} names absent typed claims: "
-                + ", ".join(missing_claims)
-            )
+        result_relation = _clean(raw.get("result_relation", "")).casefold()
+        map_numbers = _strings(raw.get("map_numbers", []), "map_numbers")
+        grid_coordinates = _strings(raw.get("grid_coordinates", []), "grid_coordinates")
 
         zone = int(raw.get("zone", 0) or 0)
         zone_name = _clean(raw.get("zone_name", ""))
@@ -261,6 +337,30 @@ def resolve_reviewed_objective_destinations(
             raise ObjectiveDestinationError(f"Reviewed objective destination {stable_id!r} lacks a target reference.")
         target_name = _clean(reference.get("name", ""))
         target_kind = _clean(reference.get("kind", "")).casefold()
+        if not target_name or not target_kind:
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination {stable_id!r} lacks an exact target identity."
+            )
+        source_claim_ids, source_spans = _select_source_claim(
+            source_step_ids,
+            source_claim_ids,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            action=action,
+            target_name=target_name,
+            target_kind=target_kind,
+            zone_name=zone_name,
+            items=items,
+            enemies=enemies,
+            result_relation=result_relation,
+            map_numbers=map_numbers,
+            grid_coordinates=grid_coordinates,
+        )
+        if not any(source_spans.values()):
+            raise ObjectiveDestinationError(
+                f"Reviewed objective destination {stable_id!r} has no typed source action spans."
+            )
         matches = [
             point
             for point in points
@@ -268,13 +368,9 @@ def resolve_reviewed_objective_destinations(
             and _clean(point.get("name", "")).casefold() == target_name.casefold()
             and _clean(point.get("kind", "")).casefold() == target_kind
         ]
-        if not target_name or not target_kind or len(matches) != 1:
+        if len(matches) != 1:
             raise ObjectiveDestinationError(
                 f"Reviewed objective destination {stable_id!r} resolves to {len(matches)} current nav points."
-            )
-        if not _same_source_target_zone(source_spans, action, target_name, target_kind, zone_name):
-            raise ObjectiveDestinationError(
-                f"Reviewed objective destination {stable_id!r} joins target and zone from different source claims."
             )
 
         target_point = _point_tuple(matches[0])
@@ -338,6 +434,7 @@ def resolve_reviewed_objective_destinations(
             ReviewedObjectiveDestination(
                 stable_id=stable_id,
                 source_step_ids=source_step_ids,
+                source_claim_ids=source_claim_ids,
                 action=action,
                 items=items,
                 enemies=enemies,

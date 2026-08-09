@@ -1,6 +1,20 @@
+param(
+    [string] $Root = (Split-Path -Parent $PSScriptRoot)
+)
+
 $ErrorActionPreference = 'Stop'
 
-$addonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
+$addonPath = Join-Path $Root 'ashita\addons\accessxi_reader\accessxi_reader.lua'
+$harnessPath = Join-Path $Root 'tools\lua_tests\test_nav_zoneline_path.lua'
+$luaPath = Join-Path $Root 'tools\lua51\lua5.1.exe'
+if (-not (Test-Path -LiteralPath $luaPath -PathType Leaf)) {
+    $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
+}
+foreach ($path in @($addonPath, $harnessPath, $luaPath)) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "Missing zone-search test dependency: $path"
+    }
+}
 $source = Get-Content -LiteralPath $addonPath -Raw
 
 function Assert-Match {
@@ -34,8 +48,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
-    -Pattern 'function accessxi\.nav_zoneline_path\(from_zone,\s*to_zone\)' `
-    -Message 'Expected zoneline graph path helper for cross-zone routing.'
+    -Pattern 'function accessxi\.nav_zoneline_path\(from_zone,\s*to_zone,\s*final_edge_id\)' `
+    -Message 'Expected zoneline graph path helper with optional canonical final ingress.'
 
 Assert-Match `
     -Text $source `
@@ -139,8 +153,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $zoneSearchBody `
-    -Pattern 'nav_zoneline_path\(player\.zone,\s*target\.zone\)' `
-    -Message 'Zone search should route by zone graph, not direct cross-zone coordinates.'
+    -Pattern 'nav_zoneline_path\(player\.zone,\s*target\.zone,\s*canonical_edge_id\)' `
+    -Message 'Zone search should preserve a reviewed canonical final ingress when present.'
 
 Assert-Match `
     -Text $zoneSearchBody `
@@ -189,5 +203,10 @@ Assert-Match `
     -Text $source `
     -Pattern "nav_route_stop = function\s*\(\)[\s\S]*?accessxi\.nav_clear_zone_search\(\)" `
     -Message 'Stopping a route should cancel pending zone search.'
+
+& $luaPath $harnessPath $addonPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Canonical zoneline path Lua behavior harness failed with exit code $LASTEXITCODE."
+}
 
 Write-Host 'nav zone search command checks ok'

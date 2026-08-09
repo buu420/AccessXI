@@ -70894,6 +70894,22 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
         return T{}, nil;
     end
 
+    local required_transport_id = nav_clean_field(point ~= nil and point.objective_transport_id or '');
+    if (required_transport_id ~= '' and type(accessxi.nav_verified_elevator_route) == 'function') then
+        local transport_route, transport_required = accessxi.nav_verified_elevator_route(player, point);
+        if (transport_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return transport_route, nil;
+        end
+        if (transport_required == true) then
+            accessxi.nav_route_last_reject_reason = 'required verified transport route unavailable';
+            log_line(('nav required transport unavailable id="%s" destination="%s"'):fmt(
+                accessxi.escape_probe_log_text(required_transport_id),
+                accessxi.escape_probe_log_text(point.name or '')));
+            return T{}, nil;
+        end
+    end
+
     local route = nav_compute_mesh_route(player, point);
     if (route:len() > 1) then
         if (type(accessxi.nav_transport_clear) == 'function') then
@@ -70915,8 +70931,8 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
             return drop_route, nil;
         end
     end
-    if (type(accessxi.nav_metalworks_elevator_route) == 'function') then
-        local transport_route = accessxi.nav_metalworks_elevator_route(player, point);
+    if (type(accessxi.nav_verified_elevator_route) == 'function') then
+        local transport_route = accessxi.nav_verified_elevator_route(player, point);
         if (transport_route:len() > 1) then
             accessxi.nav_route_last_reject_reason = '';
             return transport_route, nil;

@@ -71,6 +71,42 @@ local function source_spans_belong_to(candidate, ledger)
     return true;
 end
 
+local function unique_nonempty_values(values)
+    if (type(values) ~= 'table' or #values == 0) then
+        return false;
+    end
+    local seen = {};
+    for _, value in ipairs(values) do
+        local key = clean(value);
+        if (key == '' or seen[key]) then
+            return false;
+        end
+        seen[key] = true;
+    end
+    return true;
+end
+
+local function exact_claim_step(reconciliation, action_id, action)
+    local owner_step = nil;
+    local owner_count = 0;
+    for _, step in ipairs(type(reconciliation.steps) == 'table' and reconciliation.steps or {}) do
+        for _, claim in ipairs(type(step.typed_claims) == 'table' and step.typed_claims or {}) do
+            if (clean(claim.stable_claim_id) == action_id) then
+                owner_count = owner_count + 1;
+                if (clean(claim.action) ~= action) then
+                    return nil;
+                end
+                owner_step = step;
+            end
+        end
+    end
+    if (owner_count ~= 1 or type(owner_step) ~= 'table'
+        or clean(owner_step.stable_step_id) == '') then
+        return nil;
+    end
+    return owner_step;
+end
+
 local function reviewed_candidate_copy(reconciliation, candidate)
     if (type(candidate) ~= 'table') then
         return nil;
@@ -98,29 +134,73 @@ local function reviewed_candidate_copy(reconciliation, candidate)
         return nil;
     end
 
-    local guide_step_id = '';
-    local step_count = 0;
-    for _, step in ipairs(type(reconciliation.steps) == 'table' and reconciliation.steps or {}) do
-        for _, claim in ipairs(type(step.typed_claims) == 'table' and step.typed_claims or {}) do
-            if (clean(claim.stable_claim_id) == action_id) then
-                step_count = step_count + 1;
-                guide_step_id = clean(step.stable_step_id);
-                if (clean(claim.action) ~= action) then
-                    return nil;
-                end
-            end
-        end
-    end
-    if (step_count ~= 1 or guide_step_id == '') then
+    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    if (guide_step == nil) then
         return nil;
     end
 
     local result = deep_copy(candidate);
-    result.guide_step_id = guide_step_id;
+    result.guide_step_id = clean(guide_step.stable_step_id);
+    result.guide_step_order = tonumber(guide_step.order) or 0;
     -- This candidate-specific text is for speech only. Route authorization is
     -- owned by the separately validated runtime contract index.
     result.action_instruction = arrival_instruction;
     return result;
+end
+
+local function reviewed_instruction_copy(reconciliation, ledger)
+    if (type(ledger) ~= 'table'
+        or clean(ledger.status) ~= 'instruction-only'
+        or clean(ledger.reason) ~= 'complete-instruction'
+        or ledger.material ~= true
+        or ledger.route_ready == true
+        or type(ledger.candidate_ids) ~= 'table'
+        or #ledger.candidate_ids ~= 0
+        or not unique_nonempty_values(ledger.source_action_span_ids)) then
+        return nil;
+    end
+    local action_id = clean(ledger.action_id);
+    local action = clean(ledger.action);
+    local instruction = clean(ledger.instruction);
+    if (action_id == '' or action == '' or instruction == '') then
+        return nil;
+    end
+    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    if (guide_step == nil or clean(guide_step.comparison):lower() == 'conflict') then
+        return nil;
+    end
+    return {
+        candidate_id = '',
+        action_id = action_id,
+        source_action_span_ids = deep_copy(ledger.source_action_span_ids),
+        action = action,
+        status = 'instruction-only',
+        reason = 'complete-instruction',
+        material = true,
+        group_id = '',
+        destination_id = '',
+        guide_step_id = clean(guide_step.stable_step_id),
+        guide_step_order = tonumber(guide_step.order) or 0,
+        action_instruction = instruction,
+        instruction_only = true,
+        route_ready = false,
+    };
+end
+
+local function objective_destination_less(left, right)
+    local left_order = tonumber(left.guide_step_order) or 0;
+    local right_order = tonumber(right.guide_step_order) or 0;
+    if (left_order ~= right_order) then
+        return left_order < right_order;
+    end
+    for _, field in ipairs({ 'action_id', 'group_id', 'candidate_id' }) do
+        local left_value = clean(left[field]);
+        local right_value = clean(right[field]);
+        if (left_value ~= right_value) then
+            return left_value < right_value;
+        end
+    end
+    return false;
 end
 
 local function source_instruction(source, order)
@@ -287,6 +367,16 @@ function GuideState:resolve(native_key)
         if (copied ~= nil) then
             objective_destinations[#objective_destinations + 1] = copied;
         end
+    end
+    if (typed_destinations) then
+        for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
+            and reconciliation.action_resolution_ledger or {}) do
+            local copied = reviewed_instruction_copy(reconciliation, ledger);
+            if (copied ~= nil) then
+                objective_destinations[#objective_destinations + 1] = copied;
+            end
+        end
+        table.sort(objective_destinations, objective_destination_less);
     end
 
     local resolved = {

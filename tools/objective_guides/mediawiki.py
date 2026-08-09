@@ -124,12 +124,11 @@ class MediaWikiClient:
         min_request_interval: float = 0.0,
         request_cache_max_age: float = 7200.0,
     ) -> None:
-        if site not in SITE_LICENSES:
-            raise ValueError(f"Unsupported MediaWiki site: {site}")
+        normalized_api_url = validate_source_site_binding(site, api_url)
         if batch_size < 1 or batch_size > 50:
             raise ValueError("MediaWiki batch_size must be between 1 and 50.")
         self.site = site
-        self.api_url = api_url
+        self.api_url = normalized_api_url
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
         self.request_cache_dir = Path(request_cache_dir) if request_cache_dir is not None else None
         self.transport = transport or _http_json_transport
@@ -442,10 +441,14 @@ class MediaWikiClient:
         )
 
     def cache_revision(self, revision: PageRevision) -> Path | None:
+        try:
+            revision_api_url = validate_source_site_binding(revision.site, revision.api_url)
+        except SiteConfigError as error:
+            raise MediaWikiError("Cannot cache a revision with an invalid source binding.") from error
+        if revision.site != self.site or revision_api_url != self.api_url:
+            raise MediaWikiError("Cannot place a revision from another site in this client's cache.")
         if self.cache_dir is None:
             return None
-        if revision.site != self.site:
-            raise MediaWikiError("Cannot place a revision from another site in this client's cache.")
         directory = self.cache_dir / self.site
         directory.mkdir(parents=True, exist_ok=True)
         target = directory / f"{revision.cache_key}.json"

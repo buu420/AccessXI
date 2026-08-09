@@ -354,6 +354,118 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
             },
         }
 
+    def test_mediawiki_client_validates_source_binding_before_assigning_state(self) -> None:
+        transport_calls: list[tuple] = []
+
+        def transport(*args, **kwargs):
+            transport_calls.append((args, kwargs))
+            raise AssertionError("constructor must not call the transport")
+
+        invalid_bindings = (
+            ("bg", "https://example.invalid/api.php"),
+            ("unsupported", "https://www.bg-wiki.com/api.php"),
+            ("bg", "http://www.bg-wiki.com/api.php"),
+            ("bg", "https://user:password@www.bg-wiki.com/api.php"),
+            ("bg", "https://www.bg-wiki.com/api.php?origin=*"),
+            ("bg", "https://www.bg-wiki.com/api.php#fragment"),
+            ("bg", "https://www.bg-wiki.com/API.php"),
+            ("bg", "https://www.bg-wiki.com:444/api.php"),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for ordinal, (site, api_url) in enumerate(invalid_bindings):
+                cache_dir = root / f"cache-{ordinal}"
+                request_cache_dir = root / f"requests-{ordinal}"
+                candidate = object.__new__(MediaWikiClient)
+                with self.subTest(site=site, api_url=api_url):
+                    with self.assertRaises(ValueError):
+                        MediaWikiClient.__init__(
+                            candidate,
+                            site,
+                            api_url,
+                            cache_dir=cache_dir,
+                            request_cache_dir=request_cache_dir,
+                            transport=transport,
+                        )
+                    self.assertEqual(candidate.__dict__, {})
+                    self.assertFalse(cache_dir.exists())
+                    self.assertFalse(request_cache_dir.exists())
+
+        self.assertEqual(transport_calls, [])
+
+        bg = MediaWikiClient(
+            "bg",
+            "HTTPS://WWW.BG-WIKI.COM:443/api.php",
+            transport=transport,
+        )
+        self.assertEqual(bg.api_url, "https://www.bg-wiki.com/api.php")
+        ffxiclopedia = MediaWikiClient(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            transport=transport,
+        )
+        self.assertEqual(
+            ffxiclopedia.api_url,
+            "https://ffxiclopedia.fandom.com/api.php",
+        )
+
+    def test_cache_revision_validates_binding_before_filesystem_mutation(self) -> None:
+        def revision(site: str, api_url: str, page_id: int) -> PageRevision:
+            return PageRevision(
+                site=site,
+                api_url=api_url,
+                canonical_title=f"Page {page_id}",
+                page_id=page_id,
+                revision_id=page_id + 100,
+                parent_revision_id=page_id + 99,
+                revision_timestamp="2026-08-09T12:34:56Z",
+                content=f"content {page_id}",
+            )
+
+        wrong_api = revision("bg", "https://example.invalid/api.php", 1)
+        no_cache_client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=_ScriptedTransport([]),
+        )
+        with self.assertRaises(MediaWikiError):
+            no_cache_client.cache_revision(wrong_api)
+
+        invalid_revisions = (
+            revision("ffxiclopedia", "https://ffxiclopedia.fandom.com/api.php", 2),
+            wrong_api,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for ordinal, page in enumerate(invalid_revisions):
+                cache_dir = root / f"invalid-{ordinal}"
+                client = MediaWikiClient(
+                    "bg",
+                    "https://www.bg-wiki.com/api.php",
+                    cache_dir=cache_dir,
+                    transport=_ScriptedTransport([]),
+                )
+                self.assertFalse(cache_dir.exists())
+                with self.subTest(site=page.site, api_url=page.api_url), self.assertRaises(
+                    MediaWikiError
+                ):
+                    client.cache_revision(page)
+                self.assertFalse(cache_dir.exists())
+
+            valid_cache = root / "valid"
+            client = MediaWikiClient(
+                "bg",
+                "HTTPS://WWW.BG-WIKI.COM:443/api.php",
+                cache_dir=valid_cache,
+                transport=_ScriptedTransport([]),
+            )
+            page = revision("bg", "https://WWW.BG-WIKI.COM:443/api.php", 3)
+            cached_path = client.cache_revision(page)
+            self.assertIsNotNone(cached_path)
+            assert cached_path is not None
+            self.assertTrue(cached_path.is_file())
+            self.assertEqual(cached_path.parent, valid_cache / "bg")
+
     def test_site_config_capture_is_deterministic_and_hash_validated(self) -> None:
         site_config = importlib.import_module("tools.objective_guides.site_config")
         bg_response = self._siteinfo_response("bg")
@@ -813,9 +925,10 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
                 wrong_client = MediaWikiClient(
                     site,
-                    "https://example.invalid/api.php",
+                    api_url,
                     transport=_ScriptedTransport([]),
                 )
+                wrong_client.api_url = "https://example.invalid/api.php"
                 wrong_snapshot = root / f"{site}-wrong.json"
                 with self.subTest(site=site, case="wrong-client-write"), self.assertRaises(
                     MediaWikiError

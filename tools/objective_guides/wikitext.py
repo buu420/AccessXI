@@ -16,6 +16,43 @@ MAX_SPOKEN_STEP = 420
 
 _ZONE_NAMES: tuple[str, ...] | None = None
 
+_MEDIAWIKI_NAMESPACE_PREFIXES = frozenset(
+    {
+        "bgwiki",
+        "bgwiki talk",
+        "category",
+        "category talk",
+        "file",
+        "file talk",
+        "ffxiclopedia",
+        "ffxiclopedia talk",
+        "gadget",
+        "gadget definition",
+        "gadget definition talk",
+        "gadget talk",
+        "help",
+        "help talk",
+        "image",
+        "image talk",
+        "media",
+        "mediawiki",
+        "mediawiki talk",
+        "module",
+        "module talk",
+        "project",
+        "project talk",
+        "special",
+        "talk",
+        "template",
+        "template talk",
+        "timedtext",
+        "timedtext talk",
+        "topic",
+        "user",
+        "user talk",
+    }
+)
+
 _NYZUL_OBJECTIVE_TITLES = {
     "Nyzul Isle Investigation",
     "Nyzul Isle Uncharted Area Survey",
@@ -49,6 +86,7 @@ class _EntityOccurrence:
     end: int
     role: str = ""
     target_identity: bool = True
+    source_link: bool = True
 
 
 def _clean(value: object) -> str:
@@ -200,18 +238,51 @@ def _render_link_display(value: object) -> str:
     return _clean(code.strip_code(normalize=True, collapse=True))
 
 
+def _normalized_wikilink_page_identity(value: object) -> str:
+    target = _clean(str(value or "").replace("_", " "))
+    if target.startswith(":"):
+        target = _clean(target[1:])
+    target = _clean(target.split("#", 1)[0])
+    if not target:
+        return ""
+    if ":" in target:
+        namespace = _clean(target.split(":", 1)[0]).casefold()
+        if (
+            namespace in _MEDIAWIKI_NAMESPACE_PREFIXES
+            or re.fullmatch(r"[a-z]{2}", namespace)
+        ):
+            return ""
+    return target
+
+
+def _wikilink_identity_details(link: Wikilink) -> tuple[str, str, bool]:
+    raw_target = _clean(str(link.title or "").replace("_", " "))
+    escaped_inline = raw_target.startswith(":")
+    visible_target = _clean(raw_target[1:]) if escaped_inline else raw_target
+    target = _normalized_wikilink_page_identity(raw_target)
+    display = _render_link_display(link.text) if link.text is not None else visible_target
+    display = display or visible_target or target
+    if not target:
+        prefix = (
+            _clean(visible_target.split(":", 1)[0]).casefold()
+            if ":" in visible_target
+            else ""
+        )
+        suppressed_metadata = not escaped_inline and (
+            prefix in {"category", "file", "image"}
+            or re.fullmatch(r"[a-z]{2}", prefix) is not None
+        )
+        return "", ("" if suppressed_metadata else display), False
+    fragment_identity_agrees = (
+        "#" not in visible_target
+        or _clean(display).casefold() == target.casefold()
+    )
+    return target, display, fragment_identity_agrees
+
+
 def _wikilink_identity(link: Wikilink) -> tuple[str, str]:
-    target = _clean(link.title)
-    if not target or ":" in target and target.split(":", 1)[0].casefold() in {
-        "category",
-        "file",
-        "image",
-    }:
-        return "", ""
-    if len(target) >= 3 and target[2:3] == ":":
-        return "", ""
-    display = _render_link_display(link.text) if link.text is not None else target
-    return target, (display or target)
+    target, display, _target_identity = _wikilink_identity_details(link)
+    return target, display
 
 
 def _wikilink_label(link: Wikilink) -> str:
@@ -297,13 +368,19 @@ def _render_fragment(
     code = mwparserfromhell.parse(fragment)
     warnings: list[str] = []
     structural_roles, template_entities = _structural_entity_roles(code)
-    entities: list[tuple[str, str, str, bool]] = []
+    entities: list[tuple[str, str, str, bool, bool]] = []
     for link in list(code.filter_wikilinks(recursive=True)):
-        canonical, display = _wikilink_identity(link)
-        if canonical and display:
+        canonical, display, target_identity = _wikilink_identity_details(link)
+        if display:
             entity_index = len(entities)
             entities.append(
-                (canonical, display, structural_roles.get(id(link), ""), True)
+                (
+                    canonical,
+                    display,
+                    structural_roles.get(id(link), ""),
+                    target_identity,
+                    True,
+                )
             )
             code.replace(link, f"\ue000{entity_index}\ue001{display}\ue002")
         else:
@@ -326,7 +403,7 @@ def _render_fragment(
             display_start = replacement.find(display)
             if display_start >= 0:
                 entity_index = len(entities)
-                entities.append((canonical, display, role, False))
+                entities.append((canonical, display, role, False, False))
                 display_end = display_start + len(display)
                 replacement = (
                     replacement[:display_start]
@@ -350,7 +427,7 @@ def _render_fragment(
         plain_length += len(prefix)
         entity_index = int(marker.group(1))
         display = marker.group(2)
-        canonical, _original_display, role, target_identity = entities[entity_index]
+        canonical, _original_display, role, target_identity, source_link = entities[entity_index]
         plain_parts.append(display)
         entity_occurrences.append(
             _EntityOccurrence(
@@ -360,6 +437,7 @@ def _render_fragment(
                 end=plain_length + len(display),
                 role=role,
                 target_identity=target_identity,
+                source_link=source_link,
             )
         )
         plain_length += len(display)
@@ -562,13 +640,15 @@ def _canonical_zone_links_in_range(
     end: int,
 ) -> tuple[str, ...]:
     zones = {
-        zone.casefold(): zone
+        alias.casefold(): zone
         for zone in _authoritative_zone_names()
+        for alias in _zone_aliases(zone)
     }
     return _unique(
         zones[occurrence.canonical.casefold()]
         for occurrence in link_occurrences
-        if occurrence.target_identity
+        if occurrence.source_link
+        and not occurrence.role
         and start <= occurrence.start
         and occurrence.end <= end
         and occurrence.canonical.casefold() in zones
@@ -579,6 +659,8 @@ def _refine_linked_target(
     raw_target: str,
     target_links: tuple[str, ...],
     excluded_links: tuple[str, ...],
+    *,
+    raw_fallback_blocked: bool = False,
 ) -> tuple[str, tuple[str, ...]]:
     target = _trim_target(raw_target)
     excluded = {value.casefold() for value in excluded_links}
@@ -591,9 +673,39 @@ def _refine_linked_target(
         return candidates[0], candidates
     if len(candidates) > 1:
         return "", candidates
+    if raw_fallback_blocked:
+        return "", ()
     if target.casefold() in excluded:
         return "", ()
     return target, ((target,) if target else ())
+
+
+def _refine_match_target(
+    raw_target: str,
+    link_occurrences: tuple[_EntityOccurrence, ...],
+    offset: int,
+    match: re.Match[str],
+    group: int,
+    excluded_links: tuple[str, ...],
+) -> tuple[str, tuple[str, ...]]:
+    group_start = offset + match.start(group)
+    group_end = offset + match.end(group)
+    excluded = {value.casefold() for value in excluded_links}
+    unsafe_occurrence_overlaps = any(
+        (
+            not occurrence.target_identity
+            or occurrence.canonical.casefold() in excluded
+        )
+        and occurrence.start < group_end
+        and group_start < occurrence.end
+        for occurrence in link_occurrences
+    )
+    return _refine_linked_target(
+        raw_target,
+        _links_in_match(link_occurrences, offset, match, group),
+        excluded_links,
+        raw_fallback_blocked=unsafe_occurrence_overlaps,
+    )
 
 
 def _period_is_internal_abbreviation(
@@ -625,7 +737,7 @@ def _period_is_internal_abbreviation(
                 return True
             if re.search(
                 r"(?:^|\b(?:defeat|fight|kill|slay|destroy))\s+(?:the\s+)?"
-                r"(?:[A-Za-z]\.){2,}$",
+                r"(?:(?:[A-Za-z]\.){2,}\s+)*(?:[A-Za-z]\.){2,}$",
                 prefix,
                 re.IGNORECASE,
             ):
@@ -684,8 +796,7 @@ def _strong_sentence_boundaries(
                 (
                     occurrence
                     for occurrence in link_occurrences
-                    if occurrence.target_identity
-                    and occurrence.start >= text_offset + continuation_start
+                    if occurrence.start >= text_offset + continuation_start
                     and occurrence.start <= text_offset + len(value)
                 ),
                 key=lambda occurrence: occurrence.start,
@@ -863,9 +974,12 @@ def _extract_action_spans(
             )
             if trade:
                 item = _trim_target(trade.group(1))
-                target, npc_mentions = _refine_linked_target(
+                target, npc_mentions = _refine_match_target(
                     trade.group(2),
-                    _links_in_match(link_occurrences, match.end(), trade, 2),
+                    link_occurrences,
+                    match.end(),
+                    trade,
+                    2,
                     excluded_target_links,
                 )
                 item_mentions = (item,) if item else ()
@@ -884,9 +998,12 @@ def _extract_action_spans(
                     re.IGNORECASE,
                 )
             if talked:
-                target, npc_mentions = _refine_linked_target(
+                target, npc_mentions = _refine_match_target(
                     talked.group(1),
-                    _links_in_match(link_occurrences, match.end(), talked, 1),
+                    link_occurrences,
+                    match.end(),
+                    talked,
+                    1,
                     excluded_target_links,
                 )
             if target.casefold() in {"him", "her", "them", "it"}:
@@ -910,9 +1027,12 @@ def _extract_action_spans(
                     re.IGNORECASE,
                 )
             if fought:
-                target, enemy_mentions = _refine_linked_target(
+                target, enemy_mentions = _refine_match_target(
                     fought.group(1),
-                    _links_in_match(link_occurrences, match.end(), fought, 1),
+                    link_occurrences,
+                    match.end(),
+                    fought,
+                    1,
                     excluded_target_links,
                 )
             target_kind = "enemy" if target or enemy_mentions else ""
@@ -928,15 +1048,21 @@ def _extract_action_spans(
                 target, target_kind = "???", "question-mark"
                 object_mentions = (target,)
             else:
-                target, object_mentions = _refine_linked_target(
-                    raw_target,
-                    (
-                        _links_in_match(link_occurrences, match.end(), examined, 1)
-                        if examined is not None
-                        else ()
-                    ),
-                    excluded_target_links,
-                )
+                if examined is not None:
+                    target, object_mentions = _refine_match_target(
+                        raw_target,
+                        link_occurrences,
+                        match.end(),
+                        examined,
+                        1,
+                        excluded_target_links,
+                    )
+                else:
+                    target, object_mentions = _refine_linked_target(
+                        raw_target,
+                        (),
+                        excluded_target_links,
+                    )
                 target = re.sub(r"^sparkling\s+", "", target, flags=re.IGNORECASE)
                 if target:
                     object_mentions = (target,)
@@ -973,9 +1099,12 @@ def _extract_action_spans(
         elif action in {"use", "select"}:
             used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[;,]|$)", remainder, re.IGNORECASE)
             if used:
-                target, object_mentions = _refine_linked_target(
+                target, object_mentions = _refine_match_target(
                     used.group(1),
-                    _links_in_match(link_occurrences, match.end(), used, 1),
+                    link_occurrences,
+                    match.end(),
+                    used,
+                    1,
                     excluded_target_links,
                 )
             target_kind = "menu-choice" if action == "select" else "object"

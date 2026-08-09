@@ -17,6 +17,25 @@ class ReviewedNavigationTarget:
 
 
 @dataclass(frozen=True, slots=True)
+class ReviewedMissionDestination:
+    stable_id: str
+    source_step_ids: tuple[str, ...]
+    action: str
+    items: tuple[str, ...]
+    enemies: tuple[str, ...]
+    zone: int
+    zone_name: str
+    camp_label: str
+    target_name: str
+    target_kind: str
+    arrival_instruction: str
+    canonical_ingress_edge_id: int = 0
+    canonical_ingress_from_zone: int = 0
+    transport_id: str = ""
+    route_evidence: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class ReconciledStep:
     stable_step_id: str
     order: int
@@ -28,6 +47,7 @@ class ReconciledStep:
     ffxiclopedia_instruction: str
     action: str
     entities: tuple[str, ...]
+    items: tuple[str, ...]
     zones: tuple[str, ...]
     grid_coordinates: tuple[str, ...]
     route_ready: bool = False
@@ -41,6 +61,7 @@ class ReconciledObjective:
     dynamic_candidate_grid: tuple[str, ...] = ()
     dynamic_candidate_comparison: str = "none"
     selected_candidate_grid: str | None = None
+    mission_destinations: tuple[ReviewedMissionDestination, ...] = ()
 
 
 def _unique(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
@@ -235,6 +256,12 @@ def reconcile_objectives(
                 *(ffxi_step.grid_coordinates if ffxi_step is not None else ()),
             ]
         )
+        items = _unique(
+            [
+                *(bg_step.items if bg_step is not None else ()),
+                *(ffxi_step.items if ffxi_step is not None else ()),
+            ]
+        )
         action = bg_step.action if bg_step is not None else ffxi_step.action if ffxi_step is not None else "note"
         steps.append(
             ReconciledStep(
@@ -248,6 +275,7 @@ def reconcile_objectives(
                 ffxiclopedia_instruction=ffxi_step.spoken_text if ffxi_step is not None else "",
                 action=action,
                 entities=entities,
+                items=items,
                 zones=zones,
                 grid_coordinates=coordinates,
             )

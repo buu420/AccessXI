@@ -1247,7 +1247,7 @@ class GeneratedArtifactTests(unittest.TestCase):
             graph = root / "graph.tsv"
             destinations.write_text(
                 "# comment\n"
-                "172\tMakarim\t-60.925\t-333.294\t8.471\tnpc\tcurrent-nav\textra\n",
+                "172\tMakarim\t-60.925\t-333.294\t8.471\tnpc\tcurrent-nav\tuntested\treview note\n",
                 encoding="utf-8",
             )
             graph.write_text(
@@ -1257,14 +1257,32 @@ class GeneratedArtifactTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            points, zone_names = _load_navigation_catalog(destinations, graph)
+            catalog = _load_navigation_catalog(destinations, graph)
 
+        self.assertEqual(len(catalog), 3)
+        points, zone_names, edges = catalog
         self.assertEqual(len(points), 1)
         self.assertEqual(points[0]["zone"], 172)
         self.assertEqual(points[0]["name"], "Makarim")
         self.assertEqual(points[0]["kind"], "npc")
+        self.assertEqual(points[0]["confidence"], "untested")
+        self.assertEqual(points[0]["note"], "review note")
         self.assertEqual(zone_names[172], "Zeruhn Mines")
         self.assertEqual(zone_names[234], "Bastok Mines")
+        self.assertEqual(
+            edges,
+            (
+                {
+                    "id": 1,
+                    "from_zone": 172,
+                    "from_name": "Zeruhn Mines",
+                    "to_zone": 234,
+                    "to_name": "Bastok Mines",
+                    "source": "test",
+                    "confidence": "verified",
+                },
+            ),
+        )
 
     def _named_npc_target_fixture(
         self,
@@ -1347,6 +1365,172 @@ class GeneratedArtifactTests(unittest.TestCase):
                 }
             }
         }
+
+    def _mission_destination_fixture(
+        self,
+    ) -> tuple[tuple[NativeObjective, ...], tuple[ParsedObjective, ...], dict]:
+        items = ("Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs")
+        natives = (
+            NativeObjective(
+                "mission",
+                "Bastok",
+                3,
+                "Fetichism",
+                "missions.dat",
+                0,
+                2,
+            ),
+        )
+        pages = tuple(
+            ParsedObjective(
+                site=site,
+                page_id=page_id,
+                revision_id=revision_id,
+                canonical_title="Fetichism",
+                kind="mission",
+                objective_name="Fetichism",
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        "Obtain the four Fetich pieces.",
+                        "Obtain the four Fetich pieces.",
+                        "obtain",
+                        linked_entities=items,
+                        items=items,
+                    ),
+                    SourceStep(
+                        2,
+                        "*",
+                        1,
+                        "Defeat Amber Quadav in Palborough Mines for the Fetich pieces.",
+                        "Defeat Amber Quadav in Palborough Mines for the Fetich pieces.",
+                        "fight",
+                        linked_entities=("Amber Quadav", "Palborough Mines"),
+                        zone_candidates=("Palborough Mines",),
+                    ),
+                ),
+            )
+            for site, page_id, revision_id in (
+                ("bg", 303, 3003),
+                ("ffxiclopedia", 404, 4004),
+            )
+        )
+        overrides = {
+            "mission_destination_overrides": {
+                "mission:Bastok:3": [
+                    {
+                        "id": "palborough-lower-amber",
+                        "source_revisions": {"bg": 3003, "ffxiclopedia": 4004},
+                        "source_step_ids": [
+                            "mission:Bastok:3:step-001",
+                            "mission:Bastok:3:step-002",
+                        ],
+                        "action": "farm",
+                        "items": list(items),
+                        "enemies": ["Amber Quadav"],
+                        "zone": 143,
+                        "zone_name": "Palborough Mines",
+                        "camp_label": "lower camp",
+                        "reference": {"name": "Amber Quadav", "kind": "enemy"},
+                        "route_evidence": (
+                            "navprobe:Palborough_Mines.nav:"
+                            "north-gustaberg-entry-to-lower-amber:2026-08-08"
+                        ),
+                        "arrival_instruction": (
+                            "Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs "
+                            "from Amber Quadav."
+                        ),
+                    }
+                ]
+            }
+        }
+        return natives, pages, overrides
+
+    def test_reviewed_mission_destination_is_emitted(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(
+                    {
+                        "zone": 143,
+                        "name": "Amber Quadav",
+                        "kind": "enemy",
+                        "x": 142.0,
+                        "z": 154.0,
+                        "y": -0.076,
+                        "confidence": "untested",
+                    },
+                ),
+                navigation_zone_names={143: "Palborough Mines"},
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            review = json.loads(
+                (root / "data" / "target-review.json").read_text(encoding="utf-8")
+            )
+
+        self.assertIn("mission_destinations = {", reconcile)
+        self.assertIn('stable_id = "mission:Bastok:3:palborough-lower-amber"', reconcile)
+        self.assertIn('items = { "Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs" }', reconcile)
+        self.assertIn('enemies = { "Amber Quadav" }', reconcile)
+        self.assertIn('name = "Amber Quadav"', reconcile)
+        self.assertIn('route_evidence = "navprobe:Palborough_Mines.nav:', reconcile)
+        self.assertEqual(review["mission_destinations"][0]["status"], "verified-reviewed-target")
+
+    def test_reviewed_mission_destination_rejects_unknown_canonical_ingress(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        destination = overrides["mission_destination_overrides"]["mission:Bastok:3"][0]
+        destination["canonical_ingress"] = {"edge_id": 999999, "from_zone": 106}
+        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(
+                    {
+                        "zone": 143,
+                        "name": "Amber Quadav",
+                        "kind": "enemy",
+                        "confidence": "untested",
+                    },
+                ),
+                navigation_zone_names={143: "Palborough Mines"},
+            )
+
+    def test_reviewed_mission_destination_rejects_unclaimed_item(self) -> None:
+        natives, pages, overrides = self._mission_destination_fixture()
+        destination = overrides["mission_destination_overrides"]["mission:Bastok:3"][0]
+        destination["items"] = [*destination["items"], "Imaginary Fetich"]
+        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(
+                    {
+                        "zone": 143,
+                        "name": "Amber Quadav",
+                        "kind": "enemy",
+                        "confidence": "untested",
+                    },
+                ),
+                navigation_zone_names={143: "Palborough Mines"},
+            )
 
     def test_reviewed_named_npc_target_is_emitted_after_exact_nav_validation(self) -> None:
         natives, pages = self._named_npc_target_fixture()

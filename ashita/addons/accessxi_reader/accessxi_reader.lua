@@ -131,6 +131,8 @@ ffi.cdef[[
     DWORD GetWindowThreadProcessId(void* hWnd, DWORD* lpdwProcessId);
     void* __stdcall CreateFileW(LPCWCH lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, void* lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, void* hTemplateFile);
     DWORD __stdcall GetFileSize(void* hFile, DWORD* lpFileSizeHigh);
+    void __stdcall SetLastError(DWORD dwErrCode);
+    DWORD __stdcall GetLastError(void);
     BOOL __stdcall GetFileTime(void* hFile, FILETIME* lpCreationTime, FILETIME* lpLastAccessTime, FILETIME* lpLastWriteTime);
     BOOL __stdcall ReadFile(void* hFile, void* lpBuffer, DWORD nNumberOfBytesToRead, DWORD* lpNumberOfBytesRead, void* lpOverlapped);
     BOOL __stdcall CloseHandle(void* hObject);
@@ -67820,6 +67822,457 @@ local function nav_tsv_field(text)
     return nav_clean_field(text):gsub('\t', ' '):gsub('[\r\n]', ' ');
 end
 
+-- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
+(function ()
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "2388e8b656b9613228087163af69c35d525d12eff7729c22e3ed20c9a8074fb7";
+local accessxi_objective_manifest_rows = nil;
+local accessxi_objective_file_hasher = nil;
+local accessxi_objective_native_observer = {
+    trusted = false,
+    reason = 'Objective native code has not been observed.',
+    dll = nil,
+    mesh = nil,
+};
+
+local function accessxi_uint32(value)
+    value = tonumber(value);
+    if (value == nil or value < 0 or value > 4294967295 or value ~= math.floor(value)) then
+        return nil;
+    end
+    return value;
+end
+
+function accessxi_file_stat(path)
+    path = tostring(path or '');
+    if (path == '') then
+        return nil, 'File stat path is unavailable.';
+    end
+    local wide = utf8_to_wide(path);
+    if (wide == nil) then
+        return nil, 'File stat path conversion failed.';
+    end
+    local invalid_handle = ffi.cast('void*', -1);
+    local open_ok, handle = pcall(function ()
+        return kernel32.CreateFileW(wide, 0x80000000, 0x00000001, nil, 3, 0x00000080, nil);
+    end);
+    if (not open_ok or handle == nil or handle == invalid_handle) then
+        return nil, 'File stat open failed.';
+    end
+
+    local function close_handle()
+        local ok, closed = pcall(function () return kernel32.CloseHandle(handle); end);
+        return ok and closed ~= 0;
+    end
+
+    local high = ffi.new('DWORD[1]');
+    local size_ok, size_low, size_error = pcall(function ()
+        kernel32.SetLastError(0);
+        local low = kernel32.GetFileSize(handle, high);
+        local last_error = kernel32.GetLastError();
+        return low, last_error;
+    end);
+    if (not size_ok) then
+        close_handle();
+        return nil, 'File size query failed: ' .. tostring(size_low);
+    end
+    size_low = accessxi_uint32(size_low);
+    local size_high = accessxi_uint32(high[0]);
+    size_error = accessxi_uint32(size_error);
+    if (size_low == nil or size_high == nil or size_error == nil
+        or (size_low == 4294967295 and size_error ~= 0)) then
+        close_handle();
+        return nil, 'File size query failed.';
+    end
+
+    local write_time = ffi.new('FILETIME[1]');
+    local time_ok, got_time = pcall(function ()
+        return kernel32.GetFileTime(handle, nil, nil, write_time);
+    end);
+    local write_time_low = time_ok and accessxi_uint32(write_time[0].dwLowDateTime) or nil;
+    local write_time_high = time_ok and accessxi_uint32(write_time[0].dwHighDateTime) or nil;
+    if (not time_ok or got_time == 0 or write_time_low == nil or write_time_high == nil) then
+        close_handle();
+        return nil, 'File time query failed.';
+    end
+    if (not close_handle()) then
+        return nil, 'File stat close failed.';
+    end
+    return {
+        size_low = size_low,
+        size_high = size_high,
+        write_time_low = write_time_low,
+        write_time_high = write_time_high,
+    };
+end
+
+local function accessxi_objective_canonical_path(path)
+    local value = accessxi_paths.normalize(path);
+    local root = accessxi_paths.normalize(accessxi_paths.addon_path());
+    if (value == '' or root == ''
+        or value:find('\\.\\', 1, true) or value:find('\\..\\', 1, true)
+        or value:sub(-2) == '\\.' or value:sub(-3) == '\\..'
+        or value:lower():sub(1, #root) ~= root:lower()
+        or (#value > #root and value:sub(#root + 1, #root + 1) ~= '\\')) then
+        return nil, 'Path is not a canonical child of the addon root.';
+    end
+    return value;
+end
+
+local function accessxi_objective_split_tabs(line)
+    local fields = {};
+    local start = 1;
+    while true do
+        local position = line:find('\t', start, true);
+        if (position == nil) then
+            fields[#fields + 1] = line:sub(start);
+            break;
+        end
+        fields[#fields + 1] = line:sub(start, position - 1);
+        start = position + 1;
+    end
+    return fields;
+end
+
+local function accessxi_objective_parse_manifest(bytes)
+    if (type(bytes) ~= 'string' or bytes:sub(-1) ~= '\n') then
+        return nil, 'Objective route manifest is not newline terminated.';
+    end
+    local lines = {};
+    for line in bytes:gmatch('([^\n]*)\n') do
+        if (line:sub(-1) == '\r') then
+            line = line:sub(1, -2);
+        end
+        lines[#lines + 1] = line;
+    end
+    if (lines[1] ~= 'relative_path\tsha256\tkind\tzone\tmesh_name') then
+        return nil, 'Objective route manifest header is invalid.';
+    end
+    local rows = {};
+    local prior = '';
+    for index = 2, #lines do
+        local fields = accessxi_objective_split_tabs(lines[index]);
+        local relative_path = fields[1];
+        local digest = fields[2];
+        local kind = fields[3];
+        local zone_text = fields[4];
+        local mesh_name = fields[5];
+        local key = type(relative_path) == 'string' and relative_path:lower() or '';
+        if (#fields ~= 5 or relative_path == '' or relative_path:find('\\', 1, true)
+            or relative_path:sub(1, 1) == '/' or relative_path:find(':', 1, true)
+            or relative_path:find('/./', 1, true) or relative_path:find('/../', 1, true)
+            or relative_path:sub(1, 2) == './' or relative_path:sub(1, 3) == '../'
+            or relative_path:sub(-2) == '/.' or relative_path:sub(-3) == '/..'
+            or key <= prior or rows[key] ~= nil
+            or type(digest) ~= 'string' or #digest ~= 64
+            or digest:find('[^0-9a-f]') ~= nil or kind == '') then
+            return nil, 'Objective route manifest row is malformed, duplicated, or unsorted.';
+        end
+        local zone = nil;
+        if (zone_text ~= '') then
+            zone = tonumber(zone_text);
+            if (zone == nil or zone < 0 or zone ~= math.floor(zone)) then
+                return nil, 'Objective route manifest zone is invalid.';
+            end
+        end
+        rows[relative_path] = {
+            relative_path = relative_path,
+            sha256 = digest,
+            kind = kind,
+            zone = zone,
+            mesh_name = mesh_name,
+        };
+        prior = key;
+    end
+    if (rows['modules/mission_quest_route_runtime.lua'] == nil
+        or rows['third_party/FFXI-NavMesh-Builder/FFXINAV.dll'] == nil) then
+        return nil, 'Objective route manifest is missing a required runtime child.';
+    end
+    return rows;
+end
+
+local function accessxi_objective_identity_copy(identity)
+    if (type(identity) ~= 'table') then
+        return nil;
+    end
+    return {
+        size_low = identity.size_low,
+        size_high = identity.size_high,
+        write_time_low = identity.write_time_low,
+        write_time_high = identity.write_time_high,
+    };
+end
+
+local function accessxi_objective_snapshot_copy(snapshot)
+    if (type(snapshot) ~= 'table') then
+        return nil;
+    end
+    return {
+        path = snapshot.path,
+        sha256 = snapshot.sha256,
+        identity = accessxi_objective_identity_copy(snapshot.identity),
+        mesh_name = snapshot.mesh_name,
+        zone = snapshot.zone,
+    };
+end
+
+local function accessxi_objective_mark_untrusted(reason, clear_mesh)
+    accessxi_objective_native_observer.trusted = false;
+    accessxi_objective_native_observer.reason = tostring(reason or 'Objective native integrity is unavailable.');
+    if (clear_mesh == true) then
+        accessxi_objective_native_observer.mesh = nil;
+    end
+    return false;
+end
+
+function accessxi.nav_objective_native_mark_untrusted(reason)
+    return accessxi_objective_mark_untrusted(reason, true);
+end
+
+local function accessxi_objective_observe_file(relative_path, requested_path)
+    local row = accessxi_objective_manifest_rows ~= nil
+        and accessxi_objective_manifest_rows[relative_path] or nil;
+    local expected_path = accessxi_paths.addon_path(relative_path);
+    local canonical = accessxi_objective_canonical_path(requested_path);
+    if (row == nil or canonical == nil or canonical ~= expected_path
+        or accessxi_objective_file_hasher == nil) then
+        return nil, 'The native file is not an exact rooted manifest child.';
+    end
+    local ok, bytes, digest, identity, reason = pcall(
+        accessxi_objective_file_hasher.read_and_hash_file,
+        accessxi_objective_file_hasher,
+        canonical);
+    if (not ok or type(bytes) ~= 'string' or digest ~= row.sha256 or type(identity) ~= 'table') then
+        return nil, not ok and tostring(bytes) or tostring(reason or 'Native file hash mismatch.');
+    end
+    return {
+        path = canonical,
+        sha256 = digest,
+        identity = accessxi_objective_identity_copy(identity),
+    };
+end
+
+local function accessxi_objective_identity_equal(left, right)
+    return type(left) == 'table' and type(right) == 'table'
+        and left.size_low == right.size_low and left.size_high == right.size_high
+        and left.write_time_low == right.write_time_low
+        and left.write_time_high == right.write_time_high;
+end
+
+local function accessxi_objective_snapshot_current(relative_path, snapshot)
+    local current, reason = accessxi_objective_observe_file(relative_path, snapshot ~= nil and snapshot.path or '');
+    if (current == nil or snapshot == nil or current.sha256 ~= snapshot.sha256
+        or not accessxi_objective_identity_equal(current.identity, snapshot.identity)) then
+        return false, reason or 'The observed native file identity changed.';
+    end
+    return true;
+end
+
+function accessxi.nav_objective_native_before_dll_load(path)
+    local snapshot, reason = accessxi_objective_observe_file(
+        'third_party/FFXI-NavMesh-Builder/FFXINAV.dll', path);
+    if (snapshot == nil) then
+        accessxi_objective_native_observer.dll = nil;
+        return accessxi_objective_mark_untrusted(reason, true);
+    end
+    accessxi_objective_native_observer.dll = snapshot;
+    accessxi_objective_native_observer.mesh = nil;
+    accessxi_objective_native_observer.trusted = false;
+    accessxi_objective_native_observer.reason = 'No rooted objective mesh is loaded.';
+    return true;
+end
+
+function accessxi.nav_objective_native_before_mesh_load(zone, mesh_name, path)
+    zone = tonumber(zone);
+    mesh_name = tostring(mesh_name or '');
+    if (zone == nil or zone < 0 or zone ~= math.floor(zone)
+        or mesh_name == '' or mesh_name:find('[\\/]')) then
+        return accessxi_objective_mark_untrusted('The objective mesh identity is malformed.', true);
+    end
+    local relative_path = 'third_party/xiNavmeshes/' .. mesh_name;
+    local row = accessxi_objective_manifest_rows ~= nil and accessxi_objective_manifest_rows[relative_path] or nil;
+    if (row == nil or row.kind ~= 'mesh' or tonumber(row.zone) ~= zone or row.mesh_name ~= mesh_name) then
+        return accessxi_objective_mark_untrusted('The objective mesh is not rooted for this zone.', true);
+    end
+    local dll_current, dll_reason = accessxi_objective_snapshot_current(
+        'third_party/FFXI-NavMesh-Builder/FFXINAV.dll',
+        accessxi_objective_native_observer.dll);
+    if (not dll_current) then
+        return accessxi_objective_mark_untrusted(dll_reason, true);
+    end
+    local snapshot, reason = accessxi_objective_observe_file(relative_path, path);
+    if (snapshot == nil) then
+        return accessxi_objective_mark_untrusted(reason, true);
+    end
+    snapshot.zone = zone;
+    snapshot.mesh_name = mesh_name;
+    accessxi_objective_native_observer.mesh = snapshot;
+    accessxi_objective_native_observer.trusted = true;
+    accessxi_objective_native_observer.reason = '';
+    return true;
+end
+
+function accessxi.nav_objective_native_integrity_state()
+    local observer = accessxi_objective_native_observer;
+    if (observer.dll == nil or observer.mesh == nil) then
+        observer.trusted = false;
+    else
+        local dll_ok, dll_reason = accessxi_objective_snapshot_current(
+            'third_party/FFXI-NavMesh-Builder/FFXINAV.dll', observer.dll);
+        local mesh_ok, mesh_reason = accessxi_objective_snapshot_current(
+            'third_party/xiNavmeshes/' .. tostring(observer.mesh.mesh_name or ''), observer.mesh);
+        if (not dll_ok or not mesh_ok) then
+            observer.trusted = false;
+            observer.reason = dll_reason or mesh_reason or 'The loaded native file identity changed.';
+        end
+    end
+    return {
+        trusted = observer.trusted == true,
+        reason = tostring(observer.reason or ''),
+        dll = accessxi_objective_snapshot_copy(observer.dll),
+        mesh = accessxi_objective_snapshot_copy(observer.mesh),
+    };
+end
+
+function accessxi.nav_objective_native_revalidate_loaded_mesh(zone)
+    local snapshot = accessxi.nav_objective_native_integrity_state();
+    if (snapshot.trusted ~= true or snapshot.mesh == nil
+        or tonumber(snapshot.mesh.zone) ~= tonumber(zone)) then
+        return accessxi_objective_mark_untrusted(
+            snapshot.reason ~= '' and snapshot.reason or 'The loaded objective mesh changed.',
+            false);
+    end
+    return true;
+end
+
+local function accessxi_objective_runtime_failure(reason)
+    accessxi.objective_route_runtime = nil;
+    accessxi.objective_route_runtime_failure_reason = tostring(reason or 'Objective route runtime is unavailable.');
+    local safe_reason = type(accessxi.escape_probe_log_text) == 'function'
+        and accessxi.escape_probe_log_text(accessxi.objective_route_runtime_failure_reason)
+        or accessxi.objective_route_runtime_failure_reason;
+    log_line('objective route runtime disabled: '
+        .. safe_reason);
+    return false;
+end
+
+local function accessxi_objective_runtime_bootstrap()
+    local sha_module = accessxi.load_module_table('accessxi_sha256', nil);
+    if (type(sha_module) ~= 'table' or type(sha_module.sha256) ~= 'function'
+        or type(sha_module.smoke_test) ~= 'function'
+        or type(sha_module.new_file_hasher) ~= 'function') then
+        return nil, 'Objective SHA-256 module is unavailable.';
+    end
+    local smoke_ok, smoke_value, smoke_reason = pcall(sha_module.smoke_test);
+    if (not smoke_ok or smoke_value ~= true) then
+        return nil, 'Objective SHA-256 smoke test failed: '
+            .. tostring(smoke_ok and smoke_reason or smoke_value);
+    end
+    local hasher_ok, hasher = pcall(sha_module.new_file_hasher, {
+        canonicalize = accessxi_objective_canonical_path,
+        stat = accessxi_file_stat,
+        open = function(path, mode) return io.open(path, mode); end,
+    });
+    if (not hasher_ok or type(hasher) ~= 'table'
+        or type(hasher.read_and_hash_file) ~= 'function') then
+        return nil, 'Objective file hasher is unavailable: ' .. tostring(hasher);
+    end
+    accessxi_objective_file_hasher = hasher;
+
+    local manifest_path = accessxi_paths.addon_path('data', 'mission-quest-route-manifest.tsv');
+    local read_ok, manifest_bytes, manifest_digest = pcall(
+        hasher.read_and_hash_file, hasher, manifest_path);
+    if (not read_ok or type(manifest_bytes) ~= 'string'
+        or manifest_digest ~= ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256) then
+        return nil, 'Objective route manifest hash does not match the reader pin.';
+    end
+    local rows, parse_error = accessxi_objective_parse_manifest(manifest_bytes);
+    if (rows == nil) then
+        return nil, parse_error;
+    end
+    accessxi_objective_manifest_rows = rows;
+
+    local runtime_relative = 'modules/mission_quest_route_runtime.lua';
+    local runtime_row = rows[runtime_relative];
+    if (runtime_row == nil or runtime_row.kind ~= 'runtime') then
+        return nil, 'Objective route runtime manifest row is unavailable.';
+    end
+    local runtime_path = accessxi_paths.addon_path(runtime_relative);
+    local runtime_ok, runtime_bytes, runtime_digest = pcall(
+        hasher.read_and_hash_file, hasher, runtime_path);
+    if (not runtime_ok or type(runtime_bytes) ~= 'string' or runtime_digest ~= runtime_row.sha256) then
+        return nil, 'Objective route runtime child hash mismatch.';
+    end
+    local compile_ok, chunk, compile_error = pcall(loadstring, runtime_bytes, '@' .. runtime_relative);
+    if (not compile_ok or type(chunk) ~= 'function') then
+        return nil, 'Objective route runtime compilation failed: '
+            .. tostring(compile_ok and compile_error or chunk);
+    end
+    local current_environment = getfenv(1);
+    local module_environment = setmetatable({
+        EXECUTION_FLAGS = current_environment ~= nil and current_environment.EXECUTION_FLAGS or nil,
+    }, { __index = _G });
+    setfenv(chunk, module_environment);
+    local execute_ok, runtime_module = pcall(chunk);
+    if (not execute_ok or type(runtime_module) ~= 'table' or type(runtime_module.new) ~= 'function') then
+        return nil, 'Objective route runtime execution failed: ' .. tostring(runtime_module);
+    end
+
+    local native_adapter = {
+        is_valid_position = function(_, point)
+            return accessxi.nav_objective_native_is_valid_position(point);
+        end,
+        get_distance_to_wall = function(_, point)
+            return accessxi.nav_objective_native_get_distance_to_wall(point);
+        end,
+        find_path = function(_, start_point, end_point)
+            return accessxi.nav_objective_native_find_path(start_point, end_point);
+        end,
+        get_waypoints = function(_, maximum)
+            return accessxi.nav_objective_native_get_waypoints(maximum);
+        end,
+    };
+    local options = {
+        expected_manifest_sha256 = ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256,
+        manifest_path = manifest_path,
+        path_for = function(relative_path)
+            if (type(relative_path) ~= 'string' or relative_path == ''
+                or relative_path:find('\\', 1, true) or relative_path:find(':', 1, true)
+                or relative_path:find('/../', 1, true) or relative_path:sub(1, 1) == '/') then
+                return nil;
+            end
+            return accessxi_paths.addon_path(relative_path);
+        end,
+        file_hasher = hasher,
+        sha256 = sha_module.sha256,
+        module_environment = module_environment,
+        objective_native = native_adapter,
+        native_integrity_state = accessxi.nav_objective_native_integrity_state,
+    };
+    local new_ok, runtime = pcall(runtime_module.new, options);
+    if (not new_ok or type(runtime) ~= 'table') then
+        return nil, 'Objective route runtime initialization failed: ' .. tostring(runtime);
+    end
+    if (type(runtime.is_ready) ~= 'function' or not runtime:is_ready()) then
+        local reason = type(runtime.failure_reason) == 'function' and runtime:failure_reason()
+            or 'Objective route runtime rejected its rooted inputs.';
+        return nil, reason;
+    end
+    accessxi.objective_route_runtime = runtime;
+    accessxi.objective_route_runtime_failure_reason = '';
+    return true;
+end
+
+do
+    local bootstrap_ok, ready, reason = pcall(accessxi_objective_runtime_bootstrap);
+    if (not bootstrap_ok) then
+        accessxi_objective_runtime_failure(ready);
+    elseif (ready ~= true) then
+        accessxi_objective_runtime_failure(reason);
+    end
+end
+end)();
+-- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_END
+
 local function nav_round(value, places)
     local mult = 10 ^ (places or 0);
     if ((tonumber(value) or 0) >= 0) then
@@ -69208,11 +69661,32 @@ local function nav_mesh_position(pos)
 end
 
 local function nav_try_load_mesh(zone)
+    local function objective_observe(name, ...)
+        local observer = accessxi[name];
+        if (type(observer) ~= 'function') then
+            if (type(accessxi.nav_objective_native_mark_untrusted) == 'function') then
+                pcall(accessxi.nav_objective_native_mark_untrusted,
+                    'Objective native observer is unavailable before ' .. name .. '.');
+            end
+            return false;
+        end
+        local ok, trusted = pcall(observer, ...);
+        if (not ok or trusted ~= true) then
+            if (type(accessxi.nav_objective_native_mark_untrusted) == 'function') then
+                pcall(accessxi.nav_objective_native_mark_untrusted,
+                    not ok and tostring(trusted) or ('Objective native observer rejected ' .. name .. '.'));
+            end
+            return false;
+        end
+        return true;
+    end
+
     zone = tonumber(zone) or 0;
     if (zone <= 0) then
         return false;
     end
     if (accessxi.nav_mesh_loaded and accessxi.nav_mesh_zone == zone and accessxi.nav_mesh_handle ~= nil) then
+        objective_observe('nav_objective_native_revalidate_loaded_mesh', zone);
         return true;
     end
 
@@ -69224,8 +69698,12 @@ local function nav_try_load_mesh(zone)
     end
 
     if (ffxinav == nil) then
+        objective_observe('nav_objective_native_before_dll_load', accessxi.nav_mesh_dll_path);
         local ok, lib = pcall(ffi.load, accessxi.nav_mesh_dll_path);
         if (not ok or lib == nil) then
+            if (type(accessxi.nav_objective_native_mark_untrusted) == 'function') then
+                pcall(accessxi.nav_objective_native_mark_untrusted, 'FFXINAV DLL load failed.');
+            end
             accessxi.nav_mesh_available = false;
             log_line('navmesh dll unavailable: ' .. tostring(lib));
             return false;
@@ -69250,11 +69728,92 @@ local function nav_try_load_mesh(zone)
         log_line(('navmesh load zone=%d mesh="%s" failed to convert path'):fmt(zone, path));
         return false;
     end
+    objective_observe('nav_objective_native_before_mesh_load', zone, mesh_name, path);
     local ok, loaded = pcall(function () return ffxinav.LoadMesh(accessxi.nav_mesh_handle, wide_path); end);
     accessxi.nav_mesh_loaded = ok and loaded;
     accessxi.nav_mesh_zone = accessxi.nav_mesh_loaded and zone or 0;
+    if (not accessxi.nav_mesh_loaded
+        and type(accessxi.nav_objective_native_mark_untrusted) == 'function') then
+        pcall(accessxi.nav_objective_native_mark_untrusted, 'FFXINAV LoadMesh failed.');
+    end
     log_line(('navmesh load zone=%d mesh="%s" ok=%s loaded=%s'):fmt(zone, path, tostring(ok), tostring(loaded)));
     return accessxi.nav_mesh_loaded;
+end
+
+function accessxi.nav_objective_native_handle()
+    if (ffxinav == nil or accessxi.nav_mesh_handle == nil or accessxi.nav_mesh_loaded ~= true) then
+        error('The observer-attested objective navmesh handle is unavailable.');
+    end
+    return accessxi.nav_mesh_handle;
+end
+
+function accessxi.nav_objective_native_is_valid_position(point)
+    local handle = accessxi.nav_objective_native_handle();
+    local position = nav_mesh_position(point);
+    return ffxinav.IsValidPosition(handle, position, false) == true;
+end
+
+function accessxi.nav_objective_native_get_distance_to_wall(point)
+    local handle = accessxi.nav_objective_native_handle();
+    local position = nav_mesh_position(point);
+    return tonumber(ffxinav.GetDistanceToWall(handle, position));
+end
+
+function accessxi.nav_objective_native_find_path(start_point, end_point)
+    local handle = accessxi.nav_objective_native_handle();
+    local start_position = nav_mesh_position(start_point);
+    local end_position = nav_mesh_position(end_point);
+    ffxinav.FindPath(handle, start_position, end_position, false);
+    return true;
+end
+
+function accessxi.nav_objective_native_get_waypoints(maximum)
+    local handle = accessxi.nav_objective_native_handle();
+    maximum = tonumber(maximum) or 0;
+    if (maximum < 2 or maximum ~= math.floor(maximum)) then
+        error('The objective waypoint limit is invalid.');
+    end
+    local pointer = ffi.new('NavPositionT*[1]');
+    local count = tonumber(ffxinav.Get_WayPoints(handle, pointer));
+    if (count == nil or count < 0 or count ~= math.floor(count)) then
+        error('FFXINAV returned a malformed waypoint count.');
+    end
+    if (count > maximum) then
+        error('FFXINAV returned more waypoints than the rooted policy permits.');
+    end
+    if (count == 0) then
+        return {};
+    end
+    if (pointer[0] == nil) then
+        error('FFXINAV returned a null waypoint pointer.');
+    end
+    local points = {};
+    for index = 0, count - 1 do
+        local point = pointer[0][index];
+        points[#points + 1] = {
+            x = tonumber(point.X),
+            y = tonumber(point.Y),
+            z = tonumber(point.Z),
+        };
+    end
+    return points;
+end
+
+function accessxi.nav_compute_exact_objective_leg(request)
+    local runtime = accessxi.objective_route_runtime;
+    if (type(runtime) ~= 'table' or type(runtime.compute_exact_objective_leg) ~= 'function') then
+        return nil, nav_clean_field(accessxi.objective_route_runtime_failure_reason)
+            ~= '' and nav_clean_field(accessxi.objective_route_runtime_failure_reason)
+            or 'Verified objective route execution is unavailable.';
+    end
+    local ok, points, reason, evidence = pcall(
+        runtime.compute_exact_objective_leg,
+        runtime,
+        request);
+    if (not ok) then
+        return nil, 'Verified objective route execution failed safely.';
+    end
+    return points, reason, evidence;
 end
 
 local function nav_compute_mesh_route(start_pos, end_pos)
@@ -70837,6 +71396,18 @@ accessxi.load_code_module('metalworks_elevator_navigation', T{
     log_line = log_line,
     speak = speak,
     tick = tick,
+    objective_transition_is_authorized = function(request)
+        local runtime = accessxi.objective_route_runtime;
+        if (type(runtime) ~= 'table' or type(runtime.authorize_transition) ~= 'function') then
+            return nil, 'The rooted objective transition runtime is unavailable.';
+        end
+        return runtime:authorize_transition(
+            tostring(request ~= nil and request.objective_route_contract_id or ''),
+            tostring(request ~= nil and request.objective_transition_id or ''));
+    end,
+    nav_compute_exact_objective_leg = function(request)
+        return accessxi.nav_compute_exact_objective_leg(request);
+    end,
 });
 
 accessxi.load_code_module('dangruf_fount_drop_navigation', T{
@@ -72471,15 +73042,38 @@ local function nav_menu_start_route()
     end
 
     local objective_kind = nav_clean_field(item.objective_kind or item.kind):lower();
-    if ((objective_kind == 'mission' or objective_kind == 'quest')
-        and type(accessxi.nav_mission_quest_prepare_route) == 'function') then
+    if (objective_kind == 'mission' or objective_kind == 'quest') then
+        if (type(accessxi.nav_mission_quest_prepare_route) ~= 'function') then
+            local text = 'Verified objective route preparation is unavailable.';
+            speak(text);
+            log_line('nav objective start blocked ' .. text);
+            return;
+        end
         local objective_player = nav_cached_player_position();
         if (objective_player == nil) then
             speak('Position unavailable.');
             return;
         end
-        local target, objective_message, objective_mode = accessxi.nav_mission_quest_prepare_route(item, objective_player);
-        if (objective_mode ~= 'ready' or target == nil) then
+        local prepare_ok, target, objective_message, objective_mode = pcall(
+            accessxi.nav_mission_quest_prepare_route,
+            item,
+            objective_player);
+        if (not prepare_ok) then
+            local text = 'Verified objective route preparation is unavailable.';
+            speak(text);
+            log_line('nav objective start blocked ' .. text);
+            return;
+        end
+        if (objective_mode == 'instruction') then
+            local text = nav_clean_field(target or objective_message);
+            if (text == '') then
+                text = 'No verified current destination is available for this objective.';
+            end
+            speak(text);
+            log_line('nav objective instruction ' .. text);
+            return;
+        end
+        if (objective_mode ~= 'ready' or type(target) ~= 'table') then
             local text = nav_clean_field(objective_message);
             if (text == '') then
                 text = 'No verified current destination is available for this objective.';
@@ -72488,26 +73082,60 @@ local function nav_menu_start_route()
             log_line('nav objective start blocked ' .. text);
             return;
         end
-        item = target;
-        if ((tonumber(item.zone) or 0) ~= (tonumber(objective_player.zone) or 0)) then
-            accessxi.nav_menu_open = false;
-            accessxi.nav_menu_poll_key = 0;
-            accessxi.nav_menu_poll_tick = 0;
-            accessxi.nav_menu_open_tick = 0;
-            accessxi.nav_clear_zone_search();
-            accessxi.nav_zone_search_target = accessxi.nav_copy_point(item);
-            accessxi.nav_zone_search_query = nav_clean_field(item.objective_title or item.name or 'objective');
-            accessxi.nav_zone_search_waiting_zone = 0;
-            accessxi.nav_zone_search_waiting_from_zone = 0;
-            accessxi.nav_zone_search_last_replan_tick = 0;
-            local text = accessxi.nav_zone_search_start_next_leg('mission-quest-objective');
-            if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
-                text = text .. accessxi.nav_mission_quest_start_suffix(item);
-            end
+
+        local snapshot = target.objective_contract_snapshot;
+        local ready_complete = nav_clean_field(target.objective_kind) ~= ''
+            and nav_clean_field(target.objective_native_key) ~= ''
+            and nav_clean_field(target.objective_guide_step_id) ~= ''
+            and nav_clean_field(target.objective_character_identity) ~= ''
+            and tonumber(target.objective_world_id) ~= nil
+            and tonumber(target.objective_session_epoch) ~= nil
+            and nav_clean_field(target.objective_candidate_id) ~= ''
+            and nav_clean_field(target.objective_action_id) ~= ''
+            and type(target.objective_group_id) == 'string'
+            and nav_clean_field(target.objective_destination_id) ~= ''
+            and nav_clean_field(target.objective_classification) ~= ''
+            and nav_clean_field(target.objective_action_instruction) ~= ''
+            and nav_clean_field(target.objective_route_contract_id) ~= ''
+            and type(snapshot) == 'table'
+            and snapshot.route_ready == true
+            and nav_clean_field(snapshot.contract_id) == nav_clean_field(target.objective_route_contract_id)
+            and nav_clean_field(snapshot.candidate_id) == nav_clean_field(target.objective_candidate_id)
+            and nav_clean_field(snapshot.action_id) == nav_clean_field(target.objective_action_id)
+            and type(snapshot.group_id) == 'string'
+            and snapshot.group_id == target.objective_group_id
+            and nav_clean_field(snapshot.destination_id) == nav_clean_field(target.objective_destination_id);
+        if (not ready_complete) then
+            local text = 'Verified objective route authorization is incomplete.';
             speak(text);
-            log_line('nav objective zone route ' .. text);
+            log_line('nav objective start blocked ' .. text);
             return;
         end
+
+        if (type(accessxi.nav_start_authorized_objective_route) ~= 'function') then
+            local text = 'Verified objective route execution is unavailable.';
+            speak(text);
+            log_line('nav objective start blocked ' .. text);
+            return;
+        end
+        local start_ok, text, started = pcall(
+            accessxi.nav_start_authorized_objective_route,
+            target,
+            objective_player);
+        if (not start_ok) then
+            text = 'Verified objective route execution failed safely.';
+            started = false;
+        else
+            text = nav_clean_field(text);
+            if (text == '') then
+                text = started == true
+                    and 'Starting verified objective route.'
+                    or 'No exact current objective leg is proven from here.';
+            end
+        end
+        speak(text);
+        log_line((started == true and 'nav objective start ' or 'nav objective start blocked ') .. text);
+        return;
     end
 
     if (item.zone_search_result == true) then
@@ -72746,6 +73374,22 @@ function accessxi.nav_copy_point(point)
         return nil;
     end
 
+    local function copy_nested(value, seen)
+        if (type(value) ~= 'table') then
+            return value;
+        end
+        seen = seen or {};
+        if (seen[value] ~= nil) then
+            return seen[value];
+        end
+        local result = {};
+        seen[value] = result;
+        for key, child in pairs(value) do
+            result[copy_nested(key, seen)] = copy_nested(child, seen);
+        end
+        return result;
+    end
+
     return T{
         zone = tonumber(point.zone) or 0,
         name = nav_clean_field(point.name or ''),
@@ -72772,9 +73416,20 @@ function accessxi.nav_copy_point(point)
         arrival_instruction = nav_clean_field(point.arrival_instruction or ''),
         objective_source = nav_clean_field(point.objective_source or ''),
         objective_character_identity = nav_clean_field(point.objective_character_identity or ''),
+        objective_world_id = tonumber(point.objective_world_id),
+        objective_session_epoch = tonumber(point.objective_session_epoch),
         objective_native_key = nav_clean_field(point.objective_native_key or ''),
         guide_step_id = nav_clean_field(point.guide_step_id or ''),
+        objective_guide_step_id = nav_clean_field(point.objective_guide_step_id or point.guide_step_id or ''),
+        objective_candidate_id = nav_clean_field(point.objective_candidate_id or ''),
+        objective_action_id = nav_clean_field(point.objective_action_id or ''),
+        objective_group_id = type(point.objective_group_id) == 'string' and point.objective_group_id or nil,
         objective_destination_id = nav_clean_field(point.objective_destination_id or ''),
+        objective_classification = nav_clean_field(point.objective_classification or ''),
+        objective_action_instruction = nav_clean_field(point.objective_action_instruction or ''),
+        objective_instruction_only = point.objective_instruction_only == true,
+        objective_route_contract_id = nav_clean_field(point.objective_route_contract_id or ''),
+        objective_contract_snapshot = copy_nested(point.objective_contract_snapshot),
         objective_action = nav_clean_field(point.objective_action or ''),
         objective_items_text = nav_clean_field(point.objective_items_text or ''),
         objective_enemies_text = nav_clean_field(point.objective_enemies_text or ''),
@@ -72786,6 +73441,239 @@ function accessxi.nav_copy_point(point)
         objective_route_evidence = nav_clean_field(point.objective_route_evidence or ''),
         route_context_label = nav_clean_field(point.route_context_label or ''),
     };
+end
+
+function accessxi.nav_objective_route_state_current(player)
+    local state = accessxi.nav_objective_route_state;
+    if (state == nil) then
+        return true, '';
+    end
+    if (type(accessxi.nav_mission_quest_prepare_route) ~= 'function') then
+        return false, 'Verified objective route preparation is unavailable.';
+    end
+    local ok, fresh, message, mode = pcall(
+        accessxi.nav_mission_quest_prepare_route,
+        state,
+        player);
+    if (not ok or mode ~= 'ready' or type(fresh) ~= 'table') then
+        return false, nav_clean_field(ok and message or '') ~= '' and nav_clean_field(message)
+            or 'The active objective route changed.';
+    end
+    for _, field in ipairs({
+        'objective_kind', 'objective_native_key', 'objective_guide_step_id',
+        'objective_character_identity', 'objective_world_id', 'objective_session_epoch',
+        'objective_candidate_id', 'objective_action_id', 'objective_group_id',
+        'objective_destination_id', 'objective_classification',
+        'objective_action_instruction', 'objective_route_contract_id',
+    }) do
+        if (fresh[field] ~= state[field]) then
+            return false, 'The active objective route identity changed.';
+        end
+    end
+    local current_contract = fresh.objective_contract_snapshot;
+    local saved_contract = state.objective_contract_snapshot;
+    if (type(current_contract) ~= 'table' or type(saved_contract) ~= 'table'
+        or current_contract.route_ready ~= true or saved_contract.route_ready ~= true
+        or current_contract.contract_id ~= saved_contract.contract_id
+        or current_contract.candidate_id ~= saved_contract.candidate_id
+        or current_contract.action_id ~= saved_contract.action_id
+        or current_contract.group_id ~= saved_contract.group_id
+        or current_contract.destination_id ~= saved_contract.destination_id
+        or tonumber(fresh.zone) ~= tonumber(state.zone)
+        or tonumber(fresh.x) ~= tonumber(state.x)
+        or tonumber(fresh.z) ~= tonumber(state.z)
+        or tonumber(fresh.y) ~= tonumber(state.y)) then
+        return false, 'The active objective route contract or destination changed.';
+    end
+    return true, '';
+end
+
+function accessxi.nav_objective_route_revalidate_or_cancel(player)
+    local current, reason = accessxi.nav_objective_route_state_current(player);
+    if (current) then
+        return true, '';
+    end
+    if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
+        accessxi.nav_cancel_mission_quest_route('active-objective-state-changed');
+    end
+    return false, reason;
+end
+
+function accessxi.nav_activate_authorized_objective_points(target, player, route, authorization)
+    if (type(route) ~= 'table' or #route < 2) then
+        return 'No exact current objective leg is proven from here.', false;
+    end
+    accessxi.nav_clear_zone_search();
+    accessxi.nav_active = true;
+    accessxi.nav_destination = accessxi.nav_copy_point(target);
+    accessxi.nav_objective_route_state = accessxi.nav_copy_point(target);
+    accessxi.nav_objective_route_state.objective_transition_authorization = authorization;
+    accessxi.nav_route_points = route;
+    accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, route, target);
+    accessxi.nav_route_last_recalc_tick = tick();
+    accessxi.nav_last_key = '';
+    accessxi.nav_last_direction_text = '';
+    accessxi.nav_beacon_last_key = '';
+    accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_progress_x = nil;
+    accessxi.nav_progress_z = nil;
+    accessxi.nav_progress_distance = 0;
+    accessxi.nav_progress_tick = tick();
+    accessxi.nav_collision_x = nil;
+    accessxi.nav_collision_z = nil;
+    accessxi.nav_collision_tick = 0;
+    accessxi.nav_menu_open = false;
+    accessxi.nav_menu_poll_key = 0;
+    accessxi.nav_menu_poll_tick = 0;
+    accessxi.nav_menu_open_tick = 0;
+    accessxi.nav_route_start_point = T{
+        zone = player.zone, x = player.x, z = player.z, y = player.y, yaw = player.yaw,
+    };
+    accessxi.nav_route_start_tick = tick();
+    local suffix = authorization ~= nil and ' This route uses a rooted objective transition.' or '';
+    local text = ('Starting verified objective route to %s. %d waypoints.%s'):fmt(
+        target.name or 'objective destination',
+        #route,
+        suffix);
+    accessxi.nav_last_direction_text = text;
+    return text, true;
+end
+
+function accessxi.nav_start_authorized_objective_route(target, player)
+    local runtime = accessxi.objective_route_runtime;
+    if (type(runtime) ~= 'table' or type(runtime.compute_exact_objective_leg) ~= 'function') then
+        return 'Verified objective route execution is unavailable.', false;
+    end
+    if (type(target) ~= 'table' or type(player) ~= 'table') then
+        return 'The current objective target or player position is unavailable.', false;
+    end
+    local target_zone = tonumber(target.zone);
+    local player_zone = tonumber(player.zone);
+    local contract_id = nav_clean_field(target.objective_route_contract_id);
+    if (target_zone == nil or player_zone == nil or contract_id == '') then
+        return 'Verified objective route authorization is incomplete.', false;
+    end
+    if (player_zone ~= target_zone) then
+        if (type(runtime.find_objective_zone_path) ~= 'function') then
+            return 'No exact current objective leg is proven from this zone.', false;
+        end
+        local ok, path, reason = pcall(
+            runtime.find_objective_zone_path,
+            runtime,
+            player_zone,
+            contract_id);
+        if (not ok or type(path) ~= 'table') then
+            return nav_clean_field(ok and reason or '') ~= '' and nav_clean_field(reason)
+                or 'No exact current objective leg is proven from this zone.', false;
+        end
+        return 'No exact current objective leg is proven from this zone.', false;
+    end
+    if (not nav_try_load_mesh(target_zone)) then
+        return 'The rooted objective navmesh is unavailable for this zone.', false;
+    end
+
+    local contract = target.objective_contract_snapshot;
+    local required_transitions = type(contract) == 'table'
+        and contract.required_transition_ids or nil;
+    if (type(required_transitions) == 'table' and #required_transitions > 0) then
+        local last_reason = 'No rooted authorized objective transition can start from here.';
+        for _, transition_id in ipairs(required_transitions) do
+            local authorized_ok, definition, authorization_reason = pcall(
+                runtime.authorize_transition,
+                runtime,
+                contract_id,
+                transition_id);
+            if (authorized_ok and type(definition) == 'table'
+                and tonumber(definition.zone) == target_zone) then
+                local authorization = T{
+                    objective_kind = target.objective_kind,
+                    objective_native_key = target.objective_native_key,
+                    objective_guide_step_id = target.objective_guide_step_id,
+                    objective_character_identity = target.objective_character_identity,
+                    objective_world_id = target.objective_world_id,
+                    objective_session_epoch = target.objective_session_epoch,
+                    objective_candidate_id = target.objective_candidate_id,
+                    objective_action_id = target.objective_action_id,
+                    objective_group_id = target.objective_group_id,
+                    objective_destination_id = target.objective_destination_id,
+                    objective_route_contract_id = contract_id,
+                    objective_transition_id = definition.transition_id,
+                    objective_transition_revision = definition.transition_revision,
+                    objective_transition_registry_sha256 = definition.source_registry_sha256,
+                    objective_transition_direction = definition.direction,
+                    objective_transition_zone = definition.zone,
+                    objective_transition_pre_anchor = T{
+                        zone = definition.zone,
+                        x = definition.pre_anchor.x,
+                        z = definition.pre_anchor.z,
+                        y = definition.pre_anchor.y,
+                    },
+                    objective_transition_post_anchor = T{
+                        zone = definition.zone,
+                        x = definition.post_anchor.x,
+                        z = definition.post_anchor.z,
+                        y = definition.post_anchor.y,
+                    },
+                    objective_transition_expected_live_state = definition.expected_live_state,
+                    objective_transition_timeout_seconds = definition.timeout_seconds,
+                };
+                local transition_route, transition_reason = accessxi.nav_objective_transport_start(
+                    player,
+                    target,
+                    authorization);
+                if (type(transition_route) == 'table' and #transition_route > 1) then
+                    return accessxi.nav_activate_authorized_objective_points(
+                        target,
+                        player,
+                        transition_route,
+                        authorization);
+                end
+                last_reason = nav_clean_field(transition_reason) ~= ''
+                    and nav_clean_field(transition_reason) or last_reason;
+            elseif (authorized_ok and nav_clean_field(authorization_reason) ~= '') then
+                last_reason = nav_clean_field(authorization_reason);
+            end
+        end
+        return last_reason, false;
+    end
+
+    local points, reason = accessxi.nav_compute_exact_objective_leg({
+        zone = target_zone,
+        objective_route_contract_id = contract_id,
+        start = { x = player.x, z = player.z, y = player.y, zone = player_zone },
+        ['end'] = { x = target.x, z = target.z, y = target.y, zone = target_zone },
+    });
+    if (type(points) ~= 'table' or #points < 2) then
+        reason = nav_clean_field(reason);
+        if (reason == '') then
+            reason = 'No exact current objective leg is proven from here.';
+        end
+        return reason, false;
+    end
+    local route = T{};
+    for index, point in ipairs(points) do
+        local x = tonumber(point.x);
+        local z = tonumber(point.z);
+        local y = tonumber(point.y);
+        if (x == nil or z == nil or y == nil
+            or x ~= x or z ~= z or y ~= y
+            or x == math.huge or x == -math.huge
+            or z == math.huge or z == -math.huge
+            or y == math.huge or y == -math.huge) then
+            return 'The exact objective route returned a malformed waypoint.', false;
+        end
+        route:append(T{
+            zone = target_zone,
+            name = ('Objective waypoint %d'):fmt(index),
+            x = x,
+            z = z,
+            y = y,
+            kind = 'route',
+            source = 'objective-exact-runtime',
+        });
+    end
+
+    return accessxi.nav_activate_authorized_objective_points(target, player, route, nil);
 end
 
 accessxi.load_code_module('same_zone_reentry_navigation', T{
@@ -74212,6 +75100,12 @@ nav_route_stop = function ()
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('route-stop');
     end
+    if (type(accessxi.nav_objective_transport_clear) == 'function') then
+        accessxi.nav_objective_transport_clear('route-stop');
+    else
+        accessxi.nav_objective_transport_transition = nil;
+    end
+    accessxi.nav_objective_route_state = nil;
     if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
         accessxi.nav_dangruf_fount_drop_clear('route-stop');
     end
@@ -74257,11 +75151,20 @@ function accessxi.nav_is_mission_quest_point(point)
 end
 
 function accessxi.nav_cancel_mission_quest_route(reason)
-    if (not accessxi.nav_is_mission_quest_point(accessxi.nav_destination)
+    local objective_owned = accessxi.nav_objective_route_state ~= nil
+        or accessxi.nav_objective_transport_transition ~= nil;
+    if (not objective_owned
+        and not accessxi.nav_is_mission_quest_point(accessxi.nav_destination)
         and not accessxi.nav_is_mission_quest_point(accessxi.nav_zone_search_target)) then
         return false;
     end
+    if (type(accessxi.nav_objective_transport_clear) == 'function') then
+        accessxi.nav_objective_transport_clear(reason or 'objective-route-cancelled');
+    else
+        accessxi.nav_objective_transport_transition = nil;
+    end
     nav_route_stop();
+    accessxi.nav_objective_route_state = nil;
     log_line(('nav objective route cancelled reason="%s"'):fmt(nav_clean_field(reason or 'character-changed')));
     return true;
 end
@@ -90696,6 +91599,109 @@ function accessxi.nav_current_route_instruction()
     end
 
     local destination = accessxi.nav_destination;
+    if (accessxi.nav_objective_route_state ~= nil) then
+        local objective_state = accessxi.nav_objective_route_state;
+        if (type(accessxi.nav_objective_transport_active) == 'function'
+            and accessxi.nav_objective_transport_active()) then
+            local authorization = objective_state.objective_transition_authorization;
+            if (type(authorization) ~= 'table') then
+                accessxi.nav_cancel_mission_quest_route('objective-transition-authorization-missing');
+                speak('Objective transition authorization changed.');
+                return;
+            end
+            local live_state = '';
+            local post_anchor = authorization.objective_transition_post_anchor;
+            if (type(post_anchor) == 'table'
+                and tonumber(player.zone) == tonumber(authorization.objective_transition_zone)
+                and nav_distance(player, post_anchor) <= 3.5
+                and math.abs((tonumber(player.y) or 0) - (tonumber(post_anchor.y) or 0)) <= 3.0) then
+                live_state = authorization.objective_transition_expected_live_state;
+            end
+            local poll_ok, handled, transport_reason = pcall(
+                accessxi.nav_objective_transport_poll,
+                player,
+                destination,
+                authorization,
+                live_state,
+                now);
+            if (not poll_ok or handled ~= true) then
+                local text = nav_clean_field(poll_ok and transport_reason or '') ~= ''
+                    and nav_clean_field(transport_reason)
+                    or 'Objective transition changed and was cancelled.';
+                accessxi.nav_cancel_mission_quest_route('objective-transition-changed');
+                speak(text);
+                log_line('nav objective transition blocked ' .. text);
+            elseif (not accessxi.nav_objective_transport_active()) then
+                objective_state.objective_transition_authorization = nil;
+            end
+            return;
+        end
+
+        if ((tonumber(destination.zone) or 0) ~= (tonumber(player.zone) or 0)) then
+            accessxi.nav_cancel_mission_quest_route('objective-player-left-zone');
+            speak('Objective route stopped because the current zone changed.');
+            return;
+        end
+        local arrival_radius = math.max(1.5, tonumber(accessxi.nav_arrival_radius(destination)) or 0);
+        if (nav_distance(player, destination) <= arrival_radius
+            and math.abs((tonumber(player.y) or 0) - (tonumber(destination.y) or 0)) <= 4.0) then
+            local text = ('Arrived at %s.'):fmt(destination.name or 'objective destination');
+            accessxi.nav_active = false;
+            accessxi.nav_destination = nil;
+            accessxi.nav_objective_route_state = nil;
+            accessxi.nav_route_points:clear();
+            accessxi.nav_route_point_index = 1;
+            accessxi.nav_last_direction_text = text;
+            speak(text);
+            log_line('nav objective arrived ' .. text);
+            return;
+        end
+        if ((now - (tonumber(accessxi.nav_route_last_recalc_tick) or 0)) >= 1000) then
+            accessxi.nav_route_last_recalc_tick = now;
+            if (not nav_try_load_mesh(player.zone)) then
+                accessxi.nav_cancel_mission_quest_route('objective-mesh-unavailable');
+                speak('The rooted objective navmesh is unavailable for this zone.');
+                return;
+            end
+            local exact, exact_reason = accessxi.nav_compute_exact_objective_leg({
+                zone = player.zone,
+                objective_route_contract_id = objective_state.objective_route_contract_id,
+                start = { x = player.x, z = player.z, y = player.y, zone = player.zone },
+                ['end'] = {
+                    x = destination.x,
+                    z = destination.z,
+                    y = destination.y,
+                    zone = destination.zone,
+                },
+            });
+            if (type(exact) ~= 'table' or #exact < 2) then
+                local text = nav_clean_field(exact_reason) ~= '' and nav_clean_field(exact_reason)
+                    or 'No exact current objective leg is proven from here.';
+                accessxi.nav_cancel_mission_quest_route('objective-exact-leg-changed');
+                speak(text);
+                log_line('nav objective exact leg blocked ' .. text);
+                return;
+            end
+            local refreshed = T{};
+            for index, point in ipairs(exact) do
+                refreshed:append(T{
+                    zone = player.zone,
+                    name = ('Objective waypoint %d'):fmt(index),
+                    x = tonumber(point.x),
+                    z = tonumber(point.z),
+                    y = tonumber(point.y),
+                    kind = 'route',
+                    source = 'objective-exact-runtime-live',
+                });
+            end
+            accessxi.nav_route_points = refreshed;
+            accessxi.nav_route_point_index = accessxi.nav_first_route_index(
+                player,
+                refreshed,
+                destination);
+        end
+        return;
+    end
     if ((tonumber(destination.zone) or 0) ~= (tonumber(player.zone) or 0)) then
         return ('Route paused. %s is in zone %d.'):fmt(destination.name or 'Destination', destination.zone or 0);
     end
@@ -92144,6 +93150,16 @@ local function poll_nav_route()
     local player = nav_cached_player_position();
     if (player == nil) then
         return;
+    end
+    if (accessxi.nav_objective_route_state ~= nil) then
+        local current, reason = accessxi.nav_objective_route_revalidate_or_cancel(player);
+        if (not current) then
+            local text = nav_clean_field(reason) ~= '' and nav_clean_field(reason)
+                or 'Mission or quest route stopped because the active objective changed.';
+            speak(text);
+            log_line('nav objective active state mismatch ' .. text);
+            return;
+        end
     end
     if (accessxi.nav_door_waiting(player, now)) then
         return;

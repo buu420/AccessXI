@@ -2881,8 +2881,6 @@ def update_runtime_pin(path: Path, digest: str, *, marker: str) -> None:
         text = original.decode("utf-8")
     except (OSError, UnicodeDecodeError) as error:
         raise RouteEvidenceError(f"Could not read runtime pin file {path}: {error}") from error
-    if text.count(marker) != 1:
-        raise RouteEvidenceError("Runtime pin marker must occur exactly once.")
     pattern = re.compile(rf'(?m)(\b{re.escape(marker)}\s*=\s*")[0-9a-f]{{64}}(")')
     matches = list(pattern.finditer(text))
     if len(matches) != 1:

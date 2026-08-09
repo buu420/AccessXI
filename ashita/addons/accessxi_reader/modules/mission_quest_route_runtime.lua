@@ -20,6 +20,7 @@ local EXPECTED_POLICY_SCHEMA = 2
 local EXPECTED_POLICY_REVISION = 'objective-route-proof-v2.1'
 local EXPECTED_PROBE_PROTOCOL = 'accessxi-navprobe-jsonl-v2'
 local EXPECTED_PROBE_SCHEMA = 2
+local OBJECTIVE_TRANSITION_REVISION = 'objective-route-transition-v2'
 local CONTRACT_INPUT_FIELDS = {
     'mesh_name',
     'mesh_sha256',
@@ -1386,6 +1387,43 @@ function Runtime:authorize_start(selected, fresh, player)
     payload.objective_route_contract_id = contract.contract_id
     payload.objective_contract_snapshot = deep_copy(contract)
     return payload, '', 'ready'
+end
+
+function Runtime:authorize_transition(contract_id, transition_id)
+    if not self:is_ready() then
+        return nil, self:failure_reason()
+    end
+    if not nonempty(contract_id) or not nonempty(transition_id) then
+        return nil, 'The objective route contract or transition identity is unavailable.'
+    end
+    local state = private(self)
+    local contract = state.contracts_by_id[contract_id]
+    if contract == nil then
+        return nil, 'No rooted route contract matches this objective transition.'
+    end
+    local required = false
+    for _, required_id in ipairs(contract.required_transition_ids) do
+        if required_id == transition_id then
+            required = true
+            break
+        end
+    end
+    if not required then
+        return nil, 'The transition is not authorized by this rooted route contract.'
+    end
+    local definition = state.transitions_by_id[transition_id]
+    if definition == nil then
+        return nil, 'No rooted authorized objective transition matches this request.'
+    end
+    local current, current_error = self:_revalidate_contract_files(contract)
+    if not current then
+        return nil, current_error
+    end
+    local result = deep_copy(definition)
+    result.schema_version = 2
+    result.transition_revision = OBJECTIVE_TRANSITION_REVISION
+    result.source_registry_sha256 = state.transition_bundle.source_registry_sha256
+    return result, ''
 end
 
 function module.new(options)

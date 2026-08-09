@@ -2468,6 +2468,16 @@ class RuntimeManifestTests(RouteEvidenceTestCase):
             path.write_text(f'local {marker} = "{'0' * 64}"\n', encoding="utf-8")
             routes.update_runtime_pin(path, digest, marker=marker)
             self.assertEqual(path.read_text(encoding="utf-8"), f'local {marker} = "{digest}"\n')
+            referenced = (
+                f'local {marker} = "{'0' * 64}"\n'
+                f'assert({marker} ~= nil)\n'
+            )
+            path.write_text(referenced, encoding="utf-8")
+            routes.update_runtime_pin(path, digest, marker=marker)
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                referenced.replace("0" * 64, digest, 1),
+            )
 
 
 class RouteArtifactGenerationTests(RouteEvidenceTestCase):

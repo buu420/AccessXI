@@ -26,6 +26,7 @@ end
 local runtime = runtime_module.new({})
 assert(type(runtime) == 'table')
 assert(type(runtime.authorize_start) == 'function')
+assert(type(runtime.authorize_transition) == 'function')
 
 local function copy_identity(identity)
     return {
@@ -959,6 +960,65 @@ unauthorized_transition:rebuild_manifest()
 local unauthorized_transition_runtime = runtime_module.new(unauthorized_transition:options())
 assert(unauthorized_transition_runtime:is_ready() == false,
     'a corridor definition must never authorize transition execution')
+
+local authorized_transition = new_authorization_fixture()
+local authorized_definition = {
+    transition_id = crossing.transition_id,
+    base_id = 'fixture-lift',
+    zone = 143,
+    direction = 'down',
+    pre_anchor = copy_value(crossing.pre_anchor),
+    post_anchor = copy_value(crossing.post_anchor),
+    expected_live_state = 'same-zone-floor-change-and-continuation',
+    timeout_seconds = 45,
+    cancellation = { 'timeout', 'player-left-zone', 'destination-changed' },
+    interaction = { kind = 'automatic-platform', identity = 'fixture-lift' },
+    required_destination_ids = {},
+}
+authorized_transition.contract.required_transition_ids = { authorized_definition.transition_id }
+replace_file_bytes(
+    authorized_transition,
+    'modules/mission_quest_route_transitions.lua',
+    'return ' .. lua_value({
+        schema_version = 2,
+        source_registry_sha256 = string.rep('c', 64),
+        definitions = { authorized_definition },
+        authorized = { authorized_definition },
+    }) .. '\n')
+replace_file_bytes(
+    authorized_transition,
+    'modules/mission_quest_route_contracts.lua',
+    'return ' .. lua_value({ authorized_transition.contract }) .. '\n')
+authorized_transition:rebuild_manifest()
+local authorized_transition_runtime = runtime_module.new(authorized_transition:options())
+assert(authorized_transition_runtime:is_ready(), authorized_transition_runtime:failure_reason())
+local rooted_transition, rooted_transition_reason = authorized_transition_runtime:authorize_transition(
+    authorized_transition.contract.contract_id,
+    authorized_definition.transition_id)
+assert(rooted_transition_reason == '' and type(rooted_transition) == 'table')
+assert(rooted_transition.schema_version == 2
+    and rooted_transition.transition_revision == 'objective-route-transition-v2'
+    and rooted_transition.source_registry_sha256 == string.rep('c', 64))
+assert(rooted_transition.transition_id == authorized_definition.transition_id
+    and rooted_transition.direction == authorized_definition.direction
+    and rooted_transition.pre_anchor.x == authorized_definition.pre_anchor.x)
+rooted_transition.pre_anchor.x = 999
+local rooted_transition_again = assert(authorized_transition_runtime:authorize_transition(
+    authorized_transition.contract.contract_id,
+    authorized_definition.transition_id))
+assert(rooted_transition_again.pre_anchor.x == authorized_definition.pre_anchor.x,
+    'authorized transition accessor leaked its private rooted definition')
+local wrong_contract_transition, wrong_contract_reason =
+    authorized_transition_runtime:authorize_transition(
+        'route:v2:' .. string.rep('f', 64),
+        authorized_definition.transition_id)
+assert(wrong_contract_transition == nil
+    and tostring(wrong_contract_reason):lower():find('contract', 1, true))
+local definition_only_transition, definition_only_reason = corridor_runtime:authorize_transition(
+    corridor_fixture.contract.contract_id,
+    crossing.transition_id)
+assert(definition_only_transition == nil
+    and tostring(definition_only_reason):lower():find('authorized', 1, true))
 
 local invalid_end_native = new_native_spy(asymmetric_paths, { validity = { true, false } })
 local invalid_end_fixture = new_authorization_fixture()

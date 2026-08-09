@@ -366,20 +366,35 @@ def _extract_action_spans(
     matches = sorted((match for match in matches if match is not None), key=lambda match: match.start())
     clause_starts = [match.start() for match in matches]
     clause_ends = [matches[index + 1].start() if index + 1 < len(matches) else len(text) for index in range(len(matches))]
+    suppressed_location_evidence: set[int] = set()
     if matches:
         clause_starts[0] = 0
         leading = text[: matches[0].start()]
+        strong_boundaries = list(
+            re.finditer(r"(?<![.!?])[.!?](?![.!?])(?=\s|$)", leading)
+        )
         subordinate = re.match(
-            r"\s*(?:after|before|while)\s+(?:talking|speaking|visiting|defeating|fighting|"
+            r"\s*(?:after|before|while|upon|once)\s+(?:talking|speaking|visiting|defeating|fighting|"
             r"killing|examining|touching|using|entering|exiting|travelling|traveling)\b",
             leading,
             re.IGNORECASE,
         )
         punctuation = list(re.finditer(r"[,;]", leading))
-        if subordinate and punctuation:
+        if strong_boundaries:
+            clause_starts[0] = strong_boundaries[-1].end()
+        elif subordinate and punctuation:
             clause_starts[0] = punctuation[-1].end()
     for index in range(1, len(matches)):
         between = text[matches[index - 1].end() : matches[index].start()]
+        strong_boundaries = list(
+            re.finditer(r"(?<![.!?])[.!?](?![.!?])(?=\s|$)", between)
+        )
+        if strong_boundaries:
+            boundary = strong_boundaries[-1]
+            offset = matches[index - 1].end()
+            clause_ends[index - 1] = offset + boundary.start()
+            clause_starts[index] = offset + boundary.end()
+            continue
         connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
         if connectors:
             connector = connectors[-1]
@@ -399,6 +414,9 @@ def _extract_action_spans(
             offset = matches[index - 1].end()
             clause_ends[index - 1] = offset + leading_connector.start()
             clause_starts[index] = offset + leading_connector.end()
+            continue
+        if len(_extract_zone_mentions(between)) > 1:
+            suppressed_location_evidence.add(index - 1)
     spans: list[SourceActionSpan] = []
     for index, match in enumerate(matches):
         verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)
@@ -418,6 +436,10 @@ def _extract_action_spans(
         clause_zones = _extract_zone_mentions(raw_clause)
         clause_maps = _extract_map_numbers(raw_clause)
         clause_coordinates = _extract_coordinates(raw_clause)
+        if index in suppressed_location_evidence:
+            clause_zones = ()
+            clause_maps = ()
+            clause_coordinates = ()
         clause_marked_items = _values_in_clause(marked_items, raw_clause)
         clause_key_items = _values_in_clause(key_items, raw_clause)
         target = ""

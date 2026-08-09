@@ -1080,6 +1080,102 @@ class WikitextParserTests(unittest.TestCase):
             ("Mob B", ("West Ronfaure",), ("H-8",)),
         )
 
+    def test_strong_sentence_boundary_owns_following_location_and_bare_grid_leaders(self) -> None:
+        for leader in (
+            "At (H-8) in [[West Ronfaure]],",
+            "(H-8) in [[West Ronfaure]],",
+        ):
+            with self.subTest(leader=leader):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Strong Boundary Evidence",
+                    page_id=9305,
+                    revision_id=96,
+                    parent_revision_id=95,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Defeat [[Mob A]] in [[East Ronfaure]]. {leader} talk to [[NPC B]].\n"
+                    ),
+                )
+
+                fight, talk = parse_objective_page(page).steps[0].action_spans
+
+                self.assertEqual(
+                    (fight.zone_mentions, fight.grid_coordinates),
+                    (("East Ronfaure",), ()),
+                )
+                self.assertEqual(
+                    (talk.zone_mentions, talk.grid_coordinates),
+                    (("West Ronfaure",), ("H-8",)),
+                )
+
+    def test_complete_prior_sentence_does_not_supply_first_action_evidence(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Prior Sentence Evidence",
+            page_id=9306,
+            revision_id=97,
+            parent_revision_id=96,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*After a cutscene in [[East Ronfaure]]. In [[West Ronfaure]] at (H-8) "
+                "defeat [[Mob B]].\n"
+            ),
+        )
+
+        (fight,) = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual(fight.zone_mentions, ("West Ronfaure",))
+        self.assertEqual(fight.grid_coordinates, ("H-8",))
+
+    def test_upon_and_once_gerund_prefixes_do_not_supply_first_action_evidence(self) -> None:
+        for subordinator in ("Upon", "Once"):
+            with self.subTest(subordinator=subordinator):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Gerund Prefix Evidence",
+                    page_id=9307,
+                    revision_id=98,
+                    parent_revision_id=97,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*{subordinator} talking to [[NPC A]] in [[East Ronfaure]], in "
+                        "[[West Ronfaure]] at (H-8) defeat [[Mob B]].\n"
+                    ),
+                )
+
+                (fight,) = parse_objective_page(page).steps[0].action_spans
+
+                self.assertEqual(fight.zone_mentions, ("West Ronfaure",))
+                self.assertEqual(fight.grid_coordinates, ("H-8",))
+
+    def test_delimiter_free_ambiguous_location_evidence_is_not_owned_by_either_action(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Ambiguous Interstitial Evidence",
+            page_id=9308,
+            revision_id=99,
+            parent_revision_id=98,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Defeat [[Mob A]] in [[East Ronfaure]] in [[West Ronfaure]] at (H-8) "
+                "talk to [[NPC B]].\n"
+            ),
+        )
+
+        fight, talk = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual((fight.zone_mentions, fight.grid_coordinates), ((), ()))
+        self.assertEqual((talk.zone_mentions, talk.grid_coordinates), ((), ()))
+
     def test_only_explicit_obtain_from_syntax_collapses_actions(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -2208,6 +2304,91 @@ class ObjectiveDestinationTests(unittest.TestCase):
             {101: "East Ronfaure"},
         )
         self.assertEqual(rows[0].target_name, "Mob A")
+
+    def test_destination_rejects_period_and_ambiguous_interstitial_evidence(self) -> None:
+        native = NativeObjective("quest", "other_areas", 86, "Boundary Destination", "quests.dat", 0)
+
+        def resolve(instruction: str, *, zone: int, zone_name: str, grid: list[str]):
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title="Boundary Destination",
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 861)
+            ffxi = page("ffxiclopedia", 862)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": "mob-a-boundary-probe",
+                            "source_revisions": {"bg": 861, "ffxiclopedia": 862},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-01"],
+                            "action": "fight",
+                            "items": [],
+                            "enemies": ["Mob A"],
+                            "grid_coordinates": grid,
+                            "destination_id": f"enemy:{zone}:mob-a:fixture",
+                            "zone": zone,
+                            "zone_name": zone_name,
+                            "label": f"Mob A in {zone_name}",
+                            "reference": {"name": "Mob A", "kind": "enemy"},
+                            "arrival_instruction": "Defeat Mob A.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": zone,
+                "name": "Mob A",
+                "kind": "enemy",
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (point,),
+                {zone: zone_name},
+            )
+
+        strong = (
+            "Defeat [[Mob A]] in [[East Ronfaure]]. At (H-8) in [[West Ronfaure]], "
+            "talk to [[NPC B]]."
+        )
+        bare_grid = (
+            "Defeat [[Mob A]] in [[East Ronfaure]]. (H-8) in [[West Ronfaure]], "
+            "talk to [[NPC B]]."
+        )
+        ambiguous = (
+            "Defeat [[Mob A]] in [[East Ronfaure]] in [[West Ronfaure]] at (H-8) "
+            "talk to [[NPC B]]."
+        )
+        for instruction in (strong, bare_grid, ambiguous):
+            with self.subTest(instruction=instruction), self.assertRaises(ObjectiveDestinationError):
+                resolve(instruction, zone=100, zone_name="West Ronfaure", grid=["H-8"])
+
+        self.assertEqual(
+            resolve(strong, zone=101, zone_name="East Ronfaure", grid=[])[0].target_name,
+            "Mob A",
+        )
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve(ambiguous, zone=101, zone_name="East Ronfaure", grid=[])
 
     def test_destination_order_is_stable_and_native_qualified(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("quest")

@@ -26,6 +26,32 @@ local function copy_table(value)
     return result;
 end
 
+local function copy_array(value)
+    local result = {};
+    if (type(value) ~= 'table') then
+        return result;
+    end
+    for _, item in ipairs(value) do
+        result[#result + 1] = item;
+    end
+    return result;
+end
+
+local function copy_mission_destination(value)
+    local result = copy_table(value);
+    if (result == nil) then
+        return nil;
+    end
+    result.source_step_ids = copy_array(value.source_step_ids);
+    result.items = copy_array(value.items);
+    result.enemies = copy_array(value.enemies);
+    result.navigation_target = copy_table(value.navigation_target);
+    if (result.navigation_target ~= nil) then
+        result.navigation_target.reference = copy_table(value.navigation_target.reference);
+    end
+    return result;
+end
+
 local function source_instruction(source, order)
     order = tonumber(order) or 0;
     if (type(source) ~= 'table' or type(source.steps) ~= 'table' or order <= 0) then
@@ -175,6 +201,14 @@ function GuideState:resolve(native_key)
         return nil, reason;
     end
 
+    local mission_destinations = {};
+    for _, destination in ipairs(reconciliation.mission_destinations or {}) do
+        local copied = copy_mission_destination(destination);
+        if (copied ~= nil) then
+            mission_destinations[#mission_destinations + 1] = copied;
+        end
+    end
+
     local resolved = {
         available = true,
         native_key = native_key,
@@ -183,6 +217,7 @@ function GuideState:resolve(native_key)
         sources = sources,
         reconciliation = reconciliation,
         steps = steps,
+        mission_destinations = mission_destinations,
     };
     self.resolution_cache[native_key] = resolved;
     return resolved;
@@ -331,6 +366,22 @@ function GuideState:automatic_step_id(native_key, stage_key)
     local stages = type(objective.reconciliation.automatic_stages) == 'table'
         and objective.reconciliation.automatic_stages or {};
     return clean(stages[clean(stage_key)]);
+end
+
+function GuideState:mission_destinations(native_key)
+    self:sync_identity();
+    local objective = self:resolve(native_key);
+    local result = {};
+    if (objective == nil or type(objective.mission_destinations) ~= 'table') then
+        return result;
+    end
+    for _, destination in ipairs(objective.mission_destinations) do
+        local copied = copy_mission_destination(destination);
+        if (copied ~= nil) then
+            result[#result + 1] = copied;
+        end
+    end
+    return result;
 end
 
 function GuideState:current_index()

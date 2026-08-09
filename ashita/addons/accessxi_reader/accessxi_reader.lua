@@ -70205,14 +70205,52 @@ function accessxi.nav_zoneline_out_edges(zone, player)
     return edges;
 end
 
-function accessxi.nav_zoneline_path(from_zone, to_zone)
+function accessxi.nav_zoneline_path(from_zone, to_zone, final_edge_id)
     from_zone = tonumber(from_zone) or 0;
     to_zone = tonumber(to_zone) or 0;
+    final_edge_id = tonumber(final_edge_id) or 0;
     local path = T{};
-    if (from_zone <= 0 or to_zone <= 0) then
+    if (from_zone <= 0 or to_zone <= 0 or final_edge_id < 0) then
         return path;
     end
     if (from_zone == to_zone) then
+        return path;
+    end
+
+    if (final_edge_id > 0) then
+        accessxi.nav_load_zoneline_graph();
+        local final_edge = nil;
+        local id_matches = 0;
+        for _, edge in ipairs(accessxi.nav_zoneline_edges) do
+            if ((tonumber(edge.id) or 0) == final_edge_id) then
+                final_edge = edge;
+                id_matches = id_matches + 1;
+            end
+        end
+        if (id_matches ~= 1 or final_edge == nil
+            or (tonumber(final_edge.to_zone) or 0) ~= to_zone
+            or (tonumber(final_edge.from_zone) or 0) <= 0) then
+            return path;
+        end
+
+        local final_from_zone = tonumber(final_edge.from_zone) or 0;
+        if (from_zone == final_from_zone) then
+            path:append(final_edge);
+            return path;
+        end
+        local prefix = accessxi.nav_zoneline_path(from_zone, final_from_zone, 0);
+        if (prefix:len() == 0) then
+            return path;
+        end
+        for _, edge in ipairs(prefix) do
+            if ((tonumber(edge.id) or 0) == final_edge_id
+                or (tonumber(edge.from_zone) or 0) == to_zone
+                or (tonumber(edge.to_zone) or 0) == to_zone) then
+                return T{};
+            end
+            path:append(edge);
+        end
+        path:append(final_edge);
         return path;
     end
 
@@ -70856,6 +70894,22 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
         return T{}, nil;
     end
 
+    local required_transport_id = nav_clean_field(point ~= nil and point.objective_transport_id or '');
+    if (required_transport_id ~= '' and type(accessxi.nav_verified_elevator_route) == 'function') then
+        local transport_route, transport_required = accessxi.nav_verified_elevator_route(player, point);
+        if (transport_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return transport_route, nil;
+        end
+        if (transport_required == true) then
+            accessxi.nav_route_last_reject_reason = 'required verified transport route unavailable';
+            log_line(('nav required transport unavailable id="%s" destination="%s"'):fmt(
+                accessxi.escape_probe_log_text(required_transport_id),
+                accessxi.escape_probe_log_text(point.name or '')));
+            return T{}, nil;
+        end
+    end
+
     local route = nav_compute_mesh_route(player, point);
     if (route:len() > 1) then
         if (type(accessxi.nav_transport_clear) == 'function') then
@@ -70877,8 +70931,8 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
             return drop_route, nil;
         end
     end
-    if (type(accessxi.nav_metalworks_elevator_route) == 'function') then
-        local transport_route = accessxi.nav_metalworks_elevator_route(player, point);
+    if (type(accessxi.nav_verified_elevator_route) == 'function') then
+        local transport_route = accessxi.nav_verified_elevator_route(player, point);
         if (transport_route:len() > 1) then
             accessxi.nav_route_last_reject_reason = '';
             return transport_route, nil;
@@ -72718,6 +72772,18 @@ function accessxi.nav_copy_point(point)
         arrival_instruction = nav_clean_field(point.arrival_instruction or ''),
         objective_source = nav_clean_field(point.objective_source or ''),
         objective_character_identity = nav_clean_field(point.objective_character_identity or ''),
+        objective_native_key = nav_clean_field(point.objective_native_key or ''),
+        guide_step_id = nav_clean_field(point.guide_step_id or ''),
+        objective_destination_id = nav_clean_field(point.objective_destination_id or ''),
+        objective_action = nav_clean_field(point.objective_action or ''),
+        objective_items_text = nav_clean_field(point.objective_items_text or ''),
+        objective_enemies_text = nav_clean_field(point.objective_enemies_text or ''),
+        objective_camp_label = nav_clean_field(point.objective_camp_label or ''),
+        objective_destination_zone_name = nav_clean_field(point.objective_destination_zone_name or ''),
+        objective_canonical_edge_id = tonumber(point.objective_canonical_edge_id),
+        objective_canonical_from_zone = tonumber(point.objective_canonical_from_zone),
+        objective_transport_id = nav_clean_field(point.objective_transport_id or ''),
+        objective_route_evidence = nav_clean_field(point.objective_route_evidence or ''),
         route_context_label = nav_clean_field(point.route_context_label or ''),
     };
 end
@@ -72986,7 +73052,20 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         return text;
     end
 
-    local path = accessxi.nav_zoneline_path(player.zone, target.zone);
+    local canonical_edge_id = tonumber(target.objective_canonical_edge_id) or 0;
+    local canonical_from_zone = tonumber(target.objective_canonical_from_zone) or 0;
+    local path = accessxi.nav_zoneline_path(player.zone, target.zone, canonical_edge_id);
+    if (canonical_edge_id > 0) then
+        local final_edge = path[path:len()];
+        if (canonical_from_zone <= 0 or final_edge == nil
+            or (tonumber(final_edge.id) or 0) ~= canonical_edge_id
+            or (tonumber(final_edge.from_zone) or 0) ~= canonical_from_zone
+            or (tonumber(final_edge.to_zone) or 0) ~= target_zone) then
+            path = T{};
+        end
+    elseif (canonical_from_zone > 0) then
+        path = T{};
+    end
     if (path:len() == 0) then
         accessxi.nav_clear_zone_search();
         local current_zone_name = accessxi.nav_graph_zone_name(player_zone);

@@ -13,8 +13,15 @@ from typing import Any
 
 from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
+from .mission_destinations import MissionDestinationError, resolve_reviewed_mission_destinations
 from .model import NativeObjective, ParsedObjective, SourceStep
-from .reconcile import ReviewedNavigationTarget, ReconciledObjective, ReconciledStep, reconcile_objectives
+from .reconcile import (
+    ReviewedMissionDestination,
+    ReviewedNavigationTarget,
+    ReconciledObjective,
+    ReconciledStep,
+    reconcile_objectives,
+)
 
 
 _SITE_LICENSE_IDS = {
@@ -224,7 +231,13 @@ def _reconcile_module_text(
         )
         for stage_key, step_id in sorted(automatic_stages.items()):
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
-        lines.extend(["    },", "    steps = {"])
+        lines.append("    },")
+        if objective.mission_destinations:
+            lines.append("    mission_destinations = {")
+            for destination in objective.mission_destinations:
+                lines.extend(_mission_destination_lua(destination))
+            lines.append("    },")
+        lines.append("    steps = {")
         for step in objective.steps:
             step_lines = [
                     "      {",
@@ -261,6 +274,36 @@ def _reconcile_module_text(
         lines.extend(["    },", "  },"])
     lines.append("}")
     return "\n".join(lines) + "\n"
+
+
+def _mission_destination_lua(destination: ReviewedMissionDestination) -> list[str]:
+    return [
+        "      {",
+        f"        stable_id = {lua_quote(destination.stable_id)},",
+        f"        source_step_ids = {_lua_array(destination.source_step_ids)},",
+        f"        action = {lua_quote(destination.action)},",
+        f"        items = {_lua_array(destination.items)},",
+        f"        enemies = {_lua_array(destination.enemies)},",
+        f"        zone = {destination.zone},",
+        f"        zone_name = {lua_quote(destination.zone_name)},",
+        f"        camp_label = {lua_quote(destination.camp_label)},",
+        "        navigation_target = {",
+        '          type = "static-reference",',
+        "          reference = {",
+        f"            zone = {destination.zone},",
+        f"            zone_name = {lua_quote(destination.zone_name)},",
+        f"            name = {lua_quote(destination.target_name)},",
+        f"            kind = {lua_quote(destination.target_kind)},",
+        "          },",
+        "        },",
+        f"        canonical_ingress_edge_id = {destination.canonical_ingress_edge_id},",
+        f"        canonical_ingress_from_zone = {destination.canonical_ingress_from_zone},",
+        f"        transport_id = {lua_quote(destination.transport_id)},",
+        f"        route_evidence = {lua_quote(destination.route_evidence)},",
+        f"        arrival_instruction = {lua_quote(destination.arrival_instruction)},",
+        "        route_ready = true,",
+        "      },",
+    ]
 
 
 def _matches_by_native(
@@ -844,6 +887,7 @@ def build_guide_artifacts(
     parse_failures: Iterable[Mapping[str, Any]] = (),
     navigation_points: Iterable[Mapping[str, Any]] = (),
     navigation_zone_names: Mapping[int, str] | None = None,
+    navigation_edges: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Build deterministic, license-separated runtime and coverage artifacts."""
 
@@ -858,6 +902,7 @@ def build_guide_artifacts(
     if not revisions:
         revisions = pages
     nav_points = tuple(navigation_points)
+    nav_edges = tuple(navigation_edges)
     nav_point_lists: dict[tuple[str, str], list[Mapping[str, Any]]] = defaultdict(list)
     for point in nav_points:
         key = (
@@ -915,6 +960,7 @@ def build_guide_artifacts(
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
+    target_review_mission_destinations: list[dict[str, Any]] = []
     resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
@@ -940,6 +986,50 @@ def build_guide_artifacts(
                 nav_points,
                 nav_zone_names,
             )
+            try:
+                mission_destinations = resolve_reviewed_mission_destinations(
+                    native,
+                    reconciled,
+                    bg,
+                    ffxiclopedia,
+                    reviewed_overrides,
+                    nav_points,
+                    nav_zone_names,
+                    nav_edges,
+                )
+            except MissionDestinationError as error:
+                raise GenerationError(str(error)) from error
+            reconciled = replace(reconciled, mission_destinations=mission_destinations)
+            for destination in mission_destinations:
+                target_review_mission_destinations.append(
+                    {
+                        "native_key": native.key,
+                        "stable_id": destination.stable_id,
+                        "source_step_ids": list(destination.source_step_ids),
+                        "action": destination.action,
+                        "items": list(destination.items),
+                        "enemies": list(destination.enemies),
+                        "zone": destination.zone,
+                        "zone_name": destination.zone_name,
+                        "camp_label": destination.camp_label,
+                        "navigation_target": {
+                            "type": "static-reference",
+                            "reference": {
+                                "zone": destination.zone,
+                                "zone_name": destination.zone_name,
+                                "name": destination.target_name,
+                                "kind": destination.target_kind,
+                            },
+                        },
+                        "canonical_ingress_edge_id": destination.canonical_ingress_edge_id,
+                        "canonical_ingress_from_zone": destination.canonical_ingress_from_zone,
+                        "transport_id": destination.transport_id,
+                        "route_evidence": destination.route_evidence,
+                        "arrival_instruction": destination.arrival_instruction,
+                        "status": "verified-reviewed-target",
+                        "route_ready": True,
+                    }
+                )
             automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
             default_step_id = _default_shared_step_id(
                 native,
@@ -1039,7 +1129,7 @@ def build_guide_artifacts(
         )
         if runtime_objective_key and automatic_stages:
             status = "automatic-stage"
-        elif route_steps:
+        elif route_steps or (reconciled is not None and reconciled.mission_destinations):
             status = "verified-navigation"
         elif reconciled is not None and _has_material_conflict(reconciled):
             status = "source-conflict"
@@ -1079,7 +1169,7 @@ def build_guide_artifacts(
             "runtime_objective_key": runtime_objective_key,
             "automatic_stages": automatic_stages,
             "default_step_id": default_step_id,
-            "route_ready": bool(route_steps),
+            "route_ready": bool(route_steps or (reconciled and reconciled.mission_destinations)),
             "automatic_stage": bool(automatic_stages),
         }
 
@@ -1193,6 +1283,10 @@ def build_guide_artifacts(
         data_root / "target-review.json",
         {
             "schema_version": 1,
+            "mission_destinations": sorted(
+                target_review_mission_destinations,
+                key=lambda row: (row["native_key"], row["stable_id"]),
+            ),
             "steps": sorted(
                 target_review_steps,
                 key=lambda row: (row["native_key"], row["stable_step_id"]),

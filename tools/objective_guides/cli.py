@@ -51,7 +51,7 @@ def _atomic_json(path: Path, value: object) -> None:
 def _load_navigation_catalog(
     destinations_path: Path,
     graph_path: Path,
-) -> tuple[tuple[dict[str, Any], ...], dict[int, str]]:
+) -> tuple[tuple[dict[str, Any], ...], dict[int, str], tuple[dict[str, Any], ...]]:
     points: list[dict[str, Any]] = []
     for line in destinations_path.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.startswith("#"):
@@ -73,10 +73,13 @@ def _load_navigation_catalog(
                 "y": y,
                 "kind": fields[5].strip(),
                 "source": fields[6].strip(),
+                "confidence": fields[7].strip() if len(fields) >= 8 else "",
+                "note": fields[8].strip() if len(fields) >= 9 else "",
             }
         )
 
     zone_names: dict[int, str] = {}
+    edges: list[dict[str, Any]] = []
 
     def record_zone(zone_value: str, name_value: str) -> None:
         zone = int(zone_value)
@@ -100,7 +103,18 @@ def _load_navigation_catalog(
             record_zone(fields[7], fields[8])
         except ValueError as error:
             raise ValueError(f"Malformed navigation graph row: {line!r}") from error
-    return tuple(points), zone_names
+        edges.append(
+            {
+                "id": int(fields[0]),
+                "from_zone": int(fields[1]),
+                "from_name": fields[2].strip(),
+                "to_zone": int(fields[7]),
+                "to_name": fields[8].strip(),
+                "source": fields[13].strip(),
+                "confidence": fields[14].strip(),
+            }
+        )
+    return tuple(points), zone_names, tuple(edges)
 
 
 def _native_payload(rows: tuple[NativeObjective, ...]) -> dict[str, Any]:
@@ -366,7 +380,7 @@ def run(argv: list[str] | None = None) -> int:
         _load_overrides(data_root / "reviewed-overrides.json"),
         selected_sites,
     )
-    navigation_points, navigation_zone_names = _load_navigation_catalog(
+    navigation_points, navigation_zone_names, navigation_edges = _load_navigation_catalog(
         repo_root / "data" / "ffxi-nav-destinations.tsv",
         repo_root / "data" / "ffxi-nav-zoneline-graph.tsv",
     )
@@ -380,6 +394,7 @@ def run(argv: list[str] | None = None) -> int:
         parse_failures=parse_failures,
         navigation_points=navigation_points,
         navigation_zone_names=navigation_zone_names,
+        navigation_edges=navigation_edges,
     )
     _atomic_json(data_root / "source-discovery.json", discovery)
     _atomic_json(

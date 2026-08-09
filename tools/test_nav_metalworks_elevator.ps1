@@ -1,11 +1,21 @@
+param(
+    [string] $Root = (Split-Path -Parent $PSScriptRoot)
+)
+
 $ErrorActionPreference = 'Stop'
 
-$root = 'C:\Users\buu42\AccessXI'
-$addonPath = Join-Path $root 'ashita\addons\accessxi_reader\accessxi_reader.lua'
-$modulePath = Join-Path $root 'ashita\addons\accessxi_reader\modules\metalworks_elevator_navigation.lua'
-$probePath = Join-Path $root 'tools\navprobe\bin\Release\net8.0\win-x86\publish\navprobe.exe'
-$meshPath = Join-Path $root 'third_party\xiNavmeshes\Metalworks.nav'
-$luaPath = Join-Path $root 'tools\lua51\lua5.1.exe'
+$addonPath = Join-Path $Root 'ashita\addons\accessxi_reader\accessxi_reader.lua'
+$modulePath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\metalworks_elevator_navigation.lua'
+$probePath = Join-Path $Root 'tools\navprobe\bin\Release\net8.0\win-x86\publish\navprobe.exe'
+if (-not (Test-Path -LiteralPath $probePath -PathType Leaf)) {
+    $probePath = 'C:\Users\buu42\AccessXI\tools\navprobe\bin\Release\net8.0\win-x86\publish\navprobe.exe'
+}
+$meshPath = Join-Path $Root 'third_party\xiNavmeshes\Metalworks.nav'
+$palboroughMeshPath = Join-Path $Root 'third_party\xiNavmeshes\Palborough_Mines.nav'
+$luaPath = Join-Path $Root 'tools\lua51\lua5.1.exe'
+if (-not (Test-Path -LiteralPath $luaPath -PathType Leaf)) {
+    $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
+}
 
 function Assert-Match {
     param([string]$Text, [string]$Pattern, [string]$Message)
@@ -46,7 +56,7 @@ function Get-MinimumDistance {
     return $minimum
 }
 
-foreach ($path in @($addonPath, $modulePath, $probePath, $meshPath, $luaPath)) {
+foreach ($path in @($addonPath, $modulePath, $probePath, $meshPath, $palboroughMeshPath, $luaPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Missing Metalworks elevator test dependency: $path"
     }
@@ -65,6 +75,8 @@ $arrivalLowerOutput = & $probePath $meshPath -9.168 0 -0.498 -58.850 0 -11.914
 $upperReturnOutput = & $probePath $meshPath 66.865 -13.999 -4.562 -53.126 -12.098 -11.875
 $lowerReturnOutput = & $probePath $meshPath -58.850 0 -11.914 -30.805 0 2.409
 $verticalOutput = & $probePath $meshPath -58.850 0 -11.914 -53.126 -12.098 -11.875
+$palboroughLowerOutput = & $probePath $palboroughMeshPath 142 -0.076 154 182.401 0.902 64.408
+$palboroughUpperOutput = & $probePath $palboroughMeshPath 182.401 -32.207 64.408 220.313 -32.280 88.193
 
 $directCount = Get-WaypointCount $directOutput
 $unsafeOldCount = Get-WaypointCount $unsafeOldOutput
@@ -76,6 +88,8 @@ $arrivalLowerCount = Get-WaypointCount $arrivalLowerOutput
 $upperReturnCount = Get-WaypointCount $upperReturnOutput
 $lowerReturnCount = Get-WaypointCount $lowerReturnOutput
 $verticalCount = Get-WaypointCount $verticalOutput
+$palboroughLowerCount = Get-WaypointCount $palboroughLowerOutput
+$palboroughUpperCount = Get-WaypointCount $palboroughUpperOutput
 $unsafeOldZoneDistance = Get-MinimumDistance $unsafeOldOutput -X -6.175 -Y -2.966 -Z -0.008
 $southLowerZoneDistance = Get-MinimumDistance $southLowerOutput -X -6.175 -Y -2.966 -Z -0.008
 
@@ -87,11 +101,12 @@ if ($southUpperCount -le 1 -or $northUpperCount -le 1) { throw 'Both real upper 
 if ($upperReturnCount -le 1 -or $lowerReturnCount -le 1) { throw 'The real elevator must also have verified return legs.' }
 if ($verticalCount -ne 1) { throw "The moving elevator must remain staged, not a fabricated vertical walk edge; got $verticalCount." }
 if ($southLowerZoneDistance -le 12) { throw "The real south elevator approach unexpectedly comes near the outgoing zone trigger: $southLowerZoneDistance." }
+if ($palboroughLowerCount -le 1 -or $palboroughUpperCount -le 1) { throw 'The reviewed Palborough lower-lever approach and upper-floor continuation must both be walkable.' }
 
 $source = Get-Content -LiteralPath $addonPath -Raw
 $moduleSource = Get-Content -LiteralPath $modulePath -Raw
 Assert-Match $source "load_code_module\('metalworks_elevator_navigation'" 'The addon must load the verified Metalworks elevator module.'
-Assert-Match $source 'nav_metalworks_elevator_route\(player, point\)' 'Disconnected exact routes must try the verified elevator transition.'
+Assert-Match $source 'nav_verified_elevator_route\(player, point\)' 'Disconnected exact routes must try the generic verified elevator transition.'
 Assert-Match $source 'nav_transport_transition_poll\(player, destination, now\)' 'Live route polling must advance the elevator transition from current position.'
 Assert-Match $source 'nav_transport_waiting_beacon_target\(player, now\)' 'The beacon must guide through the elevator door and pause only once aboard.'
 Assert-Match $moduleSource "zone_id\s*=\s*237" 'The transition must be restricted to Metalworks.'
@@ -104,6 +119,25 @@ Assert-Match $moduleSource 'x\s*=\s*-56\.006[\s\S]*?z\s*=\s*12\.014' 'The north 
 Assert-Match $moduleSource 'route_crosses_zone_trigger' 'Elevator legs must explicitly reject the outgoing Metalworks zone trigger.'
 Assert-Match $moduleSource 'x\s*=\s*-6\.175[\s\S]*?z\s*=\s*-0\.008[\s\S]*?y\s*=\s*-2\.966' 'The zone-trigger guard must use the current zoneline graph coordinate.'
 Assert-NotMatch $moduleSource 'x\s*=\s*1\.333' 'The collision-component near point that zoned the player must never be used as an elevator landing.'
+Assert-Match $moduleSource 'function accessxi\.nav_verified_elevator_route\(player, destination\)' 'The elevator engine must expose the generic verified route entry point.'
+Assert-Match $moduleSource 'function accessxi\.nav_metalworks_elevator_route\(player, destination\)' 'The legacy Metalworks route entry point must remain available.'
+Assert-Match $moduleSource "id\s*=\s*'palborough-mines-lift'" 'The reviewed Palborough lift definition is missing.'
+Assert-Match $moduleSource 'x\s*=\s*182\.401[\s\S]*?z\s*=\s*64\.408[\s\S]*?y\s*=\s*0\.902' 'The native lower Elevator Lever coordinate is missing.'
+Assert-Match $moduleSource 'x\s*=\s*182\.401[\s\S]*?z\s*=\s*64\.408[\s\S]*?y\s*=\s*-32\.207' 'The native upper Elevator Lever coordinate is missing.'
+Assert-Match $moduleSource 'x\s*=\s*179\.030[\s\S]*?z\s*=\s*62\.612[\s\S]*?y\s*=\s*-19\.222' 'The native Palborough elevator platform coordinate is missing.'
+
+$routeFunctionStart = $source.IndexOf('function accessxi.nav_compute_route_with_zoneline_approach')
+$routeFunctionEnd = $source.IndexOf('accessxi.nav_generated_name_is_placeholder', $routeFunctionStart)
+if ($routeFunctionStart -lt 0 -or $routeFunctionEnd -lt 0) {
+    throw 'Could not locate the route-computation function.'
+}
+$routeFunction = $source.Substring($routeFunctionStart, $routeFunctionEnd - $routeFunctionStart)
+$requiredTransportIndex = $routeFunction.IndexOf('accessxi.nav_verified_elevator_route(player, point)')
+$directMeshIndex = $routeFunction.IndexOf('local route = nav_compute_mesh_route(player, point)')
+if ($requiredTransportIndex -lt 0 -or $directMeshIndex -lt 0 -or $requiredTransportIndex -gt $directMeshIndex) {
+    throw 'A destination with an explicit transport ID must stage the verified elevator before accepting a direct navmesh detour.'
+}
+Assert-Match $routeFunction 'transport_required\s*==\s*true[\s\S]*?required verified transport route unavailable' 'A missing required elevator stage must fail closed.'
 
 $luaHarness = @'
 local list_methods = {}
@@ -114,13 +148,24 @@ T = function(values) return setmetatable(values or {}, { __index = list_methods 
 string.fmt = function(self, ...) return string.format(self, ...) end
 
 local function copy(point)
-    return T{ zone = point.zone, name = point.name, x = point.x, z = point.z, y = point.y, kind = point.kind, source = point.source }
+    return T{
+        zone = point.zone,
+        name = point.name,
+        x = point.x,
+        z = point.z,
+        y = point.y,
+        kind = point.kind,
+        source = point.source,
+        objective_transport_id = point.objective_transport_id,
+    }
 end
 local function near(value, expected, tolerance) return math.abs((tonumber(value) or 0) - expected) < (tolerance or 0.2) end
 local lower_north = T{ zone = 237, x = -58.850, z = 12.002, y = 0 }
 local upper_north = T{ zone = 237, x = -53.126, z = 12.040, y = -12.098 }
 local lower_south = T{ zone = 237, x = -58.850, z = -11.914, y = 0 }
 local upper_south = T{ zone = 237, x = -53.126, z = -11.875, y = -12.098 }
+local palborough_lower = T{ zone = 143, x = 182.401, z = 64.408, y = 0.902 }
+local palborough_upper = T{ zone = 143, x = 182.401, z = 64.408, y = -32.207 }
 local continuation_enabled = true
 local unsafe_approach = false
 local calls = T{}
@@ -140,6 +185,23 @@ end
 
 nav_compute_mesh_route = function(start_point, end_point)
     calls:append(T{ start_point = copy(start_point), end_point = copy(end_point) })
+    if (tonumber(start_point.zone) == 143 and tonumber(end_point.zone) == 143) then
+        local start_lower = near(start_point.y, 0.902, 3.0)
+        local start_upper = near(start_point.y, -32.207, 3.0)
+        local end_is_lower_lever = same_position(end_point, palborough_lower)
+        local end_is_upper_lever = same_position(end_point, palborough_upper)
+        local end_is_upper_camp = near(end_point.x, 220.313) and near(end_point.z, 88.193) and near(end_point.y, -32.280)
+        if start_lower and end_is_lower_lever then
+            return T{ copy(start_point), T{ zone = 143, x = 165, z = 90, y = 0.5 }, copy(end_point) }
+        end
+        if start_upper and end_is_upper_camp then
+            return T{ copy(start_point), T{ zone = 143, x = 205, z = 70, y = -32.1 }, copy(end_point) }
+        end
+        if start_upper and end_is_upper_lever then
+            return T{ copy(start_point), copy(end_point) }
+        end
+        return T{ copy(end_point) }
+    end
     local start_lower = near(start_point.y, 0, 2.6)
     local start_upper = near(start_point.y, -14, 4.1) or is_upper_door(start_point)
     local end_upper_destination = (tonumber(end_point.x) or 0) > 40 and near(end_point.y, -14, 2.1)
@@ -336,6 +398,61 @@ assert(accessxi.nav_route_points:len() > 1)
 assert(accessxi.nav_route_point_index == 2)
 assert(string.find(spoken[#spoken], 'Route resumed', 1, true) ~= nil)
 
+-- Palborough uses its native Elevator Lever interaction only for a reviewed
+-- destination that explicitly carries the lift transport ID.
+accessxi.nav_transport_clear('test-palborough-route')
+local palborough_player = T{ zone = 143, x = 142, z = 154, y = -0.076 }
+local upper_camp = T{
+    zone = 143,
+    name = 'Onyx Quadav',
+    x = 220.313,
+    z = 88.193,
+    y = -32.280,
+    kind = 'enemy',
+    objective_transport_id = 'palborough-mines-lift',
+}
+local palborough_route, palborough_required = accessxi.nav_verified_elevator_route(palborough_player, upper_camp)
+assert(palborough_required == true)
+assert(palborough_route:len() > 1)
+assert(accessxi.nav_transport_transition ~= nil)
+assert(accessxi.nav_transport_transition.elevator_id == 'palborough-mines-lift')
+assert(accessxi.nav_transport_transition.direction == 'up')
+assert(near(accessxi.nav_transport_transition.from_landing.x, 182.401))
+assert(near(accessxi.nav_transport_transition.from_landing.z, 64.408))
+
+local palborough_state = accessxi.nav_transport_transition
+handled = accessxi.nav_transport_transition_poll(copy(palborough_state.from_landing), upper_camp, 5000)
+assert(handled == true and accessxi.nav_transport_transition.phase == 'waiting')
+local lever_prompt = spoken[#spoken]
+assert(string.find(lever_prompt, 'Elevator Lever', 1, true) ~= nil)
+assert(string.find(lever_prompt, 'press Enter', 1, true) ~= nil)
+assert(string.find(lever_prompt, 'affirmative option', 1, true) ~= nil)
+local palborough_boarding, palborough_beacon_handled = accessxi.nav_transport_waiting_beacon_target(
+    copy(palborough_state.from_landing),
+    5100)
+assert(palborough_beacon_handled == true and palborough_boarding ~= nil)
+assert(near(palborough_boarding.x, 179.030))
+assert(near(palborough_boarding.z, 62.612))
+
+local palborough_arrival = copy(palborough_state.to_landing)
+palborough_arrival.y = -32.207
+handled = accessxi.nav_transport_transition_poll(palborough_arrival, upper_camp, 6000)
+assert(handled == true)
+assert(accessxi.nav_transport_transition == nil)
+assert(accessxi.nav_route_points:len() > 1)
+assert(string.find(spoken[#spoken], 'Route resumed', 1, true) ~= nil)
+
+local unreviewed_camp = copy(upper_camp)
+unreviewed_camp.objective_transport_id = nil
+local unreviewed_route, unreviewed_required = accessxi.nav_verified_elevator_route(palborough_player, unreviewed_camp)
+assert(unreviewed_route:len() == 0 and unreviewed_required == false)
+assert(accessxi.nav_transport_transition == nil)
+
+local already_upper = T{ zone = 143, x = 205, z = 70, y = -32.1 }
+local same_floor_route, same_floor_required = accessxi.nav_verified_elevator_route(already_upper, upper_camp)
+assert(same_floor_route:len() == 0 and same_floor_required == false)
+assert(accessxi.nav_transport_transition == nil)
+
 return true
 '@
 
@@ -343,4 +460,4 @@ $escapedModulePath = $modulePath.Replace('\', '\\').Replace("'", "\'")
 & $luaPath -e "module_path='$escapedModulePath'; $luaHarness"
 if ($LASTEXITCODE -ne 0) { throw "Metalworks elevator Lua behavior harness failed with exit code $LASTEXITCODE." }
 
-Write-Host "nav Metalworks elevator tests passed (direct=$directCount unsafe-old=$unsafeOldCount south=$southLowerCount/$southUpperCount north=$northLowerCount/$northUpperCount arrival=$arrivalLowerCount return=$upperReturnCount/$lowerReturnCount vertical=$verticalCount)"
+Write-Host "nav elevator tests passed (Metalworks direct=$directCount unsafe-old=$unsafeOldCount south=$southLowerCount/$southUpperCount north=$northLowerCount/$northUpperCount arrival=$arrivalLowerCount return=$upperReturnCount/$lowerReturnCount vertical=$verticalCount; Palborough=$palboroughLowerCount/$palboroughUpperCount)"

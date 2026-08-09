@@ -86,9 +86,40 @@ local function point_copy(point)
         objective_character_identity = clean(point.objective_character_identity),
         objective_native_key = clean(point.objective_native_key),
         guide_step_id = clean(point.guide_step_id),
+        objective_destination_id = clean(point.objective_destination_id),
+        objective_action = clean(point.objective_action),
+        objective_items_text = clean(point.objective_items_text),
+        objective_enemies_text = clean(point.objective_enemies_text),
+        objective_camp_label = clean(point.objective_camp_label),
+        objective_destination_zone_name = clean(point.objective_destination_zone_name),
+        objective_canonical_edge_id = tonumber(point.objective_canonical_edge_id),
+        objective_canonical_from_zone = tonumber(point.objective_canonical_from_zone),
+        objective_transport_id = clean(point.objective_transport_id),
+        objective_route_evidence = clean(point.objective_route_evidence),
         verified = point.verified == true,
         route_context_label = clean(point.route_context_label),
     };
+end
+
+local function spoken_list(values)
+    local entries = T{};
+    local seen = {};
+    for _, value in ipairs(type(values) == 'table' and values or T{}) do
+        local entry = clean(value);
+        local key = entry:lower();
+        if (entry ~= '' and seen[key] ~= true) then
+            seen[key] = true;
+            entries:append(entry);
+        end
+    end
+    if (#entries == 0) then
+        return '';
+    elseif (#entries == 1) then
+        return entries[1];
+    elseif (#entries == 2) then
+        return entries[1] .. ' and ' .. entries[2];
+    end
+    return table.concat(entries, ', ', 1, #entries - 1) .. ', and ' .. entries[#entries];
 end
 
 local function clear_character_state(reason)
@@ -360,6 +391,140 @@ local function referenced_target(reference)
         return nil;
     end
     return point_copy(match);
+end
+
+local function mission_destination_target(item, destination)
+    if (type(item) ~= 'table' or type(destination) ~= 'table'
+        or destination.route_ready ~= true) then
+        return nil;
+    end
+    local native_key = clean(item.objective_native_key);
+    local stable_id = clean(destination.stable_id);
+    local action = clean(destination.action):lower();
+    local zone = tonumber(destination.zone) or 0;
+    local zone_name = clean(destination.zone_name);
+    local camp_label = clean(destination.camp_label);
+    local arrival_instruction = clean(destination.arrival_instruction);
+    local items_text = spoken_list(destination.items);
+    local enemies_text = spoken_list(destination.enemies);
+    if (native_key == '' or stable_id:sub(1, #native_key + 1) ~= native_key .. ':'
+        or (action ~= 'farm' and action ~= 'fight' and action ~= 'obtain')
+        or zone <= 0 or zone_name == '' or camp_label == ''
+        or arrival_instruction == '' or items_text == '' or enemies_text == '') then
+        return nil;
+    end
+
+    local target_info = destination.navigation_target;
+    local reference = type(target_info) == 'table' and target_info.reference or nil;
+    if (clean(type(target_info) == 'table' and target_info.type or ''):lower() ~= 'static-reference'
+        or type(reference) ~= 'table'
+        or (tonumber(reference.zone) or 0) ~= zone
+        or clean(reference.zone_name):lower() ~= zone_name:lower()) then
+        return nil;
+    end
+    local target = referenced_target(reference);
+    if (target == nil or (tonumber(target.zone) or 0) ~= zone) then
+        return nil;
+    end
+
+    local canonical_edge_id = tonumber(destination.canonical_ingress_edge_id) or 0;
+    local canonical_from_zone = tonumber(destination.canonical_ingress_from_zone) or 0;
+    if ((canonical_edge_id > 0 and canonical_from_zone <= 0)
+        or (canonical_edge_id <= 0 and canonical_from_zone > 0)) then
+        return nil;
+    end
+    if (clean(target.confidence):lower() == 'untested'
+        and clean(destination.route_evidence) == '') then
+        return nil;
+    end
+
+    local identity = character_identity();
+    if (identity == '') then
+        return nil;
+    end
+    target.objective_kind = 'mission';
+    target.objective_context = clean(item.mission_context);
+    target.objective_id = tonumber(item.mission_id);
+    target.objective_stage = 'reviewed-mission-destination';
+    target.objective_title = clean(item.name);
+    target.objective_instruction = arrival_instruction;
+    target.arrival_instruction = arrival_instruction;
+    target.objective_source = 'reviewed-mission-destination';
+    target.objective_character_identity = identity;
+    target.objective_native_key = native_key;
+    target.objective_destination_id = stable_id;
+    target.objective_action = action;
+    target.objective_items_text = items_text;
+    target.objective_enemies_text = enemies_text;
+    target.objective_camp_label = camp_label;
+    target.objective_destination_zone_name = zone_name;
+    target.objective_canonical_edge_id = canonical_edge_id > 0 and canonical_edge_id or nil;
+    target.objective_canonical_from_zone = canonical_from_zone > 0 and canonical_from_zone or nil;
+    target.objective_transport_id = clean(destination.transport_id);
+    target.objective_route_evidence = clean(destination.route_evidence);
+    target.route_context_label = 'Mission destination';
+    target.section = arrival_instruction;
+    target.verified = true;
+    return target;
+end
+
+local function expanded_mission_destination(item, destination)
+    local target = mission_destination_target(item, destination);
+    if (target == nil) then
+        return nil;
+    end
+    local result = T{};
+    for key, value in pairs(item) do
+        result[key] = value;
+    end
+    result.objective_available = true;
+    result.objective_status = 'verified';
+    result.objective_stage = target.objective_stage;
+    result.objective_instruction = target.objective_instruction;
+    result.objective_source = target.objective_source;
+    result.objective_target = target;
+    result.objective_destination_id = target.objective_destination_id;
+    result.objective_action = target.objective_action;
+    result.objective_items_text = target.objective_items_text;
+    result.objective_enemies_text = target.objective_enemies_text;
+    result.objective_camp_label = target.objective_camp_label;
+    result.objective_destination_zone_name = target.objective_destination_zone_name;
+    result.objective_canonical_edge_id = target.objective_canonical_edge_id;
+    result.objective_canonical_from_zone = target.objective_canonical_from_zone;
+    result.objective_transport_id = target.objective_transport_id;
+    result.objective_route_evidence = target.objective_route_evidence;
+    return result;
+end
+
+local function expand_active_mission_destinations(items)
+    local expanded = T{};
+    for _, item in ipairs(items or T{}) do
+        local replacements = T{};
+        if (clean(item.mission_availability) == 'active'
+            and type(accessxi.objective_guides) == 'table'
+            and type(accessxi.objective_guides.mission_destinations) == 'function') then
+            local ok, destinations = pcall(
+                accessxi.objective_guides.mission_destinations,
+                accessxi.objective_guides,
+                clean(item.objective_native_key));
+            if (ok and type(destinations) == 'table') then
+                for _, destination in ipairs(destinations) do
+                    local replacement = expanded_mission_destination(item, destination);
+                    if (replacement ~= nil) then
+                        replacements:append(replacement);
+                    end
+                end
+            end
+        end
+        if (#replacements > 0) then
+            for _, replacement in ipairs(replacements) do
+                expanded:append(replacement);
+            end
+        else
+            expanded:append(item);
+        end
+    end
+    return expanded;
 end
 
 local nation_gate_guards = {
@@ -818,10 +983,11 @@ local function active_missions()
             end
         end);
     end
+    local expanded = expand_active_mission_destinations(items);
     if (type(log_line) == 'function') then
-        log_line(('mission active context complete attempts=%d results=%d'):fmt(attempted_contexts, #items));
+        log_line(('mission active context complete attempts=%d results=%d'):fmt(attempted_contexts, #expanded));
     end
-    return items;
+    return expanded;
 end
 
 local function valid_quest_row(row)
@@ -901,6 +1067,27 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
     local location = kind == 'quest' and clean(item.quest_area) or clean(item.mission_context);
     local status = kind == 'quest' and 'Active quest.'
         or (clean(item.mission_availability) == 'available-to-start' and 'Available mission.' or 'Active mission.');
+    if (kind == 'mission' and clean(item.objective_destination_id) ~= '') then
+        local speech = ('%s. %s'):fmt(title ~= '' and title or 'Mission', status);
+        if (location ~= '') then
+            speech = speech .. ' ' .. location .. '.';
+        end
+        local action = clean(item.objective_action):lower();
+        local action_label = action == 'farm' and 'Farm'
+            or (action == 'fight' and 'Fight' or (action == 'obtain' and 'Obtain' or 'Travel'));
+        speech = speech .. ' Mission destination: ' .. action_label .. '. ' .. clean(item.objective_instruction);
+        local destination_location = clean(item.objective_destination_zone_name);
+        local camp_label = clean(item.objective_camp_label);
+        if (destination_location ~= '' or camp_label ~= '') then
+            speech = speech .. ' ' .. clean(destination_location .. ' ' .. camp_label) .. '.';
+        end
+        if (item.objective_available == true) then
+            speech = speech .. ' Press I to start navigation.';
+        else
+            speech = speech .. ' Navigation unavailable.';
+        end
+        return speech .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
+    end
     local prefix = ('%s. %d of %d. %s'):fmt(title ~= '' and title or 'Objective', tonumber(index) or 1, tonumber(total) or 1, status);
     if (location ~= '') then
         prefix = prefix .. ' ' .. location .. '.';
@@ -933,6 +1120,14 @@ local function same_item(a, b)
         return false;
     end
     if (kind == 'mission') then
+        local a_destination = clean(a.objective_destination_id);
+        local b_destination = clean(b.objective_destination_id);
+        if (a_destination ~= '' or b_destination ~= '') then
+            return a_destination ~= '' and a_destination == b_destination
+                and clean(a.mission_context) == clean(b.mission_context)
+                and tonumber(a.mission_id) == tonumber(b.mission_id)
+                and clean(a.mission_availability or 'active') == clean(b.mission_availability or 'active');
+        end
         return clean(a.mission_context) == clean(b.mission_context)
             and tonumber(a.mission_id) == tonumber(b.mission_id)
             and clean(a.mission_availability or 'active') == clean(b.mission_availability or 'active');

@@ -4,13 +4,17 @@ local landing_vertical_tolerance = 3.0;
 local floor_vertical_tolerance = 3.25;
 local zone_trigger_radius = 6.0;
 
--- Native Metalworks elevator entities from the current LandSandBoat zone data.
--- Both are timed automatic elevators; the door coordinates are the walkable
--- handoff points on each floor, not guessed points between navmesh components.
+-- Native verified elevator entities from the current LandSandBoat zone data.
+-- Metalworks uses timed automatic elevators; Palborough uses its two Elevator
+-- Levers. These are walkable interaction/handoff points, never guessed points
+-- between navmesh components.
 local elevators = T{
     T{
         id = 'metalworks-north-elevator',
         label = 'north Metalworks elevator',
+        zone = zone_id,
+        interaction = 'automatic',
+        guard_metalworks_exit = true,
         platform = T{
             zone = zone_id,
             name = 'North Metalworks elevator platform',
@@ -42,6 +46,9 @@ local elevators = T{
     T{
         id = 'metalworks-south-elevator',
         label = 'south Metalworks elevator',
+        zone = zone_id,
+        interaction = 'automatic',
+        guard_metalworks_exit = true,
         platform = T{
             zone = zone_id,
             name = 'South Metalworks elevator platform',
@@ -68,6 +75,41 @@ local elevators = T{
             y = -12.098,
             kind = 'transport',
             source = 'lsb-native-elevator-door:_6ls',
+        },
+    },
+    T{
+        id = 'palborough-mines-lift',
+        label = 'Palborough Mines elevator',
+        zone = 143,
+        required_transport_id = 'palborough-mines-lift',
+        interaction = 'lever',
+        guard_metalworks_exit = false,
+        platform = T{
+            zone = 143,
+            name = 'Palborough Mines elevator platform',
+            x = 179.030,
+            z = 62.612,
+            y = -19.222,
+            kind = 'transport',
+            source = 'lsb-native-elevator-platform:@3z0',
+        },
+        lower = T{
+            zone = 143,
+            name = 'Elevator Lever, lower floor',
+            x = 182.401,
+            z = 64.408,
+            y = 0.902,
+            kind = 'transport',
+            source = 'lsb-native-elevator-lever:_3z6',
+        },
+        upper = T{
+            zone = 143,
+            name = 'Elevator Lever, upper floor',
+            x = 182.401,
+            z = 64.408,
+            y = -32.207,
+            kind = 'transport',
+            source = 'lsb-native-elevator-lever:_3z7',
         },
     },
 };
@@ -171,6 +213,7 @@ end
 
 local function destination_is_metalworks_exit(destination)
     return destination ~= nil
+        and (tonumber(destination.zone) or 0) == zone_id
         and type(nav_point_is_zoneline) == 'function'
         and nav_point_is_zoneline(destination)
         and distance_3d(destination, metalworks_exit) <= 3.0;
@@ -222,6 +265,11 @@ end
 
 local function transition_instruction(state)
     local floor = state.direction == 'up' and 'upper floor' or 'lower floor';
+    if (tostring(state.interaction or '') == 'lever') then
+        return ('At the %s. Target the Elevator Lever and press Enter. Choose the affirmative option, then follow the beacon onto the platform and ride to the %s. The route will resume after the live floor change.'):fmt(
+            tostring(state.elevator_label or 'elevator'),
+            floor);
+    end
     return ('At the %s. It runs automatically. Follow the beacon through the doorway onto the platform; the beacon will go quiet once you are aboard. Ride to the %s, then the route will resume.'):fmt(
         tostring(state.elevator_label or 'Metalworks elevator'),
         floor);
@@ -257,7 +305,10 @@ local function try_direction(player, destination, elevator, from_landing, to_lan
     if (not leg_is_verified(approach, player, from_landing)) then
         return nil;
     end
-    local approach_crosses, approach_distance, approach_segment = route_crosses_zone_trigger(approach);
+    local approach_crosses, approach_distance, approach_segment = false, 0, 0;
+    if (elevator.guard_metalworks_exit == true) then
+        approach_crosses, approach_distance, approach_segment = route_crosses_zone_trigger(approach);
+    end
     if (approach_crosses) then
         log_line(('nav transport rejected id="%s" phase=approach reason="zone trigger" distance=%.2f segment=%d'):fmt(
             elevator.id,
@@ -270,10 +321,14 @@ local function try_direction(player, destination, elevator, from_landing, to_lan
     if (not leg_is_verified(continuation, to_landing, destination)) then
         return nil;
     end
-    local allow_terminal_contact = destination_is_metalworks_exit(destination);
-    local continuation_crosses, continuation_distance, continuation_segment = route_crosses_zone_trigger(
-        continuation,
-        allow_terminal_contact);
+    local allow_terminal_contact = elevator.guard_metalworks_exit == true
+        and destination_is_metalworks_exit(destination);
+    local continuation_crosses, continuation_distance, continuation_segment = false, 0, 0;
+    if (elevator.guard_metalworks_exit == true) then
+        continuation_crosses, continuation_distance, continuation_segment = route_crosses_zone_trigger(
+            continuation,
+            allow_terminal_contact);
+    end
     if (continuation_crosses) then
         log_line(('nav transport rejected id="%s" phase=continuation reason="zone trigger" distance=%.2f segment=%d'):fmt(
             elevator.id,
@@ -296,22 +351,44 @@ local function try_direction(player, destination, elevator, from_landing, to_lan
         direction = direction,
         elevator_id = elevator.id,
         elevator_label = elevator.label,
+        zone = tonumber(elevator.zone) or 0,
+        interaction = tostring(elevator.interaction or ''),
+        guard_metalworks_exit = elevator.guard_metalworks_exit == true,
         boarding_target = point_copy(elevator.platform),
         score = route_length(approach) + route_length(continuation),
     };
 end
 
-function accessxi.nav_metalworks_elevator_route(player, destination)
-    local empty = T{};
+local function candidate_elevators(player, destination, metalworks_only)
+    local candidates = T{};
     if (player == nil or destination == nil
-        or (tonumber(player.zone) or 0) ~= zone_id
-        or (tonumber(destination.zone) or 0) ~= zone_id) then
+        or (tonumber(player.zone) or 0) ~= (tonumber(destination.zone) or 0)) then
+        return candidates;
+    end
+    local zone = tonumber(player.zone) or 0;
+    local requested_transport = tostring(destination.objective_transport_id or '');
+    for _, elevator in ipairs(elevators) do
+        local required_transport = tostring(elevator.required_transport_id or '');
+        if ((tonumber(elevator.zone) or 0) == zone
+            and (metalworks_only ~= true or zone == zone_id)
+            and ((required_transport == '' and requested_transport == '')
+                or (required_transport ~= '' and required_transport == requested_transport))) then
+            candidates:append(elevator);
+        end
+    end
+    return candidates;
+end
+
+local function verified_elevator_route(player, destination, candidates)
+    local empty = T{};
+    if (player == nil or destination == nil or candidates == nil or candidates:len() == 0) then
         return empty;
     end
 
-    local lower_first = vertical_distance(player, elevators[1].lower) <= vertical_distance(player, elevators[1].upper);
+    local lower_first = vertical_distance(player, candidates[1].lower)
+        <= vertical_distance(player, candidates[1].upper);
     local best = nil;
-    for _, elevator in ipairs(elevators) do
+    for _, elevator in ipairs(candidates) do
         local directions;
         if (lower_first) then
             directions = T{
@@ -346,8 +423,11 @@ function accessxi.nav_metalworks_elevator_route(player, destination)
     accessxi.nav_transport_transition = T{
         elevator_id = best.elevator_id,
         elevator_label = best.elevator_label,
+        transport_kind = 'verified-elevator',
         boarding_target = best.boarding_target,
-        zone = zone_id,
+        zone = best.zone,
+        interaction = best.interaction,
+        guard_metalworks_exit = best.guard_metalworks_exit,
         phase = 'approach',
         direction = best.direction,
         from_landing = best.from_landing,
@@ -368,29 +448,55 @@ function accessxi.nav_metalworks_elevator_route(player, destination)
     return best.route;
 end
 
+function accessxi.nav_verified_elevator_route(player, destination)
+    local empty = T{};
+    if (player == nil or destination == nil
+        or (tonumber(player.zone) or 0) ~= (tonumber(destination.zone) or 0)) then
+        return empty, false;
+    end
+
+    local requested_transport = tostring(destination.objective_transport_id or '');
+    if (requested_transport ~= ''
+        and vertical_distance(player, destination) <= floor_vertical_tolerance) then
+        return empty, false;
+    end
+    local candidates = candidate_elevators(player, destination, false);
+    local required = requested_transport ~= ''
+        and vertical_distance(player, destination) > floor_vertical_tolerance;
+    if (candidates:len() == 0) then
+        return empty, required;
+    end
+    return verified_elevator_route(player, destination, candidates), required;
+end
+
+function accessxi.nav_metalworks_elevator_route(player, destination)
+    local candidates = candidate_elevators(player, destination, true);
+    return verified_elevator_route(player, destination, candidates);
+end
+
 function accessxi.nav_transport_transition_active()
     local state = accessxi.nav_transport_transition;
-    return state ~= nil and tostring(state.elevator_id or ''):find('metalworks-', 1, true) == 1;
+    return state ~= nil and tostring(state.transport_kind or '') == 'verified-elevator';
 end
 
 function accessxi.nav_transport_start_suffix()
     if (not accessxi.nav_transport_transition_active()) then
         return '';
     end
-    return (' This route uses the %s.'):fmt(tostring(accessxi.nav_transport_transition.elevator_label or 'Metalworks elevator'));
+    return (' This route uses the %s.'):fmt(tostring(accessxi.nav_transport_transition.elevator_label or 'elevator'));
 end
 
 function accessxi.nav_transport_transition_waiting(player, now)
     local state = accessxi.nav_transport_transition;
     return state ~= nil
-        and tostring(state.elevator_id or ''):find('metalworks-', 1, true) == 1
+        and tostring(state.transport_kind or '') == 'verified-elevator'
         and tostring(state.phase or '') == 'waiting';
 end
 
 function accessxi.nav_transport_waiting_beacon_target(player, now)
     local state = accessxi.nav_transport_transition;
     local waiting = state ~= nil
-        and tostring(state.elevator_id or ''):find('metalworks-', 1, true) == 1
+        and tostring(state.transport_kind or '') == 'verified-elevator'
         and tostring(state.phase or '') == 'waiting';
     if (not waiting) then
         return nil, false;
@@ -439,9 +545,12 @@ local function resume_from_destination_floor(player, destination, state, now)
 
     local fresh = nav_compute_mesh_route(player, destination);
     local route = fresh;
-    local allow_terminal_contact = destination_is_metalworks_exit(destination);
+    local guard_metalworks_exit = state.guard_metalworks_exit == true;
+    local allow_terminal_contact = guard_metalworks_exit
+        and destination_is_metalworks_exit(destination);
     local fresh_crosses = route ~= nil
         and route:len() > 1
+        and guard_metalworks_exit
         and route_crosses_zone_trigger(route, allow_terminal_contact);
     local saved_destination_is_current = nav_distance(state.destination, destination) <= 1.5
         and vertical_distance(state.destination, destination) <= 1.0;
@@ -452,7 +561,7 @@ local function resume_from_destination_floor(player, destination, state, now)
     end
     if (route == nil
         or route:len() <= 1
-        or route_crosses_zone_trigger(route, allow_terminal_contact)) then
+        or (guard_metalworks_exit and route_crosses_zone_trigger(route, allow_terminal_contact))) then
         return false;
     end
 
@@ -478,12 +587,12 @@ end
 
 function accessxi.nav_transport_transition_poll(player, destination, now)
     local state = accessxi.nav_transport_transition;
-    if (state == nil or tostring(state.elevator_id or ''):find('metalworks-', 1, true) ~= 1) then
+    if (state == nil or tostring(state.transport_kind or '') ~= 'verified-elevator') then
         return false;
     end
     now = tonumber(now) or tick();
 
-    if (player == nil or (tonumber(player.zone) or 0) ~= zone_id) then
+    if (player == nil or (tonumber(player.zone) or 0) ~= (tonumber(state.zone) or 0)) then
         accessxi.nav_transport_clear('player-left-zone');
         return false;
     end
@@ -528,7 +637,9 @@ function accessxi.nav_transport_transition_poll(player, destination, now)
     local source_horizontal = nav_distance(player, state.from_landing);
     if (source_vertical <= landing_vertical_tolerance and source_horizontal > 8) then
         local approach = nav_compute_mesh_route(player, state.from_landing);
-        local crosses = approach ~= nil and approach:len() > 1 and route_crosses_zone_trigger(approach);
+        local crosses = state.guard_metalworks_exit == true
+            and approach ~= nil and approach:len() > 1
+            and route_crosses_zone_trigger(approach);
         if (leg_is_verified(approach, player, state.from_landing) and not crosses) then
             approach = tag_leg(usable_leg(approach, player, state.from_landing), 'approach', state.direction, state.elevator_id);
             state.phase = 'approach';

@@ -1422,7 +1422,7 @@ return {
     native_id = 3,
     progress_id = 2,
     title = "Fetichism",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",

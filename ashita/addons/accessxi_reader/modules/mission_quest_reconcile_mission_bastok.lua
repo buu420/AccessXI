@@ -6038,6 +6038,58 @@ return {
     default_step_id = nil,
     automatic_stages = {
     },
+    mission_destinations = {
+      {
+        stable_id = "mission:Bastok:3:palborough-lower-amber",
+        source_step_ids = { "mission:Bastok:3:step-003", "mission:Bastok:3:step-006" },
+        action = "farm",
+        items = { "Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs" },
+        enemies = { "Amber Quadav" },
+        zone = 143,
+        zone_name = "Palborough Mines",
+        camp_label = "lower camp",
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 143,
+            zone_name = "Palborough Mines",
+            name = "Amber Quadav",
+            kind = "enemy",
+          },
+        },
+        canonical_ingress_edge_id = 947466874,
+        canonical_ingress_from_zone = 106,
+        transport_id = "",
+        route_evidence = "navprobe:Palborough_Mines.nav:north-gustaberg-entry-to-lower-amber:2026-08-08",
+        arrival_instruction = "Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Amber Quadav.",
+        route_ready = true,
+      },
+      {
+        stable_id = "mission:Bastok:3:palborough-upper-quadav",
+        source_step_ids = { "mission:Bastok:3:step-003", "mission:Bastok:3:step-006" },
+        action = "farm",
+        items = { "Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs" },
+        enemies = { "Greater Quadav", "Onyx Quadav", "Veteran Quadav" },
+        zone = 143,
+        zone_name = "Palborough Mines",
+        camp_label = "upper camp by elevator",
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 143,
+            zone_name = "Palborough Mines",
+            name = "Onyx Quadav",
+            kind = "enemy",
+          },
+        },
+        canonical_ingress_edge_id = 947466874,
+        canonical_ingress_from_zone = 106,
+        transport_id = "palborough-mines-lift",
+        route_evidence = "navprobe:Palborough_Mines.nav:north-gustaberg-entry-to-upper-quadav:2026-08-08",
+        arrival_instruction = "Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Greater Quadav, Onyx Quadav, and Veteran Quadav.",
+        route_ready = true,
+      },
+    },
     steps = {
       {
         stable_step_id = "mission:Bastok:3:step-001",

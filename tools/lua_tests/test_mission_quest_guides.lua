@@ -58,6 +58,58 @@ local modules = {
             automatic_stages = {
                 ['obtain-blue-tester'] = 'mission:Bastok:2:step-001',
             },
+            mission_destinations = {
+                {
+                    stable_id = 'mission:Bastok:2:palborough-lower-amber',
+                    source_step_ids = { 'mission:Bastok:2:step-001' },
+                    action = 'farm',
+                    items = { 'Fetich Head', 'Fetich Torso', 'Fetich Arms', 'Fetich Legs' },
+                    enemies = { 'Amber Quadav' },
+                    zone = 143,
+                    zone_name = 'Palborough Mines',
+                    camp_label = 'lower camp',
+                    navigation_target = {
+                        type = 'static-reference',
+                        reference = {
+                            zone = 143,
+                            zone_name = 'Palborough Mines',
+                            name = 'Amber Quadav',
+                            kind = 'enemy',
+                        },
+                    },
+                    canonical_ingress_edge_id = 947466874,
+                    canonical_ingress_from_zone = 106,
+                    transport_id = '',
+                    route_evidence = 'navprobe:lower',
+                    arrival_instruction = 'Farm the four Fetich pieces from Amber Quadav.',
+                    route_ready = true,
+                },
+                {
+                    stable_id = 'mission:Bastok:2:palborough-upper-quadav',
+                    source_step_ids = { 'mission:Bastok:2:step-001' },
+                    action = 'farm',
+                    items = { 'Fetich Head', 'Fetich Torso', 'Fetich Arms', 'Fetich Legs' },
+                    enemies = { 'Greater Quadav', 'Onyx Quadav', 'Veteran Quadav' },
+                    zone = 143,
+                    zone_name = 'Palborough Mines',
+                    camp_label = 'upper camp by elevator',
+                    navigation_target = {
+                        type = 'static-reference',
+                        reference = {
+                            zone = 143,
+                            zone_name = 'Palborough Mines',
+                            name = 'Onyx Quadav',
+                            kind = 'enemy',
+                        },
+                    },
+                    canonical_ingress_edge_id = 947466874,
+                    canonical_ingress_from_zone = 106,
+                    transport_id = 'palborough-mines-lift',
+                    route_evidence = 'navprobe:upper',
+                    arrival_instruction = 'Farm the four Fetich pieces from the upper Quadav camp.',
+                    route_ready = true,
+                },
+            },
             steps = {
                 {
                     stable_step_id = 'mission:Bastok:2:step-001',
@@ -167,6 +219,17 @@ assert(module_loader_calls[1] == 'fixture_bg_mission_bastok')
 assert(module_loader_calls[2] == 'fixture_ffxiclopedia_mission_bastok')
 assert(module_loader_calls[3] == 'fixture_reconcile_mission_bastok')
 assert(guides:automatic_step_id('mission:Bastok:2', 'obtain-blue-tester') == 'mission:Bastok:2:step-001')
+local destinations = assert(guides:mission_destinations('mission:Bastok:2'))
+assert(#destinations == 2)
+assert(destinations[1].stable_id == 'mission:Bastok:2:palborough-lower-amber')
+assert(destinations[2].transport_id == 'palborough-mines-lift')
+destinations[1].items[1] = 'caller mutation'
+destinations[1].source_step_ids[1] = 'caller mutation'
+destinations[1].navigation_target.reference.name = 'caller mutation'
+local fresh_destinations = assert(guides:mission_destinations('mission:Bastok:2'))
+assert(fresh_destinations[1].items[1] == 'Fetich Head')
+assert(fresh_destinations[1].source_step_ids[1] == 'mission:Bastok:2:step-001')
+assert(fresh_destinations[1].navigation_target.reference.name == 'Amber Quadav')
 
 local conflict_speech = guides:repeat_step()
 assert(conflict_speech:find('Step 2 of 3', 1, true) ~= nil)

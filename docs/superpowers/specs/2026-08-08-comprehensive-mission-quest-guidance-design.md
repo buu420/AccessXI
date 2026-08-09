@@ -1,5 +1,7 @@
 # Comprehensive Mission and Quest Guidance Design
 
+> Navigation UX note: the nested step-browser controls in this historical design are superseded by `2026-08-08-direct-objective-navigation-design.md`. The guide corpus remains evidence, but `I` now routes the highlighted mission or quest directly only when its current destination is proven.
+
 ## Purpose
 
 AccessXI already exposes native `Missions` and `Quests` navigation categories and can safely route the three observable stages of Bastok Mission 1-2, `A Geological Survey`. This project expands that narrow registry into comprehensive, source-backed guidance for the missions and quests present in the installed FFXI client.

@@ -1,5 +1,7 @@
 # Comprehensive Mission and Quest Guidance Implementation Plan
 
+> Navigation UX note: the nested step-browser tasks below are superseded by `2026-08-08-direct-objective-navigation.md`. The generated corpus remains supporting evidence; it no longer owns `I/U/O/J/K/L` navigation behavior.
+
 > Execute in `C:\Users\buu42\Documents\Codex\2026-08-08\accessxi-comprehensive-objectives\work\repo` on branch `agent/comprehensive-mission-quest-guidance`.
 
 Execution mode is the current task, sequential and test-first, matching the user's request to continue without per-objective confirmation stops.

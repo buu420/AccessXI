@@ -125,28 +125,25 @@ Unless a table says otherwise, the bare-letter accessibility keys work only whil
 
 | Key | Action |
 | --- | --- |
-| `I` | Enter a selected mission or quest, start a verified route for its selected step, start an ordinary destination route, or stop the active or pending route. |
+| `I` | Start GPS directly for the selected mission, quest, or ordinary destination, or stop the active or pending route. |
 | `U` | Previous navigation category. |
 | `O` | Next navigation category. |
 | `J` | Previous item in the current navigation category. |
 | `K` | Repeat the current navigation item. |
 | `L` | Next item in the current navigation category. |
 
-The `Missions` and `Quests` navigation categories are built from the current
-character's native active-objective state. Press `I` on an objective to open its
-ordered guide steps. Within that step view, `J` and `L` move between actual
-steps, `K` repeats the selected step and its evidence status, `U` returns to the
-same objective, and `O` closes the steps and advances to the next category.
-Press `I` on a step to navigate only when AccessXI has a separately verified
-target and walkable route. Map-grid references and wiki prose are guidance, not
-proof of a safe path; conflicts and unresolved `???` candidates are spoken and
-left unrouted.
+The navigation browser places `Missions` immediately before `Quests`.
+Missions include active missions plus missions the current character is proven able to start.
+Quests include only active quests. Use `J`, `K`, and `L` on either category exactly as you do elsewhere, then press `I` to start GPS directly for the highlighted entry.
+There is no separate guide-step navigation menu.
 
-When the client exposes enough current-session state, AccessXI selects the
-current step automatically. Otherwise the player moves through the steps
-manually, and that selection is stored separately for each native character
-identity. Counts come from the current objective and are never fixed row
-numbers.
+AccessXI starts an objective route only when current-session character state
+identifies an exact destination in the current navigation data. Available
+nation missions lead to an appropriate gate guard. If the client does not
+expose enough state to prove the current step, AccessXI keeps the active entry
+visible but says that no verified current destination is available. Map-grid
+references, wiki prose, conflicts, and unresolved `???` candidates are never
+used to guess a route.
 
 When a supported highlighted gear item has active detail text, `J`, `K`, and `L` read that gear instead of moving through navigation:
 

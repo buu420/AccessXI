@@ -2,6 +2,7 @@
 local policy = {
   schema_version = 2,
   policy_revision = "objective-route-proof-v2.1",
+  policy_sha256 = "87f2f0112976dc3423fbe5d7bcda1f4f1416ec4f33d7410d47785a08c9cf7c5a",
   probe_protocol = "accessxi-navprobe-jsonl-v2",
   probe_schema = 2,
   thresholds = {

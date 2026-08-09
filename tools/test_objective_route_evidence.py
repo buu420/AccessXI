@@ -361,16 +361,21 @@ class ProbeProtocolTests(RouteEvidenceTestCase):
                     fixture["expect"],
                 )
         lua = routes.render_policy_lua(policy)
+        self.assertIn(
+            f'policy_sha256 = "{routes.policy_sha256(policy)}"',
+            lua,
+        )
         for fixture in POLICY_LITERAL["fixtures"]:
             self.assertIn(fixture["id"], lua)
             self.assertIn(fixture["expect"], lua)
-        self.assertEqual(
-            routes.exercise_policy_lua_fixtures(
+            self.assertEqual(
+                routes.exercise_policy_lua_fixtures(
                 lua,
                 REPO_ROOT / "tools" / "lua51" / "lua5.1.exe",
             ),
-            {fixture["id"]: fixture["expect"] for fixture in POLICY_LITERAL["fixtures"]},
-        )
+                {fixture["id"]: fixture["expect"] for fixture in POLICY_LITERAL["fixtures"]},
+            )
+
         tampered_mapping = copy.deepcopy(POLICY_LITERAL)
         tampered_mapping["fixtures"][0]["expect"] = "trust-the-label"
         tampered_policy = routes.parse_policy(tampered_mapping)
@@ -385,6 +390,24 @@ class ProbeProtocolTests(RouteEvidenceTestCase):
             )["exact-two-point"],
             "mesh-proven",
         )
+
+    def test_transition_lua_roots_the_exact_source_registry_digest(self) -> None:
+        routes = self.routes()
+        digest = "d" * 64
+        definition = {
+            "transition_id": "fixture-lift:down",
+            "zone": 143,
+            "pre_anchor": {"x": 5.0, "z": 0.0, "y": -1.0},
+            "post_anchor": {"x": 5.0, "z": 0.0, "y": 1.0},
+        }
+        lua = routes.render_transitions_lua(
+            (), definitions=(definition,), source_registry_sha256=digest
+        )
+        self.assertIn("schema_version = 2", lua)
+        self.assertIn(f'source_registry_sha256 = "{digest}"', lua)
+        self.assertIn("definitions = {", lua)
+        self.assertIn('transition_id"] = "fixture-lift:down"', lua)
+        self.assertIn("authorized = {  }", lua)
 
     def test_probe_request_pins_every_input_and_maps_asymmetric_axes_exactly(self) -> None:
         routes = self.routes()
@@ -2827,6 +2850,10 @@ class RouteArtifactGenerationTests(RouteEvidenceTestCase):
             addon_data.mkdir()
             (addon_data / "ffxi-nav-destinations.tsv").write_bytes(DESTINATION_TSV)
             (addon_data / "ffxi-nav-zoneline-graph.tsv").write_bytes(GRAPH_TSV)
+            transition_source = repo / "data" / "mission-quest-guides"
+            transition_source.mkdir(parents=True)
+            transition_registry = b'{"schema_version":2,"transitions":[]}\n'
+            (transition_source / "route-transitions.json").write_bytes(transition_registry)
             third_party = repo / "third_party"
             dll = third_party / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
             dll.parent.mkdir(parents=True)
@@ -2884,7 +2911,14 @@ class RouteArtifactGenerationTests(RouteEvidenceTestCase):
             transitions_lua = paths["transitions"].read_text(encoding="utf-8")
             self.assertNotIn("route_ready = true", contracts_lua)
             self.assertIn("local contracts = {  }", contracts_lua)
-            self.assertIn("local transitions = {  }", transitions_lua)
+            self.assertIn("local transitions = {", transitions_lua)
+            self.assertIn("schema_version = 2", transitions_lua)
+            self.assertIn(
+                f'source_registry_sha256 = "{hashlib.sha256(transition_registry).hexdigest()}"',
+                transitions_lua,
+            )
+            self.assertIn("definitions = {  }", transitions_lua)
+            self.assertIn("authorized = {  }", transitions_lua)
 
             with self.assertRaises(routes.RouteEvidenceError):
                 routes.write_route_runtime_artifacts(

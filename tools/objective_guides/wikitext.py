@@ -338,6 +338,39 @@ def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
     )
 
 
+def _strong_sentence_boundaries(value: str) -> tuple[tuple[int, int], ...]:
+    boundaries: list[tuple[int, int]] = []
+    for match in re.finditer(r"[.!?]+", value):
+        start, end = match.span()
+        run = match.group(0)
+        if end < len(value) and not value[end].isspace():
+            continue
+        if set(run) == {"?"} and len(run) >= 3:
+            continue
+        if set(run) == {"."} and len(run) >= 2:
+            continue
+        if run == ".":
+            if (
+                start > 0
+                and end < len(value)
+                and value[start - 1].isdigit()
+                and value[end].isdigit()
+            ):
+                continue
+            if re.search(
+                r"(?i)(?<![A-Za-z])(?:[A-Za-z]\.){2,}$",
+                value[:end],
+            ):
+                continue
+        boundary_start = start
+        if len(run) > 1 and run[-1] in ".!" and (
+            run.startswith("???") or run.startswith("...")
+        ):
+            boundary_start = end - 1
+        boundaries.append((boundary_start, end))
+    return tuple(boundaries)
+
+
 def _extract_action_spans(
     text: str,
     *,
@@ -370,9 +403,7 @@ def _extract_action_spans(
     if matches:
         clause_starts[0] = 0
         leading = text[: matches[0].start()]
-        strong_boundaries = list(
-            re.finditer(r"(?<![.!?])[.!?](?![.!?])(?=\s|$)", leading)
-        )
+        strong_boundaries = _strong_sentence_boundaries(leading)
         subordinate = re.match(
             r"\s*(?:after|before|while|upon|once)\s+(?:talking|speaking|visiting|defeating|fighting|"
             r"killing|examining|touching|using|entering|exiting|travelling|traveling)\b",
@@ -381,19 +412,17 @@ def _extract_action_spans(
         )
         punctuation = list(re.finditer(r"[,;]", leading))
         if strong_boundaries:
-            clause_starts[0] = strong_boundaries[-1].end()
+            clause_starts[0] = strong_boundaries[-1][1]
         elif subordinate and punctuation:
             clause_starts[0] = punctuation[-1].end()
     for index in range(1, len(matches)):
         between = text[matches[index - 1].end() : matches[index].start()]
-        strong_boundaries = list(
-            re.finditer(r"(?<![.!?])[.!?](?![.!?])(?=\s|$)", between)
-        )
+        strong_boundaries = _strong_sentence_boundaries(between)
         if strong_boundaries:
             boundary = strong_boundaries[-1]
             offset = matches[index - 1].end()
-            clause_ends[index - 1] = offset + boundary.start()
-            clause_starts[index] = offset + boundary.end()
+            clause_ends[index - 1] = offset + boundary[0]
+            clause_starts[index] = offset + boundary[1]
             continue
         connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
         if connectors:

@@ -1176,6 +1176,58 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual((fight.zone_mentions, fight.grid_coordinates), ((), ()))
         self.assertEqual((talk.zone_mentions, talk.grid_coordinates), ((), ()))
 
+    def test_literal_question_mark_target_uses_its_following_period_as_the_boundary(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Question Mark Boundary",
+            page_id=9309,
+            revision_id=100,
+            parent_revision_id=99,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*In [[East Ronfaure]], examine the ???. At (H-8) in [[West Ronfaure]], "
+                "talk to [[NPC B]].\n"
+            ),
+        )
+
+        examine, talk = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual(
+            (examine.target, examine.zone_mentions, examine.grid_coordinates),
+            ("???", ("East Ronfaure",), ()),
+        )
+        self.assertEqual(
+            (talk.target, talk.zone_mentions, talk.grid_coordinates),
+            ("NPC B", ("West Ronfaure",), ("H-8",)),
+        )
+
+    def test_initialism_abbreviations_do_not_split_one_action_clause(self) -> None:
+        for abbreviation in ("e.g.", "i.e."):
+            with self.subTest(abbreviation=abbreviation):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Abbreviation Boundary",
+                    page_id=9310,
+                    revision_id=101,
+                    parent_revision_id=100,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*Trade an item, {abbreviation} Scholar Stone, to [[Cid]] in "
+                        "[[East Ronfaure]], then talk to [[NPC B]] in [[West Ronfaure]].\n"
+                    ),
+                )
+
+                trade, talk = parse_objective_page(page).steps[0].action_spans
+
+                self.assertIn("Scholar Stone", trade.supporting_clause)
+                self.assertNotIn("Scholar Stone", talk.supporting_clause)
+                self.assertEqual(trade.zone_mentions, ("East Ronfaure",))
+                self.assertEqual(talk.zone_mentions, ("West Ronfaure",))
+
     def test_only_explicit_obtain_from_syntax_collapses_actions(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -2389,6 +2441,118 @@ class ObjectiveDestinationTests(unittest.TestCase):
         )
         with self.assertRaises(ObjectiveDestinationError):
             resolve(ambiguous, zone=101, zone_name="East Ronfaure", grid=[])
+
+    def test_destination_rejects_question_target_and_abbreviation_boundary_leaks(self) -> None:
+        def resolve(
+            *,
+            native: NativeObjective,
+            instruction: str,
+            claim_order: int,
+            action: str,
+            target_name: str,
+            target_kind: str,
+            zone: int,
+            zone_name: str,
+            grid: list[str],
+        ):
+            def page(site: str, page_id: int) -> ParsedObjective:
+                return parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title=native.title,
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+                    )
+                )
+
+            bg = page("bg", 871)
+            ffxi = page("ffxiclopedia", 872)
+            reconciled = reconcile_objectives(native.key, bg, ffxi)
+            step_id = f"{native.key}:step-001"
+            overrides = {
+                "objective_destination_overrides": {
+                    native.key: [
+                        {
+                            "id": "punctuation-boundary-probe",
+                            "source_revisions": {"bg": 871, "ffxiclopedia": 872},
+                            "source_step_ids": [step_id],
+                            "source_claim_ids": [f"{step_id}:claim-{claim_order:02d}"],
+                            "action": action,
+                            "items": [],
+                            "enemies": [],
+                            "grid_coordinates": grid,
+                            "destination_id": f"{target_kind}:{zone}:punctuation:fixture",
+                            "zone": zone,
+                            "zone_name": zone_name,
+                            "label": f"{target_name} in {zone_name}",
+                            "reference": {"name": target_name, "kind": target_kind},
+                            "arrival_instruction": f"{action.title()} {target_name}.",
+                        }
+                    ]
+                }
+            }
+            point = {
+                "zone": zone,
+                "name": target_name,
+                "kind": target_kind,
+                "x": 1.0,
+                "z": 2.0,
+                "y": 3.0,
+            }
+            return resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (point,),
+                {zone: zone_name},
+            )
+
+        question_native = NativeObjective(
+            "quest", "other_areas", 87, "Question Boundary Destination", "quests.dat", 0
+        )
+        question_instruction = (
+            "In [[East Ronfaure]], examine the ???. At (H-8) in [[West Ronfaure]], "
+            "talk to [[NPC B]]."
+        )
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve(
+                native=question_native,
+                instruction=question_instruction,
+                claim_order=1,
+                action="examine",
+                target_name="???",
+                target_kind="question-mark",
+                zone=100,
+                zone_name="West Ronfaure",
+                grid=["H-8"],
+            )
+
+        abbreviation_native = NativeObjective(
+            "quest", "other_areas", 88, "Abbreviation Destination", "quests.dat", 0
+        )
+        for abbreviation in ("e.g.", "i.e."):
+            instruction = (
+                f"Trade an item, {abbreviation} Scholar Stone, to [[Cid]] in "
+                "[[East Ronfaure]], then talk to [[NPC B]] in [[West Ronfaure]]."
+            )
+            with self.subTest(abbreviation=abbreviation), self.assertRaises(ObjectiveDestinationError):
+                resolve(
+                    native=abbreviation_native,
+                    instruction=instruction,
+                    claim_order=2,
+                    action="talk",
+                    target_name="NPC B",
+                    target_kind="npc",
+                    zone=101,
+                    zone_name="East Ronfaure",
+                    grid=[],
+                )
 
     def test_destination_order_is_stable_and_native_qualified(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("quest")

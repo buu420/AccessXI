@@ -2075,7 +2075,17 @@ return {
         entities = { "Pakh Jatalfih", "Ru'Lude Gardens", "Windurst" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pakh Jatalfih",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pakh Jatalfih.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:13:step-009",
@@ -6081,7 +6091,17 @@ return {
         entities = { "Romaa Mihgo", "Kazham" },
         zones = { "Kazham" },
         grid_coordinates = { "H-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Romaa Mihgo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Romaa Mihgo.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:20:step-015",
@@ -6442,7 +6462,17 @@ return {
         entities = { "Moreno-Toeno", "Windurst Waters", "\"Star Seeker\"", "Aurastery", "key item", "Star Seeker" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Moreno-Toeno",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Moreno-Toeno.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:21:step-004",
@@ -6855,7 +6885,17 @@ return {
         entities = { "Apururu", "Windurst Woods", "Manustery ring", "Manustery" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Apururu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Apururu.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:22:step-005",
@@ -7580,7 +7620,17 @@ return {
         entities = { "Apururu", "Windurst Woods", "Manustery" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Apururu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Apururu.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:23:step-005",
@@ -9986,7 +10036,17 @@ return {
         entities = { "Windurst Waters", "Moreno-Toeno", "Aurastery", "\"Creature Counter\" magic doll", "Tahrongi Canyon" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Moreno-Toeno",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Moreno-Toeno.",
+        },
       },
       {
         stable_step_id = "mission:Windurst:5:step-009",

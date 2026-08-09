@@ -163,6 +163,7 @@ function GuideState:resolve(native_key)
                 and pair.conflicting_fields or {},
             action = clean(pair.action),
             route_ready = pair.route_ready == true,
+            navigation_target = copy_table(pair.navigation_target),
             bg_instruction = bg_instruction,
             ffxiclopedia_instruction = ffxiclopedia_instruction,
             primary_instruction = bg_instruction ~= '' and bg_instruction or ffxiclopedia_instruction,

@@ -98,7 +98,17 @@ return {
         entities = { "Makarim", "Zeruhn Mines", "Zeruhn report" },
         zones = {  },
         grid_coordinates = { "H-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 172,
+            zone_name = "Zeruhn Mines",
+            name = "Makarim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Makarim.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:1:step-008",
@@ -124,7 +134,17 @@ return {
         entities = { "Naji", "Metalworks" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:1:step-010",
@@ -199,7 +219,17 @@ return {
         entities = { "Naji", "Metalworks", "Karst", "President's Office" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:10:step-003",
@@ -1080,7 +1110,17 @@ return {
         entities = { "Iron Eater", "Metalworks", "Home Point", "President's Office" },
         zones = { "Metalworks" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Iron Eater",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iron Eater.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:11:step-004",
@@ -1389,7 +1429,17 @@ return {
         entities = { "Davyad", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "K-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Davyad",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Davyad.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:12:step-005",
@@ -1698,7 +1748,17 @@ return {
         entities = { "Lucius", "Metalworks", "Letter to the ambassador", "Presidential Aide's Office" },
         zones = { "Metalworks" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Lucius",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Lucius.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:13:step-004",
@@ -1711,7 +1771,17 @@ return {
         entities = { "Ru'Lude Gardens", "Goggehn", "Embassy of Bastok" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "H-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Goggehn",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Goggehn.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:13:step-005",
@@ -3077,7 +3147,17 @@ return {
         entities = { "Drake Fang", "Zeruhn Mines", "Palborough Mines", "Iron Eater" },
         zones = { "Zeruhn Mines" },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 172,
+            zone_name = "Zeruhn Mines",
+            name = "Drake Fang",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Drake Fang.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:17:step-005",
@@ -3246,7 +3326,17 @@ return {
         entities = { "Bastok Mines", "Tall Mountain" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Tall Mountain",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tall Mountain.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:17:step-018",
@@ -3347,7 +3437,17 @@ return {
         entities = { "Norg", "Gilgamesh", "Frag Rock" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Gilgamesh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gilgamesh.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:18:step-006",
@@ -3708,7 +3808,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:19:step-004",
@@ -4368,7 +4478,17 @@ return {
         entities = { "Hilda", "Port Bastok", "Home Point" },
         zones = { "Port Bastok" },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Hilda",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hilda.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:20:step-004",
@@ -4732,7 +4852,17 @@ return {
         entities = { "Gumbah", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:20:step-032",
@@ -5490,7 +5620,17 @@ return {
         entities = { "Rabao", "Dancing Wolf", "Home Point" },
         zones = { "Rabao" },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Dancing Wolf",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dancing Wolf.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:23:step-004",
@@ -5750,7 +5890,17 @@ return {
         entities = { "Rabao", "Dancing Wolf" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Dancing Wolf",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dancing Wolf.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:23:step-024",
@@ -6170,7 +6320,17 @@ return {
         entities = { "Cid", "Bastok Metalworks", "Metalworks" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:4:step-004",
@@ -6313,7 +6473,17 @@ return {
         entities = { "Ayame", "Metalworks" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Ayame",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ayame.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:4:step-015",
@@ -6476,7 +6646,17 @@ return {
         entities = { "Naji", "Metalworks", "Karst", "President's Office" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:6:step-003",
@@ -7344,7 +7524,17 @@ return {
         entities = { "Naji", "Metalworks", "Karst", "President's Office" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:7:step-003",
@@ -8212,7 +8402,17 @@ return {
         entities = { "Naji", "Metalworks", "Karst", "President's Office" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:8:step-003",
@@ -9080,7 +9280,17 @@ return {
         entities = { "Naji", "Metalworks", "Karst", "President's Office" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "mission:Bastok:9:step-003",

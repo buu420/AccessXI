@@ -67,6 +67,16 @@ local modules = {
                     conflicting_fields = {},
                     action = 'talk',
                     route_ready = true,
+                    navigation_target = {
+                        type = 'static-reference',
+                        reference = {
+                            zone = 237,
+                            zone_name = 'Metalworks',
+                            name = 'Cid',
+                            kind = 'npc',
+                        },
+                        arrival_instruction = 'Talk to Cid.',
+                    },
                 },
                 {
                     stable_step_id = 'mission:Bastok:2:step-002',
@@ -129,8 +139,13 @@ local guides = guide_module.new({
     module_loader = module_loader,
     identity_provider = function() return current_identity end,
     manual_path = manual_path,
-    route_resolver = function(native_key, step_id)
-        if native_key == 'mission:Bastok:2' and step_id == 'mission:Bastok:2:step-001' then
+    route_resolver = function(native_key, step_id, step)
+        local reference = type(step) == 'table'
+            and type(step.navigation_target) == 'table'
+            and step.navigation_target.reference or nil
+        if native_key == 'mission:Bastok:2' and step_id == 'mission:Bastok:2:step-001'
+            and type(reference) == 'table' and reference.zone == 237
+            and reference.name == 'Cid' and reference.kind == 'npc' then
             return { zone = 237, name = 'Cid', kind = 'npc', verified = true }
         end
         return nil

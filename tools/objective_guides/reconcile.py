@@ -7,6 +7,16 @@ from .model import ParsedObjective, SourceStep
 
 
 @dataclass(frozen=True, slots=True)
+class ReviewedNavigationTarget:
+    target_type: str
+    zone: int
+    zone_name: str
+    name: str
+    kind: str
+    arrival_instruction: str
+
+
+@dataclass(frozen=True, slots=True)
 class ReconciledStep:
     stable_step_id: str
     order: int
@@ -21,6 +31,7 @@ class ReconciledStep:
     zones: tuple[str, ...]
     grid_coordinates: tuple[str, ...]
     route_ready: bool = False
+    navigation_target: ReviewedNavigationTarget | None = None
 
 
 @dataclass(frozen=True, slots=True)

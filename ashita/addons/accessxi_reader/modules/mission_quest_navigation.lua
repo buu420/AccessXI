@@ -316,14 +316,20 @@ local function referenced_target(reference)
     if (wanted_zone <= 0 or wanted_name == '') then
         return nil;
     end
+    local match = nil;
+    local match_count = 0;
     for _, point in ipairs(accessxi.nav_points or T{}) do
         if ((tonumber(point.zone) or 0) == wanted_zone
             and clean(point.name):lower() == wanted_name
             and (wanted_kind == '' or effective_kind(point) == wanted_kind)) then
-            return point_copy(point);
+            match = point;
+            match_count = match_count + 1;
         end
     end
-    return nil;
+    if (match_count ~= 1) then
+        return nil;
+    end
+    return point_copy(match);
 end
 
 local function objective_target(definition, stage, item)
@@ -715,7 +721,44 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     return point_copy(fresh.objective_target), '', 'ready';
 end
 
-function accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id)
+local function reviewed_guide_target(item, native_key, guide_step_id, step)
+    if (type(step) ~= 'table' or step.route_ready ~= true
+        or clean(step.comparison):lower() == 'conflict'
+        or clean(step.action):lower() ~= 'talk') then
+        return nil;
+    end
+    local target_info = step.navigation_target;
+    if (type(target_info) ~= 'table'
+        or clean(target_info.type):lower() ~= 'static-reference'
+        or type(target_info.reference) ~= 'table') then
+        return nil;
+    end
+    local target = referenced_target(target_info.reference);
+    if (target == nil) then
+        return nil;
+    end
+    local kind = clean(item.objective_kind or item.kind):lower();
+    target.objective_kind = kind;
+    target.objective_context = clean(item.mission_context);
+    target.objective_area = clean(item.quest_area);
+    target.objective_id = tonumber(item.mission_id or item.quest_id);
+    target.objective_stage = 'manual-guide-step';
+    target.objective_title = clean(item.name);
+    target.objective_instruction = clean(step.primary_instruction);
+    target.arrival_instruction = clean(target_info.arrival_instruction);
+    if (target.arrival_instruction == '') then
+        return nil;
+    end
+    target.objective_source = 'reviewed-objective-guide';
+    target.objective_character_identity = character_identity();
+    target.objective_native_key = native_key;
+    target.guide_step_id = guide_step_id;
+    target.verified = true;
+    target.route_context_label = kind == 'quest' and 'Quest objective' or 'Mission objective';
+    return target;
+end
+
+function accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id, step)
     native_key = clean(native_key);
     guide_step_id = clean(guide_step_id);
     local kind = native_key:match('^(mission):') or native_key:match('^(quest):') or '';
@@ -736,6 +779,16 @@ function accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_ste
                 state_ready = mission_route_state_ready(item);
             elseif (kind == 'quest') then
                 state_ready = quest_route_state_ready(item);
+            end
+            if (state_ready) then
+                local reviewed = reviewed_guide_target(
+                    item,
+                    native_key,
+                    guide_step_id,
+                    step);
+                if (reviewed ~= nil) then
+                    return reviewed;
+                end
             end
             if (expected_step == guide_step_id and state_ready and item.objective_available == true
                 and type(item.objective_target) == 'table') then

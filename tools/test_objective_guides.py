@@ -26,7 +26,7 @@ from tools.objective_guides.generate_lua import (
     lua_quote,
     source_module_name,
 )
-from tools.objective_guides.cli import _requested_source_titles
+from tools.objective_guides.cli import _load_navigation_catalog, _requested_source_titles
 from tools.objective_guides.native_manifest import (
     MISSION_DAT_TABLES,
     QUEST_DAT_TABLES,
@@ -980,7 +980,7 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual([match.native_key for match in report.matches], ["quest:windurst:33"])
         self.assertEqual(report.ambiguous_pages, {})
 
-    def test_reviewed_geological_mapping_seeds_stages_without_unreviewed_targets(self) -> None:
+    def test_reviewed_mapping_seeds_stages_and_only_exact_named_npc_targets(self) -> None:
         path = Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json"
         overrides = json.loads(path.read_text(encoding="utf-8"))
 
@@ -989,7 +989,25 @@ class MatchingTests(unittest.TestCase):
             set(overrides["automatic_stage_links"]["mission:Bastok:2"]),
             {"obtain-blue-tester", "charge-blue-tester", "return-red-tester"},
         )
-        self.assertEqual(overrides["target_overrides"], {})
+        targets = overrides["target_overrides"]
+        makarim = targets["mission:Bastok:1:step-007"]
+        self.assertEqual(
+            makarim["reference"],
+            {
+                "zone": 172,
+                "zone_name": "Zeruhn Mines",
+                "name": "Makarim",
+                "kind": "npc",
+            },
+        )
+        self.assertEqual(set(makarim["source_revisions"]), {"bg", "ffxiclopedia"})
+        self.assertGreater(len(targets), 100)
+        self.assertTrue(
+            all(target["reference"]["name"] != "???" for target in targets.values())
+        )
+        self.assertTrue(
+            all(target["reference"]["name"] != "Trodden Snow" for target in targets.values())
+        )
 
     def test_exact_mission_context_number_title_and_redirect_alias_match(self) -> None:
         native = NativeObjective(
@@ -1222,6 +1240,260 @@ class ReconciliationTests(unittest.TestCase):
 
 
 class GeneratedArtifactTests(unittest.TestCase):
+    def test_navigation_catalog_loader_uses_exact_tsv_identity_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            destinations = root / "destinations.tsv"
+            graph = root / "graph.tsv"
+            destinations.write_text(
+                "# comment\n"
+                "172\tMakarim\t-60.925\t-333.294\t8.471\tnpc\tcurrent-nav\textra\n",
+                encoding="utf-8",
+            )
+            graph.write_text(
+                "zoneline_id\tfrom_zone\tfrom_name\tfrom_code\tfrom_x\tfrom_z\tfrom_y\t"
+                "to_zone\tto_name\tto_code\tto_x\tto_z\tto_y\tsource\tconfidence\tnote\n"
+                "1\t172\tZeruhn Mines\tz5c0\t0\t0\t0\t234\tBastok Mines\tz750\t0\t0\t0\ttest\tverified\t\n",
+                encoding="utf-8",
+            )
+
+            points, zone_names = _load_navigation_catalog(destinations, graph)
+
+        self.assertEqual(len(points), 1)
+        self.assertEqual(points[0]["zone"], 172)
+        self.assertEqual(points[0]["name"], "Makarim")
+        self.assertEqual(points[0]["kind"], "npc")
+        self.assertEqual(zone_names[172], "Zeruhn Mines")
+        self.assertEqual(zone_names[234], "Bastok Mines")
+
+    def _named_npc_target_fixture(
+        self,
+        *,
+        bg_name: str = "Makarim",
+        ffxi_name: str = "Makarim",
+        bg_action: str = "talk",
+        ffxi_action: str = "talk",
+        bg_instruction: str | None = None,
+        ffxi_instruction: str | None = None,
+    ) -> tuple[tuple[NativeObjective, ...], tuple[ParsedObjective, ...]]:
+        natives = (
+            NativeObjective(
+                "mission",
+                "Bastok",
+                1,
+                "The Zeruhn Report",
+                "missions.dat",
+                0,
+                1,
+            ),
+        )
+        pages = (
+            ParsedObjective(
+                site="bg",
+                page_id=101,
+                revision_id=1001,
+                canonical_title="The Zeruhn Report",
+                kind="mission",
+                objective_name="The Zeruhn Report",
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        bg_instruction or f"Talk to {bg_name} in Zeruhn Mines.",
+                        bg_instruction or f"Talk to {bg_name} in Zeruhn Mines.",
+                        bg_action,
+                        linked_entities=(bg_name, "Zeruhn Mines"),
+                        zone_candidates=("Zeruhn Mines",),
+                    ),
+                ),
+            ),
+            ParsedObjective(
+                site="ffxiclopedia",
+                page_id=202,
+                revision_id=2002,
+                canonical_title="The Zeruhn Report",
+                kind="mission",
+                objective_name="The Zeruhn Report",
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        ffxi_instruction or f"Speak with {ffxi_name} in Zeruhn Mines.",
+                        ffxi_instruction or f"Speak with {ffxi_name} in Zeruhn Mines.",
+                        ffxi_action,
+                        linked_entities=(ffxi_name, "Zeruhn Mines"),
+                        zone_candidates=("Zeruhn Mines",),
+                    ),
+                ),
+            ),
+        )
+        return natives, pages
+
+    @staticmethod
+    def _named_npc_target_overrides() -> dict:
+        return {
+            "target_overrides": {
+                "mission:Bastok:1:step-001": {
+                    "source_revisions": {"bg": 1001, "ffxiclopedia": 2002},
+                    "reference": {
+                        "zone": 172,
+                        "zone_name": "Zeruhn Mines",
+                        "name": "Makarim",
+                        "kind": "npc",
+                    },
+                    "arrival_instruction": "Talk to Makarim.",
+                }
+            }
+        }
+
+    def test_reviewed_named_npc_target_is_emitted_after_exact_nav_validation(self) -> None:
+        natives, pages = self._named_npc_target_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=self._named_npc_target_overrides(),
+                navigation_points=(
+                    {
+                        "zone": 172,
+                        "name": "Makarim",
+                        "kind": "npc",
+                        "x": -60.925,
+                        "z": -333.294,
+                        "y": 8.471,
+                    },
+                ),
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+
+        self.assertIn("route_ready = true", reconcile)
+        self.assertIn('zone = 172', reconcile)
+        self.assertIn('zone_name = "Zeruhn Mines"', reconcile)
+        self.assertIn('name = "Makarim"', reconcile)
+        self.assertIn('kind = "npc"', reconcile)
+        self.assertIn('arrival_instruction = "Talk to Makarim."', reconcile)
+        self.assertEqual(result["counts"]["verified_navigation"], 1)
+        self.assertEqual(review["steps"][0]["review_status"], "verified-reviewed-target")
+        self.assertTrue(review["steps"][0]["route_ready"])
+
+    def test_exact_named_npc_candidate_is_reported_but_not_activated(self) -> None:
+        natives, pages = self._named_npc_target_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides={"target_overrides": {}},
+                navigation_points=(
+                    {"zone": 172, "name": "Makarim", "kind": "npc"},
+                ),
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+
+        self.assertNotIn("route_ready = true", reconcile)
+        self.assertFalse(review["steps"][0]["route_ready"])
+        self.assertEqual(
+            review["steps"][0]["proposed_navigation_target"],
+            {
+                "type": "static-reference",
+                "zone": 172,
+                "zone_name": "Zeruhn Mines",
+                "name": "Makarim",
+                "kind": "npc",
+            },
+        )
+
+    def test_object_like_return_target_is_not_proposed_as_a_person(self) -> None:
+        natives, pages = self._named_npc_target_fixture(
+            bg_name="Trodden Snow",
+            ffxi_name="Trodden Snow",
+            bg_instruction="Return to the Trodden Snow in Zeruhn Mines.",
+            ffxi_instruction="Go back to the Trodden Snow in Zeruhn Mines.",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides={"target_overrides": {}},
+                navigation_points=({"zone": 172, "name": "Trodden Snow", "kind": "npc"},),
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+
+        self.assertIsNone(review["steps"][0].get("proposed_navigation_target"))
+
+    def test_reviewed_named_npc_target_rejects_ambiguous_nav_point(self) -> None:
+        natives, pages = self._named_npc_target_fixture()
+        duplicate_points = (
+            {"zone": 172, "name": "Makarim", "kind": "npc", "x": 1, "z": 2, "y": 3},
+            {"zone": 172, "name": "Makarim", "kind": "npc", "x": 4, "z": 5, "y": 6},
+        )
+        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=self._named_npc_target_overrides(),
+                navigation_points=duplicate_points,
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+
+    def test_reviewed_named_npc_target_rejects_changed_source_revision(self) -> None:
+        natives, pages = self._named_npc_target_fixture()
+        overrides = self._named_npc_target_overrides()
+        overrides["target_overrides"]["mission:Bastok:1:step-001"]["source_revisions"]["bg"] = 9999
+        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(GenerationError):
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                pages,
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=({"zone": 172, "name": "Makarim", "kind": "npc"},),
+                navigation_zone_names={172: "Zeruhn Mines"},
+            )
+
+    def test_reviewed_named_npc_target_requires_dual_source_name_and_talk_action(self) -> None:
+        nav_points = ({"zone": 172, "name": "Makarim", "kind": "npc"},)
+        invalid_fixtures = (
+            self._named_npc_target_fixture(ffxi_name="Naji"),
+            self._named_npc_target_fixture(ffxi_action="examine"),
+        )
+        for natives, pages in invalid_fixtures:
+            with self.subTest(pages=pages), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                with self.assertRaises(GenerationError):
+                    build_guide_artifacts(
+                        natives,
+                        pages,
+                        module_root=root / "modules",
+                        data_root=root / "data",
+                        reviewed_overrides=self._named_npc_target_overrides(),
+                        navigation_points=nav_points,
+                        navigation_zone_names={172: "Zeruhn Mines"},
+                    )
+
     def _fixture_overrides(self) -> dict:
         overrides = json.loads(
             (Path(__file__).parents[1] / "data" / "mission-quest-guides" / "reviewed-overrides.json").read_text(
@@ -1232,6 +1504,7 @@ class GeneratedArtifactTests(unittest.TestCase):
             "mission:Bastok:2": overrides["page_matches"]["mission:Bastok:2"]
         }
         overrides["shared_page_groups"] = []
+        overrides["target_overrides"] = {}
         return overrides
 
     def _native_rows(self) -> tuple[NativeObjective, ...]:

@@ -121,7 +121,17 @@ return {
         entities = { "Neraf-Najiruf", "Ru'Lude Gardens", "Ducal Guard's lantern", "key item", "Eldieme Necropolis", "Promathia" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Neraf-Najiruf",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Neraf-Najiruf.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:1:step-007",
@@ -300,7 +310,17 @@ return {
         entities = { "Chululu", "Lower Jeuno", "I-8" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Chululu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chululu.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:10:step-002",
@@ -518,7 +538,17 @@ return {
         entities = { "Rakuru-Rakoru", "Lower Jeuno", "Notorious Monster", "Data Analyzer and Logger EX" },
         zones = {  },
         grid_coordinates = { "I-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Rakuru-Rakoru",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rakuru-Rakoru.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:100:step-002",
@@ -2204,7 +2234,17 @@ return {
         entities = { "Mertaire", "Lower Jeuno" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Mertaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mertaire.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:11:step-003",
@@ -8196,7 +8236,17 @@ return {
         entities = { "Nomad Moogle", "Ru'Lude Gardens" },
         zones = {  },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Nomad Moogle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nomad Moogle.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:133:step-002",
@@ -8284,7 +8334,17 @@ return {
         entities = { "Nomad Moogle", "Ru'Lude Gardens" },
         zones = {  },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Nomad Moogle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nomad Moogle.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:134:step-002",
@@ -8385,7 +8445,17 @@ return {
         entities = { "Nomad Moogle", "Ru'Lude Gardens" },
         zones = {  },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Nomad Moogle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nomad Moogle.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:135:step-002",
@@ -8629,7 +8699,17 @@ return {
         entities = { "Nomad Moogle", "Ru'Lude Gardens", "Maat", "Atori-Tutori" },
         zones = {  },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Nomad Moogle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nomad Moogle.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:136:step-002",
@@ -11571,7 +11651,17 @@ return {
         entities = { "Selbina", "Jillia", "Proto-Waypoint" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Jillia",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jillia.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:171:step-006",
@@ -11610,7 +11700,17 @@ return {
         entities = { "Mhaura", "Zurko-Bazurko", "Proto-Waypoint" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Zurko-Bazurko",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zurko-Bazurko.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:171:step-009",
@@ -11649,7 +11749,17 @@ return {
         entities = { "Rabao", "Quwi Orihbhe", "Proto-Waypoint" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Quwi Orihbhe",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Quwi Orihbhe.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:171:step-012",
@@ -11688,7 +11798,17 @@ return {
         entities = { "Norg", "Wistful Bison", "Proto-Waypoint" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Wistful Bison",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Wistful Bison.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:171:step-015",
@@ -14286,7 +14406,17 @@ return {
         entities = { "Nantoto", "Lower Jeuno", "Records of Eminence" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Nantoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nantoto.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:176:step-003",
@@ -14426,7 +14556,17 @@ return {
         entities = { "Nantoto", "Lower Jeuno", "Records of Eminence" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Nantoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nantoto.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:177:step-002",
@@ -14566,7 +14706,17 @@ return {
         entities = { "Nantoto", "Lower Jeuno", "Records of Eminence" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Nantoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nantoto.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:178:step-002",
@@ -15444,7 +15594,17 @@ return {
         entities = { "Bozz", "Upper Jeuno", "Home Point" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Bozz",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Bozz.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:18:step-005",
@@ -15457,7 +15617,17 @@ return {
         entities = { "Monberaux", "Upper Jeuno", "Panta-Putta" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:18:step-006",
@@ -15958,7 +16128,17 @@ return {
         entities = { "Brutus", "Upper Jeuno", "Save My Son" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Brutus",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brutus.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:19:step-003",
@@ -16212,7 +16392,17 @@ return {
         entities = { "Bki Tbujhja", "Lower Jeuno", "Valkurm Dunes" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Bki Tbujhja",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Bki Tbujhja.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:20:step-006",
@@ -19603,7 +19793,17 @@ return {
         entities = { "Upper Jeuno", "Guslam" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Guslam",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Guslam.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:44:step-015",
@@ -19642,7 +19842,17 @@ return {
         entities = { "Lower Jeuno", "Yin Pocanakhu" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Yin Pocanakhu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yin Pocanakhu.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:44:step-018",
@@ -20989,7 +21199,17 @@ return {
         entities = { "Shalott", "Upper Jeuno", "Chocobo Stables" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Shalott",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Shalott.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:5:step-003",
@@ -23979,7 +24199,17 @@ return {
         entities = { "Brutus", "Upper Jeuno", "Aquaflora", "Key Item", "Fei'Yin" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Brutus",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brutus.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:61:step-002",
@@ -25124,7 +25354,17 @@ return {
         entities = { "Mertaire", "Lower Jeuno", "Star ring (tarnished)", "Star ring" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Mertaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mertaire.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:65:step-003",
@@ -25150,7 +25390,17 @@ return {
         entities = { "Imasuke", "Port Jeuno" },
         zones = {  },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Imasuke",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Imasuke.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:65:step-005",
@@ -25511,7 +25761,17 @@ return {
         entities = { "Upper Jeuno", "Ilumida" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Ilumida",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ilumida.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:66:step-013",
@@ -26041,7 +26301,17 @@ return {
         entities = { "Degenhard", "Bastok Markets", "Behemoth Tongue" },
         zones = {  },
         grid_coordinates = { "I-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Degenhard",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Degenhard.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:67:step-031",
@@ -26301,7 +26571,17 @@ return {
         entities = { "Maat", "Ru'Lude Gardens", "Adamantoise Egg" },
         zones = {  },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Maat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Maat.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:67:step-051",
@@ -27284,7 +27564,17 @@ return {
         entities = { "Bastok Mines", "Wobke" },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Wobke",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Wobke.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:72:step-003",
@@ -29518,7 +29808,17 @@ return {
         entities = { "Upper Jeuno", "Bheem" },
         zones = {  },
         grid_coordinates = { "F-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Bheem",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Bheem.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:77:step-087",
@@ -29915,7 +30215,17 @@ return {
         entities = { "Port San d'Oria", "Portaure" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Portaure",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Portaure.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:79:step-007",
@@ -30263,7 +30573,17 @@ return {
         entities = { "Panta-Putta", "Lower Jeuno" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Panta-Putta",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Panta-Putta.",
+        },
       },
     },
   },
@@ -30637,7 +30957,17 @@ return {
         entities = { "Khumo Daramasteh", "Port Jeuno", "Chocobo Circuit" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Khumo Daramasteh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Khumo Daramasteh.",
+        },
       },
     },
   },
@@ -31834,7 +32164,17 @@ return {
         entities = { "Ru'Lude Gardens", "Muhoho" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Muhoho",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Muhoho.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:84:step-003",
@@ -31847,7 +32187,17 @@ return {
         entities = { "Bastok Mines", "Gelzerio" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gelzerio",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gelzerio.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:84:step-004",
@@ -31860,7 +32210,17 @@ return {
         entities = { "Windurst Waters", "Chamama", "Jar of reversion dust" },
         zones = {  },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Chamama",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chamama.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:84:step-005",
@@ -33060,7 +33420,17 @@ return {
         entities = { "Signal Pearl", "Tactics Pearl", "Ratoto", "Mog Satchel", "Mog Sack", "Upper Jeuno" },
         zones = {  },
         grid_coordinates = { "I-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Ratoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ratoto.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:87:step-002",
@@ -33086,7 +33456,17 @@ return {
         entities = { "Southern San d'Oria", "Raimbroy" },
         zones = {  },
         grid_coordinates = { "E-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Raimbroy",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Raimbroy.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:87:step-004",
@@ -35694,7 +36074,17 @@ return {
         entities = { "Upper Jeuno", "Brutus", "Chocobo Stables" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Brutus",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brutus.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:92:step-003",
@@ -35811,7 +36201,17 @@ return {
         entities = { "Upper Jeuno", "Brutus", "Chocobo" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Brutus",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brutus.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:92:step-012",
@@ -35850,7 +36250,17 @@ return {
         entities = { "Southern San d'Oria", "Hantileon" },
         zones = {  },
         grid_coordinates = { "I-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hantileon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hantileon.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:92:step-015",
@@ -36322,7 +36732,17 @@ return {
         entities = { "Southern San d'Oria", "Valderotaux", "Lion Springs Tavern" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "K-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Valderotaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Valderotaux.",
+        },
       },
       {
         stable_step_id = "quest:jeuno:95:step-008",

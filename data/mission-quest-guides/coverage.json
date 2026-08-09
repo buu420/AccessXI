@@ -4,15 +4,15 @@
     "by_status": {
       "ambiguous-match": 0,
       "automatic-stage": 1,
-      "guide": 1065,
-      "source-conflict": 740,
+      "guide": 918,
+      "source-conflict": 576,
       "source-missing": 38,
-      "verified-navigation": 0
+      "verified-navigation": 311
     },
     "dual_source": 1652,
-    "guide_only": 1065,
+    "guide_only": 918,
     "valid_native": 1844,
-    "verified_navigation": 1
+    "verified_navigation": 312
   },
   "matching": {
     "bg": {
@@ -1541,7 +1541,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_a_shantotto_ascension",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_a_shantotto_ascension",
@@ -1561,7 +1561,7 @@
           "title": "Enemy of the Empire (I)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Enemy of the Empire (I)"
     },
     "mission:A Shantotto Ascension:6": {
@@ -1607,7 +1607,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_a_shantotto_ascension",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_a_shantotto_ascension",
@@ -1627,7 +1627,7 @@
           "title": "Sugar-coated Subterfuge"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Sugar-coated Subterfuge"
     },
     "mission:A Shantotto Ascension:8": {
@@ -3072,7 +3072,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3092,7 +3092,7 @@
           "title": "The Zeruhn Report"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Zeruhn Report"
     },
     "mission:Bastok:10": {
@@ -3105,7 +3105,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3125,7 +3125,7 @@
           "title": "The Emissary"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Emissary (Windurst)"
     },
     "mission:Bastok:11": {
@@ -3138,7 +3138,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3158,7 +3158,7 @@
           "title": "The Four Musketeers"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Four Musketeers"
     },
     "mission:Bastok:12": {
@@ -3171,7 +3171,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3191,7 +3191,7 @@
           "title": "To the Forsaken Mines"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "To the Forsaken Mines"
     },
     "mission:Bastok:13": {
@@ -3204,7 +3204,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3224,7 +3224,7 @@
           "title": "Jeuno (Mission)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Jeuno"
     },
     "mission:Bastok:14": {
@@ -3336,7 +3336,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3356,7 +3356,7 @@
           "title": "Return of the Talekeeper"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Return of the Talekeeper"
     },
     "mission:Bastok:18": {
@@ -3369,7 +3369,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3389,7 +3389,7 @@
           "title": "The Pirate's Cove"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Pirates' Cove"
     },
     "mission:Bastok:19": {
@@ -3402,7 +3402,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3422,7 +3422,7 @@
           "title": "The Final Image"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Final Image"
     },
     "mission:Bastok:2": {
@@ -3472,7 +3472,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3492,7 +3492,7 @@
           "title": "On My Way"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "On My Way"
     },
     "mission:Bastok:21": {
@@ -3571,7 +3571,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3591,7 +3591,7 @@
           "title": "The Salt of the Earth"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Salt of the Earth"
     },
     "mission:Bastok:24": {
@@ -3670,7 +3670,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3690,7 +3690,7 @@
           "title": "The Crystal Line"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Crystal Line"
     },
     "mission:Bastok:5": {
@@ -3736,7 +3736,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3756,7 +3756,7 @@
           "title": "The Emissary"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Emissary"
     },
     "mission:Bastok:7": {
@@ -3769,7 +3769,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3789,7 +3789,7 @@
           "title": "The Emissary"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Emissary (San d'Oria)"
     },
     "mission:Bastok:8": {
@@ -3802,7 +3802,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3822,7 +3822,7 @@
           "title": "The Emissary"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Emissary (Windurst)"
     },
     "mission:Bastok:9": {
@@ -3835,7 +3835,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3855,7 +3855,7 @@
           "title": "The Emissary"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Emissary (San d'Oria)"
     },
     "mission:Campaign:1": {
@@ -4033,7 +4033,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -4053,7 +4053,7 @@
           "title": "Fires of Discontent"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fires of Discontent"
     },
     "mission:Campaign:15": {
@@ -5214,7 +5214,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5234,7 +5234,7 @@
           "title": "The Long March North"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Long March North"
     },
     "mission:Campaign:48": {
@@ -5610,7 +5610,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5630,7 +5630,7 @@
           "title": "Son and Father"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Son and Father"
     },
     "mission:Campaign:59": {
@@ -5676,7 +5676,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5696,7 +5696,7 @@
           "title": "The Dawn of Delectability"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Dawn of Delectability"
     },
     "mission:Campaign:60": {
@@ -5907,7 +5907,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5927,7 +5927,7 @@
           "title": "Her Memories: Old Bean"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Her Memories: Old Bean"
     },
     "mission:Campaign:67": {
@@ -5940,7 +5940,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5960,7 +5960,7 @@
           "title": "Her Memories: The Faux Pas"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Her Memories: The Faux Pas"
     },
     "mission:Campaign:68": {
@@ -5973,7 +5973,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -5993,7 +5993,7 @@
           "title": "Her Memories: Grave Resolve"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Her Memories: Grave Resolve"
     },
     "mission:Campaign:69": {
@@ -6171,7 +6171,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_campaign",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_campaign",
@@ -6191,7 +6191,7 @@
           "title": "Her Memories: Of Malign Maladies"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Her Memories: Of Malign Maladies"
     },
     "mission:Campaign:74": {
@@ -7108,7 +7108,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7128,7 +7128,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Road Forks"
     },
     "mission:Chains of Promathia:15": {
@@ -7141,7 +7141,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7161,7 +7161,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Emerald Waters"
     },
     "mission:Chains of Promathia:16": {
@@ -7174,7 +7174,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7194,7 +7194,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Vicissitudes"
     },
     "mission:Chains of Promathia:17": {
@@ -7207,7 +7207,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7227,7 +7227,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Descendants of a Line Lost"
     },
     "mission:Chains of Promathia:18": {
@@ -7240,7 +7240,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7260,7 +7260,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Louverance"
     },
     "mission:Chains of Promathia:19": {
@@ -7273,7 +7273,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7293,7 +7293,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Memories of a Maiden"
     },
     "mission:Chains of Promathia:2": {
@@ -7306,7 +7306,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7326,7 +7326,7 @@
           "title": "The Rites of Life"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Rites of Life"
     },
     "mission:Chains of Promathia:20": {
@@ -7339,7 +7339,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7359,7 +7359,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Comedy of Errors, Act I"
     },
     "mission:Chains of Promathia:21": {
@@ -7372,7 +7372,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7392,7 +7392,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Comedy of Errors, Act II"
     },
     "mission:Chains of Promathia:22": {
@@ -7405,7 +7405,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7425,7 +7425,7 @@
           "title": "The Road Forks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Exit Stage Left"
     },
     "mission:Chains of Promathia:23": {
@@ -7471,7 +7471,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7491,7 +7491,7 @@
           "title": "Darkness Named"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Darkness Named"
     },
     "mission:Chains of Promathia:25": {
@@ -7653,7 +7653,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7673,7 +7673,7 @@
           "title": "Below the Arks"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Below the Arks"
     },
     "mission:Chains of Promathia:30": {
@@ -7703,7 +7703,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7723,7 +7723,7 @@
           "title": "The Enduring Tumult of War"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Enduring Tumult of War"
     },
     "mission:Chains of Promathia:32": {
@@ -7769,7 +7769,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7789,7 +7789,7 @@
           "title": "Three Paths"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Three Paths"
     },
     "mission:Chains of Promathia:34": {
@@ -7802,7 +7802,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7822,7 +7822,7 @@
           "title": "Past Sins (Louverance's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Past Sins"
     },
     "mission:Chains of Promathia:35": {
@@ -7835,7 +7835,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7855,7 +7855,7 @@
           "title": "Past Sins (Louverance's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Southern Legend"
     },
     "mission:Chains of Promathia:36": {
@@ -7868,7 +7868,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7888,7 +7888,7 @@
           "title": "Past Sins (Louverance's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Partners Without Fame"
     },
     "mission:Chains of Promathia:37": {
@@ -7901,7 +7901,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7921,7 +7921,7 @@
           "title": "Past Sins (Louverance's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Century of Hardship"
     },
     "mission:Chains of Promathia:38": {
@@ -7934,7 +7934,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7954,7 +7954,7 @@
           "title": "Past Sins (Louverance's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Departures"
     },
     "mission:Chains of Promathia:39": {
@@ -7967,7 +7967,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -7987,7 +7987,7 @@
           "title": "The Pursuit of Paradise (Tenzen's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Pursuit of Paradise"
     },
     "mission:Chains of Promathia:4": {
@@ -8033,7 +8033,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8053,7 +8053,7 @@
           "title": "The Pursuit of Paradise (Tenzen's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Spiral"
     },
     "mission:Chains of Promathia:41": {
@@ -8066,7 +8066,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8086,7 +8086,7 @@
           "title": "The Pursuit of Paradise (Tenzen's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Branded"
     },
     "mission:Chains of Promathia:42": {
@@ -8099,7 +8099,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8119,7 +8119,7 @@
           "title": "The Pursuit of Paradise (Tenzen's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Pride and Honor"
     },
     "mission:Chains of Promathia:43": {
@@ -8132,7 +8132,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8152,7 +8152,7 @@
           "title": "The Pursuit of Paradise (Tenzen's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "And the Compass Guides"
     },
     "mission:Chains of Promathia:44": {
@@ -8165,7 +8165,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8185,7 +8185,7 @@
           "title": "Where Messengers Gather (Ulmia's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Where Messengers Gather"
     },
     "mission:Chains of Promathia:45": {
@@ -8198,7 +8198,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8218,7 +8218,7 @@
           "title": "Where Messengers Gather (Ulmia's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Entanglement"
     },
     "mission:Chains of Promathia:46": {
@@ -8231,7 +8231,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8251,7 +8251,7 @@
           "title": "Where Messengers Gather (Ulmia's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Head Wind"
     },
     "mission:Chains of Promathia:47": {
@@ -8264,7 +8264,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8284,7 +8284,7 @@
           "title": "Where Messengers Gather (Ulmia's Path)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Flames for the Dead"
     },
     "mission:Chains of Promathia:48": {
@@ -8314,7 +8314,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8334,7 +8334,7 @@
           "title": "For Whom the Verse is Sung"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "For Whom the Verse Is Sung"
     },
     "mission:Chains of Promathia:5": {
@@ -8397,7 +8397,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8417,7 +8417,7 @@
           "title": "More Questions Than Answers"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "More Questions Than Answers"
     },
     "mission:Chains of Promathia:52": {
@@ -8430,7 +8430,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8450,7 +8450,7 @@
           "title": "One to be Feared"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "One to Be Feared"
     },
     "mission:Chains of Promathia:53": {
@@ -8513,7 +8513,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8533,7 +8533,7 @@
           "title": "Flames in the Darkness"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Flames in the Darkness"
     },
     "mission:Chains of Promathia:56": {
@@ -8546,7 +8546,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_chains_of_promathia",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_chains_of_promathia",
@@ -8566,7 +8566,7 @@
           "title": "Fire in the Eyes of Men"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fire in the Eyes of Men"
     },
     "mission:Chains of Promathia:57": {
@@ -10752,7 +10752,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rhapsodies_of_vanadiel",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rhapsodies_of_vanadiel",
@@ -10772,7 +10772,7 @@
           "title": "The Beginning"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Beginning"
     },
     "mission:Rhapsodies of Vana'diel:60": {
@@ -11033,7 +11033,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rhapsodies_of_vanadiel",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rhapsodies_of_vanadiel",
@@ -11053,7 +11053,7 @@
           "title": "Tears of the Generals"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Tears of the Generals"
     },
     "mission:Rhapsodies of Vana'diel:69": {
@@ -12271,7 +12271,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rise_of_the_zilart",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rise_of_the_zilart",
@@ -12291,7 +12291,7 @@
           "title": "Return to Delkfutt's Tower"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Return to Delkfutt's Tower"
     },
     "mission:Rise of the Zilart:19": {
@@ -12370,7 +12370,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rise_of_the_zilart",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rise_of_the_zilart",
@@ -12390,7 +12390,7 @@
           "title": "The Hall of the Gods"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Hall of the Gods"
     },
     "mission:Rise of the Zilart:24": {
@@ -12403,7 +12403,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rise_of_the_zilart",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rise_of_the_zilart",
@@ -12423,7 +12423,7 @@
           "title": "The Mithra and the Crystal"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Mithra and the Crystal"
     },
     "mission:Rise of the Zilart:25": {
@@ -12717,7 +12717,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_rise_of_the_zilart",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_rise_of_the_zilart",
@@ -12737,7 +12737,7 @@
           "title": "Kazham's Chieftainess"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Kazham's Chieftainess"
     },
     "mission:Rise of the Zilart:9": {
@@ -12816,7 +12816,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -12836,7 +12836,7 @@
           "title": "Journey Abroad"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Journey to Windurst"
     },
     "mission:San d'Oria:11": {
@@ -12948,7 +12948,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -12968,7 +12968,7 @@
           "title": "Magicite (San d'Oria)"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Magicite"
     },
     "mission:San d'Oria:15": {
@@ -13344,7 +13344,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13364,7 +13364,7 @@
           "title": "Save the Children"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Save the Children"
     },
     "mission:San d'Oria:4": {
@@ -13377,7 +13377,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13397,7 +13397,7 @@
           "title": "The Rescue Drill"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Rescue Drill"
     },
     "mission:San d'Oria:5": {
@@ -13443,7 +13443,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13463,7 +13463,7 @@
           "title": "Journey Abroad"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Journey Abroad"
     },
     "mission:San d'Oria:7": {
@@ -13476,7 +13476,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13496,7 +13496,7 @@
           "title": "Journey Abroad"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Journey to Bastok"
     },
     "mission:San d'Oria:8": {
@@ -13509,7 +13509,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13529,7 +13529,7 @@
           "title": "Journey Abroad"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Journey to Windurst"
     },
     "mission:San d'Oria:9": {
@@ -13542,7 +13542,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_san_doria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_san_doria",
@@ -13562,7 +13562,7 @@
           "title": "Journey Abroad"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Journey to Bastok"
     },
     "mission:Seekers of Adoulin:1": {
@@ -13906,7 +13906,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -13926,7 +13926,7 @@
           "title": "Undying Light"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Undying Light"
     },
     "mission:Seekers of Adoulin:11": {
@@ -13972,7 +13972,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -13992,7 +13992,7 @@
           "title": "The Light Within"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Light Within"
     },
     "mission:Seekers of Adoulin:111": {
@@ -14270,7 +14270,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14290,7 +14290,7 @@
           "title": "The Watergarden Coliseum"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Watergarden Coliseum"
     },
     "mission:Seekers of Adoulin:2": {
@@ -14303,7 +14303,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14323,7 +14323,7 @@
           "title": "Rumors from the West"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Rumors from the West"
     },
     "mission:Seekers of Adoulin:20": {
@@ -14435,7 +14435,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14455,7 +14455,7 @@
           "title": "Aiming for Ygnas"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Aiming for Ygnas"
     },
     "mission:Seekers of Adoulin:24": {
@@ -14501,7 +14501,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14521,7 +14521,7 @@
           "title": "Arciela's Promise"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Arciela's Promise"
     },
     "mission:Seekers of Adoulin:26": {
@@ -14666,7 +14666,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14686,7 +14686,7 @@
           "title": "The Geomagnetron"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Geomagnetron"
     },
     "mission:Seekers of Adoulin:30": {
@@ -14782,7 +14782,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -14802,7 +14802,7 @@
           "title": "A Curse from the Past"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Curse from the Past"
     },
     "mission:Seekers of Adoulin:34": {
@@ -15046,7 +15046,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -15066,7 +15066,7 @@
           "title": "Evil Entities"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Evil Entities"
     },
     "mission:Seekers of Adoulin:41": {
@@ -15211,7 +15211,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -15231,7 +15231,7 @@
           "title": "The Man in Black"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Man in Black"
     },
     "mission:Seekers of Adoulin:46": {
@@ -15739,7 +15739,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -15759,7 +15759,7 @@
           "title": "Pioneer Registration"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Pioneer Registration"
     },
     "mission:Seekers of Adoulin:60": {
@@ -16673,7 +16673,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -16693,7 +16693,7 @@
           "title": "An Emergency Convocation"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "An Emergency Convocation"
     },
     "mission:Seekers of Adoulin:87": {
@@ -16970,7 +16970,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -16990,7 +16990,7 @@
           "title": "Royal Blessings"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Royal Blessings"
     },
     "mission:Seekers of Adoulin:95": {
@@ -17020,7 +17020,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_seekers_of_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_seekers_of_adoulin",
@@ -17040,7 +17040,7 @@
           "title": "Arboreal Rumors"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Arboreal Rumors"
     },
     "mission:Seekers of Adoulin:97": {
@@ -17152,7 +17152,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17172,7 +17172,7 @@
           "title": "The Voracious Resurgence (mission)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Voracious Resurgence"
     },
     "mission:The Voracious Resurgence:10": {
@@ -17185,7 +17185,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17205,7 +17205,7 @@
           "title": "Dancing Prince"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Dancing Prince"
     },
     "mission:The Voracious Resurgence:11": {
@@ -17548,7 +17548,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17568,7 +17568,7 @@
           "title": "The Revelation"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Revelation"
     },
     "mission:The Voracious Resurgence:21": {
@@ -17581,7 +17581,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17601,7 +17601,7 @@
           "title": "Tateeya's Worries"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Tateeya's Worries"
     },
     "mission:The Voracious Resurgence:22": {
@@ -17647,7 +17647,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17667,7 +17667,7 @@
           "title": "The Sea Sage"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Sea Sage"
     },
     "mission:The Voracious Resurgence:24": {
@@ -17878,7 +17878,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17898,7 +17898,7 @@
           "title": "The Brygid Cup"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Brygid Cup"
     },
     "mission:The Voracious Resurgence:30": {
@@ -17911,7 +17911,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17931,7 +17931,7 @@
           "title": "Altennia Burns Bright"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Altennia Burns Bright"
     },
     "mission:The Voracious Resurgence:31": {
@@ -17944,7 +17944,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17964,7 +17964,7 @@
           "title": "Maat on the Rampage"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Maat on the Rampage"
     },
     "mission:The Voracious Resurgence:32": {
@@ -17977,7 +17977,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -17997,7 +17997,7 @@
           "title": "Not Just a Pretty Face"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Not Just a Pretty Face"
     },
     "mission:The Voracious Resurgence:33": {
@@ -18010,7 +18010,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18030,7 +18030,7 @@
           "title": "Delkfutt the Great"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Delkfutt the Great"
     },
     "mission:The Voracious Resurgence:34": {
@@ -18076,7 +18076,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18096,7 +18096,7 @@
           "title": "Phantasmic Heroes"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Phantasmic Heroes"
     },
     "mission:The Voracious Resurgence:36": {
@@ -18109,7 +18109,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18129,7 +18129,7 @@
           "title": "Skokkr Undrborn's Temptation"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Skokkr Undrborn's Temptation"
     },
     "mission:The Voracious Resurgence:37": {
@@ -18175,7 +18175,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18195,7 +18195,7 @@
           "title": "To Movalpolos!"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "To Movalpolos!"
     },
     "mission:The Voracious Resurgence:39": {
@@ -18241,7 +18241,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18261,7 +18261,7 @@
           "title": "The Destiny Destroyers"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Destiny Destroyers"
     },
     "mission:The Voracious Resurgence:40": {
@@ -18307,7 +18307,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18327,7 +18327,7 @@
           "title": "Kipdrix the Faithful"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Kipdrix the Faithful"
     },
     "mission:The Voracious Resurgence:42": {
@@ -18373,7 +18373,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_the_voracious_resurgence",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_the_voracious_resurgence",
@@ -18393,7 +18393,7 @@
           "title": "Odin's Eye"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Odin's Eye"
     },
     "mission:The Voracious Resurgence:44": {
@@ -18769,7 +18769,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_treasures_of_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_treasures_of_aht_urhgan",
@@ -18789,7 +18789,7 @@
           "title": "Aht Urhgan Mission 12: Royal Puppeteer"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Royal Puppeteer"
     },
     "mission:Treasures of Aht Urhgan:13": {
@@ -19792,7 +19792,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_treasures_of_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_treasures_of_aht_urhgan",
@@ -19812,7 +19812,7 @@
           "title": "Aht Urhgan Mission 40: Unraveling Reason"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Unraveling Reason"
     },
     "mission:Treasures of Aht Urhgan:41": {
@@ -19825,7 +19825,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_treasures_of_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_treasures_of_aht_urhgan",
@@ -19845,7 +19845,7 @@
           "title": "Aht Urhgan Mission 41: Light of Judgment"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Light of Judgment"
     },
     "mission:Treasures of Aht Urhgan:42": {
@@ -20386,7 +20386,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20406,7 +20406,7 @@
           "title": "A New Journey"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A New Journey"
     },
     "mission:Windurst:14": {
@@ -20650,7 +20650,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20670,7 +20670,7 @@
           "title": "Awakening of the Gods"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Awakening of the Gods"
     },
     "mission:Windurst:21": {
@@ -20683,7 +20683,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20703,7 +20703,7 @@
           "title": "Vain"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Vain"
     },
     "mission:Windurst:22": {
@@ -20716,7 +20716,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20736,7 +20736,7 @@
           "title": "The Jester Who'd Be King"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Jester Who'd Be King"
     },
     "mission:Windurst:23": {
@@ -20749,7 +20749,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20769,7 +20769,7 @@
           "title": "Doll of the Dead"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Doll of the Dead"
     },
     "mission:Windurst:24": {
@@ -20881,7 +20881,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_windurst",
@@ -20901,7 +20901,7 @@
           "title": "A Testing Time"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Testing Time"
     },
     "mission:Windurst:6": {
@@ -21079,7 +21079,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_wings_of_the_goddess",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_wings_of_the_goddess",
@@ -21099,7 +21099,7 @@
           "title": "Daughter of a Knight"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Daughter of a Knight"
     },
     "mission:Wings of the Goddess:11": {
@@ -21706,7 +21706,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_wings_of_the_goddess",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_wings_of_the_goddess",
@@ -21726,7 +21726,7 @@
           "title": "Another World"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Another World"
     },
     "mission:Wings of the Goddess:29": {
@@ -22135,7 +22135,7 @@
       "has_source_conflict": false,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_wings_of_the_goddess",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_wings_of_the_goddess",
@@ -22155,7 +22155,7 @@
           "title": "The Queen of the Dance"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Queen of the Dance"
     },
     "mission:Wings of the Goddess:40": {
@@ -25303,7 +25303,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -25323,7 +25323,7 @@
           "title": "The Forbidden Frontier"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Forbidden Frontier"
     },
     "quest:abyssea:167": {
@@ -25369,7 +25369,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -25389,7 +25389,7 @@
           "title": "An Officer and a Pirate"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "An Officer and a Pirate"
     },
     "quest:abyssea:169": {
@@ -25633,7 +25633,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -25653,7 +25653,7 @@
           "title": "Scars of Abyssea (Quest)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Scars of Abyssea"
     },
     "quest:abyssea:176": {
@@ -25765,7 +25765,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -25785,7 +25785,7 @@
           "title": "Heroes of Abyssea (Quest)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Heroes of Abyssea"
     },
     "quest:abyssea:18": {
@@ -25864,7 +25864,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -25884,7 +25884,7 @@
           "title": "Death and Rebirth"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Death and Rebirth"
     },
     "quest:abyssea:182": {
@@ -25996,7 +25996,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -26016,7 +26016,7 @@
           "title": "Meanwhile, Back on Abyssea"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Meanwhile, Back on Abyssea"
     },
     "quest:abyssea:186": {
@@ -27250,7 +27250,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_abyssea",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_abyssea",
@@ -27270,7 +27270,7 @@
           "title": "For Want of a Pot"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "For Want of a Pot"
     },
     "quest:abyssea:48": {
@@ -29197,7 +29197,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29217,7 +29217,7 @@
           "title": "To Catch a Predator"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "To Catch a Predator"
     },
     "quest:adoulin:10": {
@@ -29263,7 +29263,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29283,7 +29283,7 @@
           "title": "Open the Floodgates"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Open the Floodgates"
     },
     "quest:adoulin:102": {
@@ -29329,7 +29329,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29349,7 +29349,7 @@
           "title": "All the Way to the Bank"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "All the Way to the Bank"
     },
     "quest:adoulin:104": {
@@ -29362,7 +29362,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29382,7 +29382,7 @@
           "title": "To Laugh Is to Love"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "To Laugh Is to Love"
     },
     "quest:adoulin:105": {
@@ -29428,7 +29428,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29448,7 +29448,7 @@
           "title": "Vegetable Vegetable Revolution"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Vegetable Vegetable Revolution"
     },
     "quest:adoulin:109": {
@@ -29494,7 +29494,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29514,7 +29514,7 @@
           "title": "Vegetable Vegetable Crisis"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Vegetable Vegetable Crisis"
     },
     "quest:adoulin:111": {
@@ -29527,7 +29527,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29547,7 +29547,7 @@
           "title": "Vegetable Vegetable Frustration"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Vegetable Vegetable Frustration"
     },
     "quest:adoulin:114": {
@@ -29593,7 +29593,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29613,7 +29613,7 @@
           "title": "A Thirst for the Eons"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Thirst for the Eons"
     },
     "quest:adoulin:116": {
@@ -29626,7 +29626,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29646,7 +29646,7 @@
           "title": "A Thirst for Eternity"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Thirst for Eternity"
     },
     "quest:adoulin:117": {
@@ -29659,7 +29659,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29679,7 +29679,7 @@
           "title": "A Thirst Before Time"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Thirst Before Time"
     },
     "quest:adoulin:118": {
@@ -29692,7 +29692,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29712,7 +29712,7 @@
           "title": "Dances with Luopans"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Dances with Luopans"
     },
     "quest:adoulin:119": {
@@ -29857,7 +29857,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29877,7 +29877,7 @@
           "title": "Do Not Go Into the Light"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Do Not Go Into the Light"
     },
     "quest:adoulin:123": {
@@ -29890,7 +29890,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29910,7 +29910,7 @@
           "title": "Velkkovert Operations"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Velkkovert Operations"
     },
     "quest:adoulin:124": {
@@ -29923,7 +29923,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29943,7 +29943,7 @@
           "title": "Hypocritical Oath"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Hypocritical Oath"
     },
     "quest:adoulin:125": {
@@ -29956,7 +29956,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -29976,7 +29976,7 @@
           "title": "The Good, the Bad, the Clement"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Good, the Bad, the Clement"
     },
     "quest:adoulin:126": {
@@ -30022,7 +30022,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30042,7 +30042,7 @@
           "title": "The Secret to Success"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Secret to Success"
     },
     "quest:adoulin:128": {
@@ -30055,7 +30055,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30075,7 +30075,7 @@
           "title": "No Mercy for the Wicked"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "No Mercy for the Wicked"
     },
     "quest:adoulin:129": {
@@ -30154,7 +30154,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30174,7 +30174,7 @@
           "title": "Quiescence"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Quiescence"
     },
     "quest:adoulin:133": {
@@ -30187,7 +30187,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30207,7 +30207,7 @@
           "title": "Sick and Tired"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Sick and Tired"
     },
     "quest:adoulin:134": {
@@ -30220,7 +30220,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30240,7 +30240,7 @@
           "title": "Geomancerrific"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Geomancerrific"
     },
     "quest:adoulin:135": {
@@ -30253,7 +30253,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30273,7 +30273,7 @@
           "title": "Rune Fencing the Night Away"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Rune Fencing the Night Away"
     },
     "quest:adoulin:136": {
@@ -30319,7 +30319,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30339,7 +30339,7 @@
           "title": "Eye of the Beholder"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Eye of the Beholder"
     },
     "quest:adoulin:138": {
@@ -30352,7 +30352,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30372,7 +30372,7 @@
           "title": "The Curious Case of Melvien"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Curious Case of Melvien"
     },
     "quest:adoulin:139": {
@@ -30385,7 +30385,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30405,7 +30405,7 @@
           "title": "Not-So-Clean Bill"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Not-So-Clean Bill"
     },
     "quest:adoulin:140": {
@@ -30451,7 +30451,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30471,7 +30471,7 @@
           "title": "The Weatherspoon War"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Weatherspoon War"
     },
     "quest:adoulin:142": {
@@ -30484,7 +30484,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30504,7 +30504,7 @@
           "title": "Treasures of the Earth"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Treasures of the Earth"
     },
     "quest:adoulin:143": {
@@ -30517,7 +30517,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30537,7 +30537,7 @@
           "title": "Epiphany"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Epiphany"
     },
     "quest:adoulin:144": {
@@ -30946,7 +30946,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -30966,7 +30966,7 @@
           "title": "Rowing Together"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Rowing Together"
     },
     "quest:adoulin:208": {
@@ -31078,7 +31078,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31098,7 +31098,7 @@
           "title": "Forging New Bonds"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Forging New Bonds"
     },
     "quest:adoulin:24": {
@@ -31177,7 +31177,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31197,7 +31197,7 @@
           "title": "Granddaddy Dearest"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Granddaddy Dearest"
     },
     "quest:adoulin:27": {
@@ -31276,7 +31276,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31296,7 +31296,7 @@
           "title": "F.A.I.L.ure is Not an Option"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "F.A.I.L.ure Is Not an Option"
     },
     "quest:adoulin:30": {
@@ -31342,7 +31342,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31362,7 +31362,7 @@
           "title": "It Never Goes Out of Style"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "It Never Goes Out of Style"
     },
     "quest:adoulin:32": {
@@ -31375,7 +31375,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31395,7 +31395,7 @@
           "title": "Water, Water, Everywhere"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Water, Water, Everywhere"
     },
     "quest:adoulin:33": {
@@ -31441,7 +31441,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31461,7 +31461,7 @@
           "title": "Flower Power"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Flower Power"
     },
     "quest:adoulin:35": {
@@ -31474,7 +31474,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31494,7 +31494,7 @@
           "title": "Elementary, My Dear Sylvie"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Elementary, My Dear Sylvie"
     },
     "quest:adoulin:36": {
@@ -31507,7 +31507,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31527,7 +31527,7 @@
           "title": "For Whom the Bell Tolls"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "For Whom the Bell Tolls"
     },
     "quest:adoulin:37": {
@@ -31540,7 +31540,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31560,7 +31560,7 @@
           "title": "The Bloodline of Zacariah"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Bloodline of Zacariah"
     },
     "quest:adoulin:38": {
@@ -31573,7 +31573,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31593,7 +31593,7 @@
           "title": "The Communion"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Communion"
     },
     "quest:adoulin:39": {
@@ -31837,7 +31837,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -31857,7 +31857,7 @@
           "title": "Flavors of Our Lives"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Flavors of Our Lives"
     },
     "quest:adoulin:47": {
@@ -32200,7 +32200,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32220,7 +32220,7 @@
           "title": "Hide and Go Peak"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Hide and Go Peak"
     },
     "quest:adoulin:58": {
@@ -32233,7 +32233,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32253,7 +32253,7 @@
           "title": "The Whole Place Is Abuzz"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Whole Place Is Abuzz"
     },
     "quest:adoulin:59": {
@@ -32332,7 +32332,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32352,7 +32352,7 @@
           "title": "Talk About Wrinkly Skin"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Talk About Wrinkly Skin"
     },
     "quest:adoulin:61": {
@@ -32398,7 +32398,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32418,7 +32418,7 @@
           "title": "Did You Feel That?"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Did You Feel That?"
     },
     "quest:adoulin:70": {
@@ -32629,7 +32629,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32649,7 +32649,7 @@
           "title": "Hunger Strikes"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Hunger Strikes"
     },
     "quest:adoulin:77": {
@@ -32695,7 +32695,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32715,7 +32715,7 @@
           "title": "A Certain Substitute Patrolman"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Certain Substitute Patrolman"
     },
     "quest:adoulin:79": {
@@ -32926,7 +32926,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32946,7 +32946,7 @@
           "title": "Boiling Over"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Boiling Over"
     },
     "quest:adoulin:91": {
@@ -32959,7 +32959,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_adoulin",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_adoulin",
@@ -32979,7 +32979,7 @@
           "title": "The Longest Way Round..."
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Longest Way Round..."
     },
     "quest:adoulin:93": {
@@ -33322,7 +33322,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -33342,7 +33342,7 @@
           "title": "Such Sweet Sorrow"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Such Sweet Sorrow"
     },
     "quest:aht_urhgan:14": {
@@ -33817,7 +33817,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -33837,7 +33837,7 @@
           "title": "The Wayward Automaton"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Wayward Automaton"
     },
     "quest:aht_urhgan:28": {
@@ -33850,7 +33850,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -33870,7 +33870,7 @@
           "title": "Operation Teatime"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Operation Teatime"
     },
     "quest:aht_urhgan:29": {
@@ -33883,7 +33883,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -33903,7 +33903,7 @@
           "title": "Puppetmaster Blues"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Puppetmaster Blues"
     },
     "quest:aht_urhgan:3": {
@@ -34147,7 +34147,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34167,7 +34167,7 @@
           "title": "Saga of the Skyserpent"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Saga of the Skyserpent"
     },
     "quest:aht_urhgan:44": {
@@ -34213,7 +34213,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34233,7 +34233,7 @@
           "title": "When the Bow Breaks"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "When the Bow Breaks"
     },
     "quest:aht_urhgan:46": {
@@ -34246,7 +34246,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34266,7 +34266,7 @@
           "title": "Fist of the People"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fist of the People"
     },
     "quest:aht_urhgan:47": {
@@ -34279,7 +34279,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34299,7 +34299,7 @@
           "title": "Soothing Waters"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Soothing Waters"
     },
     "quest:aht_urhgan:48": {
@@ -34576,7 +34576,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34596,7 +34596,7 @@
           "title": "Led Astray"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Led Astray"
     },
     "quest:aht_urhgan:66": {
@@ -34609,7 +34609,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34629,7 +34629,7 @@
           "title": "Rat Race"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Rat Race"
     },
     "quest:aht_urhgan:67": {
@@ -34741,7 +34741,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34761,7 +34761,7 @@
           "title": "No Strings Attached"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "No Strings Attached"
     },
     "quest:aht_urhgan:70": {
@@ -34807,7 +34807,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34827,7 +34827,7 @@
           "title": "Duties, Tasks, and Deeds"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Duties, Tasks, and Deeds"
     },
     "quest:aht_urhgan:72": {
@@ -34906,7 +34906,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -34926,7 +34926,7 @@
           "title": "Waking the Colossus"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Waking the Colossus"
     },
     "quest:aht_urhgan:75": {
@@ -35005,7 +35005,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -35025,7 +35025,7 @@
           "title": "Unwavering Resolve"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Unwavering Resolve"
     },
     "quest:aht_urhgan:78": {
@@ -35203,7 +35203,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_aht_urhgan",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_aht_urhgan",
@@ -35223,7 +35223,7 @@
           "title": "Promotion: Lance Corporal"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Promotion: Lance Corporal"
     },
     "quest:aht_urhgan:93": {
@@ -35467,7 +35467,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -35487,7 +35487,7 @@
           "title": "The Siren's Tear"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Siren's Tear"
     },
     "quest:bastok:1": {
@@ -35500,7 +35500,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -35520,7 +35520,7 @@
           "title": "Beauty and the Galka"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Beauty and the Galka"
     },
     "quest:bastok:10": {
@@ -35962,7 +35962,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -35982,7 +35982,7 @@
           "title": "The Signpost Marks the Spot"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Signpost Marks the Spot"
     },
     "quest:bastok:23": {
@@ -36127,7 +36127,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -36147,7 +36147,7 @@
           "title": "The Usual"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Usual"
     },
     "quest:bastok:28": {
@@ -36160,7 +36160,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -36180,7 +36180,7 @@
           "title": "Blade of Darkness"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Blade of Darkness"
     },
     "quest:bastok:29": {
@@ -36226,7 +36226,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -36246,7 +36246,7 @@
           "title": "Guest of Hauteur"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Guest of Hauteur"
     },
     "quest:bastok:30": {
@@ -36754,7 +36754,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -36774,7 +36774,7 @@
           "title": "Brygid the Stylist"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Brygid the Stylist"
     },
     "quest:bastok:45": {
@@ -37084,7 +37084,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37104,7 +37104,7 @@
           "title": "True Strength"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "True Strength"
     },
     "quest:bastok:54": {
@@ -37216,7 +37216,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37236,7 +37236,7 @@
           "title": "Dark Legacy"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Dark Legacy"
     },
     "quest:bastok:58": {
@@ -37348,7 +37348,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37368,7 +37368,7 @@
           "title": "Ayame and Kaede"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Ayame and Kaede"
     },
     "quest:bastok:61": {
@@ -37513,7 +37513,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37533,7 +37533,7 @@
           "title": "Eco-Warrior (Bastok)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Eco-Warrior"
     },
     "quest:bastok:66": {
@@ -37777,7 +37777,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37797,7 +37797,7 @@
           "title": "Trial Size Trial by Earth"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Earth"
     },
     "quest:bastok:73": {
@@ -37810,7 +37810,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37830,7 +37830,7 @@
           "title": "Faded Promises"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Faded Promises"
     },
     "quest:bastok:74": {
@@ -37876,7 +37876,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37896,7 +37896,7 @@
           "title": "Out of the Depths"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Out of the Depths"
     },
     "quest:bastok:76": {
@@ -37942,7 +37942,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37962,7 +37962,7 @@
           "title": "A Question of Faith"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Question of Faith"
     },
     "quest:bastok:78": {
@@ -37975,7 +37975,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -37995,7 +37995,7 @@
           "title": "Return to the Depths"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Return to the Depths"
     },
     "quest:bastok:79": {
@@ -38272,7 +38272,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -38292,7 +38292,7 @@
           "title": "Too Many Chefs"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Too Many Chefs"
     },
     "quest:bastok:87": {
@@ -38305,7 +38305,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -38325,7 +38325,7 @@
           "title": "A Proper Burial"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Proper Burial"
     },
     "quest:bastok:88": {
@@ -38503,7 +38503,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_bastok",
@@ -38523,7 +38523,7 @@
           "title": "Trust: Bastok"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trust: Bastok"
     },
     "quest:coalition:0": {
@@ -41188,7 +41188,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -41208,7 +41208,7 @@
           "title": "Fires of Discontent"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fires of Discontent"
     },
     "quest:crystal_war:14": {
@@ -42376,7 +42376,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -42396,7 +42396,7 @@
           "title": "The Long March North"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Long March North"
     },
     "quest:crystal_war:47": {
@@ -42508,7 +42508,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -42528,7 +42528,7 @@
           "title": "The Dawn of Delectability"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Dawn of Delectability"
     },
     "quest:crystal_war:50": {
@@ -42772,7 +42772,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -42792,7 +42792,7 @@
           "title": "Son and Father"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Son and Father"
     },
     "quest:crystal_war:58": {
@@ -43069,7 +43069,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -43089,7 +43089,7 @@
           "title": "Her Memories: Old Bean"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Her Memories: Old Bean"
     },
     "quest:crystal_war:66": {
@@ -43102,7 +43102,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -43122,7 +43122,7 @@
           "title": "Her Memories: The Faux Pas"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Her Memories: The Faux Pas"
     },
     "quest:crystal_war:67": {
@@ -43135,7 +43135,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -43155,7 +43155,7 @@
           "title": "Her Memories: Grave Resolve"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Her Memories: Grave Resolve"
     },
     "quest:crystal_war:68": {
@@ -43333,7 +43333,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_crystal_war",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_crystal_war",
@@ -43353,7 +43353,7 @@
           "title": "Her Memories: Of Malign Maladies"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Her Memories: Of Malign Maladies"
     },
     "quest:crystal_war:73": {
@@ -44184,7 +44184,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -44204,7 +44204,7 @@
           "title": "Save My Sister"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Save My Sister"
     },
     "quest:jeuno:10": {
@@ -44217,7 +44217,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -44237,7 +44237,7 @@
           "title": "Collect Tarut Cards"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Collect Tarut Cards"
     },
     "quest:jeuno:100": {
@@ -44250,7 +44250,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -44270,7 +44270,7 @@
           "title": "The Miraculous Dale"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Miraculous Dale"
     },
     "quest:jeuno:101": {
@@ -44580,7 +44580,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -44600,7 +44600,7 @@
           "title": "The Old Monument"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Old Monument"
     },
     "quest:jeuno:110": {
@@ -45374,7 +45374,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -45394,7 +45394,7 @@
           "title": "New Worlds Await"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "New Worlds Await"
     },
     "quest:jeuno:134": {
@@ -45407,7 +45407,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -45427,7 +45427,7 @@
           "title": "Expanding Horizons"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Expanding Horizons"
     },
     "quest:jeuno:135": {
@@ -45440,7 +45440,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -45460,7 +45460,7 @@
           "title": "Beyond the Stars"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Beyond the Stars"
     },
     "quest:jeuno:136": {
@@ -45473,7 +45473,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -45493,7 +45493,7 @@
           "title": "Dormant Powers Dislodged"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Dormant Powers Dislodged"
     },
     "quest:jeuno:137": {
@@ -46001,7 +46001,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46021,7 +46021,7 @@
           "title": "Researchers from the West"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Researchers from the West"
     },
     "quest:jeuno:172": {
@@ -46166,7 +46166,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46186,7 +46186,7 @@
           "title": "Teleports by Twilight"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Teleports by Twilight"
     },
     "quest:jeuno:177": {
@@ -46199,7 +46199,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46219,7 +46219,7 @@
           "title": "Shifty Shades of Prey"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Shifty Shades of Prey"
     },
     "quest:jeuno:178": {
@@ -46232,7 +46232,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46252,7 +46252,7 @@
           "title": "To Kill Mocking Birds"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "To Kill Mocking Birds"
     },
     "quest:jeuno:179": {
@@ -46298,7 +46298,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46318,7 +46318,7 @@
           "title": "The Lost Cardian"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Lost Cardian"
     },
     "quest:jeuno:186": {
@@ -46364,7 +46364,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46384,7 +46384,7 @@
           "title": "Path of the Beastmaster"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Path of the Beastmaster"
     },
     "quest:jeuno:2": {
@@ -46430,7 +46430,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -46450,7 +46450,7 @@
           "title": "Path of the Bard"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Path of the Bard"
     },
     "quest:jeuno:21": {
@@ -47160,7 +47160,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -47180,7 +47180,7 @@
           "title": "Borghertz's Warring Hands"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Borghertz's Warring Hands"
     },
     "quest:jeuno:45": {
@@ -47358,7 +47358,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -47378,7 +47378,7 @@
           "title": "Save My Son"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Save My Son"
     },
     "quest:jeuno:50": {
@@ -47787,7 +47787,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -47807,7 +47807,7 @@
           "title": "Scattered into Shadow"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Scattered Into Shadow"
     },
     "quest:jeuno:62": {
@@ -47919,7 +47919,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -47939,7 +47939,7 @@
           "title": "The Circle of Time"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Circle of Time"
     },
     "quest:jeuno:66": {
@@ -47952,7 +47952,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -47972,7 +47972,7 @@
           "title": "Searching for the Right Words"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Searching for the Right Words"
     },
     "quest:jeuno:67": {
@@ -47985,7 +47985,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48005,7 +48005,7 @@
           "title": "Beat Around the Bushin"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Beat Around the Bushin"
     },
     "quest:jeuno:68": {
@@ -48183,7 +48183,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48203,7 +48203,7 @@
           "title": "A Chocobo's Tale"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Chocobo's Tale"
     },
     "quest:jeuno:73": {
@@ -48348,7 +48348,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48368,7 +48368,7 @@
           "title": "Unlisted Qualities"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Unlisted Qualities"
     },
     "quest:jeuno:78": {
@@ -48414,7 +48414,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48434,7 +48434,7 @@
           "title": "Mirror, Mirror"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Mirror, Mirror"
     },
     "quest:jeuno:8": {
@@ -48447,7 +48447,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48467,7 +48467,7 @@
           "title": "The Kind Cardian"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Kind Cardian"
     },
     "quest:jeuno:80": {
@@ -48480,7 +48480,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48500,7 +48500,7 @@
           "title": "Past Reflections"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Past Reflections"
     },
     "quest:jeuno:81": {
@@ -48612,7 +48612,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48632,7 +48632,7 @@
           "title": "Chameleon Capers"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Chameleon Capers"
     },
     "quest:jeuno:85": {
@@ -48711,7 +48711,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48731,7 +48731,7 @@
           "title": "Mixed Signals"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Mixed Signals"
     },
     "quest:jeuno:88": {
@@ -48909,7 +48909,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -48929,7 +48929,7 @@
           "title": "Chocobo on the Loose!"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Chocobo on the Loose!"
     },
     "quest:jeuno:93": {
@@ -49008,7 +49008,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_jeuno",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_jeuno",
@@ -49028,7 +49028,7 @@
           "title": "Lakeside Minuet"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Lakeside Minuet"
     },
     "quest:jeuno:96": {
@@ -49404,7 +49404,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -49424,7 +49424,7 @@
           "title": "For the Birds"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "For the Birds"
     },
     "quest:other_areas:105": {
@@ -49470,7 +49470,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -49490,7 +49490,7 @@
           "title": "An Understanding Overlord?"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "An Understanding Overlord?"
     },
     "quest:other_areas:107": {
@@ -49503,7 +49503,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -49523,7 +49523,7 @@
           "title": "An Affable Adamantking?"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "An Affable Adamantking?"
     },
     "quest:other_areas:108": {
@@ -49536,7 +49536,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -49556,7 +49556,7 @@
           "title": "A Moral Manifest?"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Moral Manifest?"
     },
     "quest:other_areas:109": {
@@ -49793,7 +49793,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -49813,7 +49813,7 @@
           "title": "An Explorer's Footsteps"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "An Explorer's Footsteps"
     },
     "quest:other_areas:2": {
@@ -50123,7 +50123,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50143,7 +50143,7 @@
           "title": "Trial Size Trial by Lightning"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Lightning"
     },
     "quest:other_areas:29": {
@@ -50156,7 +50156,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50176,7 +50176,7 @@
           "title": "It's Raining Mannequins"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "It's Raining Mannequins"
     },
     "quest:other_areas:3": {
@@ -50255,7 +50255,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50275,7 +50275,7 @@
           "title": "Picture Perfect"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Picture Perfect"
     },
     "quest:other_areas:32": {
@@ -50354,7 +50354,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50374,7 +50374,7 @@
           "title": "Monstrosity (Quest)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Monstrosity"
     },
     "quest:other_areas:35": {
@@ -50915,7 +50915,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50935,7 +50935,7 @@
           "title": "The Basics"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Basics"
     },
     "quest:other_areas:64": {
@@ -50948,7 +50948,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -50968,7 +50968,7 @@
           "title": "A Hard Day's Knight"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Hard Day's Knight"
     },
     "quest:other_areas:65": {
@@ -51179,7 +51179,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51199,7 +51199,7 @@
           "title": "The Big One (Quest)"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "The Big One"
     },
     "quest:other_areas:71": {
@@ -51278,7 +51278,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51298,7 +51298,7 @@
           "title": "Secrets of Ovens Lost"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Secrets of Ovens Lost"
     },
     "quest:other_areas:74": {
@@ -51344,7 +51344,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51364,7 +51364,7 @@
           "title": "Elderly Pursuits"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Elderly Pursuits"
     },
     "quest:other_areas:76": {
@@ -51410,7 +51410,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51430,7 +51430,7 @@
           "title": "Behind the Smile"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Behind the Smile"
     },
     "quest:other_areas:78": {
@@ -51443,7 +51443,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51463,7 +51463,7 @@
           "title": "Knocking on Forbidden Doors"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Knocking on Forbidden Doors"
     },
     "quest:other_areas:79": {
@@ -51476,7 +51476,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_other_areas",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_other_areas",
@@ -51496,7 +51496,7 @@
           "title": "Confessions of a Bellmaker"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Confessions of a Bellmaker"
     },
     "quest:other_areas:8": {
@@ -51922,7 +51922,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -51942,7 +51942,7 @@
           "title": "Voidwatch Ops: Border Crossing"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Voidwatch Ops: Border Crossing"
     },
     "quest:outlands:101": {
@@ -51955,7 +51955,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -51975,7 +51975,7 @@
           "title": "VW Op. 054: Elshimo List"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "VW Op. #054: Elshimo List"
     },
     "quest:outlands:102": {
@@ -51988,7 +51988,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52008,7 +52008,7 @@
           "title": "VW Op. 101: Detour to Zepwell"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "VW Op. #101: Detour to Zepwell"
     },
     "quest:outlands:103": {
@@ -52054,7 +52054,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52074,7 +52074,7 @@
           "title": "Skyward Ho, Voidwatcher!"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Skyward Ho, Voidwatcher!"
     },
     "quest:outlands:11": {
@@ -52153,7 +52153,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52173,7 +52173,7 @@
           "title": "Sahagin Key Quest"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Sahagin's Key"
     },
     "quest:outlands:129": {
@@ -52186,7 +52186,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52206,7 +52206,7 @@
           "title": "Forge Your Destiny"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Forge Your Destiny"
     },
     "quest:outlands:13": {
@@ -52450,7 +52450,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52470,7 +52470,7 @@
           "title": "The Sahagin's Stash"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Sahagin's Stash"
     },
     "quest:outlands:137": {
@@ -52615,7 +52615,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52635,7 +52635,7 @@
           "title": "The Sacred Katana"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Sacred Katana"
     },
     "quest:outlands:141": {
@@ -52648,7 +52648,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52668,7 +52668,7 @@
           "title": "Yomi Okuri"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Yomi Okuri"
     },
     "quest:outlands:142": {
@@ -52681,7 +52681,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52701,7 +52701,7 @@
           "title": "A Thief in Norg!?"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Thief in Norg!?"
     },
     "quest:outlands:143": {
@@ -52714,7 +52714,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52734,7 +52734,7 @@
           "title": "20 in Pirate Years"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "20 in Pirate Years"
     },
     "quest:outlands:144": {
@@ -52747,7 +52747,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52767,7 +52767,7 @@
           "title": "I'll Take the Big Box"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "I'll Take the Big Box"
     },
     "quest:outlands:145": {
@@ -52879,7 +52879,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52899,7 +52899,7 @@
           "title": "Trial Size Trial by Water"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Water"
     },
     "quest:outlands:149": {
@@ -52945,7 +52945,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -52965,7 +52965,7 @@
           "title": "Trial Size Trial by Fire"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Fire"
     },
     "quest:outlands:160": {
@@ -53336,7 +53336,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -53356,7 +53356,7 @@
           "title": "Trial Size Trial by Wind"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Wind"
     },
     "quest:outlands:199": {
@@ -53369,7 +53369,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -53389,7 +53389,7 @@
           "title": "Chasing Dreams"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Chasing Dreams"
     },
     "quest:outlands:2": {
@@ -53435,7 +53435,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -53455,7 +53455,7 @@
           "title": "The Search for Goldmane"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Search for Goldmane"
     },
     "quest:outlands:201": {
@@ -53567,7 +53567,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_outlands",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_outlands",
@@ -53587,7 +53587,7 @@
           "title": "A Question of Taste"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Question of Taste"
     },
     "quest:outlands:4": {
@@ -54046,7 +54046,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -54066,7 +54066,7 @@
           "title": "A Timely Visit"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Timely Visit"
     },
     "quest:sandoria:106": {
@@ -54112,7 +54112,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -54132,7 +54132,7 @@
           "title": "Trial Size Trial by Ice"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trial-Size Trial by Ice"
     },
     "quest:sandoria:108": {
@@ -54277,7 +54277,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -54297,7 +54297,7 @@
           "title": "Over the Hills and Far Away"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Over the Hills and Far Away"
     },
     "quest:sandoria:113": {
@@ -54343,7 +54343,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -54363,7 +54363,7 @@
           "title": "Atelloune's Lament"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Atelloune's Lament"
     },
     "quest:sandoria:117": {
@@ -54442,7 +54442,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -54462,7 +54462,7 @@
           "title": "Trust: San d'Oria"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trust: San d'Oria"
     },
     "quest:sandoria:12": {
@@ -55366,7 +55366,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -55386,7 +55386,7 @@
           "title": "Trouble at the Sluice"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trouble at the Sluice"
     },
     "quest:sandoria:69": {
@@ -55894,7 +55894,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -55914,7 +55914,7 @@
           "title": "Sorcery of the North"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Sorcery of the North"
     },
     "quest:sandoria:84": {
@@ -55993,7 +55993,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56013,7 +56013,7 @@
           "title": "Peace for the Spirit"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Peace for the Spirit"
     },
     "quest:sandoria:87": {
@@ -56026,7 +56026,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56046,7 +56046,7 @@
           "title": "Messenger from Beyond"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Messenger from Beyond"
     },
     "quest:sandoria:88": {
@@ -56158,7 +56158,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56178,7 +56178,7 @@
           "title": "Sharpening the Sword"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Sharpening the Sword"
     },
     "quest:sandoria:91": {
@@ -56191,7 +56191,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56211,7 +56211,7 @@
           "title": "A Boy's Dream"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "A Boy's Dream"
     },
     "quest:sandoria:92": {
@@ -56224,7 +56224,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56244,7 +56244,7 @@
           "title": "Under Oath"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Under Oath"
     },
     "quest:sandoria:93": {
@@ -56257,7 +56257,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56277,7 +56277,7 @@
           "title": "The Holy Crest"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Holy Crest"
     },
     "quest:sandoria:94": {
@@ -56323,7 +56323,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56343,7 +56343,7 @@
           "title": "Chasing Quotas"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Chasing Quotas"
     },
     "quest:sandoria:96": {
@@ -56356,7 +56356,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_sandoria",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_sandoria",
@@ -56376,7 +56376,7 @@
           "title": "Knight Stalker"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Knight Stalker"
     },
     "quest:sandoria:97": {
@@ -56620,7 +56620,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -56640,7 +56640,7 @@
           "title": "A Smudge on One's Record"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Smudge on One's Record"
     },
     "quest:windurst:13": {
@@ -56653,7 +56653,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -56673,7 +56673,7 @@
           "title": "Chasing Tales"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Chasing Tales"
     },
     "quest:windurst:14": {
@@ -57082,7 +57082,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -57102,7 +57102,7 @@
           "title": "Rock Racketeer"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Rock Racketeer"
     },
     "quest:windurst:27": {
@@ -57577,7 +57577,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -57597,7 +57597,7 @@
           "title": "Making the Grade"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Making the Grade"
     },
     "quest:windurst:40": {
@@ -57709,7 +57709,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -57729,7 +57729,7 @@
           "title": "A Greeting Cardian"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "A Greeting Cardian"
     },
     "quest:windurst:44": {
@@ -57775,7 +57775,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -57795,7 +57795,7 @@
           "title": "In a Stew"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "In a Stew"
     },
     "quest:windurst:46": {
@@ -57808,7 +57808,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -57828,7 +57828,7 @@
           "title": "Let Sleeping Dogs Lie"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Let Sleeping Dogs Lie"
     },
     "quest:windurst:47": {
@@ -58072,7 +58072,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58092,7 +58092,7 @@
           "title": "To Catch a Falling Star"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "To Catch a Falling Star"
     },
     "quest:windurst:6": {
@@ -58435,7 +58435,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58455,7 +58455,7 @@
           "title": "The Tenshodo Showdown"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Tenshodo Showdown"
     },
     "quest:windurst:7": {
@@ -58501,7 +58501,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58521,7 +58521,7 @@
           "title": "As Thick as Thieves"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "As Thick as Thieves"
     },
     "quest:windurst:71": {
@@ -58534,7 +58534,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58554,7 +58554,7 @@
           "title": "Hitting the Marquisate"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Hitting the Marquisate"
     },
     "quest:windurst:72": {
@@ -58567,7 +58567,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58587,7 +58587,7 @@
           "title": "Sin Hunting"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Sin Hunting"
     },
     "quest:windurst:73": {
@@ -58600,7 +58600,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58620,7 +58620,7 @@
           "title": "Fire and Brimstone"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fire and Brimstone"
     },
     "quest:windurst:74": {
@@ -58633,7 +58633,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58653,7 +58653,7 @@
           "title": "Unbridled Passion"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Unbridled Passion"
     },
     "quest:windurst:75": {
@@ -58798,7 +58798,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58818,7 +58818,7 @@
           "title": "Nothing Matters"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Nothing Matters"
     },
     "quest:windurst:8": {
@@ -58897,7 +58897,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58917,7 +58917,7 @@
           "title": "The Puppet Master"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "The Puppet Master"
     },
     "quest:windurst:82": {
@@ -58930,7 +58930,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58950,7 +58950,7 @@
           "title": "Class Reunion"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Class Reunion"
     },
     "quest:windurst:83": {
@@ -58963,7 +58963,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -58983,7 +58983,7 @@
           "title": "Carbuncle Debacle"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Carbuncle Debacle"
     },
     "quest:windurst:84": {
@@ -59260,7 +59260,7 @@
       "has_source_conflict": true,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -59280,7 +59280,7 @@
           "title": "Tuning Out"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Tuning Out"
     },
     "quest:windurst:92": {
@@ -59326,7 +59326,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -59346,7 +59346,7 @@
           "title": "Waking Dreams"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Waking Dreams"
     },
     "quest:windurst:94": {
@@ -59425,7 +59425,7 @@
       "has_source_conflict": false,
       "kind": "quest",
       "reconcile_module": "mission_quest_reconcile_quest_windurst",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_quest_windurst",
@@ -59445,7 +59445,7 @@
           "title": "Trust: Windurst"
         }
       },
-      "status": "guide",
+      "status": "verified-navigation",
       "title": "Trust: Windurst"
     }
   },

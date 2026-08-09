@@ -12366,7 +12366,17 @@ return {
         entities = { "Joachim", "Port Jeuno", "To Paste a Peiste", "A Goldstruck Gigas", "Megadrile Menace", "Vision of Abyssea" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:166:step-002",
@@ -12932,7 +12942,17 @@ return {
         entities = { "Joachim", "Port Jeuno" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
     },
   },
@@ -14078,7 +14098,17 @@ return {
         entities = { "Joachim", "Port Jeuno", "A Delectable Demon", "The Beast of Bastore", "A Fluttery Fiend", "Scars of Abyssea" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:175:step-002",
@@ -14443,7 +14473,17 @@ return {
         entities = { "Joachim", "Port Jeuno", "A Beaked Blusterer", "A Man-eating Mite", "An Ulcerous Uragnite", "Heroes of Abyssea" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:179:step-002",
@@ -15032,7 +15072,17 @@ return {
         entities = { "Joachim", "Port Jeuno", "Ivory abyssite of prosperity", "Abyssea Main Quests" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:181:step-002",
@@ -15852,7 +15902,17 @@ return {
         entities = { "Joachim", "Port Jeuno" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Joachim",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Joachim.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:185:step-003",
@@ -23941,7 +24001,17 @@ return {
         entities = { "Windurst Waters", "Ranpi-Monpi", "Culinarians' Guild (Windurst)" },
         zones = {  },
         grid_coordinates = { "D-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Ranpi-Monpi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ranpi-Monpi.",
+        },
       },
       {
         stable_step_id = "quest:abyssea:47:step-006",

@@ -2112,7 +2112,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:109:step-004",
@@ -2366,7 +2376,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk", "Councilor's Garb", "Councilor's Cuffs" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:110:step-009",
@@ -3161,7 +3181,17 @@ return {
         entities = { "Rala Waterways", "Yeggha Dolashi", "Alaixion", "Mufeh Hajrrha" },
         zones = {  },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 258,
+            zone_name = "Rala Waterways",
+            name = "Yeggha Dolashi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yeggha Dolashi.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:19:step-002",
@@ -3275,7 +3305,17 @@ return {
         entities = { "Lower Jeuno", "Darcia", "Geomagnetron", "Chamber of Commerce and Industry" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Darcia",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Darcia.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:2:step-008",
@@ -3679,7 +3719,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:23:step-002",
@@ -3777,7 +3827,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk", "Arciela", "Mistdagger", "Grennith" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:25:step-002",
@@ -4451,7 +4511,17 @@ return {
         entities = { "Darcia", "Lower Jeuno", "Geomagnetron", "Adoulinian charter permit" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Darcia",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Darcia.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:3:step-003",
@@ -4923,7 +4993,17 @@ return {
         entities = { "Ploh Trishbahk", "Eastern Adoulin" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:33:step-002",
@@ -4936,7 +5016,17 @@ return {
         entities = { "Rigobertine", "Eastern Adoulin", "Eternal flame" },
         zones = {  },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Rigobertine",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rigobertine.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:33:step-003",
@@ -4988,7 +5078,17 @@ return {
         entities = { "Erminold", "Eastern Adoulin", "Weather vane wings", "Waypoint" },
         zones = {  },
         grid_coordinates = { "J-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Erminold",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Erminold.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:33:step-007",
@@ -5250,7 +5350,17 @@ return {
         entities = { "Ceizak Battlegrounds", "Elmric", "Frontier Station", "Arciela" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 261,
+            zone_name = "Ceizak Battlegrounds",
+            name = "Elmric",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Elmric.",
+        },
       },
     },
   },
@@ -5443,7 +5553,17 @@ return {
         entities = { "Mummers' Coalition", "Western Adoulin", "Masad", "Teodor" },
         zones = { "Western Adoulin" },
         grid_coordinates = { "G-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Masad",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Masad.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:45:step-002",
@@ -6968,7 +7088,17 @@ return {
         entities = { "Pioneers' Coalition", "Western Adoulin", "Brenton" },
         zones = {  },
         grid_coordinates = { "E-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Brenton",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brenton.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:6:step-002",
@@ -9861,7 +9991,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk", "Arciela", "Ikhi Askamot", "Fremilla", "Gratzigg", "Hildebert", "Lhe Lhangavo", "Svenja", "Chero-Machero", "Margret", "Ygnas", "Amchuchu", "Reginald", "Balamor" },
         zones = { "Eastern Adoulin" },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:86:step-002",
@@ -11147,7 +11287,17 @@ return {
         entities = { "Levil", "Western Adoulin", "Pioneers' Coalition" },
         zones = {  },
         grid_coordinates = { "E-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Levil",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Levil.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:94:step-003",
@@ -11196,7 +11346,17 @@ return {
         entities = { "Eastern Adoulin", "Ploh Trishbahk", "Hastily scribbled note" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Seekers of Adoulin:96:step-002",

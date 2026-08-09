@@ -48,6 +48,61 @@ def _atomic_json(path: Path, value: object) -> None:
     temporary.replace(path)
 
 
+def _load_navigation_catalog(
+    destinations_path: Path,
+    graph_path: Path,
+) -> tuple[tuple[dict[str, Any], ...], dict[int, str]]:
+    points: list[dict[str, Any]] = []
+    for line in destinations_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) < 7:
+            raise ValueError(f"Malformed navigation destination row: {line!r}")
+        try:
+            zone = int(fields[0])
+            x, z, y = (float(fields[index]) for index in (2, 3, 4))
+        except ValueError as error:
+            raise ValueError(f"Malformed navigation destination row: {line!r}") from error
+        points.append(
+            {
+                "zone": zone,
+                "name": fields[1].strip(),
+                "x": x,
+                "z": z,
+                "y": y,
+                "kind": fields[5].strip(),
+                "source": fields[6].strip(),
+            }
+        )
+
+    zone_names: dict[int, str] = {}
+
+    def record_zone(zone_value: str, name_value: str) -> None:
+        zone = int(zone_value)
+        name = name_value.strip()
+        previous = zone_names.get(zone)
+        if previous is not None and previous.casefold() != name.casefold():
+            raise ValueError(
+                f"Navigation graph gives zone {zone} conflicting names {previous!r} and {name!r}."
+            )
+        zone_names[zone] = name
+
+    rows = graph_path.read_text(encoding="utf-8").splitlines()
+    for line in rows[1:]:
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        if len(fields) < 13:
+            raise ValueError(f"Malformed navigation graph row: {line!r}")
+        try:
+            record_zone(fields[1], fields[2])
+            record_zone(fields[7], fields[8])
+        except ValueError as error:
+            raise ValueError(f"Malformed navigation graph row: {line!r}") from error
+    return tuple(points), zone_names
+
+
 def _native_payload(rows: tuple[NativeObjective, ...]) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -105,6 +160,8 @@ def _overrides_for_sites(
             for group in shared_groups
             if isinstance(group, dict) and str(group.get("site", "")) in selected
         ]
+    if not {"bg", "ffxiclopedia"}.issubset(selected):
+        result["target_overrides"] = {}
     return result
 
 
@@ -309,6 +366,10 @@ def run(argv: list[str] | None = None) -> int:
         _load_overrides(data_root / "reviewed-overrides.json"),
         selected_sites,
     )
+    navigation_points, navigation_zone_names = _load_navigation_catalog(
+        repo_root / "data" / "ffxi-nav-destinations.tsv",
+        repo_root / "data" / "ffxi-nav-zoneline-graph.tsv",
+    )
     summary = build_guide_artifacts(
         native_rows,
         parsed_pages,
@@ -317,6 +378,8 @@ def run(argv: list[str] | None = None) -> int:
         reviewed_overrides=overrides,
         source_revisions=source_pages,
         parse_failures=parse_failures,
+        navigation_points=navigation_points,
+        navigation_zone_names=navigation_zone_names,
     )
     _atomic_json(data_root / "source-discovery.json", discovery)
     _atomic_json(

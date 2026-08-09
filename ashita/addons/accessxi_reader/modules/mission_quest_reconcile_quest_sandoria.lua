@@ -1868,7 +1868,17 @@ return {
         entities = { "La Theine Plateau", "Narvecaint", "Ordelle's Caves", "Survival Guide" },
         zones = {  },
         grid_coordinates = { "F-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 102,
+            zone_name = "La Theine Plateau",
+            name = "Narvecaint",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Narvecaint.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:105:step-003",
@@ -2076,7 +2086,17 @@ return {
         entities = { "Narvecaint", "La Theine Plateau" },
         zones = {  },
         grid_coordinates = { "F-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 102,
+            zone_name = "La Theine Plateau",
+            name = "Narvecaint",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Narvecaint.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:105:step-019",
@@ -2239,7 +2259,17 @@ return {
         entities = { "Castilchat", "Northern San d'Oria", "Mini Tuning Fork of Ice" },
         zones = {  },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Castilchat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Castilchat.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:107:step-002",
@@ -3199,7 +3229,17 @@ return {
         entities = { "Antreneau", "Port San d'Oria" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Antreneau",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Antreneau.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:112:step-005",
@@ -3986,7 +4026,17 @@ return {
         entities = { "Atelloune", "Southern San d'Oria", "Ladybug Wing" },
         zones = {  },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Atelloune",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Atelloune.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:114:step-002",
@@ -4354,7 +4404,17 @@ return {
         entities = { "Gondebaud", "Southern San d'Oria", "Red institute card" },
         zones = {  },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Gondebaud",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gondebaud.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:119:step-002",
@@ -4367,7 +4427,17 @@ return {
         entities = { "Northern San d'Oria", "Excenmille", "Trust: Excenmille" },
         zones = {  },
         grid_coordinates = { "D-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Excenmille",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Excenmille.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:119:step-003",
@@ -8339,7 +8409,17 @@ return {
         entities = { "Novalmauge", "Bostaunieux Oubliette" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 167,
+            zone_name = "Bostaunieux Oubliette",
+            name = "Novalmauge",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Novalmauge.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:68:step-003",
@@ -10189,7 +10269,17 @@ return {
         entities = { "Eperdur", "Northern San d'Oria", "Cathedral" },
         zones = {  },
         grid_coordinates = { "M-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Eperdur",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Eperdur.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:83:step-003",
@@ -11025,7 +11115,17 @@ return {
         entities = { "Southern San d'Oria", "Sharzalion", "Daggao", "Lion Springs Tavern" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Sharzalion",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sharzalion.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:86:step-013",
@@ -11204,7 +11304,17 @@ return {
         entities = { "Narcheral", "Northern San d'Oria", "WHM" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Narcheral",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Narcheral.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:87:step-002",
@@ -11920,7 +12030,17 @@ return {
         entities = { "Sobane", "Southern San d'Oria", "Signed in Blood", "Tea with a Tonberry?" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "D-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Sobane",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sobane.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:90:step-006",
@@ -12125,7 +12245,17 @@ return {
         entities = { "Exoroche", "Southern San d'Oria" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Exoroche",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Exoroche.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:91:step-003",
@@ -12476,7 +12606,17 @@ return {
         entities = { "Exoroche", "Southern San d'Oria" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Exoroche",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Exoroche.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:91:step-030",
@@ -12577,7 +12717,17 @@ return {
         entities = { "Vemalpeau", "Southern San d'Oria" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "M-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Vemalpeau",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Vemalpeau.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:92:step-006",
@@ -12603,7 +12753,17 @@ return {
         entities = { "Ullasa", "Southern San d'Oria", "Key Item", "Mique's paintbrush", "Count Caffaule's Manor" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Ullasa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ullasa.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:92:step-008",
@@ -12990,7 +13150,17 @@ return {
         entities = { "Arminibit", "Ceraulian", "Port San d'Oria" },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Arminibit",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Arminibit.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:93:step-002",
@@ -13029,7 +13199,17 @@ return {
         entities = { "Novalmauge", "Bostaunieux Oubliette", "Northern San d'Oria", "Chateau d'Oraguille" },
         zones = {  },
         grid_coordinates = { "F-8", "G-8", "J-6", "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 167,
+            zone_name = "Bostaunieux Oubliette",
+            name = "Novalmauge",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Novalmauge.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:93:step-005",
@@ -13081,7 +13261,17 @@ return {
         entities = { "Morjean", "Northern San d'Oria" },
         zones = {  },
         grid_coordinates = { "L-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Morjean",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Morjean.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:93:step-009",
@@ -13315,7 +13505,17 @@ return {
         entities = { "Rahal", "Chateau d'Oraguille", "Dragon Curse Remedy", "Ghelsba Outpost", "Lure of the Wildcat (San d'Oria)" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Rahal",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rahal.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:93:step-027",
@@ -13712,7 +13912,17 @@ return {
         entities = { "Miaux", "Northern San d'Oria", "Shiny earring" },
         zones = {  },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Miaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Miaux.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:95:step-009",
@@ -13738,7 +13948,17 @@ return {
         entities = { "Ardea", "Bastok Markets", "Home Point" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Ardea",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ardea.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:95:step-011",
@@ -13803,7 +14023,17 @@ return {
         entities = { "Esca", "West Ronfaure", "Batallia Downs", "The Eldieme Necropolis" },
         zones = {  },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 100,
+            zone_name = "West Ronfaure",
+            name = "Esca",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Esca.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:95:step-016",
@@ -14164,7 +14394,17 @@ return {
         entities = { "Rahal", "Chateau d'Oraguille", "Dragoon" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Rahal",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rahal.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:96:step-003",
@@ -14229,7 +14469,17 @@ return {
         entities = { "Ceraulian", "Port San d'Oria" },
         zones = {  },
         grid_coordinates = { "I-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Ceraulian",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ceraulian.",
+        },
       },
       {
         stable_step_id = "quest:sandoria:96:step-008",

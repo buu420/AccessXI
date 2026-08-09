@@ -7,13 +7,14 @@ import unicodedata
 import urllib.parse
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
 from .model import NativeObjective, ParsedObjective, SourceStep
-from .reconcile import ReconciledObjective, reconcile_objectives
+from .reconcile import ReviewedNavigationTarget, ReconciledObjective, ReconciledStep, reconcile_objectives
 
 
 _SITE_LICENSE_IDS = {
@@ -30,6 +31,13 @@ _SITE_LABELS = {
     "bg": "BG Wiki",
     "ffxiclopedia": "FFXIclopedia",
 }
+
+_OBJECT_LIKE_TARGET_NAME = re.compile(
+    r"\b(?:door|gate|snow|mark|point|switch|lever|device|stone|rock|crystal|altar|"
+    r"book|wall|floor|chest|coffer|brazier|ornament|stair|trail|sign|target|machine|"
+    r"torch|pool|water|tree)\b",
+    re.IGNORECASE,
+)
 
 _COVERAGE_STATUSES = (
     "guide",
@@ -218,8 +226,7 @@ def _reconcile_module_text(
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
         lines.extend(["    },", "    steps = {"])
         for step in objective.steps:
-            lines.extend(
-                [
+            step_lines = [
                     "      {",
                     f"        stable_step_id = {lua_quote(step.stable_step_id)},",
                     f"        order = {step.order},",
@@ -232,9 +239,25 @@ def _reconcile_module_text(
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
                     f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
-                    "      },",
-                ]
-            )
+            ]
+            target = step.navigation_target
+            if target is not None:
+                step_lines.extend(
+                    [
+                        "        navigation_target = {",
+                        f"          type = {lua_quote(target.target_type)},",
+                        "          reference = {",
+                        f"            zone = {target.zone},",
+                        f"            zone_name = {lua_quote(target.zone_name)},",
+                        f"            name = {lua_quote(target.name)},",
+                        f"            kind = {lua_quote(target.kind)},",
+                        "          },",
+                        f"          arrival_instruction = {lua_quote(target.arrival_instruction)},",
+                        "        },",
+                    ]
+                )
+            step_lines.append("      },")
+            lines.extend(step_lines)
         lines.extend(["    },", "  },"])
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -460,6 +483,215 @@ def _runtime_objective_key(
     return str(values.get(native_key, "")).strip()
 
 
+def _casefold_values(values: Iterable[object]) -> set[str]:
+    return {str(value or "").strip().casefold() for value in values if str(value or "").strip()}
+
+
+def _source_step_for_order(page: ParsedObjective | None, order: int) -> SourceStep | None:
+    if page is None or order <= 0:
+        return None
+    return next((step for step in page.steps if step.order == order), None)
+
+
+def _source_names_zone(step: SourceStep, zone_name: str) -> bool:
+    wanted = zone_name.casefold()
+    if wanted in _casefold_values((*step.zone_candidates, *step.linked_entities)):
+        return True
+    return wanted in step.spoken_text.casefold()
+
+
+def _source_directs_talk_to(step: SourceStep, name: str) -> bool:
+    text = re.sub(r"\s+", " ", step.spoken_text.strip()).casefold()
+    target = re.escape(name.casefold()).replace(r"\ ", r"\s+")
+    direct_patterns = (
+        rf"\b(?:talk|speak)\s+(?:to|with)\s+(?:the\s+)?{target}(?:\b|$)",
+    )
+    if any(re.search(pattern, text) is not None for pattern in direct_patterns):
+        return True
+    if _OBJECT_LIKE_TARGET_NAME.search(name):
+        return False
+    implied_patterns = (
+        rf"\b(?:return|report|head|go)\s+(?:back\s+)?to\s+(?:the\s+)?{target}(?:\b|$)",
+        rf"\bvisit\s+(?:the\s+)?{target}(?:\b|$)",
+    )
+    return any(re.search(pattern, text) is not None for pattern in implied_patterns)
+
+
+def _propose_named_npc_target(
+    step: ReconciledStep,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    navigation_point_index: Mapping[tuple[str, str], tuple[Mapping[str, Any], ...]],
+    navigation_zone_names: Mapping[int, str],
+) -> ReviewedNavigationTarget | None:
+    if step.action.casefold() != "talk" or step.comparison != "corroborated":
+        return None
+    if "action" not in step.agreed_fields or "entities" not in step.agreed_fields:
+        return None
+    bg_step = _source_step_for_order(bg, step.source_orders[0])
+    ffxi_step = _source_step_for_order(ffxiclopedia, step.source_orders[1])
+    if bg_step is None or ffxi_step is None:
+        return None
+    if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
+        return None
+    common_names = _casefold_values(bg_step.linked_entities).intersection(
+        _casefold_values(ffxi_step.linked_entities)
+    )
+    candidates: list[ReviewedNavigationTarget] = []
+    for common_name in common_names:
+        for point in navigation_point_index.get((common_name, "npc"), ()):
+            name = str(point.get("name", "")).strip()
+            if not name or name == "???":
+                continue
+            if not _source_directs_talk_to(bg_step, name) or not _source_directs_talk_to(ffxi_step, name):
+                continue
+            zone = int(point.get("zone", 0) or 0)
+            zone_name = str(navigation_zone_names.get(zone, "")).strip()
+            if not zone_name:
+                continue
+            if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(ffxi_step, zone_name):
+                continue
+            candidates.append(
+                ReviewedNavigationTarget(
+                    target_type="static-reference",
+                    zone=zone,
+                    zone_name=zone_name,
+                    name=name,
+                    kind="npc",
+                    arrival_instruction=f"Talk to {name}.",
+                )
+            )
+    unique = {
+        (candidate.zone, candidate.name.casefold(), candidate.kind): candidate
+        for candidate in candidates
+    }
+    if len(candidates) != 1 or len(unique) != 1:
+        return None
+    return next(iter(unique.values()))
+
+
+def _reviewed_target_overrides(reviewed_overrides: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    if not reviewed_overrides:
+        return {}
+    targets = reviewed_overrides.get("target_overrides", {})
+    if not isinstance(targets, Mapping):
+        raise GenerationError("Reviewed target_overrides must be an object.")
+    return targets
+
+
+def _resolve_reviewed_navigation_targets(
+    native_key: str,
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    reviewed_overrides: Mapping[str, Any] | None,
+    navigation_points: tuple[Mapping[str, Any], ...],
+    navigation_zone_names: Mapping[int, str],
+) -> ReconciledObjective:
+    all_targets = _reviewed_target_overrides(reviewed_overrides)
+    step_lookup = {step.stable_step_id: step for step in reconciled.steps}
+    updates: dict[str, ReconciledStep] = {}
+    for stable_step_id, raw_target in all_targets.items():
+        stable_step_id = str(stable_step_id)
+        if not stable_step_id.startswith(native_key + ":step-"):
+            continue
+        step = step_lookup.get(stable_step_id)
+        if step is None:
+            raise GenerationError(f"Reviewed target names unknown step {stable_step_id!r}.")
+        if not isinstance(raw_target, Mapping):
+            raise GenerationError(f"Reviewed target {stable_step_id!r} must be an object.")
+        source_revisions = raw_target.get("source_revisions")
+        if not isinstance(source_revisions, Mapping) or bg is None or ffxiclopedia is None:
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} lacks pinned dual-source revisions."
+            )
+        expected_revisions = {
+            "bg": bg.revision_id,
+            "ffxiclopedia": ffxiclopedia.revision_id,
+        }
+        for site, expected_revision in expected_revisions.items():
+            if int(source_revisions.get(site, 0) or 0) != expected_revision:
+                raise GenerationError(
+                    f"Reviewed target {stable_step_id!r} no longer matches its {site} revision."
+                )
+        reference = raw_target.get("reference")
+        if not isinstance(reference, Mapping):
+            raise GenerationError(f"Reviewed target {stable_step_id!r} lacks an exact reference.")
+
+        zone = int(reference.get("zone", 0) or 0)
+        zone_name = str(reference.get("zone_name", "")).strip()
+        name = str(reference.get("name", "")).strip()
+        kind = str(reference.get("kind", "")).strip().casefold()
+        arrival_instruction = str(raw_target.get("arrival_instruction", "")).strip()
+        if zone <= 0 or not zone_name or not name or kind != "npc" or name == "???":
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} is not an exact named NPC reference."
+            )
+        if not arrival_instruction:
+            raise GenerationError(f"Reviewed target {stable_step_id!r} lacks arrival instructions.")
+        if step.action.casefold() != "talk" or step.comparison == "conflict":
+            raise GenerationError(f"Reviewed target {stable_step_id!r} is not a safe talk step.")
+        if "action" not in step.agreed_fields or "entities" not in step.agreed_fields:
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} is not independently corroborated."
+            )
+
+        bg_order, ffxi_order = step.source_orders
+        bg_step = _source_step_for_order(bg, bg_order)
+        ffxi_step = _source_step_for_order(ffxiclopedia, ffxi_order)
+        wanted_name = name.casefold()
+        if bg_step is None or ffxi_step is None:
+            raise GenerationError(f"Reviewed target {stable_step_id!r} lacks two source steps.")
+        if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
+            raise GenerationError(f"Reviewed target {stable_step_id!r} has conflicting source actions.")
+        if wanted_name not in _casefold_values(bg_step.linked_entities) or wanted_name not in _casefold_values(
+            ffxi_step.linked_entities
+        ):
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} is not named by both source steps."
+            )
+        if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(ffxi_step, zone_name):
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} does not have dual-source zone evidence."
+            )
+
+        current_zone_name = str(navigation_zone_names.get(zone, "")).strip()
+        if not current_zone_name or current_zone_name.casefold() != zone_name.casefold():
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} zone does not match current navigation data."
+            )
+        matches = [
+            point
+            for point in navigation_points
+            if int(point.get("zone", 0) or 0) == zone
+            and str(point.get("name", "")).strip().casefold() == wanted_name
+            and str(point.get("kind", "")).strip().casefold() == kind
+        ]
+        if len(matches) != 1:
+            raise GenerationError(
+                f"Reviewed target {stable_step_id!r} resolves to {len(matches)} current nav points."
+            )
+        updates[stable_step_id] = replace(
+            step,
+            route_ready=True,
+            navigation_target=ReviewedNavigationTarget(
+                target_type="static-reference",
+                zone=zone,
+                zone_name=current_zone_name,
+                name=name,
+                kind=kind,
+                arrival_instruction=arrival_instruction,
+            ),
+        )
+
+    if not updates:
+        return reconciled
+    return replace(
+        reconciled,
+        steps=tuple(updates.get(step.stable_step_id, step) for step in reconciled.steps),
+    )
+
+
 def _section_heading_key(instruction: str) -> str:
     match = re.match(r"^Section:\s*(.*?)\.?$", str(instruction or "").strip(), re.IGNORECASE)
     if not match:
@@ -610,6 +842,8 @@ def build_guide_artifacts(
     reviewed_overrides: Mapping[str, Any] | None = None,
     source_revisions: Iterable[PageRevision] | None = None,
     parse_failures: Iterable[Mapping[str, Any]] = (),
+    navigation_points: Iterable[Mapping[str, Any]] = (),
+    navigation_zone_names: Mapping[int, str] | None = None,
 ) -> dict[str, Any]:
     """Build deterministic, license-separated runtime and coverage artifacts."""
 
@@ -623,6 +857,20 @@ def build_guide_artifacts(
     )
     if not revisions:
         revisions = pages
+    nav_points = tuple(navigation_points)
+    nav_point_lists: dict[tuple[str, str], list[Mapping[str, Any]]] = defaultdict(list)
+    for point in nav_points:
+        key = (
+            str(point.get("name", "")).strip().casefold(),
+            str(point.get("kind", "")).strip().casefold(),
+        )
+        nav_point_lists[key].append(point)
+    nav_point_index = {key: tuple(values) for key, values in nav_point_lists.items()}
+    nav_zone_names = {
+        int(zone): str(name)
+        for zone, name in (navigation_zone_names or {}).items()
+        if int(zone) > 0 and str(name).strip()
+    }
     if len({native.key for native in natives}) != len(natives):
         raise GenerationError("Native objective keys must be unique before guide generation.")
     if len({(page.site, page.page_id) for page in pages}) != len(pages):
@@ -667,6 +915,7 @@ def build_guide_artifacts(
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
+    resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
         bg = source_maps.get("bg", {}).get(native.key)
@@ -682,6 +931,15 @@ def build_guide_artifacts(
         route_steps: set[str] = set()
         if matched:
             reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
+            reconciled = _resolve_reviewed_navigation_targets(
+                native.key,
+                reconciled,
+                bg,
+                ffxiclopedia,
+                reviewed_overrides,
+                nav_points,
+                nav_zone_names,
+            )
             automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
             default_step_id = _default_shared_step_id(
                 native,
@@ -692,6 +950,14 @@ def build_guide_artifacts(
             runtime_objective_key = _runtime_objective_key(native.key, reviewed_overrides)
             if runtime_objective_key and automatic_stages:
                 route_steps = set(automatic_stages.values())
+            route_steps.update(
+                step.stable_step_id for step in reconciled.steps if step.route_ready
+            )
+            resolved_reviewed_target_steps.update(
+                step.stable_step_id
+                for step in reconciled.steps
+                if step.navigation_target is not None
+            )
             reconcile_groups[(native.kind, native.context)].append(
                 (native, reconciled, automatic_stages, default_step_id, route_steps)
             )
@@ -703,32 +969,69 @@ def build_guide_artifacts(
                     or step.grid_coordinates
                 ):
                     continue
+                proposal = _propose_named_npc_target(
+                    step,
+                    bg,
+                    ffxiclopedia,
+                    nav_point_index,
+                    nav_zone_names,
+                )
                 if step.stable_step_id in route_steps:
-                    review_status = "verified-runtime"
+                    review_status = (
+                        "verified-reviewed-target"
+                        if step.navigation_target is not None
+                        else "verified-runtime"
+                    )
                 elif step.comparison == "conflict":
                     review_status = "source-conflict"
                 elif reconciled.dynamic_candidate_grid:
                     review_status = "dynamic-candidate-unresolved"
+                elif proposal is not None:
+                    review_status = "needs-reviewed-exact-target"
                 elif step.action in {"talk", "travel", "examine", "use", "wait"} and (
                     step.entities or step.zones or step.grid_coordinates
                 ):
                     review_status = "needs-exact-target-review"
                 else:
                     review_status = "guide-only-action"
-                target_review_steps.append(
-                    {
-                        "native_key": native.key,
-                        "stable_step_id": step.stable_step_id,
-                        "action": step.action,
-                        "comparison": step.comparison,
-                        "entities": list(step.entities),
-                        "zones": list(step.zones),
-                        "grid_coordinates": list(step.grid_coordinates),
-                        "dynamic_candidate_grid": list(reconciled.dynamic_candidate_grid),
-                        "review_status": review_status,
-                        "route_ready": step.stable_step_id in route_steps,
+                review_row: dict[str, Any] = {
+                    "native_key": native.key,
+                    "stable_step_id": step.stable_step_id,
+                    "action": step.action,
+                    "comparison": step.comparison,
+                    "entities": list(step.entities),
+                    "zones": list(step.zones),
+                    "grid_coordinates": list(step.grid_coordinates),
+                    "dynamic_candidate_grid": list(reconciled.dynamic_candidate_grid),
+                    "review_status": review_status,
+                    "route_ready": step.stable_step_id in route_steps,
+                }
+                if step.navigation_target is not None:
+                    review_row["navigation_target"] = {
+                        "type": step.navigation_target.target_type,
+                        "zone": step.navigation_target.zone,
+                        "zone_name": step.navigation_target.zone_name,
+                        "name": step.navigation_target.name,
+                        "kind": step.navigation_target.kind,
                     }
-                )
+                elif proposal is not None:
+                    review_row["proposed_navigation_target"] = {
+                        "type": proposal.target_type,
+                        "zone": proposal.zone,
+                        "zone_name": proposal.zone_name,
+                        "name": proposal.name,
+                        "kind": proposal.kind,
+                    }
+                if proposal is not None and bg is not None and ffxiclopedia is not None:
+                    review_row["proposal_evidence"] = {
+                        "bg_revision_id": bg.revision_id,
+                        "bg_instruction": step.bg_instruction,
+                        "bg_source_url": _source_url(bg),
+                        "ffxiclopedia_revision_id": ffxiclopedia.revision_id,
+                        "ffxiclopedia_instruction": step.ffxiclopedia_instruction,
+                        "ffxiclopedia_source_url": _source_url(ffxiclopedia),
+                    }
+                target_review_steps.append(review_row)
 
         has_steps = any(page.steps for page in matched.values())
         ambiguous_sites = sorted(
@@ -736,7 +1039,7 @@ def build_guide_artifacts(
         )
         if runtime_objective_key and automatic_stages:
             status = "automatic-stage"
-        elif runtime_objective_key:
+        elif route_steps:
             status = "verified-navigation"
         elif reconciled is not None and _has_material_conflict(reconciled):
             status = "source-conflict"
@@ -776,9 +1079,18 @@ def build_guide_artifacts(
             "runtime_objective_key": runtime_objective_key,
             "automatic_stages": automatic_stages,
             "default_step_id": default_step_id,
-            "route_ready": bool(runtime_objective_key),
+            "route_ready": bool(route_steps),
             "automatic_stage": bool(automatic_stages),
         }
+
+    unresolved_reviewed_targets = set(_reviewed_target_overrides(reviewed_overrides)).difference(
+        resolved_reviewed_target_steps
+    )
+    if unresolved_reviewed_targets:
+        sample = ", ".join(sorted(unresolved_reviewed_targets)[:5])
+        raise GenerationError(
+            f"Reviewed targets no longer resolve to current guide steps: {sample}"
+        )
 
     module_root = Path(module_root)
     data_root = Path(data_root)

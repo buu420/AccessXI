@@ -2564,7 +2564,17 @@ return {
         entities = { "Andrause", "Norg" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Andrause",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Andrause.",
+        },
       },
       {
         stable_step_id = "mission:A Shantotto Ascension:5:step-003",
@@ -3221,7 +3231,17 @@ return {
         entities = { "Aldo", "Lower Jeuno" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Aldo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Aldo.",
+        },
       },
     },
   },

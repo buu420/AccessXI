@@ -3262,7 +3262,17 @@ return {
         entities = { "Dabhuh", "Aht Urhgan Whitegate", "Merrow Scale", "Merrow Songstress", "Merrow Bladedancer", "Merrow Icedancer", "Merrow Wavedancer", "Merrow Kabukidancer", "Arrapago Reef" },
         zones = {  },
         grid_coordinates = { "K-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Dabhuh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dabhuh.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:13:step-002",
@@ -8066,7 +8076,17 @@ return {
         entities = { "Iruki-Waraki", "Aht Urhgan Whitegate", "Nashmau" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Iruki-Waraki",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iruki-Waraki.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:27:step-002",
@@ -8092,7 +8112,17 @@ return {
         entities = { "Nashmau", "Dnegan", "Puppetmaster", "Caedarva Mire" },
         zones = {  },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Dnegan",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dnegan.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:27:step-004",
@@ -8232,7 +8262,17 @@ return {
         entities = { "Iruki-Waraki", "Aht Urhgan Whitegate" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Iruki-Waraki",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iruki-Waraki.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:28:step-003",
@@ -9451,7 +9491,17 @@ return {
         entities = { "Nashmau", "Sajhra" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Sajhra",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sajhra.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:29:step-053",
@@ -9477,7 +9527,17 @@ return {
         entities = { "Iruki-Waraki", "Aht Urhgan Whitegate", "Puppetry Taj" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Iruki-Waraki",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iruki-Waraki.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:29:step-055",
@@ -12599,7 +12659,17 @@ return {
         entities = { "Fari-Wari", "Shararat Teahouse", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "K-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Fari-Wari",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fari-Wari.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:43:step-003",
@@ -12866,7 +12936,17 @@ return {
         entities = { "Ode to the Serpents", "Gaweesh", "Al Zahbi" },
         zones = { "Al Zahbi" },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 48,
+            zone_name = "Al Zahbi",
+            name = "Gaweesh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gaweesh.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:45:step-003",
@@ -12993,7 +13073,17 @@ return {
         entities = { "Ode to the Serpents", "Talhaal", "Al Zahbi" },
         zones = { "Al Zahbi" },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 48,
+            zone_name = "Al Zahbi",
+            name = "Talhaal",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Talhaal.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:46:step-003",
@@ -13006,7 +13096,17 @@ return {
         entities = { "Fari-Wari", "Aht Urhgan Whitegate", "Talhaal", "Zazarg" },
         zones = {  },
         grid_coordinates = { "K-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Fari-Wari",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fari-Wari.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:46:step-004",
@@ -13250,7 +13350,17 @@ return {
         entities = { "Mihli Aliapoh", "Al Zahbi", "Colorful Hair" },
         zones = { "Al Zahbi" },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 48,
+            zone_name = "Al Zahbi",
+            name = "Mihli Aliapoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mihli Aliapoh.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:47:step-006",
@@ -16278,7 +16388,17 @@ return {
         entities = { "Mhasbaf", "Aht Urhgan Whitegate" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Mhasbaf",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mhasbaf.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:65:step-002",
@@ -16369,7 +16489,17 @@ return {
         entities = { "Tataroon", "Nashmau" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Tataroon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tataroon.",
+        },
       },
     },
   },
@@ -16418,7 +16548,17 @@ return {
         entities = { "Nadee Periyaha", "Aht Urhgan Whitegate" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Nadee Periyaha",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nadee Periyaha.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:66:step-004",
@@ -16431,7 +16571,17 @@ return {
         entities = { "Cacaroon", "Aht Urhgan Whitegate" },
         zones = {  },
         grid_coordinates = { "G-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Cacaroon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cacaroon.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:66:step-005",
@@ -17134,7 +17284,17 @@ return {
         entities = { "Aht Urhgan Whitegate", "Iruki-Waraki" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Iruki-Waraki",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iruki-Waraki.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:7:step-003",
@@ -17147,7 +17307,17 @@ return {
         entities = { "Ghatsad", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Ghatsad",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ghatsad.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:7:step-004",
@@ -18701,7 +18871,17 @@ return {
         entities = { "Paparoon", "Nashmau", "Assault" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Paparoon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Paparoon.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:71:step-003",
@@ -20226,7 +20406,17 @@ return {
         entities = { "Iron Eater", "Metalworks", "Bastokan approval letter" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Iron Eater",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iron Eater.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:74:step-011",
@@ -21595,7 +21785,17 @@ return {
         entities = { "Naja Salaheem", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Naja Salaheem",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naja Salaheem.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:77:step-004",
@@ -21686,7 +21886,17 @@ return {
         entities = { "Yoyoroon", "Nashmau" },
         zones = { "Nashmau" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Yoyoroon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoyoroon.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:77:step-011",
@@ -23748,7 +23958,17 @@ return {
         entities = { "Nafiwaa", "Aht Urhgan Whitegate" },
         zones = {  },
         grid_coordinates = { "G-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Nafiwaa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nafiwaa.",
+        },
       },
       {
         stable_step_id = "quest:aht_urhgan:92:step-005",

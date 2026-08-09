@@ -140,6 +140,7 @@ local function reviewed_candidate_copy(reconciliation, candidate)
     end
 
     local result = deep_copy(candidate);
+    result.classification = 'catalogue-candidate';
     result.guide_step_id = clean(guide_step.stable_step_id);
     result.guide_step_order = tonumber(guide_step.order) or 0;
     -- This candidate-specific text is for speech only. Route authorization is
@@ -183,6 +184,7 @@ local function reviewed_instruction_copy(reconciliation, ledger)
         guide_step_order = tonumber(guide_step.order) or 0,
         action_instruction = instruction,
         instruction_only = true,
+        classification = 'instruction-only',
         route_ready = false,
     };
 end

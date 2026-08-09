@@ -28,6 +28,36 @@ local function character_identity()
     return clean(accessxi.current_player_identity()):lower();
 end
 
+local function player_world_id()
+    if (type(accessxi.current_player_world_id) ~= 'function') then
+        return 0;
+    end
+    return tonumber(accessxi.current_player_world_id()) or 0;
+end
+
+local function objective_session_epoch()
+    if (type(accessxi.current_objective_session_epoch) ~= 'function') then
+        return 0;
+    end
+    return tonumber(accessxi.current_objective_session_epoch()) or 0;
+end
+
+local function deep_copy(value, seen)
+    if (type(value) ~= 'table') then
+        return value;
+    end
+    seen = seen or {};
+    if (seen[value] ~= nil) then
+        return seen[value];
+    end
+    local result = {};
+    seen[value] = result;
+    for key, item in pairs(value) do
+        result[deep_copy(key, seen)] = deep_copy(item, seen);
+    end
+    return result;
+end
+
 local function has_entries(value)
     return type(value) == 'table' and next(value) ~= nil;
 end
@@ -80,13 +110,27 @@ local function point_copy(point)
         objective_id = tonumber(point.objective_id),
         objective_stage = clean(point.objective_stage),
         objective_title = clean(point.objective_title),
-        objective_instruction = clean(point.objective_instruction),
-        arrival_instruction = clean(point.arrival_instruction),
+        objective_instruction = clean(point.objective_action_instruction or point.objective_instruction),
+        objective_action_instruction = clean(point.objective_action_instruction or point.objective_instruction),
+        objective_classification = clean(point.objective_classification),
+        arrival_instruction = clean(point.arrival_instruction or point.objective_action_instruction),
         objective_source = clean(point.objective_source),
         objective_character_identity = clean(point.objective_character_identity),
+        objective_world_id = tonumber(point.objective_world_id),
+        objective_session_epoch = tonumber(point.objective_session_epoch),
         objective_native_key = clean(point.objective_native_key),
-        guide_step_id = clean(point.guide_step_id),
+        guide_step_id = clean(point.guide_step_id or point.objective_guide_step_id),
+        objective_guide_step_id = clean(point.objective_guide_step_id or point.guide_step_id),
+        objective_candidate_id = clean(point.objective_candidate_id),
+        objective_action_id = clean(point.objective_action_id),
+        objective_group_id = clean(point.objective_group_id),
         objective_destination_id = clean(point.objective_destination_id),
+        objective_route_contract_id = clean(point.objective_route_contract_id),
+        objective_contract_snapshot = deep_copy(point.objective_contract_snapshot),
+        destination_id = clean(point.destination_id),
+        raw_identity = clean(point.raw_identity),
+        raw_spawn_ids = deep_copy(point.raw_spawn_ids),
+        cluster_policy_version = clean(point.cluster_policy_version),
         objective_action = clean(point.objective_action),
         objective_items_text = clean(point.objective_items_text),
         objective_enemies_text = clean(point.objective_enemies_text),
@@ -281,6 +325,7 @@ local function mission_route_state_ready(item)
         or clean(accessxi.mission_packet_player) ~= current_player
         or clean(accessxi.mission_packet_identity):lower() ~= current_identity
         or clean(accessxi.mission_packet_source) ~= 'packet_in_056'
+        or tonumber(accessxi.mission_packet_session_epoch) ~= objective_session_epoch()
         or (tonumber(packet.port) or 0) ~= 0xFFFF) then
         return false;
     end
@@ -323,7 +368,8 @@ local function quest_route_state_ready(item)
     if (current_player == '' or current_identity == ''
         or clean(accessxi.quest_packet_player) ~= current_player
         or clean(accessxi.quest_packet_identity):lower() ~= current_identity
-        or clean(accessxi.quest_packet_source) ~= 'packet_in_056') then
+        or clean(accessxi.quest_packet_source) ~= 'packet_in_056'
+        or tonumber(accessxi.quest_packet_session_epoch) ~= objective_session_epoch()) then
         return false;
     end
 
@@ -332,7 +378,8 @@ local function quest_route_state_ready(item)
         and accessxi.quest_packet_entry(area_key, 'current') or nil;
     return type(entry) == 'table'
         and clean(entry.source) == 'packet_in_056'
-        and clean(entry.identity):lower() == current_identity;
+        and clean(entry.identity):lower() == current_identity
+        and tonumber(entry.session_epoch) == objective_session_epoch();
 end
 
 local function key_item_state_available(id)
@@ -352,7 +399,35 @@ local function key_item_state_available(id)
     return type(entry) == 'table'
         and #tostring(entry.flags or '') >= 64
         and clean(entry.source) == 'packet_in_055'
-        and clean(entry.identity):lower() == current_identity;
+        and clean(entry.identity):lower() == current_identity
+        and tonumber(entry.session_epoch) == objective_session_epoch();
+end
+
+local function objective_auxiliary_state_ready()
+    local current_player = player_name();
+    local current_identity = character_identity();
+    local epoch = objective_session_epoch();
+    if (current_player == '' or current_identity == '' or epoch <= 0
+        or clean(accessxi.key_items_packet_player) ~= current_player
+        or clean(accessxi.key_items_packet_identity):lower() ~= current_identity
+        or clean(accessxi.inventory_packet_source) ~= 'packet_in_inventory'
+        or clean(accessxi.inventory_packet_identity):lower() ~= current_identity
+        or tonumber(accessxi.inventory_packet_session_epoch) ~= epoch) then
+        return false;
+    end
+    local found_key_item_table = false;
+    for _, entry in pairs(type(accessxi.key_items_packet_tables) == 'table'
+        and accessxi.key_items_packet_tables or {}) do
+        if (type(entry) == 'table') then
+            found_key_item_table = true;
+            if (clean(entry.source) ~= 'packet_in_055'
+                or clean(entry.identity):lower() ~= current_identity
+                or tonumber(entry.session_epoch) ~= epoch) then
+                return false;
+            end
+        end
+    end
+    return found_key_item_table;
 end
 
 local function owns_key_item(id)
@@ -421,107 +496,157 @@ local function referenced_target(reference)
     return point_copy(match);
 end
 
-local function mission_destination_target(item, destination)
-    if (type(item) ~= 'table' or type(destination) ~= 'table'
-        or destination.route_ready ~= true) then
-        return nil;
-    end
-    local native_key = clean(item.objective_native_key);
-    local stable_id = clean(destination.stable_id);
-    local action = clean(destination.action):lower();
-    local zone = tonumber(destination.zone) or 0;
-    local zone_name = clean(destination.zone_name);
-    local camp_label = clean(destination.camp_label);
-    local arrival_instruction = clean(destination.arrival_instruction);
-    local items_text = spoken_list(destination.items);
-    local enemies_text = spoken_list(destination.enemies);
-    if (native_key == '' or stable_id:sub(1, #native_key + 1) ~= native_key .. ':'
-        or (action ~= 'farm' and action ~= 'fight' and action ~= 'obtain')
-        or zone <= 0 or zone_name == '' or camp_label == ''
-        or arrival_instruction == '' or items_text == '' or enemies_text == '') then
-        return nil;
-    end
-
-    local target_info = destination.navigation_target;
-    local reference = type(target_info) == 'table' and target_info.reference or nil;
-    if (clean(type(target_info) == 'table' and target_info.type or ''):lower() ~= 'static-reference'
-        or type(reference) ~= 'table'
-        or (tonumber(reference.zone) or 0) ~= zone
-        or clean(reference.zone_name):lower() ~= zone_name:lower()) then
-        return nil;
-    end
-    local target = referenced_target(reference);
-    if (target == nil or (tonumber(target.zone) or 0) ~= zone) then
-        return nil;
-    end
-
-    local canonical_edge_id = tonumber(destination.canonical_ingress_edge_id) or 0;
-    local canonical_from_zone = tonumber(destination.canonical_ingress_from_zone) or 0;
-    if ((canonical_edge_id > 0 and canonical_from_zone <= 0)
-        or (canonical_edge_id <= 0 and canonical_from_zone > 0)) then
-        return nil;
-    end
-    if (clean(target.confidence):lower() == 'untested'
-        and clean(destination.route_evidence) == '') then
-        return nil;
-    end
-
-    local identity = character_identity();
-    if (identity == '') then
-        return nil;
-    end
-    target.objective_kind = 'mission';
-    target.objective_context = clean(item.mission_context);
-    target.objective_id = tonumber(item.mission_id);
-    target.objective_stage = 'reviewed-mission-destination';
-    target.objective_title = clean(item.name);
-    target.objective_instruction = arrival_instruction;
-    target.arrival_instruction = arrival_instruction;
-    target.objective_source = 'reviewed-mission-destination';
-    target.objective_character_identity = identity;
-    target.objective_native_key = native_key;
-    target.objective_destination_id = stable_id;
-    target.objective_action = action;
-    target.objective_items_text = items_text;
-    target.objective_enemies_text = enemies_text;
-    target.objective_camp_label = camp_label;
-    target.objective_destination_zone_name = zone_name;
-    target.objective_canonical_edge_id = canonical_edge_id > 0 and canonical_edge_id or nil;
-    target.objective_canonical_from_zone = canonical_from_zone > 0 and canonical_from_zone or nil;
-    target.objective_transport_id = clean(destination.transport_id);
-    target.objective_route_evidence = clean(destination.route_evidence);
-    target.route_context_label = 'Mission destination';
-    target.section = arrival_instruction;
-    target.verified = true;
-    return target;
+local function finite_number(value)
+    value = tonumber(value);
+    return value ~= nil and value == value and value ~= math.huge and value ~= -math.huge;
 end
 
-local function expanded_mission_destination(item, destination)
-    local target = mission_destination_target(item, destination);
-    if (target == nil) then
+local function exact_objective_guide_row(row)
+    if (type(row) ~= 'table' or row.route_ready == true
+        or clean(row.objective_route_contract_id or row.route_contract_id) ~= '') then
+        return nil;
+    end
+    local action_id = clean(row.action_id);
+    local guide_step_id = clean(row.guide_step_id);
+    local instruction = clean(row.action_instruction);
+    if (action_id == '' or guide_step_id == '' or instruction == '') then
+        return nil;
+    end
+    local instruction_only = row.instruction_only == true;
+    if (instruction_only) then
+        if (clean(row.classification) ~= 'instruction-only'
+            or clean(row.status) ~= 'instruction-only'
+            or clean(row.reason) ~= 'complete-instruction'
+            or row.material ~= true
+            or clean(row.candidate_id) ~= ''
+            or clean(row.group_id) ~= ''
+            or clean(row.destination_id) ~= '') then
+            return nil;
+        end
+        return {
+            instruction_only = true,
+            action_id = action_id,
+            guide_step_id = guide_step_id,
+            guide_step_order = tonumber(row.guide_step_order) or 0,
+            action = clean(row.action),
+            instruction = instruction,
+        };
+    end
+
+    if (clean(row.classification) ~= 'catalogue-candidate') then
+        return nil;
+    end
+
+    local candidate_id = clean(row.candidate_id);
+    local group_id = clean(row.group_id);
+    local destination_id = clean(row.destination_id);
+    local action = clean(row.action);
+    local zone = tonumber(row.zone) or 0;
+    local point = row.target_point;
+    if (candidate_id == '' or destination_id == '' or action == ''
+        or zone <= 0 or clean(row.zone_name) == '' or clean(row.target_name) == ''
+        or clean(row.target_kind) == '' or clean(row.raw_identity) == ''
+        or type(point) ~= 'table' or not finite_number(point[1])
+        or not finite_number(point[2]) or not finite_number(point[3])) then
+        return nil;
+    end
+    return {
+        instruction_only = false,
+        candidate_id = candidate_id,
+        action_id = action_id,
+        group_id = group_id,
+        destination_id = destination_id,
+        guide_step_id = guide_step_id,
+        guide_step_order = tonumber(row.guide_step_order) or 0,
+        action = action,
+        instruction = instruction,
+        zone = zone,
+        zone_name = clean(row.zone_name),
+        target_name = clean(row.target_name),
+        target_kind = clean(row.target_kind),
+        target_point = { tonumber(point[1]), tonumber(point[2]), tonumber(point[3]) },
+        raw_identity = clean(row.raw_identity),
+        raw_spawn_ids = deep_copy(row.raw_spawn_ids),
+        cluster_policy_version = clean(row.cluster_policy_version),
+        label = clean(row.label),
+        items = deep_copy(row.items),
+        enemies = deep_copy(row.enemies),
+        transport_id = clean(row.transport_id),
+    };
+end
+
+local function expanded_objective_row(item, row)
+    local reviewed = exact_objective_guide_row(row);
+    local identity = character_identity();
+    local world_id = player_world_id();
+    local session_epoch = objective_session_epoch();
+    if (reviewed == nil or identity == '' or world_id <= 0 or session_epoch <= 0) then
         return nil;
     end
     local result = T{};
     for key, value in pairs(item) do
-        result[key] = value;
+        result[key] = deep_copy(value);
     end
     result.objective_available = true;
-    result.objective_status = 'verified';
-    result.objective_stage = target.objective_stage;
-    result.objective_instruction = target.objective_instruction;
-    result.objective_source = target.objective_source;
-    result.objective_target = target;
-    result.objective_destination_id = target.objective_destination_id;
-    result.objective_action = target.objective_action;
-    result.objective_items_text = target.objective_items_text;
-    result.objective_enemies_text = target.objective_enemies_text;
-    result.objective_camp_label = target.objective_camp_label;
-    result.objective_destination_zone_name = target.objective_destination_zone_name;
-    result.objective_canonical_edge_id = target.objective_canonical_edge_id;
-    result.objective_canonical_from_zone = target.objective_canonical_from_zone;
-    result.objective_transport_id = target.objective_transport_id;
-    result.objective_route_evidence = target.objective_route_evidence;
+    result.objective_status = reviewed.instruction_only and 'instruction-only' or 'catalogue-candidate';
+    result.objective_classification = result.objective_status;
+    result.objective_instruction_only = reviewed.instruction_only;
+    result.objective_instruction = reviewed.instruction;
+    result.objective_action_instruction = reviewed.instruction;
+    result.objective_guide_step_id = reviewed.guide_step_id;
+    result.objective_guide_step_order = reviewed.guide_step_order;
+    result.objective_action_id = reviewed.action_id;
+    result.objective_candidate_id = reviewed.candidate_id or '';
+    result.objective_group_id = reviewed.group_id or '';
+    result.objective_destination_id = reviewed.destination_id or '';
+    result.objective_route_contract_id = nil;
+    result.objective_character_identity = identity;
+    result.objective_world_id = world_id;
+    result.objective_session_epoch = session_epoch;
+    result.objective_action = reviewed.action;
+    result.objective_target = nil;
+    if (not reviewed.instruction_only) then
+        local point = reviewed.target_point;
+        result.objective_destination_label = reviewed.label;
+        result.objective_destination_zone_name = reviewed.zone_name;
+        result.objective_items_text = spoken_list(reviewed.items);
+        result.objective_enemies_text = spoken_list(reviewed.enemies);
+        result.objective_transport_id = reviewed.transport_id;
+        result.objective_target = T{
+            zone = reviewed.zone,
+            name = reviewed.target_name,
+            x = point[1],
+            z = point[2],
+            y = point[3],
+            kind = reviewed.target_kind,
+            source = 'typed-objective-candidate',
+            confidence = 'untested',
+            section = reviewed.instruction,
+            destination_id = reviewed.destination_id,
+            raw_identity = reviewed.raw_identity,
+            raw_spawn_ids = deep_copy(reviewed.raw_spawn_ids),
+            cluster_policy_version = reviewed.cluster_policy_version,
+        };
+    end
     return result;
+end
+
+local function objective_row_less(left, right)
+    local left_order = tonumber(left.objective_guide_step_order) or 0;
+    local right_order = tonumber(right.objective_guide_step_order) or 0;
+    if (left_order ~= right_order) then
+        return left_order < right_order;
+    end
+    for _, field in ipairs({
+        'objective_action_id', 'objective_group_id', 'objective_candidate_id',
+    }) do
+        local left_value = clean(left[field]);
+        local right_value = clean(right[field]);
+        if (left_value ~= right_value) then
+            return left_value < right_value;
+        end
+    end
+    return false;
 end
 
 local function expand_active_mission_destinations(items)
@@ -530,24 +655,88 @@ local function expand_active_mission_destinations(items)
         local replacements = T{};
         if (clean(item.mission_availability) == 'active'
             and type(accessxi.objective_guides) == 'table'
-            and type(accessxi.objective_guides.mission_destinations) == 'function') then
+            and type(accessxi.objective_guides.objective_destinations) == 'function') then
             local ok, destinations = pcall(
-                accessxi.objective_guides.mission_destinations,
+                accessxi.objective_guides.objective_destinations,
                 accessxi.objective_guides,
                 clean(item.objective_native_key));
             if (ok and type(destinations) == 'table') then
-                for _, destination in ipairs(destinations) do
-                    local replacement = expanded_mission_destination(item, destination);
-                    if (replacement ~= nil) then
-                        replacements:append(replacement);
+                local expected_step = '';
+                local stage_filter_ready = clean(item.objective_stage) == '';
+                if (clean(item.objective_stage) ~= ''
+                    and type(accessxi.objective_guides.automatic_step_id) == 'function') then
+                    local step_ok, step_id = pcall(
+                        accessxi.objective_guides.automatic_step_id,
+                        accessxi.objective_guides,
+                        clean(item.objective_native_key),
+                        clean(item.objective_stage));
+                    if (step_ok) then
+                        expected_step = clean(step_id);
+                        stage_filter_ready = expected_step ~= '';
+                    end
+                end
+                if (stage_filter_ready) then
+                    for _, destination in ipairs(destinations) do
+                        local replacement = expanded_objective_row(item, destination);
+                        if (replacement ~= nil and (expected_step == ''
+                            or clean(replacement.objective_guide_step_id) == expected_step)) then
+                            replacements:append(replacement);
+                        end
                     end
                 end
             end
         end
         if (#replacements > 0) then
+            table.sort(replacements, objective_row_less);
             for _, replacement in ipairs(replacements) do
                 expanded:append(replacement);
             end
+        else
+            expanded:append(item);
+        end
+    end
+    return expanded;
+end
+
+local function expand_active_quest_destinations(items)
+    local expanded = T{};
+    for _, item in ipairs(items or T{}) do
+        local replacements = T{};
+        if (type(accessxi.objective_guides) == 'table'
+            and type(accessxi.objective_guides.objective_destinations) == 'function') then
+            local ok, destinations = pcall(
+                accessxi.objective_guides.objective_destinations,
+                accessxi.objective_guides,
+                clean(item.objective_native_key));
+            if (ok and type(destinations) == 'table') then
+                local expected_step = '';
+                local stage_filter_ready = clean(item.objective_stage) == '';
+                if (clean(item.objective_stage) ~= ''
+                    and type(accessxi.objective_guides.automatic_step_id) == 'function') then
+                    local step_ok, step_id = pcall(
+                        accessxi.objective_guides.automatic_step_id,
+                        accessxi.objective_guides,
+                        clean(item.objective_native_key),
+                        clean(item.objective_stage));
+                    if (step_ok) then
+                        expected_step = clean(step_id);
+                        stage_filter_ready = expected_step ~= '';
+                    end
+                end
+                if (stage_filter_ready) then
+                    for _, destination in ipairs(destinations) do
+                        local replacement = expanded_objective_row(item, destination);
+                        if (replacement ~= nil and (expected_step == ''
+                            or clean(replacement.objective_guide_step_id) == expected_step)) then
+                            replacements:append(replacement);
+                        end
+                    end
+                end
+            end
+        end
+        if (#replacements > 0) then
+            table.sort(replacements, objective_row_less);
+            for _, replacement in ipairs(replacements) do expanded:append(replacement); end
         else
             expanded:append(item);
         end
@@ -806,6 +995,8 @@ local function append_mission(items, context, value)
         mission_id = tonumber(row.mission_id) or 0,
         mission_availability = 'active',
         objective_character_identity = character_identity(),
+        objective_world_id = player_world_id(),
+        objective_session_epoch = objective_session_epoch(),
         objective_native_key = ('mission:%s:%d'):fmt(clean(context), tonumber(row.rom_ordinal) or 0),
         mission_current_value = tonumber(value) or 0,
         source = ('native-active-mission:%s:%d:%s'):fmt(clean(context), tonumber(value) or 0, clean(row.source)),
@@ -919,6 +1110,8 @@ local function append_available_nation_mission(items, context, nation, mission_i
         mission_nation = nation,
         mission_availability = 'available-to-start',
         objective_character_identity = character_identity(),
+        objective_world_id = player_world_id(),
+        objective_session_epoch = objective_session_epoch(),
         objective_native_key = ('mission:%s:%d'):fmt(clean(context), tonumber(row.rom_ordinal) or 0),
         source = ('native-available-mission:%s:%d:%s'):fmt(clean(context), mission_id, clean(row.source)),
         confidence = 'native',
@@ -1062,6 +1255,8 @@ local function active_quests()
                             quest_area = clean(resource.label or row.area or area_key),
                             quest_id = quest_id,
                             objective_character_identity = character_identity(),
+                            objective_world_id = player_world_id(),
+                            objective_session_epoch = objective_session_epoch(),
                             objective_native_key = ('quest:%s:%d'):fmt(clean(area_key), quest_id),
                             source = ('native-active-quest:%s:%d:%s'):fmt(clean(area_key), quest_id, clean(row.source)),
                             confidence = 'native',
@@ -1074,7 +1269,7 @@ local function active_quests()
             end
         end
     end
-    return items;
+    return expand_active_quest_destinations(items);
 end
 
 function accessxi.nav_mission_quest_active_items(category_key)
@@ -1096,25 +1291,37 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
     local location = kind == 'quest' and clean(item.quest_area) or clean(item.mission_context);
     local status = kind == 'quest' and 'Active quest.'
         or (clean(item.mission_availability) == 'available-to-start' and 'Available mission.' or 'Active mission.');
-    if (kind == 'mission' and clean(item.objective_destination_id) ~= '') then
-        local speech = ('%s. %s'):fmt(title ~= '' and title or 'Mission', status);
+    if (item.objective_instruction_only == true) then
+        local speech = ('%s. %s'):fmt(title ~= '' and title or 'Objective', status);
         if (location ~= '') then
             speech = speech .. ' ' .. location .. '.';
         end
-        local action = clean(item.objective_action):lower();
-        local action_label = action == 'farm' and 'Farm'
-            or (action == 'fight' and 'Fight' or (action == 'obtain' and 'Obtain' or 'Travel'));
-        speech = speech .. ' Mission destination: ' .. action_label .. '. ' .. clean(item.objective_instruction);
+        speech = speech .. ' Current instruction: ' .. clean(item.objective_instruction);
+        local native_details = meaningful_native_details(item.objective_native_details);
+        if (native_details ~= '') then
+            speech = speech .. (kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ')
+                .. native_details;
+        end
+        return speech .. ' Press I to repeat instructions.'
+            .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
+    end
+    if (clean(item.objective_candidate_id) ~= '') then
+        local speech = ('%s. %s'):fmt(title ~= '' and title or 'Objective', status);
+        if (location ~= '') then
+            speech = speech .. ' ' .. location .. '.';
+        end
+        speech = speech .. ' Objective choice: ' .. clean(item.objective_instruction);
         local destination_location = clean(item.objective_destination_zone_name);
-        local camp_label = clean(item.objective_camp_label);
-        if (destination_location ~= '' or camp_label ~= '') then
-            speech = speech .. ' ' .. clean(destination_location .. ' ' .. camp_label) .. '.';
+        local destination_label = clean(item.objective_destination_label);
+        if (destination_location ~= '' or destination_label ~= '') then
+            speech = speech .. ' Destination: ' .. clean(destination_location .. ' ' .. destination_label) .. '.';
         end
-        if (item.objective_available == true) then
-            speech = speech .. ' Press I to start navigation.';
-        else
-            speech = speech .. ' Navigation unavailable.';
+        local native_details = meaningful_native_details(item.objective_native_details);
+        if (native_details ~= '') then
+            speech = speech .. (kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ')
+                .. native_details;
         end
+        speech = speech .. ' Press I to check navigation.';
         return speech .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
     end
     local prefix = ('%s. %d of %d. %s'):fmt(title ~= '' and title or 'Objective', tonumber(index) or 1, tonumber(total) or 1, status);
@@ -1133,10 +1340,7 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
         local detail_label = kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ';
         prefix = prefix .. detail_label .. native_details;
     end
-    if (item.objective_available == true) then
-        return prefix .. ' Press I to start navigation.';
-    end
-    return prefix;
+    return prefix .. ' No rooted objective route contract is available.';
 end
 
 local function same_item(a, b)
@@ -1147,6 +1351,32 @@ local function same_item(a, b)
     if (clean(a ~= nil and a.objective_character_identity or ''):lower()
         ~= clean(b ~= nil and b.objective_character_identity or ''):lower()) then
         return false;
+    end
+    if (tonumber(a ~= nil and a.objective_world_id or nil)
+        ~= tonumber(b ~= nil and b.objective_world_id or nil)
+        or tonumber(a ~= nil and a.objective_session_epoch or nil)
+            ~= tonumber(b ~= nil and b.objective_session_epoch or nil)
+        or clean(a ~= nil and a.objective_native_key or '')
+            ~= clean(b ~= nil and b.objective_native_key or '')) then
+        return false;
+    end
+    local exact_fields = {
+        'objective_guide_step_id', 'objective_action_id', 'objective_candidate_id',
+        'objective_group_id', 'objective_destination_id',
+    };
+    local typed = a.objective_instruction_only == true or b.objective_instruction_only == true;
+    for _, field in ipairs(exact_fields) do
+        if (clean(a ~= nil and a[field] or '') ~= clean(b ~= nil and b[field] or '')) then
+            return false;
+        end
+        typed = typed or clean(a ~= nil and a[field] or '') ~= ''
+            or clean(b ~= nil and b[field] or '') ~= '';
+    end
+    if (typed) then
+        return (a.objective_instruction_only == true) == (b.objective_instruction_only == true)
+            and clean(a.objective_status) == clean(b.objective_status)
+            and clean(a.objective_classification) == clean(b.objective_classification)
+            and clean(a.objective_action_instruction) == clean(b.objective_action_instruction);
     end
     if (kind == 'mission') then
         local a_destination = clean(a.objective_destination_id);
@@ -1167,6 +1397,67 @@ local function same_item(a, b)
     return false;
 end
 
+local function exact_array(left, right)
+    left = type(left) == 'table' and left or {};
+    right = type(right) == 'table' and right or {};
+    if (#left ~= #right) then
+        return false;
+    end
+    for index = 1, #left do
+        if (tonumber(left[index]) ~= tonumber(right[index])) then
+            return false;
+        end
+    end
+    return true;
+end
+
+local function exact_ready_payload(payload, fresh)
+    if (type(payload) ~= 'table' or type(fresh.objective_target) ~= 'table'
+        or clean(fresh.objective_candidate_id) == ''
+        or clean(payload.objective_route_contract_id) == ''
+        or type(payload.objective_contract_snapshot) ~= 'table'
+        or clean(payload.objective_contract_snapshot.contract_id)
+            ~= clean(payload.objective_route_contract_id)
+        or payload.objective_contract_snapshot.route_ready ~= true) then
+        return false;
+    end
+    for _, field in ipairs({
+        'objective_kind', 'objective_native_key', 'objective_guide_step_id',
+        'objective_candidate_id', 'objective_action_id', 'objective_group_id',
+        'objective_destination_id', 'objective_character_identity',
+        'objective_classification', 'objective_action_instruction',
+    }) do
+        if (clean(payload[field]) ~= clean(fresh[field])) then
+            return false;
+        end
+    end
+    if (tonumber(payload.objective_world_id) ~= tonumber(fresh.objective_world_id)
+        or tonumber(payload.objective_session_epoch) ~= tonumber(fresh.objective_session_epoch)) then
+        return false;
+    end
+    local contract = payload.objective_contract_snapshot;
+    if (clean(contract.candidate_id) ~= clean(fresh.objective_candidate_id)
+        or clean(contract.action_id) ~= clean(fresh.objective_action_id)
+        or clean(contract.group_id) ~= clean(fresh.objective_group_id)
+        or clean(contract.destination_id) ~= clean(fresh.objective_destination_id)) then
+        return false;
+    end
+    local expected = fresh.objective_target;
+    if (tonumber(payload.zone) ~= tonumber(expected.zone)
+        or clean(payload.name) ~= clean(expected.name)
+        or tonumber(payload.x) ~= tonumber(expected.x)
+        or tonumber(payload.z) ~= tonumber(expected.z)
+        or tonumber(payload.y) ~= tonumber(expected.y)
+        or clean(payload.kind) ~= clean(expected.kind)
+        or clean(payload.destination_id) ~= clean(expected.destination_id)
+        or clean(payload.raw_identity) ~= clean(expected.raw_identity)
+        or clean(payload.cluster_policy_version) ~= clean(expected.cluster_policy_version)
+        or not exact_array(payload.raw_spawn_ids, expected.raw_spawn_ids)) then
+        return false;
+    end
+    return true;
+end
+
 function accessxi.nav_mission_quest_prepare_route(item, player)
     local kind = clean(item ~= nil and (item.objective_kind or item.kind) or ''):lower();
     if (kind ~= 'mission' and kind ~= 'quest') then
@@ -1178,6 +1469,10 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     local current_identity = character_identity();
     if (selected_identity == '' or current_identity == '' or selected_identity ~= current_identity) then
         return nil, ('%s belongs to another character. Move or repeat the item to refresh the list.'):fmt(title), 'blocked';
+    end
+    if (tonumber(item.objective_world_id) ~= player_world_id()
+        or tonumber(item.objective_session_epoch) ~= objective_session_epoch()) then
+        return nil, ('%s belongs to stale world or session state. Refresh the list.'):fmt(title), 'blocked';
     end
 
     local fresh = nil;
@@ -1199,98 +1494,39 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     if (not route_state_ready) then
         return nil, ('Current-session packet evidence is not yet available for %s.'):fmt(title), 'blocked';
     end
-    if (kind == 'mission' and clean(fresh.mission_availability) == 'available-to-start') then
-        local target = available_mission_target(fresh, tonumber(fresh.mission_nation), player);
-        if (target == nil) then
-            return nil, ('No unique gate guard destination is available for %s.'):fmt(title), 'blocked';
+    if (fresh.objective_instruction_only ~= true and not objective_auxiliary_state_ready()) then
+        return nil, ('Current-session key-item or inventory evidence is not yet available for %s.'):fmt(title), 'blocked';
+    end
+    local runtime = accessxi.objective_route_runtime;
+    if (type(runtime) ~= 'table' or type(runtime.authorize_start) ~= 'function') then
+        return nil, 'Objective route verification is unavailable.', 'blocked';
+    end
+    local ok, payload, message, mode = pcall(runtime.authorize_start, runtime, item, fresh, player);
+    if (not ok) then
+        return nil, 'Objective route verification failed safely.', 'blocked';
+    end
+    mode = clean(mode):lower();
+    message = clean(message);
+    if (mode == 'blocked') then
+        return nil, message ~= '' and message or 'No rooted route contract is available for this objective.', 'blocked';
+    elseif (mode == 'instruction') then
+        if (fresh.objective_instruction_only ~= true or type(payload) ~= 'string'
+            or clean(payload) == '' or clean(payload) ~= clean(fresh.objective_action_instruction)) then
+            return nil, 'Objective route verification returned an invalid instruction.', 'blocked';
         end
-        return point_copy(target), '', 'ready';
+        return clean(payload), message, 'instruction';
+    elseif (mode == 'ready') then
+        if (fresh.objective_instruction_only == true or not exact_ready_payload(payload, fresh)) then
+            return nil, 'Objective route verification returned an invalid destination.', 'blocked';
+        end
+        return point_copy(payload), message, 'ready';
     end
-    if (fresh.objective_available ~= true or type(fresh.objective_target) ~= 'table') then
-        return nil, ('No verified route objective is available for this stage of %s.'):fmt(title), 'blocked';
-    end
-    return point_copy(fresh.objective_target), '', 'ready';
-end
-
-local function reviewed_guide_target(item, native_key, guide_step_id, step)
-    if (type(step) ~= 'table' or step.route_ready ~= true
-        or clean(step.comparison):lower() == 'conflict'
-        or clean(step.action):lower() ~= 'talk') then
-        return nil;
-    end
-    local target_info = step.navigation_target;
-    if (type(target_info) ~= 'table'
-        or clean(target_info.type):lower() ~= 'static-reference'
-        or type(target_info.reference) ~= 'table') then
-        return nil;
-    end
-    local target = referenced_target(target_info.reference);
-    if (target == nil) then
-        return nil;
-    end
-    local kind = clean(item.objective_kind or item.kind):lower();
-    target.objective_kind = kind;
-    target.objective_context = clean(item.mission_context);
-    target.objective_area = clean(item.quest_area);
-    target.objective_id = tonumber(item.mission_id or item.quest_id);
-    target.objective_stage = 'manual-guide-step';
-    target.objective_title = clean(item.name);
-    target.objective_instruction = clean(step.primary_instruction);
-    target.arrival_instruction = clean(target_info.arrival_instruction);
-    if (target.arrival_instruction == '') then
-        return nil;
-    end
-    target.objective_source = 'reviewed-objective-guide';
-    target.objective_character_identity = character_identity();
-    target.objective_native_key = native_key;
-    target.guide_step_id = guide_step_id;
-    target.verified = true;
-    target.route_context_label = kind == 'quest' and 'Quest objective' or 'Mission objective';
-    return target;
+    return nil, 'Objective route verification returned an unsupported result.', 'blocked';
 end
 
 function accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id, step)
-    native_key = clean(native_key);
-    guide_step_id = clean(guide_step_id);
-    local kind = native_key:match('^(mission):') or native_key:match('^(quest):') or '';
-    if (kind == '' or guide_step_id == '') then
-        return nil;
-    end
-    for _, item in ipairs(accessxi.nav_mission_quest_active_items(kind)) do
-        if (clean(item.objective_native_key) == native_key) then
-            local expected_step = clean(item.objective_guide_step_id);
-            if (expected_step == '' and type(accessxi.objective_guides) == 'table'
-                and type(accessxi.objective_guides.automatic_step_id) == 'function') then
-                expected_step = accessxi.objective_guides:automatic_step_id(
-                    native_key,
-                    clean(item.objective_stage));
-            end
-            local state_ready = false;
-            if (kind == 'mission') then
-                state_ready = mission_route_state_ready(item);
-            elseif (kind == 'quest') then
-                state_ready = quest_route_state_ready(item);
-            end
-            if (state_ready) then
-                local reviewed = reviewed_guide_target(
-                    item,
-                    native_key,
-                    guide_step_id,
-                    step);
-                if (reviewed ~= nil) then
-                    return reviewed;
-                end
-            end
-            if (expected_step == guide_step_id and state_ready and item.objective_available == true
-                and type(item.objective_target) == 'table') then
-                local descriptor = point_copy(item.objective_target);
-                descriptor.verified = true;
-                descriptor.guide_step_id = guide_step_id;
-                descriptor.objective_native_key = native_key;
-                return descriptor;
-            end
-        end
-    end
+    -- Legacy guide route_ready/navigation_target fields are display-only.
+    -- Rooted objective contracts are the sole movement authority.
     return nil;
 end
 
@@ -1327,11 +1563,7 @@ function accessxi.nav_mission_quest_prepare_guide_route()
         or not accessxi.objective_guides:is_open()) then
         return nil, 'No objective step is selected.', 'blocked';
     end
-    local descriptor = accessxi.objective_guides:route_descriptor();
-    if (type(descriptor) ~= 'table') then
-        return nil, accessxi.objective_guides:repeat_step(), 'blocked';
-    end
-    return point_copy(descriptor), '', 'ready';
+    return nil, accessxi.objective_guides:repeat_step(), 'blocked';
 end
 
 function accessxi.nav_mission_quest_guide_selection_present()
@@ -1369,19 +1601,37 @@ function accessxi.nav_mission_quest_route_context(point)
     return clean(point ~= nil and point.route_context_label or '');
 end
 
-local function route_point_owner_mismatch(point, current_identity)
+local function route_point_owner_mismatch(point, current_identity, current_world, current_epoch)
     local kind = clean(type(point) == 'table' and (point.objective_kind or point.kind) or ''):lower();
     if (kind ~= 'mission' and kind ~= 'quest') then
         return false;
     end
     local owner = clean(point.objective_character_identity):lower();
-    return owner == '' or owner ~= current_identity;
+    local contract = point.objective_contract_snapshot;
+    return owner == '' or owner ~= current_identity
+        or tonumber(point.objective_world_id) ~= current_world
+        or tonumber(point.objective_session_epoch) ~= current_epoch
+        or clean(point.objective_native_key) == ''
+        or clean(point.objective_guide_step_id or point.guide_step_id) == ''
+        or clean(point.objective_candidate_id) == ''
+        or clean(point.objective_action_id) == ''
+        or clean(point.objective_destination_id) == ''
+        or clean(point.objective_route_contract_id) == ''
+        or type(contract) ~= 'table'
+        or contract.route_ready ~= true
+        or clean(contract.contract_id) ~= clean(point.objective_route_contract_id)
+        or clean(contract.candidate_id) ~= clean(point.objective_candidate_id)
+        or clean(contract.action_id) ~= clean(point.objective_action_id)
+        or clean(contract.group_id) ~= clean(point.objective_group_id)
+        or clean(contract.destination_id) ~= clean(point.objective_destination_id);
 end
 
 function accessxi.nav_mission_quest_route_owner_mismatch()
     local current_identity = character_identity();
-    return route_point_owner_mismatch(accessxi.nav_destination, current_identity)
-        or route_point_owner_mismatch(accessxi.nav_zone_search_target, current_identity);
+    local current_world = player_world_id();
+    local current_epoch = objective_session_epoch();
+    return route_point_owner_mismatch(accessxi.nav_destination, current_identity, current_world, current_epoch)
+        or route_point_owner_mismatch(accessxi.nav_zone_search_target, current_identity, current_world, current_epoch);
 end
 
 return true;

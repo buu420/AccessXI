@@ -256,6 +256,16 @@ class MediaWikiClient:
                 time.sleep(min(8.0, 0.5 * (2**attempt)))
         raise MediaWikiError(f"MediaWiki request failed after {self.max_attempts} attempts: {last_error}") from last_error
 
+    def site_info(self) -> dict[str, Any]:
+        """Capture the complete link-prefix policy exposed by this wiki."""
+
+        return self._query(
+            {
+                "meta": "siteinfo",
+                "siprop": "general|namespaces|namespacealiases|interwikimap",
+            }
+        )
+
     def category_members(
         self,
         category_title: str,

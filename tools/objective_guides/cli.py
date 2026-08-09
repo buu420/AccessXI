@@ -17,6 +17,14 @@ from .mediawiki import (
 )
 from .model import NativeObjective
 from .native_manifest import build_native_manifest
+from .site_config import (
+    SiteConfigError,
+    SiteLinkPolicy,
+    build_site_config_artifact,
+    load_site_link_policies,
+    site_config_entry_from_response,
+    write_site_config_artifact,
+)
 from .wikitext import WikitextError, parse_objective_page
 
 
@@ -278,14 +286,40 @@ def _source_pages(
     return tuple(all_pages), discovery
 
 
+def _capture_source_site_config(cache_root: Path) -> dict[str, Any]:
+    entries: list[dict[str, Any]] = []
+    for site, config in SITE_CONFIG.items():
+        api_url = str(config["api_url"])
+        client = MediaWikiClient(
+            site,
+            api_url,
+            request_cache_dir=cache_root / "resume" / "site-config" / site,
+            min_request_interval=0.2,
+            request_cache_max_age=0.0,
+        )
+        response = client.site_info()
+        entries.append(site_config_entry_from_response(site, api_url, response))
+        client.clear_request_cache()
+    return build_site_config_artifact(entries)
+
+
 def _parse_pages(
     source_pages: tuple[PageRevision, ...],
+    *,
+    site_policies: dict[str, SiteLinkPolicy],
 ) -> tuple[tuple[Any, ...], tuple[dict[str, Any], ...]]:
+    missing = sorted({page.site for page in source_pages if page.site not in site_policies})
+    if missing:
+        raise SiteConfigError(
+            "Source site config has no policy for revision site(s): "
+            + ", ".join(missing)
+            + "."
+        )
     parsed = []
     failures = []
     for page in sorted(source_pages, key=lambda value: (value.site, value.page_id)):
         try:
-            parsed.append(parse_objective_page(page))
+            parsed.append(parse_objective_page(page, site_policy=site_policies[page.site]))
         except (WikitextError, ValueError) as error:
             failures.append(
                 {
@@ -363,6 +397,17 @@ def run(argv: list[str] | None = None) -> int:
         return 0
 
     selected_sites = tuple(dict.fromkeys(args.sites or SITE_CONFIG))
+    site_config_path = data_root / "source-site-config.json"
+    if args.refresh:
+        if args.offline:
+            raise MediaWikiError(
+                "--offline refuses network access and cannot be combined with --refresh."
+            )
+        write_site_config_artifact(
+            site_config_path,
+            _capture_source_site_config(cache_root),
+        )
+    site_policies = load_site_link_policies(site_config_path)
     source_pages, discovery = _source_pages(
         native_rows,
         cache_root=cache_root,
@@ -375,7 +420,10 @@ def run(argv: list[str] | None = None) -> int:
         _atomic_json(data_root / "source-discovery.json", discovery)
         return 0
 
-    parsed_pages, parse_failures = _parse_pages(source_pages)
+    parsed_pages, parse_failures = _parse_pages(
+        source_pages,
+        site_policies=site_policies,
+    )
     overrides = _overrides_for_sites(
         _load_overrides(data_root / "reviewed-overrides.json"),
         selected_sites,

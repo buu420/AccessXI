@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import importlib
+import json
 import struct
 import tempfile
 import unittest
-import json
 from pathlib import Path
+from unittest import mock
 
 from tools.objective_guides.model import ManifestError, NativeObjective, SourceActionSpan
 from tools.objective_guides.mediawiki import (
@@ -283,6 +285,201 @@ def _fixture_revisions(site: str, fixture_name: str, api_url: str) -> dict[str, 
 
 
 class MediaWikiAcquisitionTests(unittest.TestCase):
+    @staticmethod
+    def _siteinfo_response(site: str) -> dict:
+        project = "BGWiki" if site == "bg" else "FFXIclopedia"
+        custom_id = 274 if site == "bg" else 110
+        custom_name = "Widget" if site == "bg" else "Forum"
+        return {
+            "batchcomplete": True,
+            "query": {
+                "general": {
+                    "generator": "MediaWiki 1.43.3",
+                    "time": "2026-08-09T12:34:56Z",
+                    "wikiid": f"{site}-fixture-wiki",
+                },
+                "namespaces": {
+                    "0": {"id": 0, "case": "first-letter", "content": True, "name": ""},
+                    "1": {
+                        "id": 1,
+                        "case": "first-letter",
+                        "canonical": "Talk",
+                        "name": "Talk",
+                    },
+                    "4": {
+                        "id": 4,
+                        "case": "first-letter",
+                        "canonical": "Project",
+                        "name": project,
+                    },
+                    "6": {
+                        "id": 6,
+                        "case": "first-letter",
+                        "canonical": "File",
+                        "name": "File",
+                    },
+                    "14": {
+                        "id": 14,
+                        "case": "first-letter",
+                        "canonical": "Category",
+                        "name": "Category",
+                    },
+                    str(custom_id): {
+                        "id": custom_id,
+                        "case": "first-letter",
+                        "canonical": custom_name,
+                        "name": custom_name,
+                    },
+                },
+                "namespacealiases": [{"id": 6, "alias": "Image"}],
+                "interwikimap": [
+                    {"prefix": "wikipedia", "url": "https://example.invalid/wiki/$1"},
+                    {"prefix": "commons", "url": "https://example.invalid/commons/$1"},
+                    {
+                        "prefix": "de",
+                        "language": "Deutsch",
+                        "bcp47": "de",
+                        "url": "https://example.invalid/de/$1",
+                    },
+                ],
+            },
+        }
+
+    def test_site_config_capture_is_deterministic_and_hash_validated(self) -> None:
+        site_config = importlib.import_module("tools.objective_guides.site_config")
+        bg_response = self._siteinfo_response("bg")
+        ffxi_response = self._siteinfo_response("ffxiclopedia")
+        transport = _ScriptedTransport([bg_response])
+        client = MediaWikiClient(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            transport=transport,
+        )
+
+        captured = client.site_info()
+        self.assertEqual(captured, bg_response)
+        params = transport.calls[0][1]
+        self.assertEqual(params["meta"], "siteinfo")
+        self.assertEqual(
+            params["siprop"],
+            "general|namespaces|namespacealiases|interwikimap",
+        )
+
+        bg_entry = site_config.site_config_entry_from_response(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            captured,
+        )
+        reversed_response = json.loads(json.dumps(captured))
+        reversed_response["query"]["namespaces"] = dict(
+            reversed(list(reversed_response["query"]["namespaces"].items()))
+        )
+        reversed_response["query"]["namespacealiases"].reverse()
+        reversed_response["query"]["interwikimap"].reverse()
+        self.assertEqual(
+            bg_entry,
+            site_config.site_config_entry_from_response(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                reversed_response,
+            ),
+        )
+
+        ffxi_entry = site_config.site_config_entry_from_response(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            ffxi_response,
+        )
+        artifact = site_config.build_site_config_artifact((ffxi_entry, bg_entry))
+        self.assertRegex(artifact["payload_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(list(artifact["sites"]), ["bg", "ffxiclopedia"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "source-site-config.json"
+            path.write_text(json.dumps(artifact), encoding="utf-8")
+            policies = site_config.load_site_link_policies(path)
+            self.assertEqual(tuple(policies), ("bg", "ffxiclopedia"))
+            self.assertEqual(policies["bg"].namespace_id("Widget"), 274)
+            self.assertTrue(policies["ffxiclopedia"].is_interwiki("Wikipedia"))
+            self.assertTrue(policies["ffxiclopedia"].is_language_interwiki("de"))
+
+            tampered = json.loads(json.dumps(artifact))
+            tampered["sites"]["bg"]["interwiki"][0]["prefix"] = "tampered"
+            path.write_text(json.dumps(tampered), encoding="utf-8")
+            with self.assertRaises(site_config.SiteConfigError):
+                site_config.load_site_link_policies(path)
+
+            missing_site = site_config.build_site_config_artifact((bg_entry,))
+            path.write_text(json.dumps(missing_site), encoding="utf-8")
+            with self.assertRaises(site_config.SiteConfigError):
+                site_config.load_site_link_policies(path)
+
+    def test_site_config_capture_rejects_incomplete_siteinfo(self) -> None:
+        site_config = importlib.import_module("tools.objective_guides.site_config")
+        incomplete = self._siteinfo_response("bg")
+        incomplete.pop("batchcomplete")
+
+        with self.assertRaises(site_config.SiteConfigError):
+            site_config.site_config_entry_from_response(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                incomplete,
+            )
+
+    def test_parse_batch_requires_site_policy_for_every_revision(self) -> None:
+        site_config = importlib.import_module("tools.objective_guides.site_config")
+        objective_cli = importlib.import_module("tools.objective_guides.cli")
+        revision = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Strict Site Policy",
+            page_id=9336,
+            revision_id=127,
+            parent_revision_id=126,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Examine [[Door:Orastery]] in [[East Ronfaure]].\n"
+            ),
+        )
+
+        with self.assertRaises(site_config.SiteConfigError):
+            objective_cli._parse_pages((revision,), site_policies={})
+
+    def test_refresh_site_config_capture_bypasses_resumable_request_cache(self) -> None:
+        objective_cli = importlib.import_module("tools.objective_guides.cli")
+        created: list[tuple[str, float]] = []
+
+        class SiteInfoClient:
+            def __init__(
+                self,
+                site: str,
+                api_url: str,
+                *,
+                request_cache_dir: Path,
+                min_request_interval: float,
+                request_cache_max_age: float = 7200.0,
+            ) -> None:
+                del api_url, request_cache_dir, min_request_interval
+                self.site = site
+                created.append((site, request_cache_max_age))
+
+            def site_info(self) -> dict:
+                return MediaWikiAcquisitionTests._siteinfo_response(self.site)
+
+            def clear_request_cache(self) -> None:
+                pass
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            objective_cli,
+            "MediaWikiClient",
+            SiteInfoClient,
+        ):
+            artifact = objective_cli._capture_source_site_config(Path(temporary))
+
+        self.assertEqual(tuple(artifact["sites"]), ("bg", "ffxiclopedia"))
+        self.assertEqual(created, [("bg", 0.0), ("ffxiclopedia", 0.0)])
+
     def test_source_title_candidates_include_reviewed_non_log_aliases(self) -> None:
         native = NativeObjective(
             "quest",
@@ -573,6 +770,78 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
 
 
 class WikitextParserTests(unittest.TestCase):
+    def test_header_start_entities_require_site_eligible_link_identity(self) -> None:
+        natives = (
+            NativeObjective(
+                "quest",
+                "other_areas",
+                601,
+                "Ambiguous Start Quest",
+                "quests.dat",
+                0,
+                details=("Client: Client A",),
+            ),
+            NativeObjective(
+                "quest",
+                "outlands",
+                602,
+                "Ambiguous Start Quest",
+                "quests.dat",
+                1,
+                details=("Client: Client B",),
+            ),
+        )
+
+        def parsed(site: str, start_link: str, page_id: int) -> ParsedObjective:
+            api_url = (
+                "https://www.bg-wiki.com/api.php"
+                if site == "bg"
+                else "https://ffxiclopedia.fandom.com/api.php"
+            )
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url=api_url,
+                    canonical_title="Ambiguous Start Quest",
+                    page_id=page_id,
+                    revision_id=page_id + 100,
+                    parent_revision_id=page_id + 99,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        f"{{{{Quest Header|Start={start_link}}}}}\n"
+                        "==Walkthrough==\n*Talk to the client.\n"
+                    ),
+                )
+            )
+
+        for page_id, site, start_link in (
+            (9340, "bg", "[[Wikipedia:Client A|Client A]]"),
+            (9341, "bg", "[[Widget:Client A|Client A]]"),
+            (9342, "ffxiclopedia", "[[Forum:Client A|Client A]]"),
+        ):
+            with self.subTest(site=site, start_link=start_link):
+                page = parsed(site, start_link, page_id)
+                self.assertEqual(page.start_entities, ())
+                report = match_objective_pages(natives, (page,))
+                self.assertFalse(report.matches)
+                self.assertEqual(
+                    report.ambiguous_pages[page_id],
+                    ("quest:other_areas:601", "quest:outlands:602"),
+                )
+
+        for page_id, start_link in (
+            (9343, "[[Canonical Client|Client A]]"),
+            (9344, "[[Client A#Location|Client A]]"),
+        ):
+            with self.subTest(start_link=start_link):
+                page = parsed("bg", start_link, page_id)
+                self.assertEqual(page.start_entities, ("Client A",))
+                report = match_objective_pages(natives, (page,))
+                self.assertEqual(
+                    tuple(match.native_key for match in report.matches),
+                    ("quest:other_areas:601",),
+                )
+
     def test_nyzul_special_pages_keep_only_progress_sections(self) -> None:
         bg = PageRevision(
             site="bg",
@@ -1808,10 +2077,14 @@ class WikitextParserTests(unittest.TestCase):
                 )
 
     def test_interwiki_links_are_not_entities_but_game_colon_titles_are(self) -> None:
-        def step(instruction: str) -> SourceStep:
+        def step(site: str, instruction: str) -> SourceStep:
             page = PageRevision(
-                site="bg",
-                api_url="https://www.bg-wiki.com/api.php",
+                site=site,
+                api_url=(
+                    "https://www.bg-wiki.com/api.php"
+                    if site == "bg"
+                    else "https://ffxiclopedia.fandom.com/api.php"
+                ),
                 canonical_title="Colon Identity Classification",
                 page_id=9334,
                 revision_id=125,
@@ -1821,18 +2094,28 @@ class WikitextParserTests(unittest.TestCase):
             )
             return parse_objective_page(page).steps[0]
 
-        for interwiki_link, visible_inline in (
-            ("[[fr:Mob A|Mob A]]", False),
-            ("[[:de:Mob A|Mob A]]", True),
-            ("[[ja:Mob A|Mob A]]", False),
-            ("[[es:Mob A|Mob A]]", False),
-            ("[[:zz:Mob A|Mob A]]", True),
-            ("[[BGWiki:Mob A|Mob A]]", True),
-            ("[[:FFXIclopedia:Mob A|Mob A]]", True),
-        ):
-            with self.subTest(interwiki_link=interwiki_link):
+        configured_links = (
+            ("bg", "[[Wikipedia:Mob A|Mob A]]", True),
+            ("bg", "[[:Wiktionary:Mob A|Mob A]]", True),
+            ("bg", "[[Commons:Mob A|Mob A]]", True),
+            ("bg", "[[fr.be:Mob A|Mob A]]", True),
+            ("bg", "[[BGWiki:Mob A|Mob A]]", True),
+            ("bg", "[[Widget:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[Wikipedia:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[Wiktionary:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[Commons:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[w:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[fr.be:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[FFXIclopedia:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[Forum:Mob A|Mob A]]", True),
+            ("ffxiclopedia", "[[de:Mob A|Mob A]]", False),
+            ("ffxiclopedia", "[[:de:Mob A|Mob A]]", True),
+        )
+        for site, interwiki_link, visible_inline in configured_links:
+            with self.subTest(site=site, interwiki_link=interwiki_link):
                 interwiki = step(
-                    f"Defeat {interwiki_link} [[Bugallug]] in [[Oldton Movalpolos]]."
+                    site,
+                    f"Defeat {interwiki_link} [[Bugallug]] in [[Oldton Movalpolos]].",
                 )
                 (fight,) = interwiki.action_spans
                 self.assertEqual(
@@ -1850,19 +2133,75 @@ class WikitextParserTests(unittest.TestCase):
                     self.assertNotIn("Mob A", interwiki.source_text)
                     self.assertNotIn("Mob A", interwiki.spoken_text)
 
+                configured_only = step(
+                    site,
+                    f"Defeat {interwiki_link} in [[Oldton Movalpolos]].",
+                )
+                (configured_fight,) = configured_only.action_spans
+                self.assertEqual(
+                    (configured_fight.target, configured_fight.enemy_mentions),
+                    ("", ()),
+                )
+
         trust = step(
-            "Talk to [[Trust: Ajido-Marujido]] in [[East Ronfaure]]."
+            "ffxiclopedia",
+            "Talk to [[Trust: Ajido-Marujido]] in [[East Ronfaure]].",
         )
         self.assertEqual(
             (trust.linked_entities, trust.action_spans[0].target),
             (("Trust: Ajido-Marujido", "East Ronfaure"), "Trust: Ajido-Marujido"),
         )
+        self.assertIn("Trust: Ajido-Marujido", trust.source_text)
+        self.assertIn("Trust: Ajido-Marujido", trust.spoken_text)
 
-        door = step("Examine [[Door:Orastery]] in [[East Ronfaure]].")
+        door = step("bg", "Examine [[Door:Orastery]] in [[East Ronfaure]].")
         self.assertEqual(
             (door.linked_entities, door.action_spans[0].target),
             (("Door:Orastery", "East Ronfaure"), "Door:Orastery"),
         )
+
+    def test_missing_site_policy_preserves_inline_colon_text_but_fails_targets_closed(self) -> None:
+        for instruction, visible_label in (
+            (
+                "Examine [[Door:Orastery]] in [[East Ronfaure]].",
+                "Door:Orastery",
+            ),
+            (
+                "Defeat [[:Wikipedia:Mob A|Mob A]] in [[East Ronfaure]].",
+                "Mob A",
+            ),
+            (
+                "Talk to [[Trust: Ajido-Marujido]] in [[East Ronfaure]].",
+                "Trust: Ajido-Marujido",
+            ),
+        ):
+            with self.subTest(instruction=instruction):
+                page = PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Missing Site Policy",
+                    page_id=9335,
+                    revision_id=126,
+                    parent_revision_id=125,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*{instruction}\n"
+                    ),
+                )
+                parsed = parse_objective_page(page, site_policy=None)
+                (step,) = parsed.steps
+                (action,) = step.action_spans
+                self.assertEqual(
+                    step.linked_entities,
+                    ("East Ronfaure",),
+                )
+                self.assertEqual(
+                    (action.target, action.enemy_mentions, action.npc_mentions, action.object_mentions),
+                    ("", (), (), ()),
+                )
+                self.assertIn(visible_label, step.source_text)
+                self.assertIn(visible_label, step.spoken_text)
 
     def test_contained_template_links_keep_item_and_target_roles_separate(self) -> None:
         cases = (
@@ -2917,6 +3256,7 @@ class ObjectiveDestinationTests(unittest.TestCase):
         zone_name: str,
         items: tuple[str, ...] = (),
         enemies: tuple[str, ...] = (),
+        use_default_site_policy: bool = True,
     ) -> tuple[ReviewedObjectiveDestination, ...]:
         native = NativeObjective(
             "quest",
@@ -2930,18 +3270,19 @@ class ObjectiveDestinationTests(unittest.TestCase):
         ffxiclopedia_revision = bg_revision + 1
 
         def page(site: str, revision_id: int) -> ParsedObjective:
-            return parse_objective_page(
-                PageRevision(
-                    site=site,
-                    api_url="https://example.invalid/api.php",
-                    canonical_title=native.title,
-                    page_id=revision_id,
-                    revision_id=revision_id,
-                    parent_revision_id=revision_id - 1,
-                    revision_timestamp="2026-08-09T00:00:00Z",
-                    content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
-                )
+            revision = PageRevision(
+                site=site,
+                api_url="https://example.invalid/api.php",
+                canonical_title=native.title,
+                page_id=revision_id,
+                revision_id=revision_id,
+                parent_revision_id=revision_id - 1,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
             )
+            if use_default_site_policy:
+                return parse_objective_page(revision)
+            return parse_objective_page(revision, site_policy=None)
 
         bg = page("bg", bg_revision)
         ffxiclopedia = page("ffxiclopedia", ffxiclopedia_revision)
@@ -4409,12 +4750,10 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 )
 
         for native_id, interwiki_link, canonical in (
-            (230, "[[fr:Mob A|Mob A]]", "fr:Mob A"),
-            (231, "[[:de:Mob A|Mob A]]", "de:Mob A"),
-            (232, "[[BGWiki:Mob A|Mob A]]", "BGWiki:Mob A"),
-            (233, "[[:FFXIclopedia:Mob A|Mob A]]", "FFXIclopedia:Mob A"),
-            (236, "[[es:Mob A|Mob A]]", "es:Mob A"),
-            (237, "[[:zz:Mob A|Mob A]]", "zz:Mob A"),
+            (230, "[[Wikipedia:Mob A|Mob A]]", "Wikipedia:Mob A"),
+            (231, "[[:Wiktionary:Mob A|Mob A]]", "Wiktionary:Mob A"),
+            (232, "[[Commons:Mob A|Mob A]]", "Commons:Mob A"),
+            (233, "[[:fr.be:Mob A|Mob A]]", "fr.be:Mob A"),
         ):
             instruction = f"Defeat {interwiki_link} in [[East Ronfaure]]."
             for target_name in ("Mob A", canonical):
@@ -4462,6 +4801,100 @@ class ObjectiveDestinationTests(unittest.TestCase):
                     zone_name="East Ronfaure",
                 )
                 self.assertEqual(rows[0].target_name, target_name)
+
+    def test_paired_destination_uses_complete_site_policy_and_missing_policy_fails_closed(self) -> None:
+        for native_id, prefix in (
+            (238, "Wikipedia"),
+            (239, "Wiktionary"),
+            (240, "Commons"),
+            (241, "fr.be"),
+        ):
+            configured_link = f"[[{prefix}:Notorious Monsters|N.M.]]"
+            instruction = (
+                f"Defeat the {configured_link} [[Bugallug]] in [[Oldton Movalpolos]], "
+                "then talk to [[Cid]] in [[Metalworks]]."
+            )
+
+            with self.subTest(prefix=prefix, route="fight-correct"):
+                rows = self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="fight",
+                    target_name="Bugallug",
+                    target_kind="enemy",
+                    zone=native_id,
+                    zone_name="Oldton Movalpolos",
+                    enemies=("Bugallug",),
+                )
+                self.assertEqual(
+                    (rows[0].target_name, rows[0].zone_name),
+                    ("Bugallug", "Oldton Movalpolos"),
+                )
+
+            with self.subTest(prefix=prefix, route="talk-correct"):
+                rows = self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=2,
+                    action="talk",
+                    target_name="Cid",
+                    target_kind="npc",
+                    zone=native_id + 100,
+                    zone_name="Metalworks",
+                )
+                self.assertEqual(
+                    (rows[0].target_name, rows[0].zone_name),
+                    ("Cid", "Metalworks"),
+                )
+
+            for target_name in ("N.M.", f"{prefix}:Notorious Monsters"):
+                with self.subTest(
+                    prefix=prefix,
+                    route="configured-prefix-rejected",
+                    target_name=target_name,
+                ), self.assertRaises(ObjectiveDestinationError):
+                    self._resolve_literal_instruction(
+                        native_id=native_id,
+                        instruction=instruction,
+                        claim_order=1,
+                        action="fight",
+                        target_name=target_name,
+                        target_kind="enemy",
+                        zone=native_id,
+                        zone_name="Oldton Movalpolos",
+                        enemies=(target_name,),
+                    )
+
+            with self.subTest(prefix=prefix, route="fight-cross-zone"), self.assertRaises(
+                ObjectiveDestinationError
+            ):
+                self._resolve_literal_instruction(
+                    native_id=native_id,
+                    instruction=instruction,
+                    claim_order=1,
+                    action="fight",
+                    target_name="Bugallug",
+                    target_kind="enemy",
+                    zone=native_id + 100,
+                    zone_name="Metalworks",
+                    enemies=("Bugallug",),
+                )
+
+        with self.subTest(route="missing-policy-door-colon"), self.assertRaises(
+            ObjectiveDestinationError
+        ):
+            self._resolve_literal_instruction(
+                native_id=242,
+                instruction="Examine [[Door:Orastery]] in [[East Ronfaure]].",
+                claim_order=1,
+                action="examine",
+                target_name="Door:Orastery",
+                target_kind="object",
+                zone=242,
+                zone_name="East Ronfaure",
+                use_default_site_policy=False,
+            )
 
     def test_paired_destination_accepts_structurally_typed_contained_items(self) -> None:
         for native_id, item_syntax, item_name in (

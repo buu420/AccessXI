@@ -10,48 +10,13 @@ from mwparserfromhell.nodes import Template, Wikilink
 
 from .mediawiki import PageRevision
 from .model import ParsedObjective, SourceActionSpan, SourceStep
+from .site_config import SiteConfigError, SiteLinkPolicy, load_default_site_link_policies
 
 
 MAX_SPOKEN_STEP = 420
 
 _ZONE_NAMES: tuple[str, ...] | None = None
-
-_MEDIAWIKI_NAMESPACE_PREFIXES = frozenset(
-    {
-        "bgwiki",
-        "bgwiki talk",
-        "category",
-        "category talk",
-        "file",
-        "file talk",
-        "ffxiclopedia",
-        "ffxiclopedia talk",
-        "gadget",
-        "gadget definition",
-        "gadget definition talk",
-        "gadget talk",
-        "help",
-        "help talk",
-        "image",
-        "image talk",
-        "media",
-        "mediawiki",
-        "mediawiki talk",
-        "module",
-        "module talk",
-        "project",
-        "project talk",
-        "special",
-        "talk",
-        "template",
-        "template talk",
-        "timedtext",
-        "timedtext talk",
-        "topic",
-        "user",
-        "user talk",
-    }
-)
+_DEFAULT_SITE_POLICY = object()
 
 _NYZUL_OBJECTIVE_TITLES = {
     "Nyzul Isle Investigation",
@@ -238,7 +203,10 @@ def _render_link_display(value: object) -> str:
     return _clean(code.strip_code(normalize=True, collapse=True))
 
 
-def _normalized_wikilink_page_identity(value: object) -> str:
+def _normalized_wikilink_page_identity(
+    value: object,
+    site_policy: SiteLinkPolicy | None,
+) -> str:
     target = _clean(str(value or "").replace("_", " "))
     if target.startswith(":"):
         target = _clean(target[1:])
@@ -246,20 +214,22 @@ def _normalized_wikilink_page_identity(value: object) -> str:
     if not target:
         return ""
     if ":" in target:
-        namespace = _clean(target.split(":", 1)[0]).casefold()
-        if (
-            namespace in _MEDIAWIKI_NAMESPACE_PREFIXES
-            or re.fullmatch(r"[a-z]{2}", namespace)
-        ):
+        if site_policy is None:
+            return ""
+        prefix = _clean(target.split(":", 1)[0])
+        if site_policy.classifies_prefix(prefix):
             return ""
     return target
 
 
-def _wikilink_identity_details(link: Wikilink) -> tuple[str, str, bool]:
+def _wikilink_identity_details(
+    link: Wikilink,
+    site_policy: SiteLinkPolicy | None,
+) -> tuple[str, str, bool]:
     raw_target = _clean(str(link.title or "").replace("_", " "))
     escaped_inline = raw_target.startswith(":")
     visible_target = _clean(raw_target[1:]) if escaped_inline else raw_target
-    target = _normalized_wikilink_page_identity(raw_target)
+    target = _normalized_wikilink_page_identity(raw_target, site_policy)
     display = _render_link_display(link.text) if link.text is not None else visible_target
     display = display or visible_target or target
     if not target:
@@ -268,10 +238,17 @@ def _wikilink_identity_details(link: Wikilink) -> tuple[str, str, bool]:
             if ":" in visible_target
             else ""
         )
-        suppressed_metadata = not escaped_inline and (
-            prefix in {"category", "file", "image"}
-            or re.fullmatch(r"[a-z]{2}", prefix) is not None
-        )
+        if site_policy is None:
+            suppressed_metadata = not escaped_inline and prefix in {
+                "category",
+                "file",
+                "image",
+            }
+        else:
+            suppressed_metadata = not escaped_inline and (
+                site_policy.namespace_id(prefix) in {6, 14}
+                or site_policy.is_language_interwiki(prefix)
+            )
         return "", ("" if suppressed_metadata else display), False
     fragment_identity_agrees = (
         "#" not in visible_target
@@ -280,13 +257,12 @@ def _wikilink_identity_details(link: Wikilink) -> tuple[str, str, bool]:
     return target, display, fragment_identity_agrees
 
 
-def _wikilink_identity(link: Wikilink) -> tuple[str, str]:
-    target, display, _target_identity = _wikilink_identity_details(link)
+def _wikilink_identity(
+    link: Wikilink,
+    site_policy: SiteLinkPolicy | None,
+) -> tuple[str, str]:
+    target, display, _target_identity = _wikilink_identity_details(link, site_policy)
     return target, display
-
-
-def _wikilink_label(link: Wikilink) -> str:
-    return _wikilink_identity(link)[1]
 
 
 def _template_entity_role(template: Template) -> str:
@@ -308,6 +284,7 @@ def _set_link_role(roles: dict[int, str], link: Wikilink, role: str) -> None:
 
 def _structural_entity_roles(
     code: object,
+    site_policy: SiteLinkPolicy | None,
 ) -> tuple[dict[int, str], dict[int, tuple[str, str, str]]]:
     roles: dict[int, str] = {}
     template_entities: dict[int, tuple[str, str, str]] = {}
@@ -342,7 +319,7 @@ def _structural_entity_roles(
                 continue
             if isinstance(node, Wikilink) and pending is not None:
                 template, role, expected_name = pending
-                canonical, display = _wikilink_identity(node)
+                canonical, display = _wikilink_identity(node, site_policy)
                 if not expected_name or _name_key(expected_name) in {
                     _name_key(canonical),
                     _name_key(display),
@@ -357,6 +334,7 @@ def _structural_entity_roles(
 
 def _render_fragment(
     fragment: str,
+    site_policy: SiteLinkPolicy | None = None,
 ) -> tuple[
     str,
     tuple[str, ...],
@@ -367,10 +345,10 @@ def _render_fragment(
 ]:
     code = mwparserfromhell.parse(fragment)
     warnings: list[str] = []
-    structural_roles, template_entities = _structural_entity_roles(code)
+    structural_roles, template_entities = _structural_entity_roles(code, site_policy)
     entities: list[tuple[str, str, str, bool, bool]] = []
     for link in list(code.filter_wikilinks(recursive=True)):
-        canonical, display, target_identity = _wikilink_identity_details(link)
+        canonical, display, target_identity = _wikilink_identity_details(link, site_policy)
         if display:
             entity_index = len(entities)
             entities.append(
@@ -1447,7 +1425,10 @@ def _page_categories(content: str) -> tuple[str, ...]:
     return _unique(categories)
 
 
-def _header_start_entities(content: str) -> tuple[str, ...]:
+def _header_start_entities(
+    content: str,
+    site_policy: SiteLinkPolicy | None,
+) -> tuple[str, ...]:
     code = mwparserfromhell.parse(content)
     for template in code.filter_templates(recursive=True):
         if _name_key(template.name) not in {"mission", "missionheader", "quest", "questheader"}:
@@ -1458,14 +1439,28 @@ def _header_start_entities(content: str) -> tuple[str, ...]:
                     continue
                 entities: list[str] = []
                 for link in mwparserfromhell.parse(str(parameter.value)).filter_wikilinks(recursive=True):
-                    label = _wikilink_label(link)
-                    if label:
-                        entities.append(label)
+                    canonical, display, target_identity = _wikilink_identity_details(
+                        link,
+                        site_policy,
+                    )
+                    if canonical and display and target_identity:
+                        entities.append(display)
                 return _unique(entities)
     return ()
 
 
-def parse_objective_page(revision: PageRevision) -> ParsedObjective:
+def parse_objective_page(
+    revision: PageRevision,
+    *,
+    site_policy: SiteLinkPolicy | None | object = _DEFAULT_SITE_POLICY,
+) -> ParsedObjective:
+    if site_policy is _DEFAULT_SITE_POLICY:
+        try:
+            site_policy = load_default_site_link_policies()[revision.site]
+        except (KeyError, SiteConfigError):
+            site_policy = None
+    if site_policy is not None and not isinstance(site_policy, SiteLinkPolicy):
+        raise TypeError("site_policy must be a SiteLinkPolicy or None.")
     kind, objective_name, mission_number, context_hint, header_warnings = _header_details(revision)
     steps: list[SourceStep] = []
     page_warnings = list(header_warnings)
@@ -1502,7 +1497,10 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
                 marker, fragment = "*", candidate
         if not fragment.strip():
             continue
-        rendered, links, link_occurrences, locations, maps, warnings = _render_fragment(fragment)
+        rendered, links, link_occurrences, locations, maps, warnings = _render_fragment(
+            fragment,
+            site_policy,
+        )
         if not rendered:
             continue
         coordinates = _extract_coordinates(rendered)
@@ -1573,7 +1571,7 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         context_hint=context_hint,
         aliases=_unique(revision.aliases),
         categories=_page_categories(revision.content),
-        start_entities=_header_start_entities(revision.content),
+        start_entities=_header_start_entities(revision.content, site_policy),
         steps=tuple(steps),
         warnings=_unique(page_warnings),
         revision_timestamp=revision.revision_timestamp,

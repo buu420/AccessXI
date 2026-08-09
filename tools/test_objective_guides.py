@@ -6,7 +6,7 @@ import unittest
 import json
 from pathlib import Path
 
-from tools.objective_guides.model import ManifestError, NativeObjective
+from tools.objective_guides.model import ManifestError, NativeObjective, SourceActionSpan
 from tools.objective_guides.mediawiki import (
     ACCESSXI_USER_AGENT,
     MediaWikiClient,
@@ -18,7 +18,11 @@ from tools.objective_guides.mediawiki import (
 )
 from tools.objective_guides.wikitext import parse_objective_page
 from tools.objective_guides.matching import match_objective_pages, normalize_title
-from tools.objective_guides.reconcile import reconcile_objectives
+from tools.objective_guides.reconcile import ReviewedObjectiveDestination, reconcile_objectives
+from tools.objective_guides.objective_destinations import (
+    ObjectiveDestinationError,
+    resolve_reviewed_objective_destinations,
+)
 from tools.objective_guides.model import ParsedObjective, SourceStep
 from tools.objective_guides.generate_lua import (
     GenerationError,
@@ -870,6 +874,142 @@ class WikitextParserTests(unittest.TestCase):
         self.assertIn("Guide NPC", spoken)
         self.assertIn("K-9", spoken)
 
+    def test_typed_action_spans_preserve_ordered_chains_and_result_relations(self) -> None:
+        page = PageRevision(
+            site="ffxiclopedia",
+            api_url="https://ffxiclopedia.fandom.com/api.php",
+            canonical_title="Typed Action Quest",
+            page_id=9200,
+            revision_id=81,
+            parent_revision_id=80,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Trade a [[Scholar Stone]] to the [[Task Delegator]], then talk to the [[Task Delegator]].\n"
+                "*Defeat [[Orcish Fodder]] to obtain an [[Orcish Axe]].\n"
+                "*Kill [[Badshah]] and re-examine the ??? to obtain [[Silver Comet's collar]].\n"
+                "*Return to [[Cid]].\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        trade, fodder, badshah, returned = parsed.steps
+        self.assertEqual([span.action for span in trade.action_spans], ["trade", "talk"])
+        self.assertEqual(
+            (
+                trade.action_spans[0].relationship,
+                trade.action_spans[0].target,
+                trade.action_spans[0].item_mentions,
+            ),
+            ("trade-to", "Task Delegator", ("Scholar Stone",)),
+        )
+        self.assertEqual(
+            (trade.action_spans[1].relationship, trade.action_spans[1].target),
+            ("talk-to", "Task Delegator"),
+        )
+        self.assertEqual([span.action for span in fodder.action_spans], ["fight"])
+        self.assertEqual(
+            (
+                fodder.action_spans[0].target,
+                fodder.action_spans[0].enemy_mentions,
+                fodder.action_spans[0].result_items,
+                fodder.action_spans[0].result_relation,
+            ),
+            ("Orcish Fodder", ("Orcish Fodder",), ("Orcish Axe",), "obtain-from"),
+        )
+        self.assertEqual(
+            [span.action for span in badshah.action_spans],
+            ["fight", "examine", "obtain"],
+        )
+        self.assertEqual(badshah.action_spans[0].target, "Badshah")
+        self.assertEqual(
+            (badshah.action_spans[1].target, badshah.action_spans[1].target_kind),
+            ("???", "question-mark"),
+        )
+        self.assertEqual(badshah.action_spans[2].item_mentions, ("Silver Comet's collar",))
+        self.assertEqual(
+            [(span.action, span.relationship, span.target) for span in returned.action_spans],
+            [("talk", "talk-to", "Cid")],
+        )
+
+    def test_typed_mentions_keep_prose_zones_unlinked_objects_and_question_marks(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Typed Location Mission",
+            page_id=9201,
+            revision_id=82,
+            parent_revision_id=81,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Mission|name=Typed Location Mission}}\n==Walkthrough==\n"
+                "*Go to [[Sauromugue Champaign (S)]] and talk to [[Mham Lahrih]] at (K-9).\n"
+                "*Touch the Disturbed Dirt at (K-9).\n"
+                "*Examine the sparkling ??? in Sea Serpent Grotto at (J-12).\n"
+                "*Click the Abandoned Mineshaft again to enter the battlefield.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        journey, dirt, marker, battlefield = parsed.steps
+        self.assertEqual([span.action for span in journey.action_spans], ["travel", "talk"])
+        self.assertEqual(journey.action_spans[0].zone_mentions, ("Sauromugue Champaign [S]",))
+        self.assertEqual(journey.action_spans[0].temporal_zone_variant, "past")
+        self.assertEqual(journey.action_spans[1].npc_mentions, ("Mham Lahrih",))
+        self.assertEqual(dirt.action_spans[0].target, "Disturbed Dirt")
+        self.assertEqual(dirt.action_spans[0].object_mentions, ("Disturbed Dirt",))
+        self.assertEqual(dirt.action_spans[0].grid_coordinates, ("K-9",))
+        self.assertEqual(marker.action_spans[0].target_kind, "question-mark")
+        self.assertEqual(marker.action_spans[0].zone_mentions, ("Sea Serpent Grotto",))
+        self.assertEqual(marker.action_spans[0].grid_coordinates, ("J-12",))
+        self.assertEqual(
+            (
+                battlefield.action_spans[0].action,
+                battlefield.action_spans[0].target,
+                battlefield.action_spans[0].target_kind,
+            ),
+            ("examine", "Abandoned Mineshaft", "object"),
+        )
+        self.assertEqual(
+            [
+                (span.action, span.relationship, span.target, span.target_kind)
+                for span in battlefield.action_spans
+            ],
+            [
+                ("examine", "examine-object", "Abandoned Mineshaft", "object"),
+                ("travel", "enter-through", "battlefield", "entrance"),
+            ],
+        )
+
+    def test_material_protect_touch_and_key_item_warning_are_typed_actions(self) -> None:
+        page = PageRevision(
+            site="bg",
+            api_url="https://www.bg-wiki.com/api.php",
+            canonical_title="Material Instructions",
+            page_id=9202,
+            revision_id=83,
+            parent_revision_id=82,
+            revision_timestamp="2026-08-09T00:00:00Z",
+            content=(
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Protect the Elvaan and Hume NPCs.\n"
+                "*Touch the 6 Pips.\n"
+                "*Warning: leaving the battlefield loses the required {{KI}}[[Dawn Talisman]].\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+
+        self.assertEqual([span.action for span in parsed.steps[0].action_spans], ["protect"])
+        self.assertEqual(parsed.steps[0].action_spans[0].target, "Elvaan and Hume NPCs")
+        self.assertEqual([span.action for span in parsed.steps[1].action_spans], ["examine"])
+        self.assertEqual(parsed.steps[1].action_spans[0].target, "6 Pips")
+        self.assertEqual([span.action for span in parsed.steps[2].action_spans], ["warning"])
+        self.assertEqual(parsed.steps[2].action_spans[0].item_mentions, ("Dawn Talisman",))
+        self.assertTrue(all(step.action_spans[0].material for step in parsed.steps))
+
 
 class MatchingTests(unittest.TestCase):
     def test_campaign_log_rows_mirror_exact_crystal_war_quest_guides_only(self) -> None:
@@ -1145,7 +1285,7 @@ class MatchingTests(unittest.TestCase):
 
 
 class ReconciliationTests(unittest.TestCase):
-    def test_geological_survey_aligns_material_steps_but_keeps_cid_grid_conflict(self) -> None:
+    def test_geological_survey_aligns_material_steps_without_whole_step_grid_conflict(self) -> None:
         bg = parse_objective_page(
             _fixture_revisions("bg", "bg-api-pages.json", "https://www.bg-wiki.com/api.php")[
                 "Bastok Mission 1-2"
@@ -1162,8 +1302,8 @@ class ReconciliationTests(unittest.TestCase):
         reconciled = reconcile_objectives("mission:Bastok:2", bg, ffxi)
 
         cid = next(step for step in reconciled.steps if "Cid" in step.entities and step.order < len(reconciled.steps))
-        self.assertEqual(cid.comparison, "conflict")
-        self.assertIn("grid_coordinates", cid.conflicting_fields)
+        self.assertEqual(cid.comparison, "corroborated")
+        self.assertNotIn("grid_coordinates", cid.conflicting_fields)
         self.assertFalse(cid.route_ready)
         self.assertTrue(any(step.comparison == "corroborated" for step in reconciled.steps))
 
@@ -1237,6 +1377,489 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(len(reconciled.steps), 1)
         self.assertEqual(reconciled.steps[0].comparison, "corroborated")
         self.assertEqual(reconciled.steps[0].source_orders, (1, 1))
+
+    def test_candidate_reconciliation_keeps_shared_and_source_only_grids(self) -> None:
+        def page(site: str, page_id: int, coordinates: tuple[str, ...]) -> ParsedObjective:
+            span = SourceActionSpan(
+                source_step_order=1,
+                order=1,
+                text_start=0,
+                text_end=38,
+                supporting_clause="Touch the Disturbed Dirt at H-8/H-9.",
+                action="examine",
+                verb="touch",
+                relationship="examine-object",
+                target="Disturbed Dirt",
+                target_kind="object",
+                object_mentions=("Disturbed Dirt",),
+                zone_mentions=("East Ronfaure",),
+                grid_coordinates=coordinates,
+            )
+            return ParsedObjective(
+                site=site,
+                page_id=page_id,
+                revision_id=page_id,
+                canonical_title="Candidate Grids",
+                kind="quest",
+                objective_name="Candidate Grids",
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        span.supporting_clause,
+                        span.supporting_clause,
+                        "examine",
+                        linked_entities=("Disturbed Dirt",),
+                        zone_candidates=("East Ronfaure",),
+                        grid_coordinates=coordinates,
+                        action_spans=(span,),
+                    ),
+                ),
+            )
+
+        reconciled = reconcile_objectives(
+            "quest:other_areas:7",
+            page("bg", 101, ("H-8",)),
+            page("ffxiclopedia", 202, ("H-8", "H-9")),
+        )
+
+        step = reconciled.steps[0]
+        grid_candidates = {
+            candidate.value: (candidate.comparison, candidate.sources)
+            for candidate in step.claims[0].candidates
+            if candidate.field == "grid"
+        }
+        self.assertEqual(
+            grid_candidates,
+            {
+                "H-8": ("corroborated", ("bg", "ffxiclopedia")),
+                "H-9": ("single-source", ("ffxiclopedia",)),
+            },
+        )
+        self.assertEqual(step.comparison, "corroborated")
+        self.assertNotIn("grid_coordinates", step.conflicting_fields)
+
+    def test_unpaired_dual_source_step_keeps_score_and_reason(self) -> None:
+        common = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=12,
+            supporting_clause="Talk to Cid.",
+            action="talk",
+            verb="talk",
+            relationship="talk-to",
+            target="Cid",
+            target_kind="npc",
+            npc_mentions=("Cid",),
+        )
+        extra = SourceActionSpan(
+            source_step_order=2,
+            order=1,
+            text_start=0,
+            text_end=22,
+            supporting_clause="Touch the Left Beacon.",
+            action="examine",
+            verb="touch",
+            relationship="examine-object",
+            target="Left Beacon",
+            target_kind="object",
+            object_mentions=("Left Beacon",),
+        )
+        bg = ParsedObjective(
+            site="bg",
+            page_id=301,
+            revision_id=301,
+            canonical_title="Unpaired",
+            kind="quest",
+            objective_name="Unpaired",
+            steps=(
+                SourceStep(1, "*", 1, "Talk to Cid.", "Talk to Cid.", "talk", action_spans=(common,)),
+                SourceStep(2, "*", 1, "Touch the Left Beacon.", "Touch the Left Beacon.", "examine", action_spans=(extra,)),
+            ),
+        )
+        ffxi = ParsedObjective(
+            site="ffxiclopedia",
+            page_id=302,
+            revision_id=302,
+            canonical_title="Unpaired",
+            kind="quest",
+            objective_name="Unpaired",
+            steps=(
+                SourceStep(1, "*", 1, "Talk to Cid.", "Talk to Cid.", "talk", action_spans=(common,)),
+            ),
+        )
+
+        reconciled = reconcile_objectives("quest:bastok:9", bg, ffxi)
+
+        unpaired = next(step for step in reconciled.steps if step.source_orders == (2, 0))
+        self.assertEqual(unpaired.alignment_score, 0)
+        self.assertEqual(unpaired.alignment_reason, "unpaired-bg")
+        self.assertEqual(unpaired.unpaired_reason, "no-compatible-ffxiclopedia-step")
+
+    def test_fight_to_obtain_word_order_variants_reconcile_as_one_chain(self) -> None:
+        pages = []
+        for site, page_id, sentence in (
+            ("bg", 801, "Defeat [[Orcish Fodder]] to obtain an [[Orcish Axe]]."),
+            (
+                "ffxiclopedia",
+                802,
+                "Obtain an [[Orcish Axe]] by defeating [[Orcish Fodder]].",
+            ),
+        ):
+            pages.append(
+                parse_objective_page(
+                    PageRevision(
+                        site=site,
+                        api_url="https://example.invalid/api.php",
+                        canonical_title="Chain Order",
+                        page_id=page_id,
+                        revision_id=page_id,
+                        parent_revision_id=page_id - 1,
+                        revision_timestamp="2026-08-09T00:00:00Z",
+                        content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{sentence}\n",
+                    )
+                )
+            )
+
+        reconciled = reconcile_objectives("quest:other_areas:80", pages[0], pages[1])
+
+        self.assertEqual(len(reconciled.steps), 1)
+        self.assertEqual(len(reconciled.steps[0].claims), 1)
+        claim = reconciled.steps[0].claims[0]
+        self.assertEqual((claim.action, claim.relationship), ("fight", "defeat-to-obtain"))
+        self.assertEqual(claim.comparison, "corroborated")
+        self.assertNotIn("action", reconciled.steps[0].conflicting_fields)
+
+
+class ObjectiveDestinationTests(unittest.TestCase):
+    @staticmethod
+    def _source_page(site: str, page_id: int, revision_id: int) -> ParsedObjective:
+        span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=65,
+            supporting_clause="Defeat Orcish Fodder in East Ronfaure to obtain an Orcish Axe.",
+            action="fight",
+            verb="defeat",
+            relationship="defeat-to-obtain",
+            target="Orcish Fodder",
+            target_kind="enemy",
+            enemy_mentions=("Orcish Fodder",),
+            item_mentions=("Orcish Axe",),
+            zone_mentions=("East Ronfaure",),
+            result_items=("Orcish Axe",),
+            result_relation="obtain-from",
+        )
+        return ParsedObjective(
+            site=site,
+            page_id=page_id,
+            revision_id=revision_id,
+            canonical_title="Smash the Orcish Scouts",
+            kind="mission",
+            objective_name="Smash the Orcish Scouts",
+            steps=(
+                SourceStep(
+                    1,
+                    "*",
+                    1,
+                    span.supporting_clause,
+                    span.supporting_clause,
+                    "fight",
+                    linked_entities=("Orcish Fodder", "East Ronfaure", "Orcish Axe"),
+                    zone_candidates=("East Ronfaure",),
+                    items=("Orcish Axe",),
+                    action_spans=(span,),
+                ),
+            ),
+        )
+
+    @classmethod
+    def _fixture(
+        cls,
+        kind: str,
+    ) -> tuple[NativeObjective, ParsedObjective, ParsedObjective, object, dict]:
+        context = "San d'Oria" if kind == "mission" else "sandoria"
+        native = NativeObjective(kind, context, 1, "Smash the Orcish Scouts", "objectives.dat", 0)
+        bg = cls._source_page("bg", 401, 4001)
+        ffxi = cls._source_page("ffxiclopedia", 402, 4002)
+        bg = ParsedObjective(**{**{field: getattr(bg, field) for field in bg.__dataclass_fields__}, "kind": kind})
+        ffxi = ParsedObjective(**{**{field: getattr(ffxi, field) for field in ffxi.__dataclass_fields__}, "kind": kind})
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        override = {
+            "id": "orcish-fodder-east-ronfaure",
+            "source_revisions": {"bg": 4001, "ffxiclopedia": 4002},
+            "source_step_ids": [f"{native.key}:step-001"],
+            "action": "obtain",
+            "items": ["Orcish Axe"],
+            "enemies": ["Orcish Fodder"],
+            "destination_id": "camp:101:orcish-fodder:fixture-hash",
+            "zone": 101,
+            "zone_name": "East Ronfaure",
+            "label": "Orcish Fodder camp in East Ronfaure",
+            "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+            "arrival_instruction": "Defeat Orcish Fodder until you obtain an Orcish Axe.",
+        }
+        overrides = {"objective_destination_overrides": {native.key: [override]}}
+        return native, bg, ffxi, reconciled, overrides
+
+    @staticmethod
+    def _resolve(
+        native: NativeObjective,
+        bg: ParsedObjective,
+        ffxi: ParsedObjective,
+        reconciled: object,
+        overrides: dict,
+    ) -> tuple[ReviewedObjectiveDestination, ...]:
+        return resolve_reviewed_objective_destinations(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            overrides,
+            (
+                {
+                    "zone": 101,
+                    "name": "Orcish Fodder",
+                    "kind": "enemy",
+                    "x": 123.0,
+                    "z": 45.0,
+                    "y": -2.0,
+                    "confidence": "untested",
+                },
+            ),
+            {101: "East Ronfaure"},
+        )
+
+    def test_missions_and_quests_use_the_same_immutable_destination_type(self) -> None:
+        results = []
+        for kind in ("mission", "quest"):
+            fixture = self._fixture(kind)
+            rows = self._resolve(*fixture)
+            self.assertEqual(len(rows), 1)
+            self.assertIsInstance(rows[0], ReviewedObjectiveDestination)
+            self.assertTrue(rows[0].stable_id.startswith(fixture[0].key + ":destination:"))
+            self.assertEqual(rows[0].source_step_ids, (f"{fixture[0].key}:step-001",))
+            self.assertEqual(rows[0].destination_id, "camp:101:orcish-fodder:fixture-hash")
+            self.assertEqual(rows[0].target_point, (123.0, 45.0, -2.0))
+            self.assertEqual(
+                rows[0].source_revisions,
+                (("bg", 4001), ("ffxiclopedia", 4002)),
+            )
+            self.assertEqual(rows[0].eligibility, "catalogue")
+            results.append(type(rows[0]))
+        self.assertIs(results[0], results[1])
+
+    def test_quest_destination_emits_only_the_shared_runtime_field(self) -> None:
+        native, bg, ffxi, _reconciled, overrides = self._fixture("quest")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (bg, ffxi),
+                module_root=root / "modules",
+                data_root=root / "data",
+                reviewed_overrides=overrides,
+                navigation_points=(
+                    {
+                        "zone": 101,
+                        "name": "Orcish Fodder",
+                        "kind": "enemy",
+                        "x": 123.0,
+                        "z": 45.0,
+                        "y": -2.0,
+                    },
+                ),
+                navigation_zone_names={101: "East Ronfaure"},
+            )
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_quest_sandoria.lua"
+            ).read_text(encoding="utf-8")
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+
+        self.assertIn("objective_destinations = {", reconcile)
+        self.assertNotIn("mission_destinations = {", reconcile)
+        self.assertIn('["bg"] = 4001', reconcile)
+        self.assertIn('["ffxiclopedia"] = 4002', reconcile)
+        self.assertEqual(review["objective_destinations"][0]["native_key"], native.key)
+        self.assertEqual(
+            review["objective_destinations"][0]["source_revisions"],
+            {"bg": 4001, "ffxiclopedia": 4002},
+        )
+        self.assertNotIn("mission_destinations", review)
+
+    def test_destination_overrides_reject_unknown_steps_and_stale_revisions(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("mission")
+        row = overrides["objective_destination_overrides"][native.key][0]
+        row["source_step_ids"] = [f"{native.key}:step-999"]
+        with self.assertRaises(ObjectiveDestinationError):
+            self._resolve(native, bg, ffxi, reconciled, overrides)
+
+        native, bg, ffxi, reconciled, overrides = self._fixture("mission")
+        overrides["objective_destination_overrides"][native.key][0]["source_revisions"]["bg"] = 3999
+        with self.assertRaises(ObjectiveDestinationError):
+            self._resolve(native, bg, ffxi, reconciled, overrides)
+
+    def test_destination_rejects_a_point_that_disagrees_with_its_exact_reference(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("mission")
+        overrides["objective_destination_overrides"][native.key][0]["target_point"] = [
+            999.0,
+            999.0,
+            999.0,
+        ]
+
+        with self.assertRaises(ObjectiveDestinationError):
+            self._resolve(native, bg, ffxi, reconciled, overrides)
+
+    def test_destination_order_is_stable_and_native_qualified(self) -> None:
+        native, bg, ffxi, reconciled, overrides = self._fixture("quest")
+        first = overrides["objective_destination_overrides"][native.key][0]
+        second = dict(first)
+        first["id"] = "zeta-camp"
+        first["destination_id"] = "camp:101:orcish-fodder:zeta"
+        second["id"] = "alpha-camp"
+        second["destination_id"] = "camp:101:orcish-fodder:alpha"
+        overrides["objective_destination_overrides"][native.key] = [first, second]
+
+        rows = self._resolve(native, bg, ffxi, reconciled, overrides)
+
+        self.assertEqual(
+            [row.stable_id for row in rows],
+            [
+                "quest:sandoria:1:destination:alpha-camp",
+                "quest:sandoria:1:destination:zeta-camp",
+            ],
+        )
+
+    def test_legacy_route_evidence_never_promotes_destination_eligibility(self) -> None:
+        native, bg, ffxi, reconciled, _overrides = self._fixture("mission")
+        legacy = {
+            "mission_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "legacy-camp",
+                        "source_revisions": {"bg": 4001, "ffxiclopedia": 4002},
+                        "source_step_ids": [f"{native.key}:step-001"],
+                        "action": "obtain",
+                        "items": ["Orcish Axe"],
+                        "enemies": ["Orcish Fodder"],
+                        "zone": 101,
+                        "zone_name": "East Ronfaure",
+                        "camp_label": "legacy Orcish Fodder camp",
+                        "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+                        "route_evidence": "navprobe:legacy-free-text-proof",
+                        "arrival_instruction": "Defeat Orcish Fodder until you obtain an Orcish Axe.",
+                    }
+                ]
+            }
+        }
+
+        rows = self._resolve(native, bg, ffxi, reconciled, legacy)
+
+        self.assertEqual(rows[0].eligibility, "catalogue")
+        self.assertEqual(rows[0].route_contract_id, "")
+        self.assertFalse(rows[0].instruction_only)
+
+    def test_target_and_unrelated_zone_from_different_sources_cannot_form_destination(self) -> None:
+        native = NativeObjective("quest", "other_areas", 8, "Split Claims", "quests.dat", 0)
+        bg_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=22,
+            supporting_clause="Defeat Orcish Fodder.",
+            action="fight",
+            verb="defeat",
+            relationship="defeat-enemy",
+            target="Orcish Fodder",
+            target_kind="enemy",
+            enemy_mentions=("Orcish Fodder",),
+        )
+        ffxi_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=38,
+            supporting_clause="Defeat enemies in West Sarutabaruta.",
+            action="fight",
+            verb="defeat",
+            relationship="defeat-enemy",
+            zone_mentions=("West Sarutabaruta",),
+        )
+        pages = []
+        for site, page_id, revision_id, span in (
+            ("bg", 501, 5001, bg_span),
+            ("ffxiclopedia", 502, 5002, ffxi_span),
+        ):
+            pages.append(
+                ParsedObjective(
+                    site=site,
+                    page_id=page_id,
+                    revision_id=revision_id,
+                    canonical_title="Split Claims",
+                    kind="quest",
+                    objective_name="Split Claims",
+                    steps=(
+                        SourceStep(
+                            1,
+                            "*",
+                            1,
+                            span.supporting_clause,
+                            span.supporting_clause,
+                            "fight",
+                            linked_entities=span.enemy_mentions,
+                            zone_candidates=span.zone_mentions,
+                            action_spans=(span,),
+                        ),
+                    ),
+                )
+            )
+        bg, ffxi = pages
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        claim = reconciled.steps[0].claims[0]
+        self.assertEqual(
+            [
+                (candidate.field, candidate.value, candidate.sources)
+                for candidate in claim.candidates
+                if candidate.field in {"target", "zone"}
+            ],
+            [
+                ("target", "Orcish Fodder", ("bg",)),
+                ("zone", "West Sarutabaruta", ("ffxiclopedia",)),
+            ],
+        )
+        overrides = {
+            "objective_destination_overrides": {
+                native.key: [
+                    {
+                        "id": "unsafe-joined-claim",
+                        "source_revisions": {"bg": 5001, "ffxiclopedia": 5002},
+                        "source_step_ids": [f"{native.key}:step-001"],
+                        "action": "fight",
+                        "items": [],
+                        "enemies": ["Orcish Fodder"],
+                        "destination_id": "enemy:115:orcish-fodder:fixture",
+                        "zone": 115,
+                        "zone_name": "West Sarutabaruta",
+                        "label": "unsafe joined claim",
+                        "reference": {"name": "Orcish Fodder", "kind": "enemy"},
+                        "arrival_instruction": "Defeat Orcish Fodder.",
+                    }
+                ]
+            }
+        }
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                ({"zone": 115, "name": "Orcish Fodder", "kind": "enemy"},),
+                {115: "West Sarutabaruta"},
+            )
 
 
 class GeneratedArtifactTests(unittest.TestCase):
@@ -1323,6 +1946,22 @@ class GeneratedArtifactTests(unittest.TestCase):
                         bg_action,
                         linked_entities=(bg_name, "Zeruhn Mines"),
                         zone_candidates=("Zeruhn Mines",),
+                        action_spans=(
+                            SourceActionSpan(
+                                source_step_order=1,
+                                order=1,
+                                text_start=0,
+                                text_end=len(bg_instruction or f"Talk to {bg_name} in Zeruhn Mines."),
+                                supporting_clause=bg_instruction or f"Talk to {bg_name} in Zeruhn Mines.",
+                                action=bg_action,
+                                verb="talk" if bg_action == "talk" else bg_action,
+                                relationship="talk-to" if bg_action == "talk" else bg_action,
+                                target=bg_name,
+                                target_kind="npc",
+                                npc_mentions=(bg_name,),
+                                zone_mentions=("Zeruhn Mines",),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -1343,6 +1982,24 @@ class GeneratedArtifactTests(unittest.TestCase):
                         ffxi_action,
                         linked_entities=(ffxi_name, "Zeruhn Mines"),
                         zone_candidates=("Zeruhn Mines",),
+                        action_spans=(
+                            SourceActionSpan(
+                                source_step_order=1,
+                                order=1,
+                                text_start=0,
+                                text_end=len(ffxi_instruction or f"Speak with {ffxi_name} in Zeruhn Mines."),
+                                supporting_clause=(
+                                    ffxi_instruction or f"Speak with {ffxi_name} in Zeruhn Mines."
+                                ),
+                                action=ffxi_action,
+                                verb="speak" if ffxi_action == "talk" else ffxi_action,
+                                relationship="talk-to" if ffxi_action == "talk" else ffxi_action,
+                                target=ffxi_name,
+                                target_kind="npc",
+                                npc_mentions=(ffxi_name,),
+                                zone_mentions=("Zeruhn Mines",),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -1399,6 +2056,21 @@ class GeneratedArtifactTests(unittest.TestCase):
                         "obtain",
                         linked_entities=items,
                         items=items,
+                        action_spans=(
+                            SourceActionSpan(
+                                source_step_order=1,
+                                order=1,
+                                text_start=0,
+                                text_end=30,
+                                supporting_clause="Obtain the four Fetich pieces.",
+                                action="obtain",
+                                verb="obtain",
+                                relationship="obtain-item",
+                                target="Fetich pieces",
+                                target_kind="item",
+                                item_mentions=items,
+                            ),
+                        ),
                     ),
                     SourceStep(
                         2,
@@ -1409,6 +2081,27 @@ class GeneratedArtifactTests(unittest.TestCase):
                         "fight",
                         linked_entities=("Amber Quadav", "Palborough Mines"),
                         zone_candidates=("Palborough Mines",),
+                        action_spans=(
+                            SourceActionSpan(
+                                source_step_order=2,
+                                order=1,
+                                text_start=0,
+                                text_end=68,
+                                supporting_clause=(
+                                    "Defeat Amber Quadav in Palborough Mines for the Fetich pieces."
+                                ),
+                                action="fight",
+                                verb="defeat",
+                                relationship="defeat-to-obtain",
+                                target="Amber Quadav",
+                                target_kind="enemy",
+                                enemy_mentions=("Amber Quadav",),
+                                item_mentions=items,
+                                zone_mentions=("Palborough Mines",),
+                                result_items=items,
+                                result_relation="obtain-from",
+                            ),
+                        ),
                     ),
                 ),
             )
@@ -1478,13 +2171,16 @@ class GeneratedArtifactTests(unittest.TestCase):
                 (root / "data" / "target-review.json").read_text(encoding="utf-8")
             )
 
-        self.assertIn("mission_destinations = {", reconcile)
-        self.assertIn('stable_id = "mission:Bastok:3:palborough-lower-amber"', reconcile)
+        self.assertIn("objective_destinations = {", reconcile)
+        self.assertNotIn("mission_destinations = {", reconcile)
+        self.assertIn('stable_id = "mission:Bastok:3:destination:palborough-lower-amber"', reconcile)
         self.assertIn('items = { "Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs" }', reconcile)
         self.assertIn('enemies = { "Amber Quadav" }', reconcile)
         self.assertIn('name = "Amber Quadav"', reconcile)
-        self.assertIn('route_evidence = "navprobe:Palborough_Mines.nav:', reconcile)
-        self.assertEqual(review["mission_destinations"][0]["status"], "verified-reviewed-target")
+        self.assertIn('eligibility = "catalogue"', reconcile)
+        self.assertNotIn("route_evidence", reconcile)
+        self.assertEqual(review["objective_destinations"][0]["classification"], "catalogue-candidate")
+        self.assertFalse(review["objective_destinations"][0]["route_ready"])
 
     def test_reviewed_mission_destination_rejects_unknown_canonical_ingress(self) -> None:
         natives, pages, overrides = self._mission_destination_fixture()
@@ -1531,6 +2227,98 @@ class GeneratedArtifactTests(unittest.TestCase):
                 ),
                 navigation_zone_names={143: "Palborough Mines"},
             )
+
+    def test_every_reconciled_row_enters_review_once_with_typed_claims(self) -> None:
+        native = NativeObjective("quest", "other_areas", 77, "Audit Stream", "quests.dat", 0)
+        protect_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=33,
+            supporting_clause="Protect the Elvaan and Hume NPCs.",
+            action="protect",
+            verb="protect",
+            relationship="protect-role",
+            target="Elvaan and Hume NPCs",
+            target_kind="role",
+        )
+        warning_span = SourceActionSpan(
+            source_step_order=2,
+            order=1,
+            text_start=0,
+            text_end=66,
+            supporting_clause="Leaving the battlefield loses the required Dawn Talisman.",
+            action="warning",
+            verb="loses",
+            relationship="required-state-warning",
+            target="Dawn Talisman",
+            target_kind="key-item",
+            item_mentions=("Dawn Talisman",),
+        )
+        page = ParsedObjective(
+            site="bg",
+            page_id=707,
+            revision_id=7007,
+            canonical_title="Audit Stream",
+            kind="quest",
+            objective_name="Audit Stream",
+            steps=(
+                SourceStep(
+                    1,
+                    "*",
+                    1,
+                    protect_span.supporting_clause,
+                    protect_span.supporting_clause,
+                    "note",
+                    action_spans=(protect_span,),
+                ),
+                SourceStep(
+                    2,
+                    "*",
+                    1,
+                    warning_span.supporting_clause,
+                    warning_span.supporting_clause,
+                    "note",
+                    key_items=("Dawn Talisman",),
+                    action_spans=(warning_span,),
+                ),
+                SourceStep(
+                    3,
+                    "*",
+                    1,
+                    "The client shows a final explanatory note.",
+                    "The client shows a final explanatory note.",
+                    "note",
+                ),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                (native,),
+                (page,),
+                module_root=root / "modules",
+                data_root=root / "data",
+            )
+            review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
+            reconcile = (
+                root / "modules" / "mission_quest_reconcile_quest_other_areas.lua"
+            ).read_text(encoding="utf-8")
+
+        stable_ids = [row["stable_step_id"] for row in review["steps"]]
+        self.assertEqual(
+            stable_ids,
+            [
+                "quest:other_areas:77:step-001",
+                "quest:other_areas:77:step-002",
+                "quest:other_areas:77:step-003",
+            ],
+        )
+        self.assertEqual(len(stable_ids), len(set(stable_ids)))
+        self.assertEqual(review["steps"][0]["typed_claims"][0]["action"], "protect")
+        self.assertEqual(review["steps"][1]["typed_claims"][0]["action"], "warning")
+        self.assertTrue(all(row["classification"] != "context-only" for row in review["steps"]))
+        self.assertIn("typed_claims = {", reconcile)
 
     def test_repository_reviews_both_fetichism_farming_camps(self) -> None:
         overrides = json.loads(

@@ -13,10 +13,14 @@ from typing import Any
 
 from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
-from .mission_destinations import MissionDestinationError, resolve_reviewed_mission_destinations
-from .model import NativeObjective, ParsedObjective, SourceStep
+from .objective_destinations import (
+    ObjectiveDestinationError,
+    resolve_reviewed_objective_destinations,
+)
+from .model import NativeObjective, ParsedObjective, SourceActionSpan, SourceStep
 from .reconcile import (
-    ReviewedMissionDestination,
+    ReconciledActionClaim,
+    ReviewedObjectiveDestination,
     ReviewedNavigationTarget,
     ReconciledObjective,
     ReconciledStep,
@@ -139,9 +143,40 @@ def _license_id(page: ParsedObjective) -> str:
     return declared
 
 
-def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
+def _source_action_span_lua(span: SourceActionSpan, indent: str) -> list[str]:
     inner = indent + "  "
     return [
+        indent + "{",
+        f"{inner}source_step_order = {span.source_step_order},",
+        f"{inner}order = {span.order},",
+        f"{inner}text_start = {span.text_start},",
+        f"{inner}text_end = {span.text_end},",
+        f"{inner}supporting_clause = {lua_quote(span.supporting_clause)},",
+        f"{inner}action = {lua_quote(span.action)},",
+        f"{inner}verb = {lua_quote(span.verb)},",
+        f"{inner}relationship = {lua_quote(span.relationship)},",
+        f"{inner}target = {lua_quote(span.target)},",
+        f"{inner}target_kind = {lua_quote(span.target_kind)},",
+        f"{inner}target_role = {lua_quote(span.target_role)},",
+        f"{inner}npc_mentions = {_lua_array(span.npc_mentions)},",
+        f"{inner}object_mentions = {_lua_array(span.object_mentions)},",
+        f"{inner}enemy_mentions = {_lua_array(span.enemy_mentions)},",
+        f"{inner}item_mentions = {_lua_array(span.item_mentions)},",
+        f"{inner}transport_mentions = {_lua_array(span.transport_mentions)},",
+        f"{inner}zone_mentions = {_lua_array(span.zone_mentions)},",
+        f"{inner}temporal_zone_variant = {lua_quote(span.temporal_zone_variant)},",
+        f"{inner}map_numbers = {_lua_array(span.map_numbers)},",
+        f"{inner}grid_coordinates = {_lua_array(span.grid_coordinates)},",
+        f"{inner}result_items = {_lua_array(span.result_items)},",
+        f"{inner}result_relation = {lua_quote(span.result_relation)},",
+        f"{inner}material = {'true' if span.material else 'false'},",
+        indent + "},",
+    ]
+
+
+def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
+    inner = indent + "  "
+    lines = [
         indent + "{",
         f"{inner}order = {step.order},",
         f"{inner}marker = {lua_quote(step.marker)},",
@@ -155,8 +190,12 @@ def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
         f"{inner}items = {_lua_array(step.items)},",
         f"{inner}key_items = {_lua_array(step.key_items)},",
         f"{inner}warnings = {_lua_array(step.warnings)},",
-        indent + "},",
+        f"{inner}action_spans = {{",
     ]
+    for span in step.action_spans:
+        lines.extend(_source_action_span_lua(span, inner + "  "))
+    lines.extend([f"{inner}}},", indent + "},"])
+    return lines
 
 
 def _source_module_text(
@@ -232,10 +271,10 @@ def _reconcile_module_text(
         for stage_key, step_id in sorted(automatic_stages.items()):
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
         lines.append("    },")
-        if objective.mission_destinations:
-            lines.append("    mission_destinations = {")
-            for destination in objective.mission_destinations:
-                lines.extend(_mission_destination_lua(destination))
+        if objective.objective_destinations:
+            lines.append("    objective_destinations = {")
+            for destination in objective.objective_destinations:
+                lines.extend(_objective_destination_lua(destination))
             lines.append("    },")
         lines.append("    steps = {")
         for step in objective.steps:
@@ -249,10 +288,22 @@ def _reconcile_module_text(
                     f"        conflicting_fields = {_lua_array(step.conflicting_fields)},",
                     f"        action = {lua_quote(step.action)},",
                     f"        entities = {_lua_array(step.entities)},",
+                    f"        items = {_lua_array(step.items)},",
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
-                    f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
+                    f"        alignment_score = {step.alignment_score},",
+                    f"        alignment_reason = {lua_quote(step.alignment_reason)},",
+                    f"        unpaired_reason = {lua_quote(step.unpaired_reason)},",
+                    "        typed_claims = {",
             ]
+            for claim in step.claims:
+                step_lines.extend(_reconciled_claim_lua(claim))
+            step_lines.extend(
+                [
+                    "        },",
+                    f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
+                ]
+            )
             target = step.navigation_target
             if target is not None:
                 step_lines.extend(
@@ -276,17 +327,56 @@ def _reconcile_module_text(
     return "\n".join(lines) + "\n"
 
 
-def _mission_destination_lua(destination: ReviewedMissionDestination) -> list[str]:
-    return [
+def _reconciled_claim_lua(claim: ReconciledActionClaim) -> list[str]:
+    lines = [
+        "          {",
+        f"            stable_claim_id = {lua_quote(claim.stable_claim_id)},",
+        f"            order = {claim.order},",
+        f"            action = {lua_quote(claim.action)},",
+        f"            relationship = {lua_quote(claim.relationship)},",
+        f"            target = {lua_quote(claim.target)},",
+        f"            target_kind = {lua_quote(claim.target_kind)},",
+        f"            comparison = {lua_quote(claim.comparison)},",
+        f"            alignment_score = {claim.alignment_score},",
+        f"            alignment_reason = {lua_quote(claim.alignment_reason)},",
+        f"            unpaired_reason = {lua_quote(claim.unpaired_reason)},",
+        f"            bg_span_order = {claim.bg_span_order},",
+        f"            ffxiclopedia_span_order = {claim.ffxiclopedia_span_order},",
+        "            candidates = {",
+    ]
+    for candidate in claim.candidates:
+        lines.extend(
+            [
+                "              {",
+                f"                field = {lua_quote(candidate.field)},",
+                f"                value = {lua_quote(candidate.value)},",
+                f"                comparison = {lua_quote(candidate.comparison)},",
+                f"                sources = {_lua_array(candidate.sources)},",
+                "              },",
+            ]
+        )
+    lines.extend(["            },", "          },"])
+    return lines
+
+
+def _objective_destination_lua(destination: ReviewedObjectiveDestination) -> list[str]:
+    lines = [
         "      {",
         f"        stable_id = {lua_quote(destination.stable_id)},",
         f"        source_step_ids = {_lua_array(destination.source_step_ids)},",
+        "        source_revisions = {",
+        *(
+            f"          [{lua_quote(site)}] = {revision_id},"
+            for site, revision_id in destination.source_revisions
+        ),
+        "        },",
         f"        action = {lua_quote(destination.action)},",
         f"        items = {_lua_array(destination.items)},",
         f"        enemies = {_lua_array(destination.enemies)},",
+        f"        destination_id = {lua_quote(destination.destination_id)},",
         f"        zone = {destination.zone},",
         f"        zone_name = {lua_quote(destination.zone_name)},",
-        f"        camp_label = {lua_quote(destination.camp_label)},",
+        f"        label = {lua_quote(destination.label)},",
         "        navigation_target = {",
         '          type = "static-reference",',
         "          reference = {",
@@ -296,14 +386,29 @@ def _mission_destination_lua(destination: ReviewedMissionDestination) -> list[st
         f"            kind = {lua_quote(destination.target_kind)},",
         "          },",
         "        },",
+    ]
+    if destination.target_point is None:
+        lines.append("        target_point = nil,")
+    else:
+        lines.append(
+            "        target_point = { "
+            + ", ".join(format(value, ".17g") for value in destination.target_point)
+            + " },"
+        )
+    lines.extend(
+        [
+        f"        eligibility = {lua_quote(destination.eligibility)},",
+        f"        route_contract_id = {lua_quote(destination.route_contract_id)},",
         f"        canonical_ingress_edge_id = {destination.canonical_ingress_edge_id},",
         f"        canonical_ingress_from_zone = {destination.canonical_ingress_from_zone},",
         f"        transport_id = {lua_quote(destination.transport_id)},",
-        f"        route_evidence = {lua_quote(destination.route_evidence)},",
+        f"        instruction_only = {'true' if destination.instruction_only else 'false'},",
         f"        arrival_instruction = {lua_quote(destination.arrival_instruction)},",
-        "        route_ready = true,",
+        "        route_ready = false,",
         "      },",
-    ]
+        ]
+    )
+    return lines
 
 
 def _matches_by_native(
@@ -530,6 +635,32 @@ def _casefold_values(values: Iterable[object]) -> set[str]:
     return {str(value or "").strip().casefold() for value in values if str(value or "").strip()}
 
 
+def _claim_review_row(claim: ReconciledActionClaim) -> dict[str, Any]:
+    return {
+        "stable_claim_id": claim.stable_claim_id,
+        "order": claim.order,
+        "action": claim.action,
+        "relationship": claim.relationship,
+        "target": claim.target,
+        "target_kind": claim.target_kind,
+        "comparison": claim.comparison,
+        "alignment_score": claim.alignment_score,
+        "alignment_reason": claim.alignment_reason,
+        "unpaired_reason": claim.unpaired_reason,
+        "bg_span_order": claim.bg_span_order,
+        "ffxiclopedia_span_order": claim.ffxiclopedia_span_order,
+        "candidates": [
+            {
+                "field": candidate.field,
+                "value": candidate.value,
+                "comparison": candidate.comparison,
+                "sources": list(candidate.sources),
+            }
+            for candidate in claim.candidates
+        ],
+    }
+
+
 def _source_step_for_order(page: ParsedObjective | None, order: int) -> SourceStep | None:
     if page is None or order <= 0:
         return None
@@ -538,26 +669,25 @@ def _source_step_for_order(page: ParsedObjective | None, order: int) -> SourceSt
 
 def _source_names_zone(step: SourceStep, zone_name: str) -> bool:
     wanted = zone_name.casefold()
-    if wanted in _casefold_values((*step.zone_candidates, *step.linked_entities)):
-        return True
-    return wanted in step.spoken_text.casefold()
+    return any(
+        wanted in _casefold_values(span.zone_mentions)
+        for span in step.action_spans
+    )
 
 
 def _source_directs_talk_to(step: SourceStep, name: str) -> bool:
-    text = re.sub(r"\s+", " ", step.spoken_text.strip()).casefold()
-    target = re.escape(name.casefold()).replace(r"\ ", r"\s+")
-    direct_patterns = (
-        rf"\b(?:talk|speak)\s+(?:to|with)\s+(?:the\s+)?{target}(?:\b|$)",
-    )
-    if any(re.search(pattern, text) is not None for pattern in direct_patterns):
-        return True
     if _OBJECT_LIKE_TARGET_NAME.search(name):
         return False
-    implied_patterns = (
-        rf"\b(?:return|report|head|go)\s+(?:back\s+)?to\s+(?:the\s+)?{target}(?:\b|$)",
-        rf"\bvisit\s+(?:the\s+)?{target}(?:\b|$)",
+    wanted = name.casefold()
+    return any(
+        span.action == "talk"
+        and span.target_kind == "npc"
+        and (
+            span.target.casefold() == wanted
+            or wanted in _casefold_values(span.npc_mentions)
+        )
+        for span in step.action_spans
     )
-    return any(re.search(pattern, text) is not None for pattern in implied_patterns)
 
 
 def _propose_named_npc_target(
@@ -577,8 +707,12 @@ def _propose_named_npc_target(
         return None
     if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
         return None
-    common_names = _casefold_values(bg_step.linked_entities).intersection(
-        _casefold_values(ffxi_step.linked_entities)
+    common_names = _casefold_values(
+        value for span in bg_step.action_spans for value in span.npc_mentions
+    ).intersection(
+        _casefold_values(
+            value for span in ffxi_step.action_spans for value in span.npc_mentions
+        )
     )
     candidates: list[ReviewedNavigationTarget] = []
     for common_name in common_names:
@@ -685,11 +819,15 @@ def _resolve_reviewed_navigation_targets(
         wanted_name = name.casefold()
         if bg_step is None or ffxi_step is None:
             raise GenerationError(f"Reviewed target {stable_step_id!r} lacks two source steps.")
-        if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
+        if not _source_directs_talk_to(bg_step, name) or not _source_directs_talk_to(ffxi_step, name):
             raise GenerationError(f"Reviewed target {stable_step_id!r} has conflicting source actions.")
-        if wanted_name not in _casefold_values(bg_step.linked_entities) or wanted_name not in _casefold_values(
-            ffxi_step.linked_entities
-        ):
+        bg_names = _casefold_values(
+            value for span in bg_step.action_spans for value in span.npc_mentions
+        )
+        ffxi_names = _casefold_values(
+            value for span in ffxi_step.action_spans for value in span.npc_mentions
+        )
+        if wanted_name not in bg_names or wanted_name not in ffxi_names:
             raise GenerationError(
                 f"Reviewed target {stable_step_id!r} is not named by both source steps."
             )
@@ -960,7 +1098,7 @@ def build_guide_artifacts(
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
-    target_review_mission_destinations: list[dict[str, Any]] = []
+    target_review_objective_destinations: list[dict[str, Any]] = []
     resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
@@ -987,7 +1125,7 @@ def build_guide_artifacts(
                 nav_zone_names,
             )
             try:
-                mission_destinations = resolve_reviewed_mission_destinations(
+                objective_destinations = resolve_reviewed_objective_destinations(
                     native,
                     reconciled,
                     bg,
@@ -997,21 +1135,24 @@ def build_guide_artifacts(
                     nav_zone_names,
                     nav_edges,
                 )
-            except MissionDestinationError as error:
+            except ObjectiveDestinationError as error:
                 raise GenerationError(str(error)) from error
-            reconciled = replace(reconciled, mission_destinations=mission_destinations)
-            for destination in mission_destinations:
-                target_review_mission_destinations.append(
+            reconciled = replace(reconciled, objective_destinations=objective_destinations)
+            for destination in objective_destinations:
+                target_review_objective_destinations.append(
                     {
                         "native_key": native.key,
                         "stable_id": destination.stable_id,
                         "source_step_ids": list(destination.source_step_ids),
+                        "source_revisions": dict(destination.source_revisions),
                         "action": destination.action,
                         "items": list(destination.items),
                         "enemies": list(destination.enemies),
+                        "destination_id": destination.destination_id,
                         "zone": destination.zone,
                         "zone_name": destination.zone_name,
-                        "camp_label": destination.camp_label,
+                        "label": destination.label,
+                        "target_point": list(destination.target_point) if destination.target_point else None,
                         "navigation_target": {
                             "type": "static-reference",
                             "reference": {
@@ -1024,10 +1165,14 @@ def build_guide_artifacts(
                         "canonical_ingress_edge_id": destination.canonical_ingress_edge_id,
                         "canonical_ingress_from_zone": destination.canonical_ingress_from_zone,
                         "transport_id": destination.transport_id,
-                        "route_evidence": destination.route_evidence,
+                        "eligibility": destination.eligibility,
+                        "route_contract_id": destination.route_contract_id,
+                        "instruction_only": destination.instruction_only,
                         "arrival_instruction": destination.arrival_instruction,
-                        "status": "verified-reviewed-target",
-                        "route_ready": True,
+                        "classification": (
+                            "instruction-only" if destination.instruction_only else "catalogue-candidate"
+                        ),
+                        "route_ready": False,
                     }
                 )
             automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
@@ -1052,13 +1197,6 @@ def build_guide_artifacts(
                 (native, reconciled, automatic_stages, default_step_id, route_steps)
             )
             for step in reconciled.steps:
-                if not (
-                    step.action != "note"
-                    or step.entities
-                    or step.zones
-                    or step.grid_coordinates
-                ):
-                    continue
                 proposal = _propose_named_npc_target(
                     step,
                     bg,
@@ -1084,16 +1222,36 @@ def build_guide_artifacts(
                     review_status = "needs-exact-target-review"
                 else:
                     review_status = "guide-only-action"
+                if step.stable_step_id in route_steps:
+                    classification = "routable"
+                elif step.comparison == "conflict":
+                    classification = "conflict"
+                else:
+                    classification = "unresolved"
                 review_row: dict[str, Any] = {
                     "native_key": native.key,
                     "stable_step_id": step.stable_step_id,
                     "action": step.action,
                     "comparison": step.comparison,
+                    "alignment_score": step.alignment_score,
+                    "alignment_reason": step.alignment_reason,
+                    "unpaired_reason": step.unpaired_reason,
                     "entities": list(step.entities),
+                    "items": list(step.items),
                     "zones": list(step.zones),
                     "grid_coordinates": list(step.grid_coordinates),
+                    "typed_claims": [_claim_review_row(claim) for claim in step.claims],
+                    "source_orders": list(step.source_orders),
+                    "source_revisions": {
+                        site: page.revision_id for site, page in sorted(matched.items())
+                    },
+                    "source_instructions": {
+                        "bg": step.bg_instruction,
+                        "ffxiclopedia": step.ffxiclopedia_instruction,
+                    },
                     "dynamic_candidate_grid": list(reconciled.dynamic_candidate_grid),
                     "review_status": review_status,
+                    "classification": classification,
                     "route_ready": step.stable_step_id in route_steps,
                 }
                 if step.navigation_target is not None:
@@ -1129,7 +1287,7 @@ def build_guide_artifacts(
         )
         if runtime_objective_key and automatic_stages:
             status = "automatic-stage"
-        elif route_steps or (reconciled is not None and reconciled.mission_destinations):
+        elif route_steps:
             status = "verified-navigation"
         elif reconciled is not None and _has_material_conflict(reconciled):
             status = "source-conflict"
@@ -1169,7 +1327,7 @@ def build_guide_artifacts(
             "runtime_objective_key": runtime_objective_key,
             "automatic_stages": automatic_stages,
             "default_step_id": default_step_id,
-            "route_ready": bool(route_steps or (reconciled and reconciled.mission_destinations)),
+            "route_ready": bool(route_steps),
             "automatic_stage": bool(automatic_stages),
         }
 
@@ -1283,8 +1441,8 @@ def build_guide_artifacts(
         data_root / "target-review.json",
         {
             "schema_version": 1,
-            "mission_destinations": sorted(
-                target_review_mission_destinations,
+            "objective_destinations": sorted(
+                target_review_objective_destinations,
                 key=lambda row: (row["native_key"], row["stable_id"]),
             ),
             "steps": sorted(

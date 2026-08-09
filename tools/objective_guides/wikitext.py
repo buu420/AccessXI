@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from dataclasses import replace
+from pathlib import Path
 
 import mwparserfromhell
 from mwparserfromhell.nodes import Template, Wikilink
 
 from .mediawiki import PageRevision
-from .model import ParsedObjective, SourceStep
+from .model import ParsedObjective, SourceActionSpan, SourceStep
 
 
 MAX_SPOKEN_STEP = 420
+
+_ZONE_NAMES: tuple[str, ...] | None = None
 
 _NYZUL_OBJECTIVE_TITLES = {
     "Nyzul Isle Investigation",
@@ -224,6 +228,337 @@ def _extract_marked_links(fragment: str, template_names: str) -> tuple[str, ...]
         re.IGNORECASE,
     )
     return _unique(match.group(1) for match in pattern.finditer(fragment))
+
+
+def _authoritative_zone_names() -> tuple[str, ...]:
+    global _ZONE_NAMES
+    if _ZONE_NAMES is not None:
+        return _ZONE_NAMES
+    graph_path = Path(__file__).resolve().parents[2] / "data" / "ffxi-nav-zoneline-graph.tsv"
+    names: list[str] = []
+    if graph_path.is_file():
+        for line in graph_path.read_text(encoding="utf-8").splitlines():
+            fields = line.split("\t")
+            if len(fields) >= 9 and fields[0].strip().isdigit():
+                names.extend((fields[2], fields[8]))
+    _ZONE_NAMES = tuple(sorted(_unique(names), key=lambda value: (-len(value), value.casefold())))
+    return _ZONE_NAMES
+
+
+def _zone_aliases(zone_name: str) -> tuple[str, ...]:
+    if zone_name.endswith(" [S]"):
+        return zone_name, zone_name[:-4] + " (S)"
+    return (zone_name,)
+
+
+def _extract_zone_mentions(
+    text: str,
+    explicit_locations: Iterable[str] = (),
+    zone_names: Iterable[str] | None = None,
+) -> tuple[str, ...]:
+    catalogue = tuple(zone_names) if zone_names is not None else _authoritative_zone_names()
+    aliases: list[tuple[str, str]] = []
+    for canonical in catalogue:
+        canonical = _clean(canonical)
+        if canonical:
+            aliases.extend((alias, canonical) for alias in _zone_aliases(canonical))
+    aliases.sort(key=lambda row: (-len(row[0]), row[0].casefold()))
+    occupied: list[tuple[int, int]] = []
+    found: list[tuple[int, str]] = []
+    for alias, canonical in aliases:
+        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(alias)}(?![A-Za-z0-9])", re.IGNORECASE)
+        for match in pattern.finditer(text):
+            if any(match.start() < end and start < match.end() for start, end in occupied):
+                continue
+            occupied.append((match.start(), match.end()))
+            found.append((match.start(), canonical))
+    canonical_by_key = {
+        alias.casefold(): canonical
+        for canonical in catalogue
+        for alias in _zone_aliases(_clean(canonical))
+    }
+    for explicit in explicit_locations:
+        canonical = canonical_by_key.get(_clean(explicit).casefold())
+        if canonical and canonical.casefold() not in {value.casefold() for _offset, value in found}:
+            found.append((-1, canonical))
+    return _unique(value for _offset, value in sorted(found, key=lambda row: (row[0], row[1].casefold())))
+
+
+_ACTION_MATCH = re.compile(
+    r"\b(?P<verb>re-examine|examine|touch|click|inspect|check|trade|give|hand over|deliver|"
+    r"talk|speak|return to|report to|visit|defeat|defeating|fight|kill|killing|slay|destroy|obtain|receive|collect|"
+    r"purchase|go to|head to|travel to|enter|exit|zone into|proceed to|make your way to|"
+    r"wait|use|activate|light|open|protect|select|choose|board)\b",
+    re.IGNORECASE,
+)
+
+
+def _trim_target(value: str) -> str:
+    value = _clean(value).strip(" ,.;:!?")
+    value = re.sub(r"^(?:the|an|a)\s+", "", value, flags=re.IGNORECASE)
+    return value.strip(" ,.;:!?")
+
+
+def _action_for_verb(verb: str) -> tuple[str, str]:
+    key = verb.casefold()
+    if key in {"talk", "speak", "return to", "report to", "visit"}:
+        return "talk", "talk-to"
+    if key in {"trade", "give", "hand over", "deliver"}:
+        return "trade", "trade-to"
+    if key in {"defeat", "defeating", "fight", "kill", "killing", "slay", "destroy"}:
+        return "fight", "defeat-enemy"
+    if key in {"re-examine", "examine", "touch", "click", "inspect", "check"}:
+        return "examine", "examine-object"
+    if key in {"obtain", "receive", "collect", "purchase"}:
+        return "obtain", "obtain-item"
+    if key == "enter":
+        return "travel", "enter-through"
+    if key in {"go to", "head to", "travel to", "exit", "zone into", "proceed to", "make your way to"}:
+        return "travel", "travel-to"
+    if key in {"select", "choose"}:
+        return "select", "menu-choice"
+    if key == "board":
+        return "travel", "board-transport"
+    if key == "protect":
+        return "protect", "protect-role"
+    if key == "wait":
+        return "wait", "wait-for"
+    return "use", "use-object"
+
+
+def _result_item_after(text: str, start: int) -> str:
+    match = re.search(
+        r"\b(?:obtain|receive|collect)\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|[.;]|$)",
+        text[start:],
+        re.IGNORECASE,
+    )
+    return _trim_target(match.group(1)) if match else ""
+
+
+def _extract_action_spans(
+    text: str,
+    *,
+    source_step_order: int,
+    links: tuple[str, ...],
+    zones: tuple[str, ...],
+    maps: tuple[str, ...],
+    coordinates: tuple[str, ...],
+    marked_items: tuple[str, ...],
+    key_items: tuple[str, ...],
+) -> tuple[SourceActionSpan, ...]:
+    reversed_chain = re.search(
+        r"\b(?:obtain|receive|collect)\s+(?:the\s+|an?\s+)?(?P<item>.+?)\s+by\s+"
+        r"(?:defeating|killing|slaying)\s+(?:the\s+)?(?P<enemy>.+?)(?=\s+in\b|\s+at\b|[.;]|$)",
+        text,
+        re.IGNORECASE,
+    )
+    if reversed_chain:
+        item = _trim_target(reversed_chain.group("item"))
+        enemy = _trim_target(reversed_chain.group("enemy"))
+        return (
+            SourceActionSpan(
+                source_step_order=source_step_order,
+                order=1,
+                text_start=reversed_chain.start(),
+                text_end=reversed_chain.end(),
+                supporting_clause=_clean(reversed_chain.group(0)),
+                action="fight",
+                verb="defeat",
+                relationship="defeat-to-obtain",
+                target=enemy,
+                target_kind="enemy",
+                enemy_mentions=(enemy,) if enemy else (),
+                item_mentions=(item,) if item else (),
+                zone_mentions=zones,
+                temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in zones) else "",
+                map_numbers=maps,
+                grid_coordinates=coordinates,
+                result_items=(item,) if item else (),
+                result_relation="obtain-from",
+            ),
+        )
+
+    matches = list(_ACTION_MATCH.finditer(text))
+    warning_match = re.search(
+        r"\b(?:leaving|exiting)\b.+?\b(?:lose|loses|removes?)\b.+?(?=[.;]|$)",
+        text,
+        re.IGNORECASE,
+    )
+    if warning_match and not any(match.start() == warning_match.start() for match in matches):
+        matches.append(
+            re.search(r"\b(?:lose|loses|removes?)\b", text[warning_match.start() : warning_match.end()], re.IGNORECASE)
+        )
+        synthetic = matches[-1]
+        if synthetic is not None:
+            offset = warning_match.start()
+            matches[-1] = _OffsetMatch(synthetic, offset)
+    matches = sorted((match for match in matches if match is not None), key=lambda match: match.start())
+    spans: list[SourceActionSpan] = []
+    for index, match in enumerate(matches):
+        verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)
+        action, relationship = _action_for_verb(verb)
+        if warning_match and warning_match.start() <= match.start() < warning_match.end() and verb.casefold() in {
+            "lose",
+            "loses",
+            "remove",
+            "removes",
+        }:
+            action, relationship = "warning", "required-state-warning"
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        clause = _clean(text[match.start() : end]).strip(" ,")
+        remainder = text[match.end() :]
+        target = ""
+        target_kind = ""
+        item_mentions: tuple[str, ...] = ()
+        npc_mentions: tuple[str, ...] = ()
+        object_mentions: tuple[str, ...] = ()
+        enemy_mentions: tuple[str, ...] = ()
+        transport_mentions: tuple[str, ...] = ()
+
+        if action == "trade":
+            trade = re.match(
+                r"\s+(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?(.+?)(?=,?\s+then\b|[.;]|$)",
+                remainder,
+                re.IGNORECASE,
+            )
+            if trade:
+                item = _trim_target(trade.group(1))
+                target = _trim_target(trade.group(2))
+                item_mentions = (item,) if item else ()
+                npc_mentions = (target,) if target else ()
+                target_kind = "npc"
+        elif action == "talk":
+            if verb.casefold() in {"return to", "report to", "visit"}:
+                talked = re.match(
+                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[.;,]|$)",
+                    remainder,
+                    re.IGNORECASE,
+                )
+            else:
+                talked = re.match(
+                    r"\s+(?:to|with)\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[.;,]|$)",
+                    remainder,
+                    re.IGNORECASE,
+                )
+            target = _trim_target(talked.group(1)) if talked else ""
+            if target.casefold() in {"him", "her", "them", "it"}:
+                target_kind = "role"
+            else:
+                target_kind = "npc" if target else ""
+                npc_mentions = (target,) if target else ()
+        elif action == "fight":
+            fought = re.match(
+                r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
+                r"\s+and\s+(?:re-examine|examine|touch|click)\b|[.;,]|$)",
+                remainder,
+                re.IGNORECASE,
+            )
+            target = _trim_target(fought.group(1)) if fought else ""
+            target_kind = "enemy" if target else ""
+            enemy_mentions = (target,) if target else ()
+        elif action == "examine":
+            examined = re.match(
+                r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect|enter)\b|"
+                r"\s+again\b|\s+(?:in|at)\b|[.;,]|$)",
+                remainder,
+                re.IGNORECASE,
+            )
+            raw_target = examined.group(1) if examined else ""
+            if "???" in raw_target:
+                target, target_kind = "???", "question-mark"
+            else:
+                target = _trim_target(raw_target)
+                target = re.sub(r"^sparkling\s+", "", target, flags=re.IGNORECASE)
+                target_kind = "object" if target else ""
+            object_mentions = (target,) if target else ()
+        elif action == "obtain":
+            obtained = re.match(
+                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[.;]|$)",
+                remainder,
+                re.IGNORECASE,
+            )
+            target = _trim_target(obtained.group(1)) if obtained else ""
+            target_kind = "item" if target else ""
+            item_mentions = (target,) if target else ()
+        elif action == "travel":
+            target = next((zone for zone in zones if zone.casefold() in text[match.start() :].casefold() or zone.endswith(" [S]")), "")
+            target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
+            if relationship == "board-transport":
+                boarded = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;,]|$)", remainder, re.IGNORECASE)
+                target = _trim_target(boarded.group(1)) if boarded else target
+                transport_mentions = (target,) if target else ()
+            elif relationship == "enter-through" and not target:
+                entered = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;,]|$)", remainder, re.IGNORECASE)
+                target = _trim_target(entered.group(1)) if entered else ""
+                target_kind = "entrance" if target else ""
+        elif action == "protect":
+            protected = re.match(r"\s+(?:the\s+)?(.+?)(?=[.;]|$)", remainder, re.IGNORECASE)
+            target = _trim_target(protected.group(1)) if protected else ""
+            target_kind = "role" if target else ""
+        elif action == "warning":
+            target = key_items[0] if key_items else ""
+            target_kind = "key-item" if target else "state"
+            item_mentions = key_items
+            clause = _clean(warning_match.group(0)) if warning_match else clause
+        elif action in {"use", "select"}:
+            used = re.match(r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at)\b|[.;,]|$)", remainder, re.IGNORECASE)
+            target = _trim_target(used.group(1)) if used else ""
+            target_kind = "menu-choice" if action == "select" else "object"
+            object_mentions = (target,) if target and action == "use" else ()
+
+        result_item = _result_item_after(text, match.end()) if action in {"fight", "examine"} else ""
+        if result_item:
+            relationship = "defeat-to-obtain" if action == "fight" else "examine-to-obtain"
+        item_mentions = _unique((*item_mentions, *marked_items, *key_items, *((result_item,) if result_item else ())))
+        spans.append(
+            SourceActionSpan(
+                source_step_order=source_step_order,
+                order=len(spans) + 1,
+                text_start=match.start(),
+                text_end=end,
+                supporting_clause=clause,
+                action=action,
+                verb=verb.casefold(),
+                relationship=relationship,
+                target=target,
+                target_kind=target_kind,
+                target_role=target_kind,
+                npc_mentions=npc_mentions,
+                object_mentions=object_mentions,
+                enemy_mentions=enemy_mentions,
+                item_mentions=item_mentions,
+                transport_mentions=transport_mentions,
+                zone_mentions=zones,
+                temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in zones) else "",
+                map_numbers=maps,
+                grid_coordinates=coordinates,
+                result_items=(result_item,) if result_item else (),
+                result_relation="obtain-from" if result_item else "",
+            )
+        )
+
+    obtain_indexes = [index for index, span in enumerate(spans) if span.action == "obtain"]
+    if len(spans) == 2 and obtain_indexes == [1] and spans[0].action in {"fight", "examine"}:
+        spans.pop()
+    return tuple(replace(span, order=order) for order, span in enumerate(spans, start=1))
+
+
+class _OffsetMatch:
+    def __init__(self, match: re.Match[str], offset: int) -> None:
+        self._match = match
+        self._offset = offset
+
+    def start(self) -> int:
+        return self._offset + self._match.start()
+
+    def end(self) -> int:
+        return self._offset + self._match.end()
+
+    def group(self, *args: object) -> str:
+        return self._match.group(*args)
+
+    def groupdict(self) -> dict[str, str | None]:
+        return self._match.groupdict()
 
 
 def _classify_action(text: str) -> str:
@@ -512,6 +847,18 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
         coordinates = _extract_coordinates(rendered)
         key_items = _extract_marked_links(fragment, r"KI|KeyItem|KeyItems")
         items = _extract_marked_links(fragment, r"Item|ItemIcon|ItemLink")
+        typed_zones = _extract_zone_mentions(rendered, locations)
+        zones = _unique((*locations, *typed_zones))
+        action_spans = _extract_action_spans(
+            rendered,
+            source_step_order=len(steps) + 1,
+            links=links,
+            zones=typed_zones,
+            maps=maps,
+            coordinates=coordinates,
+            marked_items=items,
+            key_items=key_items,
+        )
         action = _classify_action(rendered)
         spoken = _spoken_step(rendered, action, links, coordinates, maps)
         steps.append(
@@ -523,12 +870,13 @@ def parse_objective_page(revision: PageRevision) -> ParsedObjective:
                 spoken_text=spoken,
                 action=action,
                 linked_entities=links,
-                zone_candidates=locations,
+                zone_candidates=zones,
                 map_numbers=maps,
                 grid_coordinates=coordinates,
                 items=items,
                 key_items=key_items,
                 warnings=warnings,
+                action_spans=action_spans,
             )
         )
 

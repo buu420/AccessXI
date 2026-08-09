@@ -26,29 +26,100 @@ local function copy_table(value)
     return result;
 end
 
-local function copy_array(value)
-    local result = {};
+local function deep_copy(value, seen)
     if (type(value) ~= 'table') then
-        return result;
+        return value;
     end
-    for _, item in ipairs(value) do
-        result[#result + 1] = item;
+    seen = seen or {};
+    if (seen[value] ~= nil) then
+        return seen[value];
+    end
+    local result = {};
+    seen[value] = result;
+    for key, item in pairs(value) do
+        result[deep_copy(key, seen)] = deep_copy(item, seen);
     end
     return result;
 end
 
-local function copy_mission_destination(value)
-    local result = copy_table(value);
-    if (result == nil) then
+local function array_value_count(values, expected)
+    local count = 0;
+    for _, value in ipairs(type(values) == 'table' and values or {}) do
+        if (clean(value) == expected) then
+            count = count + 1;
+        end
+    end
+    return count;
+end
+
+local function source_spans_belong_to(candidate, ledger)
+    local candidate_spans = type(candidate.source_action_span_ids) == 'table'
+        and candidate.source_action_span_ids or {};
+    local ledger_spans = type(ledger.source_action_span_ids) == 'table'
+        and ledger.source_action_span_ids or {};
+    if (#candidate_spans == 0 or #ledger_spans == 0) then
+        return false;
+    end
+    local seen = {};
+    for _, value in ipairs(candidate_spans) do
+        local span_id = clean(value);
+        if (span_id == '' or seen[span_id] or array_value_count(ledger_spans, span_id) ~= 1) then
+            return false;
+        end
+        seen[span_id] = true;
+    end
+    return true;
+end
+
+local function reviewed_candidate_copy(reconciliation, candidate)
+    if (type(candidate) ~= 'table') then
         return nil;
     end
-    result.source_step_ids = copy_array(value.source_step_ids);
-    result.items = copy_array(value.items);
-    result.enemies = copy_array(value.enemies);
-    result.navigation_target = copy_table(value.navigation_target);
-    if (result.navigation_target ~= nil) then
-        result.navigation_target.reference = copy_table(value.navigation_target.reference);
+    local candidate_id = clean(candidate.candidate_id);
+    local action_id = clean(candidate.action_id);
+    local action = clean(candidate.action);
+    local arrival_instruction = clean(candidate.arrival_instruction);
+    if (candidate_id == '' or action_id == '' or action == '' or arrival_instruction == '') then
+        return nil;
     end
+
+    local owner = nil;
+    local owner_count = 0;
+    for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
+        and reconciliation.action_resolution_ledger or {}) do
+        local occurrences = array_value_count(ledger.candidate_ids, candidate_id);
+        if (occurrences > 0) then
+            owner_count = owner_count + occurrences;
+            owner = ledger;
+        end
+    end
+    if (owner_count ~= 1 or clean(owner.action_id) ~= action_id
+        or clean(owner.action) ~= action or not source_spans_belong_to(candidate, owner)) then
+        return nil;
+    end
+
+    local guide_step_id = '';
+    local step_count = 0;
+    for _, step in ipairs(type(reconciliation.steps) == 'table' and reconciliation.steps or {}) do
+        for _, claim in ipairs(type(step.typed_claims) == 'table' and step.typed_claims or {}) do
+            if (clean(claim.stable_claim_id) == action_id) then
+                step_count = step_count + 1;
+                guide_step_id = clean(step.stable_step_id);
+                if (clean(claim.action) ~= action) then
+                    return nil;
+                end
+            end
+        end
+    end
+    if (step_count ~= 1 or guide_step_id == '') then
+        return nil;
+    end
+
+    local result = deep_copy(candidate);
+    result.guide_step_id = guide_step_id;
+    -- This candidate-specific text is for speech only. Route authorization is
+    -- owned by the separately validated runtime contract index.
+    result.action_instruction = arrival_instruction;
     return result;
 end
 
@@ -201,11 +272,20 @@ function GuideState:resolve(native_key)
         return nil, reason;
     end
 
-    local mission_destinations = {};
-    for _, destination in ipairs(reconciliation.mission_destinations or {}) do
-        local copied = copy_mission_destination(destination);
+    local typed_destinations = type(reconciliation.objective_destination_candidates) == 'table';
+    local destination_source = typed_destinations
+        and reconciliation.objective_destination_candidates
+        or (reconciliation.mission_destinations or {});
+    local objective_destinations = {};
+    for _, destination in ipairs(destination_source) do
+        local copied = nil;
+        if (typed_destinations) then
+            copied = reviewed_candidate_copy(reconciliation, destination);
+        elseif (type(destination) == 'table') then
+            copied = deep_copy(destination);
+        end
         if (copied ~= nil) then
-            mission_destinations[#mission_destinations + 1] = copied;
+            objective_destinations[#objective_destinations + 1] = copied;
         end
     end
 
@@ -217,7 +297,7 @@ function GuideState:resolve(native_key)
         sources = sources,
         reconciliation = reconciliation,
         steps = steps,
-        mission_destinations = mission_destinations,
+        objective_destinations = objective_destinations,
     };
     self.resolution_cache[native_key] = resolved;
     return resolved;
@@ -368,20 +448,23 @@ function GuideState:automatic_step_id(native_key, stage_key)
     return clean(stages[clean(stage_key)]);
 end
 
-function GuideState:mission_destinations(native_key)
+function GuideState:objective_destinations(native_key)
     self:sync_identity();
     local objective = self:resolve(native_key);
     local result = {};
-    if (objective == nil or type(objective.mission_destinations) ~= 'table') then
+    if (objective == nil or type(objective.objective_destinations) ~= 'table') then
         return result;
     end
-    for _, destination in ipairs(objective.mission_destinations) do
-        local copied = copy_mission_destination(destination);
-        if (copied ~= nil) then
-            result[#result + 1] = copied;
+    for _, destination in ipairs(objective.objective_destinations) do
+        if (type(destination) == 'table') then
+            result[#result + 1] = deep_copy(destination);
         end
     end
     return result;
+end
+
+function GuideState:mission_destinations(native_key)
+    return self:objective_destinations(native_key);
 end
 
 function GuideState:current_index()

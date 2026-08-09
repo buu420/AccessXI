@@ -368,6 +368,16 @@ def _extract_action_spans(
     clause_ends = [matches[index + 1].start() if index + 1 < len(matches) else len(text) for index in range(len(matches))]
     if matches:
         clause_starts[0] = 0
+        leading = text[: matches[0].start()]
+        subordinate = re.match(
+            r"\s*(?:after|before|while)\s+(?:talking|speaking|visiting|defeating|fighting|"
+            r"killing|examining|touching|using|entering|exiting|travelling|traveling)\b",
+            leading,
+            re.IGNORECASE,
+        )
+        punctuation = list(re.finditer(r"[,;]", leading))
+        if subordinate and punctuation:
+            clause_starts[0] = punctuation[-1].end()
     for index in range(1, len(matches)):
         between = text[matches[index - 1].end() : matches[index].start()]
         connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
@@ -376,6 +386,19 @@ def _extract_action_spans(
             offset = matches[index - 1].end()
             clause_ends[index - 1] = offset + connector.start()
             clause_starts[index] = offset + connector.end()
+            continue
+        location_leader = r"(?=(?:in|at|on|inside|outside|near|from)\b)"
+        leading_connector = re.search(
+            r"[,;]\s*(?:and\s+)?" + location_leader,
+            between,
+            re.IGNORECASE,
+        )
+        if leading_connector is None:
+            leading_connector = re.search(r"\band\s+" + location_leader, between, re.IGNORECASE)
+        if leading_connector:
+            offset = matches[index - 1].end()
+            clause_ends[index - 1] = offset + leading_connector.start()
+            clause_starts[index] = offset + leading_connector.end()
     spans: list[SourceActionSpan] = []
     for index, match in enumerate(matches):
         verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)

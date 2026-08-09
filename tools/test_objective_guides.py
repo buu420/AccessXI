@@ -1040,6 +1040,46 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(span.map_numbers, ("1",))
         self.assertTrue(span.supporting_clause.startswith("In East Ronfaure"))
 
+    def test_interstitial_location_evidence_belongs_only_to_the_following_action(self) -> None:
+        def action_spans(instruction: str) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                site="bg",
+                api_url="https://www.bg-wiki.com/api.php",
+                canonical_title="Interstitial Evidence",
+                page_id=9304,
+                revision_id=95,
+                parent_revision_id=94,
+                revision_timestamp="2026-08-09T00:00:00Z",
+                content=f"{{{{Quest Header}}}}\n==Walkthrough==\n*{instruction}\n",
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        fight, talk = action_spans(
+            "Defeat [[Mob A]] in [[East Ronfaure]], and in [[West Ronfaure]] "
+            "at (H-8) talk to [[NPC B]]."
+        )
+        self.assertEqual(
+            (fight.target, fight.zone_mentions, fight.grid_coordinates),
+            ("Mob A", ("East Ronfaure",), ()),
+        )
+        self.assertEqual(
+            (talk.target, talk.zone_mentions, talk.grid_coordinates),
+            ("NPC B", ("West Ronfaure",), ("H-8",)),
+        )
+
+        (subordinate_fight,) = action_spans(
+            "After talking to [[NPC A]] in [[East Ronfaure]], in [[West Ronfaure]] "
+            "at (H-8) defeat [[Mob B]]."
+        )
+        self.assertEqual(
+            (
+                subordinate_fight.target,
+                subordinate_fight.zone_mentions,
+                subordinate_fight.grid_coordinates,
+            ),
+            ("Mob B", ("West Ronfaure",), ("H-8",)),
+        )
+
     def test_only_explicit_obtain_from_syntax_collapses_actions(self) -> None:
         def spans(instruction: str) -> tuple[SourceActionSpan, ...]:
             page = PageRevision(
@@ -2084,6 +2124,90 @@ class ObjectiveDestinationTests(unittest.TestCase):
             native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
         )
         self.assertEqual(rows[0].enemies, ("Orcish Fodder",))
+
+    def test_destination_rejects_interstitial_evidence_from_a_later_claim(self) -> None:
+        native = NativeObjective("quest", "other_areas", 85, "Interstitial Destination", "quests.dat", 0)
+
+        def page(site: str, page_id: int) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site=site,
+                    api_url="https://example.invalid/api.php",
+                    canonical_title="Interstitial Destination",
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-09T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        "*Defeat [[Mob A]] in [[East Ronfaure]], and in [[West Ronfaure]] "
+                        "at (H-8) talk to [[NPC B]].\n"
+                    ),
+                )
+            )
+
+        bg = page("bg", 851)
+        ffxi = page("ffxiclopedia", 852)
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+        override = {
+            "id": "unsafe-mob-a-west",
+            "source_revisions": {"bg": 851, "ffxiclopedia": 852},
+            "source_step_ids": [step_id],
+            "source_claim_ids": [f"{step_id}:claim-01"],
+            "action": "fight",
+            "items": [],
+            "enemies": ["Mob A"],
+            "grid_coordinates": ["H-8"],
+            "destination_id": "enemy:100:mob-a:fixture",
+            "zone": 100,
+            "zone_name": "West Ronfaure",
+            "label": "unsafe Mob A in West Ronfaure",
+            "reference": {"name": "Mob A", "kind": "enemy"},
+            "arrival_instruction": "Defeat Mob A.",
+        }
+        overrides = {"objective_destination_overrides": {native.key: [override]}}
+        west_point = {
+            "zone": 100,
+            "name": "Mob A",
+            "kind": "enemy",
+            "x": 1.0,
+            "z": 2.0,
+            "y": 3.0,
+        }
+
+        with self.assertRaises(ObjectiveDestinationError):
+            resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                overrides,
+                (west_point,),
+                {100: "West Ronfaure"},
+            )
+
+        override.update(
+            {
+                "id": "mob-a-east",
+                "grid_coordinates": [],
+                "destination_id": "enemy:101:mob-a:fixture",
+                "zone": 101,
+                "zone_name": "East Ronfaure",
+                "label": "Mob A in East Ronfaure",
+            }
+        )
+        east_point = {**west_point, "zone": 101}
+        rows = resolve_reviewed_objective_destinations(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            overrides,
+            (east_point,),
+            {101: "East Ronfaure"},
+        )
+        self.assertEqual(rows[0].target_name, "Mob A")
 
     def test_destination_order_is_stable_and_native_qualified(self) -> None:
         native, bg, ffxi, reconciled, overrides = self._fixture("quest")

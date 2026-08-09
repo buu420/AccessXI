@@ -56,6 +56,10 @@ Assert-Contains 'accessxi.objective_guides:repeat_step()' `
     'K does not repeat the current objective step.'
 Assert-Contains 'accessxi.objective_guides:move(1)' `
     'L does not move to the next objective step.'
+Assert-Contains 'route_resolver = function(native_key, guide_step_id, step)' `
+    'The live guide resolver drops the selected step target before navigation.'
+Assert-Contains 'accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id, step)' `
+    'The live guide resolver does not forward the selected step target to navigation.'
 
 $pollBlock = [regex]::Match(
     $reader,

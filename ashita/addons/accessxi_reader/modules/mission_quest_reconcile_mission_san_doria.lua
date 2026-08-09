@@ -160,7 +160,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria", "Letter to the Consuls." },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:10:step-005",
@@ -1552,7 +1562,17 @@ return {
         entities = { "Aldo", "Lower Jeuno", "Silver bell", "Neptune's Spire Inn" },
         zones = { "Lower Jeuno" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Aldo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Aldo.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:14:step-008",
@@ -7548,7 +7568,17 @@ return {
         entities = { "Arnau", "Northern San d'Oria" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Arnau",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Arnau.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:3:step-003",
@@ -7948,7 +7978,17 @@ return {
         entities = { "La Theine Plateau", "Galaihaurat" },
         zones = { "La Theine Plateau" },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 102,
+            zone_name = "La Theine Plateau",
+            name = "Galaihaurat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Galaihaurat.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:4:step-007",
@@ -8052,7 +8092,17 @@ return {
         entities = { "Ordelle's Caves", "Ruillont" },
         zones = {  },
         grid_coordinates = { "G-3" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 193,
+            zone_name = "Ordelle's Caves",
+            name = "Ruillont",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ruillont.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:4:step-015",
@@ -8156,7 +8206,17 @@ return {
         entities = { "La Theine Plateau", "Vicorpasse", "Rescue training certificate" },
         zones = { "La Theine Plateau" },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 102,
+            zone_name = "La Theine Plateau",
+            name = "Vicorpasse",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Vicorpasse.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:4:step-023",
@@ -8501,7 +8561,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria", "Letter to the Consuls." },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:6:step-005",
@@ -8719,7 +8789,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria", "Letter to the Consuls." },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:7:step-005",
@@ -8937,7 +9017,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria", "Letter to the Consuls." },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:8:step-005",
@@ -9155,7 +9245,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria", "Letter to the Consuls." },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:San d'Oria:9:step-005",

@@ -5815,7 +5815,17 @@ return {
         entities = { "Pacomart", "Selbina", "Norg" },
         zones = { "Selbina" },
         grid_coordinates = { "H-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Pacomart",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pacomart.",
+        },
       },
       {
         stable_step_id = "mission:Rhapsodies of Vana'diel:6:step-003",
@@ -5880,7 +5890,17 @@ return {
         entities = { "Tonasav", "Mhaura", "Norg" },
         zones = { "Mhaura" },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Tonasav",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tonasav.",
+        },
       },
       {
         stable_step_id = "mission:Rhapsodies of Vana'diel:6:step-008",
@@ -6935,7 +6955,17 @@ return {
         entities = { "Ploh Trishbahk", "Eastern Adoulin", "Ortharsyne" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ploh Trishbahk",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ploh Trishbahk.",
+        },
       },
       {
         stable_step_id = "mission:Rhapsodies of Vana'diel:68:step-002",

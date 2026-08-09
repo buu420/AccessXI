@@ -82,7 +82,17 @@ return {
         entities = { "Lucretia", "Ceizak Battlegrounds" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 261,
+            zone_name = "Ceizak Battlegrounds",
+            name = "Lucretia",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Lucretia.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:1:step-002",
@@ -271,7 +281,17 @@ return {
         entities = { "Yeggha Dolashi", "Rala Waterways", "Peacekeepers' Coalition" },
         zones = {  },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 258,
+            zone_name = "Rala Waterways",
+            name = "Yeggha Dolashi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yeggha Dolashi.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:100:step-003",
@@ -746,7 +766,17 @@ return {
         entities = { "Peladi Shalmohr", "Mummers' Coalition", "Western Adoulin", "Tarutaru Sauce invoice" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Peladi Shalmohr",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Peladi Shalmohr.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:103:step-003",
@@ -1250,7 +1280,17 @@ return {
         entities = { "Peladi Shalmohr", "Mummers' Coalition", "Western Adoulin" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Peladi Shalmohr",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Peladi Shalmohr.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:104:step-003",
@@ -2089,7 +2129,17 @@ return {
         entities = { "Metalworks", "Bastok", "Cid", "Cid's catalyst" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:108:step-007",
@@ -2447,7 +2497,17 @@ return {
         entities = { "Cid", "Metalworks", "Bastok Metalworks" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:110:step-010",
@@ -2561,7 +2621,17 @@ return {
         entities = { "Metalworks", "Bastok", "Raibaht" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Raibaht",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Raibaht.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:111:step-007",
@@ -3387,7 +3457,17 @@ return {
         entities = { "Roskin", "Eastern Adoulin" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Roskin",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Roskin.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:115:step-004",
@@ -4021,7 +4101,17 @@ return {
         entities = { "Palomel", "Eastern Adoulin", "Scouts' Coalition", "Elder wooden box", "Imprint device S" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Palomel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Palomel.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:116:step-004",
@@ -4034,7 +4124,17 @@ return {
         entities = { "Quwi Orihbhe", "Rabao", "Proto-Waypoint" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Quwi Orihbhe",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Quwi Orihbhe.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:116:step-005",
@@ -5084,7 +5184,17 @@ return {
         entities = { "Roskin", "Eastern Adoulin", "Imprint device S" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Roskin",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Roskin.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:117:step-003",
@@ -5354,7 +5464,17 @@ return {
         entities = { "Sylvie", "Western Adoulin" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:118:step-003",
@@ -6171,7 +6291,17 @@ return {
         entities = { "Borghest", "Morimar Basalt Fields", "Frontier Station", "Donda-Bonda", "Jaureche" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 265,
+            zone_name = "Morimar Basalt Fields",
+            name = "Borghest",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Borghest.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:122:step-005",
@@ -6259,7 +6389,17 @@ return {
         entities = { "Zaffeld", "Eastern Adoulin", "Nashu", "Cirdas Caverns" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Zaffeld",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zaffeld.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:123:step-002",
@@ -6399,7 +6539,17 @@ return {
         entities = { "Wegellion", "Eastern Adoulin", "Scouts' Coalition" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Wegellion",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Wegellion.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:124:step-004",
@@ -6487,7 +6637,17 @@ return {
         entities = { "Zaffeld", "Eastern Adoulin", "Nashu", "Yorcia Weald" },
         zones = { "Eastern Adoulin" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Zaffeld",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zaffeld.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:125:step-002",
@@ -6780,7 +6940,17 @@ return {
         entities = { "Frontier Station", "Yorcia Weald", "Emjook-Renook", "Reepi-Molpi" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 263,
+            zone_name = "Yorcia Weald",
+            name = "Emjook-Renook",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Emjook-Renook.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:127:step-005",
@@ -6998,7 +7168,17 @@ return {
         entities = { "Rigobertine", "Eastern Adoulin", "Ingrid", "Marcellurin" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Rigobertine",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rigobertine.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:128:step-002",
@@ -8783,7 +8963,17 @@ return {
         entities = { "Runje Desaali", "Eastern Adoulin", "Epeolatry" },
         zones = {  },
         grid_coordinates = { "J-11" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Runje Desaali",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Runje Desaali.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:132:step-018",
@@ -9586,7 +9776,17 @@ return {
         entities = { "Emjook-Renook", "Yorcia Weald", "Mano-Amano", "Alianne", "Borghest" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 263,
+            zone_name = "Yorcia Weald",
+            name = "Emjook-Renook",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Emjook-Renook.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:133:step-004",
@@ -9599,7 +9799,17 @@ return {
         entities = { "Fritha", "Foret de Hennetiel", "Davengrot", "Alianne", "Deumagneot" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 262,
+            zone_name = "Foret De Hennetiel",
+            name = "Fritha",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fritha.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:133:step-005",
@@ -9700,7 +9910,17 @@ return {
         entities = { "Nhili Uvolep", "Eastern Adoulin", "Geomancer", "Trial Wand" },
         zones = {  },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Nhili Uvolep",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nhili Uvolep.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:134:step-002",
@@ -9905,7 +10125,17 @@ return {
         entities = { "Gaddiux", "Western Adoulin", "Rune Fencer", "Trial Blade" },
         zones = {  },
         grid_coordinates = { "J-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Gaddiux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gaddiux.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:135:step-002",
@@ -10523,7 +10753,17 @@ return {
         entities = { "Behsa Alehgo", "Eastern Adoulin", "Erfimia", "Rigobertine" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Behsa Alehgo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Behsa Alehgo.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:137:step-002",
@@ -10754,7 +10994,17 @@ return {
         entities = { "Estelle", "Eastern Adoulin", "Margret's writ of summons" },
         zones = {  },
         grid_coordinates = { "F-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Estelle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Estelle.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:138:step-003",
@@ -10832,7 +11082,17 @@ return {
         entities = { "Mastan", "Western Adoulin", "Melvien's Death?" },
         zones = {  },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Mastan",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mastan.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:138:step-009",
@@ -11063,7 +11323,17 @@ return {
         entities = { "Borghest", "Morimar Basalt Fields" },
         zones = {  },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 265,
+            zone_name = "Morimar Basalt Fields",
+            name = "Borghest",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Borghest.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:139:step-004",
@@ -11076,7 +11346,17 @@ return {
         entities = { "Fritha", "Foret de Hennetiel" },
         zones = {  },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 262,
+            zone_name = "Foret De Hennetiel",
+            name = "Fritha",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fritha.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:139:step-005",
@@ -11395,7 +11675,17 @@ return {
         entities = { "Zaffeld", "Eastern Adoulin" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Zaffeld",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zaffeld.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:141:step-002",
@@ -11538,7 +11828,17 @@ return {
         entities = { "Zaffeld", "Eastern Adoulin" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Zaffeld",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zaffeld.",
+        },
       },
     },
   },
@@ -11561,7 +11861,17 @@ return {
         entities = { "Sylvie", "Western Adoulin", "Geomancer" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:142:step-002",
@@ -12055,7 +12365,17 @@ return {
         entities = { "Helina", "Selbina" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Helina",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Helina.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:142:step-040",
@@ -12104,7 +12424,17 @@ return {
         entities = { "Octavernost", "Western Adoulin" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Octavernost",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Octavernost.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:143:step-002",
@@ -14860,7 +15190,17 @@ return {
         entities = { "Lower Jeuno", "Stinknix", "Chacharoon's sack of supplies" },
         zones = { "Lower Jeuno" },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Stinknix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Stinknix.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:207:step-004",
@@ -15563,7 +15903,17 @@ return {
         entities = { "Gaddiux", "Inventors' Coalition", "Western Adoulin", "Yestin-Ovestin" },
         zones = {  },
         grid_coordinates = { "J-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Gaddiux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gaddiux.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:23:step-006",
@@ -17127,7 +17477,17 @@ return {
         entities = { "Alienor", "Western Adoulin", "Pioneers' Coalition", "Tray of Adoulinian delicacies" },
         zones = { "Western Adoulin" },
         grid_coordinates = { "E-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Alienor",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Alienor.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:26:step-003",
@@ -17140,7 +17500,17 @@ return {
         entities = { "Ru'Lude Gardens", "Anastase", "Small bag of Adoulinian delicacies" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Anastase",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Anastase.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:26:step-004",
@@ -17651,7 +18021,17 @@ return {
         entities = { "Clautaire", "Western Adoulin", "Rent-a-Room", "F.A.I.L. badge" },
         zones = {  },
         grid_coordinates = { "I-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Clautaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Clautaire.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:29:step-003",
@@ -18126,7 +18506,17 @@ return {
         entities = { "Veldeth", "Frontier Station", "Marjami Ravine" },
         zones = {  },
         grid_coordinates = { "L-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 266,
+            zone_name = "Marjami Ravine",
+            name = "Veldeth",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Veldeth.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:31:step-002",
@@ -18162,7 +18552,17 @@ return {
         entities = { "Jhen Durheka", "Marjami Ravine", "Ravine water testing kit" },
         zones = {  },
         grid_coordinates = { "L-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 266,
+            zone_name = "Marjami Ravine",
+            name = "Jhen Durheka",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jhen Durheka.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:32:step-002",
@@ -18416,7 +18816,17 @@ return {
         entities = { "Mano-Amano", "Frontier Station", "Yorcia Weald", "Dirt Cheap" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 263,
+            zone_name = "Yorcia Weald",
+            name = "Mano-Amano",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mano-Amano.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:34:step-002",
@@ -18530,7 +18940,17 @@ return {
         entities = { "Sylvie", "Western Adoulin", "Geomancer" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:35:step-004",
@@ -18556,7 +18976,17 @@ return {
         entities = { "Dabnorrin", "Vessel of summoning", "Morimar Basalt Fields", "Hostenn" },
         zones = {  },
         grid_coordinates = { "K-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 265,
+            zone_name = "Morimar Basalt Fields",
+            name = "Dabnorrin",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dabnorrin.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:35:step-006",
@@ -18839,7 +19269,17 @@ return {
         entities = { "Nhili Uvolep", "Eastern Adoulin", "Sverdhried Hillock", "Lhaiso Neftereh", "Sylvie", "Hemborok", "Gregoirellaud", "Obelailai" },
         zones = {  },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Nhili Uvolep",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nhili Uvolep.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:36:step-006",
@@ -18865,7 +19305,17 @@ return {
         entities = { "Morimar Basalt Fields", "Vestavius", "Ergon Locus" },
         zones = {  },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 265,
+            zone_name = "Morimar Basalt Fields",
+            name = "Vestavius",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Vestavius.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:36:step-008",
@@ -19034,7 +19484,17 @@ return {
         entities = { "Sylvie", "Western Adoulin" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:36:step-021",
@@ -19109,7 +19569,17 @@ return {
         entities = { "Sylvie", "Western Adoulin", "Geomancer" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:37:step-003",
@@ -19239,7 +19709,17 @@ return {
         entities = { "Nhili Uvolep", "Eastern Adoulin", "Sverdhried Hillock", "Lhaiso Neftereh", "Sylvie", "Hemborok", "Gregoirellaud", "Lionardois", "Obelailai" },
         zones = {  },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Nhili Uvolep",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nhili Uvolep.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:37:step-013",
@@ -19301,7 +19781,17 @@ return {
         entities = { "Sylvie", "Western Adoulin", "Geomancer" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Sylvie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sylvie.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:38:step-002",
@@ -19366,7 +19856,17 @@ return {
         entities = { "Nhili Uvolep", "Eastern Adoulin", "Sverdhried Hillock", "Lhaiso Neftereh's bell" },
         zones = {  },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Nhili Uvolep",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Nhili Uvolep.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:38:step-007",
@@ -20746,7 +21246,17 @@ return {
         entities = { "Berghent", "Western Adoulin" },
         zones = {  },
         grid_coordinates = { "J-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Berghent",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Berghent.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:46:step-002",
@@ -22559,7 +23069,17 @@ return {
         entities = { "Toppled Tree", "Marjami Ravine", "Large strip of Velkk hide" },
         zones = {  },
         grid_coordinates = { "M-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 266,
+            zone_name = "Marjami Ravine",
+            name = "Toppled Tree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Toppled Tree.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:57:step-002",
@@ -22751,7 +23271,17 @@ return {
         entities = { "Ndah Tolohjin", "Scouts' Coalition", "Eastern Adoulin" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Ndah Tolohjin",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ndah Tolohjin.",
+        },
       },
     },
   },
@@ -23275,7 +23805,17 @@ return {
         entities = { "Orsa-Porsa", "Morimar Basalt Fields", "Frontier Station" },
         zones = {  },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 265,
+            zone_name = "Morimar Basalt Fields",
+            name = "Orsa-Porsa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Orsa-Porsa.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:60:step-002",
@@ -23425,7 +23965,17 @@ return {
         entities = { "Udip Ferawoh", "Marjami Ravine", "Frontier Station" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 266,
+            zone_name = "Marjami Ravine",
+            name = "Udip Ferawoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Udip Ferawoh.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:62:step-002",
@@ -24795,7 +25345,17 @@ return {
         entities = { "Westerly Breeze", "Western Adoulin", "Wisdom Soup" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Westerly Breeze",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Westerly Breeze.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:76:step-002",
@@ -24906,7 +25466,17 @@ return {
         entities = { "Rising Solstice", "Western Adoulin", "Western Adoulin patrol route" },
         zones = {  },
         grid_coordinates = { "D-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Rising Solstice",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rising Solstice.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:78:step-003",
@@ -25834,7 +26404,17 @@ return {
         entities = { "Leautiere", "Yahse Hunting Grounds" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 260,
+            zone_name = "Yahse Hunting Grounds",
+            name = "Leautiere",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Leautiere.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:9:step-002",
@@ -25935,7 +26515,17 @@ return {
         entities = { "Vastran", "Eastern Adoulin patrol route", "Peacekeepers' Coalition", "Waypoint" },
         zones = {  },
         grid_coordinates = { "F-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Vastran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Vastran.",
+        },
       },
       {
         stable_step_id = "quest:adoulin:91:step-003",

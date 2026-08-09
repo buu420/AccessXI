@@ -349,7 +349,17 @@ return {
         entities = { "Pyopyoroon", "Nashmau", "Jody's Acid" },
         zones = { "Nashmau" },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 53,
+            zone_name = "Nashmau",
+            name = "Pyopyoroon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pyopyoroon.",
+        },
       },
       {
         stable_step_id = "mission:Treasures of Aht Urhgan:12:step-006",
@@ -4559,7 +4569,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Treasures of Aht Urhgan:40:step-002",
@@ -4647,7 +4667,17 @@ return {
         entities = { "Rodin-Comidin", "Aht Urhgan Whitegate", "Nyzul Isle Route" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Rodin-Comidin",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rodin-Comidin.",
+        },
       },
       {
         stable_step_id = "mission:Treasures of Aht Urhgan:41:step-002",

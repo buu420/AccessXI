@@ -225,7 +225,17 @@ return {
         entities = { "Amaura", "Southern San d'Oria", "Cernunnos Bulb" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Amaura",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Amaura.",
+        },
       },
       {
         stable_step_id = "mission:Wings of the Goddess:10:step-002",
@@ -4692,7 +4702,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille" },
         zones = { "Chateau d'Oraguille" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:Wings of the Goddess:28:step-004",
@@ -6044,7 +6064,17 @@ return {
         entities = { "Upper Jeuno", "Turlough", "Mayakov show ticket" },
         zones = {  },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Turlough",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Turlough.",
+        },
       },
       {
         stable_step_id = "mission:Wings of the Goddess:4:step-006",

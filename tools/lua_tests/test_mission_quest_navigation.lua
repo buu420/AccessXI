@@ -132,6 +132,7 @@ accessxi = {
     key_items_packet_cache_loaded = true,
     nav_points = T{
         T{ zone = 237, name = 'Cid', x = -12.598, z = 2.430, y = -10.988, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 172, name = 'Makarim', x = -60.925, z = -333.294, y = 8.471, kind = 'npc', source = 'current-nav-data' },
     },
     quests_menu_data = {
         quest_log_order = T{ 'sandoria', 'aht_urhgan' },
@@ -315,6 +316,58 @@ mission_values.Bastok = 0
 accessxi.mission_packet_main.nation_mission = 0
 missions = accessxi.nav_mission_quest_active_items('mission')
 assert(find(missions, 'The Zeruhn Report') ~= nil)
+local makarim_step = {
+    stable_step_id = 'mission:Bastok:1:step-007',
+    comparison = 'corroborated',
+    action = 'talk',
+    route_ready = true,
+    primary_instruction = 'Speak to Makarim in Zeruhn Mines.',
+    navigation_target = {
+        type = 'static-reference',
+        reference = { zone = 172, zone_name = 'Zeruhn Mines', name = 'Makarim', kind = 'npc' },
+        arrival_instruction = 'Talk to Makarim.',
+    },
+}
+local manual_target = accessxi.nav_mission_quest_guide_route_descriptor(
+    'mission:Bastok:1',
+    makarim_step.stable_step_id,
+    makarim_step)
+assert(type(manual_target) == 'table')
+assert(manual_target.zone == 172 and manual_target.name == 'Makarim')
+assert(manual_target.verified == true)
+assert(manual_target.objective_native_key == 'mission:Bastok:1')
+assert(manual_target.objective_character_identity == current_identity)
+assert(manual_target.arrival_instruction == 'Talk to Makarim.')
+
+-- Exact references fail closed when current nav data is ambiguous, the step is
+-- not a movement-safe talk action, or the active-objective packet is stale.
+accessxi.nav_points:append(T{
+    zone = 172,
+    name = 'Makarim',
+    x = -61.5,
+    z = -334.0,
+    y = 8.5,
+    kind = 'npc',
+    source = 'duplicate-test-point',
+})
+assert(accessxi.nav_mission_quest_guide_route_descriptor(
+    'mission:Bastok:1',
+    makarim_step.stable_step_id,
+    makarim_step) == nil)
+accessxi.nav_points[#accessxi.nav_points] = nil
+local unsafe_step = {}
+for key, value in pairs(makarim_step) do unsafe_step[key] = value end
+unsafe_step.action = 'fight'
+assert(accessxi.nav_mission_quest_guide_route_descriptor(
+    'mission:Bastok:1',
+    unsafe_step.stable_step_id,
+    unsafe_step) == nil)
+accessxi.mission_packet_source = 'cache'
+assert(accessxi.nav_mission_quest_guide_route_descriptor(
+    'mission:Bastok:1',
+    makarim_step.stable_step_id,
+    makarim_step) == nil)
+accessxi.mission_packet_source = 'packet_in_056'
 mission_values.Bastok = 1
 accessxi.mission_packet_main.nation_mission = 1
 

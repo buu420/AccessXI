@@ -736,7 +736,17 @@ return {
         entities = { "Hariga-Origa", "Windurst Waters", "Optistery" },
         zones = {  },
         grid_coordinates = { "F-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Hariga-Origa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hariga-Origa.",
+        },
       },
       {
         stable_step_id = "quest:windurst:12:step-003",
@@ -915,7 +925,17 @@ return {
         entities = { "Hae Jakkya", "Windurst Woods" },
         zones = {  },
         grid_coordinates = { "I-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Hae Jakkya",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hae Jakkya.",
+        },
       },
       {
         stable_step_id = "quest:windurst:13:step-009",
@@ -967,7 +987,17 @@ return {
         entities = { "Southern San d'Oria", "Hae Jakhya", "A Song of Love" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hae Jakhya",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hae Jakhya.",
+        },
       },
       {
         stable_step_id = "quest:windurst:13:step-013",
@@ -3255,7 +3285,17 @@ return {
         entities = { "Ardea", "Bastok Markets", "Gil" },
         zones = { "Bastok Markets" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Ardea",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ardea.",
+        },
       },
       {
         stable_step_id = "quest:windurst:26:step-004",
@@ -3294,7 +3334,17 @@ return {
         entities = { "Varun", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Varun",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Varun.",
+        },
       },
       {
         stable_step_id = "quest:windurst:26:step-007",
@@ -5212,7 +5262,17 @@ return {
         entities = { "Fuepepe", "Windurst Waters" },
         zones = {  },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Fuepepe",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fuepepe.",
+        },
       },
       {
         stable_step_id = "quest:windurst:4:step-004",
@@ -6084,7 +6144,17 @@ return {
         entities = { "Kororo", "Manustery", "Windurst Woods", "Cardian" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Kororo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kororo.",
+        },
       },
       {
         stable_step_id = "quest:windurst:43:step-003",
@@ -6416,7 +6486,17 @@ return {
         entities = { "Ranpi-Monpi", "Windurst Waters", "Cooking", "Woozyshroom", "Ranpi-Monpi's Special Stew" },
         zones = {  },
         grid_coordinates = { "D-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Ranpi-Monpi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ranpi-Monpi.",
+        },
       },
       {
         stable_step_id = "quest:windurst:45:step-006",
@@ -6530,7 +6610,17 @@ return {
         entities = { "Maabu-Sonbu", "Port Windurst", "Orastery" },
         zones = {  },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Maabu-Sonbu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Maabu-Sonbu.",
+        },
       },
       {
         stable_step_id = "quest:windurst:46:step-006",
@@ -7910,7 +8000,17 @@ return {
         entities = { "Sigismund", "Port Windurst", "Starfall Tear" },
         zones = {  },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Sigismund",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sigismund.",
+        },
       },
       {
         stable_step_id = "quest:windurst:53:step-002",
@@ -10061,7 +10161,17 @@ return {
         entities = { "Lower Jeuno", "Harnek", "Tenshodo", "Tenshodo Envelope" },
         zones = {  },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Harnek",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Harnek.",
+        },
       },
       {
         stable_step_id = "quest:windurst:69:step-004",
@@ -10269,7 +10379,17 @@ return {
         entities = { "Lower Jeuno", "Harnek" },
         zones = {  },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Harnek",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Harnek.",
+        },
       },
     },
   },
@@ -11082,7 +11202,17 @@ return {
         entities = { "Lower Jeuno", "Sniggnix", "Muckvix's Junk Shop", "Dangruf Wadi" },
         zones = {  },
         grid_coordinates = { "H-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Sniggnix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sniggnix.",
+        },
       },
       {
         stable_step_id = "quest:windurst:70:step-041",
@@ -11742,7 +11872,17 @@ return {
         entities = { "Lower Jeuno", "Yatniel", "Quake Grenades", "Home Point" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Yatniel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yatniel.",
+        },
       },
       {
         stable_step_id = "quest:windurst:71:step-007",
@@ -11794,7 +11934,17 @@ return {
         entities = { "Mhaura", "Hagain", "Bomb incense", "Sailors' Stay", "Chandelier", "Garlaige Citadel" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Hagain",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hagain.",
+        },
       },
       {
         stable_step_id = "quest:windurst:71:step-011",
@@ -12545,7 +12695,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Chieftainness's twinstone earring", "Ranger", "Semih Lafihna", "Ranguemont Pass", "East Ronfaure", "San d'Oria" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "quest:windurst:72:step-002",
@@ -12776,7 +12936,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Mhaura" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "quest:windurst:73:step-003",
@@ -13059,7 +13229,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Mhaura" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "quest:windurst:74:step-002",
@@ -14994,7 +15174,17 @@ return {
         entities = { "Fuepepe", "Windurst Waters", "Aurastery" },
         zones = {  },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Fuepepe",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fuepepe.",
+        },
       },
       {
         stable_step_id = "quest:windurst:79:step-008",
@@ -16714,7 +16904,17 @@ return {
         entities = { "Windurst Walls", "Carbuncle", "House of the Hero", "Home Point" },
         zones = {  },
         grid_coordinates = { "G-4" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Carbuncle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Carbuncle.",
+        },
       },
       {
         stable_step_id = "quest:windurst:81:step-002",
@@ -17244,7 +17444,17 @@ return {
         entities = { "Gulmama", "Northern San d'Oria", "Ice Pendulum" },
         zones = {  },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Gulmama",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gulmama.",
+        },
       },
       {
         stable_step_id = "quest:windurst:82:step-019",
@@ -17592,7 +17802,17 @@ return {
         entities = { "Mhaura", "Ripapa", "Lightning Pendulum", "Porter Moogle" },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Ripapa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ripapa.",
+        },
       },
       {
         stable_step_id = "quest:windurst:83:step-007",
@@ -17878,7 +18098,17 @@ return {
         entities = { "Rabao", "Agado-Pugado", "Wind Pendulum" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Agado-Pugado",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Agado-Pugado.",
+        },
       },
       {
         stable_step_id = "quest:windurst:83:step-029",
@@ -20477,7 +20707,17 @@ return {
         entities = { "Jakoh Wahcondalo", "Kazham" },
         zones = {  },
         grid_coordinates = { "J-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Jakoh Wahcondalo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jakoh Wahcondalo.",
+        },
       },
       {
         stable_step_id = "quest:windurst:91:step-005",
@@ -21108,7 +21348,17 @@ return {
         entities = { "Kerutoto", "Windurst Waters South", "Vial of dream incense", "Windurst Waters" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kerutoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kerutoto.",
+        },
       },
       {
         stable_step_id = "quest:windurst:93:step-002",
@@ -22282,7 +22532,17 @@ return {
         entities = { "Wetata", "Windurst Woods", "Green institute card" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Wetata",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Wetata.",
+        },
       },
       {
         stable_step_id = "quest:windurst:96:step-002",

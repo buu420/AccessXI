@@ -1750,7 +1750,17 @@ return {
         entities = { "Lower Jeuno", "Aldo" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Aldo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Aldo.",
+        },
       },
       {
         stable_step_id = "mission:Rise of the Zilart:17:step-002",
@@ -2378,7 +2388,17 @@ return {
         entities = { "Norg", "Gilgamesh", "Hall of the Gods" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Gilgamesh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gilgamesh.",
+        },
       },
       {
         stable_step_id = "mission:Rise of the Zilart:23:step-002",
@@ -2440,7 +2460,17 @@ return {
         entities = { "Rabao", "Maryoh Comyujah", "Home Point" },
         zones = { "Rabao" },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Maryoh Comyujah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Maryoh Comyujah.",
+        },
       },
       {
         stable_step_id = "mission:Rise of the Zilart:24:step-002",
@@ -4285,7 +4315,17 @@ return {
         entities = { "Kazham", "Jakoh Wahcondalo", "Sacrificial Chamber key", "Temple of Uggalepih", "Home Point" },
         zones = { "Kazham" },
         grid_coordinates = { "J-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Jakoh Wahcondalo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jakoh Wahcondalo.",
+        },
       },
       {
         stable_step_id = "mission:Rise of the Zilart:7:step-002",

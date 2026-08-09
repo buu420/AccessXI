@@ -33,7 +33,17 @@ return {
         entities = { "Port Bastok", "Otto", "Carmelo" },
         zones = { "Port Bastok" },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Otto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Otto.",
+        },
       },
       {
         stable_step_id = "quest:bastok:0:step-003",
@@ -251,7 +261,17 @@ return {
         entities = { "Parraggoh", "Bastok Mines", "Home Point" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Parraggoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Parraggoh.",
+        },
       },
       {
         stable_step_id = "quest:bastok:1:step-007",
@@ -1964,7 +1984,17 @@ return {
         entities = { "Bastok Mines", "Roh Latteh", "Linen Robe" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Roh Latteh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Roh Latteh.",
+        },
       },
     },
   },
@@ -2404,7 +2434,17 @@ return {
         entities = { "Metalworks", "Raibaht" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Raibaht",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Raibaht.",
+        },
       },
       {
         stable_step_id = "quest:bastok:27:step-005",
@@ -2466,7 +2506,17 @@ return {
         entities = { "Bastok Mines", "Gumbah" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "quest:bastok:28:step-002",
@@ -3344,7 +3394,17 @@ return {
         entities = { "Steel Bones", "Port Bastok", "Letter from Domien", "Bastok Markets" },
         zones = {  },
         grid_coordinates = { "D-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Steel Bones",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Steel Bones.",
+        },
       },
       {
         stable_step_id = "quest:bastok:3:step-015",
@@ -5103,7 +5163,17 @@ return {
         entities = { "Brygid", "Bastok Markets", "Bronze Subligar", "Robe" },
         zones = {  },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Brygid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brygid.",
+        },
       },
       {
         stable_step_id = "quest:bastok:44:step-002",
@@ -6737,7 +6807,17 @@ return {
         entities = { "Ayame", "Metalworks" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Ayame",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ayame.",
+        },
       },
       {
         stable_step_id = "quest:bastok:53:step-002",
@@ -7921,7 +8001,17 @@ return {
         entities = { "Windurst Waters", "Cochal-Monchal", "Optistery" },
         zones = {  },
         grid_coordinates = { "F-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Cochal-Monchal",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cochal-Monchal.",
+        },
       },
       {
         stable_step_id = "quest:bastok:57:step-005",
@@ -9365,7 +9455,17 @@ return {
         entities = { "Norg", "Ryoma", "Sealed dagger" },
         zones = { "Norg" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Ryoma",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ryoma.",
+        },
       },
       {
         stable_step_id = "quest:bastok:60:step-030",
@@ -10260,7 +10360,17 @@ return {
         entities = { "Raifa", "Port Bastok" },
         zones = {  },
         grid_coordinates = { "D-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Raifa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Raifa.",
+        },
       },
       {
         stable_step_id = "quest:bastok:65:step-003",
@@ -10611,7 +10721,17 @@ return {
         entities = { "Raifa", "Port Bastok" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Raifa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Raifa.",
+        },
       },
       {
         stable_step_id = "quest:bastok:65:step-030",
@@ -12745,7 +12865,17 @@ return {
         entities = { "Ferrol", "Port Bastok", "Mini Tuning Fork of Earth" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Ferrol",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ferrol.",
+        },
       },
       {
         stable_step_id = "quest:bastok:72:step-002",
@@ -13002,7 +13132,17 @@ return {
         entities = { "Kagetora", "Port Bastok", "Bastok", "Ayame" },
         zones = {  },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Kagetora",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kagetora.",
+        },
       },
       {
         stable_step_id = "quest:bastok:73:step-006",
@@ -13028,7 +13168,17 @@ return {
         entities = { "Alois", "Metalworks" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Alois",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Alois.",
+        },
       },
     },
   },
@@ -13321,7 +13471,17 @@ return {
         entities = { "Port Bastok", "Ravorara", "Steaming Sheep Restaurant", "Home Point" },
         zones = { "Port Bastok" },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Ravorara",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ravorara.",
+        },
       },
       {
         stable_step_id = "quest:bastok:75:step-003",
@@ -13503,7 +13663,17 @@ return {
         entities = { "Bastok Mines", "Pavvke" },
         zones = {  },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Pavvke",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pavvke.",
+        },
       },
     },
   },
@@ -14511,7 +14681,17 @@ return {
         entities = { "Bastok Mines", "Virnage", "Dawn talisman" },
         zones = {  },
         grid_coordinates = { "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Virnage",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Virnage.",
+        },
       },
       {
         stable_step_id = "quest:bastok:77:step-003",
@@ -14524,7 +14704,17 @@ return {
         entities = { "Oldton Movalpolos", "Rakorok", "Bugallug", "NM" },
         zones = {  },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 11,
+            zone_name = "Oldton Movalpolos",
+            name = "Rakorok",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rakorok.",
+        },
       },
       {
         stable_step_id = "quest:bastok:77:step-004",
@@ -14563,7 +14753,17 @@ return {
         entities = { "Bastok Mines", "Virnage" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Virnage",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Virnage.",
+        },
       },
     },
   },
@@ -14703,7 +14903,17 @@ return {
         entities = { "Lower Jeuno", "Muckvix", "Pungent providence pot" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Muckvix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Muckvix.",
+        },
       },
       {
         stable_step_id = "quest:bastok:78:step-011",
@@ -15002,7 +15212,17 @@ return {
         entities = { "Metalworks", "Ayame", "Bowyer Ring" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Ayame",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ayame.",
+        },
       },
       {
         stable_step_id = "quest:bastok:78:step-034",
@@ -18914,7 +19134,17 @@ return {
         entities = { "Umberto", "Bastok Markets" },
         zones = {  },
         grid_coordinates = { "L-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Umberto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Umberto.",
+        },
       },
     },
   },
@@ -19262,7 +19492,17 @@ return {
         entities = { "Rolanberry", "Bastok Markets (S)", "Offa", "Bastok Markets", "Withered Berry" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Offa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Offa.",
+        },
       },
       {
         stable_step_id = "quest:bastok:87:step-027",
@@ -20050,7 +20290,17 @@ return {
         entities = { "Clarion Star", "Port Bastok", "Blue institute card" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Clarion Star",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Clarion Star.",
+        },
       },
       {
         stable_step_id = "quest:bastok:92:step-002",
@@ -20063,7 +20313,17 @@ return {
         entities = { "Metalworks", "Naji", "Trust: Naji" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Naji",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Naji.",
+        },
       },
       {
         stable_step_id = "quest:bastok:92:step-003",

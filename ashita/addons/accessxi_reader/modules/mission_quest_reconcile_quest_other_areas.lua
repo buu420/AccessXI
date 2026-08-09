@@ -1273,7 +1273,17 @@ return {
         entities = { "Oldton Movalpolos", "Koblakiq", "Glittering Fragment", "Beadeaux" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 11,
+            zone_name = "Oldton Movalpolos",
+            name = "Koblakiq",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Koblakiq.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:104:step-009",
@@ -1351,7 +1361,17 @@ return {
         entities = { "Koblakiq", "Jaguar Mantle", "Oldton Movalpolos" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 11,
+            zone_name = "Oldton Movalpolos",
+            name = "Koblakiq",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Koblakiq.",
+        },
       },
     },
   },
@@ -1644,7 +1664,17 @@ return {
         entities = { "Faulpie", "Southern San d'Oria", "Buffalo Hide", "Ram Leather" },
         zones = {  },
         grid_coordinates = { "E-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Faulpie",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Faulpie.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:106:step-004",
@@ -2057,7 +2087,17 @@ return {
         entities = { "Peshi Yohnts", "Windurst Woods", "Bugard Leather", "Turtle Shell" },
         zones = {  },
         grid_coordinates = { "H-13" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Peshi Yohnts",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Peshi Yohnts.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:107:step-005",
@@ -2444,7 +2484,17 @@ return {
         entities = { "Ponono", "Windurst Woods", "Velvet Cloth", "Rainbow Cloth" },
         zones = {  },
         grid_coordinates = { "G-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Ponono",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ponono.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:108:step-005",
@@ -3889,7 +3939,17 @@ return {
         entities = { "Abelard", "Selbina Clay", "Selbina" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Abelard",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Abelard.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:19:step-002",
@@ -6043,7 +6103,17 @@ return {
         entities = { "Lacia", "Mhaura", "Mini Tuning Fork of Lightning", "Sailors' Stay" },
         zones = {  },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Lacia",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Lacia.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:28:step-002",
@@ -6144,7 +6214,17 @@ return {
         entities = { "Fyi Chalmwoh", "Mhaura", "Goldsmithing" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Fyi Chalmwoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fyi Chalmwoh.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:29:step-002",
@@ -6183,7 +6263,17 @@ return {
         entities = { "Ramona", "Selbina", "Ye Olde Mannequin Catalogue", "Weaver's" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Ramona",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ramona.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:29:step-005",
@@ -6209,7 +6299,17 @@ return {
         entities = { "Cheupirudaux", "Northern San d'Oria", "Mannequin joint diagrams", "Woodworking" },
         zones = {  },
         grid_coordinates = { "F-3" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Cheupirudaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cheupirudaux.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:29:step-007",
@@ -6902,7 +7002,17 @@ return {
         entities = { "Windurst Waters", "Angelica", "Old woman's portrait", "Bastok Markets", "Umberto", "Harmodios's Music Shop" },
         zones = {  },
         grid_coordinates = { "L-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Umberto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Umberto.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:31:step-014",
@@ -6954,7 +7064,17 @@ return {
         entities = { "Selbina", "Diederik", "Opalescent stone", "Castle Oztroja", "Signal Pearl", "Tactics Pearl", "inventory" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Diederik",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Diederik.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:31:step-018",
@@ -7123,7 +7243,17 @@ return {
         entities = { "Windurst Waters", "Angelica", "Old woman's portrait" },
         zones = {  },
         grid_coordinates = { "E-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Angelica",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Angelica.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:31:step-031",
@@ -8674,7 +8804,17 @@ return {
         entities = { "Suspicious Hume", "Pashhow Marshlands", "Konschtat Highlands" },
         zones = {  },
         grid_coordinates = { "E-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 109,
+            zone_name = "Pashhow Marshlands",
+            name = "Suspicious Hume",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Suspicious Hume.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:34:step-002",
@@ -10261,7 +10401,17 @@ return {
         entities = { "Valgeir", "Selbina", "Popoto" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Valgeir",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Valgeir.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:6:step-011",
@@ -10375,7 +10525,17 @@ return {
         entities = { "Tavnazian Safehold", "Quelveuiat" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Quelveuiat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Quelveuiat.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:64:step-008",
@@ -11888,7 +12048,17 @@ return {
         entities = { "Travonce", "Tavnazian Safehold" },
         zones = {  },
         grid_coordinates = { "F-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Travonce",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Travonce.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:70:step-021",
@@ -12269,7 +12439,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold" },
         zones = {  },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:73:step-002",
@@ -13004,7 +13184,17 @@ return {
         entities = { "Southern San d'Oria", "Rouva" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Rouva",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rouva.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:75:step-003",
@@ -15065,7 +15255,17 @@ return {
         entities = { "Mhaura", "Fyi Chalmwoh", "Goldsmiths'" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Fyi Chalmwoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fyi Chalmwoh.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:77:step-005",
@@ -15387,7 +15587,17 @@ return {
         entities = { "Mhaura", "Fyi Chalmwoh", "Gil" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Fyi Chalmwoh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Fyi Chalmwoh.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:78:step-014",
@@ -15514,7 +15724,17 @@ return {
         entities = { "Reinberta", "Bastok Markets" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Reinberta",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Reinberta.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:79:step-008",
@@ -15527,7 +15747,17 @@ return {
         entities = { "Mevreauche", "Northern San d'Oria" },
         zones = {  },
         grid_coordinates = { "E-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Mevreauche",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mevreauche.",
+        },
       },
       {
         stable_step_id = "quest:other_areas:79:step-009",

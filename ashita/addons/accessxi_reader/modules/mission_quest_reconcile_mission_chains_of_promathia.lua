@@ -1155,7 +1155,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-025",
@@ -1233,7 +1243,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-031",
@@ -1259,7 +1279,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-033",
@@ -1298,7 +1328,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-036",
@@ -1883,7 +1923,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-081",
@@ -1909,7 +1959,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-083",
@@ -1948,7 +2008,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-086",
@@ -1987,7 +2057,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:14:step-089",
@@ -2465,7 +2545,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-025",
@@ -2543,7 +2633,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-031",
@@ -2569,7 +2669,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-033",
@@ -2608,7 +2718,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-036",
@@ -3193,7 +3313,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-081",
@@ -3219,7 +3349,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-083",
@@ -3258,7 +3398,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-086",
@@ -3297,7 +3447,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:15:step-089",
@@ -3775,7 +3935,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-025",
@@ -3853,7 +4023,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-031",
@@ -3879,7 +4059,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-033",
@@ -3918,7 +4108,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-036",
@@ -4503,7 +4703,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-081",
@@ -4529,7 +4739,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-083",
@@ -4568,7 +4788,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-086",
@@ -4607,7 +4837,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:16:step-089",
@@ -5085,7 +5325,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-025",
@@ -5163,7 +5413,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-031",
@@ -5189,7 +5449,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-033",
@@ -5228,7 +5498,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-036",
@@ -5813,7 +6093,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-081",
@@ -5839,7 +6129,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-083",
@@ -5878,7 +6178,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-086",
@@ -5917,7 +6227,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:17:step-089",
@@ -6395,7 +6715,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-025",
@@ -6473,7 +6803,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-031",
@@ -6499,7 +6839,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-033",
@@ -6538,7 +6888,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-036",
@@ -7123,7 +7483,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-081",
@@ -7149,7 +7519,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-083",
@@ -7188,7 +7568,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-086",
@@ -7227,7 +7617,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:18:step-089",
@@ -7705,7 +8105,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-025",
@@ -7783,7 +8193,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-031",
@@ -7809,7 +8229,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-033",
@@ -7848,7 +8278,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-036",
@@ -8433,7 +8873,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-081",
@@ -8459,7 +8909,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-083",
@@ -8498,7 +8958,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-086",
@@ -8537,7 +9007,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:19:step-089",
@@ -8742,7 +9222,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Mysterious Amulet" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:2:step-004",
@@ -9103,7 +9593,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-025",
@@ -9181,7 +9681,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-031",
@@ -9207,7 +9717,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-033",
@@ -9246,7 +9766,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-036",
@@ -9831,7 +10361,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-081",
@@ -9857,7 +10397,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-083",
@@ -9896,7 +10446,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-086",
@@ -9935,7 +10495,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:20:step-089",
@@ -10413,7 +10983,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-025",
@@ -10491,7 +11071,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-031",
@@ -10517,7 +11107,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-033",
@@ -10556,7 +11156,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-036",
@@ -11141,7 +11751,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-081",
@@ -11167,7 +11787,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-083",
@@ -11206,7 +11836,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-086",
@@ -11245,7 +11885,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:21:step-089",
@@ -11723,7 +12373,17 @@ return {
         entities = { "Hinaree", "Southern San d'Oria", "Home Point" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "B-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Hinaree",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hinaree.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-025",
@@ -11801,7 +12461,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-031",
@@ -11827,7 +12497,17 @@ return {
         entities = { "Kyume-Romeh", "Windurst Waters", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "F-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kyume-Romeh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kyume-Romeh.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-033",
@@ -11866,7 +12546,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-036",
@@ -12451,7 +13141,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-081",
@@ -12477,7 +13177,17 @@ return {
         entities = { "Yujuju", "Port Windurst", "Home Point" },
         zones = { "Port Windurst" },
         grid_coordinates = { "M-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 240,
+            zone_name = "Port Windurst",
+            name = "Yujuju",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yujuju.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-083",
@@ -12516,7 +13226,17 @@ return {
         entities = { "Yoran-Oran", "Windurst Walls", "Home Point" },
         zones = {  },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-086",
@@ -12555,7 +13275,17 @@ return {
         entities = { "Metalworks", "Cid", "Bastok", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:22:step-089",
@@ -12848,7 +13578,17 @@ return {
         entities = { "Monberaux", "Upper Jeuno", "Home Point" },
         zones = {  },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:24:step-005",
@@ -13680,7 +14420,17 @@ return {
         entities = { "Diabolos", "Monberaux", "Upper Jeuno", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:24:step-069",
@@ -15849,7 +16599,17 @@ return {
         entities = { "Ru'Lude Gardens", "Pherimociel" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:3:step-002",
@@ -16145,7 +16905,17 @@ return {
         entities = { "Chasalvige", "Northern San d'Oria" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Chasalvige",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chasalvige.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:31:step-009",
@@ -16158,7 +16928,17 @@ return {
         entities = { "Port San d'Oria", "Anoki" },
         zones = { "Port San d'Oria" },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Anoki",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Anoki.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:31:step-010",
@@ -16223,7 +17003,17 @@ return {
         entities = { "Cid", "Metalworks" },
         zones = { "Metalworks" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:31:step-015",
@@ -17231,7 +18021,17 @@ return {
         entities = { "Cid", "Metalworks" },
         zones = { "Metalworks" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:33:step-004",
@@ -17371,7 +18171,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold", "Home Point" },
         zones = { "Tavnazian Safehold" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:34:step-004",
@@ -17410,7 +18220,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:34:step-007",
@@ -17709,7 +18529,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:34:step-030",
@@ -18463,7 +19293,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:34:step-088",
@@ -18746,7 +19586,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold", "Home Point" },
         zones = { "Tavnazian Safehold" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:35:step-004",
@@ -18785,7 +19635,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:35:step-007",
@@ -19084,7 +19944,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:35:step-030",
@@ -19838,7 +20708,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:35:step-088",
@@ -20121,7 +21001,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold", "Home Point" },
         zones = { "Tavnazian Safehold" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:36:step-004",
@@ -20160,7 +21050,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:36:step-007",
@@ -20459,7 +21359,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:36:step-030",
@@ -21213,7 +22123,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:36:step-088",
@@ -21496,7 +22416,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold", "Home Point" },
         zones = { "Tavnazian Safehold" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:37:step-004",
@@ -21535,7 +22465,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:37:step-007",
@@ -21834,7 +22774,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:37:step-030",
@@ -22588,7 +23538,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:37:step-088",
@@ -22871,7 +23831,17 @@ return {
         entities = { "Despachiaire", "Tavnazian Safehold", "Home Point" },
         zones = { "Tavnazian Safehold" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Despachiaire",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Despachiaire.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:38:step-004",
@@ -22910,7 +23880,17 @@ return {
         entities = { "Perih Vashai", "Windurst Woods", "Home Point" },
         zones = { "Windurst Woods" },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 241,
+            zone_name = "Windurst Woods",
+            name = "Perih Vashai",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Perih Vashai.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:38:step-007",
@@ -23209,7 +24189,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:38:step-030",
@@ -23963,7 +24953,17 @@ return {
         entities = { "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:38:step-088",
@@ -24688,7 +25688,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Envelope from Monberaux", "Infirmary", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:39:step-038",
@@ -24701,7 +25711,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point", "Wolfgang" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:39:step-039",
@@ -26697,7 +27717,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Envelope from Monberaux", "Infirmary", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:40:step-038",
@@ -26710,7 +27740,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point", "Wolfgang" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:40:step-039",
@@ -27643,7 +28683,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Envelope from Monberaux", "Infirmary", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:41:step-038",
@@ -27656,7 +28706,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point", "Wolfgang" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:41:step-039",
@@ -28589,7 +29649,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Envelope from Monberaux", "Infirmary", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:42:step-038",
@@ -28602,7 +29672,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point", "Wolfgang" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:42:step-039",
@@ -29535,7 +30615,17 @@ return {
         entities = { "Upper Jeuno", "Monberaux", "Envelope from Monberaux", "Infirmary", "Home Point" },
         zones = { "Upper Jeuno" },
         grid_coordinates = { "G-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 244,
+            zone_name = "Upper Jeuno",
+            name = "Monberaux",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Monberaux.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:43:step-038",
@@ -29548,7 +30638,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point", "Wolfgang" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:43:step-039",
@@ -30104,7 +31204,17 @@ return {
         entities = { "Chasalvige", "Northern San d'Oria", "Home Point" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Chasalvige",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chasalvige.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:44:step-009",
@@ -30130,7 +31240,17 @@ return {
         entities = { "Windurst Waters", "Kerutoto", "Rhinostery", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kerutoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kerutoto.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:44:step-011",
@@ -30156,7 +31276,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:44:step-013",
@@ -31261,7 +32391,17 @@ return {
         entities = { "Snoll Tzar", "Bastok", "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:44:step-098",
@@ -31531,7 +32671,17 @@ return {
         entities = { "Chasalvige", "Northern San d'Oria", "Home Point" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Chasalvige",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chasalvige.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:45:step-009",
@@ -31557,7 +32707,17 @@ return {
         entities = { "Windurst Waters", "Kerutoto", "Rhinostery", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kerutoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kerutoto.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:45:step-011",
@@ -31583,7 +32743,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:45:step-013",
@@ -32688,7 +33858,17 @@ return {
         entities = { "Snoll Tzar", "Bastok", "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:45:step-098",
@@ -32958,7 +34138,17 @@ return {
         entities = { "Chasalvige", "Northern San d'Oria", "Home Point" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Chasalvige",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chasalvige.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:46:step-009",
@@ -32984,7 +34174,17 @@ return {
         entities = { "Windurst Waters", "Kerutoto", "Rhinostery", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kerutoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kerutoto.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:46:step-011",
@@ -33010,7 +34210,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:46:step-013",
@@ -34115,7 +35325,17 @@ return {
         entities = { "Snoll Tzar", "Bastok", "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:46:step-098",
@@ -34385,7 +35605,17 @@ return {
         entities = { "Chasalvige", "Northern San d'Oria", "Home Point" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "L-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Chasalvige",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Chasalvige.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:47:step-009",
@@ -34411,7 +35641,17 @@ return {
         entities = { "Windurst Waters", "Kerutoto", "Rhinostery", "Home Point" },
         zones = { "Windurst Waters" },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Kerutoto",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kerutoto.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:47:step-011",
@@ -34437,7 +35677,17 @@ return {
         entities = { "Windurst Walls", "Yoran-Oran", "Home Point" },
         zones = { "Windurst Walls" },
         grid_coordinates = { "E-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 239,
+            zone_name = "Windurst Walls",
+            name = "Yoran-Oran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Yoran-Oran.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:47:step-013",
@@ -35542,7 +36792,17 @@ return {
         entities = { "Snoll Tzar", "Bastok", "Cid", "Metalworks", "Home Point" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:47:step-098",
@@ -35721,7 +36981,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:49:step-002",
@@ -35988,7 +37258,17 @@ return {
         entities = { "Pherimociel", "Ru'Lude Gardens", "Home Point" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Pherimociel",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Pherimociel.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:51:step-002",
@@ -36040,7 +37320,17 @@ return {
         entities = { "Selbina", "Mathilde" },
         zones = { "Selbina" },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 248,
+            zone_name = "Selbina",
+            name = "Mathilde",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Mathilde.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:51:step-006",
@@ -36219,7 +37509,17 @@ return {
         entities = { "Metalworks", "Cid" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:52:step-013",
@@ -37097,7 +38397,17 @@ return {
         entities = { "Sealion's Den", "Sueleen" },
         zones = { "Sealion's Den" },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 32,
+            zone_name = "Sealion's Den",
+            name = "Sueleen",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sueleen.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:55:step-005",
@@ -37380,7 +38690,17 @@ return {
         entities = { "Metalworks", "Cid", "Home Point" },
         zones = { "Metalworks" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Cid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Cid.",
+        },
       },
       {
         stable_step_id = "mission:Chains of Promathia:56:step-011",

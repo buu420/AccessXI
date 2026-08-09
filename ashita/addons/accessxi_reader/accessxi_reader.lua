@@ -67822,9 +67822,9 @@ if (type(accessxi.mission_quest_guides_module.new) == 'function') then
             return accessxi.current_player_identity();
         end,
         manual_path = accessxi_paths.addon_path('data', 'ffxi-objective-manual-steps.tsv'),
-        route_resolver = function(native_key, guide_step_id)
+        route_resolver = function(native_key, guide_step_id, step)
             if (type(accessxi.nav_mission_quest_guide_route_descriptor) == 'function') then
-                return accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id);
+                return accessxi.nav_mission_quest_guide_route_descriptor(native_key, guide_step_id, step);
             end
             return nil;
         end,

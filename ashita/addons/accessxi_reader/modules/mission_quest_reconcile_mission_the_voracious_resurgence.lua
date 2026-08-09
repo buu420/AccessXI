@@ -20,7 +20,17 @@ return {
         entities = { "Gumbah", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:1:step-002",
@@ -56,7 +66,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Destin" },
         zones = { "Chateau d'Oraguille" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:10:step-002",
@@ -2714,7 +2734,17 @@ return {
         entities = { "Abda-Lurabda", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Abda-Lurabda",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Abda-Lurabda.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:20:step-002",
@@ -2997,7 +3027,17 @@ return {
         entities = { "Tateeya", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Tateeya",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tateeya.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:21:step-002",
@@ -4096,7 +4136,17 @@ return {
         entities = { "Ghatsad", "Aht Urhgan Whitegate" },
         zones = { "Aht Urhgan Whitegate" },
         grid_coordinates = { "I-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 50,
+            zone_name = "Aht Urhgan Whitegate",
+            name = "Ghatsad",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ghatsad.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:23:step-026",
@@ -5895,7 +5945,17 @@ return {
         entities = { "Gumbah", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:3:step-002",
@@ -5921,7 +5981,17 @@ return {
         entities = { "Brygid", "Bastok Markets" },
         zones = { "Bastok Markets" },
         grid_coordinates = { "K-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 235,
+            zone_name = "Bastok Markets",
+            name = "Brygid",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Brygid.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:3:step-004",
@@ -6428,7 +6498,17 @@ return {
         entities = { "Port Bastok", "Ruenda", "Steaming Sheep Restaurant" },
         zones = { "Port Bastok" },
         grid_coordinates = { "E-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Ruenda",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ruenda.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:3:step-043",
@@ -6490,7 +6570,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Trion", "Excenmille", "Trion's directive" },
         zones = { "Chateau d'Oraguille" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:30:step-002",
@@ -6591,7 +6681,17 @@ return {
         entities = { "Maat", "Ru'Lude Gardens", "Cloth-lined basket" },
         zones = { "Ru'Lude Gardens" },
         grid_coordinates = { "H-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 243,
+            zone_name = "Ru'Lude Gardens",
+            name = "Maat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Maat.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:31:step-002",
@@ -6617,7 +6717,17 @@ return {
         entities = { "Muckvix", "Lower Jeuno", "Map to the woman's home" },
         zones = { "Lower Jeuno" },
         grid_coordinates = { "H-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Muckvix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Muckvix.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:31:step-004",
@@ -6643,7 +6753,17 @@ return {
         entities = { "Miladi-Nildi", "Lower Jeuno", "Batallia Downs" },
         zones = { "Lower Jeuno" },
         grid_coordinates = { "J-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Miladi-Nildi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Miladi-Nildi.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:31:step-006",
@@ -6913,7 +7033,17 @@ return {
         entities = { "Muckvix" },
         zones = { "Lower Jeuno" },
         grid_coordinates = { "H-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 245,
+            zone_name = "Lower Jeuno",
+            name = "Muckvix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Muckvix.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:32:step-002",
@@ -7144,7 +7274,17 @@ return {
         entities = { "Shami", "Port Jeuno" },
         zones = { "Port Jeuno" },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Shami",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Shami.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:33:step-003",
@@ -7619,7 +7759,17 @@ return {
         entities = { "Marjoirelle", "Western Adoulin" },
         zones = { "Western Adoulin" },
         grid_coordinates = { "H-12" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 256,
+            zone_name = "Western Adoulin",
+            name = "Marjoirelle",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Marjoirelle.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:35:step-002",
@@ -7863,7 +8013,17 @@ return {
         entities = { "Glowing Hearth", "Eastern Adoulin", "Oshasha" },
         zones = { "Eastern Adoulin" },
         grid_coordinates = { "H-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Glowing Hearth",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Glowing Hearth.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:36:step-002",
@@ -7928,7 +8088,17 @@ return {
         entities = { "Runje Desaali", "Eastern Adoulin", "Esthete's Masque", "Wildskeeper Reive" },
         zones = { "Eastern Adoulin" },
         grid_coordinates = { "J-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 257,
+            zone_name = "Eastern Adoulin",
+            name = "Runje Desaali",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Runje Desaali.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:36:step-007",
@@ -8364,7 +8534,17 @@ return {
         entities = { "Gumbah", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:38:step-002",
@@ -8377,7 +8557,17 @@ return {
         entities = { "Tarnotik", "Oldton Movalpolos" },
         zones = { "Oldton Movalpolos" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 11,
+            zone_name = "Oldton Movalpolos",
+            name = "Tarnotik",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tarnotik.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:38:step-003",
@@ -8969,7 +9159,17 @@ return {
         entities = { "Gumbah", "Bastok Mines" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:4:step-002",
@@ -9314,7 +9514,17 @@ return {
         entities = { "Tarnotik", "Oldton Movalpolos" },
         zones = { "Oldton Movalpolos" },
         grid_coordinates = { "K-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 11,
+            zone_name = "Oldton Movalpolos",
+            name = "Tarnotik",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Tarnotik.",
+        },
       },
       {
         stable_step_id = "mission:The Voracious Resurgence:41:step-002",
@@ -10062,7 +10272,17 @@ return {
         entities = { "Bastok Mines", "Gumbah" },
         zones = { "Bastok Mines" },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 234,
+            zone_name = "Bastok Mines",
+            name = "Gumbah",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gumbah.",
+        },
       },
     },
   },

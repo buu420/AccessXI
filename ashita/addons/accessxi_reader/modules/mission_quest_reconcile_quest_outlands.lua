@@ -547,7 +547,17 @@ return {
         entities = { "Kieran", "Norg", "Ashen stratum abyssite" },
         zones = {  },
         grid_coordinates = { "I-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Kieran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kieran.",
+        },
       },
       {
         stable_step_id = "quest:outlands:100:step-002",
@@ -674,7 +684,17 @@ return {
         entities = { "Voidwatch Ops: Border Crossing", "Ashen stratum abyssite", "Hildegard", "Kazham" },
         zones = {  },
         grid_coordinates = { "F-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Hildegard",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Hildegard.",
+        },
       },
       {
         stable_step_id = "quest:outlands:101:step-002",
@@ -801,7 +821,17 @@ return {
         entities = { "Voidwatch Ops: Border Crossing", "Ashen stratum abyssite", "Gushing Spring", "Rabao" },
         zones = {  },
         grid_coordinates = { "G-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Gushing Spring",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gushing Spring.",
+        },
       },
       {
         stable_step_id = "quest:outlands:102:step-002",
@@ -1172,7 +1202,17 @@ return {
         entities = { "Norg", "Kieran" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Kieran",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kieran.",
+        },
       },
       {
         stable_step_id = "quest:outlands:104:step-008",
@@ -2385,7 +2425,17 @@ return {
         entities = { "Gimb", "Norg" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Gimb",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Gimb.",
+        },
       },
       {
         stable_step_id = "quest:outlands:128:step-004",
@@ -2567,7 +2617,17 @@ return {
         entities = { "Hurr the Betrayer", "Bou the Righteous", "Sea Serpent Grotto", "Tractor" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 176,
+            zone_name = "Sea Serpent Grotto",
+            name = "Bou the Righteous",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Bou the Righteous.",
+        },
       },
       {
         stable_step_id = "quest:outlands:128:step-018",
@@ -2876,7 +2936,17 @@ return {
         entities = { "Jaucribaix", "Norg" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:129:step-002",
@@ -4763,7 +4833,17 @@ return {
         entities = { "Laisrean", "Norg" },
         zones = { "Norg" },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Laisrean",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Laisrean.",
+        },
       },
       {
         stable_step_id = "quest:outlands:136:step-003",
@@ -5645,7 +5725,17 @@ return {
         entities = { "Norg", "Jaucribaix", "Mumeito", "Samurai", "Handful of Crystal Scales" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:140:step-002",
@@ -5889,7 +5979,17 @@ return {
         entities = { "Jaucribaix", "Norg", "Samurai", "Labyrinth of Onzozo" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:141:step-004",
@@ -6058,7 +6158,17 @@ return {
         entities = { "Norg", "Jaucribaix", "Yomotsu Hirasaka" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:141:step-017",
@@ -6328,7 +6438,17 @@ return {
         entities = { "Jaucribaix", "Norg" },
         zones = {  },
         grid_coordinates = { "K-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:142:step-003",
@@ -6354,7 +6474,17 @@ return {
         entities = { "Sanosuke", "Port Jeuno" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 246,
+            zone_name = "Port Jeuno",
+            name = "Sanosuke",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sanosuke.",
+        },
       },
       {
         stable_step_id = "quest:outlands:142:step-005",
@@ -6380,7 +6510,17 @@ return {
         entities = { "Phoochuchu", "Mhaura" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 249,
+            zone_name = "Mhaura",
+            name = "Phoochuchu",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Phoochuchu.",
+        },
       },
       {
         stable_step_id = "quest:outlands:142:step-007",
@@ -6471,7 +6611,17 @@ return {
         entities = { "Jaucribaix", "Norg", "Banishing Charm" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:142:step-014",
@@ -6861,7 +7011,17 @@ return {
         entities = { "Norg", "Jaucribaix" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Jaucribaix",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Jaucribaix.",
+        },
       },
       {
         stable_step_id = "quest:outlands:142:step-044",
@@ -6923,7 +7083,17 @@ return {
         entities = { "Ryoma", "Norg", "Port Bastok", "Ninja" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Ryoma",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ryoma.",
+        },
       },
       {
         stable_step_id = "quest:outlands:143:step-002",
@@ -6949,7 +7119,17 @@ return {
         entities = { "Kagetora", "Port Bastok" },
         zones = {  },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Kagetora",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kagetora.",
+        },
       },
       {
         stable_step_id = "quest:outlands:143:step-004",
@@ -7170,7 +7350,17 @@ return {
         entities = { "Norg", "Ryoma" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Ryoma",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ryoma.",
+        },
       },
     },
   },
@@ -7193,7 +7383,17 @@ return {
         entities = { "Norg", "Ryoma", "Ninja", "Ensetsu", "Port Bastok" },
         zones = {  },
         grid_coordinates = { "H-8", "I-5" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Ryoma",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ryoma.",
+        },
       },
       {
         stable_step_id = "quest:outlands:144:step-002",
@@ -8364,7 +8564,17 @@ return {
         entities = { "Verctissa", "Norg", "Mini Tuning Fork of Water" },
         zones = {  },
         grid_coordinates = { "H-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Verctissa",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Verctissa.",
+        },
       },
       {
         stable_step_id = "quest:outlands:148:step-002",
@@ -8579,7 +8789,17 @@ return {
         entities = { "Dodmos", "Kazham", "Mini Tuning Fork of Fire" },
         zones = {  },
         grid_coordinates = { "J-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Dodmos",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Dodmos.",
+        },
       },
       {
         stable_step_id = "quest:outlands:15:step-002",
@@ -10987,7 +11207,17 @@ return {
         entities = { "Rahi Fohlatti", "Rabao", "Mini Tuning Fork of Wind" },
         zones = {  },
         grid_coordinates = { "G-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Rahi Fohlatti",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rahi Fohlatti.",
+        },
       },
       {
         stable_step_id = "quest:outlands:197:step-002",
@@ -11101,7 +11331,17 @@ return {
         entities = { "Rabao", "Rudolfo", "Auction House", "Chelvadurai", "Sanctia" },
         zones = {  },
         grid_coordinates = { "J-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Rudolfo",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Rudolfo.",
+        },
       },
       {
         stable_step_id = "quest:outlands:199:step-003",
@@ -11140,7 +11380,17 @@ return {
         entities = { "Norg", "Sohyon" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Sohyon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sohyon.",
+        },
       },
       {
         stable_step_id = "quest:outlands:199:step-006",
@@ -11413,7 +11663,17 @@ return {
         entities = { "Norg", "Sohyon", "Storeroom key" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 252,
+            zone_name = "Norg",
+            name = "Sohyon",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Sohyon.",
+        },
       },
       {
         stable_step_id = "quest:outlands:199:step-027",
@@ -11439,7 +11699,17 @@ return {
         entities = { "Port Bastok", "Kagetora" },
         zones = {  },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 236,
+            zone_name = "Port Bastok",
+            name = "Kagetora",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Kagetora.",
+        },
       },
       {
         stable_step_id = "quest:outlands:199:step-029",
@@ -11517,7 +11787,17 @@ return {
         entities = { "Rabao", "Zoriboh" },
         zones = {  },
         grid_coordinates = { "F-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Zoriboh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zoriboh.",
+        },
       },
     },
   },
@@ -11784,7 +12064,17 @@ return {
         entities = { "Quelveuiat", "Tavnazian Safehold" },
         zones = {  },
         grid_coordinates = { "I-10" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 26,
+            zone_name = "Tavnazian Safehold",
+            name = "Quelveuiat",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Quelveuiat.",
+        },
       },
       {
         stable_step_id = "quest:outlands:200:step-003",
@@ -11849,7 +12139,17 @@ return {
         entities = { "Metalworks", "Vladinek" },
         zones = {  },
         grid_coordinates = { "H-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Vladinek",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Vladinek.",
+        },
       },
       {
         stable_step_id = "quest:outlands:200:step-008",
@@ -11992,7 +12292,17 @@ return {
         entities = { "Rabao", "Zoriboh" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 247,
+            zone_name = "Rabao",
+            name = "Zoriboh",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Zoriboh.",
+        },
       },
     },
   },
@@ -13137,7 +13447,17 @@ return {
         entities = { "Windurst Waters", "Angelica", "Angelica's letter", "\"Final Fantasy\"", "Temple of Uggalepih" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Angelica",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Angelica.",
+        },
       },
       {
         stable_step_id = "quest:outlands:3:step-003",
@@ -13150,7 +13470,17 @@ return {
         entities = { "Kazham", "Etteh Sulaej" },
         zones = {  },
         grid_coordinates = {  },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 250,
+            zone_name = "Kazham",
+            name = "Etteh Sulaej",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Etteh Sulaej.",
+        },
       },
       {
         stable_step_id = "quest:outlands:3:step-004",

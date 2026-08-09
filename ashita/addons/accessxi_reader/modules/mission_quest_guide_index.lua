@@ -510,7 +510,7 @@ return {
     native_id = 5,
     progress_id = 4,
     title = "Enemy of the Empire (I)",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_a_shantotto_ascension",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_a_shantotto_ascension",
@@ -536,7 +536,7 @@ return {
     native_id = 7,
     progress_id = 6,
     title = "Sugar-coated Subterfuge",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_a_shantotto_ascension",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_a_shantotto_ascension",
@@ -1201,7 +1201,7 @@ return {
     native_id = 1,
     progress_id = 0,
     title = "The Zeruhn Report",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1214,7 +1214,7 @@ return {
     native_id = 10,
     progress_id = 9,
     title = "The Emissary (Windurst)",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1227,7 +1227,7 @@ return {
     native_id = 11,
     progress_id = 10,
     title = "The Four Musketeers",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1240,7 +1240,7 @@ return {
     native_id = 12,
     progress_id = 11,
     title = "To the Forsaken Mines",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1253,7 +1253,7 @@ return {
     native_id = 13,
     progress_id = 12,
     title = "Jeuno",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1305,7 +1305,7 @@ return {
     native_id = 17,
     progress_id = 16,
     title = "Return of the Talekeeper",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1318,7 +1318,7 @@ return {
     native_id = 18,
     progress_id = 17,
     title = "The Pirates' Cove",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1331,7 +1331,7 @@ return {
     native_id = 19,
     progress_id = 18,
     title = "The Final Image",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1357,7 +1357,7 @@ return {
     native_id = 20,
     progress_id = 19,
     title = "On My Way",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1396,7 +1396,7 @@ return {
     native_id = 23,
     progress_id = 22,
     title = "The Salt of the Earth",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1435,7 +1435,7 @@ return {
     native_id = 4,
     progress_id = 3,
     title = "The Crystal Line",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1461,7 +1461,7 @@ return {
     native_id = 6,
     progress_id = 5,
     title = "The Emissary",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1474,7 +1474,7 @@ return {
     native_id = 7,
     progress_id = 6,
     title = "The Emissary (San d'Oria)",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1487,7 +1487,7 @@ return {
     native_id = 8,
     progress_id = 7,
     title = "The Emissary (Windurst)",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1500,7 +1500,7 @@ return {
     native_id = 9,
     progress_id = 8,
     title = "The Emissary (San d'Oria)",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_bastok",
@@ -1578,7 +1578,7 @@ return {
     native_id = 14,
     progress_id = 13,
     title = "Fires of Discontent",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2045,7 +2045,7 @@ return {
     native_id = 47,
     progress_id = 46,
     title = "The Long March North",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2201,7 +2201,7 @@ return {
     native_id = 58,
     progress_id = 57,
     title = "Son and Father",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2227,7 +2227,7 @@ return {
     native_id = 6,
     progress_id = 5,
     title = "The Dawn of Delectability",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2318,7 +2318,7 @@ return {
     native_id = 66,
     progress_id = 65,
     title = "Her Memories: Old Bean",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2331,7 +2331,7 @@ return {
     native_id = 67,
     progress_id = 66,
     title = "Her Memories: The Faux Pas",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2344,7 +2344,7 @@ return {
     native_id = 68,
     progress_id = 67,
     title = "Her Memories: Grave Resolve",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2422,7 +2422,7 @@ return {
     native_id = 73,
     progress_id = 72,
     title = "Her Memories: Of Malign Maladies",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_campaign",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_campaign",
@@ -2805,7 +2805,7 @@ return {
     native_id = 14,
     progress_id = 325,
     title = "The Road Forks",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2818,7 +2818,7 @@ return {
     native_id = 15,
     progress_id = 330,
     title = "Emerald Waters",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2831,7 +2831,7 @@ return {
     native_id = 16,
     progress_id = 331,
     title = "Vicissitudes",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2844,7 +2844,7 @@ return {
     native_id = 17,
     progress_id = 335,
     title = "Descendants of a Line Lost",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2857,7 +2857,7 @@ return {
     native_id = 18,
     progress_id = 339,
     title = "Louverance",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2870,7 +2870,7 @@ return {
     native_id = 19,
     progress_id = 340,
     title = "Memories of a Maiden",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2883,7 +2883,7 @@ return {
     native_id = 2,
     progress_id = 110,
     title = "The Rites of Life",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2896,7 +2896,7 @@ return {
     native_id = 20,
     progress_id = 341,
     title = "Comedy of Errors, Act I",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2909,7 +2909,7 @@ return {
     native_id = 21,
     progress_id = 345,
     title = "Comedy of Errors, Act II",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2922,7 +2922,7 @@ return {
     native_id = 22,
     progress_id = 349,
     title = "Exit Stage Left",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -2948,7 +2948,7 @@ return {
     native_id = 24,
     progress_id = 358,
     title = "Darkness Named",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3024,7 +3024,7 @@ return {
     native_id = 3,
     progress_id = 118,
     title = "Below the Arks",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3048,7 +3048,7 @@ return {
     native_id = 31,
     progress_id = 448,
     title = "The Enduring Tumult of War",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3074,7 +3074,7 @@ return {
     native_id = 33,
     progress_id = 530,
     title = "Three Paths",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3087,7 +3087,7 @@ return {
     native_id = 34,
     progress_id = 540,
     title = "Past Sins",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3100,7 +3100,7 @@ return {
     native_id = 35,
     progress_id = 542,
     title = "Southern Legend",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3113,7 +3113,7 @@ return {
     native_id = 36,
     progress_id = 543,
     title = "Partners Without Fame",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3126,7 +3126,7 @@ return {
     native_id = 37,
     progress_id = 546,
     title = "A Century of Hardship",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3139,7 +3139,7 @@ return {
     native_id = 38,
     progress_id = 549,
     title = "Departures",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3152,7 +3152,7 @@ return {
     native_id = 39,
     progress_id = 550,
     title = "The Pursuit of Paradise",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3178,7 +3178,7 @@ return {
     native_id = 40,
     progress_id = 552,
     title = "Spiral",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3191,7 +3191,7 @@ return {
     native_id = 41,
     progress_id = 553,
     title = "Branded",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3204,7 +3204,7 @@ return {
     native_id = 42,
     progress_id = 556,
     title = "Pride and Honor",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3217,7 +3217,7 @@ return {
     native_id = 43,
     progress_id = 559,
     title = "And the Compass Guides",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3230,7 +3230,7 @@ return {
     native_id = 44,
     progress_id = 560,
     title = "Where Messengers Gather",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3243,7 +3243,7 @@ return {
     native_id = 45,
     progress_id = 562,
     title = "Entanglement",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3256,7 +3256,7 @@ return {
     native_id = 46,
     progress_id = 564,
     title = "Head Wind",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3269,7 +3269,7 @@ return {
     native_id = 47,
     progress_id = 568,
     title = "Flames for the Dead",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3293,7 +3293,7 @@ return {
     native_id = 49,
     progress_id = 578,
     title = "For Whom the Verse Is Sung",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3330,7 +3330,7 @@ return {
     native_id = 51,
     progress_id = 628,
     title = "More Questions Than Answers",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3343,7 +3343,7 @@ return {
     native_id = 52,
     progress_id = 638,
     title = "One to Be Feared",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3380,7 +3380,7 @@ return {
     native_id = 55,
     progress_id = 718,
     title = "Flames in the Darkness",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -3393,7 +3393,7 @@ return {
     native_id = 56,
     progress_id = 728,
     title = "Fire in the Eyes of Men",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_chains_of_promathia",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_chains_of_promathia",
@@ -4281,7 +4281,7 @@ return {
     native_id = 6,
     progress_id = 114,
     title = "The Beginning",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rhapsodies_of_vanadiel",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rhapsodies_of_vanadiel",
@@ -4396,7 +4396,7 @@ return {
     native_id = 68,
     progress_id = 264,
     title = "Tears of the Generals",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rhapsodies_of_vanadiel",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rhapsodies_of_vanadiel",
@@ -4888,7 +4888,7 @@ return {
     native_id = 17,
     progress_id = 16,
     title = "Return to Delkfutt's Tower",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rise_of_the_zilart",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rise_of_the_zilart",
@@ -4927,7 +4927,7 @@ return {
     native_id = 23,
     progress_id = 22,
     title = "The Hall of the Gods",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rise_of_the_zilart",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rise_of_the_zilart",
@@ -4940,7 +4940,7 @@ return {
     native_id = 24,
     progress_id = 23,
     title = "The Mithra and the Crystal",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rise_of_the_zilart",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rise_of_the_zilart",
@@ -5068,7 +5068,7 @@ return {
     native_id = 7,
     progress_id = 6,
     title = "Kazham's Chieftainess",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_rise_of_the_zilart",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_rise_of_the_zilart",
@@ -5107,7 +5107,7 @@ return {
     native_id = 10,
     progress_id = 9,
     title = "Journey to Windurst",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5159,7 +5159,7 @@ return {
     native_id = 14,
     progress_id = 13,
     title = "Magicite",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5315,7 +5315,7 @@ return {
     native_id = 3,
     progress_id = 2,
     title = "Save the Children",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5328,7 +5328,7 @@ return {
     native_id = 4,
     progress_id = 3,
     title = "The Rescue Drill",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5354,7 +5354,7 @@ return {
     native_id = 6,
     progress_id = 5,
     title = "Journey Abroad",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5367,7 +5367,7 @@ return {
     native_id = 7,
     progress_id = 6,
     title = "Journey to Bastok",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5380,7 +5380,7 @@ return {
     native_id = 8,
     progress_id = 7,
     title = "Journey to Windurst",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5393,7 +5393,7 @@ return {
     native_id = 9,
     progress_id = 8,
     title = "Journey to Bastok",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_san_doria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_san_doria",
@@ -5545,7 +5545,7 @@ return {
     native_id = 109,
     progress_id = 360,
     title = "Undying Light",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5571,7 +5571,7 @@ return {
     native_id = 110,
     progress_id = 368,
     title = "The Light Within",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5697,7 +5697,7 @@ return {
     native_id = 19,
     progress_id = 148,
     title = "The Watergarden Coliseum",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5710,7 +5710,7 @@ return {
     native_id = 2,
     progress_id = 110,
     title = "Rumors from the West",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5762,7 +5762,7 @@ return {
     native_id = 23,
     progress_id = 162,
     title = "Aiming for Ygnas",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5788,7 +5788,7 @@ return {
     native_id = 25,
     progress_id = 168,
     title = "Arciela's Promise",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5853,7 +5853,7 @@ return {
     native_id = 3,
     progress_id = 112,
     title = "The Geomagnetron",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -5903,7 +5903,7 @@ return {
     native_id = 33,
     progress_id = 188,
     title = "A Curse from the Past",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6007,7 +6007,7 @@ return {
     native_id = 40,
     progress_id = 202,
     title = "Evil Entities",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6072,7 +6072,7 @@ return {
     native_id = 45,
     progress_id = 212,
     title = "The Man in Black",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6280,7 +6280,7 @@ return {
     native_id = 6,
     progress_id = 122,
     title = "Pioneer Registration",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6654,7 +6654,7 @@ return {
     native_id = 86,
     progress_id = 306,
     title = "An Emergency Convocation",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6771,7 +6771,7 @@ return {
     native_id = 94,
     progress_id = 324,
     title = "Royal Blessings",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6795,7 +6795,7 @@ return {
     native_id = 96,
     progress_id = 326,
     title = "Arboreal Rumors",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_seekers_of_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_seekers_of_adoulin",
@@ -6847,7 +6847,7 @@ return {
     native_id = 1,
     progress_id = 0,
     title = "The Voracious Resurgence",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -6860,7 +6860,7 @@ return {
     native_id = 10,
     progress_id = 192,
     title = "Dancing Prince",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7003,7 +7003,7 @@ return {
     native_id = 20,
     progress_id = 326,
     title = "The Revelation",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7016,7 +7016,7 @@ return {
     native_id = 21,
     progress_id = 338,
     title = "Tateeya's Worries",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7042,7 +7042,7 @@ return {
     native_id = 23,
     progress_id = 362,
     title = "The Sea Sage",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7133,7 +7133,7 @@ return {
     native_id = 3,
     progress_id = 118,
     title = "The Brygid Cup",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7146,7 +7146,7 @@ return {
     native_id = 30,
     progress_id = 460,
     title = "Altennia Burns Bright",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7159,7 +7159,7 @@ return {
     native_id = 31,
     progress_id = 468,
     title = "Maat on the Rampage",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7172,7 +7172,7 @@ return {
     native_id = 32,
     progress_id = 484,
     title = "Not Just a Pretty Face",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7185,7 +7185,7 @@ return {
     native_id = 33,
     progress_id = 494,
     title = "Delkfutt the Great",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7211,7 +7211,7 @@ return {
     native_id = 35,
     progress_id = 516,
     title = "Phantasmic Heroes",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7224,7 +7224,7 @@ return {
     native_id = 36,
     progress_id = 530,
     title = "Skokkr Undrborn's Temptation",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7250,7 +7250,7 @@ return {
     native_id = 38,
     progress_id = 552,
     title = "To Movalpolos!",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7276,7 +7276,7 @@ return {
     native_id = 4,
     progress_id = 128,
     title = "The Destiny Destroyers",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7302,7 +7302,7 @@ return {
     native_id = 41,
     progress_id = 580,
     title = "Kipdrix the Faithful",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7328,7 +7328,7 @@ return {
     native_id = 43,
     progress_id = 602,
     title = "Odin's Eye",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_the_voracious_resurgence",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_the_voracious_resurgence",
@@ -7484,7 +7484,7 @@ return {
     native_id = 12,
     progress_id = 11,
     title = "Royal Puppeteer",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_treasures_of_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_treasures_of_aht_urhgan",
@@ -7887,7 +7887,7 @@ return {
     native_id = 40,
     progress_id = 39,
     title = "Unraveling Reason",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_treasures_of_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_treasures_of_aht_urhgan",
@@ -7900,7 +7900,7 @@ return {
     native_id = 41,
     progress_id = 40,
     title = "Light of Judgment",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_treasures_of_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_treasures_of_aht_urhgan",
@@ -8121,7 +8121,7 @@ return {
     native_id = 13,
     progress_id = 12,
     title = "A New Journey",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8225,7 +8225,7 @@ return {
     native_id = 20,
     progress_id = 19,
     title = "Awakening of the Gods",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8238,7 +8238,7 @@ return {
     native_id = 21,
     progress_id = 20,
     title = "Vain",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8251,7 +8251,7 @@ return {
     native_id = 22,
     progress_id = 21,
     title = "The Jester Who'd Be King",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8264,7 +8264,7 @@ return {
     native_id = 23,
     progress_id = 22,
     title = "Doll of the Dead",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8316,7 +8316,7 @@ return {
     native_id = 5,
     progress_id = 4,
     title = "A Testing Time",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_windurst",
@@ -8394,7 +8394,7 @@ return {
     native_id = 10,
     progress_id = 9,
     title = "Daughter of a Knight",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_wings_of_the_goddess",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_wings_of_the_goddess",
@@ -8641,7 +8641,7 @@ return {
     native_id = 28,
     progress_id = 27,
     title = "Another World",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_wings_of_the_goddess",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_wings_of_the_goddess",
@@ -8810,7 +8810,7 @@ return {
     native_id = 4,
     progress_id = 3,
     title = "The Queen of the Dance",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_mission_wings_of_the_goddess",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_mission_wings_of_the_goddess",
@@ -10058,7 +10058,7 @@ return {
     native_id = 166,
     progress_id = 166,
     title = "The Forbidden Frontier",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10084,7 +10084,7 @@ return {
     native_id = 168,
     progress_id = 168,
     title = "An Officer and a Pirate",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10188,7 +10188,7 @@ return {
     native_id = 175,
     progress_id = 175,
     title = "Scars of Abyssea",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10240,7 +10240,7 @@ return {
     native_id = 179,
     progress_id = 179,
     title = "Heroes of Abyssea",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10279,7 +10279,7 @@ return {
     native_id = 181,
     progress_id = 181,
     title = "Death and Rebirth",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10331,7 +10331,7 @@ return {
     native_id = 185,
     progress_id = 185,
     title = "Meanwhile, Back on Abyssea",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -10825,7 +10825,7 @@ return {
     native_id = 47,
     progress_id = 47,
     title = "For Want of a Pot",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_abyssea",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_abyssea",
@@ -11592,7 +11592,7 @@ return {
     native_id = 1,
     progress_id = 1,
     title = "To Catch a Predator",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11618,7 +11618,7 @@ return {
     native_id = 100,
     progress_id = 100,
     title = "Open the Floodgates",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11644,7 +11644,7 @@ return {
     native_id = 103,
     progress_id = 103,
     title = "All the Way to the Bank",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11657,7 +11657,7 @@ return {
     native_id = 104,
     progress_id = 104,
     title = "To Laugh Is to Love",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11683,7 +11683,7 @@ return {
     native_id = 108,
     progress_id = 108,
     title = "Vegetable Vegetable Revolution",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11709,7 +11709,7 @@ return {
     native_id = 110,
     progress_id = 110,
     title = "Vegetable Vegetable Crisis",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11722,7 +11722,7 @@ return {
     native_id = 111,
     progress_id = 111,
     title = "Vegetable Vegetable Frustration",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11748,7 +11748,7 @@ return {
     native_id = 115,
     progress_id = 115,
     title = "A Thirst for the Eons",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11761,7 +11761,7 @@ return {
     native_id = 116,
     progress_id = 116,
     title = "A Thirst for Eternity",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11774,7 +11774,7 @@ return {
     native_id = 117,
     progress_id = 117,
     title = "A Thirst Before Time",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11787,7 +11787,7 @@ return {
     native_id = 118,
     progress_id = 118,
     title = "Dances with Luopans",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11852,7 +11852,7 @@ return {
     native_id = 122,
     progress_id = 122,
     title = "Do Not Go Into the Light",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11865,7 +11865,7 @@ return {
     native_id = 123,
     progress_id = 123,
     title = "Velkkovert Operations",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11878,7 +11878,7 @@ return {
     native_id = 124,
     progress_id = 124,
     title = "Hypocritical Oath",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11891,7 +11891,7 @@ return {
     native_id = 125,
     progress_id = 125,
     title = "The Good, the Bad, the Clement",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11917,7 +11917,7 @@ return {
     native_id = 127,
     progress_id = 127,
     title = "The Secret to Success",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11930,7 +11930,7 @@ return {
     native_id = 128,
     progress_id = 128,
     title = "No Mercy for the Wicked",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11969,7 +11969,7 @@ return {
     native_id = 132,
     progress_id = 132,
     title = "Quiescence",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11982,7 +11982,7 @@ return {
     native_id = 133,
     progress_id = 133,
     title = "Sick and Tired",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -11995,7 +11995,7 @@ return {
     native_id = 134,
     progress_id = 134,
     title = "Geomancerrific",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12008,7 +12008,7 @@ return {
     native_id = 135,
     progress_id = 135,
     title = "Rune Fencing the Night Away",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12034,7 +12034,7 @@ return {
     native_id = 137,
     progress_id = 137,
     title = "Eye of the Beholder",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12047,7 +12047,7 @@ return {
     native_id = 138,
     progress_id = 138,
     title = "The Curious Case of Melvien",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12060,7 +12060,7 @@ return {
     native_id = 139,
     progress_id = 139,
     title = "Not-So-Clean Bill",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12086,7 +12086,7 @@ return {
     native_id = 141,
     progress_id = 141,
     title = "The Weatherspoon War",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12099,7 +12099,7 @@ return {
     native_id = 142,
     progress_id = 142,
     title = "Treasures of the Earth",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12112,7 +12112,7 @@ return {
     native_id = 143,
     progress_id = 143,
     title = "Epiphany",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12281,7 +12281,7 @@ return {
     native_id = 207,
     progress_id = 207,
     title = "Rowing Together",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12333,7 +12333,7 @@ return {
     native_id = 23,
     progress_id = 23,
     title = "Forging New Bonds",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12372,7 +12372,7 @@ return {
     native_id = 26,
     progress_id = 26,
     title = "Granddaddy Dearest",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12411,7 +12411,7 @@ return {
     native_id = 29,
     progress_id = 29,
     title = "F.A.I.L.ure Is Not an Option",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12437,7 +12437,7 @@ return {
     native_id = 31,
     progress_id = 31,
     title = "It Never Goes Out of Style",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12450,7 +12450,7 @@ return {
     native_id = 32,
     progress_id = 32,
     title = "Water, Water, Everywhere",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12476,7 +12476,7 @@ return {
     native_id = 34,
     progress_id = 34,
     title = "Flower Power",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12489,7 +12489,7 @@ return {
     native_id = 35,
     progress_id = 35,
     title = "Elementary, My Dear Sylvie",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12502,7 +12502,7 @@ return {
     native_id = 36,
     progress_id = 36,
     title = "For Whom the Bell Tolls",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12515,7 +12515,7 @@ return {
     native_id = 37,
     progress_id = 37,
     title = "The Bloodline of Zacariah",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12528,7 +12528,7 @@ return {
     native_id = 38,
     progress_id = 38,
     title = "The Communion",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12632,7 +12632,7 @@ return {
     native_id = 46,
     progress_id = 46,
     title = "Flavors of Our Lives",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12775,7 +12775,7 @@ return {
     native_id = 57,
     progress_id = 57,
     title = "Hide and Go Peak",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12788,7 +12788,7 @@ return {
     native_id = 58,
     progress_id = 58,
     title = "The Whole Place Is Abuzz",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12827,7 +12827,7 @@ return {
     native_id = 60,
     progress_id = 60,
     title = "Talk About Wrinkly Skin",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12853,7 +12853,7 @@ return {
     native_id = 62,
     progress_id = 62,
     title = "Did You Feel That?",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12944,7 +12944,7 @@ return {
     native_id = 76,
     progress_id = 76,
     title = "Hunger Strikes",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -12970,7 +12970,7 @@ return {
     native_id = 78,
     progress_id = 78,
     title = "A Certain Substitute Patrolman",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -13061,7 +13061,7 @@ return {
     native_id = 9,
     progress_id = 9,
     title = "Boiling Over",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -13074,7 +13074,7 @@ return {
     native_id = 91,
     progress_id = 91,
     title = "The Longest Way Round...",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_adoulin",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_adoulin",
@@ -13217,7 +13217,7 @@ return {
     native_id = 13,
     progress_id = 13,
     title = "Such Sweet Sorrow",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13412,7 +13412,7 @@ return {
     native_id = 27,
     progress_id = 27,
     title = "The Wayward Automaton",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13425,7 +13425,7 @@ return {
     native_id = 28,
     progress_id = 28,
     title = "Operation Teatime",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13438,7 +13438,7 @@ return {
     native_id = 29,
     progress_id = 29,
     title = "Puppetmaster Blues",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13542,7 +13542,7 @@ return {
     native_id = 43,
     progress_id = 43,
     title = "Saga of the Skyserpent",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13568,7 +13568,7 @@ return {
     native_id = 45,
     progress_id = 45,
     title = "When the Bow Breaks",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13581,7 +13581,7 @@ return {
     native_id = 46,
     progress_id = 46,
     title = "Fist of the People",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13594,7 +13594,7 @@ return {
     native_id = 47,
     progress_id = 47,
     title = "Soothing Waters",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13711,7 +13711,7 @@ return {
     native_id = 65,
     progress_id = 65,
     title = "Led Astray",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13724,7 +13724,7 @@ return {
     native_id = 66,
     progress_id = 66,
     title = "Rat Race",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13776,7 +13776,7 @@ return {
     native_id = 7,
     progress_id = 7,
     title = "No Strings Attached",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13802,7 +13802,7 @@ return {
     native_id = 71,
     progress_id = 71,
     title = "Duties, Tasks, and Deeds",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13841,7 +13841,7 @@ return {
     native_id = 74,
     progress_id = 74,
     title = "Waking the Colossus",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13880,7 +13880,7 @@ return {
     native_id = 77,
     progress_id = 77,
     title = "Unwavering Resolve",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -13958,7 +13958,7 @@ return {
     native_id = 92,
     progress_id = 92,
     title = "Promotion: Lance Corporal",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_aht_urhgan",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_aht_urhgan",
@@ -14062,7 +14062,7 @@ return {
     native_id = 0,
     progress_id = 0,
     title = "The Siren's Tear",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14075,7 +14075,7 @@ return {
     native_id = 1,
     progress_id = 1,
     title = "Beauty and the Galka",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14257,7 +14257,7 @@ return {
     native_id = 22,
     progress_id = 22,
     title = "The Signpost Marks the Spot",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14322,7 +14322,7 @@ return {
     native_id = 27,
     progress_id = 27,
     title = "The Usual",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14335,7 +14335,7 @@ return {
     native_id = 28,
     progress_id = 28,
     title = "Blade of Darkness",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14361,7 +14361,7 @@ return {
     native_id = 3,
     progress_id = 3,
     title = "Guest of Hauteur",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14569,7 +14569,7 @@ return {
     native_id = 44,
     progress_id = 44,
     title = "Brygid the Stylist",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14699,7 +14699,7 @@ return {
     native_id = 53,
     progress_id = 53,
     title = "True Strength",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14751,7 +14751,7 @@ return {
     native_id = 57,
     progress_id = 57,
     title = "Dark Legacy",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14803,7 +14803,7 @@ return {
     native_id = 60,
     progress_id = 60,
     title = "Ayame and Kaede",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14868,7 +14868,7 @@ return {
     native_id = 65,
     progress_id = 65,
     title = "Eco-Warrior",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14972,7 +14972,7 @@ return {
     native_id = 72,
     progress_id = 72,
     title = "Trial-Size Trial by Earth",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -14985,7 +14985,7 @@ return {
     native_id = 73,
     progress_id = 73,
     title = "Faded Promises",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15011,7 +15011,7 @@ return {
     native_id = 75,
     progress_id = 75,
     title = "Out of the Depths",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15037,7 +15037,7 @@ return {
     native_id = 77,
     progress_id = 77,
     title = "A Question of Faith",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15050,7 +15050,7 @@ return {
     native_id = 78,
     progress_id = 78,
     title = "Return to the Depths",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15167,7 +15167,7 @@ return {
     native_id = 86,
     progress_id = 86,
     title = "Too Many Chefs",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15180,7 +15180,7 @@ return {
     native_id = 87,
     progress_id = 87,
     title = "A Proper Burial",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -15258,7 +15258,7 @@ return {
     native_id = 92,
     progress_id = 92,
     title = "Trust: Bastok",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_bastok",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_bastok",
@@ -16487,7 +16487,7 @@ return {
     native_id = 13,
     progress_id = 13,
     title = "Fires of Discontent",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -16955,7 +16955,7 @@ return {
     native_id = 46,
     progress_id = 46,
     title = "The Long March North",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17007,7 +17007,7 @@ return {
     native_id = 5,
     progress_id = 5,
     title = "The Dawn of Delectability",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17111,7 +17111,7 @@ return {
     native_id = 57,
     progress_id = 57,
     title = "Son and Father",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17228,7 +17228,7 @@ return {
     native_id = 65,
     progress_id = 65,
     title = "Her Memories: Old Bean",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17241,7 +17241,7 @@ return {
     native_id = 66,
     progress_id = 66,
     title = "Her Memories: The Faux Pas",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17254,7 +17254,7 @@ return {
     native_id = 67,
     progress_id = 67,
     title = "Her Memories: Grave Resolve",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17332,7 +17332,7 @@ return {
     native_id = 72,
     progress_id = 72,
     title = "Her Memories: Of Malign Maladies",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_crystal_war",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_crystal_war",
@@ -17669,7 +17669,7 @@ return {
     native_id = 1,
     progress_id = 1,
     title = "Save My Sister",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -17682,7 +17682,7 @@ return {
     native_id = 10,
     progress_id = 10,
     title = "Collect Tarut Cards",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -17695,7 +17695,7 @@ return {
     native_id = 100,
     progress_id = 100,
     title = "The Miraculous Dale",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -17825,7 +17825,7 @@ return {
     native_id = 11,
     progress_id = 11,
     title = "The Old Monument",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18155,7 +18155,7 @@ return {
     native_id = 133,
     progress_id = 133,
     title = "New Worlds Await",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18168,7 +18168,7 @@ return {
     native_id = 134,
     progress_id = 134,
     title = "Expanding Horizons",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18181,7 +18181,7 @@ return {
     native_id = 135,
     progress_id = 135,
     title = "Beyond the Stars",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18194,7 +18194,7 @@ return {
     native_id = 136,
     progress_id = 136,
     title = "Dormant Powers Dislodged",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18402,7 +18402,7 @@ return {
     native_id = 171,
     progress_id = 171,
     title = "Researchers from the West",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18467,7 +18467,7 @@ return {
     native_id = 176,
     progress_id = 176,
     title = "Teleports by Twilight",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18480,7 +18480,7 @@ return {
     native_id = 177,
     progress_id = 177,
     title = "Shifty Shades of Prey",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18493,7 +18493,7 @@ return {
     native_id = 178,
     progress_id = 178,
     title = "To Kill Mocking Birds",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18519,7 +18519,7 @@ return {
     native_id = 18,
     progress_id = 18,
     title = "The Lost Cardian",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18545,7 +18545,7 @@ return {
     native_id = 19,
     progress_id = 19,
     title = "Path of the Beastmaster",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18571,7 +18571,7 @@ return {
     native_id = 20,
     progress_id = 20,
     title = "Path of the Bard",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18893,7 +18893,7 @@ return {
     native_id = 44,
     progress_id = 44,
     title = "Borghertz's Warring Hands",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -18971,7 +18971,7 @@ return {
     native_id = 5,
     progress_id = 5,
     title = "Save My Son",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19140,7 +19140,7 @@ return {
     native_id = 61,
     progress_id = 61,
     title = "Scattered Into Shadow",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19192,7 +19192,7 @@ return {
     native_id = 65,
     progress_id = 65,
     title = "The Circle of Time",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19205,7 +19205,7 @@ return {
     native_id = 66,
     progress_id = 66,
     title = "Searching for the Right Words",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19218,7 +19218,7 @@ return {
     native_id = 67,
     progress_id = 67,
     title = "Beat Around the Bushin",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19296,7 +19296,7 @@ return {
     native_id = 72,
     progress_id = 72,
     title = "A Chocobo's Tale",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19361,7 +19361,7 @@ return {
     native_id = 77,
     progress_id = 77,
     title = "Unlisted Qualities",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19387,7 +19387,7 @@ return {
     native_id = 79,
     progress_id = 79,
     title = "Mirror, Mirror",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19400,7 +19400,7 @@ return {
     native_id = 8,
     progress_id = 8,
     title = "The Kind Cardian",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19413,7 +19413,7 @@ return {
     native_id = 80,
     progress_id = 80,
     title = "Past Reflections",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19465,7 +19465,7 @@ return {
     native_id = 84,
     progress_id = 84,
     title = "Chameleon Capers",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19504,7 +19504,7 @@ return {
     native_id = 87,
     progress_id = 87,
     title = "Mixed Signals",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19582,7 +19582,7 @@ return {
     native_id = 92,
     progress_id = 92,
     title = "Chocobo on the Loose!",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19621,7 +19621,7 @@ return {
     native_id = 95,
     progress_id = 95,
     title = "Lakeside Minuet",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_jeuno",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_jeuno",
@@ -19777,7 +19777,7 @@ return {
     native_id = 104,
     progress_id = 104,
     title = "For the Birds",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -19803,7 +19803,7 @@ return {
     native_id = 106,
     progress_id = 106,
     title = "An Understanding Overlord?",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -19816,7 +19816,7 @@ return {
     native_id = 107,
     progress_id = 107,
     title = "An Affable Adamantking?",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -19829,7 +19829,7 @@ return {
     native_id = 108,
     progress_id = 108,
     title = "A Moral Manifest?",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -19932,7 +19932,7 @@ return {
     native_id = 19,
     progress_id = 19,
     title = "An Explorer's Footsteps",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20062,7 +20062,7 @@ return {
     native_id = 28,
     progress_id = 28,
     title = "Trial-Size Trial by Lightning",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20075,7 +20075,7 @@ return {
     native_id = 29,
     progress_id = 29,
     title = "It's Raining Mannequins",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20114,7 +20114,7 @@ return {
     native_id = 31,
     progress_id = 31,
     title = "Picture Perfect",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20153,7 +20153,7 @@ return {
     native_id = 34,
     progress_id = 34,
     title = "Monstrosity",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20374,7 +20374,7 @@ return {
     native_id = 6,
     progress_id = 6,
     title = "The Basics",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20387,7 +20387,7 @@ return {
     native_id = 64,
     progress_id = 64,
     title = "A Hard Day's Knight",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20478,7 +20478,7 @@ return {
     native_id = 70,
     progress_id = 70,
     title = "The Big One",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20517,7 +20517,7 @@ return {
     native_id = 73,
     progress_id = 73,
     title = "Secrets of Ovens Lost",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20543,7 +20543,7 @@ return {
     native_id = 75,
     progress_id = 75,
     title = "Elderly Pursuits",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20569,7 +20569,7 @@ return {
     native_id = 77,
     progress_id = 77,
     title = "Behind the Smile",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20582,7 +20582,7 @@ return {
     native_id = 78,
     progress_id = 78,
     title = "Knocking on Forbidden Doors",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20595,7 +20595,7 @@ return {
     native_id = 79,
     progress_id = 79,
     title = "Confessions of a Bellmaker",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_other_areas",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_other_areas",
@@ -20775,7 +20775,7 @@ return {
     native_id = 100,
     progress_id = 100,
     title = "Voidwatch Ops: Border Crossing",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20788,7 +20788,7 @@ return {
     native_id = 101,
     progress_id = 101,
     title = "VW Op. #054: Elshimo List",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20801,7 +20801,7 @@ return {
     native_id = 102,
     progress_id = 102,
     title = "VW Op. #101: Detour to Zepwell",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20827,7 +20827,7 @@ return {
     native_id = 104,
     progress_id = 104,
     title = "Skyward Ho, Voidwatcher!",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20866,7 +20866,7 @@ return {
     native_id = 128,
     progress_id = 128,
     title = "The Sahagin's Key",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20879,7 +20879,7 @@ return {
     native_id = 129,
     progress_id = 129,
     title = "Forge Your Destiny",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -20983,7 +20983,7 @@ return {
     native_id = 136,
     progress_id = 136,
     title = "The Sahagin's Stash",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21048,7 +21048,7 @@ return {
     native_id = 140,
     progress_id = 140,
     title = "The Sacred Katana",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21061,7 +21061,7 @@ return {
     native_id = 141,
     progress_id = 141,
     title = "Yomi Okuri",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21074,7 +21074,7 @@ return {
     native_id = 142,
     progress_id = 142,
     title = "A Thief in Norg!?",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21087,7 +21087,7 @@ return {
     native_id = 143,
     progress_id = 143,
     title = "20 in Pirate Years",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21100,7 +21100,7 @@ return {
     native_id = 144,
     progress_id = 144,
     title = "I'll Take the Big Box",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21152,7 +21152,7 @@ return {
     native_id = 148,
     progress_id = 148,
     title = "Trial-Size Trial by Water",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21178,7 +21178,7 @@ return {
     native_id = 15,
     progress_id = 15,
     title = "Trial-Size Trial by Fire",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21333,7 +21333,7 @@ return {
     native_id = 197,
     progress_id = 197,
     title = "Trial-Size Trial by Wind",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21346,7 +21346,7 @@ return {
     native_id = 199,
     progress_id = 199,
     title = "Chasing Dreams",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21372,7 +21372,7 @@ return {
     native_id = 200,
     progress_id = 200,
     title = "The Search for Goldmane",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21424,7 +21424,7 @@ return {
     native_id = 3,
     progress_id = 3,
     title = "A Question of Taste",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_outlands",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_outlands",
@@ -21617,7 +21617,7 @@ return {
     native_id = 105,
     progress_id = 105,
     title = "A Timely Visit",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -21643,7 +21643,7 @@ return {
     native_id = 107,
     progress_id = 107,
     title = "Trial-Size Trial by Ice",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -21708,7 +21708,7 @@ return {
     native_id = 112,
     progress_id = 112,
     title = "Over the Hills and Far Away",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -21734,7 +21734,7 @@ return {
     native_id = 114,
     progress_id = 114,
     title = "Atelloune's Lament",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -21773,7 +21773,7 @@ return {
     native_id = 119,
     progress_id = 119,
     title = "Trust: San d'Oria",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22137,7 +22137,7 @@ return {
     native_id = 68,
     progress_id = 68,
     title = "Trouble at the Sluice",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22345,7 +22345,7 @@ return {
     native_id = 83,
     progress_id = 83,
     title = "Sorcery of the North",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22384,7 +22384,7 @@ return {
     native_id = 86,
     progress_id = 86,
     title = "Peace for the Spirit",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22397,7 +22397,7 @@ return {
     native_id = 87,
     progress_id = 87,
     title = "Messenger from Beyond",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22449,7 +22449,7 @@ return {
     native_id = 90,
     progress_id = 90,
     title = "Sharpening the Sword",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22462,7 +22462,7 @@ return {
     native_id = 91,
     progress_id = 91,
     title = "A Boy's Dream",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22475,7 +22475,7 @@ return {
     native_id = 92,
     progress_id = 92,
     title = "Under Oath",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22488,7 +22488,7 @@ return {
     native_id = 93,
     progress_id = 93,
     title = "The Holy Crest",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22514,7 +22514,7 @@ return {
     native_id = 95,
     progress_id = 95,
     title = "Chasing Quotas",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22527,7 +22527,7 @@ return {
     native_id = 96,
     progress_id = 96,
     title = "Knight Stalker",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_sandoria",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_sandoria",
@@ -22631,7 +22631,7 @@ return {
     native_id = 12,
     progress_id = 12,
     title = "A Smudge on One's Record",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -22644,7 +22644,7 @@ return {
     native_id = 13,
     progress_id = 13,
     title = "Chasing Tales",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -22813,7 +22813,7 @@ return {
     native_id = 26,
     progress_id = 26,
     title = "Rock Racketeer",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23008,7 +23008,7 @@ return {
     native_id = 4,
     progress_id = 4,
     title = "Making the Grade",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23060,7 +23060,7 @@ return {
     native_id = 43,
     progress_id = 43,
     title = "A Greeting Cardian",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23086,7 +23086,7 @@ return {
     native_id = 45,
     progress_id = 45,
     title = "In a Stew",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23099,7 +23099,7 @@ return {
     native_id = 46,
     progress_id = 46,
     title = "Let Sleeping Dogs Lie",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23203,7 +23203,7 @@ return {
     native_id = 53,
     progress_id = 53,
     title = "To Catch a Falling Star",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23346,7 +23346,7 @@ return {
     native_id = 69,
     progress_id = 69,
     title = "The Tenshodo Showdown",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23372,7 +23372,7 @@ return {
     native_id = 70,
     progress_id = 70,
     title = "As Thick as Thieves",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23385,7 +23385,7 @@ return {
     native_id = 71,
     progress_id = 71,
     title = "Hitting the Marquisate",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23398,7 +23398,7 @@ return {
     native_id = 72,
     progress_id = 72,
     title = "Sin Hunting",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23411,7 +23411,7 @@ return {
     native_id = 73,
     progress_id = 73,
     title = "Fire and Brimstone",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23424,7 +23424,7 @@ return {
     native_id = 74,
     progress_id = 74,
     title = "Unbridled Passion",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23489,7 +23489,7 @@ return {
     native_id = 79,
     progress_id = 79,
     title = "Nothing Matters",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23528,7 +23528,7 @@ return {
     native_id = 81,
     progress_id = 81,
     title = "The Puppet Master",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23541,7 +23541,7 @@ return {
     native_id = 82,
     progress_id = 82,
     title = "Class Reunion",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23554,7 +23554,7 @@ return {
     native_id = 83,
     progress_id = 83,
     title = "Carbuncle Debacle",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23671,7 +23671,7 @@ return {
     native_id = 91,
     progress_id = 91,
     title = "Tuning Out",
-    status = "source-conflict",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23697,7 +23697,7 @@ return {
     native_id = 93,
     progress_id = 93,
     title = "Waking Dreams",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",
@@ -23736,7 +23736,7 @@ return {
     native_id = 96,
     progress_id = 96,
     title = "Trust: Windurst",
-    status = "guide",
+    status = "verified-navigation",
     source_modules = {
       ["bg"] = "mission_quest_bg_quest_windurst",
       ["ffxiclopedia"] = "mission_quest_ffxiclopedia_quest_windurst",

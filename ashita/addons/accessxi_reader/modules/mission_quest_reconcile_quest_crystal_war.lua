@@ -941,7 +941,17 @@ return {
         entities = { "Bastok Metalworks", "Iron Eater", "Metalworks" },
         zones = {  },
         grid_coordinates = { "J-8" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Iron Eater",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Iron Eater.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:13:step-006",
@@ -10349,7 +10359,17 @@ return {
         entities = { "Metalworks", "Striking Snake" },
         zones = {  },
         grid_coordinates = { "H-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 237,
+            zone_name = "Metalworks",
+            name = "Striking Snake",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Striking Snake.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:46:step-015",
@@ -11715,7 +11735,17 @@ return {
         entities = { "Windurst Waters", "Ranpi-Monpi", "Culinarian's Guild" },
         zones = {  },
         grid_coordinates = { "E-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 238,
+            zone_name = "Windurst Waters",
+            name = "Ranpi-Monpi",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Ranpi-Monpi.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:5:step-004",
@@ -14941,7 +14971,17 @@ return {
         entities = { "Exoroche", "Southern San d'Oria" },
         zones = {  },
         grid_coordinates = { "K-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Exoroche",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Exoroche.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:57:step-004",
@@ -17644,7 +17684,17 @@ return {
         entities = { "Thierride", "Port San d'Oria", "Thierride's bean creation" },
         zones = { "Port San d'Oria" },
         grid_coordinates = { "G-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 232,
+            zone_name = "Port San d'Oria",
+            name = "Thierride",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Thierride.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:65:step-002",
@@ -17683,7 +17733,17 @@ return {
         entities = { "Amaura", "Southern San d'Oria" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Amaura",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Amaura.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:65:step-005",
@@ -17758,7 +17818,17 @@ return {
         entities = { "Abioleget", "Northern San d'Oria" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "M-7" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Abioleget",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Abioleget.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:66:step-002",
@@ -17784,7 +17854,17 @@ return {
         entities = { "Bertenont", "Northern San d'Oria", "Tiny memory fragment" },
         zones = { "Northern San d'Oria" },
         grid_coordinates = { "E-4" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 231,
+            zone_name = "Northern San d'Oria",
+            name = "Bertenont",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Bertenont.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:66:step-004",
@@ -17846,7 +17926,17 @@ return {
         entities = { "Halver", "Chateau d'Oraguille", "Northern San d'Oria" },
         zones = { "Chateau d'Oraguille" },
         grid_coordinates = { "I-9" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 233,
+            zone_name = "Chateau d'Oraguille",
+            name = "Halver",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Halver.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:67:step-002",
@@ -18634,7 +18724,17 @@ return {
         entities = { "Amaura", "Southern San d'Oria" },
         zones = { "Southern San d'Oria" },
         grid_coordinates = { "G-6" },
-        route_ready = false,
+        route_ready = true,
+        navigation_target = {
+          type = "static-reference",
+          reference = {
+            zone = 230,
+            zone_name = "Southern San d'Oria",
+            name = "Amaura",
+            kind = "npc",
+          },
+          arrival_instruction = "Talk to Amaura.",
+        },
       },
       {
         stable_step_id = "quest:crystal_war:72:step-003",

@@ -476,6 +476,84 @@
       }
     }
   },
+  "mission_destination_overrides": {
+    "mission:Bastok:3": [
+      {
+        "id": "palborough-lower-amber",
+        "source_revisions": {
+          "bg": 754820,
+          "ffxiclopedia": 1748519
+        },
+        "source_step_ids": [
+          "mission:Bastok:3:step-003",
+          "mission:Bastok:3:step-006"
+        ],
+        "action": "farm",
+        "items": [
+          "Fetich Head",
+          "Fetich Torso",
+          "Fetich Arms",
+          "Fetich Legs"
+        ],
+        "enemies": [
+          "Amber Quadav"
+        ],
+        "zone": 143,
+        "zone_name": "Palborough Mines",
+        "camp_label": "lower camp",
+        "reference": {
+          "name": "Amber Quadav",
+          "kind": "enemy"
+        },
+        "canonical_ingress": {
+          "edge_id": 947466874,
+          "from_zone": 106
+        },
+        "transport_id": "",
+        "route_evidence": "navprobe:Palborough_Mines.nav:north-gustaberg-entry-to-lower-amber:2026-08-08",
+        "arrival_instruction": "Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Amber Quadav.",
+        "review_basis": "dual-guide farming objective, exact current Palborough enemy camp, and verified navmesh probe from the North Gustaberg entrance"
+      },
+      {
+        "id": "palborough-upper-quadav",
+        "source_revisions": {
+          "bg": 754820,
+          "ffxiclopedia": 1748519
+        },
+        "source_step_ids": [
+          "mission:Bastok:3:step-003",
+          "mission:Bastok:3:step-006"
+        ],
+        "action": "farm",
+        "items": [
+          "Fetich Head",
+          "Fetich Torso",
+          "Fetich Arms",
+          "Fetich Legs"
+        ],
+        "enemies": [
+          "Greater Quadav",
+          "Onyx Quadav",
+          "Veteran Quadav"
+        ],
+        "zone": 143,
+        "zone_name": "Palborough Mines",
+        "camp_label": "upper camp by elevator",
+        "reference": {
+          "name": "Onyx Quadav",
+          "kind": "enemy"
+        },
+        "canonical_ingress": {
+          "edge_id": 947466874,
+          "from_zone": 106
+        },
+        "transport_id": "palborough-mines-lift",
+        "route_evidence": "navprobe:Palborough_Mines.nav:north-gustaberg-entry-to-upper-quadav:2026-08-08",
+        "arrival_instruction": "Farm Fetich Head, Fetich Torso, Fetich Arms, and Fetich Legs from Greater Quadav, Onyx Quadav, and Veteran Quadav.",
+        "review_basis": "dual-guide farming objective, exact co-located upper Palborough camps, reviewed lift requirement, and verified navmesh probe from the North Gustaberg entrance"
+      }
+    ]
+  },
   "target_overrides": {
     "mission:A Shantotto Ascension:5:step-002": {
       "source_revisions": {

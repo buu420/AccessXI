@@ -1532,6 +1532,36 @@ class GeneratedArtifactTests(unittest.TestCase):
                 navigation_zone_names={143: "Palborough Mines"},
             )
 
+    def test_repository_reviews_both_fetichism_farming_camps(self) -> None:
+        overrides = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "data"
+                / "mission-quest-guides"
+                / "reviewed-overrides.json"
+            ).read_text(encoding="utf-8")
+        )
+        rows = overrides.get("mission_destination_overrides", {}).get("mission:Bastok:3", [])
+
+        self.assertEqual(
+            [row["id"] for row in rows],
+            ["palborough-lower-amber", "palborough-upper-quadav"],
+        )
+        expected_items = ["Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs"]
+        self.assertEqual(rows[0]["items"], expected_items)
+        self.assertEqual(rows[1]["items"], expected_items)
+        self.assertEqual(rows[0]["enemies"], ["Amber Quadav"])
+        self.assertEqual(
+            rows[1]["enemies"],
+            ["Greater Quadav", "Onyx Quadav", "Veteran Quadav"],
+        )
+        self.assertEqual(rows[0]["canonical_ingress"], {"edge_id": 947466874, "from_zone": 106})
+        self.assertEqual(rows[1]["canonical_ingress"], {"edge_id": 947466874, "from_zone": 106})
+        self.assertEqual(rows[0].get("transport_id", ""), "")
+        self.assertEqual(rows[1]["transport_id"], "palborough-mines-lift")
+        self.assertTrue(rows[0]["route_evidence"].startswith("navprobe:Palborough_Mines.nav:"))
+        self.assertTrue(rows[1]["route_evidence"].startswith("navprobe:Palborough_Mines.nav:"))
+
     def test_reviewed_named_npc_target_is_emitted_after_exact_nav_validation(self) -> None:
         natives, pages = self._named_npc_target_fixture()
         with tempfile.TemporaryDirectory() as temporary:

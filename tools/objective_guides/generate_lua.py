@@ -231,10 +231,13 @@ def _reconcile_module_text(
         )
         for stage_key, step_id in sorted(automatic_stages.items()):
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
-        lines.extend(["    },", "    mission_destinations = {"])
-        for destination in objective.mission_destinations:
-            lines.extend(_mission_destination_lua(destination))
-        lines.extend(["    },", "    steps = {"])
+        lines.append("    },")
+        if objective.mission_destinations:
+            lines.append("    mission_destinations = {")
+            for destination in objective.mission_destinations:
+                lines.extend(_mission_destination_lua(destination))
+            lines.append("    },")
+        lines.append("    steps = {")
         for step in objective.steps:
             step_lines = [
                     "      {",
@@ -246,7 +249,6 @@ def _reconcile_module_text(
                     f"        conflicting_fields = {_lua_array(step.conflicting_fields)},",
                     f"        action = {lua_quote(step.action)},",
                     f"        entities = {_lua_array(step.entities)},",
-                    f"        items = {_lua_array(step.items)},",
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
                     f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",

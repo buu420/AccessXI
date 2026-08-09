@@ -5,14 +5,14 @@
       "ambiguous-match": 0,
       "automatic-stage": 1,
       "guide": 918,
-      "source-conflict": 576,
+      "source-conflict": 575,
       "source-missing": 38,
-      "verified-navigation": 311
+      "verified-navigation": 312
     },
     "dual_source": 1652,
     "guide_only": 918,
     "valid_native": 1844,
-    "verified_navigation": 312
+    "verified_navigation": 313
   },
   "matching": {
     "bg": {
@@ -3637,7 +3637,7 @@
       "has_source_conflict": true,
       "kind": "mission",
       "reconcile_module": "mission_quest_reconcile_mission_bastok",
-      "route_ready": false,
+      "route_ready": true,
       "runtime_objective_key": "",
       "source_modules": {
         "bg": "mission_quest_bg_mission_bastok",
@@ -3657,7 +3657,7 @@
           "title": "Fetichism"
         }
       },
-      "status": "source-conflict",
+      "status": "verified-navigation",
       "title": "Fetichism"
     },
     "mission:Bastok:4": {

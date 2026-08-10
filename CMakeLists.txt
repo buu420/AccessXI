@@ -288,6 +288,7 @@ set(USE_MSVC_FAST_FLOATINGPOINT OFF CACHE BOOL "Keep deterministic collision mat
 add_subdirectory("${ACCESSXI_BULLET_ROOT}" "${CMAKE_BINARY_DIR}/bullet" EXCLUDE_FROM_ALL)
 
 add_library(accessxi_collision_core STATIC
+    src/collision_native/collision_world.cpp
     src/collision_native/file_snapshot.cpp
     src/collision_native/mzb_parser.cpp
     src/collision_native/rom_resolver.cpp
@@ -299,6 +300,9 @@ target_compile_definitions(accessxi_collision_core PRIVATE
 )
 target_include_directories(accessxi_collision_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_include_directories(accessxi_collision_core PRIVATE
+    "${ACCESSXI_BULLET_ROOT}/src"
 )
 target_link_libraries(accessxi_collision_core PUBLIC
     RecastNavigation::Recast
@@ -379,6 +383,24 @@ set_target_properties(collision_mzb_parser_tests PROPERTIES
 add_test(
     NAME collision_mzb_parser_tests
     COMMAND collision_mzb_parser_tests
+        "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
+)
+
+add_executable(collision_world_tests
+    tests/collision_world_tests.cpp
+)
+target_compile_features(collision_world_tests PRIVATE cxx_std_20)
+target_include_directories(collision_world_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(collision_world_tests PRIVATE accessxi_collision_core)
+set_target_properties(collision_world_tests PROPERTIES
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(
+    NAME collision_world_tests
+    COMMAND collision_world_tests
         "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
 )
 

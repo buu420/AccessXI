@@ -287,6 +287,26 @@ set(USE_DOUBLE_PRECISION OFF CACHE BOOL "Use 32-bit Bullet coordinates" FORCE)
 set(USE_MSVC_FAST_FLOATINGPOINT OFF CACHE BOOL "Keep deterministic collision math" FORCE)
 add_subdirectory("${ACCESSXI_BULLET_ROOT}" "${CMAKE_BINARY_DIR}/bullet" EXCLUDE_FROM_ALL)
 
+add_library(accessxi_collision_core STATIC
+    src/collision_native/file_snapshot.cpp
+    src/collision_native/rom_resolver.cpp
+)
+target_compile_features(accessxi_collision_core PUBLIC cxx_std_20)
+target_compile_definitions(accessxi_collision_core PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+target_include_directories(accessxi_collision_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(accessxi_collision_core PUBLIC
+    RecastNavigation::Recast
+    RecastNavigation::Detour
+    BulletCollision
+    LinearMath
+    bcrypt
+)
+
 add_library(accessxi_collision_native SHARED
     src/collision_native/collision_exports.cpp
     src/collision_native/accessxi_collision_native.def
@@ -301,10 +321,7 @@ target_include_directories(accessxi_collision_native PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(accessxi_collision_native PRIVATE
-    RecastNavigation::Recast
-    RecastNavigation::Detour
-    BulletCollision
-    LinearMath
+    accessxi_collision_core
 )
 set_target_properties(accessxi_collision_native PROPERTIES
     PREFIX ""
@@ -327,4 +344,22 @@ set_target_properties(collision_context_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 add_test(NAME collision_context_tests COMMAND collision_context_tests)
+
+add_executable(collision_rom_resolver_tests
+    tests/collision_rom_resolver_tests.cpp
+)
+target_compile_features(collision_rom_resolver_tests PRIVATE cxx_std_20)
+target_include_directories(collision_rom_resolver_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(collision_rom_resolver_tests PRIVATE accessxi_collision_core)
+set_target_properties(collision_rom_resolver_tests PROPERTIES
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(
+    NAME collision_rom_resolver_tests
+    COMMAND collision_rom_resolver_tests
+        "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
+)
 

@@ -4,6 +4,8 @@ project(AccessXI_PolPlugin LANGUAGES CXX)
 
 enable_testing()
 
+option(ACCESSXI_COLLISION_ONLY "Configure the collision-navigation targets without requiring the Ashita SDK" OFF)
+
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "AccessXI PlayOnline in-process targets must be configured as 32-bit Win32.")
 endif()
@@ -24,7 +26,7 @@ target_compile_definitions(accessxi_pol_hook PRIVATE
     NOMINMAX
 )
 
-if(NOT DEFINED ENV{ASHITA4_SDK_PATH})
+if(NOT ACCESSXI_COLLISION_ONLY AND NOT DEFINED ENV{ASHITA4_SDK_PATH})
     message(FATAL_ERROR "ASHITA4_SDK_PATH must point to Ashita v4 plugins/sdk, for example C:/Users/buu42/Ashita/plugins/sdk")
 endif()
 
@@ -254,4 +256,75 @@ add_test(
         "$<TARGET_FILE:fake_pol_hook_no_init>"
         "C:/Program Files (x86)/PlayOnline/SquareEnix/PlayOnlineViewer/viewer/com/app.dll"
 )
+
+set(ACCESSXI_RECAST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/external/recastnavigation" CACHE PATH
+    "Pinned Recast Navigation checkout")
+set(ACCESSXI_BULLET_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/external/bullet3" CACHE PATH
+    "Pinned Bullet checkout")
+
+if(NOT EXISTS "${ACCESSXI_RECAST_ROOT}/Recast/Include/Recast.h")
+    message(FATAL_ERROR "Pinned Recast checkout is missing. Run tools/fetch_collision_dependencies.ps1.")
+endif()
+if(NOT EXISTS "${ACCESSXI_BULLET_ROOT}/src/btBulletCollisionCommon.h")
+    message(FATAL_ERROR "Pinned Bullet checkout is missing. Run tools/fetch_collision_dependencies.ps1.")
+endif()
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build collision dependencies statically" FORCE)
+set(RECASTNAVIGATION_DEMO OFF CACHE BOOL "Do not build Recast demo" FORCE)
+set(RECASTNAVIGATION_TESTS OFF CACHE BOOL "Do not build upstream Recast tests" FORCE)
+set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "Do not build Recast examples" FORCE)
+set(RECASTNAVIGATION_ENABLE_FAST_MATH OFF CACHE BOOL "Keep deterministic collision math" FORCE)
+add_subdirectory("${ACCESSXI_RECAST_ROOT}" "${CMAKE_BINARY_DIR}/recast" EXCLUDE_FROM_ALL)
+
+set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "Do not build Bullet demos" FORCE)
+set(BUILD_BULLET3 OFF CACHE BOOL "Do not build Bullet 3 experiments" FORCE)
+set(BUILD_CPU_DEMOS OFF CACHE BOOL "Do not build Bullet CPU demos" FORCE)
+set(BUILD_EXTRAS OFF CACHE BOOL "Do not build Bullet extras" FORCE)
+set(BUILD_OPENGL3_DEMOS OFF CACHE BOOL "Do not build Bullet OpenGL demos" FORCE)
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Do not build upstream Bullet tests" FORCE)
+set(BUILD_PYBULLET OFF CACHE BOOL "Do not build PyBullet" FORCE)
+set(USE_DOUBLE_PRECISION OFF CACHE BOOL "Use 32-bit Bullet coordinates" FORCE)
+set(USE_MSVC_FAST_FLOATINGPOINT OFF CACHE BOOL "Keep deterministic collision math" FORCE)
+add_subdirectory("${ACCESSXI_BULLET_ROOT}" "${CMAKE_BINARY_DIR}/bullet" EXCLUDE_FROM_ALL)
+
+add_library(accessxi_collision_native SHARED
+    src/collision_native/collision_exports.cpp
+    src/collision_native/accessxi_collision_native.def
+)
+target_compile_features(accessxi_collision_native PRIVATE cxx_std_20)
+target_compile_definitions(accessxi_collision_native PRIVATE
+    ACCESSXI_COLLISION_NATIVE_EXPORTS
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+target_include_directories(accessxi_collision_native PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(accessxi_collision_native PRIVATE
+    RecastNavigation::Recast
+    RecastNavigation::Detour
+    BulletCollision
+    LinearMath
+)
+set_target_properties(accessxi_collision_native PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "accessxi_collision_native"
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+add_executable(collision_context_tests
+    tests/collision_context_tests.cpp
+)
+target_compile_features(collision_context_tests PRIVATE cxx_std_20)
+target_include_directories(collision_context_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(collision_context_tests PRIVATE accessxi_collision_native)
+set_target_properties(collision_context_tests PROPERTIES
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(NAME collision_context_tests COMMAND collision_context_tests)
 

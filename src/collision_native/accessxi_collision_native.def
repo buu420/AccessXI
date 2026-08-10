@@ -1,0 +1,5 @@
+LIBRARY "accessxi_collision_native"
+EXPORTS
+    AXI_GetAbiVersion
+    AXI_CreateContext
+    AXI_DestroyContext

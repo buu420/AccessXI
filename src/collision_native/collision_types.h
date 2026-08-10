@@ -32,4 +32,36 @@ struct FileSnapshot final
     std::string sha256_hex;
 };
 
+struct Vec3 final
+{
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+};
+
+struct Triangle final
+{
+    std::uint32_t a = 0;
+    std::uint32_t b = 0;
+    std::uint32_t c = 0;
+};
+
+struct Bounds final
+{
+    Vec3 minimum;
+    Vec3 maximum;
+};
+
+struct ParsedZoneMesh final
+{
+    std::uint32_t zone_id = 0;
+    std::filesystem::path source_path;
+    FileIdentity source_identity;
+    std::string source_sha256;
+    std::vector<Vec3> vertices;
+    std::vector<Triangle> triangles;
+    Bounds bounds;
+    std::size_t geometry_instances = 0;
+};
+
 } // namespace accessxi::collision

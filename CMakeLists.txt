@@ -291,7 +291,9 @@ add_library(accessxi_collision_core STATIC
     src/collision_native/collision_world.cpp
     src/collision_native/file_snapshot.cpp
     src/collision_native/mzb_parser.cpp
+    src/collision_native/recast_zone.cpp
     src/collision_native/rom_resolver.cpp
+    "${ACCESSXI_RECAST_ROOT}/RecastDemo/Source/PartitionedMesh.cpp"
 )
 target_compile_features(accessxi_collision_core PUBLIC cxx_std_20)
 target_compile_definitions(accessxi_collision_core PRIVATE
@@ -303,6 +305,7 @@ target_include_directories(accessxi_collision_core PUBLIC
 )
 target_include_directories(accessxi_collision_core PRIVATE
     "${ACCESSXI_BULLET_ROOT}/src"
+    "${ACCESSXI_RECAST_ROOT}/RecastDemo/Include"
 )
 target_link_libraries(accessxi_collision_core PUBLIC
     RecastNavigation::Recast
@@ -401,6 +404,24 @@ set_target_properties(collision_world_tests PROPERTIES
 add_test(
     NAME collision_world_tests
     COMMAND collision_world_tests
+        "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
+)
+
+add_executable(collision_recast_tests
+    tests/collision_recast_tests.cpp
+)
+target_compile_features(collision_recast_tests PRIVATE cxx_std_20)
+target_include_directories(collision_recast_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(collision_recast_tests PRIVATE accessxi_collision_core)
+set_target_properties(collision_recast_tests PROPERTIES
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(
+    NAME collision_recast_tests
+    COMMAND collision_recast_tests
         "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
 )
 

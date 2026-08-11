@@ -225,7 +225,10 @@ void append_geometry(
         {
             throw CollisionError("MZB triangle references an invalid vertex.");
         }
-        if (determinant > 0.0f)
+        // The coordinate conversion negates the source Y axis and therefore
+        // reflects handedness. Flip the opposite source winding so walkable
+        // DAT floors retain upward normals in the native Y-up space.
+        if (determinant < 0.0f)
         {
             std::swap(local[0], local[2]);
         }

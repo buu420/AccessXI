@@ -316,6 +316,7 @@ target_link_libraries(accessxi_collision_core PUBLIC
 )
 
 add_library(accessxi_collision_native SHARED
+    src/collision_native/collision_context.cpp
     src/collision_native/collision_exports.cpp
     src/collision_native/accessxi_collision_native.def
 )
@@ -351,7 +352,11 @@ set_target_properties(collision_context_tests PROPERTIES
     DEBUG_POSTFIX ""
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-add_test(NAME collision_context_tests COMMAND collision_context_tests)
+add_test(
+    NAME collision_context_tests
+    COMMAND collision_context_tests
+        "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
+)
 
 add_executable(collision_rom_resolver_tests
     tests/collision_rom_resolver_tests.cpp

@@ -1,41 +1,114 @@
 #include "collision_native/collision_api.h"
 
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <vector>
+
+namespace fs = std::filesystem;
 
 namespace {
 
-int failures = 0;
-
 void check(const bool condition, const char* expression, const int line)
 {
-    if (condition)
+    if (!condition)
     {
-        return;
+        throw std::runtime_error(
+            std::string("CHECK failed at line ") + std::to_string(line) + ": " + expression);
     }
+}
 
-    std::cerr << "FAIL line " << line << ": " << expression << '\n';
-    ++failures;
+#define CHECK(expression) check(static_cast<bool>(expression), #expression, __LINE__)
+
+void wait_for_ready(void* context, const std::uint64_t generation)
+{
+    for (int attempt = 0; attempt < 2400; ++attempt)
+    {
+        AXILoadStatus status{};
+        status.struct_size = sizeof(status);
+        CHECK(AXI_PollLoadZone(context, generation, &status) == AXI_RESULT_OK);
+        CHECK(status.generation == generation);
+        if (status.state == AXI_LOAD_READY)
+        {
+            CHECK(status.zone_id == 190u);
+            CHECK(status.progress_percent == 100u);
+            CHECK(status.dat_sha256[0] != '\0');
+            CHECK(status.settings_sha256[0] != '\0');
+            return;
+        }
+        if (status.state == AXI_LOAD_FAILED)
+        {
+            throw std::runtime_error(std::string("Collision worker failed: ") + status.message);
+        }
+        CHECK(status.state == AXI_LOAD_PENDING);
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    throw std::runtime_error("Collision worker did not become ready within 60 seconds.");
 }
 
 } // namespace
 
-#define CHECK(expression) check(static_cast<bool>(expression), #expression, __LINE__)
-
-int main()
+int wmain(const int argc, wchar_t** argv)
 {
-    CHECK(AXI_GetAbiVersion() == std::uint32_t{ 1 });
-
-    void* context = AXI_CreateContext();
-    CHECK(context != nullptr);
-    AXI_DestroyContext(context);
-
-    if (failures != 0)
+    try
     {
-        std::cerr << failures << " collision context assertion(s) failed.\n";
+        CHECK(argc == 2);
+        CHECK(AXI_GetAbiVersion() == 2u);
+
+        void* context = AXI_CreateContext();
+        CHECK(context != nullptr);
+
+        std::uint64_t generation = 0u;
+        const fs::path cache_root = fs::temp_directory_path() / L"accessxi-collision-context-test";
+        CHECK(AXI_BeginLoadZone(
+            context,
+            190u,
+            argv[1],
+            cache_root.c_str(),
+            &generation) == AXI_RESULT_OK);
+        CHECK(generation != 0u);
+        wait_for_ready(context, generation);
+
+        AXISweepResult sweep{};
+        sweep.struct_size = sizeof(sweep);
+        CHECK(AXI_SweepCapsule(
+            context,
+            generation,
+            AXIVec3{-136.382f, -1.129f, 202.791f},
+            AXIVec3{-143.982f, 6.071f, 151.191f},
+            0.40f,
+            1.80f,
+            &sweep) == AXI_RESULT_OK);
+        CHECK(sweep.clear == 0);
+
+        std::vector<AXIVec3> points(512u);
+        AXIPathResult path{};
+        path.struct_size = sizeof(path);
+        CHECK(AXI_FindPath(
+            context,
+            generation,
+            AXIVec3{-115.008f, -0.051f, 218.328f},
+            AXIVec3{1.000f, -1.419f, -103.608f},
+            8.0f,
+            points.data(),
+            static_cast<std::uint32_t>(points.size()),
+            &path) == AXI_RESULT_OK);
+        CHECK(path.status == AXI_PATH_READY);
+        CHECK(path.point_count > 2u);
+        CHECK(path.point_count <= points.size());
+        CHECK(path.total_length > 0.0f);
+
+        AXI_DestroyContext(context);
+        std::cout << "collision context tests passed\n";
+        return 0;
+    }
+    catch (const std::exception& error)
+    {
+        std::cerr << error.what() << '\n';
         return 1;
     }
-
-    std::cout << "collision context ABI tests passed\n";
-    return 0;
 }

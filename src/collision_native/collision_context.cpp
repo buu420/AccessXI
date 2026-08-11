@@ -15,6 +15,14 @@
 #include <system_error>
 #include <utility>
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
 namespace accessxi::collision {
 namespace {
 
@@ -161,6 +169,10 @@ void CollisionContext::run_worker(
 {
     try
     {
+        // Terrain extraction is deliberately background work. Keep it below
+        // the game/render threads so the first map of a zone does not make
+        // movement or speech feel sluggish.
+        (void)SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
         if (!cache_root.empty())
         {
             std::error_code error;

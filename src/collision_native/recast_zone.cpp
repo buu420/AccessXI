@@ -433,7 +433,10 @@ TileBuildResult build_tile(
 
 struct RecastZone::Impl final
 {
-    Impl(const ParsedZoneMesh& mesh, const CollisionWorld& collision)
+    Impl(
+        const ParsedZoneMesh& mesh,
+        const CollisionWorld& collision,
+        const std::stop_token stop_token)
         : collision_world(&collision)
     {
         if (mesh.vertices.empty() || mesh.triangles.empty())
@@ -457,8 +460,13 @@ struct RecastZone::Impl final
             -std::numeric_limits<float>::infinity(),
             -std::numeric_limits<float>::infinity(),
         };
+        std::size_t vertex_index = 0u;
         for (const Vec3& vertex : mesh.vertices)
         {
+            if ((vertex_index++ % 4096u) == 0u && stop_token.stop_requested())
+            {
+                throw CollisionError("Terrain mapping was canceled.");
+            }
             if (!finite_vec3(vertex))
             {
                 throw CollisionError("Recast input contains a nonfinite vertex.");
@@ -473,8 +481,13 @@ struct RecastZone::Impl final
         }
 
         triangles.reserve(mesh.triangles.size() * 3u);
+        std::size_t triangle_index = 0u;
         for (const Triangle& triangle : mesh.triangles)
         {
+            if ((triangle_index++ % 4096u) == 0u && stop_token.stop_requested())
+            {
+                throw CollisionError("Terrain mapping was canceled.");
+            }
             if (triangle.a >= mesh.vertices.size()
                 || triangle.b >= mesh.vertices.size()
                 || triangle.c >= mesh.vertices.size())
@@ -496,6 +509,10 @@ struct RecastZone::Impl final
         if (partitioned.tris.empty())
         {
             throw CollisionError("Recast spatial mesh partition failed.");
+        }
+        if (stop_token.stop_requested())
+        {
+            throw CollisionError("Terrain mapping was canceled.");
         }
 
         int grid_width = 0;
@@ -535,6 +552,10 @@ struct RecastZone::Impl final
         {
             for (int x = 0; x < tile_width; ++x)
             {
+                if (stop_token.stop_requested())
+                {
+                    throw CollisionError("Terrain mapping was canceled.");
+                }
                 float tile_minimum[3]{
                     minimum[0] + static_cast<float>(x * tile_size) * cell_size,
                     minimum[1],
@@ -553,6 +574,14 @@ struct RecastZone::Impl final
                     y,
                     tile_minimum,
                     tile_maximum);
+                if (stop_token.stop_requested())
+                {
+                    if (tile.data != nullptr)
+                    {
+                        dtFree(tile.data);
+                    }
+                    throw CollisionError("Terrain mapping was canceled.");
+                }
                 if (tile.data == nullptr)
                 {
                     continue;
@@ -595,8 +624,11 @@ struct RecastZone::Impl final
     mutable std::mutex query_mutex;
 };
 
-RecastZone::RecastZone(const ParsedZoneMesh& mesh, const CollisionWorld& collision_world)
-    : impl_(std::make_unique<Impl>(mesh, collision_world))
+RecastZone::RecastZone(
+    const ParsedZoneMesh& mesh,
+    const CollisionWorld& collision_world,
+    const std::stop_token stop_token)
+    : impl_(std::make_unique<Impl>(mesh, collision_world, stop_token))
 {
 }
 

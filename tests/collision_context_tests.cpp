@@ -59,6 +59,28 @@ int wmain(const int argc, wchar_t** argv)
         CHECK(argc == 2);
         CHECK(AXI_GetAbiVersion() == 2u);
 
+        // Canceling during DAT decode/build must not make the addon thread wait
+        // for the full terrain build when the player zones or unloads.
+        {
+            void* canceled_context = AXI_CreateContext();
+            CHECK(canceled_context != nullptr);
+            std::uint64_t canceled_generation = 0u;
+            const fs::path canceled_cache = fs::temp_directory_path()
+                / L"accessxi-collision-cancel-test";
+            CHECK(AXI_BeginLoadZone(
+                canceled_context,
+                190u,
+                argv[1],
+                canceled_cache.c_str(),
+                &canceled_generation) == AXI_RESULT_OK);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            const auto cancel_start = std::chrono::steady_clock::now();
+            CHECK(AXI_CancelLoad(canceled_context, canceled_generation) == AXI_RESULT_OK);
+            AXI_DestroyContext(canceled_context);
+            const auto cancel_elapsed = std::chrono::steady_clock::now() - cancel_start;
+            CHECK(cancel_elapsed < std::chrono::seconds(2));
+        }
+
         void* context = AXI_CreateContext();
         CHECK(context != nullptr);
 
@@ -101,6 +123,24 @@ int wmain(const int argc, wchar_t** argv)
         CHECK(path.point_count > 2u);
         CHECK(path.point_count <= points.size());
         CHECK(path.total_length > 0.0f);
+
+        // The user's return leg from the Tombstone/scales area to the King
+        // Ranperre's Tomb Survival Guide must also be a real collision path,
+        // not the former straight line through the interior wall.
+        AXIPathResult guide_path{};
+        guide_path.struct_size = sizeof(guide_path);
+        CHECK(AXI_FindPath(
+            context,
+            generation,
+            AXIVec3{1.000f, -1.419f, -103.608f},
+            AXIVec3{-119.000f, 0.000f, 248.500f},
+            8.0f,
+            points.data(),
+            static_cast<std::uint32_t>(points.size()),
+            &guide_path) == AXI_RESULT_OK);
+        CHECK(guide_path.status == AXI_PATH_READY);
+        CHECK(guide_path.point_count > 2u);
+        CHECK(guide_path.total_length > 350.0f);
 
         AXI_DestroyContext(context);
         std::cout << "collision context tests passed\n";

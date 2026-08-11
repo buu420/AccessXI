@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <stop_token>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,10 @@ struct PathResult final
 class RecastZone final
 {
 public:
-    RecastZone(const ParsedZoneMesh& mesh, const CollisionWorld& collision_world);
+    RecastZone(
+        const ParsedZoneMesh& mesh,
+        const CollisionWorld& collision_world,
+        std::stop_token stop_token = {});
     ~RecastZone();
 
     RecastZone(const RecastZone&) = delete;

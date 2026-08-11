@@ -47,12 +47,13 @@ struct CollisionContext::LoadedZone final
     LoadedZone(
         const std::uint32_t id,
         FileSnapshot accepted_snapshot,
-        ParsedZoneMesh parsed_mesh)
+        ParsedZoneMesh parsed_mesh,
+        const std::stop_token stop_token)
         : zone_id(id),
           snapshot(std::move(accepted_snapshot)),
           mesh(std::move(parsed_mesh)),
           collision_world(mesh),
-          recast_zone(mesh, collision_world)
+          recast_zone(mesh, collision_world, stop_token)
     {
     }
 
@@ -176,13 +177,17 @@ void CollisionContext::run_worker(
             return;
         }
         update_pending(generation, 25u, "Decoding installed FFXI collision geometry.");
-        ParsedZoneMesh mesh = parse_zone_collision(snapshot, zone_id);
+        ParsedZoneMesh mesh = parse_zone_collision(snapshot, zone_id, stop_token);
         if (stop_token.stop_requested())
         {
             return;
         }
         update_pending(generation, 55u, "Building player-sized walkable terrain.");
-        auto loaded = std::make_shared<LoadedZone>(zone_id, std::move(snapshot), std::move(mesh));
+        auto loaded = std::make_shared<LoadedZone>(
+            zone_id,
+            std::move(snapshot),
+            std::move(mesh),
+            stop_token);
         if (stop_token.stop_requested())
         {
             return;

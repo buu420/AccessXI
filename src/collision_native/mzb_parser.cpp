@@ -20,6 +20,14 @@ namespace {
 
 constexpr std::uint32_t resource_type_mzb = 0x1cu;
 
+void check_canceled(const std::stop_token stop_token)
+{
+    if (stop_token.stop_requested())
+    {
+        throw CollisionError("Terrain mapping was canceled.");
+    }
+}
+
 template <typename T>
 T read_value(const std::vector<std::uint8_t>& bytes, const std::size_t offset, const char* label)
 {
@@ -58,7 +66,7 @@ void require_range(
     }
 }
 
-void decode_mzb(std::vector<std::uint8_t>& bytes)
+void decode_mzb(std::vector<std::uint8_t>& bytes, const std::stop_token stop_token)
 {
     require_range(bytes, 0u, 8u, "MZB decode header");
     if (bytes[3] < 0x1bu)
@@ -76,6 +84,10 @@ void decode_mzb(std::vector<std::uint8_t>& bytes)
     int key_count = 0;
     for (std::size_t position = 8u; position < decode_length;)
     {
+        if ((position & 0xffffu) == 0u)
+        {
+            check_canceled(stop_token);
+        }
         const std::size_t xor_length = static_cast<std::size_t>(((key >> 4) & 7) + 16);
         if ((key & 1) != 0 && xor_length < decode_length - position)
         {
@@ -102,6 +114,10 @@ void decode_mzb(std::vector<std::uint8_t>& bytes)
     }
     for (std::size_t node = 0; node < node_count; ++node)
     {
+        if ((node & 0x3ffu) == 0u)
+        {
+            check_canceled(stop_token);
+        }
         const std::size_t offset = node_start + node * node_stride;
         require_range(bytes, offset, node_decode_bytes, "MZB node");
         for (std::size_t index = 0; index < node_decode_bytes; ++index)
@@ -125,7 +141,8 @@ void append_geometry(
     const std::vector<std::uint8_t>& bytes,
     const std::size_t transform_offset,
     const std::size_t geometry_offset,
-    ParsedZoneMesh& result)
+    ParsedZoneMesh& result,
+    const std::stop_token stop_token)
 {
     require_range(bytes, transform_offset, 16u * sizeof(float), "MZB transform");
     require_range(bytes, geometry_offset, 16u, "MZB geometry header");
@@ -187,6 +204,10 @@ void append_geometry(
     result.vertices.reserve(result.vertices.size() + vertex_count);
     for (std::size_t index = 0; index < vertex_count; ++index)
     {
+        if ((index & 0xffu) == 0u)
+        {
+            check_canceled(stop_token);
+        }
         const std::size_t offset = vertices_offset + index * 12u;
         const float x = read_value<float>(bytes, offset, "MZB vertex X");
         const float y = read_value<float>(bytes, offset + 4u, "MZB vertex Y");
@@ -215,6 +236,10 @@ void append_geometry(
     result.triangles.reserve(result.triangles.size() + triangle_count);
     for (std::size_t index = 0; index < triangle_count; ++index)
     {
+        if ((index & 0xffu) == 0u)
+        {
+            check_canceled(stop_token);
+        }
         const std::size_t offset = triangles_offset + index * 8u;
         std::array<std::uint32_t, 3> local{
             static_cast<std::uint32_t>(read_value<std::uint16_t>(bytes, offset, "MZB triangle A") & 0x3fffu),
@@ -240,9 +265,12 @@ void append_geometry(
     }
 }
 
-void parse_mzb_payload(std::vector<std::uint8_t> bytes, ParsedZoneMesh& result)
+void parse_mzb_payload(
+    std::vector<std::uint8_t> bytes,
+    ParsedZoneMesh& result,
+    const std::stop_token stop_token)
 {
-    decode_mzb(bytes);
+    decode_mzb(bytes, stop_token);
     require_range(bytes, 0u, 0x20u, "MZB header");
 
     std::size_t mesh_field = 8u;
@@ -275,6 +303,10 @@ void parse_mzb_payload(std::vector<std::uint8_t> bytes, ParsedZoneMesh& result)
     std::set<std::pair<std::size_t, std::size_t>> geometry_pairs;
     for (std::size_t cell = 0; cell < cell_count; ++cell)
     {
+        if ((cell & 0x3ffu) == 0u)
+        {
+            check_canceled(stop_token);
+        }
         const std::int32_t signed_entry_offset = read_value<std::int32_t>(
             bytes,
             grid_offset + cell * sizeof(std::int32_t),
@@ -336,7 +368,8 @@ void parse_mzb_payload(std::vector<std::uint8_t> bytes, ParsedZoneMesh& result)
     }
     for (const auto& [transform_offset, geometry_offset] : geometry_pairs)
     {
-        append_geometry(bytes, transform_offset, geometry_offset, result);
+        check_canceled(stop_token);
+        append_geometry(bytes, transform_offset, geometry_offset, result, stop_token);
     }
     result.geometry_instances += geometry_pairs.size();
 }
@@ -345,7 +378,8 @@ void parse_mzb_payload(std::vector<std::uint8_t> bytes, ParsedZoneMesh& result)
 
 ParsedZoneMesh parse_zone_collision(
     const FileSnapshot& snapshot,
-    const std::uint32_t zone_id)
+    const std::uint32_t zone_id,
+    const std::stop_token stop_token)
 {
     if (zone_id == 0u || snapshot.bytes.empty())
     {
@@ -365,6 +399,7 @@ ParsedZoneMesh parse_zone_collision(
     std::size_t position = 0u;
     while (position < snapshot.bytes.size())
     {
+        check_canceled(stop_token);
         if (snapshot.bytes.size() - position < 16u)
         {
             throw CollisionError("DAT chunk header is truncated.");
@@ -388,7 +423,7 @@ ParsedZoneMesh parse_zone_collision(
                 snapshot.bytes.begin() + static_cast<std::ptrdiff_t>(position + 16u),
                 static_cast<std::ptrdiff_t>(payload_size),
                 payload.begin());
-            parse_mzb_payload(std::move(payload), result);
+            parse_mzb_payload(std::move(payload), result, stop_token);
             found_mzb = true;
         }
         position += total_size;

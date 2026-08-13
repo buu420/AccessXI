@@ -343,6 +343,11 @@ target_include_directories(accessxi_collision_native PUBLIC
 target_link_libraries(accessxi_collision_native PRIVATE
     accessxi_collision_core
 )
+if(MSVC)
+    target_link_options(accessxi_collision_native PRIVATE
+        "$<$<CONFIG:Release>:/Brepro>"
+    )
+endif()
 set_target_properties(accessxi_collision_native PROPERTIES
     PREFIX ""
     OUTPUT_NAME "accessxi_collision_native"

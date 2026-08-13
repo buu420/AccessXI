@@ -340,25 +340,39 @@ void run_installed_mhaura_test(const fs::path& ffxi_root)
     CHECK(approximately_equal(mesh.bounds.maximum.y, 61.357300f, 0.001f));
     CHECK(approximately_equal(mesh.bounds.maximum.z, 195.247002f, 0.001f));
 
-    std::size_t rank_two_triangles = 0u;
+    std::array<std::size_t, 3> rank_two_quad_triangles{};
+    constexpr std::array<std::array<float, 2>, 3> rank_two_quad_z_bounds{{
+        {{59.999f, 64.001f}},
+        {{67.999f, 70.001f}},
+        {{69.999f, 72.001f}},
+    }};
     for (const auto& triangle : mesh.triangles)
     {
         const Vec3& a = mesh.vertices.at(triangle.a);
         const Vec3& b = mesh.vertices.at(triangle.b);
         const Vec3& c = mesh.vertices.at(triangle.c);
-        const bool in_known_planar_region =
-            a.x >= -24.001f && a.x <= -19.999f
-            && b.x >= -24.001f && b.x <= -19.999f
-            && c.x >= -24.001f && c.x <= -19.999f
-            && a.y >= 12.999f && a.y <= 24.001f
-            && b.y >= 12.999f && b.y <= 24.001f
-            && c.y >= 12.999f && c.y <= 24.001f;
-        if (in_known_planar_region && approximately_equal(triangle_area(a, b, c), 4.0f, 0.001f))
+        if (!approximately_equal(triangle_area(a, b, c), 4.0f, 0.001f))
         {
-            ++rank_two_triangles;
+            continue;
+        }
+        for (std::size_t quad = 0u; quad < rank_two_quad_z_bounds.size(); ++quad)
+        {
+            const float minimum_z = rank_two_quad_z_bounds[quad][0];
+            const float maximum_z = rank_two_quad_z_bounds[quad][1];
+            const auto in_quad = [minimum_z, maximum_z](const Vec3& vertex) {
+                return vertex.x >= -24.001f && vertex.x <= -19.999f
+                    && vertex.y >= 15.999f && vertex.y <= 16.001f
+                    && vertex.z >= minimum_z && vertex.z <= maximum_z;
+            };
+            if (in_quad(a) && in_quad(b) && in_quad(c))
+            {
+                ++rank_two_quad_triangles[quad];
+            }
         }
     }
-    CHECK(rank_two_triangles == 6u);
+    CHECK(rank_two_quad_triangles[0] == 2u);
+    CHECK(rank_two_quad_triangles[1] == 2u);
+    CHECK(rank_two_quad_triangles[2] == 2u);
 
 }
 

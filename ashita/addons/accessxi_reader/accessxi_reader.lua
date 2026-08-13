@@ -1119,6 +1119,7 @@ local accessxi = T{
     home_point_last_area_tick = 0,
     nav_points = T{},
     nav_points_loaded = false,
+    nav_catalog_revision = 0,
     nav_points_path = accessxi_paths.addon_path('data', 'ffxi-nav-points.tsv'),
     nav_discoveries_path = accessxi_paths.addon_path('data', 'ffxi-nav-discoveries.tsv'),
     nav_database_path = accessxi_paths.addon_path('data', 'ffxi-nav-destinations.tsv'),
@@ -72334,6 +72335,7 @@ local function nav_load_points()
     local discovery_count = nav_load_points_file(accessxi.nav_discoveries_path, 'discoveries');
     local recorded_count = nav_load_points_file(accessxi.nav_recorded_marks_path, 'live-route-recording');
     local user_count = nav_load_points_file(accessxi.nav_points_path, 'manual');
+    accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1;
     log_line(('nav loaded database=%d discoveries=%d recorded=%d user=%d total=%d db="%s" discoveries="%s" recorded_path="%s" user="%s"'):fmt(
         db_count,
         discovery_count,
@@ -72360,6 +72362,7 @@ accessxi.nav_save_point_to_path = function (point, path)
     end
 
     accessxi.nav_points:append(point);
+    accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1;
     accessxi.nav_live_nm_name_cache = T{};
 
     local f = io.open(path or accessxi.nav_points_path, 'a');

@@ -984,11 +984,20 @@ assert(accessxi.hotkey_cache_destination_calls == accessxi.hotkey_cache_destinat
 assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline
     and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
     'unchanged Mission and Quest hotkey builds re-read active packet state')
+accessxi.hotkey_cache_catalog_index_baseline = accessxi.nav_objective_catalog_index_build_count
+accessxi.hotkey_cache_prepare_item = accessxi.hotkey_cache_missions[1]
+accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
+accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
+assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline
+    and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
+    'unchanged prepare-route calls re-read active packet state')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline,
+    'unchanged prepare-route calls rebuilt the navigation catalog index')
 
 accessxi.last_native_inventory_item_tick = accessxi.last_native_inventory_item_tick + 1
-accessxi.hotkey_cache_volatile_mission_signature = accessxi.hotkey_cache_build(
+accessxi.hotkey_cache_volatile_mission_rows, accessxi.hotkey_cache_volatile_mission_signature = accessxi.hotkey_cache_build(
     'mission', 'volatile inventory-tick Mission hotkey build')
-accessxi.hotkey_cache_volatile_quest_signature = accessxi.hotkey_cache_build(
+accessxi.hotkey_cache_volatile_quest_rows, accessxi.hotkey_cache_volatile_quest_signature = accessxi.hotkey_cache_build(
     'quest', 'volatile inventory-tick Quest hotkey build')
 assert(accessxi.hotkey_cache_destination_calls == accessxi.hotkey_cache_destination_baseline
     and accessxi.hotkey_cache_source_step_calls == accessxi.hotkey_cache_source_step_baseline,
@@ -999,6 +1008,9 @@ assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_missio
 assert(accessxi.hotkey_cache_volatile_mission_signature == accessxi.hotkey_cache_mission_signature
     and accessxi.hotkey_cache_volatile_quest_signature == accessxi.hotkey_cache_quest_signature,
     'a volatile native inventory observation tick changed an active-state signature')
+assert(accessxi.hotkey_cache_volatile_mission_rows == accessxi.hotkey_cache_missions
+    and accessxi.hotkey_cache_volatile_quest_rows == accessxi.hotkey_cache_quests,
+    'a volatile native inventory observation tick rebuilt an active row list')
 
 accessxi.inventory_packet_key = 'inventory:hotkey-cache:2'
 accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
@@ -1114,6 +1126,12 @@ accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_stat
     'mission', accessxi.hotkey_cache_mission_state_baseline, 'navigation catalog revision change for Missions')
 accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
     'quest', accessxi.hotkey_cache_quest_state_baseline, 'navigation catalog revision change for Quests')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
+    'a navigation catalog revision change did not rebuild the catalog index exactly once')
+accessxi.nav_mission_quest_active_items('mission')
+accessxi.nav_mission_quest_active_items('quest')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
+    'stable navigation catalog revision rebuilt the catalog index again')
 
 set_live_identity('alpha:1001')
 current_world_id = 1001
@@ -1163,7 +1181,9 @@ assert(count_named(orcish, 'Smash the Orcish Scouts') == 2)
 assert(orcish[1].objective_destination_id == 'enemy:v1:101:orcish-east')
 assert(orcish[2].objective_destination_id == 'enemy:v1:100:orcish-west')
 
+local saved_orcish_inventory_packet_key = accessxi.inventory_packet_key
 objective_inventory_counts_by_name['orcish axe'] = 1
+accessxi.inventory_packet_key = 'inventory:orcish-axe-owned'
 local orcish_turn_in = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(orcish_turn_in, 'Smash the Orcish Scouts') == 2,
     'an owned Orcish Axe must replace both camp rows with exact available Gate Guards')
@@ -1179,6 +1199,7 @@ for _, row in ipairs(orcish_turn_in) do
     end
 end
 objective_inventory_counts_by_name['orcish axe'] = 0
+accessxi.inventory_packet_key = saved_orcish_inventory_packet_key
 local orcish_after_item_reset = accessxi.nav_mission_quest_active_items('mission')
 assert(orcish_after_item_reset[1].objective_guide_step_id == "mission:San d'Oria:1:step-005"
     and orcish_after_item_reset[2].objective_guide_step_id == "mission:San d'Oria:1:step-005",
@@ -1272,6 +1293,7 @@ guide_row_mutator = function(native_key, rows)
         for index = #rows, 1, -1 do table.remove(rows, index) end
     end
 end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 accessxi.mission_packet_main.nation = 0
 accessxi.mission_packet_main.nation_mission = 0
 local source_orcish = accessxi.nav_mission_quest_active_items('mission')
@@ -1343,7 +1365,9 @@ assert(bat_hunt[1].objective_guide_step_id == "mission:San d'Oria:2:step-005")
 assert(bat_hunt[1].objective_destination_zone_name == "King Ranperre's Tomb")
 assert(bat_hunt[1].objective_target.x == -141.134 and bat_hunt[1].objective_target.z == 223.168,
     'Bat Hunt must put the entrance Ding Bats camp first instead of routing through the Tomb to a deeper camp')
+local saved_bat_hunt_inventory_key = accessxi.inventory_packet_key
 objective_inventory_counts_by_name['orcish mail scales'] = 1
+accessxi.inventory_packet_key = 'inventory:orcish-mail-scales-owned'
 local bat_hunt_after_scales = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(bat_hunt_after_scales, 'Bat Hunt') == 1,
     'owned Orcish Mail Scales must replace the Ding Bats camps with one exact mission Tombstone')
@@ -1412,6 +1436,7 @@ assert(count_named(bat_hunt_after_reload, 'Bat Hunt') == 2
     and bat_hunt_after_reload[2].objective_guide_step_id == "mission:San d'Oria:2:step-012",
     'persisted interaction progress was lost after an addon-module reload')
 objective_inventory_counts_by_name['orcish mail scales'] = 0
+accessxi.inventory_packet_key = saved_bat_hunt_inventory_key
 accessxi.mission_packet_source = 'cache'
 local bat_target, bat_message, bat_mode = accessxi.nav_mission_quest_prepare_route(
     bat_hunt_after_cutscene[1], { zone = 230 })
@@ -1522,12 +1547,14 @@ assert(cid.objective_group_id == '', 'ordinary typed NPC candidates legitimately
 assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'ready')
 local saved_automatic_step_id = accessxi.objective_guides.automatic_step_id
 accessxi.objective_guides.automatic_step_id = function() return '' end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 local unmapped_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
 assert(type(unmapped_pickpocket.objective_candidate_id) == 'string'
     and unmapped_pickpocket.objective_candidate_id ~= '',
     'an exact source-backed current target must survive a missing optional guide-step mapping')
 assert(select(3, accessxi.nav_mission_quest_prepare_route(unmapped_pickpocket, { zone = 230 })) == 'test-ready')
 accessxi.objective_guides.automatic_step_id = function() error('intentional mapping failure') end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 local failed_mapping_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
 assert(type(failed_mapping_pickpocket.objective_candidate_id) == 'string'
     and failed_mapping_pickpocket.objective_candidate_id ~= '',
@@ -1543,6 +1570,7 @@ guide_row_mutator = function(native_key, rows)
         end
     end
 end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'blocked',
     'an empty-group typed candidate cannot be rebound to a different group')
 guide_row_mutator = nil
@@ -1580,6 +1608,7 @@ for _, field in ipairs({ 'action_id', 'guide_step_id', 'action_instruction', 'st
             end
         end
     end
+    accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
     assert(select(3, accessxi.nav_mission_quest_prepare_route(instruction_rows[1], { zone = 230 })) == 'blocked',
         'changed instruction-only ownership must block: ' .. field)
 end
@@ -1657,10 +1686,12 @@ for _, field in ipairs({
             end
         end
     end
+    accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
     assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'blocked',
         'changed typed objective identity must block: ' .. field)
 end
 guide_row_mutator = nil
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 
 local saved_runtime = accessxi.objective_route_runtime
 accessxi.objective_route_runtime = nil
@@ -1696,6 +1727,7 @@ assert(welcome.objective_native_details:find('second-floor hallway', 1, true) ~=
 assert(accessxi.nav_mission_quest_item_speech(welcome, 1, #missions):find('Native mission orders:', 1, true) ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
 mission_values['Rise of the Zilart'] = 3
+accessxi.mission_packet_hex = 'mission:zilart:3'
 mission_value_packet_age = 60
 logs:clear()
 local rows = accessxi.nav_mission_quest_active_items('mission')
@@ -1705,9 +1737,11 @@ for _, line in ipairs(logs) do
     assert(line:find('base out of range', 1, true) == nil)
 end
 mission_values['Rise of the Zilart'] = 2
+accessxi.mission_packet_hex = 'mission:zilart:2'
 mission_value_packet_age = 10
 local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
 mission_values['Chains of Promathia'] = 1
+accessxi.mission_packet_hex = 'mission:cop:1'
 accessxi.load_mission_rom_rows = function(context)
     if context == 'Chains of Promathia' then
         error('intentional mission context failure "quoted" ' .. string.rep('x', 180))
@@ -1746,6 +1780,7 @@ assert(chain_survivor_mode == 'test-ready' and type(chain_survivor_target) == 't
     and chain_survivor_message == '')
 accessxi.load_mission_rom_rows = native_mission_load_mission_rom_rows
 mission_values['Chains of Promathia'] = 0
+accessxi.mission_packet_hex = 'mission:cop:0'
 local survey_after_failure = assert(find(missions, 'A Geological Survey'))
 local failure_target, failure_message, failure_mode = accessxi.nav_mission_quest_prepare_route(survey_after_failure, { zone = 106 })
 assert(failure_mode == 'test-ready' and type(failure_target) == 'table' and failure_message == '')
@@ -1942,11 +1977,13 @@ accessxi.mission_packet_main.tales = 0
 assert(find(accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel') == nil,
     'RoV was advertised without a live active or postponed-start packet state')
 mission_values["Rhapsodies of Vana'diel"] = 110
+accessxi.mission_packet_hex = 'mission:rov:110'
 local active_rov = assert(find(
     accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel'))
 assert(active_rov.mission_availability == 'active',
     'a decoded nonterminal RoV mission value was not exposed as active')
 mission_values["Rhapsodies of Vana'diel"] = 65535
+accessxi.mission_packet_hex = 'mission:rov:terminal'
 
 current_rank = 1
 current_nation = 1
@@ -2111,6 +2148,7 @@ assert(row_speech:find('Press I to start navigation.', 1, true) ~= nil)
 assert(row_speech:find('open steps', 1, true) == nil)
 
 owned_key_items[3] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:blue-owned'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_stage == 'charge-blue-tester')
@@ -2154,6 +2192,7 @@ accessxi.nav_destination = nil
 
 owned_key_items[3] = nil
 owned_key_items[4] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:red-owned'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_stage == 'return-red-tester')
@@ -2161,6 +2200,7 @@ assert(survey.objective_target.zone == 237 and survey.objective_target.name == '
 
 -- Contradictory or unavailable ownership and missing nav points never guess.
 owned_key_items[3] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:contradictory'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
@@ -2169,6 +2209,7 @@ assert(target == nil and mode == 'blocked' and message ~= '')
 
 owned_key_items[3] = nil
 owned_key_items[4] = nil
+accessxi.key_items_packet_key = 'key-items:geological-survey:none'
 accessxi.key_items_packet_tables = {}
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
@@ -2187,6 +2228,7 @@ accessxi.key_items_packet_tables[0].source = 'packet_in_055'
 accessxi.key_items_packet_tables[0].identity = current_identity
 accessxi.key_items_packet_tables[0].session_epoch = current_session_epoch
 accessxi.nav_points = T{}
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_available == false and survey.objective_status == 'destination-unavailable')

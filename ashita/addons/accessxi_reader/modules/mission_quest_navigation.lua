@@ -61,6 +61,15 @@ end
 local objective_progress_loaded = false;
 local objective_progress = {};
 local pending_objective_interaction = nil;
+local active_row_cache = {};
+local active_row_cache_owner = '';
+local source_derivation_cache = {
+    revision = nil,
+    source_steps = {},
+    source_routes = {},
+};
+local ensure_catalog_index;
+local objective_source_steps;
 local objective_event_menus = {
     ['menu rem4line'] = true,
     ['menu rem4li2'] = true,
@@ -70,6 +79,10 @@ local objective_event_menus = {
 
 local function objective_progress_key(identity, native_key)
     return clean(identity):lower() .. '\t' .. clean(native_key);
+end
+
+local function increment_objective_progress_revision()
+    accessxi.objective_progress_revision = (tonumber(accessxi.objective_progress_revision) or 0) + 1;
 end
 
 local function load_objective_progress()
@@ -136,6 +149,7 @@ local function save_objective_progress(identity, native_key, step_id, order)
         step_id = clean(step_id),
         order = order,
     };
+    increment_objective_progress_revision();
     return true;
 end
 
@@ -143,8 +157,10 @@ local function clear_objective_progress(identity, native_key)
     load_objective_progress();
     local key = objective_progress_key(identity, native_key);
     if (objective_progress[key] == nil) then return; end
+    if (not append_objective_progress(identity, native_key, '-', 0)) then return false; end
     objective_progress[key] = nil;
-    append_objective_progress(identity, native_key, '-', 0);
+    increment_objective_progress_revision();
+    return true;
 end
 
 local function has_entries(value)
@@ -170,12 +186,6 @@ local function report_navigation_failure(context, error_message)
     end
     local message = sanitize_navigation_failure_reason(error_message);
     log_line(('mission active context failure context="%s" reason="%s"'):fmt(clean(context), message));
-end
-
-local function report_navigation_trace(context, phase)
-    if (type(log_line) == 'function' and context ~= '') then
-        log_line(('mission active context %s context="%s"'):fmt(phase, clean(context)));
-    end
 end
 
 local function point_copy(point)
@@ -264,6 +274,8 @@ end
 
 local function clear_character_state(reason)
     pending_objective_interaction = nil;
+    active_row_cache = {};
+    active_row_cache_owner = '';
     if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
         accessxi.nav_cancel_mission_quest_route(reason or 'character-state-cleared');
     end
@@ -589,9 +601,18 @@ local function referenced_target(reference)
     if (wanted_zone <= 0 or wanted_name == '') then
         return nil;
     end
+    local index = ensure_catalog_index ~= nil and ensure_catalog_index() or nil;
+    local reference_key = table.concat({
+        tostring(wanted_zone), wanted_name, wanted_kind, wanted_destination_id,
+    }, '\t');
+    local candidates = type(index) == 'table' and wanted_kind ~= ''
+        and wanted_destination_id ~= '' and index.referenced_targets[reference_key]
+        or (type(index) == 'table'
+            and index.points_by_zone_entity[('%d\t%s'):fmt(wanted_zone, wanted_name)])
+        or accessxi.nav_points or T{};
     local match = nil;
     local match_count = 0;
-    for _, point in ipairs(accessxi.nav_points or T{}) do
+    for _, point in ipairs(candidates) do
         if ((tonumber(point.zone) or 0) == wanted_zone
             and clean(point.name):lower() == wanted_name
             and (wanted_kind == '' or effective_kind(point) == wanted_kind)
@@ -823,6 +844,21 @@ local function source_name_key(value)
 end
 
 local source_zone_names = {};
+local objective_catalog_index = { revision = nil };
+
+local function current_nav_catalog_revision()
+    return tostring(tonumber(accessxi.nav_catalog_revision) or 0);
+end
+
+local function reset_source_derivation_cache_if_needed()
+    local revision = current_nav_catalog_revision();
+    if (source_derivation_cache.revision ~= revision) then
+        source_derivation_cache.revision = revision;
+        source_derivation_cache.source_steps = {};
+        source_derivation_cache.source_routes = {};
+    end
+    return revision;
+end
 
 local function source_point_zone_name(point)
     local zone = tonumber(type(point) == 'table' and point.zone or nil) or 0;
@@ -841,6 +877,55 @@ local function source_point_zone_name(point)
     end
     source_zone_names[zone] = value;
     return value;
+end
+
+ensure_catalog_index = function()
+    local revision = current_nav_catalog_revision();
+    if (objective_catalog_index.revision == revision) then
+        return objective_catalog_index;
+    end
+
+    source_zone_names = {};
+    local index = {
+        revision = revision,
+        zone_ids_by_name = {},
+        points_by_zone_entity = {},
+        referenced_targets = {},
+        zone_lines = {},
+    };
+    for _, point in ipairs(accessxi.nav_points or T{}) do
+        local zone = tonumber(point.zone) or 0;
+        if (zone > 0) then
+            local zone_name = source_point_zone_name(point);
+            if (zone_name ~= '') then
+                local zone_key = source_name_key(zone_name);
+                index.zone_ids_by_name[zone_key] = index.zone_ids_by_name[zone_key] or {};
+                index.zone_ids_by_name[zone_key][zone] = true;
+            end
+
+            local name_key = source_name_key(point.name);
+            if (name_key ~= '') then
+                local entity_key = ('%d\t%s'):fmt(zone, name_key);
+                index.points_by_zone_entity[entity_key] = index.points_by_zone_entity[entity_key] or T{};
+                index.points_by_zone_entity[entity_key]:append(point);
+                local reference_key = table.concat({
+                    tostring(zone), name_key, effective_kind(point), clean(point.destination_id),
+                }, '\t');
+                index.referenced_targets[reference_key] = index.referenced_targets[reference_key] or T{};
+                index.referenced_targets[reference_key]:append(point);
+            end
+
+            if (effective_kind(point) == 'area'
+                and source_name_key(point.name):find('zone line', 1, true) ~= nil) then
+                index.zone_lines[zone] = index.zone_lines[zone] or T{};
+                index.zone_lines[zone]:append(point);
+            end
+        end
+    end
+    objective_catalog_index = index;
+    accessxi.nav_objective_catalog_index_build_count =
+        (tonumber(accessxi.nav_objective_catalog_index_build_count) or 0) + 1;
+    return objective_catalog_index;
 end
 
 local function source_route_kind_allowed(action, kind)
@@ -1027,39 +1112,26 @@ local function source_route_candidate(native_key, step, point)
 end
 
 local function source_route_rows(native_key)
+    reset_source_derivation_cache_if_needed();
+    native_key = clean(native_key);
+    if (source_derivation_cache.source_routes[native_key] ~= nil) then
+        return source_derivation_cache.source_routes[native_key];
+    end
     local explicit = type(objectives.source_verified_candidates) == 'table'
         and objectives.source_verified_candidates[native_key] or nil;
     if (type(explicit) == 'table' and #explicit > 0) then
-        return deep_copy(explicit);
+        source_derivation_cache.source_routes[native_key] = deep_copy(explicit);
+        return source_derivation_cache.source_routes[native_key];
     end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
-        return T{};
+        source_derivation_cache.source_routes[native_key] = T{};
+        return source_derivation_cache.source_routes[native_key];
     end
-    local ok, steps = pcall(
-        accessxi.objective_guides.source_route_steps,
-        accessxi.objective_guides,
-        native_key);
-    if (not ok or type(steps) ~= 'table') then
-        return T{};
-    end
-
-    local known_zones = {};
-    local zone_entries = {};
-    for _, point in ipairs(accessxi.nav_points or T{}) do
-        local zone = tonumber(point.zone) or 0;
-        local zone_name = source_point_zone_name(point);
-        if (zone > 0 and zone_name ~= '') then
-            local key = source_name_key(zone_name);
-            known_zones[key] = known_zones[key] or {};
-            known_zones[key][zone] = true;
-        end
-        if (zone > 0 and effective_kind(point) == 'area'
-            and source_name_key(point.name):find('zone line', 1, true) ~= nil) then
-            zone_entries[zone] = zone_entries[zone] or {};
-            zone_entries[zone][#zone_entries[zone] + 1] = point;
-        end
-    end
+    local steps = objective_source_steps(native_key);
+    local catalog = ensure_catalog_index();
+    local known_zones = catalog.zone_ids_by_name;
+    local zone_entries = catalog.zone_lines;
 
     local rows = T{};
     local seen = {};
@@ -1096,12 +1168,14 @@ local function source_route_rows(native_key)
                     end
                 end
                 if (next(allowed_zones) ~= nil and next(entity_names) ~= nil) then
-                    for _, point in ipairs(accessxi.nav_points or T{}) do
-                        local zone = tonumber(point.zone) or 0;
-                        if (allowed_zones[zone] == true
-                            and entity_names[source_name_key(point.name)] == true
-                            and source_route_kind_allowed(step.action, effective_kind(point))) then
-                            targets[#targets + 1] = point_copy(point);
+                    for zone in pairs(allowed_zones) do
+                        for entity_name in pairs(entity_names) do
+                            for _, point in ipairs(catalog.points_by_zone_entity[
+                                ('%d\t%s'):fmt(zone, entity_name)] or T{}) do
+                                if (source_route_kind_allowed(step.action, effective_kind(point))) then
+                                    targets[#targets + 1] = point_copy(point);
+                                end
+                            end
                         end
                     end
                 end
@@ -1132,6 +1206,9 @@ local function source_route_rows(native_key)
             end
         end
     end
+    source_derivation_cache.source_routes[native_key] = rows;
+    accessxi.nav_objective_source_route_compute_count =
+        (tonumber(accessxi.nav_objective_source_route_compute_count) or 0) + 1;
     return rows;
 end
 
@@ -1181,21 +1258,28 @@ local function acquisition_row_items_owned(row)
     return true;
 end
 
-local function objective_source_steps(native_key)
+objective_source_steps = function(native_key)
+    reset_source_derivation_cache_if_needed();
+    native_key = clean(native_key);
+    if (source_derivation_cache.source_steps[native_key] ~= nil) then
+        return source_derivation_cache.source_steps[native_key];
+    end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
-        return T{};
+        source_derivation_cache.source_steps[native_key] = T{};
+        return source_derivation_cache.source_steps[native_key];
     end
     local ok, steps = pcall(
         accessxi.objective_guides.source_route_steps,
         accessxi.objective_guides,
         native_key);
     if (not ok or type(steps) ~= 'table') then
-        return T{};
+        source_derivation_cache.source_steps[native_key] = T{};
+        return source_derivation_cache.source_steps[native_key];
     end
     local result = T{};
     for _, step in ipairs(steps) do
-        if (type(step) == 'table') then result:append(step); end
+        if (type(step) == 'table') then result:append(deep_copy(step)); end
     end
     table.sort(result, function(left, right)
         local left_order = tonumber(left.order) or 0;
@@ -1203,8 +1287,9 @@ local function objective_source_steps(native_key)
         if (left_order ~= right_order) then return left_order < right_order; end
         return clean(left.stable_step_id) < clean(right.stable_step_id);
     end);
+    source_derivation_cache.source_steps[native_key] = result;
     return result;
-end
+end;
 
 local current_objective_progress;
 
@@ -1752,6 +1837,27 @@ local function stamp_progression_requirements(native_key, selected_step, replace
     end
 end
 
+local function objective_guide_destinations(native_key)
+    native_key = clean(native_key);
+    if (type(accessxi.objective_guides) ~= 'table'
+        or type(accessxi.objective_guides.objective_destinations) ~= 'function') then
+        return T{};
+    end
+    local ok, destinations = pcall(
+        accessxi.objective_guides.objective_destinations,
+        accessxi.objective_guides,
+        native_key);
+    local snapshot = T{};
+    if (ok and type(destinations) == 'table') then
+        for _, destination in ipairs(destinations) do
+            if (type(destination) == 'table') then
+                snapshot:append(deep_copy(destination));
+            end
+        end
+    end
+    return snapshot;
+end
+
 local function expand_active_mission_destinations(items)
     local expanded = T{};
     for _, item in ipairs(items or T{}) do
@@ -1772,14 +1878,9 @@ local function expand_active_mission_destinations(items)
                     append_gate_guard_step_rows(item, selected_step, replacements);
                 end
             end
-        elseif (availability == 'active'
-            and type(accessxi.objective_guides) == 'table'
-            and type(accessxi.objective_guides.objective_destinations) == 'function') then
-            local ok, destinations = pcall(
-                accessxi.objective_guides.objective_destinations,
-                accessxi.objective_guides,
-                clean(item.objective_native_key));
-            if (ok and type(destinations) == 'table') then
+        elseif (availability == 'active') then
+            local destinations = objective_guide_destinations(clean(item.objective_native_key));
+            if (type(destinations) == 'table') then
                 local expected_step = '';
                 local stage_filter_ready = clean(item.objective_stage) == '';
                 local inventory_step = nil;
@@ -1860,13 +1961,9 @@ local function expand_active_quest_destinations(items)
     for _, item in ipairs(items or T{}) do
         local replacements = T{};
         local selected_step = nil;
-        if (type(accessxi.objective_guides) == 'table'
-            and type(accessxi.objective_guides.objective_destinations) == 'function') then
-            local ok, destinations = pcall(
-                accessxi.objective_guides.objective_destinations,
-                accessxi.objective_guides,
-                clean(item.objective_native_key));
-            if (ok and type(destinations) == 'table') then
+        do
+            local destinations = objective_guide_destinations(clean(item.objective_native_key));
+            if (type(destinations) == 'table') then
                 local expected_step = '';
                 local stage_filter_ready = clean(item.objective_stage) == '';
                 local state_step = inventory_selected_next_step(
@@ -2412,8 +2509,6 @@ local function append_available_rhapsodies_mission(items)
 end
 
 local function run_safe_mission_context(items, context, build_fn)
-    report_navigation_trace(context, 'begin');
-    local before_count = #items;
     local ok, err = xpcall(build_fn, function(err)
         return clean(err):match('^[^\r\n]*') or '';
     end);
@@ -2421,8 +2516,6 @@ local function run_safe_mission_context(items, context, build_fn)
         report_navigation_failure(context, ('%s'):fmt(err));
         return;
     end
-    local added = #items - before_count;
-    report_navigation_trace(context, ('done added=%d'):fmt(added >= 0 and added or 0));
 end
 
 local function active_missions()
@@ -2574,9 +2667,63 @@ local function active_quests()
     return expand_active_quest_destinations(items);
 end
 
+local function stable_word_signature(words)
+    local values = {};
+    for _, value in ipairs(type(words) == 'table' and words or T{}) do
+        values[#values + 1] = tostring(tonumber(value) or 0);
+    end
+    return table.concat(values, ',');
+end
+
+local function mission_packet_content_signature()
+    local packet = accessxi.mission_packet_main or {};
+    local ahturghan = accessxi.mission_packet_ahturghan or {};
+    return table.concat({
+        clean(accessxi.mission_packet_source),
+        clean(accessxi.mission_packet_player),
+        clean(accessxi.mission_packet_identity):lower(),
+        tostring(tonumber(accessxi.mission_packet_session_epoch) or 0),
+        clean(accessxi.mission_packet_hex),
+        clean(packet.port), clean(packet.nation), clean(packet.nation_mission),
+        clean(packet.zilart), clean(packet.cop), clean(packet.cop_status),
+        clean(packet.addons), clean(packet.tales), clean(packet.soa), clean(packet.rov),
+        clean(accessxi.mission_packet_ahturghan_source),
+        clean(accessxi.mission_packet_ahturghan_identity):lower(),
+        clean(ahturghan.assault), clean(ahturghan.toau), clean(ahturghan.wotg),
+        clean(ahturghan.campaign),
+        clean(accessxi.mission_packet_ahturghan_complete_source),
+        clean(accessxi.mission_packet_ahturghan_complete_identity):lower(),
+        stable_word_signature(accessxi.mission_packet_ahturghan_complete),
+        clean(accessxi.mission_packet_nations_complete_source),
+        clean(accessxi.mission_packet_nations_complete_identity):lower(),
+        stable_word_signature(accessxi.mission_packet_nations_complete),
+    }, '\t');
+end
+
+local function quest_packet_content_signature()
+    local values = {
+        clean(accessxi.quest_packet_source),
+        clean(accessxi.quest_packet_player),
+        clean(accessxi.quest_packet_identity):lower(),
+        tostring(tonumber(accessxi.quest_packet_session_epoch) or 0),
+        clean(accessxi.quest_packet_key),
+    };
+    local logs = accessxi.quest_packet_logs or {};
+    for _, area_key in ipairs((accessxi.quests_menu_data or {}).quest_log_order or T{}) do
+        for _, mode in ipairs(T{ 'current', 'completed' }) do
+            local entry = logs[clean(area_key) .. ':' .. mode] or {};
+            values[#values + 1] = table.concat({
+                clean(area_key), mode, clean(entry.source), clean(entry.identity):lower(),
+                tostring(tonumber(entry.session_epoch) or 0), tostring(tonumber(entry.port) or 0),
+                stable_word_signature(entry.words),
+            }, ',');
+        end
+    end
+    return table.concat(values, '\t');
+end
+
 local function active_state_signature(category_key)
     category_key = clean(category_key):lower();
-    local packet = accessxi.mission_packet_main or {};
     local values = {
         category_key,
         player_name():lower(),
@@ -2585,36 +2732,13 @@ local function active_state_signature(category_key)
         tostring(objective_session_epoch()),
         clean(accessxi.key_items_packet_key),
         clean(accessxi.inventory_packet_key),
-        tostring(tonumber(accessxi.last_native_inventory_item_tick) or 0),
+        tostring(tonumber(accessxi.objective_progress_revision) or 0),
+        current_nav_catalog_revision(),
     };
     if (category_key == 'mission') then
-        for _, value in ipairs({
-            clean(accessxi.mission_packet_source),
-            clean(accessxi.mission_packet_tick),
-            clean(accessxi.mission_packet_hex),
-            clean(accessxi.mission_packet_ahturghan_source),
-            clean(accessxi.mission_packet_ahturghan_tick),
-            clean(accessxi.mission_packet_ahturghan_complete_source),
-            clean(accessxi.mission_packet_ahturghan_complete_tick),
-            clean(accessxi.mission_packet_nations_complete_source),
-            clean(accessxi.mission_packet_nations_complete_tick),
-            clean(packet.port),
-            clean(packet.nation),
-            clean(packet.nation_mission),
-            clean(packet.zilart),
-            clean(packet.cop),
-            clean(packet.cop_status),
-            clean(packet.addons),
-            clean(packet.tales),
-            clean(packet.soa),
-            clean(packet.rov),
-        }) do
-            values[#values + 1] = value;
-        end
+        values[#values + 1] = mission_packet_content_signature();
     elseif (category_key == 'quest') then
-        values[#values + 1] = clean(accessxi.quest_packet_source);
-        values[#values + 1] = clean(accessxi.quest_packet_tick);
-        values[#values + 1] = clean(accessxi.quest_packet_key);
+        values[#values + 1] = quest_packet_content_signature();
     end
     return table.concat(values, '\t');
 end
@@ -2649,18 +2773,37 @@ end
 
 function accessxi.nav_mission_quest_active_items(category_key)
     category_key = clean(category_key):lower();
-    if (category_key == 'mission') then
-        if (type(accessxi.refresh_objective_inventory_state) == 'function') then
-            pcall(accessxi.refresh_objective_inventory_state, 'mission-category');
-        end
-        return stamp_active_items(category_key, active_missions());
-    elseif (category_key == 'quest') then
-        if (type(accessxi.refresh_objective_inventory_state) == 'function') then
-            pcall(accessxi.refresh_objective_inventory_state, 'quest-category');
-        end
-        return stamp_active_items(category_key, active_quests());
+    if (category_key ~= 'mission' and category_key ~= 'quest') then return T{}; end
+    if (type(accessxi.refresh_objective_inventory_state) == 'function') then
+        pcall(accessxi.refresh_objective_inventory_state, category_key .. '-category');
     end
-    return T{};
+
+    local owner = table.concat({
+        character_identity(), tostring(player_world_id()), tostring(objective_session_epoch()),
+    }, '\t');
+    if (active_row_cache_owner ~= owner) then
+        active_row_cache = {};
+        active_row_cache_owner = owner;
+    end
+    local signature = active_state_signature(category_key);
+    local cached = active_row_cache[category_key];
+    if (type(cached) == 'table' and cached.signature == signature) then
+        return cached.rows;
+    end
+
+    ensure_catalog_index();
+    local rows = category_key == 'mission' and active_missions() or active_quests();
+    owner = table.concat({
+        character_identity(), tostring(player_world_id()), tostring(objective_session_epoch()),
+    }, '\t');
+    if (active_row_cache_owner ~= owner) then
+        active_row_cache = {};
+        active_row_cache_owner = owner;
+    end
+    signature = active_state_signature(category_key);
+    rows = stamp_active_items(category_key, rows);
+    active_row_cache[category_key] = { signature = signature, rows = rows };
+    return rows;
 end
 
 function accessxi.nav_mission_quest_item_speech(item, index, total)
@@ -3170,9 +3313,7 @@ function accessxi.nav_mission_quest_route_point_is_current(point)
     if (saved_owner_key == '') then
         saved_owner_key = active_owner_key(point);
     end
-    local items = kind == 'mission'
-        and stamp_active_items(kind, active_missions())
-        or stamp_active_items(kind, active_quests());
+    local items = accessxi.nav_mission_quest_active_items(kind);
     for _, fresh in ipairs(items) do
         if (clean(fresh.objective_active_owner_key) == saved_owner_key) then
             point.objective_active_state_signature = clean(fresh.objective_active_state_signature);

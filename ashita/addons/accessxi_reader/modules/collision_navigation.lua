@@ -343,8 +343,51 @@ function State:_begin(zone, destination)
         self.generation = generation
         self.zone = zone
     end
-    self.pending_destination = copy_destination(destination)
+    if destination ~= nil then
+        self.pending_destination = copy_destination(destination)
+    end
     return true
+end
+
+function State:preload(zone)
+    if self.shutdown_complete then
+        return nil, 'error', 'Collision terrain navigation is shut down.'
+    end
+    if not positive_integer(zone) then
+        return nil, 'error', 'Collision terrain preload requires a valid current zone.'
+    end
+    if self.pending_destination ~= nil then
+        return nil, 'busy', ''
+    end
+    local began, begin_reason = self:_begin(zone, nil)
+    if not began then return nil, 'error', begin_reason end
+    local ok, code, status = pcall(
+        self.native.poll_load, self.native, self.context, self.generation)
+    if not ok then
+        return nil, 'error', 'Collision terrain polling raised an error: ' .. tostring(code)
+    end
+    if code ~= RESULT_OK or type(status) ~= 'table' then
+        return nil, 'error', native_error('polling', code)
+    end
+    if status.zone_id ~= self.zone or status.generation ~= self.generation then
+        return nil, 'error', 'Collision terrain returned stale zone state.'
+    end
+    if self.expected_settings_sha256 ~= nil
+        and status.settings_sha256 ~= self.expected_settings_sha256 then
+        return nil, 'error', 'Collision terrain settings do not match the installed manifest.'
+    end
+    if status.state == LOAD_PENDING then
+        return true, 'pending', ''
+    end
+    if status.state == LOAD_FAILED or status.state == LOAD_CANCELED then
+        local reason = tostring(status.message or 'Collision terrain mapping failed.')
+        self:_cancel_generation()
+        return nil, 'error', reason
+    end
+    if status.state ~= LOAD_READY or not canonical_sha256(status.dat_sha256) then
+        return nil, 'error', 'Collision terrain returned malformed ready state.'
+    end
+    return true, 'ready', ''
 end
 
 function State:_query(player, destination, arrival_radius)

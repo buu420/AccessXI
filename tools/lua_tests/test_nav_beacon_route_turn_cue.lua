@@ -121,8 +121,15 @@ accessxi.nav_beacon_motion_z = 0
 local drifting = T({ x = 4, z = 2, y = 0, yaw = 0 })
 target = T({ x = 8, z = 0, y = 0, source = 'dat-collision-segment-steering' })
 delta = accessxi.nav_beacon_direction_delta(drifting, target, straight, 2, true)
-assert(math.abs(delta) > 0.5,
-    'a large real course drift was incorrectly treated as straight travel')
+_, prefix, bin = accessxi.nav_beacon_file_for_delta(delta)
+assert(math.abs(delta) < 0.001 and prefix == 'front' and bin == 6,
+    'sampled character movement curved an acquired straight-route beacon')
+
+local drifting_next = T({ x = 5, z = 2, y = 0, yaw = -1.2 })
+delta = accessxi.nav_beacon_direction_delta(drifting_next, target, straight, 2, true)
+_, prefix, bin = accessxi.nav_beacon_file_for_delta(delta)
+assert(math.abs(delta) < 0.001 and prefix == 'front' and bin == 6,
+    'successive straight-leg beacon pulses alternated between a correction and center')
 
 local poll_start = assert(source:find('function accessxi.poll_nav_beacon()', 1, true))
 local poll_end = assert(source:find('local function poll_nav_route()', poll_start, true))

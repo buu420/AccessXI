@@ -94472,32 +94472,6 @@ function accessxi.nav_beacon_direction_delta(player, route_target, points, index
         inbound = accessxi.nav_heading_to(corner, points[index + 1]);
     end
 
-    local px = tonumber(player.x);
-    local pz = tonumber(player.z);
-    local last_x = tonumber(accessxi.nav_beacon_motion_x);
-    local last_z = tonumber(accessxi.nav_beacon_motion_z);
-    if (px ~= nil and pz ~= nil) then
-        if (last_x == nil or last_z == nil) then
-            accessxi.nav_beacon_motion_x = px;
-            accessxi.nav_beacon_motion_z = pz;
-        else
-            local moved_x = px - last_x;
-            local moved_z = pz - last_z;
-            local moved = math.sqrt((moved_x * moved_x) + (moved_z * moved_z));
-            if (moved >= 0.75) then
-                accessxi.nav_beacon_motion_x = px;
-                accessxi.nav_beacon_motion_z = pz;
-                local motion_heading = accessxi.nav_atan2(moved_z, moved_x);
-                if (inbound ~= nil) then
-                    local course_delta = accessxi.nav_normalize_angle(inbound - motion_heading);
-                    if (math.abs(course_delta) >= (35 * math.pi / 180)) then
-                        return course_delta;
-                    end
-                end
-            end
-        end
-    end
-
     if (index <= 1 or index >= count or previous == nil or corner == nil
         or nav_distance(player, corner) > 5.0) then
         return 0;
@@ -94990,7 +94964,10 @@ function accessxi.poll_nav_beacon()
         return;
     end
 
-    local route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
+    local route_identity = accessxi.nav_route_points;
+    if (route_identity == nil or route_identity:len() < 2) then
+        route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
+    end
     if (accessxi.nav_beacon_route_identity ~= route_identity) then
         accessxi.nav_beacon_route_identity = route_identity;
         accessxi.nav_beacon_route_acquired = false;

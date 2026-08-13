@@ -43,6 +43,7 @@ local ensure_calls = 0
 local ffi_load_calls = 0
 local claim_calls = 0
 local logs = {}
+local direction_acquired = {}
 local primary_winmm = nil
 local reloaded_winmm = nil
 
@@ -99,7 +100,10 @@ function accessxi.nav_route_precise_override_active() return true end
 function accessxi.nav_apply_dynamic_obstacle(_, target) return target end
 function accessxi.nav_apply_wall_avoidance(_, target) return target end
 function accessxi.nav_arrival_radius() return 3 end
-function accessxi.nav_beacon_direction_delta() return 0 end
+function accessxi.nav_beacon_direction_delta()
+    direction_acquired[#direction_acquired + 1] = accessxi.nav_beacon_route_acquired
+    return 0
+end
 function accessxi.nav_beacon_file_for_delta()
     return 'beacon\\front_06.wav', 'front', 6, 0
 end
@@ -138,6 +142,7 @@ local function reset(results, start_now)
     ffi_load_calls = 0
     claim_calls = 0
     logs = {}
+    direction_acquired = {}
     now = start_now or 1000
     primary_winmm = new_winmm()
     reloaded_winmm = new_winmm()
@@ -197,5 +202,28 @@ assert(accessxi.nav_beacon_last_key == stable_key and stable_key == 'front:06',
     'the stable-direction replay unexpectedly depended on a direction-key change')
 assert(claim_calls == 2,
     'two successful stable-direction pulses did not make two audio claims')
+
+reset({ 1, 1, 1 }, 2000)
+accessxi.poll_nav_beacon()
+local original_points = accessxi.nav_route_points
+assert(accessxi.nav_beacon_route_identity == original_points,
+    'the original waypoint list was not established as the beacon route identity')
+accessxi.nav_beacon_route_acquired = true
+local replacement_points = T({
+    T({ zone = 245, x = 0, z = 0, y = 0 }),
+    T({ zone = 245, x = 0, z = 100, y = 0 }),
+})
+accessxi.nav_route_points = replacement_points
+now = 2520
+accessxi.poll_nav_beacon()
+assert(direction_acquired[2] == false,
+    'a replacement waypoint list reused the previous route alignment instead of reacquiring its new heading')
+assert(accessxi.nav_beacon_route_identity == replacement_points,
+    'beacon route identity did not follow the active waypoint list')
+accessxi.nav_beacon_route_acquired = true
+now = 3040
+accessxi.poll_nav_beacon()
+assert(direction_acquired[3] == true,
+    'an unchanged waypoint list restarted facing acquisition on every beacon pulse')
 
 print('navigation beacon playback checks passed')

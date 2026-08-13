@@ -129,8 +129,7 @@ bool traversable_capsule_segment(
 
     // FFXI's character controller steps over short collision lips.  This is a
     // local step, not permission to float a raised capsule across an arbitrary
-    // long segment.  The old unbounded raised sweep accepted the 14-yalm La
-    // Theine cliff approach even though the live controller stopped there.
+    // long segment.  Zones with confirmed bad long chords enforce this bound.
     if (!allow_long_step && horizontal_distance(start, end) > 1.5f)
     {
         return false;
@@ -499,7 +498,7 @@ struct RecastZone::Impl final
         const CollisionWorld& collision,
         const std::stop_token stop_token)
         : collision_world(&collision)
-        , allow_long_step_segments(mesh.zone_id != 102u)
+        , allow_long_step_segments(mesh.zone_id != 102u && mesh.zone_id != 244u)
         , reject_excessive_local_detours(mesh.zone_id == 102u)
     {
         if (mesh.vertices.empty() || mesh.triangles.empty())
@@ -703,7 +702,9 @@ RecastZone& RecastZone::operator=(RecastZone&&) noexcept = default;
 
 const std::string& RecastZone::settings_digest()
 {
-    static const std::string digest = "de3351ac99f62503c219ea5c3b53ecbc97ba23b503b9f8a0b62e7c29aeaa10a1";
+    // SHA-256 of the v6 semantic descriptor: the prior settings identity plus
+    // a 1.50-yalm raised-step span in confirmed problem zones 102 and 244.
+    static const std::string digest = "e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c";
     return digest;
 }
 

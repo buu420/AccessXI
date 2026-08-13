@@ -15,7 +15,7 @@ local ZONELINE_SUPPORT_ADVANCE = 0.10
 local ZONELINE_MAX_SWEEPS = 64
 local DLL_RELATIVE_PATH = 'third_party/collision/accessxi_collision_native.dll'
 local MANIFEST_HEADER = 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit'
-local SETTINGS_SHA256 = 'de3351ac99f62503c219ea5c3b53ecbc97ba23b503b9f8a0b62e7c29aeaa10a1'
+local SETTINGS_SHA256 = 'e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c'
 local RECAST_COMMIT = '9f4ce64458dfae86e1239c525ddc219c4e9e06f1'
 local BULLET_COMMIT = '63c4d67e337017f9d8b298c900e9aabdb69296e7'
 

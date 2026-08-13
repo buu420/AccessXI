@@ -4,6 +4,7 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ReaderPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $LuaPath = Join-Path $RepoRoot 'tools\lua51\lua5.1.exe'
 $LifecycleHarness = Join-Path $RepoRoot 'tools\lua_tests\test_collision_reader_lifecycle.lua'
+$HybridRouteHarness = Join-Path $RepoRoot 'tools\lua_tests\test_collision_route_hybrid.lua'
 $SegmentSteeringHarness = Join-Path $RepoRoot 'tools\lua_tests\test_dat_collision_segment_steering.lua'
 $BeaconTurnCueHarness = Join-Path $RepoRoot 'tools\lua_tests\test_nav_beacon_route_turn_cue.lua'
 $BeaconPlaybackHarness = Join-Path $RepoRoot 'tools\lua_tests\test_nav_beacon_playback.lua'
@@ -47,6 +48,11 @@ if ($CollisionIndex -lt 0 -or $LegacyIndex -lt 0 -or $CollisionIndex -gt $Legacy
 & $LuaPath $LifecycleHarness $ReaderPath
 if ($LASTEXITCODE -ne 0) {
     throw "Collision reader lifecycle harness failed with exit code $LASTEXITCODE."
+}
+
+& $LuaPath $HybridRouteHarness $ReaderPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Collision route hybrid harness failed with exit code $LASTEXITCODE."
 }
 
 & $LuaPath $SegmentSteeringHarness $ReaderPath

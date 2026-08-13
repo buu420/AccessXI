@@ -158,6 +158,38 @@ check(points[2].x == -90.0 and points[2].z == 145.0 and points[2].y == 6.25,
 check(points[1].source == 'dat-collision' and points[1].zone == 190,
     'returned waypoints must identify collision-backed terrain')
 
+-- A legacy navmesh corridor may only contribute a smoother route after every
+-- adjacent segment passes a direct player-sized DAT collision sweep.  This
+-- validation must not inherit the raised-step fallback used by the bounded
+-- zoneline-tail recovery path.
+native.sweep_calls = 0
+native.sweep_results = nil
+native.sweep_clear = true
+local candidate = {
+    { zone = 190, x = -115.0, z = 218.3, y = -0.05 },
+    { zone = 190, x = -90.0, z = 145.0, y = 6.25 },
+    { zone = 190, x = -45.0, z = 40.0, y = -0.50 },
+}
+local clear, clear_reason = state:validate_direct_route(candidate)
+check(clear == true and clear_reason == '' and native.sweep_calls == 2,
+    'a clear three-point candidate must use exactly one direct sweep per segment')
+check(native.last_sweep_radius == 0.40 and native.last_sweep_height == 1.80,
+    'candidate validation must use the installed player capsule dimensions')
+
+native.sweep_calls = 0
+native.sweep_results = {
+    { clear = true, fraction = 1, point = {}, normal = {} },
+    { clear = false, fraction = 0.25, point = {}, normal = {} },
+}
+clear, clear_reason = state:validate_direct_route(candidate)
+check(clear == false and tostring(clear_reason):find('segment 2', 1, true) ~= nil,
+    'a blocked candidate segment must fail closed with its exact segment index')
+check(native.sweep_calls == 2,
+    'blocked candidate validation must not attempt the raised-step fallback')
+native.sweep_results = nil
+native.sweep_clear = true
+native.sweep_calls = 0
+
 -- A Recast region split at a true zoneline may leave a short clear tail.
 -- Only the zoneline-specific API may widen the projected arrival radius, and
 -- it must validate the bounded tail with the native capsule sweep.

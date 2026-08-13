@@ -69391,6 +69391,22 @@ function accessxi.nav_dat_collision_destination_copy(point)
     };
 end
 
+function accessxi.nav_dat_collision_prefer_smoother(player, point, points)
+    if (type(accessxi.nav_collision_smoother_route) ~= 'function') then
+        return points;
+    end
+    local ok, selected = pcall(accessxi.nav_collision_smoother_route, player, point, points);
+    if (not ok) then
+        log_line('collision terrain smoother corridor failed safely: '
+            .. accessxi.escape_probe_log_text(selected));
+        return points;
+    end
+    if (type(selected) ~= 'table' or #selected <= 1) then
+        return points;
+    end
+    return selected;
+end
+
 function accessxi.nav_dat_collision_route(player, point)
     if (player == nil or point == nil
         or (tonumber(player.zone) or 0) <= 0
@@ -69424,6 +69440,7 @@ function accessxi.nav_dat_collision_route(player, point)
                 source = 'dat-collision',
             });
         end
+        copied = accessxi.nav_dat_collision_prefer_smoother(player, point, copied);
         accessxi.nav_dat_collision_pending = nil;
         log_line(('collision terrain route destination="%s" zone=%d count=%d'):fmt(
             accessxi.escape_probe_log_text(point.name or ''),
@@ -69572,6 +69589,7 @@ function accessxi.poll_nav_dat_collision(now)
             source = 'dat-collision',
         });
     end
+    copied = accessxi.nav_dat_collision_prefer_smoother(player, destination, copied);
     accessxi.nav_route_points = copied;
     accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, copied, destination);
     accessxi.nav_route_last_recalc_tick = now;
@@ -70518,6 +70536,181 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
         return points;
     end
     return points;
+end
+
+function accessxi.nav_collision_smoother_route(player, destination, collision_points)
+    if (type(collision_points) ~= 'table' or #collision_points < 5
+        or type(accessxi.nav_dat_collision_state) ~= 'table'
+        or type(accessxi.nav_dat_collision_state.validate_direct_route) ~= 'function'
+        or (tonumber(player ~= nil and player.zone) or 0) == 102) then
+        return collision_points;
+    end
+
+    local function copy_point(point)
+        return T{
+            zone = tonumber(point ~= nil and point.zone) or 0,
+            name = tostring(point ~= nil and point.name or 'Terrain waypoint'),
+            x = tonumber(point ~= nil and point.x) or 0,
+            z = tonumber(point ~= nil and point.z) or 0,
+            y = tonumber(point ~= nil and point.y) or 0,
+            kind = 'route',
+            source = 'dat-collision',
+        };
+    end
+
+    local function horizontal_distance(first, second)
+        local dx = (tonumber(second ~= nil and second.x) or 0)
+            - (tonumber(first ~= nil and first.x) or 0);
+        local dz = (tonumber(second ~= nil and second.z) or 0)
+            - (tonumber(first ~= nil and first.z) or 0);
+        return math.sqrt((dx * dx) + (dz * dz));
+    end
+
+    local function append_distinct(points, point)
+        local copied = copy_point(point);
+        local previous = points[#points];
+        if (previous == nil or horizontal_distance(previous, copied) >= 0.01) then
+            points:append(copied);
+        end
+    end
+
+    local function normalized(points)
+        local result = T{};
+        for _, point in ipairs(points or {}) do
+            append_distinct(result, point);
+        end
+        return result;
+    end
+
+    local function metrics(points)
+        local length = 0;
+        local maximum_turn = 0;
+        local cumulative_turn = 0;
+        for index = 2, #points do
+            length = length + horizontal_distance(points[index - 1], points[index]);
+        end
+        for index = 2, #points - 1 do
+            local incoming = accessxi.nav_atan2(
+                (tonumber(points[index].z) or 0) - (tonumber(points[index - 1].z) or 0),
+                (tonumber(points[index].x) or 0) - (tonumber(points[index - 1].x) or 0));
+            local outgoing = accessxi.nav_atan2(
+                (tonumber(points[index + 1].z) or 0) - (tonumber(points[index].z) or 0),
+                (tonumber(points[index + 1].x) or 0) - (tonumber(points[index].x) or 0));
+            local turn = math.abs(accessxi.nav_normalize_angle(outgoing - incoming));
+            if (turn > maximum_turn) then maximum_turn = turn; end
+            cumulative_turn = cumulative_turn + turn;
+        end
+        return length, maximum_turn, cumulative_turn;
+    end
+
+    local collision = normalized(collision_points);
+    local collision_length, collision_turn, collision_cumulative_turn = metrics(collision);
+    local severe_turn = 75 * math.pi / 180;
+    if (collision_turn < severe_turn) then
+        return collision_points;
+    end
+
+    local mesh_ok, mesh_points = pcall(nav_compute_mesh_route, player, destination, true);
+    if (not mesh_ok or type(mesh_points) ~= 'table' or #mesh_points < 2) then
+        return collision_points;
+    end
+    local mesh = normalized(mesh_points);
+    local candidates = {};
+    local minimum_turn_gain = 15 * math.pi / 180;
+    for collision_index = 2, #collision - 1 do
+        for mesh_index = 2, #mesh - 1 do
+            local bridge_length = horizontal_distance(
+                collision[collision_index], mesh[mesh_index]);
+            local vertical_gap = math.abs(
+                (tonumber(collision[collision_index].y) or 0)
+                - (tonumber(mesh[mesh_index].y) or 0));
+            if (bridge_length <= 6.0 and vertical_gap <= 1.5) then
+                local candidate = T{};
+                for index = 1, collision_index do
+                    append_distinct(candidate, collision[index]);
+                end
+                for index = mesh_index, #mesh do
+                    append_distinct(candidate, mesh[index]);
+                end
+                local length, maximum_turn, cumulative_turn = metrics(candidate);
+                if (length <= collision_length - 1.0
+                    and maximum_turn <= collision_turn - minimum_turn_gain
+                    and cumulative_turn <= collision_cumulative_turn * 0.80) then
+                    candidates[#candidates + 1] = {
+                        collision_index = collision_index,
+                        mesh_index = mesh_index,
+                        length = length,
+                        maximum_turn = maximum_turn,
+                        cumulative_turn = cumulative_turn,
+                    };
+                end
+            end
+        end
+    end
+    table.sort(candidates, function(first, second)
+        if (math.abs(first.cumulative_turn - second.cumulative_turn) > 0.0001) then
+            return first.cumulative_turn < second.cumulative_turn;
+        end
+        if (math.abs(first.maximum_turn - second.maximum_turn) > 0.0001) then
+            return first.maximum_turn < second.maximum_turn;
+        end
+        if (math.abs(first.length - second.length) > 0.0001) then
+            return first.length < second.length;
+        end
+        if (first.collision_index ~= second.collision_index) then
+            return first.collision_index < second.collision_index;
+        end
+        return first.mesh_index < second.mesh_index;
+    end);
+
+    for _, entry in ipairs(candidates) do
+        local bridge_start = collision[entry.collision_index];
+        local bridge_end = mesh[entry.mesh_index];
+        local bridge_ok, bridge_points = pcall(
+            nav_compute_mesh_route, bridge_start, bridge_end, true);
+        if (bridge_ok and type(bridge_points) == 'table') then
+            local bridge = normalized(bridge_points);
+            if (#bridge == 2
+                and horizontal_distance(bridge[1], bridge_start) <= 0.25
+                and horizontal_distance(bridge[2], bridge_end) <= 0.25) then
+                local candidate = T{};
+                for index = 1, entry.collision_index do
+                    append_distinct(candidate, collision[index]);
+                end
+                append_distinct(candidate, bridge[2]);
+                for index = entry.mesh_index + 1, #mesh do
+                    append_distinct(candidate, mesh[index]);
+                end
+                local length, maximum_turn, cumulative_turn = metrics(candidate);
+                local valid_ok, clear, reason = pcall(
+                    accessxi.nav_dat_collision_state.validate_direct_route,
+                    accessxi.nav_dat_collision_state,
+                    candidate);
+                if (valid_ok and clear == true
+                    and length <= collision_length - 1.0
+                    and maximum_turn <= collision_turn - minimum_turn_gain
+                    and cumulative_turn <= collision_cumulative_turn * 0.80) then
+                    log_line(('collision terrain smoother corridor selected '
+                        .. 'collision_count=%d hybrid_count=%d collision_length=%.2f '
+                        .. 'hybrid_length=%.2f collision_turn=%.1f hybrid_turn=%.1f '
+                        .. 'collision_cumulative_turn=%.1f hybrid_cumulative_turn=%.1f'):fmt(
+                        #collision,
+                        #candidate,
+                        collision_length,
+                        length,
+                        collision_turn * 180 / math.pi,
+                        maximum_turn * 180 / math.pi,
+                        collision_cumulative_turn * 180 / math.pi,
+                        cumulative_turn * 180 / math.pi));
+                    return candidate;
+                end
+                if (valid_ok and nav_clean_field(reason) ~= '') then
+                    accessxi.nav_route_last_reject_reason = nav_clean_field(reason);
+                end
+            end
+        end
+    end
+    return collision_points;
 end
 
 function accessxi.nav_compute_mesh_endpoint_approach(player, point)

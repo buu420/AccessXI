@@ -63,6 +63,7 @@ local objective_progress = {};
 local pending_objective_interaction = nil;
 local active_row_cache = {};
 local active_row_cache_owner = '';
+local active_build_guide_failed = false;
 local source_derivation_cache = {
     revision = nil,
     source_steps = {},
@@ -1133,6 +1134,7 @@ local function source_route_rows(native_key)
     end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
+        active_build_guide_failed = true;
         return T{};
     end
     local steps, steps_ready = objective_source_steps(native_key);
@@ -1274,6 +1276,7 @@ objective_source_steps = function(native_key)
     end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
+        active_build_guide_failed = true;
         return T{}, false;
     end
     local ok, steps = pcall(
@@ -1281,6 +1284,7 @@ objective_source_steps = function(native_key)
         accessxi.objective_guides,
         native_key);
     if (not ok or type(steps) ~= 'table') then
+        active_build_guide_failed = true;
         return T{}, false;
     end
     local result = T{};
@@ -1847,6 +1851,7 @@ local function objective_guide_destinations(native_key)
     native_key = clean(native_key);
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.objective_destinations) ~= 'function') then
+        active_build_guide_failed = true;
         return T{};
     end
     local ok, destinations = pcall(
@@ -1860,6 +1865,8 @@ local function objective_guide_destinations(native_key)
                 snapshot:append(deep_copy(destination));
             end
         end
+    else
+        active_build_guide_failed = true;
     end
     return snapshot;
 end
@@ -2836,6 +2843,7 @@ function accessxi.nav_mission_quest_active_items(category_key)
     end
 
     ensure_catalog_index();
+    active_build_guide_failed = false;
     local rows = category_key == 'mission' and active_missions() or active_quests();
     owner = table.concat({
         character_identity(), tostring(player_world_id()), tostring(objective_session_epoch()),
@@ -2846,7 +2854,11 @@ function accessxi.nav_mission_quest_active_items(category_key)
     end
     signature = active_state_signature(category_key);
     rows = stamp_active_items(category_key, rows);
-    active_row_cache[category_key] = { signature = signature, rows = rows };
+    if (active_build_guide_failed) then
+        active_row_cache[category_key] = nil;
+    else
+        active_row_cache[category_key] = { signature = signature, rows = rows };
+    end
     return rows;
 end
 

@@ -1372,7 +1372,6 @@ accessxi.objective_guides.source_route_steps = function()
 end
 accessxi.nav_mission_quest_active_items('mission')
 accessxi.objective_guides.source_route_steps = saved_source_route_steps
-accessxi.inventory_packet_key = 'source-backed:transient-provider-retry'
 local source_orcish = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(source_orcish, 'Smash the Orcish Scouts') == 2,
     'a transient source-guide failure was cached instead of retrying the provider')

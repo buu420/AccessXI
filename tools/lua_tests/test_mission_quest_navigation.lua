@@ -435,6 +435,9 @@ accessxi = {
         T{ zone = 230, zone_name = "Southern San d'Oria", name = "Tales' Beginning", x = -35.660, z = 31.955, y = 0,
             kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:230:17720021',
             raw_identity = 'lsb:npc_list:17720021', raw_spawn_ids = T{ 17720021 } },
+        T{ zone = 234, zone_name = 'Bastok Mines', name = "Tales' Beginning", x = 21.308, z = -96.862, y = 0,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:234:17736073',
+            raw_identity = 'lsb:npc_list:17736073', raw_spawn_ids = T{ 17736073 } },
         T{ zone = 234, name = 'Rashid', x = -8.444, z = -123.575, y = -1.000, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 143, name = 'Amber Quadav', x = 142.000, z = 154.000, y = -0.076, kind = 'enemy', source = 'current-nav-data' },
         T{ zone = 143, name = 'Onyx Quadav', x = 220.313, z = 88.193, y = -32.280, kind = 'enemy', source = 'current-nav-data' },
@@ -1922,6 +1925,8 @@ accessxi.mission_packet_nations_complete = words_with()
 current_rank_points = 65535
 assert(find(accessxi.nav_mission_quest_active_items('mission'), 'The Zeruhn Report') == nil)
 current_rank_points = 0
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'The Zeruhn Report') ~= nil,
+    'a rank-points change reused stale available-mission rows')
 
 -- Cached, mismatched, incomplete, or contradictory completion evidence never
 -- creates an available mission row or a route.
@@ -2012,6 +2017,13 @@ assert(available_rov.objective_target ~= nil
     and available_rov.objective_target.name == "Tales' Beginning"
     and available_rov.objective_target.zone == 230,
     'postponed RoV did not choose the exact Tales\' Beginning in the current starter city')
+accessxi.nav_current_position = { zone = 234, x = 0, z = 0, y = 0 }
+local available_rov_bastok = assert(find(
+    accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel'))
+assert(available_rov_bastok.objective_target ~= nil
+    and available_rov_bastok.objective_target.name == "Tales' Beginning"
+    and available_rov_bastok.objective_target.zone == 234,
+    'a zone change reused the stale postponed RoV starter-city target')
 accessxi.mission_packet_main.tales = 0
 assert(find(accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel') == nil,
     'RoV was advertised without a live active or postponed-start packet state')

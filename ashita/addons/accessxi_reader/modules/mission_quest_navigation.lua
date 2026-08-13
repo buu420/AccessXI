@@ -2730,6 +2730,18 @@ local function quest_packet_content_signature()
     return table.concat(values, '\t');
 end
 
+local function mission_rank_state_signature()
+    if (type(accessxi.current_nation_mission_rank_state) ~= 'function') then return ''; end
+    local ok, state = pcall(accessxi.current_nation_mission_rank_state);
+    if (not ok or type(state) ~= 'table') then return ''; end
+    return table.concat({
+        tostring(tonumber(state.nation) or -1),
+        tostring(tonumber(state.rank) or 0),
+        tostring(tonumber(state.rank_points) or 0),
+        clean(state.identity):lower(),
+    }, ',');
+end
+
 local function active_state_signature(category_key)
     category_key = clean(category_key):lower();
     local values = {
@@ -2745,6 +2757,9 @@ local function active_state_signature(category_key)
     };
     if (category_key == 'mission') then
         values[#values + 1] = mission_packet_content_signature();
+        values[#values + 1] = mission_rank_state_signature();
+        values[#values + 1] = tostring(tonumber(type(accessxi.nav_current_position) == 'table'
+            and accessxi.nav_current_position.zone or nil) or 0);
     elseif (category_key == 'quest') then
         values[#values + 1] = quest_packet_content_signature();
     end

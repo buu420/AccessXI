@@ -103,6 +103,43 @@ local approach = T({
 })
 local spoken = {}
 
+-- A stable current zone must warm collision terrain once without creating a
+-- destination, route, or spoken announcement.  La Theine keeps its immediate
+-- navmesh path and must not start the expensive generic terrain builder.
+local preload_calls = {}
+accessxi.nav_active = false
+accessxi.nav_dat_collision_pending = nil
+accessxi.nav_dat_collision_preload_zone = 0
+accessxi.nav_dat_collision_preload_last_tick = 0
+accessxi.nav_dat_collision_state = {
+    preload = function(_, zone)
+        preload_calls[#preload_calls + 1] = zone
+        return true, 'pending', ''
+    end,
+}
+nav_cached_player_position = function() return player end
+speak = function(text) spoken[#spoken + 1] = text end
+check(type(accessxi.poll_nav_dat_collision_preload) == 'function',
+    'reader has no silent current-zone collision preload poll')
+check(accessxi.poll_nav_dat_collision_preload(1000) == true,
+    'stable zone did not start its silent collision terrain preload')
+check(#preload_calls == 1 and preload_calls[1] == 101,
+    'stable zone preload did not bind the current player zone exactly once')
+check(accessxi.poll_nav_dat_collision_preload(2000) == false and #preload_calls == 1,
+    'repeated stable-zone polls restarted the same preload')
+check(accessxi.nav_dat_collision_pending == nil and accessxi.nav_active == false
+    and accessxi.nav_destination == nil and #spoken == 0,
+    'silent preload created route state or speech')
+
+player.zone = 245
+check(accessxi.poll_nav_dat_collision_preload(3000) == true
+    and #preload_calls == 2 and preload_calls[2] == 245,
+    'a new stable zone did not start exactly one new preload')
+player.zone = 102
+check(accessxi.poll_nav_dat_collision_preload(4000) == false and #preload_calls == 2,
+    'La Theine must not start the generic collision terrain preload')
+player.zone = 101
+
 accessxi.nav_dat_collision_state = {
     route = function(_, _, point)
         if point.name == approach.name then

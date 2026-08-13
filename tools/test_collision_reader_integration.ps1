@@ -26,8 +26,14 @@ Require-Literal $Reader 'accessxi.nav_dat_collision_route(player, point)' `
     'Generic same-zone routes do not call collision navigation.'
 Require-Literal $Reader 'function accessxi.poll_nav_dat_collision(now)' `
     'Reader does not poll asynchronous collision terrain.'
+Require-Literal $Reader 'function accessxi.poll_nav_dat_collision_preload(now)' `
+    'Reader does not expose silent current-zone collision terrain preload.'
+Require-Literal $Reader 'accessxi.poll_nav_dat_collision_preload(now);' `
+    'Stable-zone polling does not invoke collision terrain preload.'
 Require-Literal $Reader "accessxi.nav_dat_collision_state:cancel('zone-change')" `
     'Zone reset does not cancel collision terrain work.'
+Require-Literal $Reader 'accessxi.nav_dat_collision_preload_zone = 0;' `
+    'Zone reset does not release the collision preload attempt key.'
 Require-Literal $Reader 'accessxi.nav_dat_collision_state:shutdown()' `
     'Addon unload does not destroy the collision context.'
 Require-Literal $Reader 'accessxi.nav_recorded_survey_zoneline_edge_priority(edge)' `

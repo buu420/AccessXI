@@ -1164,6 +1164,8 @@ local accessxi = T{
     nav_dat_collision_failure_reason = '',
     nav_dat_collision_pending = nil,
     nav_dat_collision_last_poll_tick = 0,
+    nav_dat_collision_preload_zone = 0,
+    nav_dat_collision_preload_last_tick = 0,
     nav_beacon_parent_dir = accessxi_paths.addon_path('sounds'),
     nav_beacon_compat_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
     nav_beacon_hrtf_dir = accessxi_paths.addon_path('sounds', 'nav_beacon_hrtf'),
@@ -68981,6 +68983,8 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
         accessxi.nav_dat_collision_state:cancel('zone-change');
     end
     accessxi.nav_dat_collision_pending = nil;
+    accessxi.nav_dat_collision_preload_zone = 0;
+    accessxi.nav_dat_collision_preload_last_tick = 0;
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('zone-change');
     end
@@ -69366,6 +69370,62 @@ function accessxi.nav_dat_collision_bootstrap()
     accessxi.nav_dat_collision_state = state;
     accessxi.nav_dat_collision_failure_reason = '';
     log_line('collision terrain navigation ready');
+    return true;
+end
+
+function accessxi.poll_nav_dat_collision_preload(now)
+    now = tonumber(now) or tick();
+    if (accessxi.nav_active == true or accessxi.nav_dat_collision_pending ~= nil) then
+        return false;
+    end
+    if ((now - (tonumber(accessxi.nav_dat_collision_preload_last_tick) or 0)) < 500) then
+        return false;
+    end
+
+    local player = nav_cached_player_position();
+    local zone = tonumber(player ~= nil and player.zone) or 0;
+    if (zone <= 0 or zone == 102
+        or (tonumber(accessxi.nav_dat_collision_preload_zone) or 0) == zone) then
+        return false;
+    end
+    accessxi.nav_dat_collision_preload_last_tick = now;
+
+    if (accessxi.nav_dat_collision_state == nil
+        and not accessxi.nav_dat_collision_bootstrap()) then
+        return false;
+    end
+    if (type(accessxi.nav_dat_collision_state) ~= 'table'
+        or type(accessxi.nav_dat_collision_state.preload) ~= 'function') then
+        accessxi.nav_dat_collision_preload_zone = zone;
+        log_line(('collision terrain preload unavailable zone=%d'):fmt(zone));
+        return false;
+    end
+
+    local ok, started, mode, message = pcall(
+        accessxi.nav_dat_collision_state.preload,
+        accessxi.nav_dat_collision_state,
+        zone);
+    mode = tostring(mode or 'error');
+    message = nav_clean_field(message);
+    if (not ok) then
+        message = tostring(started);
+        started = nil;
+        mode = 'error';
+    end
+    if (mode == 'busy') then
+        return false;
+    end
+
+    accessxi.nav_dat_collision_preload_zone = zone;
+    if (started ~= true) then
+        log_line(('collision terrain preload failed zone=%d reason="%s"'):fmt(
+            zone,
+            accessxi.escape_probe_log_text(message)));
+        return false;
+    end
+    log_line(('collision terrain preload zone=%d mode=%s'):fmt(
+        zone,
+        accessxi.escape_probe_log_text(mode)));
     return true;
 end
 
@@ -74414,6 +74474,13 @@ local function nav_menu_start_route()
     accessxi.nav_route_live_replan_last_key = '';
     accessxi.nav_route_live_replan_last_tick = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, item);
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        local text = 'Safe route is still preparing. Navigation will start automatically.';
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        log_line('nav menu start pending ' .. text);
+        return;
+    end
     local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, item);
     if (accessxi.nav_route_points:len() <= 1
         and unsafe_route_text ~= ''
@@ -96884,6 +96951,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         poll_nav_position();
         accessxi.nav_route_recorder_poll(now);
     end
+    accessxi.poll_nav_dat_collision_preload(now);
     accessxi.poll_mission_quest_state_changes(now);
     accessxi.poll_objective_inventory_refresh(now);
     accessxi.poll_compass_hotkey();

@@ -70,7 +70,7 @@ Expected: FAIL because the reader preload poll and truthful menu branch are abse
 
 - [ ] **Step 3: Implement minimal reader orchestration**
 
-Add per-zone attempted state, reset it in `nav_reset_zone_state`, call preload after navigation hotkeys and before pending-route polling, and add a pending return immediately after menu route computation. Log preload lifecycle without speaking.
+Add per-zone attempted state, reset it in `nav_reset_zone_state`, call preload immediately after settled position polling, and add a pending return immediately after menu route computation. Log preload lifecycle without speaking.
 
 - [ ] **Step 4: Run focused reader tests to verify GREEN**
 

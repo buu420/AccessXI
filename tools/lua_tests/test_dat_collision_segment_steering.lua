@@ -373,9 +373,9 @@ local upper_straight_player = T({ zone = 244, x = 2, z = 1.5, y = 0 })
 local upper_straight_target = accessxi.nav_precise_steering_target(
     upper_straight_player, upper_straight_points, 2, 5)
 assert(upper_straight_target ~= nil
-        and math.abs(upper_straight_target.x - 7) < 0.001
+        and math.abs(upper_straight_target.x - 11) < 0.001
         and math.abs(upper_straight_target.z) < 0.001,
-    'DAT collision steering still overcorrects with a two-yalm straight-leg target')
+    'DAT collision steering did not use the measured nine-yalm straight-leg target')
 
 local upper_corner_points = T({
     T({ zone = 244, x = 0, z = 0, y = 0, source = 'dat-collision' }),

@@ -17,12 +17,20 @@ local function block(first_marker, last_marker)
     return source:sub(first, last - 1)
 end
 
+local reset_source = ''
+if (source:find('function accessxi.nav_beacon_reset_direction_state', 1, true) ~= nil) then
+    reset_source = block(
+        'function accessxi.nav_beacon_reset_direction_state',
+        'function accessxi.nav_beacon_direction_delta')
+end
+
 local selected = table.concat({
     block('function accessxi.nav_normalize_angle', 'function accessxi.nav_atan2'),
     block('function accessxi.nav_atan2', 'function accessxi.nav_capitalize'),
     block('function accessxi.nav_heading_to', 'function accessxi.nav_relative_turn_phrase'),
     block('function accessxi.nav_project_to_segment', 'function accessxi.nav_route_live_match'),
     block('function accessxi.nav_indexed_lookahead_target', 'function accessxi.nav_sync_route_index'),
+    reset_source,
     block('function accessxi.nav_beacon_direction_delta', 'function accessxi.nav_beacon_file_for_delta'),
     block('function accessxi.nav_beacon_file_for_delta', 'function accessxi.nav_wall_distance'),
 }, '\n')
@@ -35,6 +43,9 @@ function string.fmt(self, ...) return string.format(self, ...) end
 accessxi = {
     nav_beacon_dir = 'beacon',
     nav_beacon_route_acquired = true,
+    nav_beacon_centered = false,
+    nav_beacon_center_index = 2,
+    nav_beacon_previous_delta = nil,
     nav_beacon_motion_x = nil,
     nav_beacon_motion_z = nil,
     nav_route_point_index = 2,
@@ -49,6 +60,27 @@ end
 local chunk, reason = loadstring(selected, '@nav-beacon-route-turn-cue')
 assert(chunk, reason)
 chunk()
+
+assert(type(accessxi.nav_beacon_reset_direction_state) == 'function',
+    'beacon direction stabilization has no lifecycle reset helper')
+accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_centered = true
+accessxi.nav_beacon_center_index = 7
+accessxi.nav_beacon_previous_delta = 0.1
+accessxi.nav_beacon_motion_x = 12
+accessxi.nav_beacon_motion_z = 34
+accessxi.nav_beacon_route_identity = T({})
+accessxi.nav_beacon_reset_direction_state()
+assert(accessxi.nav_beacon_route_acquired ~= true
+        and accessxi.nav_beacon_centered ~= true
+        and accessxi.nav_beacon_center_index == nil
+        and accessxi.nav_beacon_previous_delta == nil
+        and accessxi.nav_beacon_motion_x == nil
+        and accessxi.nav_beacon_motion_z == nil
+        and accessxi.nav_beacon_route_identity == nil,
+    'beacon direction stabilization leaked across a route lifecycle reset')
+accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_center_index = 2
 
 local straight = T({
     T({ x = 0, z = 0, y = 0 }),
@@ -82,6 +114,80 @@ player.yaw = -1.3
 delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
 assert(math.abs(delta + 1.3) < 0.001,
     'route acquisition suppressed later facing-relative beacon guidance')
+
+-- Once the route has been acquired, natural walking wobble should not move the
+-- sound out of the center on every pulse.  The wider exit threshold prevents
+-- chatter at the boundary, while the tighter entry threshold requires the
+-- player to be genuinely aligned before the beacon recenters.
+accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_centered = false
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = nil
+player.yaw = 10 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta) < 0.001 and accessxi.nav_beacon_centered == true,
+    'an acquired route did not center a ten-degree natural walking wobble')
+
+player.yaw = 17 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta) < 0.001 and accessxi.nav_beacon_centered == true,
+    'the centered beacon chattered before leaving its eighteen-degree envelope')
+
+player.yaw = 19 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta - player.yaw) < 0.001 and accessxi.nav_beacon_centered ~= true,
+    'a meaningful turn was hidden by the acquired-route center envelope')
+
+player.yaw = 14 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta - player.yaw) < 0.001 and accessxi.nav_beacon_centered ~= true,
+    'the beacon recentered before the player was genuinely aligned')
+
+player.yaw = 11 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta) < 0.001 and accessxi.nav_beacon_centered == true,
+    'the beacon did not reenter center inside the twelve-degree envelope')
+
+accessxi.nav_beacon_centered = false
+accessxi.nav_beacon_previous_delta = 17 * math.pi / 180
+player.yaw = -17 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta) < 0.001 and accessxi.nav_beacon_centered == true,
+    'a small left-to-right center crossing still produced drunk-walk feedback')
+
+accessxi.nav_beacon_centered = false
+accessxi.nav_beacon_previous_delta = 30 * math.pi / 180
+player.yaw = -30 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta - player.yaw) < 0.001 and accessxi.nav_beacon_centered ~= true,
+    'a real thirty-degree direction change was swallowed as center jitter')
+
+accessxi.nav_beacon_centered = true
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = 0
+player.yaw = 10 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 3, true)
+assert(math.abs(delta - player.yaw) < 0.001
+        and accessxi.nav_beacon_centered ~= true
+        and accessxi.nav_beacon_center_index == 3,
+    'waypoint handoff did not bypass and reset center stabilization')
+
+accessxi.nav_beacon_centered = true
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = 0
+target.source = 'live-route-return'
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta - player.yaw) < 0.001 and accessxi.nav_beacon_centered ~= true,
+    'explicit route recovery was muted by ordinary center stabilization')
+target.source = 'dat-collision-segment-steering'
+
+accessxi.nav_beacon_route_acquired = false
+accessxi.nav_beacon_centered = true
+accessxi.nav_beacon_center_index = 2
+player.yaw = 10 * math.pi / 180
+delta = accessxi.nav_beacon_direction_delta(player, target, straight, 2, true)
+assert(math.abs(delta - player.yaw) < 0.001 and accessxi.nav_beacon_route_acquired == true,
+    'initial route acquisition was muted by ordinary center stabilization')
 
 local left = T({
     T({ x = 0, z = 0, y = 0 }),

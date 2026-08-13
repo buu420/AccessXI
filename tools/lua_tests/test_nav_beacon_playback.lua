@@ -24,6 +24,7 @@ end
 -- delegates playback to nav_beacon_play, load the real helper into this harness
 -- so its retry and success bookkeeping are exercised rather than mocked.
 local playback_source = function_block('function accessxi.nav_beacon_play')
+local direction_reset_source = function_block('function accessxi.nav_beacon_reset_direction_state')
 local poll_source = function_block('function accessxi.poll_nav_beacon()')
 assert(poll_source ~= '', 'missing navigation beacon polling function')
 
@@ -78,6 +79,9 @@ accessxi = {
     nav_route_start_point = T({ zone = 245, x = 0, z = 0, y = 0 }),
     nav_beacon_route_identity = nil,
     nav_beacon_route_acquired = true,
+    nav_beacon_centered = false,
+    nav_beacon_center_index = nil,
+    nav_beacon_previous_delta = nil,
     nav_beacon_motion_x = nil,
     nav_beacon_motion_z = nil,
     nav_beacon_last_tick = 0,
@@ -137,7 +141,9 @@ ffi = {
     end,
 }
 
-local chunk, reason = loadstring(playback_source .. '\n' .. poll_source, '@nav-beacon-playback')
+local chunk, reason = loadstring(
+    playback_source .. '\n' .. direction_reset_source .. '\n' .. poll_source,
+    '@nav-beacon-playback')
 assert(chunk, reason)
 chunk()
 
@@ -162,6 +168,9 @@ local function reset(results, start_now)
     accessxi.nav_beacon_bank = 'hrtf'
     accessxi.nav_beacon_route_identity = accessxi.nav_route_start_point
     accessxi.nav_beacon_route_acquired = true
+    accessxi.nav_beacon_centered = false
+    accessxi.nav_beacon_center_index = nil
+    accessxi.nav_beacon_previous_delta = nil
     accessxi.beacon_audio_busy_source = ''
     accessxi.beacon_audio_busy_until = 0
 end
@@ -252,6 +261,9 @@ local original_points = accessxi.nav_route_points
 assert(accessxi.nav_beacon_route_identity == original_points,
     'the original waypoint list was not established as the beacon route identity')
 accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_centered = true
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = 0
 local replacement_points = T({
     T({ zone = 245, x = 0, z = 0, y = 0 }),
     T({ zone = 245, x = 0, z = 100, y = 0 }),
@@ -263,6 +275,10 @@ assert(direction_acquired[2] == false,
     'a replacement waypoint list reused the previous route alignment instead of reacquiring its new heading')
 assert(accessxi.nav_beacon_route_identity == replacement_points,
     'beacon route identity did not follow the active waypoint list')
+assert(accessxi.nav_beacon_centered ~= true
+        and accessxi.nav_beacon_center_index == nil
+        and accessxi.nav_beacon_previous_delta == nil,
+    'a replacement waypoint list retained stale center stabilization')
 accessxi.nav_beacon_route_acquired = true
 now = 3040
 accessxi.poll_nav_beacon()

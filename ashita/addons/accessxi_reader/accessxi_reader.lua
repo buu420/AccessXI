@@ -1182,6 +1182,9 @@ local accessxi = T{
     nav_beacon_last_play_failure_key = '',
     nav_beacon_route_identity = nil,
     nav_beacon_route_acquired = false,
+    nav_beacon_centered = false,
+    nav_beacon_center_index = nil,
+    nav_beacon_previous_delta = nil,
     nav_beacon_motion_x = nil,
     nav_beacon_motion_z = nil,
     nav_route_poll_ms = 850,
@@ -69013,6 +69016,7 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74185,6 +74189,7 @@ local function nav_menu_start_route()
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74548,6 +74553,7 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74818,6 +74824,7 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -76326,6 +76333,7 @@ end
 nav_route_stop = function ()
     accessxi.nav_clear_zone_search();
     accessxi.nav_clear_zoning_watch('route-stop');
+    accessxi.nav_beacon_reset_direction_state();
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('route-stop');
     end
@@ -94418,7 +94426,9 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
     if (narrow_collision_segment) then
         effective_lookahead = math.min(2.0, tonumber(effective_lookahead) or 5);
     elseif (collision_segment) then
-        effective_lookahead = math.min(5.0, tonumber(effective_lookahead) or 5);
+        -- Stay on the validated segment, but look far enough ahead that a
+        -- small lateral walking wobble does not command a sharp correction.
+        effective_lookahead = 9.0;
     end
     local px = tonumber(player.x) or 0;
     local pz = tonumber(player.z) or 0;
@@ -94587,6 +94597,16 @@ function accessxi.nav_beacon_route_target(player)
     return destination;
 end
 
+function accessxi.nav_beacon_reset_direction_state()
+    accessxi.nav_beacon_route_identity = nil;
+    accessxi.nav_beacon_route_acquired = false;
+    accessxi.nav_beacon_centered = false;
+    accessxi.nav_beacon_center_index = nil;
+    accessxi.nav_beacon_previous_delta = nil;
+    accessxi.nav_beacon_motion_x = nil;
+    accessxi.nav_beacon_motion_z = nil;
+end
+
 function accessxi.nav_beacon_direction_delta(player, route_target, points, index, route_geometry)
     local target_heading = accessxi.nav_heading_to(player, route_target);
     local yaw = player ~= nil and tonumber(player.yaw) or nil;
@@ -94598,6 +94618,7 @@ function accessxi.nav_beacon_direction_delta(player, route_target, points, index
     end
 
     local raw_delta = accessxi.nav_normalize_angle(target_heading + yaw);
+    local acquired_before = accessxi.nav_beacon_route_acquired == true;
     local source = tostring(route_target ~= nil and route_target.source or '');
     local explicit_correction = source == 'live-route-return'
         or source == 'dynamic-obstacle'
@@ -94605,9 +94626,46 @@ function accessxi.nav_beacon_direction_delta(player, route_target, points, index
         or source == 'lathine-local-safe';
     local count = points ~= nil and points:len() or 0;
     if (route_geometry == true and count >= 2 and not explicit_correction
-        and accessxi.nav_beacon_route_acquired ~= true
+        and not acquired_before
         and math.abs(raw_delta) <= (20 * math.pi / 180)) then
         accessxi.nav_beacon_route_acquired = true;
+    end
+
+    local ordinary_tracking = route_geometry == true and count >= 2
+        and not explicit_correction and acquired_before;
+    if (not ordinary_tracking) then
+        accessxi.nav_beacon_centered = false;
+        accessxi.nav_beacon_center_index = nil;
+        accessxi.nav_beacon_previous_delta = nil;
+        return raw_delta;
+    end
+
+    local current_index = tonumber(index) or 0;
+    if (accessxi.nav_beacon_center_index ~= current_index) then
+        accessxi.nav_beacon_centered = false;
+        accessxi.nav_beacon_center_index = current_index;
+        accessxi.nav_beacon_previous_delta = raw_delta;
+        return raw_delta;
+    end
+
+    local center_enter = 12 * math.pi / 180;
+    local center_exit = 18 * math.pi / 180;
+    local magnitude = math.abs(raw_delta);
+    local previous_delta = tonumber(accessxi.nav_beacon_previous_delta);
+    local center_crossing = previous_delta ~= nil
+        and (previous_delta * raw_delta) < 0
+        and math.abs(previous_delta) <= center_exit
+        and magnitude <= center_exit;
+    accessxi.nav_beacon_previous_delta = raw_delta;
+
+    if (accessxi.nav_beacon_centered == true) then
+        if (magnitude <= center_exit) then
+            return 0;
+        end
+        accessxi.nav_beacon_centered = false;
+    elseif (magnitude <= center_enter or center_crossing) then
+        accessxi.nav_beacon_centered = true;
+        return 0;
     end
     return raw_delta;
 end
@@ -95088,10 +95146,8 @@ function accessxi.poll_nav_beacon()
         route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
     end
     if (accessxi.nav_beacon_route_identity ~= route_identity) then
+        accessxi.nav_beacon_reset_direction_state();
         accessxi.nav_beacon_route_identity = route_identity;
-        accessxi.nav_beacon_route_acquired = false;
-        accessxi.nav_beacon_motion_x = nil;
-        accessxi.nav_beacon_motion_z = nil;
     end
     local route_geometry = not drop_handled and not transport_waiting
         and accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() > 1;

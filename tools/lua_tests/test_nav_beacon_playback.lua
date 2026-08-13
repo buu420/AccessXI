@@ -39,6 +39,7 @@ local route_target = T({ zone = 245, x = 8, z = 0, y = 0, source = 'dat-collisio
 
 local play_results = {}
 local play_calls = 0
+local play_paths = {}
 local ensure_calls = 0
 local ffi_load_calls = 0
 local claim_calls = 0
@@ -58,7 +59,8 @@ end
 
 local function new_winmm()
     return {
-        PlaySoundW = function ()
+        PlaySoundW = function (path)
+            play_paths[#play_paths + 1] = tostring(path)
             return next_play_result()
         end,
     }
@@ -80,6 +82,10 @@ accessxi = {
     nav_beacon_motion_z = nil,
     nav_beacon_last_tick = 0,
     nav_beacon_last_key = '',
+    nav_beacon_compat_dir = 'beacon',
+    nav_beacon_hrtf_dir = 'beacon_hrtf',
+    nav_beacon_dir = 'beacon_hrtf',
+    nav_beacon_bank = 'hrtf',
 }
 
 function tick() return now end
@@ -105,7 +111,7 @@ function accessxi.nav_beacon_direction_delta()
     return 0
 end
 function accessxi.nav_beacon_file_for_delta()
-    return 'beacon\\front_06.wav', 'front', 6, 0
+    return accessxi.nav_beacon_dir .. '\\front_06.wav', 'front', 6, 0
 end
 function accessxi.nav_beacon_ensure_files()
     ensure_calls = ensure_calls + 1
@@ -138,6 +144,7 @@ chunk()
 local function reset(results, start_now)
     play_results = results
     play_calls = 0
+    play_paths = {}
     ensure_calls = 0
     ffi_load_calls = 0
     claim_calls = 0
@@ -151,6 +158,8 @@ local function reset(results, start_now)
     accessxi.nav_beacon_last_tick = 0
     accessxi.nav_beacon_last_attempt_tick = 0
     accessxi.nav_beacon_last_key = ''
+    accessxi.nav_beacon_dir = accessxi.nav_beacon_hrtf_dir
+    accessxi.nav_beacon_bank = 'hrtf'
     accessxi.nav_beacon_route_identity = accessxi.nav_route_start_point
     accessxi.nav_beacon_route_acquired = true
     accessxi.beacon_audio_busy_source = ''
@@ -159,19 +168,23 @@ end
 
 -- Win32 BOOL arrives through LuaJIT FFI as an integer-like value. In Lua, zero
 -- is truthy, so use 0/1 here to catch wrappers that only test Lua truthiness.
-reset({ 0, 0 })
+reset({ 0, 0, 0 })
 accessxi.poll_nav_beacon()
 assert(accessxi.nav_beacon_last_tick == 0,
     'PlaySoundW false was recorded as a successful navigation beacon pulse')
 assert(claim_calls == 0,
     'PlaySoundW false incorrectly claimed the shared beacon audio channel')
-assert(play_calls == 2,
-    'a failed PlaySoundW call did not get exactly one immediate retry')
+assert(play_calls == 3,
+    'failed HRTF playback did not try one reload and one compatibility pulse')
+assert(play_paths[1] == 'beacon_hrtf\\front_06.wav'
+        and play_paths[2] == 'beacon_hrtf\\front_06.wav'
+        and play_paths[3] == 'beacon\\front_06.wav',
+    'HRTF recovery did not retry its exact asset before compatibility fallback')
 assert(ensure_calls >= 2 or ffi_load_calls >= 1,
     'a failed PlaySoundW call did not invoke the winmm reload path')
 now = 1100
 accessxi.poll_nav_beacon()
-assert(play_calls == 2,
+assert(play_calls == 3,
     'failed beacon playback retried every frame instead of respecting the 520ms pulse interval')
 
 reset({ 0, 1 })
@@ -184,6 +197,36 @@ assert(accessxi.nav_beacon_last_tick == now,
     'a successful retry did not record the navigation beacon pulse')
 assert(claim_calls == 1,
     'a successful retry did not claim the audio channel exactly once')
+assert(accessxi.nav_beacon_bank == 'hrtf',
+    'a recovered HRTF pulse incorrectly switched to compatibility audio')
+
+reset({ 0, 0, 1 }, 1800)
+accessxi.poll_nav_beacon()
+assert(play_calls == 3,
+    'failed HRTF playback did not make exactly one compatibility attempt')
+assert(accessxi.nav_beacon_last_tick == now and claim_calls == 1,
+    'successful compatibility playback did not update beacon bookkeeping')
+assert(accessxi.nav_beacon_bank == 'compatibility'
+        and accessxi.nav_beacon_dir == accessxi.nav_beacon_compat_dir,
+    'successful compatibility playback did not select the fallback bank')
+assert(table.concat(logs, '\n'):find(
+        'nav beacon HRTF playback failed; compatibility audio active', 1, true),
+    'compatibility fallback was not recorded for diagnosis')
+now = 2320
+play_results[4] = 1
+accessxi.poll_nav_beacon()
+assert(play_calls == 4 and play_paths[4] == 'beacon\\front_06.wav',
+    'compatibility downgrade was not sticky on the next beacon pulse')
+
+reset({ 0, 1 }, 2600)
+accessxi.nav_beacon_dir = accessxi.nav_beacon_compat_dir
+accessxi.nav_beacon_bank = 'compatibility'
+accessxi.poll_nav_beacon()
+assert(play_calls == 2 and play_paths[1] == 'beacon\\front_06.wav'
+        and play_paths[2] == 'beacon\\front_06.wav',
+    'compatibility-primary playback did not use its ordinary one-retry path')
+assert(not table.concat(logs, '\n'):find('HRTF playback failed', 1, true),
+    'compatibility-primary recovery emitted a false HRTF fallback report')
 
 reset({ 1, 1 }, 1000)
 accessxi.poll_nav_beacon()

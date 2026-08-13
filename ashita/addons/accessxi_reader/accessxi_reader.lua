@@ -1165,7 +1165,13 @@ local accessxi = T{
     nav_dat_collision_pending = nil,
     nav_dat_collision_last_poll_tick = 0,
     nav_beacon_parent_dir = accessxi_paths.addon_path('sounds'),
+    nav_beacon_compat_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
+    nav_beacon_hrtf_dir = accessxi_paths.addon_path('sounds', 'nav_beacon_hrtf'),
+    nav_beacon_audio_mode_path = accessxi_paths.addon_path('data', 'nav-beacon-audio-mode.txt'),
+    nav_beacon_audio_mode = 'compatibility',
+    nav_beacon_audio_mode_loaded = false,
     nav_beacon_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
+    nav_beacon_bank = 'compatibility',
     nav_beacon_enabled = true,
     nav_beacon_files_ready = false,
     nav_beacon_winmm = nil,
@@ -93368,6 +93374,131 @@ function accessxi.nav_beacon_write_wav(path, pan, rear)
     return true;
 end
 
+function accessxi.nav_beacon_normalize_audio_mode(value)
+    value = tostring(value or ''):lower():gsub('[^%w]+', '');
+    if (value == 'hrtf' or value == 'headphone' or value == 'headphones'
+        or value == 'binaural') then
+        return 'hrtf';
+    end
+    if (value == 'compatibility' or value == 'compatible' or value == 'speaker'
+        or value == 'speakers' or value == 'stereo') then
+        return 'compatibility';
+    end
+    return nil;
+end
+
+function accessxi.nav_beacon_load_audio_mode()
+    if (accessxi.nav_beacon_audio_mode_loaded == true) then
+        return accessxi.nav_beacon_audio_mode;
+    end
+    accessxi.nav_beacon_audio_mode_loaded = true;
+    local mode = nil;
+    local file = io.open(accessxi.nav_beacon_audio_mode_path, 'r');
+    if (file ~= nil) then
+        mode = accessxi.nav_beacon_normalize_audio_mode(file:read('*l'));
+        file:close();
+    end
+    accessxi.nav_beacon_audio_mode = mode or 'compatibility';
+    return accessxi.nav_beacon_audio_mode;
+end
+
+function accessxi.nav_beacon_save_audio_mode(value)
+    local mode = accessxi.nav_beacon_normalize_audio_mode(value);
+    if (mode == nil) then
+        return nil, 'Unknown navigation beacon audio mode.';
+    end
+    local file = io.open(accessxi.nav_beacon_audio_mode_path, 'w');
+    if (file == nil) then
+        return nil, 'Could not save navigation beacon audio mode.';
+    end
+    file:write(mode, '\n');
+    file:close();
+    accessxi.nav_beacon_audio_mode = mode;
+    accessxi.nav_beacon_audio_mode_loaded = true;
+    accessxi.nav_beacon_files_ready = false;
+    accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_last_key = '';
+    return mode, nil;
+end
+
+function accessxi.nav_beacon_read_le_u16(data, offset)
+    local a, b = data:byte(offset, offset + 1);
+    if (a == nil or b == nil) then
+        return nil;
+    end
+    return a + (b * 256);
+end
+
+function accessxi.nav_beacon_read_le_u32(data, offset)
+    local a, b, c, d = data:byte(offset, offset + 3);
+    if (a == nil or b == nil or c == nil or d == nil) then
+        return nil;
+    end
+    return a + (b * 256) + (c * 65536) + (d * 16777216);
+end
+
+function accessxi.nav_beacon_hrtf_wav_valid(path)
+    local file = io.open(path, 'rb');
+    if (file == nil) then
+        return false;
+    end
+    local header = file:read(44) or '';
+    local size = file:seek('end') or 0;
+    file:close();
+    return size == 24044 and #header == 44
+        and header:sub(1, 4) == 'RIFF' and header:sub(9, 12) == 'WAVE'
+        and header:sub(13, 16) == 'fmt ' and header:sub(37, 40) == 'data'
+        and accessxi.nav_beacon_read_le_u32(header, 17) == 16
+        and accessxi.nav_beacon_read_le_u16(header, 21) == 1
+        and accessxi.nav_beacon_read_le_u16(header, 23) == 2
+        and accessxi.nav_beacon_read_le_u32(header, 25) == 48000
+        and accessxi.nav_beacon_read_le_u32(header, 29) == 192000
+        and accessxi.nav_beacon_read_le_u16(header, 33) == 4
+        and accessxi.nav_beacon_read_le_u16(header, 35) == 16
+        and accessxi.nav_beacon_read_le_u32(header, 41) == 24000;
+end
+
+function accessxi.nav_beacon_hrtf_manifest_valid()
+    local path = ('%s\\manifest.tsv'):fmt(accessxi.nav_beacon_hrtf_dir);
+    local file = io.open(path, 'r');
+    if (file == nil) then
+        return false;
+    end
+    local header = file:read('*l') or '';
+    local found = {};
+    local count = 0;
+    for line in file:lines() do
+        local version, name, angle, measurement, azimuth, elevation, digest = line:match(
+            '^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$');
+        if (version ~= 'accessxi-nav-beacon-hrtf-v1'
+            or name == nil or digest == nil or #digest ~= 64
+            or not digest:match('^[0-9a-fA-F]+$')) then
+            file:close();
+            return false;
+        end
+        if (found[name] == true) then
+            file:close();
+            return false;
+        end
+        found[name] = true;
+        count = count + 1;
+    end
+    file:close();
+    if (header ~= 'format_version\tfile\tselector_angle_degrees\tsofa_measurement\tsofa_azimuth_degrees\tsofa_elevation_degrees\toutput_sha256'
+        or count ~= 26) then
+        return false;
+    end
+    for mode = 0, 1 do
+        local prefix = mode == 1 and 'rear' or 'front';
+        for bin = 0, 12 do
+            if (found[('%s_%02d.wav'):fmt(prefix, bin)] ~= true) then
+                return false;
+            end
+        end
+    end
+    return true;
+end
+
 function accessxi.nav_collision_clamp_sample(value)
     value = math.floor(tonumber(value) or 0);
     if (value > 32767) then
@@ -93519,7 +93650,7 @@ function accessxi.nav_beacon_ensure_files()
     accessxi.nav_beacon_files_ready = true;
 
     pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_parent_dir), nil); end);
-    pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_dir), nil); end);
+    pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_compat_dir), nil); end);
 
     local ok, lib = pcall(ffi.load, 'winmm');
     if (not ok or lib == nil) then
@@ -93533,7 +93664,7 @@ function accessxi.nav_beacon_ensure_files()
         local rear = mode == 1;
         local prefix = rear and 'rear' or 'front';
         for bin = 0, 12 do
-            local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_dir, prefix, bin);
+            local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_compat_dir, prefix, bin);
             local existing = io.open(path, 'rb');
             if (existing ~= nil) then
                 existing:close();
@@ -93546,19 +93677,39 @@ function accessxi.nav_beacon_ensure_files()
         end
     end
 
-    log_line(('nav beacon ready created=%d dir="%s"'):fmt(created, accessxi.nav_beacon_dir));
+    local requested_mode = accessxi.nav_beacon_load_audio_mode();
+    local hrtf_ready = requested_mode == 'hrtf' and accessxi.nav_beacon_hrtf_manifest_valid();
+    if (hrtf_ready) then
+        for mode = 0, 1 do
+            local prefix = mode == 1 and 'rear' or 'front';
+            for bin = 0, 12 do
+                local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_hrtf_dir, prefix, bin);
+                if (not accessxi.nav_beacon_hrtf_wav_valid(path)) then
+                    hrtf_ready = false;
+                end
+            end
+        end
+    end
+    accessxi.nav_beacon_dir = hrtf_ready and accessxi.nav_beacon_hrtf_dir
+        or accessxi.nav_beacon_compat_dir;
+    accessxi.nav_beacon_bank = hrtf_ready and 'hrtf' or 'compatibility';
+    if (requested_mode == 'hrtf' and not hrtf_ready) then
+        log_line('nav beacon HRTF bank invalid or incomplete; compatibility audio active');
+    end
+    log_line(('nav beacon ready created=%d bank=%s dir="%s"'):fmt(
+        created, accessxi.nav_beacon_bank, accessxi.nav_beacon_dir));
     return true;
 end
 
-function accessxi.nav_beacon_play(path, now)
+function accessxi.nav_beacon_play(path, now, fallback_path)
     now = tonumber(now) or tick();
 
-    local function play_once()
+    local function play_once(candidate)
         if (accessxi.nav_beacon_winmm == nil) then
             return false, 'winmm unavailable';
         end
         local ok, result = pcall(function ()
-            return accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(path), nil, 0x00020003);
+            return accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(candidate), nil, 0x00020003);
         end);
         if (not ok) then
             return false, tostring(result or 'PlaySoundW call failed');
@@ -93569,14 +93720,24 @@ function accessxi.nav_beacon_play(path, now)
         return false, 'PlaySoundW returned false';
     end
 
-    local played, reason = play_once();
+    local played, reason = play_once(path);
     if (not played) then
         accessxi.nav_beacon_winmm = nil;
         accessxi.nav_beacon_files_ready = false;
         if (accessxi.nav_beacon_ensure_files()) then
-            played, reason = play_once();
+            played, reason = play_once(path);
         else
             reason = 'winmm reload failed';
+        end
+    end
+
+    if (not played and fallback_path ~= nil and tostring(fallback_path) ~= ''
+        and tostring(fallback_path) ~= tostring(path)) then
+        played, reason = play_once(fallback_path);
+        if (played) then
+            accessxi.nav_beacon_dir = accessxi.nav_beacon_compat_dir;
+            accessxi.nav_beacon_bank = 'compatibility';
+            log_line('nav beacon HRTF playback failed; compatibility audio active');
         end
     end
 
@@ -94439,58 +94600,12 @@ function accessxi.nav_beacon_direction_delta(player, route_target, points, index
         or source == 'wall-escape'
         or source == 'lathine-local-safe';
     local count = points ~= nil and points:len() or 0;
-    if (route_geometry ~= true or count < 2 or explicit_correction) then
-        accessxi.nav_beacon_motion_x = tonumber(player.x);
-        accessxi.nav_beacon_motion_z = tonumber(player.z);
-        return raw_delta;
+    if (route_geometry == true and count >= 2 and not explicit_correction
+        and accessxi.nav_beacon_route_acquired ~= true
+        and math.abs(raw_delta) <= (20 * math.pi / 180)) then
+        accessxi.nav_beacon_route_acquired = true;
     end
-
-    if (accessxi.nav_beacon_route_acquired ~= true) then
-        accessxi.nav_beacon_motion_x = tonumber(player.x);
-        accessxi.nav_beacon_motion_z = tonumber(player.z);
-        if (math.abs(raw_delta) <= (20 * math.pi / 180)) then
-            accessxi.nav_beacon_route_acquired = true;
-            return 0;
-        end
-        return raw_delta;
-    end
-
-    index = math.max(1, math.min(math.floor(tonumber(index) or 1), count));
-    local corner = points[index];
-    local previous = nil;
-    local inbound = nil;
-    for candidate_index = index - 1, 1, -1 do
-        local candidate = points[candidate_index];
-        local heading = accessxi.nav_heading_to(candidate, corner);
-        if (heading ~= nil) then
-            previous = candidate;
-            inbound = heading;
-            break;
-        end
-    end
-    if (inbound == nil and index < count) then
-        inbound = accessxi.nav_heading_to(corner, points[index + 1]);
-    end
-
-    if (index <= 1 or index >= count or previous == nil or corner == nil
-        or nav_distance(player, corner) > 5.0) then
-        return 0;
-    end
-    local outbound = nil;
-    for candidate_index = index + 1, count do
-        outbound = accessxi.nav_heading_to(corner, points[candidate_index]);
-        if (outbound ~= nil) then
-            break;
-        end
-    end
-    if (inbound == nil or outbound == nil) then
-        return 0;
-    end
-    local turn_delta = accessxi.nav_normalize_angle(outbound - inbound);
-    if (math.abs(turn_delta) < (25 * math.pi / 180)) then
-        return 0;
-    end
-    return turn_delta;
+    return raw_delta;
 end
 
 function accessxi.nav_beacon_file_for_delta(delta)
@@ -94981,13 +95096,15 @@ function accessxi.poll_nav_beacon()
     if (delta == nil) then
         return;
     end
-    local path, prefix, bin, pan = accessxi.nav_beacon_file_for_delta(delta);
     if (not accessxi.nav_beacon_ensure_files()) then
         return;
     end
+    local path, prefix, bin, pan = accessxi.nav_beacon_file_for_delta(delta);
+    local fallback_path = ('%s\\%s_%02d.wav'):fmt(
+        accessxi.nav_beacon_compat_dir, prefix, bin);
 
     accessxi.nav_beacon_last_attempt_tick = now;
-    if (not accessxi.nav_beacon_play(path, now)) then
+    if (not accessxi.nav_beacon_play(path, now, fallback_path)) then
         return;
     end
     accessxi.nav_beacon_last_tick = now;
@@ -96127,6 +96244,32 @@ function accessxi.handle_axi_command(args, e, source)
             accessxi.nav_beacon_last_key = '';
             speak('Navigation beacon off.');
             log_line('nav beacon off');
+        elseif (#args >= 3 and args[3]:any('hrtf', 'headphone', 'headphones', 'binaural')) then
+            local mode, reason = accessxi.nav_beacon_save_audio_mode('hrtf');
+            local ready = mode ~= nil and accessxi.nav_beacon_ensure_files();
+            if (ready and accessxi.nav_beacon_bank == 'hrtf') then
+                speak('Navigation beacon headphone H R T F audio on.');
+                log_line('nav beacon audio mode hrtf');
+            else
+                speak(tostring(reason or 'H R T F audio is unavailable. Compatibility stereo is active.'));
+                log_line('nav beacon audio mode hrtf unavailable');
+            end
+        elseif (#args >= 3 and args[3]:any('speaker', 'speakers', 'stereo', 'compatibility')) then
+            local mode, reason = accessxi.nav_beacon_save_audio_mode('compatibility');
+            local ready = mode ~= nil and accessxi.nav_beacon_ensure_files();
+            if (ready) then
+                speak('Navigation beacon speaker compatibility stereo on.');
+                log_line('nav beacon audio mode compatibility');
+            else
+                speak(tostring(reason or 'Navigation beacon audio is unavailable.'));
+            end
+        elseif (#args >= 3 and args[3]:any('status', 'audio')) then
+            accessxi.nav_beacon_ensure_files();
+            local text = accessxi.nav_beacon_bank == 'hrtf'
+                and 'Navigation beacon uses headphone H R T F audio.'
+                or 'Navigation beacon uses speaker compatibility stereo.';
+            speak(text);
+            log_line('nav beacon audio status ' .. tostring(accessxi.nav_beacon_bank));
         else
             accessxi.nav_beacon_enabled = true;
             accessxi.nav_beacon_last_tick = 0;

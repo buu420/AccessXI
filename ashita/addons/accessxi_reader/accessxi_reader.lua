@@ -1170,7 +1170,10 @@ local accessxi = T{
     nav_beacon_files_ready = false,
     nav_beacon_winmm = nil,
     nav_beacon_last_tick = 0,
+    nav_beacon_last_attempt_tick = 0,
     nav_beacon_last_key = '',
+    nav_beacon_last_play_failure_tick = 0,
+    nav_beacon_last_play_failure_key = '',
     nav_beacon_route_identity = nil,
     nav_beacon_route_acquired = false,
     nav_beacon_motion_x = nil,
@@ -93527,6 +93530,57 @@ function accessxi.nav_beacon_ensure_files()
     return true;
 end
 
+function accessxi.nav_beacon_play(path, now)
+    now = tonumber(now) or tick();
+
+    local function play_once()
+        if (accessxi.nav_beacon_winmm == nil) then
+            return false, 'winmm unavailable';
+        end
+        local ok, result = pcall(function ()
+            return accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(path), nil, 0x00020003);
+        end);
+        if (not ok) then
+            return false, tostring(result or 'PlaySoundW call failed');
+        end
+        if (result == true or (tonumber(result) or 0) ~= 0) then
+            return true, '';
+        end
+        return false, 'PlaySoundW returned false';
+    end
+
+    local played, reason = play_once();
+    if (not played) then
+        accessxi.nav_beacon_winmm = nil;
+        accessxi.nav_beacon_files_ready = false;
+        if (accessxi.nav_beacon_ensure_files()) then
+            played, reason = play_once();
+        else
+            reason = 'winmm reload failed';
+        end
+    end
+
+    if (played) then
+        if (accessxi.nav_beacon_last_play_failure_key ~= '') then
+            log_line('nav beacon audio recovered');
+        end
+        accessxi.nav_beacon_last_play_failure_key = '';
+        return true;
+    end
+
+    local failure_key = tostring(reason or 'unknown');
+    if (failure_key ~= tostring(accessxi.nav_beacon_last_play_failure_key or '')
+        or (now - (tonumber(accessxi.nav_beacon_last_play_failure_tick) or 0)) >= 5000) then
+        accessxi.nav_beacon_last_play_failure_key = failure_key;
+        accessxi.nav_beacon_last_play_failure_tick = now;
+        local log_reason = type(accessxi.escape_probe_log_text) == 'function'
+            and accessxi.escape_probe_log_text(failure_key) or failure_key;
+        log_line(('nav beacon audio failed reason="%s"'):fmt(
+            log_reason));
+    end
+    return false;
+end
+
 function accessxi.enemy_warning_ensure_audio()
     if (accessxi.nav_beacon_winmm ~= nil) then
         return true;
@@ -94223,7 +94277,8 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
                     return accessxi.nav_lathine_replan_or_stop(
                         player, points, lookahead, safety_replanned == true);
                 else
-                    return nil;
+                    accessxi.nav_precise_route_return_clear();
+                    match = nil;
                 end
             end
         end
@@ -94250,6 +94305,57 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
     return target;
 end
 
+function accessxi.nav_precise_route_recover_or_stop(player, destination, points, lookahead)
+    if (player == nil or destination == nil or accessxi.nav_dat_collision_pending ~= nil
+        or not accessxi.nav_active or accessxi.nav_destination ~= destination
+        or accessxi.nav_route_points ~= points) then
+        return nil;
+    end
+
+    accessxi.nav_route_last_recalc_tick = tick();
+    local refreshed = T{};
+    if (type(accessxi.nav_compute_route_with_zoneline_approach) == 'function') then
+        refreshed = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
+    end
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        return nil;
+    end
+
+    if (refreshed ~= nil and refreshed:len() > 1) then
+        accessxi.nav_route_points = refreshed;
+        accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, destination);
+        accessxi.nav_precise_route_return_clear();
+
+        local target = nil;
+        if (accessxi.nav_route_precise_override_active(player, refreshed)) then
+            target = accessxi.nav_precise_steering_target(
+                player, refreshed, accessxi.nav_route_point_index, lookahead, true);
+        else
+            target = accessxi.nav_indexed_lookahead_target(
+                player, refreshed, accessxi.nav_route_lookahead_distance(player, destination));
+        end
+        if (target ~= nil) then
+            log_line(('nav precise target recovered destination="%s" count=%d'):fmt(
+                destination.name or '', refreshed:len()));
+            return target;
+        end
+    end
+
+    local name = tostring(destination.name or 'destination');
+    local text = ('Navigation stopped. No safe route from the current position to %s.'):fmt(name);
+    if (type(nav_write_route_evidence) == 'function') then
+        nav_write_route_evidence('unreachable', player, destination, nil, T{
+            reason = 'precise route lost its local steering target',
+        });
+    end
+    if (accessxi.nav_active and accessxi.nav_destination == destination) then
+        nav_route_stop();
+        speak(text);
+        log_line(('nav precise target lost destination="%s"'):fmt(name));
+    end
+    return nil;
+end
+
 function accessxi.nav_beacon_route_target(player)
     if (player == nil or not accessxi.nav_active or accessxi.nav_destination == nil) then
         return nil;
@@ -94273,8 +94379,14 @@ function accessxi.nav_beacon_route_target(player)
         end
 
         if (accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
-            return accessxi.nav_precise_steering_target(
-                player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+            local route_points = accessxi.nav_route_points;
+            local target = accessxi.nav_precise_steering_target(
+                player, route_points, accessxi.nav_route_point_index, 5);
+            if (target == nil) then
+                return accessxi.nav_precise_route_recover_or_stop(
+                    player, destination, route_points, 5);
+            end
+            return target;
         end
 
         local route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
@@ -94810,7 +94922,10 @@ function accessxi.poll_nav_beacon()
     end
 
     local now = tick();
-    if ((now - (accessxi.nav_beacon_last_tick or 0)) < 520) then
+    local last_pulse_tick = math.max(
+        tonumber(accessxi.nav_beacon_last_tick) or 0,
+        tonumber(accessxi.nav_beacon_last_attempt_tick) or 0);
+    if ((now - last_pulse_tick) < 520) then
         return;
     end
     if (not accessxi.beacon_audio_available(now)) then
@@ -94874,8 +94989,11 @@ function accessxi.poll_nav_beacon()
         return;
     end
 
+    accessxi.nav_beacon_last_attempt_tick = now;
+    if (not accessxi.nav_beacon_play(path, now)) then
+        return;
+    end
     accessxi.nav_beacon_last_tick = now;
-    pcall(function () accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(path), nil, 0x00020003); end);
     accessxi.beacon_audio_claim('nav', 180, now);
 
     local key = ('%s:%02d'):fmt(prefix, bin);

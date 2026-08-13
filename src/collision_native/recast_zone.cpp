@@ -23,6 +23,15 @@
 #include <vector>
 
 namespace accessxi::collision {
+
+float recast_raster_walkable_climb(const std::uint32_t zone_id) noexcept
+{
+    // Mhaura's multi-level connector needs two additional 0.10-yalm voxel
+    // steps to remain connected. Runtime route validation still uses the
+    // ordinary 0.60-yalm player step and exact Bullet capsule sweeps.
+    return zone_id == 249u ? 0.80f : 0.60f;
+}
+
 namespace {
 
 // The native library shares FFXI's 32-bit process.  A 0.20-yalm full-zone grid
@@ -296,14 +305,15 @@ TileBuildResult build_tile(
     const int tile_x,
     const int tile_y,
     const float* tile_minimum,
-    const float* tile_maximum)
+    const float* tile_maximum,
+    const float raster_walkable_climb)
 {
     rcConfig config{};
     config.cs = cell_size;
     config.ch = cell_height;
     config.walkableSlopeAngle = agent_max_slope;
     config.walkableHeight = static_cast<int>(std::ceil(agent_height / config.ch));
-    config.walkableClimb = static_cast<int>(std::floor(agent_max_climb / config.ch));
+    config.walkableClimb = static_cast<int>(std::floor(raster_walkable_climb / config.ch));
     // Radius erosion is followed by an exact Bullet capsule/step check for
     // every emitted segment.
     config.walkableRadius = static_cast<int>(std::ceil(agent_radius / config.cs));
@@ -498,6 +508,7 @@ struct RecastZone::Impl final
         const CollisionWorld& collision,
         const std::stop_token stop_token)
         : collision_world(&collision)
+        , raster_walkable_climb(recast_raster_walkable_climb(mesh.zone_id))
         , allow_long_step_segments(mesh.zone_id != 102u && mesh.zone_id != 244u)
         , reject_excessive_local_detours(mesh.zone_id == 102u)
     {
@@ -638,7 +649,8 @@ struct RecastZone::Impl final
                     x,
                     y,
                     tile_minimum,
-                    tile_maximum);
+                    tile_maximum,
+                    raster_walkable_climb);
                 if (stop_token.stop_requested())
                 {
                     if (tile.data != nullptr)
@@ -680,6 +692,7 @@ struct RecastZone::Impl final
     }
 
     const CollisionWorld* collision_world;
+    const float raster_walkable_climb;
     bool allow_long_step_segments;
     bool reject_excessive_local_detours;
     NavMeshPointer nav_mesh;
@@ -702,9 +715,9 @@ RecastZone& RecastZone::operator=(RecastZone&&) noexcept = default;
 
 const std::string& RecastZone::settings_digest()
 {
-    // SHA-256 of the v6 semantic descriptor: the prior settings identity plus
-    // a 1.50-yalm raised-step span in confirmed problem zones 102 and 244.
-    static const std::string digest = "e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c";
+    // SHA-256 of:
+    // accessxi-recast-v7;prior=e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c;zone249-raster-walkable-climb=0.80;runtime-agent-max-climb=0.60
+    static const std::string digest = "a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32";
     return digest;
 }
 

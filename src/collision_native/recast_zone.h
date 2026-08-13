@@ -3,6 +3,7 @@
 #include "collision_native/collision_types.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <stop_token>
 #include <string>
@@ -11,6 +12,8 @@
 namespace accessxi::collision {
 
 class CollisionWorld;
+
+float recast_raster_walkable_climb(std::uint32_t zone_id) noexcept;
 
 enum class PathStatus
 {

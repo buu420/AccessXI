@@ -1,4 +1,5 @@
 local module_path = assert(arg[1], 'collision_navigation.lua path is required')
+local manifest_path = assert(arg[2], 'collision native manifest path is required')
 local chunk = assert(loadfile(module_path))
 local collision_navigation = chunk()
 
@@ -7,6 +8,24 @@ local function check(condition, message)
         error(message or 'check failed', 2)
     end
 end
+
+local expected_settings_sha256 =
+    'a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32'
+check(collision_navigation.settings_sha256 == expected_settings_sha256,
+    'collision navigation module settings digest is stale')
+local manifest = assert(io.open(manifest_path, 'rb'))
+local header = manifest:read('*l')
+local row = manifest:read('*l')
+manifest:close()
+check(header == 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit',
+    'collision native manifest header is invalid')
+local fields = {}
+for field in tostring(row):gmatch('[^\t]+') do
+    fields[#fields + 1] = field
+end
+check(fields[3] == '3', 'collision native manifest ABI changed')
+check(fields[4] == expected_settings_sha256,
+    'collision native manifest settings digest does not match the module')
 
 local FakeNative = {}
 FakeNative.__index = FakeNative

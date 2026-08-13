@@ -130,8 +130,21 @@ local function words_with(...)
     return words
 end
 
+-- Match the heavily progressed live character that exposed the hotkey stall:
+-- 54 active quest bits and the production-sized 42,366-point navigation catalog.
+local hotkey_scale_sandoria_ids = { 2, 200 }
+for quest_id = 60, 109 do
+    quest_rows.sandoria[quest_id] = {
+        id = quest_id,
+        label = ('Scale Quest %d'):format(quest_id),
+        area = "San d'Oria",
+        source = 'hotkey scale fixture',
+    }
+    hotkey_scale_sandoria_ids[#hotkey_scale_sandoria_ids + 1] = quest_id
+end
+
 local quest_entries = {
-    ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(2, 200), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(unpack(hotkey_scale_sandoria_ids)), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['sandoria:completed'] = { area_key = 'sandoria', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:current'] = { area_key = 'aht_urhgan', mode = 'current', words = words_with(100, 180), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:completed'] = { area_key = 'aht_urhgan', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
@@ -858,6 +871,21 @@ local function load_with_env(path, env)
     return chunk()
 end
 
+while #accessxi.nav_points < 42366 do
+    local point_id = #accessxi.nav_points + 1
+    accessxi.nav_points:append(T{
+        zone = 1,
+        zone_name = 'Scale Zone',
+        name = ('Scale Point %d'):format(point_id),
+        x = point_id % 100,
+        z = math.floor(point_id / 100),
+        y = 0,
+        kind = 'npc',
+        source = 'hotkey scale fixture',
+    })
+end
+assert(#accessxi.nav_points == 42366, 'hotkey scale fixture did not match the production catalog size')
+
 accessxi.mission_quest_objectives = load_with_env(objectives_path, { accessxi = accessxi, T = T })
 assert(type(accessxi.mission_quest_objectives) == 'table')
 accessxi.mission_quest_objectives.quests['sandoria:2'] = {
@@ -985,6 +1013,9 @@ assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_missio
     and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
     'unchanged Mission and Quest hotkey builds re-read active packet state')
 accessxi.hotkey_cache_catalog_index_baseline = accessxi.nav_objective_catalog_index_build_count
+accessxi.hotkey_cache_catalog_visit_baseline = accessxi.nav_objective_catalog_index_point_visit_count
+assert(accessxi.hotkey_cache_catalog_visit_baseline == #accessxi.nav_points,
+    'the initial hotkey build did not index the production-sized catalog exactly once')
 accessxi.hotkey_cache_prepare_item = accessxi.hotkey_cache_missions[1]
 accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
 accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
@@ -993,6 +1024,8 @@ assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_missio
     'unchanged prepare-route calls re-read active packet state')
 assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline,
     'unchanged prepare-route calls rebuilt the navigation catalog index')
+assert(accessxi.nav_objective_catalog_index_point_visit_count == accessxi.hotkey_cache_catalog_visit_baseline,
+    'unchanged hotkey or prepare-route calls rescanned the production-sized catalog')
 
 accessxi.last_native_inventory_item_tick = accessxi.last_native_inventory_item_tick + 1
 accessxi.hotkey_cache_volatile_mission_rows, accessxi.hotkey_cache_volatile_mission_signature = accessxi.hotkey_cache_build(
@@ -1128,10 +1161,16 @@ accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_
     'quest', accessxi.hotkey_cache_quest_state_baseline, 'navigation catalog revision change for Quests')
 assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
     'a navigation catalog revision change did not rebuild the catalog index exactly once')
+assert(accessxi.nav_objective_catalog_index_point_visit_count
+        == accessxi.hotkey_cache_catalog_visit_baseline + #accessxi.nav_points,
+    'a navigation catalog revision change did not visit the catalog exactly once')
 accessxi.nav_mission_quest_active_items('mission')
 accessxi.nav_mission_quest_active_items('quest')
 assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
     'stable navigation catalog revision rebuilt the catalog index again')
+assert(accessxi.nav_objective_catalog_index_point_visit_count
+        == accessxi.hotkey_cache_catalog_visit_baseline + #accessxi.nav_points,
+    'stable navigation catalog revision rescanned the production-sized catalog')
 
 set_live_identity('alpha:1001')
 current_world_id = 1001

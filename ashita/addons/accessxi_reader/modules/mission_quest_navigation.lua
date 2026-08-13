@@ -605,11 +605,15 @@ local function referenced_target(reference)
     local reference_key = table.concat({
         tostring(wanted_zone), wanted_name, wanted_kind, wanted_destination_id,
     }, '\t');
-    local candidates = type(index) == 'table' and wanted_kind ~= ''
-        and wanted_destination_id ~= '' and index.referenced_targets[reference_key]
-        or (type(index) == 'table'
-            and index.points_by_zone_entity[('%d\t%s'):fmt(wanted_zone, wanted_name)])
-        or accessxi.nav_points or T{};
+    local candidates = accessxi.nav_points or T{};
+    if (type(index) == 'table') then
+        candidates = wanted_kind ~= '' and wanted_destination_id ~= ''
+            and index.referenced_targets[reference_key] or nil;
+        if (candidates == nil) then
+            candidates = index.points_by_zone_entity[
+                ('%d\t%s'):fmt(wanted_zone, wanted_name)] or T{};
+        end
+    end
     local match = nil;
     local match_count = 0;
     for _, point in ipairs(candidates) do
@@ -893,7 +897,9 @@ ensure_catalog_index = function()
         referenced_targets = {},
         zone_lines = {},
     };
+    local point_visits = 0;
     for _, point in ipairs(accessxi.nav_points or T{}) do
+        point_visits = point_visits + 1;
         local zone = tonumber(point.zone) or 0;
         if (zone > 0) then
             local zone_name = source_point_zone_name(point);
@@ -925,6 +931,8 @@ ensure_catalog_index = function()
     objective_catalog_index = index;
     accessxi.nav_objective_catalog_index_build_count =
         (tonumber(accessxi.nav_objective_catalog_index_build_count) or 0) + 1;
+    accessxi.nav_objective_catalog_index_point_visit_count =
+        (tonumber(accessxi.nav_objective_catalog_index_point_visit_count) or 0) + point_visits;
     return objective_catalog_index;
 end
 

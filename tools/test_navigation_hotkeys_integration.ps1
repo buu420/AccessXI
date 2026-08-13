@@ -78,7 +78,7 @@ $startBlock = [regex]::Match(
 if (-not $startBlock.Success) {
     throw 'Could not locate navigation route start handling.'
 }
-if (-not $startBlock.Value.Contains('accessxi.nav_mission_quest_prepare_route(item, objective_player)')) {
+if (-not ($startBlock.Value -match "(?s)pcall\(\s*accessxi\.nav_mission_quest_prepare_route,\s*item,\s*objective_player\s*\)")) {
     throw 'I does not prepare the highlighted mission or quest directly for GPS.'
 }
 Assert-NotContains $startBlock.Value 'nav_mission_quest_open_guide' `

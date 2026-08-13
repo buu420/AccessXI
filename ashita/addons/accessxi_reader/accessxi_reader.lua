@@ -10075,33 +10075,62 @@ function accessxi.native_query_candidate_label_from_text(text, context)
     return '';
 end
 
-function accessxi.native_query_phrase_from_ptr(ptr, context)
+function accessxi.native_query_visible_text_from_ptr(ptr)
     ptr = tonumber(ptr) or 0;
-    if (not accessxi.is_probe_pointer(ptr) or accessxi.collect_probe_ffxi_utf16_entries == nil) then
+    if (not accessxi.is_probe_pointer(ptr) or accessxi.decode_ffxi_menu_text_fragment == nil) then
         return '';
     end
 
-    local entries = accessxi.collect_probe_ffxi_utf16_entries(ptr, 0x48, 1, 8);
-    local parts = T{};
-    for _, entry in ipairs(entries) do
-        if ((tonumber(entry.offset) or 0) >= 0x38) then
-            break;
+    local count = tonumber(read_u8(ptr + 0x106));
+    if (count == nil or count < 1 or count > 63) then
+        return '';
+    end
+
+    local raw = T{};
+    for index = 0, count - 1 do
+        local lo = read_u8(ptr + (index * 2));
+        local hi = read_u8(ptr + (index * 2) + 1);
+        if (lo == nil or hi == nil or hi ~= 0) then
+            return '';
         end
-        local text = accessxi.survival_guide_text(entry.text or '');
-        if (text ~= '' and text:find('\\', 1, true) == nil) then
-            local clean = T{};
-            for word in text:gmatch('%S+') do
-                if (word:match('^%d+$') == nil and word ~= '.' and word ~= '/') then
-                    if (word:upper() == word and #word > 1) then
-                        word = word:sub(1, 1) .. word:sub(2):lower();
-                    end
-                    clean:append(word);
-                end
+
+        if (accessxi.probe_printable_ascii(lo)) then
+            raw:append(string.char(lo));
+        elseif (lo == 0x07 or lo == 0x0F) then
+            raw:append(' ');
+        elseif (lo == 0x0C) then
+            raw:append(',');
+        elseif (lo == 0x0D) then
+            raw:append('-');
+        elseif (lo == 0x0E) then
+            raw:append('.');
+        elseif (lo >= 0x10 and lo <= 0x19) then
+            raw:append(string.char(0x30 + (lo - 0x10)));
+        else
+            return '';
+        end
+    end
+
+    local text = accessxi.decode_ffxi_menu_text_fragment(raw:concat(''));
+    if (text == '' or #text ~= count) then
+        return '';
+    end
+    return text;
+end
+
+function accessxi.native_query_phrase_from_ptr(ptr, context)
+    local visible = accessxi.native_query_visible_text_from_ptr(ptr);
+    if (visible == '') then
+        return '';
+    end
+
+    local parts = T{};
+    for word in visible:gmatch('%S+') do
+        if (word:match('^%d+$') == nil and word ~= '.' and word ~= '/') then
+            if (word:upper() == word and #word > 1) then
+                word = word:sub(1, 1) .. word:sub(2):lower();
             end
-            text = clean:concat(' ');
-            if (text ~= '' and accessxi.native_query_label_looks_real(text)) then
-                parts:append(text);
-            end
+            parts:append(word);
         end
     end
 
@@ -10110,6 +10139,8 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     end
 
     local phrase = parts:concat(' ');
+    phrase = phrase:gsub('^Never Mind%.$', 'Never mind.');
+    phrase = phrase:gsub('^On Second Thought, None%.$', 'On second thought, none.');
     phrase = phrase:gsub('^N Second Thought None$', 'On second thought, none');
     phrase = phrase:gsub('^On Second Thought None$', 'On second thought, none');
     phrase = phrase:gsub('^Select From Amongst Favorites$', 'Select from amongst favorites');

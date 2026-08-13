@@ -46,8 +46,9 @@ Assert-UnderRepo -Path $StageRoot -Repo $RepoRoot -Message "Collision stage root
 
 $cmakeLists = Join-Path $RepoRoot 'CMakeLists.txt'
 $fetchDependencies = Join-Path $RepoRoot 'tools\fetch_collision_dependencies.ps1'
+$reproducibilityTest = Join-Path $RepoRoot 'tools\test_collision_native_reproducible.ps1'
 $manifestPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\collision-native-manifest.tsv'
-foreach ($required in @($cmakeLists, $fetchDependencies, $manifestPath)) {
+foreach ($required in @($cmakeLists, $fetchDependencies, $reproducibilityTest, $manifestPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "Required collision build input is missing: $required"
     }
@@ -92,6 +93,12 @@ if ($LASTEXITCODE -ne 0) {
 $builtDll = Join-Path $BuildRoot "bin\$Configuration\accessxi_collision_native.dll"
 if (-not (Test-Path -LiteralPath $builtDll -PathType Leaf)) {
     throw "Collision native build did not produce its DLL: $builtDll"
+}
+if ($Configuration -eq 'Release') {
+    & $reproducibilityTest -RepoRoot $RepoRoot -DllPath $builtDll -ManifestPath $manifestPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Collision native reproducibility check failed (exit $LASTEXITCODE)."
+    }
 }
 $builtHash = (Get-FileHash -LiteralPath $builtDll -Algorithm SHA256).Hash
 if ($builtHash -ne $expectedHash) {

@@ -1366,15 +1366,9 @@ end
 accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 accessxi.mission_packet_main.nation = 0
 accessxi.mission_packet_main.nation_mission = 0
-local saved_source_route_steps = accessxi.objective_guides.source_route_steps
-accessxi.objective_guides.source_route_steps = function()
-    error('transient source guide failure')
-end
-accessxi.nav_mission_quest_active_items('mission')
-accessxi.objective_guides.source_route_steps = saved_source_route_steps
 local source_orcish = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(source_orcish, 'Smash the Orcish Scouts') == 2,
-    'a transient source-guide failure was cached instead of retrying the provider')
+    'source-backed Orcish Fodder camps disappeared when generated candidates were absent')
 assert(source_orcish[1].objective_destination_id == 'camp:v1:101:orcish-fodder:6c7a4f36673f6091fd2c')
 assert(source_orcish[2].objective_destination_id == 'camp:v1:100:orcish-fodder:b2999235c7bf7f4860f7')
 assert(source_orcish[1].objective_destination_zone_name == 'East Ronfaure'
@@ -1434,7 +1428,30 @@ accessxi.current_player_world_id = saved_world_provider
 accessxi.current_objective_session_epoch = saved_epoch_provider
 
 accessxi.mission_packet_main.nation_mission = 1
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
+local saved_source_route_steps = accessxi.objective_guides.source_route_steps
+local failed_source_provider_calls = 0
+accessxi.objective_guides.source_route_steps = function(self, native_key)
+    if native_key == "mission:San d'Oria:2" then
+        failed_source_provider_calls = failed_source_provider_calls + 1
+        error('transient source guide failure')
+    end
+    return saved_source_route_steps(self, native_key)
+end
+accessxi.nav_mission_quest_active_items('mission')
+assert(failed_source_provider_calls > 0,
+    'the transient source-guide fixture never exercised Bat Hunt guide derivation')
+local retry_source_provider_calls = 0
+accessxi.objective_guides.source_route_steps = function(self, native_key)
+    if native_key == "mission:San d'Oria:2" then
+        retry_source_provider_calls = retry_source_provider_calls + 1
+    end
+    return saved_source_route_steps(self, native_key)
+end
 local bat_hunt = accessxi.nav_mission_quest_active_items('mission')
+accessxi.objective_guides.source_route_steps = saved_source_route_steps
+assert(retry_source_provider_calls > 0,
+    'an incomplete active mission build was cached instead of retrying the provider with unchanged state')
 assert(count_named(bat_hunt, 'Bat Hunt') == 2,
     'the shared source resolver must expose exact Ding Bats destinations for the next mission')
 assert(bat_hunt[1].objective_guide_step_id == "mission:San d'Oria:2:step-005")

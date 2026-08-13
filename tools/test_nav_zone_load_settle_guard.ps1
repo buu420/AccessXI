@@ -1,6 +1,10 @@
+param(
+    [string] $AddonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
+)
+
 $ErrorActionPreference = 'Stop'
 
-$addonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
+$addonPath = $AddonPath
 $source = Get-Content -LiteralPath $addonPath -Raw
 
 function Assert-Match {
@@ -98,18 +102,15 @@ if ($presentStart -lt 0) {
 }
 $presentBody = $source.Substring($presentStart)
 
-$guardIndex = $presentBody.IndexOf('accessxi.nav_zoning_watch_active')
-$transitionIndex = $presentBody.IndexOf('accessxi.nav_poll_zone_transition_only(')
-$transitionReturnIndex = if ($transitionIndex -ge 0) { $presentBody.IndexOf('return;', $transitionIndex) } else { -1 }
-$positionIndex = $presentBody.IndexOf('poll_nav_position();')
+Assert-Match `
+    -Text $presentBody `
+    -Pattern "(?s)local zoning_watch = accessxi\.nav_zoning_watch_active\(now\);\s*local zone_settle = accessxi\.nav_zone_load_settle_active\(now\);\s*if \(zoning_watch or zone_settle\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*if \(accessxi\.nav_zone_load_settle_active\(now\)\) then\s*return;\s*end\s*else\s*poll_nav_position\(\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*end" `
+    -Message 'Unsafe player and route polling must remain quiescent while the post-zone settle is active.'
 
-if ($guardIndex -lt 0 -or $transitionIndex -lt 0 -or $transitionReturnIndex -lt 0 -or $positionIndex -lt 0) {
-    throw 'Could not locate the expected nav zoning guard, transition poll, return, and position poll in d3d_present.'
-}
-
-if (-not ($guardIndex -lt $transitionIndex -and $transitionIndex -lt $transitionReturnIndex -and $transitionReturnIndex -lt $positionIndex)) {
-    throw 'Present loop should zone-poll and return before any player/entity position polling during nav zoning or settle.'
-}
+Assert-Match `
+    -Text $presentBody `
+    -Pattern "(?s)end\s*accessxi\.poll_mission_quest_state_changes\(now\);\s*accessxi\.poll_objective_inventory_refresh\(now\);\s*accessxi\.poll_compass_hotkey\(\)" `
+    -Message 'Mission and Inventory refresh work must drain only after the zone-settle barrier.'
 
 Assert-Match `
     -Text $presentBody `

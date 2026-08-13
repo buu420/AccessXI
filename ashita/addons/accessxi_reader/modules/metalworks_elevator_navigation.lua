@@ -668,4 +668,315 @@ function accessxi.nav_transport_transition_poll(player, destination, now)
     return true;
 end
 
+local objective_owner_fields = {
+    'objective_kind',
+    'objective_native_key',
+    'objective_guide_step_id',
+    'objective_character_identity',
+    'objective_world_id',
+    'objective_session_epoch',
+    'objective_candidate_id',
+    'objective_action_id',
+    'objective_group_id',
+    'objective_destination_id',
+    'objective_route_contract_id',
+    'objective_transition_id',
+    'objective_transition_revision',
+    'objective_transition_registry_sha256',
+    'objective_transition_direction',
+    'objective_transition_zone',
+    'objective_transition_expected_live_state',
+    'objective_transition_timeout_seconds',
+};
+
+local function objective_copy(value, seen)
+    if (type(value) ~= 'table') then
+        return value;
+    end
+    seen = seen or {};
+    if (seen[value] ~= nil) then
+        return seen[value];
+    end
+    local result = T{};
+    seen[value] = result;
+    for key, child in pairs(value) do
+        result[objective_copy(key, seen)] = objective_copy(child, seen);
+    end
+    return result;
+end
+
+local function objective_finite(value)
+    value = tonumber(value);
+    return value ~= nil and value == value
+        and value ~= math.huge and value ~= -math.huge;
+end
+
+local function objective_anchor_valid(anchor, zone)
+    return type(anchor) == 'table'
+        and objective_finite(anchor.x)
+        and objective_finite(anchor.z)
+        and objective_finite(anchor.y)
+        and (anchor.zone == nil or tonumber(anchor.zone) == tonumber(zone));
+end
+
+local function objective_anchor_equal(left, right)
+    return type(left) == 'table' and type(right) == 'table'
+        and tonumber(left.x) == tonumber(right.x)
+        and tonumber(left.z) == tonumber(right.z)
+        and tonumber(left.y) == tonumber(right.y)
+        and (left.zone == nil or right.zone == nil or tonumber(left.zone) == tonumber(right.zone));
+end
+
+local function objective_sha256(value)
+    return type(value) == 'string' and #value == 64
+        and value:find('[^0-9a-f]') == nil;
+end
+
+local function objective_authorization_valid(value)
+    if (type(value) ~= 'table') then
+        return false;
+    end
+    for _, field in ipairs({
+        'objective_kind', 'objective_native_key', 'objective_guide_step_id',
+        'objective_character_identity', 'objective_candidate_id', 'objective_action_id',
+        'objective_destination_id', 'objective_route_contract_id', 'objective_transition_id',
+        'objective_transition_revision', 'objective_transition_direction',
+        'objective_transition_expected_live_state',
+    }) do
+        if (type(value[field]) ~= 'string' or value[field] == '') then
+            return false;
+        end
+    end
+    return type(value.objective_group_id) == 'string'
+        and tonumber(value.objective_world_id) ~= nil
+        and tonumber(value.objective_session_epoch) ~= nil
+        and tonumber(value.objective_transition_zone) ~= nil
+        and tonumber(value.objective_transition_zone) == math.floor(tonumber(value.objective_transition_zone))
+        and objective_sha256(value.objective_transition_registry_sha256)
+        and value.objective_transition_revision == 'objective-route-transition-v2'
+        and objective_anchor_valid(
+            value.objective_transition_pre_anchor,
+            value.objective_transition_zone)
+        and objective_anchor_valid(
+            value.objective_transition_post_anchor,
+            value.objective_transition_zone)
+        and tonumber(value.objective_transition_timeout_seconds) ~= nil
+        and tonumber(value.objective_transition_timeout_seconds) > 0;
+end
+
+local function objective_authorization_equal(left, right)
+    if (not objective_authorization_valid(left) or not objective_authorization_valid(right)) then
+        return false;
+    end
+    for _, field in ipairs(objective_owner_fields) do
+        if (left[field] ~= right[field]) then
+            return false;
+        end
+    end
+    return objective_anchor_equal(
+        left.objective_transition_pre_anchor,
+        right.objective_transition_pre_anchor)
+        and objective_anchor_equal(
+            left.objective_transition_post_anchor,
+            right.objective_transition_post_anchor);
+end
+
+local function objective_definition_matches(authorization, definition)
+    return type(definition) == 'table'
+        and definition.schema_version == 2
+        and definition.transition_revision == authorization.objective_transition_revision
+        and definition.source_registry_sha256 == authorization.objective_transition_registry_sha256
+        and definition.transition_id == authorization.objective_transition_id
+        and tonumber(definition.zone) == tonumber(authorization.objective_transition_zone)
+        and definition.direction == authorization.objective_transition_direction
+        and definition.expected_live_state == authorization.objective_transition_expected_live_state
+        and tonumber(definition.timeout_seconds)
+            == tonumber(authorization.objective_transition_timeout_seconds)
+        and objective_anchor_equal(definition.pre_anchor, authorization.objective_transition_pre_anchor)
+        and objective_anchor_equal(definition.post_anchor, authorization.objective_transition_post_anchor);
+end
+
+local function objective_transition_authorized(authorization)
+    if (type(objective_transition_is_authorized) ~= 'function') then
+        return nil, 'The rooted objective transition authorizer is unavailable.';
+    end
+    local ok, definition, reason = pcall(objective_transition_is_authorized, authorization);
+    if (not ok or not objective_definition_matches(authorization, definition)) then
+        return nil, not ok and tostring(definition)
+            or tostring(reason or 'No rooted authorized objective transition matches this request.');
+    end
+    return definition, '';
+end
+
+local function objective_destination_matches(state, destination)
+    local saved = state ~= nil and state.destination or nil;
+    return type(saved) == 'table' and type(destination) == 'table'
+        and tostring(saved.name or '') == tostring(destination.name or '')
+        and tonumber(saved.zone) == tonumber(destination.zone)
+        and tonumber(saved.x) == tonumber(destination.x)
+        and tonumber(saved.z) == tonumber(destination.z)
+        and tonumber(saved.y) == tonumber(destination.y)
+        and tostring(saved.objective_destination_id or '')
+            == tostring(destination.objective_destination_id or '');
+end
+
+local function objective_exact_leg(start_point, end_point, authorization, stage)
+    if (type(nav_compute_exact_objective_leg) ~= 'function') then
+        return nil, 'The exact objective leg helper is unavailable.';
+    end
+    local request = T{
+        zone = authorization.objective_transition_zone,
+        objective_route_contract_id = authorization.objective_route_contract_id,
+        start = point_copy(start_point),
+        ['end'] = point_copy(end_point),
+        start_point = point_copy(start_point),
+        end_point = point_copy(end_point),
+        objective_transition_id = authorization.objective_transition_id,
+        objective_transition_stage = stage,
+    };
+    local ok, points, reason = pcall(nav_compute_exact_objective_leg, request);
+    if (not ok or type(points) ~= 'table' or #points < 2) then
+        return nil, not ok and tostring(points)
+            or tostring(reason or 'No exact objective elevator leg is proven.');
+    end
+    local route = T{};
+    for _, point in ipairs(points) do
+        if (not objective_anchor_valid(point, authorization.objective_transition_zone)) then
+            return nil, 'The exact objective elevator leg is malformed.';
+        end
+        local copied = point_copy(point);
+        copied.zone = authorization.objective_transition_zone;
+        copied.source = 'objective-exact-transport-' .. stage;
+        route:append(copied);
+    end
+    return route, '';
+end
+
+function accessxi.nav_objective_transport_clear(reason)
+    local state = accessxi.nav_objective_transport_transition;
+    accessxi.nav_objective_transport_transition = nil;
+    if (state ~= nil) then
+        log_line(('nav objective transport clear id="%s" phase="%s" reason="%s"'):fmt(
+            tostring(state.objective_transition_id or ''),
+            tostring(state.phase or ''),
+            tostring(reason or '')));
+    end
+end
+
+function accessxi.nav_objective_transport_start(player, destination, authorization)
+    local empty = T{};
+    if (not objective_authorization_valid(authorization)
+        or type(player) ~= 'table' or type(destination) ~= 'table'
+        or tonumber(player.zone) ~= tonumber(authorization.objective_transition_zone)
+        or tonumber(destination.zone) ~= tonumber(authorization.objective_transition_zone)
+        or tostring(destination.objective_destination_id or '')
+            ~= tostring(authorization.objective_destination_id or '')) then
+        return empty, 'Objective transport authorization is incomplete.';
+    end
+    local definition, authorization_reason = objective_transition_authorized(authorization);
+    if (definition == nil) then
+        return empty, authorization_reason ~= '' and authorization_reason
+            or 'No rooted authorized objective transition matches this request.';
+    end
+    local approach, approach_reason = objective_exact_leg(
+        player,
+        authorization.objective_transition_pre_anchor,
+        authorization,
+        'approach');
+    if (approach == nil) then
+        return empty, approach_reason;
+    end
+    local continuation, continuation_reason = objective_exact_leg(
+        authorization.objective_transition_post_anchor,
+        destination,
+        authorization,
+        'continuation');
+    if (continuation == nil) then
+        return empty, continuation_reason;
+    end
+
+    local state = objective_copy(authorization);
+    state.transport_kind = 'objective-verified-elevator';
+    state.phase = 'approach';
+    state.definition = objective_copy(definition);
+    state.approach = approach;
+    state.continuation = continuation;
+    state.destination = objective_copy(destination);
+    state.started_tick = tick();
+    state.deadline_tick = 0;
+    accessxi.nav_objective_transport_transition = state;
+    return approach, '';
+end
+
+function accessxi.nav_objective_transport_poll(player, destination, authorization, live_state, now)
+    local state = accessxi.nav_objective_transport_transition;
+    if (state == nil or state.transport_kind ~= 'objective-verified-elevator') then
+        return false, 'No objective transport transition is active.';
+    end
+    now = tonumber(now) or tick();
+    local function cancel(reason)
+        accessxi.nav_objective_transport_clear(reason);
+        return false, reason;
+    end
+    if (not objective_authorization_equal(state, authorization)) then
+        return cancel('Objective transport authorization changed.');
+    end
+    if (not objective_destination_matches(state, destination)) then
+        return cancel('Objective transport destination changed.');
+    end
+    if (type(player) ~= 'table'
+        or tonumber(player.zone) ~= tonumber(state.objective_transition_zone)) then
+        return cancel('Objective transport player zone changed.');
+    end
+    local definition, authorization_reason = objective_transition_authorized(authorization);
+    if (definition == nil or not objective_definition_matches(state, definition)) then
+        return cancel(authorization_reason ~= '' and authorization_reason
+            or 'Objective transport authorization is no longer rooted.');
+    end
+
+    if (state.phase == 'approach') then
+        if (not point_near_landing(
+            player,
+            state.objective_transition_pre_anchor,
+            landing_radius,
+            landing_vertical_tolerance)) then
+            return true, '';
+        end
+        state.phase = 'waiting';
+        state.deadline_tick = now
+            + (tonumber(state.objective_transition_timeout_seconds) * 1000);
+        local text = ('At the reviewed elevator transition. Use the visible elevator control if required, then ride to the destination floor.');
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        return true, '';
+    end
+
+    if (now > (tonumber(state.deadline_tick) or 0)) then
+        return cancel('Objective transport timed out.');
+    end
+    if (point_near_landing(
+        player,
+        state.objective_transition_post_anchor,
+        landing_radius,
+        landing_vertical_tolerance)) then
+        if (tostring(live_state or '')
+            ~= tostring(state.objective_transition_expected_live_state or '')) then
+            return cancel('Objective transport live state changed.');
+        end
+        local continuation = state.continuation;
+        accessxi.nav_objective_transport_clear('post-anchor-and-state-verified');
+        reset_route_runtime(player, destination, continuation, now);
+        local text = 'Destination floor verified. Objective route resumed.';
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        return true, '';
+    end
+    return true, '';
+end
+
+function accessxi.nav_objective_transport_active()
+    local state = accessxi.nav_objective_transport_transition;
+    return state ~= nil and state.transport_kind == 'objective-verified-elevator';
+end
+
 return true;

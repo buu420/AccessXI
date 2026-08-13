@@ -159,6 +159,12 @@ local function copy(point)
         objective_transport_id = point.objective_transport_id,
     }
 end
+local function deep_copy(value)
+    if type(value) ~= 'table' then return value end
+    local result = T{}
+    for key, child in pairs(value) do result[key] = deep_copy(child) end
+    return result
+end
 local function near(value, expected, tolerance) return math.abs((tonumber(value) or 0) - expected) < (tolerance or 0.2) end
 local lower_north = T{ zone = 237, x = -58.850, z = 12.002, y = 0 }
 local upper_north = T{ zone = 237, x = -53.126, z = 12.040, y = -12.098 }
@@ -267,6 +273,22 @@ accessxi = {
     nav_collision_quiet = function() end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
 }
+local objective_exact_calls = 0
+local objective_authorized_definition = nil
+local objective_transition_is_authorized = function(request)
+    if objective_authorized_definition == nil then
+        return nil, 'No rooted authorized objective transition matches this request.'
+    end
+    assert(request.objective_transition_id == objective_authorized_definition.transition_id)
+    return deep_copy(objective_authorized_definition), ''
+end
+local nav_compute_exact_objective_leg = function(request)
+    objective_exact_calls = objective_exact_calls + 1
+    if objective_authorized_definition == nil then
+        error('zero-authorized objective transport must not call the exact-leg helper')
+    end
+    return T{ copy(request.start_point), copy(request.end_point) }, ''
+end
 
 local chunk = assert(loadfile(module_path))
 setfenv(chunk, {
@@ -278,11 +300,15 @@ setfenv(chunk, {
     log_line = log_line,
     speak = speak,
     tick = tick,
+    objective_transition_is_authorized = objective_transition_is_authorized,
+    nav_compute_exact_objective_leg = nav_compute_exact_objective_leg,
     math = math,
     string = string,
     tostring = tostring,
     tonumber = tonumber,
     ipairs = ipairs,
+    pairs = pairs,
+    pcall = pcall,
     type = type,
     setmetatable = setmetatable,
 })
@@ -410,6 +436,7 @@ local upper_camp = T{
     y = -32.280,
     kind = 'enemy',
     objective_transport_id = 'palborough-mines-lift',
+    objective_destination_id = 'destination:fixture',
 }
 local palborough_route, palborough_required = accessxi.nav_verified_elevator_route(palborough_player, upper_camp)
 assert(palborough_required == true)
@@ -452,6 +479,180 @@ local already_upper = T{ zone = 143, x = 205, z = 70, y = -32.1 }
 local same_floor_route, same_floor_required = accessxi.nav_verified_elevator_route(already_upper, upper_camp)
 assert(same_floor_route:len() == 0 and same_floor_required == false)
 assert(accessxi.nav_transport_transition == nil)
+
+-- Objective transport is a separate fail-closed mode. The current rooted
+-- transition artifact has zero authorized entries, so it must not borrow the
+-- ordinary permissive elevator route or call an exact-leg helper.
+local ordinary_transition = T{ transport_kind = 'verified-elevator', phase = 'waiting' }
+accessxi.nav_transport_transition = ordinary_transition
+local objective_authorization = T{
+    objective_kind = 'mission',
+    objective_native_key = 'mission:Bastok:3',
+    objective_guide_step_id = 'mission:Bastok:3:step-006',
+    objective_character_identity = 'alpha:1001',
+    objective_world_id = 1001,
+    objective_session_epoch = 77,
+    objective_candidate_id = 'candidate:palborough-lift',
+    objective_action_id = 'action:use-elevator',
+    objective_group_id = '',
+    objective_destination_id = 'destination:fixture',
+    objective_route_contract_id = 'route:v2:' .. string.rep('a', 64),
+    objective_transition_id = 'palborough-mines-lift:up',
+    objective_transition_revision = 'objective-route-transition-v2',
+    objective_transition_registry_sha256 = string.rep('b', 64),
+    objective_transition_direction = 'up',
+    objective_transition_zone = 143,
+    objective_transition_pre_anchor = copy(palborough_lower),
+    objective_transition_post_anchor = copy(palborough_upper),
+    objective_transition_expected_live_state = 'same-zone-floor-change-and-continuation',
+    objective_transition_timeout_seconds = 45,
+}
+local objective_route, objective_reason = accessxi.nav_objective_transport_start(
+    palborough_player,
+    upper_camp,
+    objective_authorization)
+assert(objective_route:len() == 0)
+assert(string.find(string.lower(tostring(objective_reason or '')), 'authorized', 1, true) ~= nil)
+assert(objective_exact_calls == 0 and accessxi.nav_objective_transport_transition == nil)
+assert(accessxi.nav_transport_transition == ordinary_transition,
+    'blocked objective transport changed ordinary elevator state')
+
+-- A synthetically rooted authorized definition proves objective transport is
+-- a real, separately owned mode. Checked artifacts currently authorize zero,
+-- so this path is reachable only through the injected reviewed authorizer.
+objective_authorized_definition = T{
+    schema_version = 2,
+    transition_id = objective_authorization.objective_transition_id,
+    transition_revision = objective_authorization.objective_transition_revision,
+    source_registry_sha256 = objective_authorization.objective_transition_registry_sha256,
+    direction = objective_authorization.objective_transition_direction,
+    zone = objective_authorization.objective_transition_zone,
+    pre_anchor = copy(objective_authorization.objective_transition_pre_anchor),
+    post_anchor = copy(objective_authorization.objective_transition_post_anchor),
+    expected_live_state = objective_authorization.objective_transition_expected_live_state,
+    timeout_seconds = objective_authorization.objective_transition_timeout_seconds,
+}
+objective_exact_calls = 0
+local authorized_route, authorized_reason = accessxi.nav_objective_transport_start(
+    palborough_player,
+    upper_camp,
+    deep_copy(objective_authorization))
+assert(authorized_reason == '' and authorized_route:len() == 2)
+assert(objective_exact_calls == 2, 'objective transport did not prove both exact walkable legs')
+local objective_state = accessxi.nav_objective_transport_transition
+assert(objective_state ~= nil and objective_state.transport_kind == 'objective-verified-elevator')
+for _, key in ipairs({
+    'objective_kind', 'objective_native_key', 'objective_guide_step_id',
+    'objective_character_identity', 'objective_world_id', 'objective_session_epoch',
+    'objective_candidate_id', 'objective_action_id', 'objective_group_id',
+    'objective_destination_id', 'objective_route_contract_id', 'objective_transition_id',
+    'objective_transition_revision', 'objective_transition_registry_sha256',
+    'objective_transition_direction', 'objective_transition_zone',
+    'objective_transition_expected_live_state', 'objective_transition_timeout_seconds',
+}) do
+    assert(objective_state[key] == objective_authorization[key],
+        'objective transport state dropped immutable owner field ' .. key)
+end
+assert(near(objective_state.objective_transition_pre_anchor.x, palborough_lower.x)
+    and near(objective_state.objective_transition_post_anchor.y, palborough_upper.y))
+assert(accessxi.nav_transport_transition == ordinary_transition,
+    'authorized objective transport overwrote ordinary elevator state')
+
+local waiting, waiting_reason = accessxi.nav_objective_transport_poll(
+    copy(palborough_lower), upper_camp, deep_copy(objective_authorization),
+    'lower-floor-ready', 10000)
+assert(waiting == true and waiting_reason == ''
+    and accessxi.nav_objective_transport_transition.phase == 'waiting')
+local resumed, resumed_reason = accessxi.nav_objective_transport_poll(
+    copy(palborough_upper), upper_camp, deep_copy(objective_authorization),
+    objective_authorization.objective_transition_expected_live_state, 11000)
+assert(resumed == true and resumed_reason == '')
+assert(accessxi.nav_objective_transport_transition == nil)
+assert(accessxi.nav_route_points:len() == 2,
+    'objective transport success did not resume its pre-proven continuation')
+assert(accessxi.nav_transport_transition == ordinary_transition,
+    'objective transport success changed ordinary elevator state')
+
+local function assert_objective_poll_cancels(mutator, live_state, elapsed)
+    local route, reason = accessxi.nav_objective_transport_start(
+        palborough_player, upper_camp, deep_copy(objective_authorization))
+    assert(route:len() == 2 and reason == '')
+    local current = deep_copy(objective_authorization)
+    assert(accessxi.nav_objective_transport_poll(
+        copy(palborough_lower), upper_camp, deep_copy(objective_authorization),
+        'lower-floor-ready', (elapsed or 12000) - 1) == true)
+    if mutator ~= nil then mutator(current) end
+    local handled, cancel_reason = accessxi.nav_objective_transport_poll(
+        live_state ~= nil and copy(palborough_upper) or copy(palborough_lower), upper_camp, current,
+        live_state or 'lower-floor-ready', elapsed or 12000)
+    assert(handled == false and tostring(cancel_reason or '') ~= '')
+    assert(accessxi.nav_objective_transport_transition == nil,
+        'objective transport mismatch did not cancel its private state')
+    assert(accessxi.nav_transport_transition == ordinary_transition,
+        'objective transport cancellation changed ordinary elevator state')
+end
+
+for _, mismatch in ipairs({
+    function(value) value.objective_native_key = 'mission:Bastok:changed' end,
+    function(value) value.objective_guide_step_id = 'mission:Bastok:3:step-changed' end,
+    function(value) value.objective_character_identity = 'other:1001' end,
+    function(value) value.objective_world_id = 1002 end,
+    function(value) value.objective_session_epoch = 78 end,
+    function(value) value.objective_candidate_id = 'candidate:changed' end,
+    function(value) value.objective_action_id = 'action:changed' end,
+    function(value) value.objective_group_id = 'group:changed' end,
+    function(value) value.objective_destination_id = 'destination:changed' end,
+    function(value) value.objective_route_contract_id = 'route:v2:' .. string.rep('c', 64) end,
+    function(value) value.objective_transition_id = 'other-transition:up' end,
+    function(value) value.objective_transition_revision = 'objective-route-transition:changed' end,
+    function(value) value.objective_transition_registry_sha256 = string.rep('d', 64) end,
+    function(value) value.objective_transition_direction = 'down' end,
+    function(value) value.objective_transition_zone = 144 end,
+    function(value) value.objective_transition_pre_anchor.x = value.objective_transition_pre_anchor.x + 1 end,
+    function(value) value.objective_transition_post_anchor.y = value.objective_transition_post_anchor.y + 1 end,
+    function(value) value.objective_transition_expected_live_state = 'changed-live-state' end,
+    function(value) value.objective_transition_timeout_seconds = 46 end,
+}) do
+    assert_objective_poll_cancels(mismatch)
+end
+assert_objective_poll_cancels(nil, 'wrong-live-state')
+
+for _, change_context in ipairs({
+    function(player_value, destination_value) player_value.zone = 144 end,
+    function(player_value, destination_value) destination_value.name = 'Changed destination' end,
+    function(player_value, destination_value) destination_value.x = destination_value.x + 1 end,
+    function(player_value, destination_value)
+        destination_value.objective_destination_id = 'destination:changed'
+    end,
+}) do
+    local context_route, context_reason = accessxi.nav_objective_transport_start(
+        palborough_player, upper_camp, deep_copy(objective_authorization))
+    assert(context_route:len() == 2 and context_reason == '')
+    assert(accessxi.nav_objective_transport_poll(
+        copy(palborough_lower), upper_camp, deep_copy(objective_authorization),
+        'lower-floor-ready', 15000) == true)
+    local changed_player = copy(palborough_lower)
+    local changed_destination = deep_copy(upper_camp)
+    change_context(changed_player, changed_destination)
+    local context_handled, context_cancel_reason = accessxi.nav_objective_transport_poll(
+        changed_player, changed_destination, deep_copy(objective_authorization),
+        'lower-floor-ready', 15001)
+    assert(context_handled == false and tostring(context_cancel_reason or '') ~= '')
+    assert(accessxi.nav_objective_transport_transition == nil)
+    assert(accessxi.nav_transport_transition == ordinary_transition)
+end
+
+local timeout_route = assert(accessxi.nav_objective_transport_start(
+    palborough_player, upper_camp, deep_copy(objective_authorization)))
+assert(timeout_route:len() == 2)
+assert(accessxi.nav_objective_transport_poll(
+    copy(palborough_lower), upper_camp, deep_copy(objective_authorization),
+    'lower-floor-ready', 20000) == true)
+local timeout_handled, timeout_reason = accessxi.nav_objective_transport_poll(
+    copy(palborough_lower), upper_camp, deep_copy(objective_authorization),
+    'lower-floor-ready', 20000 + (objective_authorization.objective_transition_timeout_seconds * 1000) + 1)
+assert(timeout_handled == false and tostring(timeout_reason):lower():find('timed out', 1, true))
+assert(accessxi.nav_objective_transport_transition == nil)
 
 return true
 '@

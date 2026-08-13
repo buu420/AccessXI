@@ -6,5 +6,5 @@
 *.cpp text eol=crlf
 *.h text eol=crlf
 *.md text eol=lf
-*.tsv text eol=lf
+*.tsv text eol=lf whitespace=-trailing-space
 *.json text eol=lf

@@ -476,6 +476,150 @@
       }
     }
   },
+  "role_overrides": {
+    "mission:San d'Oria:1:step-001:claim-01": {
+      "source_revisions": {
+        "bg": 766630,
+        "ffxiclopedia": 1720865
+      },
+      "source_roles": [
+        "Gate Guard",
+        "San d'Orian Gate Guard"
+      ],
+      "allowed_zones": [
+        "Southern San d'Oria",
+        "Northern San d'Oria"
+      ],
+      "members": [
+        {
+          "destination_id": "npc:v1:230:17719394",
+          "name": "Ambrotien",
+          "zone": 230,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-002"
+        },
+        {
+          "destination_id": "npc:v1:230:17719393",
+          "name": "Endracion",
+          "zone": 230,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-003"
+        },
+        {
+          "destination_id": "npc:v1:231:17723426",
+          "name": "Grilau",
+          "zone": 231,
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-004"
+        }
+      ],
+      "review_basis": "Exact gate-guard member notes in the pinned BG revision and matching role claim in both pinned guide revisions"
+    }
+  },
+  "single_source_zone_overrides": {
+    "mission:San d'Oria:1:step-005:claim-01": {
+      "source_revisions": {
+        "bg": 766630,
+        "ffxiclopedia": 1720865
+      },
+      "action": "fight",
+      "target": "Orcish Fodder",
+      "allowed_zones": [
+        "East Ronfaure"
+      ],
+      "location_facts": [
+        {
+          "source_site": "bg",
+          "source_step_id": "mission:San d'Oria:1:bg:step-006",
+          "relationship": "target-location",
+          "target": "Orcish Fodder",
+          "zones": [
+            "East Ronfaure",
+            "West Ronfaure"
+          ]
+        }
+      ],
+      "review_basis": "Pinned BG target-location fact plus exact raw LandSandBoat spawn identities"
+    }
+  },
+  "legacy_action_migrations": {
+    "mission:Bastok:3": {
+      "action_id": "mission:Bastok:3:step-006:claim-01",
+      "source_revisions": {
+        "bg": 754820,
+        "ffxiclopedia": 1748519
+      },
+      "zone": 143,
+      "zone_name": "Palborough Mines",
+      "items": [
+        "Fetich Head",
+        "Fetich Torso",
+        "Fetich Arms",
+        "Fetich Legs"
+      ],
+      "legacy_source_step_ids": [
+        "mission:Bastok:3:step-003",
+        "mission:Bastok:3:step-006"
+      ],
+      "legacy_source_claim_ids": [],
+      "source_facts": {
+        "bg": {
+          "item_step_id": "mission:Bastok:3:bg:step-002",
+          "farming_step_id": "mission:Bastok:3:bg:step-004"
+        },
+        "ffxiclopedia": {
+          "item_step_id": "mission:Bastok:3:ffxiclopedia:step-003",
+          "drop_step_id": "mission:Bastok:3:ffxiclopedia:step-004",
+          "enemy_step_id": "mission:Bastok:3:ffxiclopedia:step-005",
+          "farming_zone_step_id": "mission:Bastok:3:ffxiclopedia:step-006"
+        }
+      },
+      "mappings": [
+        {
+          "legacy_override_id": "palborough-lower-amber",
+          "enemy_groups": [
+            {
+              "id": "amber-quadav",
+              "enemy": "Amber Quadav",
+              "source_mentions": {
+                "bg": "Amber Quadav",
+                "ffxiclopedia": "Amber"
+              }
+            }
+          ]
+        },
+        {
+          "legacy_override_id": "palborough-upper-quadav",
+          "enemy_groups": [
+            {
+              "id": "greater-quadav",
+              "enemy": "Greater Quadav",
+              "source_mentions": {
+                "bg": "Greater Quadav",
+                "ffxiclopedia": "Greater"
+              }
+            },
+            {
+              "id": "onyx-quadav",
+              "enemy": "Onyx Quadav",
+              "source_mentions": {
+                "bg": "Onyx Quadav",
+                "ffxiclopedia": "Onyx"
+              }
+            },
+            {
+              "id": "veteran-quadav",
+              "enemy": "Veteran Quadav",
+              "source_mentions": {
+                "bg": "Veteran Quadav",
+                "ffxiclopedia": "Veteran"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
   "mission_destination_overrides": {
     "mission:Bastok:3": [
       {
@@ -597,7 +741,7 @@
       "arrival_instruction": "Talk to Naji.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:11:step-003": {
+    "mission:Bastok:11:step-002": {
       "source_revisions": {
         "bg": 773109,
         "ffxiclopedia": 1773229
@@ -625,7 +769,7 @@
       "arrival_instruction": "Talk to Davyad.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:13:step-003": {
+    "mission:Bastok:13:step-002": {
       "source_revisions": {
         "bg": 766614,
         "ffxiclopedia": 1795852
@@ -639,7 +783,7 @@
       "arrival_instruction": "Talk to Lucius.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:13:step-004": {
+    "mission:Bastok:13:step-003": {
       "source_revisions": {
         "bg": 766614,
         "ffxiclopedia": 1795852
@@ -681,7 +825,7 @@
       "arrival_instruction": "Talk to Tall Mountain.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:18:step-005": {
+    "mission:Bastok:18:step-004": {
       "source_revisions": {
         "bg": 737106,
         "ffxiclopedia": 1793784
@@ -695,7 +839,7 @@
       "arrival_instruction": "Talk to Gilgamesh.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:19:step-003": {
+    "mission:Bastok:19:step-002": {
       "source_revisions": {
         "bg": 769204,
         "ffxiclopedia": 1742811
@@ -751,7 +895,7 @@
       "arrival_instruction": "Talk to Hilda.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:20:step-031": {
+    "mission:Bastok:20:step-030": {
       "source_revisions": {
         "bg": 737130,
         "ffxiclopedia": 1793788
@@ -779,7 +923,7 @@
       "arrival_instruction": "Talk to Dancing Wolf.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Bastok:23:step-023": {
+    "mission:Bastok:23:step-025": {
       "source_revisions": {
         "bg": 760788,
         "ffxiclopedia": 1742826
@@ -1073,7 +1217,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:14:step-080": {
+    "mission:Chains of Promathia:14:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1087,7 +1231,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:14:step-082": {
+    "mission:Chains of Promathia:14:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1101,7 +1245,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:14:step-085": {
+    "mission:Chains of Promathia:14:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1115,7 +1259,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:14:step-088": {
+    "mission:Chains of Promathia:14:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1185,7 +1329,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:15:step-080": {
+    "mission:Chains of Promathia:15:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1199,7 +1343,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:15:step-082": {
+    "mission:Chains of Promathia:15:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1213,7 +1357,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:15:step-085": {
+    "mission:Chains of Promathia:15:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1227,7 +1371,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:15:step-088": {
+    "mission:Chains of Promathia:15:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1297,7 +1441,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:16:step-080": {
+    "mission:Chains of Promathia:16:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1311,7 +1455,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:16:step-082": {
+    "mission:Chains of Promathia:16:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1325,7 +1469,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:16:step-085": {
+    "mission:Chains of Promathia:16:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1339,7 +1483,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:16:step-088": {
+    "mission:Chains of Promathia:16:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1409,7 +1553,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:17:step-080": {
+    "mission:Chains of Promathia:17:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1423,7 +1567,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:17:step-082": {
+    "mission:Chains of Promathia:17:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1437,7 +1581,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:17:step-085": {
+    "mission:Chains of Promathia:17:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1451,7 +1595,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:17:step-088": {
+    "mission:Chains of Promathia:17:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1521,7 +1665,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:18:step-080": {
+    "mission:Chains of Promathia:18:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1535,7 +1679,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:18:step-082": {
+    "mission:Chains of Promathia:18:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1549,7 +1693,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:18:step-085": {
+    "mission:Chains of Promathia:18:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1563,7 +1707,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:18:step-088": {
+    "mission:Chains of Promathia:18:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1633,7 +1777,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:19:step-080": {
+    "mission:Chains of Promathia:19:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1647,7 +1791,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:19:step-082": {
+    "mission:Chains of Promathia:19:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1661,7 +1805,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:19:step-085": {
+    "mission:Chains of Promathia:19:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1675,7 +1819,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:19:step-088": {
+    "mission:Chains of Promathia:19:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1745,7 +1889,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:20:step-080": {
+    "mission:Chains of Promathia:20:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1759,7 +1903,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:20:step-082": {
+    "mission:Chains of Promathia:20:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1773,7 +1917,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:20:step-085": {
+    "mission:Chains of Promathia:20:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1787,7 +1931,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:20:step-088": {
+    "mission:Chains of Promathia:20:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1857,7 +2001,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:21:step-080": {
+    "mission:Chains of Promathia:21:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1871,7 +2015,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:21:step-082": {
+    "mission:Chains of Promathia:21:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1885,7 +2029,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:21:step-085": {
+    "mission:Chains of Promathia:21:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1899,7 +2043,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:21:step-088": {
+    "mission:Chains of Promathia:21:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1969,7 +2113,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:22:step-080": {
+    "mission:Chains of Promathia:22:step-081": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1983,7 +2127,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:22:step-082": {
+    "mission:Chains of Promathia:22:step-083": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -1997,7 +2141,7 @@
       "arrival_instruction": "Talk to Yujuju.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:22:step-085": {
+    "mission:Chains of Promathia:22:step-086": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -2011,7 +2155,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:22:step-088": {
+    "mission:Chains of Promathia:22:step-089": {
       "source_revisions": {
         "bg": 771983,
         "ffxiclopedia": 1782537
@@ -2095,7 +2239,7 @@
       "arrival_instruction": "Talk to Anoki.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:31:step-014": {
+    "mission:Chains of Promathia:31:step-015": {
       "source_revisions": {
         "bg": 728104,
         "ffxiclopedia": 1800564
@@ -2151,7 +2295,7 @@
       "arrival_instruction": "Talk to Perih Vashai.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:34:step-029": {
+    "mission:Chains of Promathia:34:step-027": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2165,7 +2309,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:34:step-087": {
+    "mission:Chains of Promathia:34:step-083": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2207,7 +2351,7 @@
       "arrival_instruction": "Talk to Perih Vashai.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:35:step-029": {
+    "mission:Chains of Promathia:35:step-027": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2221,7 +2365,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:35:step-087": {
+    "mission:Chains of Promathia:35:step-083": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2263,7 +2407,7 @@
       "arrival_instruction": "Talk to Perih Vashai.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:36:step-029": {
+    "mission:Chains of Promathia:36:step-027": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2277,7 +2421,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:36:step-087": {
+    "mission:Chains of Promathia:36:step-083": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2319,7 +2463,7 @@
       "arrival_instruction": "Talk to Perih Vashai.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:37:step-029": {
+    "mission:Chains of Promathia:37:step-027": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2333,7 +2477,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:37:step-087": {
+    "mission:Chains of Promathia:37:step-083": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2375,7 +2519,7 @@
       "arrival_instruction": "Talk to Perih Vashai.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:38:step-029": {
+    "mission:Chains of Promathia:38:step-027": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2389,7 +2533,7 @@
       "arrival_instruction": "Talk to Yoran-Oran.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:38:step-087": {
+    "mission:Chains of Promathia:38:step-083": {
       "source_revisions": {
         "bg": 770729,
         "ffxiclopedia": 1795074
@@ -2403,7 +2547,7 @@
       "arrival_instruction": "Talk to Cid.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:39:step-037": {
+    "mission:Chains of Promathia:39:step-038": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -2417,7 +2561,7 @@
       "arrival_instruction": "Talk to Monberaux.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:39:step-038": {
+    "mission:Chains of Promathia:39:step-039": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -2445,7 +2589,7 @@
       "arrival_instruction": "Talk to Pherimociel.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:40:step-037": {
+    "mission:Chains of Promathia:40:step-038": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -2459,7 +2603,7 @@
       "arrival_instruction": "Talk to Monberaux.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:40:step-038": {
+    "mission:Chains of Promathia:40:step-039": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -2471,20 +2615,6 @@
         "kind": "npc"
       },
       "arrival_instruction": "Talk to Pherimociel.",
-      "review_basis": "dual-source exact named NPC and unique current navigation point"
-    },
-    "mission:Chains of Promathia:41:step-037": {
-      "source_revisions": {
-        "bg": 767435,
-        "ffxiclopedia": 1780340
-      },
-      "reference": {
-        "zone": 244,
-        "zone_name": "Upper Jeuno",
-        "name": "Monberaux",
-        "kind": "npc"
-      },
-      "arrival_instruction": "Talk to Monberaux.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
     "mission:Chains of Promathia:41:step-038": {
@@ -2493,26 +2623,26 @@
         "ffxiclopedia": 1780340
       },
       "reference": {
-        "zone": 243,
-        "zone_name": "Ru'Lude Gardens",
-        "name": "Pherimociel",
-        "kind": "npc"
-      },
-      "arrival_instruction": "Talk to Pherimociel.",
-      "review_basis": "dual-source exact named NPC and unique current navigation point"
-    },
-    "mission:Chains of Promathia:42:step-037": {
-      "source_revisions": {
-        "bg": 767435,
-        "ffxiclopedia": 1780340
-      },
-      "reference": {
         "zone": 244,
         "zone_name": "Upper Jeuno",
         "name": "Monberaux",
         "kind": "npc"
       },
       "arrival_instruction": "Talk to Monberaux.",
+      "review_basis": "dual-source exact named NPC and unique current navigation point"
+    },
+    "mission:Chains of Promathia:41:step-039": {
+      "source_revisions": {
+        "bg": 767435,
+        "ffxiclopedia": 1780340
+      },
+      "reference": {
+        "zone": 243,
+        "zone_name": "Ru'Lude Gardens",
+        "name": "Pherimociel",
+        "kind": "npc"
+      },
+      "arrival_instruction": "Talk to Pherimociel.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
     "mission:Chains of Promathia:42:step-038": {
@@ -2521,6 +2651,20 @@
         "ffxiclopedia": 1780340
       },
       "reference": {
+        "zone": 244,
+        "zone_name": "Upper Jeuno",
+        "name": "Monberaux",
+        "kind": "npc"
+      },
+      "arrival_instruction": "Talk to Monberaux.",
+      "review_basis": "dual-source exact named NPC and unique current navigation point"
+    },
+    "mission:Chains of Promathia:42:step-039": {
+      "source_revisions": {
+        "bg": 767435,
+        "ffxiclopedia": 1780340
+      },
+      "reference": {
         "zone": 243,
         "zone_name": "Ru'Lude Gardens",
         "name": "Pherimociel",
@@ -2529,7 +2673,7 @@
       "arrival_instruction": "Talk to Pherimociel.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:43:step-037": {
+    "mission:Chains of Promathia:43:step-038": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -2543,7 +2687,7 @@
       "arrival_instruction": "Talk to Monberaux.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:Chains of Promathia:43:step-038": {
+    "mission:Chains of Promathia:43:step-039": {
       "source_revisions": {
         "bg": 767435,
         "ffxiclopedia": 1780340
@@ -3383,7 +3527,7 @@
       "arrival_instruction": "Talk to Tateeya.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:The Voracious Resurgence:23:step-025": {
+    "mission:The Voracious Resurgence:23:step-023": {
       "source_revisions": {
         "bg": 774955,
         "ffxiclopedia": 1778631
@@ -3579,7 +3723,7 @@
       "arrival_instruction": "Talk to Brygid.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:The Voracious Resurgence:3:step-042": {
+    "mission:The Voracious Resurgence:3:step-041": {
       "source_revisions": {
         "bg": 746977,
         "ffxiclopedia": 1755833
@@ -3859,7 +4003,7 @@
       "arrival_instruction": "Talk to Joachim.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:abyssea:181:step-001": {
+    "quest:abyssea:181:step-011": {
       "source_revisions": {
         "bg": 696260,
         "ffxiclopedia": 1585943
@@ -3957,7 +4101,7 @@
       "arrival_instruction": "Talk to Cid.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:adoulin:110:step-009": {
+    "quest:adoulin:110:step-008": {
       "source_revisions": {
         "bg": 745885,
         "ffxiclopedia": 1719534
@@ -5161,7 +5305,7 @@
       "arrival_instruction": "Talk to Cochal-Monchal.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:bastok:60:step-029": {
+    "quest:bastok:60:step-028": {
       "source_revisions": {
         "bg": 774578,
         "ffxiclopedia": 1790885
@@ -5329,7 +5473,7 @@
       "arrival_instruction": "Talk to Muckvix.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:bastok:78:step-033": {
+    "quest:bastok:78:step-032": {
       "source_revisions": {
         "bg": 775003,
         "ffxiclopedia": 1720188
@@ -5805,7 +5949,7 @@
       "arrival_instruction": "Talk to Bki Tbujhja.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:jeuno:44:step-014": {
+    "quest:jeuno:44:step-013": {
       "source_revisions": {
         "bg": 773075,
         "ffxiclopedia": 1681185
@@ -5819,7 +5963,7 @@
       "arrival_instruction": "Talk to Guslam.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:jeuno:44:step-017": {
+    "quest:jeuno:44:step-016": {
       "source_revisions": {
         "bg": 773075,
         "ffxiclopedia": 1681185
@@ -5889,7 +6033,7 @@
       "arrival_instruction": "Talk to Imasuke.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:jeuno:66:step-012": {
+    "quest:jeuno:66:step-011": {
       "source_revisions": {
         "bg": 677082,
         "ffxiclopedia": 1776518
@@ -5945,7 +6089,7 @@
       "arrival_instruction": "Talk to Wobke.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:jeuno:77:step-086": {
+    "quest:jeuno:77:step-085": {
       "source_revisions": {
         "bg": 675111,
         "ffxiclopedia": 1551887
@@ -6351,7 +6495,7 @@
       "arrival_instruction": "Talk to Valgeir.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:other_areas:70:step-020": {
+    "quest:other_areas:70:step-018": {
       "source_revisions": {
         "bg": 762107,
         "ffxiclopedia": 1553065
@@ -6701,7 +6845,7 @@
       "arrival_instruction": "Talk to Kagetora.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:outlands:143:step-020": {
+    "quest:outlands:143:step-021": {
       "source_revisions": {
         "bg": 748842,
         "ffxiclopedia": 1780114
@@ -6855,7 +6999,7 @@
       "arrival_instruction": "Talk to Quelveuiat.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:outlands:200:step-007": {
+    "quest:outlands:200:step-006": {
       "source_revisions": {
         "bg": 770712,
         "ffxiclopedia": 1756418
@@ -6869,7 +7013,7 @@
       "arrival_instruction": "Talk to Vladinek.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:outlands:200:step-018": {
+    "quest:outlands:200:step-017": {
       "source_revisions": {
         "bg": 770712,
         "ffxiclopedia": 1756418
@@ -7107,7 +7251,7 @@
       "arrival_instruction": "Talk to Exoroche.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:sandoria:92:step-005": {
+    "quest:sandoria:92:step-004": {
       "source_revisions": {
         "bg": 771539,
         "ffxiclopedia": 1777422
@@ -7121,7 +7265,7 @@
       "arrival_instruction": "Talk to Vemalpeau.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:sandoria:92:step-007": {
+    "quest:sandoria:92:step-006": {
       "source_revisions": {
         "bg": 771539,
         "ffxiclopedia": 1777422
@@ -7541,7 +7685,7 @@
       "arrival_instruction": "Talk to Carbuncle.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:windurst:82:step-018": {
+    "quest:windurst:82:step-017": {
       "source_revisions": {
         "bg": 724760,
         "ffxiclopedia": 1754390
@@ -7569,7 +7713,7 @@
       "arrival_instruction": "Talk to Ripapa.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "quest:windurst:83:step-028": {
+    "quest:windurst:83:step-027": {
       "source_revisions": {
         "bg": 685598,
         "ffxiclopedia": 1774642
@@ -7628,6 +7772,8 @@
   },
   "evidence": [
     "installed English client DAT rows",
+    "https://www.bg-wiki.com/ffxi/San_d%27Oria_Mission_1-1",
+    "https://ffxiclopedia.fandom.com/wiki/Smash_the_Orcish_Scouts",
     "https://www.bg-wiki.com/ffxi/Bastok_Mission_1-2",
     "https://ffxiclopedia.fandom.com/wiki/A_Geological_Survey",
     "https://ffxiclopedia.fandom.com/wiki/A_Discerning_Eye",

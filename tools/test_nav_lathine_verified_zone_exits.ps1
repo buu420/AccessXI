@@ -1,26 +1,33 @@
+param(
+    [string]$Root = (Split-Path -Parent $PSScriptRoot),
+    [string]$LiveAddonRoot = ''
+)
+
 $ErrorActionPreference = 'Stop'
 
-$root = 'C:\Users\buu42\AccessXI'
+$root = (Resolve-Path -LiteralPath $Root).Path
 $destinationPaths = @(
     "$root\data\ffxi-nav-destinations.tsv",
-    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-destinations.tsv",
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-destinations.tsv'
+    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-destinations.tsv"
 )
 $graphPaths = @(
     "$root\data\ffxi-nav-zoneline-graph.tsv",
-    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-zoneline-graph.tsv",
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-zoneline-graph.tsv'
+    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-zoneline-graph.tsv"
 )
 $markPaths = @(
     "$root\data\ffxi-nav-recorded-marks.tsv",
-    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv",
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv'
+    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv"
 )
 $surveyPaths = @(
     "$root\data\ffxi-nav-recorded-survey.tsv",
-    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv",
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv'
+    "$root\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv"
 )
+if (-not [string]::IsNullOrWhiteSpace($LiveAddonRoot)) {
+    $destinationPaths += Join-Path $LiveAddonRoot 'data\ffxi-nav-destinations.tsv'
+    $graphPaths += Join-Path $LiveAddonRoot 'data\ffxi-nav-zoneline-graph.tsv'
+    $markPaths += Join-Path $LiveAddonRoot 'data\ffxi-nav-recorded-marks.tsv'
+    $surveyPaths += Join-Path $LiveAddonRoot 'data\ffxi-nav-recorded-survey.tsv'
+}
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -36,7 +43,7 @@ function Read-Destinations {
             return
         }
         $fields = $_ -split "`t"
-        if ($fields.Count -ge 8) {
+        if ($fields.Count -ge 7) {
             [pscustomobject]@{
                 zone = $fields[0]
                 name = $fields[1]
@@ -45,8 +52,11 @@ function Read-Destinations {
                 y = $fields[4]
                 kind = $fields[5]
                 source = $fields[6]
-                confidence = $fields[7]
+                confidence = if ($fields.Count -ge 8) { $fields[7] } else { '' }
                 section = if ($fields.Count -ge 9) { $fields[8] } else { '' }
+                destination_id = if ($fields.Count -ge 10) { $fields[9] } else { '' }
+                raw_identity = if ($fields.Count -ge 11) { $fields[10] } else { '' }
+                field_count = $fields.Count
             }
         }
     })
@@ -68,14 +78,48 @@ $expectedGraphKeys = @(
 )
 $proofSource = 'live-mark-aligned-navmesh-20260713'
 $proofNote = 'user-confirmed-ordelle-line-2026-07-13'
+$expectedActiveEdgeIds = @(846541434, 880095866, 812987002, 913650298, 947204730)
+$forbiddenEdgeIds = @(878982522, 1635070586)
+
+function Get-PresentationRank {
+    param($Row)
+    switch ([string]$Row.confidence) {
+        'proven' { return 0 }
+        'observed' { return 1 }
+        'bad' { return 9 }
+        default { return 4 }
+    }
+}
 
 foreach ($path in $destinationPaths) {
     $areas = @(Read-Destinations -Path $path | Where-Object { $_.zone -eq '102' -and $_.kind -eq 'area' })
-    Assert-True ($areas.Count -eq 5) "Expected exactly five visible La Theine area exits in $path; found $($areas.Count)."
-    $actualNames = @($areas.name | Sort-Object)
+
+    foreach ($edgeId in $expectedActiveEdgeIds) {
+        $identity = "area:v1:102:$edgeId"
+        $matches = @($areas | Where-Object { $_.destination_id -eq $identity })
+        Assert-True ($matches.Count -eq 1) "Expected exactly one immutable La Theine identity $identity in $path; found $($matches.Count)."
+        Assert-True ($matches[0].field_count -eq 13) "La Theine identity $identity is not a 13-column row in $path."
+        Assert-True ($matches[0].raw_identity -eq "lsb:zonelines:$edgeId") "La Theine identity $identity lost its exact raw zoneline identity in $path."
+    }
+    foreach ($edgeId in $forbiddenEdgeIds) {
+        Assert-True (@($areas | Where-Object { $_.raw_identity -eq "lsb:zonelines:$edgeId" }).Count -eq 0) "Unverified z2ua identity $edgeId remains in $path."
+    }
+
+    $presentationGroups = @($areas | Group-Object -Property {
+        $normalizedName = ([string]$_.name).ToLowerInvariant() -replace '\s+', ' '
+        "$($_.zone)|$(([string]$_.kind).ToLowerInvariant())|$($normalizedName.Trim())"
+    })
+    $presented = @($presentationGroups | ForEach-Object {
+        @($_.Group | Sort-Object `
+            @{ Expression = { Get-PresentationRank $_ }; Ascending = $true }, `
+            @{ Expression = { [string]$_.destination_id }; Ascending = $true }, `
+            @{ Expression = { [string]$_.raw_identity }; Ascending = $true })[0]
+    })
+    Assert-True ($presented.Count -eq 5) "Expected five projected La Theine area exits in $path; found $($presented.Count) from $($areas.Count) raw rows."
+    $actualNames = @($presented.name | Sort-Object)
     Assert-True (($actualNames -join "`n") -eq (($expectedDestinationNames | Sort-Object) -join "`n")) "La Theine visible exits do not match the verified five in $path."
 
-    $ordelle = @($areas | Where-Object { $_.name -like "Ordelle's Caves zone line*" })
+    $ordelle = @($presented | Where-Object { $_.name -like "Ordelle's Caves zone line*" })
     Assert-True ($ordelle.Count -eq 2) "Expected exactly two Ordelle's Caves exits in $path; found $($ordelle.Count)."
     foreach ($row in $ordelle) {
         Assert-True ($row.source -eq $proofSource) "Ordelle exit $($row.name) lacks aligned live-mark provenance in $path."
@@ -127,25 +171,37 @@ import importlib.util
 import sys
 from pathlib import Path
 
-path = Path(r"C:\Users\buu42\AccessXI\tools\generate_nav_zoneline_destinations.py")
+path = Path(sys.argv[1])
 spec = importlib.util.spec_from_file_location("nav_zoneline_generator", path)
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
-edges = module.apply_edge_policy(module.parse_zonelines(module.ZONELINES))
+edges = module.apply_edge_policy(module.parse_zonelines(Path(sys.argv[2])))
 by_id = {edge.zoneline_id: edge for edge in edges}
 assert 1635070586 not in by_id
 assert 878982522 not in by_id
-for edge_id in (913650298, 947204730):
+for edge_id in (846541434, 880095866, 812987002, 913650298, 947204730):
     assert edge_id in by_id
+for edge_id in (913650298, 947204730):
     destination = module.generated_destination(by_id[edge_id], "test")
     assert destination.source == "live-mark-aligned-navmesh-20260713"
     assert destination.confidence == "proven"
     assert destination.section == "user-confirmed-ordelle-line-2026-07-13"
 print("generator policy ok")
 '@
-$generatorResult = $python | py -3 -
+$pythonPath = Join-Path $root 'tools\.objective-guides-venv\Scripts\python.exe'
+if (-not (Test-Path -LiteralPath $pythonPath -PathType Leaf)) {
+    $pythonPath = 'py'
+}
+$generatorPath = Join-Path $root 'tools\generate_nav_zoneline_destinations.py'
+$zonelinesPath = Join-Path $root 'data\lsb_zonelines.sql'
+if ($pythonPath -eq 'py') {
+    $generatorResult = $python | & $pythonPath -3 - $generatorPath $zonelinesPath
+}
+else {
+    $generatorResult = $python | & $pythonPath - $generatorPath $zonelinesPath
+}
 Assert-True ($LASTEXITCODE -eq 0) "Zoneline generator policy check failed: $generatorResult"
 
 foreach ($paths in @($destinationPaths, $graphPaths, $markPaths, $surveyPaths)) {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import unicodedata
@@ -13,10 +14,21 @@ from typing import Any
 
 from .matching import MatchingReport, match_objective_pages, normalize_title
 from .mediawiki import PageRevision
-from .mission_destinations import MissionDestinationError, resolve_reviewed_mission_destinations
-from .model import NativeObjective, ParsedObjective, SourceStep
+from .objective_destinations import (
+    ObjectiveDestinationError,
+    resolve_objective_actions,
+    resolve_reviewed_objective_destinations,
+    task3_route_contract_inputs,
+)
+from .model import NativeObjective, ParsedObjective, SourceActionSpan, SourceStep
 from .reconcile import (
-    ReviewedMissionDestination,
+    LegacyDestinationOutcome,
+    ReconciledActionClaim,
+    ObjectiveActionLedgerRow,
+    ObjectiveDestinationCandidate,
+    ObjectiveDestinationGroup,
+    ObjectiveResolutionReviewItem,
+    ReviewedObjectiveDestination,
     ReviewedNavigationTarget,
     ReconciledObjective,
     ReconciledStep,
@@ -139,9 +151,41 @@ def _license_id(page: ParsedObjective) -> str:
     return declared
 
 
-def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
+def _source_action_span_lua(span: SourceActionSpan, indent: str) -> list[str]:
     inner = indent + "  "
     return [
+        indent + "{",
+        f"{inner}source_step_order = {span.source_step_order},",
+        f"{inner}order = {span.order},",
+        f"{inner}text_start = {span.text_start},",
+        f"{inner}text_end = {span.text_end},",
+        f"{inner}supporting_clause = {lua_quote(span.supporting_clause)},",
+        f"{inner}action = {lua_quote(span.action)},",
+        f"{inner}verb = {lua_quote(span.verb)},",
+        f"{inner}relationship = {lua_quote(span.relationship)},",
+        f"{inner}target = {lua_quote(span.target)},",
+        f"{inner}target_kind = {lua_quote(span.target_kind)},",
+        f"{inner}target_role = {lua_quote(span.target_role)},",
+        f"{inner}npc_mentions = {_lua_array(span.npc_mentions)},",
+        f"{inner}object_mentions = {_lua_array(span.object_mentions)},",
+        f"{inner}enemy_mentions = {_lua_array(span.enemy_mentions)},",
+        f"{inner}item_mentions = {_lua_array(span.item_mentions)},",
+        f"{inner}key_item_mentions = {_lua_array(span.key_item_mentions)},",
+        f"{inner}transport_mentions = {_lua_array(span.transport_mentions)},",
+        f"{inner}zone_mentions = {_lua_array(span.zone_mentions)},",
+        f"{inner}temporal_zone_variant = {lua_quote(span.temporal_zone_variant)},",
+        f"{inner}map_numbers = {_lua_array(span.map_numbers)},",
+        f"{inner}grid_coordinates = {_lua_array(span.grid_coordinates)},",
+        f"{inner}result_items = {_lua_array(span.result_items)},",
+        f"{inner}result_relation = {lua_quote(span.result_relation)},",
+        f"{inner}material = {'true' if span.material else 'false'},",
+        indent + "},",
+    ]
+
+
+def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
+    inner = indent + "  "
+    lines = [
         indent + "{",
         f"{inner}order = {step.order},",
         f"{inner}marker = {lua_quote(step.marker)},",
@@ -155,8 +199,12 @@ def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
         f"{inner}items = {_lua_array(step.items)},",
         f"{inner}key_items = {_lua_array(step.key_items)},",
         f"{inner}warnings = {_lua_array(step.warnings)},",
-        indent + "},",
+        f"{inner}action_spans = {{",
     ]
+    for span in step.action_spans:
+        lines.extend(_source_action_span_lua(span, inner + "  "))
+    lines.extend([f"{inner}}},", indent + "},"])
+    return lines
 
 
 def _source_module_text(
@@ -232,11 +280,27 @@ def _reconcile_module_text(
         for stage_key, step_id in sorted(automatic_stages.items()):
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
         lines.append("    },")
-        if objective.mission_destinations:
-            lines.append("    mission_destinations = {")
-            for destination in objective.mission_destinations:
-                lines.extend(_mission_destination_lua(destination))
+        if objective.objective_destinations:
+            lines.append("    objective_destinations = {")
+            for destination in objective.objective_destinations:
+                lines.extend(_objective_destination_lua(destination))
             lines.append("    },")
+        lines.append("    action_resolution_ledger = {")
+        for row in objective.action_resolution_ledger:
+            lines.extend(_objective_action_ledger_lua(row))
+        lines.append("    },")
+        lines.append("    objective_destination_candidates = {")
+        for candidate in objective.objective_destination_candidates:
+            lines.extend(_objective_candidate_lua(candidate))
+        lines.append("    },")
+        lines.append("    objective_destination_groups = {")
+        for group in objective.objective_destination_groups:
+            lines.extend(_objective_group_lua(group))
+        lines.append("    },")
+        lines.append("    objective_resolution_review_items = {")
+        for item in objective.objective_resolution_review_items:
+            lines.extend(_objective_review_item_lua(item))
+        lines.append("    },")
         lines.append("    steps = {")
         for step in objective.steps:
             step_lines = [
@@ -249,10 +313,22 @@ def _reconcile_module_text(
                     f"        conflicting_fields = {_lua_array(step.conflicting_fields)},",
                     f"        action = {lua_quote(step.action)},",
                     f"        entities = {_lua_array(step.entities)},",
+                    f"        items = {_lua_array(step.items)},",
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
-                    f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
+                    f"        alignment_score = {step.alignment_score},",
+                    f"        alignment_reason = {lua_quote(step.alignment_reason)},",
+                    f"        unpaired_reason = {lua_quote(step.unpaired_reason)},",
+                    "        typed_claims = {",
             ]
+            for claim in step.claims:
+                step_lines.extend(_reconciled_claim_lua(claim))
+            step_lines.extend(
+                [
+                    "        },",
+                    f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
+                ]
+            )
             target = step.navigation_target
             if target is not None:
                 step_lines.extend(
@@ -276,17 +352,270 @@ def _reconcile_module_text(
     return "\n".join(lines) + "\n"
 
 
-def _mission_destination_lua(destination: ReviewedMissionDestination) -> list[str]:
+def _reconciled_claim_lua(claim: ReconciledActionClaim) -> list[str]:
+    lines = [
+        "          {",
+        f"            stable_claim_id = {lua_quote(claim.stable_claim_id)},",
+        f"            order = {claim.order},",
+        f"            action = {lua_quote(claim.action)},",
+        f"            relationship = {lua_quote(claim.relationship)},",
+        f"            target = {lua_quote(claim.target)},",
+        f"            target_kind = {lua_quote(claim.target_kind)},",
+        f"            comparison = {lua_quote(claim.comparison)},",
+        f"            alignment_score = {claim.alignment_score},",
+        f"            alignment_reason = {lua_quote(claim.alignment_reason)},",
+        f"            unpaired_reason = {lua_quote(claim.unpaired_reason)},",
+        f"            bg_span_order = {claim.bg_span_order},",
+        f"            ffxiclopedia_span_order = {claim.ffxiclopedia_span_order},",
+        "            candidates = {",
+    ]
+    for candidate in claim.candidates:
+        lines.extend(
+            [
+                "              {",
+                f"                field = {lua_quote(candidate.field)},",
+                f"                value = {lua_quote(candidate.value)},",
+                f"                comparison = {lua_quote(candidate.comparison)},",
+                f"                sources = {_lua_array(candidate.sources)},",
+                "              },",
+            ]
+        )
+    lines.extend(["            },", "          },"])
+    return lines
+
+
+def _objective_action_ledger_lua(row: ObjectiveActionLedgerRow) -> list[str]:
     return [
+        "      {",
+        f"        action_id = {lua_quote(row.action_id)},",
+        f"        source_action_span_ids = {_lua_array(row.source_action_span_ids)},",
+        f"        action = {lua_quote(row.action)},",
+        f"        status = {lua_quote(row.status)},",
+        f"        reason = {lua_quote(row.reason)},",
+        f"        candidate_ids = {_lua_array(row.candidate_ids)},",
+        f"        instruction = {lua_quote(row.instruction)},",
+        f"        material = {'true' if row.material else 'false'},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_candidate_lua(candidate: ObjectiveDestinationCandidate) -> list[str]:
+    lines = [
+        "      {",
+        f"        candidate_id = {lua_quote(candidate.candidate_id)},",
+        f"        action_id = {lua_quote(candidate.action_id)},",
+        f"        source_action_span_ids = {_lua_array(candidate.source_action_span_ids)},",
+        f"        source_sites = {_lua_array(candidate.source_sites)},",
+        "        source_revisions = {",
+    ]
+    lines.extend(
+        f"          [{lua_quote(site)}] = {revision_id},"
+        for site, revision_id in candidate.source_revisions
+    )
+    lines.extend(
+        [
+            "        },",
+            "        coordinate_support = {",
+        ]
+    )
+    for site, coordinate_kind, value in candidate.coordinate_support:
+        lines.extend(
+            [
+                "          {",
+                f"            site = {lua_quote(site)},",
+                f"            kind = {lua_quote(coordinate_kind)},",
+                f"            value = {lua_quote(value)},",
+                "          },",
+            ]
+        )
+    lines.extend(
+        [
+            "        },",
+            f"        coordinate_comparison = {lua_quote(candidate.coordinate_comparison)},",
+            f"        action = {lua_quote(candidate.action)},",
+            f"        items = {_lua_array(candidate.items)},",
+            f"        enemies = {_lua_array(candidate.enemies)},",
+            f"        result_relation = {lua_quote(candidate.result_relation)},",
+            f"        destination_id = {lua_quote(candidate.destination_id)},",
+            f"        zone = {candidate.zone},",
+            f"        zone_name = {lua_quote(candidate.zone_name)},",
+            f"        target_name = {lua_quote(candidate.target_name)},",
+            f"        target_kind = {lua_quote(candidate.target_kind)},",
+            "        target_point = { "
+            + ", ".join(format(value, ".17g") for value in candidate.target_point)
+            + " },",
+            f"        raw_identity = {lua_quote(candidate.raw_identity)},",
+            f"        raw_spawn_ids = {{ {', '.join(str(value) for value in candidate.raw_spawn_ids)} }},",
+            f"        cluster_policy_version = {lua_quote(candidate.cluster_policy_version)},",
+            f"        evidence_level = {lua_quote(candidate.evidence_level)},",
+            f"        group_id = {lua_quote(candidate.group_id)},",
+            f"        metadata_class = {lua_quote(candidate.metadata_class)},",
+            f"        transport_id = {lua_quote(candidate.transport_id)},",
+            f"        battlefield_id = {lua_quote(candidate.battlefield_id)},",
+            f"        label = {lua_quote(candidate.label)},",
+            f"        arrival_instruction = {lua_quote(candidate.arrival_instruction)},",
+            "        route_ready = false,",
+            "      },",
+        ]
+    )
+    return lines
+
+
+def _objective_group_lua(group: ObjectiveDestinationGroup) -> list[str]:
+    return [
+        "      {",
+        f"        group_id = {lua_quote(group.group_id)},",
+        f"        action_id = {lua_quote(group.action_id)},",
+        f"        zone = {group.zone},",
+        f"        zone_name = {lua_quote(group.zone_name)},",
+        f"        candidate_ids = {_lua_array(group.candidate_ids)},",
+        f"        evidence_level = {lua_quote(group.evidence_level)},",
+        f"        source_action_span_ids = {_lua_array(group.source_action_span_ids)},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_review_item_lua(item: ObjectiveResolutionReviewItem) -> list[str]:
+    return [
+        "      {",
+        f"        review_id = {lua_quote(item.review_id)},",
+        f"        action_id = {lua_quote(item.action_id)},",
+        f"        target_name = {lua_quote(item.target_name)},",
+        f"        zone_name = {lua_quote(item.zone_name)},",
+        f"        source_sites = {_lua_array(item.source_sites)},",
+        f"        source_action_span_ids = {_lua_array(item.source_action_span_ids)},",
+        f"        reason = {lua_quote(item.reason)},",
+        "        route_ready = false,",
+        "      },",
+    ]
+
+
+def _objective_candidate_review_row(
+    native_key: str,
+    candidate: ObjectiveDestinationCandidate,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "candidate_id": candidate.candidate_id,
+        "action_id": candidate.action_id,
+        "source_action_span_ids": list(candidate.source_action_span_ids),
+        "source_sites": list(candidate.source_sites),
+        "source_revisions": dict(candidate.source_revisions),
+        "coordinate_support": [
+            {"site": site, "kind": coordinate_kind, "value": value}
+            for site, coordinate_kind, value in candidate.coordinate_support
+        ],
+        "coordinate_comparison": candidate.coordinate_comparison,
+        "action": candidate.action,
+        "items": list(candidate.items),
+        "enemies": list(candidate.enemies),
+        "result_relation": candidate.result_relation,
+        "destination_id": candidate.destination_id,
+        "zone": candidate.zone,
+        "zone_name": candidate.zone_name,
+        "target_name": candidate.target_name,
+        "target_kind": candidate.target_kind,
+        "target_point": list(candidate.target_point),
+        "raw_identity": candidate.raw_identity,
+        "raw_spawn_ids": list(candidate.raw_spawn_ids),
+        "cluster_policy_version": candidate.cluster_policy_version,
+        "evidence_level": candidate.evidence_level,
+        "group_id": candidate.group_id,
+        "metadata_class": candidate.metadata_class,
+        "transport_id": candidate.transport_id,
+        "battlefield_id": candidate.battlefield_id,
+        "label": candidate.label,
+        "arrival_instruction": candidate.arrival_instruction,
+        "classification": "catalogue-candidate",
+        "route_ready": False,
+    }
+
+
+def _objective_group_review_row(
+    native_key: str,
+    group: ObjectiveDestinationGroup,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "group_id": group.group_id,
+        "action_id": group.action_id,
+        "zone": group.zone,
+        "zone_name": group.zone_name,
+        "candidate_ids": list(group.candidate_ids),
+        "candidate_count": len(group.candidate_ids),
+        "evidence_level": group.evidence_level,
+        "source_action_span_ids": list(group.source_action_span_ids),
+        "route_ready": False,
+    }
+
+
+def _legacy_destination_outcome_review_row(
+    native_key: str,
+    outcome: LegacyDestinationOutcome,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "legacy_override_id": outcome.legacy_override_id,
+        "action_id": outcome.action_id,
+        "classification": outcome.classification,
+        "reason": outcome.reason,
+        "candidate_ids": list(outcome.candidate_ids),
+        "candidate_count": len(outcome.candidate_ids),
+        "group_ids": list(outcome.group_ids),
+        "source_action_span_ids": list(outcome.source_action_span_ids),
+        "source_revisions": dict(outcome.source_revisions),
+        "legacy_review_metadata": {
+            "zone": outcome.zone,
+            "zone_name": outcome.zone_name,
+            "target_name": outcome.target_name,
+            "target_kind": outcome.target_kind,
+            "canonical_ingress_edge_id": outcome.canonical_ingress_edge_id,
+            "canonical_ingress_from_zone": outcome.canonical_ingress_from_zone,
+            "transport_id": outcome.transport_id,
+            "route_evidence": outcome.route_evidence,
+        },
+        "route_ready": False,
+    }
+
+
+def _objective_review_item_row(
+    native_key: str,
+    item: ObjectiveResolutionReviewItem,
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "review_id": item.review_id,
+        "action_id": item.action_id,
+        "target_name": item.target_name,
+        "zone_name": item.zone_name,
+        "source_sites": list(item.source_sites),
+        "source_action_span_ids": list(item.source_action_span_ids),
+        "reason": item.reason,
+        "route_ready": False,
+    }
+
+
+def _objective_destination_lua(destination: ReviewedObjectiveDestination) -> list[str]:
+    lines = [
         "      {",
         f"        stable_id = {lua_quote(destination.stable_id)},",
         f"        source_step_ids = {_lua_array(destination.source_step_ids)},",
+        f"        source_claim_ids = {_lua_array(destination.source_claim_ids)},",
+        "        source_revisions = {",
+        *(
+            f"          [{lua_quote(site)}] = {revision_id},"
+            for site, revision_id in destination.source_revisions
+        ),
+        "        },",
         f"        action = {lua_quote(destination.action)},",
         f"        items = {_lua_array(destination.items)},",
         f"        enemies = {_lua_array(destination.enemies)},",
+        f"        destination_id = {lua_quote(destination.destination_id)},",
         f"        zone = {destination.zone},",
         f"        zone_name = {lua_quote(destination.zone_name)},",
-        f"        camp_label = {lua_quote(destination.camp_label)},",
+        f"        label = {lua_quote(destination.label)},",
         "        navigation_target = {",
         '          type = "static-reference",',
         "          reference = {",
@@ -296,14 +625,29 @@ def _mission_destination_lua(destination: ReviewedMissionDestination) -> list[st
         f"            kind = {lua_quote(destination.target_kind)},",
         "          },",
         "        },",
+    ]
+    if destination.target_point is None:
+        lines.append("        target_point = nil,")
+    else:
+        lines.append(
+            "        target_point = { "
+            + ", ".join(format(value, ".17g") for value in destination.target_point)
+            + " },"
+        )
+    lines.extend(
+        [
+        f"        eligibility = {lua_quote(destination.eligibility)},",
+        f"        route_contract_id = {lua_quote(destination.route_contract_id)},",
         f"        canonical_ingress_edge_id = {destination.canonical_ingress_edge_id},",
         f"        canonical_ingress_from_zone = {destination.canonical_ingress_from_zone},",
         f"        transport_id = {lua_quote(destination.transport_id)},",
-        f"        route_evidence = {lua_quote(destination.route_evidence)},",
+        f"        instruction_only = {'true' if destination.instruction_only else 'false'},",
         f"        arrival_instruction = {lua_quote(destination.arrival_instruction)},",
-        "        route_ready = true,",
+        "        route_ready = false,",
         "      },",
-    ]
+        ]
+    )
+    return lines
 
 
 def _matches_by_native(
@@ -530,6 +874,32 @@ def _casefold_values(values: Iterable[object]) -> set[str]:
     return {str(value or "").strip().casefold() for value in values if str(value or "").strip()}
 
 
+def _claim_review_row(claim: ReconciledActionClaim) -> dict[str, Any]:
+    return {
+        "stable_claim_id": claim.stable_claim_id,
+        "order": claim.order,
+        "action": claim.action,
+        "relationship": claim.relationship,
+        "target": claim.target,
+        "target_kind": claim.target_kind,
+        "comparison": claim.comparison,
+        "alignment_score": claim.alignment_score,
+        "alignment_reason": claim.alignment_reason,
+        "unpaired_reason": claim.unpaired_reason,
+        "bg_span_order": claim.bg_span_order,
+        "ffxiclopedia_span_order": claim.ffxiclopedia_span_order,
+        "candidates": [
+            {
+                "field": candidate.field,
+                "value": candidate.value,
+                "comparison": candidate.comparison,
+                "sources": list(candidate.sources),
+            }
+            for candidate in claim.candidates
+        ],
+    }
+
+
 def _source_step_for_order(page: ParsedObjective | None, order: int) -> SourceStep | None:
     if page is None or order <= 0:
         return None
@@ -538,26 +908,25 @@ def _source_step_for_order(page: ParsedObjective | None, order: int) -> SourceSt
 
 def _source_names_zone(step: SourceStep, zone_name: str) -> bool:
     wanted = zone_name.casefold()
-    if wanted in _casefold_values((*step.zone_candidates, *step.linked_entities)):
-        return True
-    return wanted in step.spoken_text.casefold()
+    return any(
+        wanted in _casefold_values(span.zone_mentions)
+        for span in step.action_spans
+    )
 
 
 def _source_directs_talk_to(step: SourceStep, name: str) -> bool:
-    text = re.sub(r"\s+", " ", step.spoken_text.strip()).casefold()
-    target = re.escape(name.casefold()).replace(r"\ ", r"\s+")
-    direct_patterns = (
-        rf"\b(?:talk|speak)\s+(?:to|with)\s+(?:the\s+)?{target}(?:\b|$)",
-    )
-    if any(re.search(pattern, text) is not None for pattern in direct_patterns):
-        return True
     if _OBJECT_LIKE_TARGET_NAME.search(name):
         return False
-    implied_patterns = (
-        rf"\b(?:return|report|head|go)\s+(?:back\s+)?to\s+(?:the\s+)?{target}(?:\b|$)",
-        rf"\bvisit\s+(?:the\s+)?{target}(?:\b|$)",
+    wanted = name.casefold()
+    return any(
+        span.action == "talk"
+        and span.target_kind == "npc"
+        and (
+            span.target.casefold() == wanted
+            or wanted in _casefold_values(span.npc_mentions)
+        )
+        for span in step.action_spans
     )
-    return any(re.search(pattern, text) is not None for pattern in implied_patterns)
 
 
 def _propose_named_npc_target(
@@ -577,8 +946,12 @@ def _propose_named_npc_target(
         return None
     if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
         return None
-    common_names = _casefold_values(bg_step.linked_entities).intersection(
-        _casefold_values(ffxi_step.linked_entities)
+    common_names = _casefold_values(
+        value for span in bg_step.action_spans for value in span.npc_mentions
+    ).intersection(
+        _casefold_values(
+            value for span in ffxi_step.action_spans for value in span.npc_mentions
+        )
     )
     candidates: list[ReviewedNavigationTarget] = []
     for common_name in common_names:
@@ -622,6 +995,126 @@ def _reviewed_target_overrides(reviewed_overrides: Mapping[str, Any] | None) -> 
     return targets
 
 
+def _logical_reviewed_target_points(
+    points: Iterable[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], ...]:
+    groups: dict[tuple[float, float, float], list[Mapping[str, Any]]] = defaultdict(list)
+    for point in points:
+        raw_coordinates = (point.get("x"), point.get("z"), point.get("y"))
+        if any(value is None or str(value).strip() == "" for value in raw_coordinates):
+            raise GenerationError("Reviewed navigation target lacks complete current coordinates.")
+        try:
+            coordinates = tuple(float(value) for value in raw_coordinates)
+        except (TypeError, ValueError) as error:
+            raise GenerationError("Reviewed navigation target has malformed current coordinates.") from error
+        if not all(math.isfinite(value) for value in coordinates):
+            raise GenerationError("Reviewed navigation target has non-finite current coordinates.")
+        groups[coordinates].append(point)
+
+    return tuple(
+        min(
+            groups[coordinates],
+            key=lambda point: (
+                0 if str(point.get("destination_id", "")).strip() else 1,
+                str(point.get("destination_id", "")).strip(),
+                str(point.get("raw_identity", "")).strip(),
+                str(point.get("source", "")).strip(),
+            ),
+        )
+        for coordinates in sorted(groups)
+    )
+
+
+def _reviewed_target_source_candidate_ids(
+    reconciled: ReconciledObjective,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    *,
+    name: str,
+    zone_name: str,
+) -> tuple[str, ...]:
+    wanted_name = name.casefold()
+    candidates: list[str] = []
+    for step in reconciled.steps:
+        if (
+            step.action.casefold() != "talk"
+            or step.comparison == "conflict"
+            or "action" not in step.agreed_fields
+            or "entities" not in step.agreed_fields
+        ):
+            continue
+        bg_step = _source_step_for_order(bg, step.source_orders[0])
+        ffxi_step = _source_step_for_order(ffxiclopedia, step.source_orders[1])
+        if bg_step is None or ffxi_step is None:
+            continue
+        if not _source_directs_talk_to(bg_step, name) or not _source_directs_talk_to(
+            ffxi_step, name
+        ):
+            continue
+        bg_names = _casefold_values(
+            value for span in bg_step.action_spans for value in span.npc_mentions
+        )
+        ffxi_names = _casefold_values(
+            value for span in ffxi_step.action_spans for value in span.npc_mentions
+        )
+        if wanted_name not in bg_names or wanted_name not in ffxi_names:
+            continue
+        if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(
+            ffxi_step, zone_name
+        ):
+            continue
+        candidates.append(step.stable_step_id)
+    return tuple(candidates)
+
+
+def _reviewed_target_key_mentions_name(
+    step: ReconciledStep,
+    bg: ParsedObjective | None,
+    ffxiclopedia: ParsedObjective | None,
+    name: str,
+) -> bool:
+    wanted_name = name.casefold()
+    source_steps = (
+        _source_step_for_order(bg, step.source_orders[0]),
+        _source_step_for_order(ffxiclopedia, step.source_orders[1]),
+    )
+    return all(
+        source_step is not None
+        and wanted_name
+        in f"{source_step.source_text}\n{source_step.spoken_text}".casefold()
+        for source_step in source_steps
+    )
+
+
+def _reviewed_target_failure(
+    *,
+    native_key: str,
+    override_step_id: str,
+    reason: str,
+    candidate_step_ids: tuple[str, ...],
+    source_revisions: Mapping[str, Any],
+    reference: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "native_key": native_key,
+        "override_step_id": override_step_id,
+        "reason": reason,
+        "candidate_step_ids": list(candidate_step_ids),
+        "source_revisions": {
+            str(site): int(revision)
+            for site, revision in sorted(source_revisions.items())
+        },
+        "reference": {
+            "zone": int(reference.get("zone", 0) or 0),
+            "zone_name": str(reference.get("zone_name", "")).strip(),
+            "name": str(reference.get("name", "")).strip(),
+            "kind": str(reference.get("kind", "")).strip().casefold(),
+        },
+        "classification": "unresolved",
+        "route_ready": False,
+    }
+
+
 def _resolve_reviewed_navigation_targets(
     native_key: str,
     reconciled: ReconciledObjective,
@@ -630,10 +1123,11 @@ def _resolve_reviewed_navigation_targets(
     reviewed_overrides: Mapping[str, Any] | None,
     navigation_points: tuple[Mapping[str, Any], ...],
     navigation_zone_names: Mapping[int, str],
-) -> ReconciledObjective:
+) -> tuple[ReconciledObjective, tuple[dict[str, Any], ...]]:
     all_targets = _reviewed_target_overrides(reviewed_overrides)
     step_lookup = {step.stable_step_id: step for step in reconciled.steps}
     updates: dict[str, ReconciledStep] = {}
+    failures: list[dict[str, Any]] = []
     for stable_step_id, raw_target in all_targets.items():
         stable_step_id = str(stable_step_id)
         if not stable_step_id.startswith(native_key + ":step-"):
@@ -672,37 +1166,52 @@ def _resolve_reviewed_navigation_targets(
             )
         if not arrival_instruction:
             raise GenerationError(f"Reviewed target {stable_step_id!r} lacks arrival instructions.")
-        if step.action.casefold() != "talk" or step.comparison == "conflict":
-            raise GenerationError(f"Reviewed target {stable_step_id!r} is not a safe talk step.")
-        if "action" not in step.agreed_fields or "entities" not in step.agreed_fields:
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} is not independently corroborated."
+        candidate_step_ids = _reviewed_target_source_candidate_ids(
+            reconciled,
+            bg,
+            ffxiclopedia,
+            name=name,
+            zone_name=zone_name,
+        )
+        if stable_step_id not in candidate_step_ids:
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason=(
+                        (
+                            "source-claim-evidence-insufficient-at-key"
+                            if _reviewed_target_key_mentions_name(
+                                step, bg, ffxiclopedia, name
+                            )
+                            else "source-claim-no-match"
+                        )
+                        if not candidate_step_ids
+                        else "source-claim-step-shift"
+                        if len(candidate_step_ids) == 1
+                        else "source-claim-ambiguous"
+                    ),
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
-
-        bg_order, ffxi_order = step.source_orders
-        bg_step = _source_step_for_order(bg, bg_order)
-        ffxi_step = _source_step_for_order(ffxiclopedia, ffxi_order)
-        wanted_name = name.casefold()
-        if bg_step is None or ffxi_step is None:
-            raise GenerationError(f"Reviewed target {stable_step_id!r} lacks two source steps.")
-        if bg_step.action.casefold() != "talk" or ffxi_step.action.casefold() != "talk":
-            raise GenerationError(f"Reviewed target {stable_step_id!r} has conflicting source actions.")
-        if wanted_name not in _casefold_values(bg_step.linked_entities) or wanted_name not in _casefold_values(
-            ffxi_step.linked_entities
-        ):
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} is not named by both source steps."
-            )
-        if not _source_names_zone(bg_step, zone_name) or not _source_names_zone(ffxi_step, zone_name):
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} does not have dual-source zone evidence."
-            )
+            continue
 
         current_zone_name = str(navigation_zone_names.get(zone, "")).strip()
         if not current_zone_name or current_zone_name.casefold() != zone_name.casefold():
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} zone does not match current navigation data."
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason="current-navigation-zone-mismatch",
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
+            continue
+        wanted_name = name.casefold()
         matches = [
             point
             for point in navigation_points
@@ -710,10 +1219,23 @@ def _resolve_reviewed_navigation_targets(
             and str(point.get("name", "")).strip().casefold() == wanted_name
             and str(point.get("kind", "")).strip().casefold() == kind
         ]
-        if len(matches) != 1:
-            raise GenerationError(
-                f"Reviewed target {stable_step_id!r} resolves to {len(matches)} current nav points."
+        logical_matches = _logical_reviewed_target_points(matches)
+        if len(logical_matches) != 1:
+            failures.append(
+                _reviewed_target_failure(
+                    native_key=native_key,
+                    override_step_id=stable_step_id,
+                    reason=(
+                        "current-navigation-missing"
+                        if not logical_matches
+                        else "current-navigation-ambiguous"
+                    ),
+                    candidate_step_ids=candidate_step_ids,
+                    source_revisions=source_revisions,
+                    reference=reference,
+                )
             )
+            continue
         updates[stable_step_id] = replace(
             step,
             route_ready=True,
@@ -727,12 +1249,12 @@ def _resolve_reviewed_navigation_targets(
             ),
         )
 
-    if not updates:
-        return reconciled
-    return replace(
-        reconciled,
-        steps=tuple(updates.get(step.stable_step_id, step) for step in reconciled.steps),
-    )
+    if updates:
+        reconciled = replace(
+            reconciled,
+            steps=tuple(updates.get(step.stable_step_id, step) for step in reconciled.steps),
+        )
+    return reconciled, tuple(failures)
 
 
 def _section_heading_key(instruction: str) -> str:
@@ -938,6 +1460,59 @@ def build_guide_artifacts(
         _license_id(revision)
 
     native_by_key = {native.key: native for native in natives}
+    legacy_override_root = (
+        reviewed_overrides.get("mission_destination_overrides", {})
+        if isinstance(reviewed_overrides, Mapping)
+        else {}
+    )
+    legacy_migration_root = (
+        reviewed_overrides.get("legacy_action_migrations", {})
+        if isinstance(reviewed_overrides, Mapping)
+        else {}
+    )
+    if not isinstance(legacy_override_root, Mapping) or not isinstance(
+        legacy_migration_root, Mapping
+    ):
+        raise GenerationError("Legacy destination override sections must be objects.")
+    unknown_legacy_keys = set(legacy_override_root).difference(native_by_key)
+    unknown_migration_keys = set(legacy_migration_root).difference(legacy_override_root)
+    if unknown_legacy_keys:
+        raise GenerationError(
+            "Legacy destination overrides reference unknown native keys: "
+            + ", ".join(sorted(unknown_legacy_keys)[:5])
+        )
+    if unknown_migration_keys:
+        raise GenerationError(
+            "Legacy action migrations have no matching legacy override rows: "
+            + ", ".join(sorted(unknown_migration_keys)[:5])
+        )
+    empty_migration_keys = sorted(
+        native_key
+        for native_key in legacy_migration_root
+        if not isinstance(legacy_override_root.get(native_key), list)
+        or not legacy_override_root[native_key]
+    )
+    if empty_migration_keys:
+        raise GenerationError(
+            "Legacy action migrations have empty legacy override lists: "
+            + ", ".join(empty_migration_keys[:5])
+        )
+    expected_legacy_outcome_ids: set[str] = set()
+    for native_key, raw_rows in legacy_override_root.items():
+        if native_by_key[native_key].kind != "mission" or not isinstance(raw_rows, list):
+            raise GenerationError(
+                f"Legacy destinations for {native_key!r} must be a mission list."
+            )
+        for raw in raw_rows:
+            if not isinstance(raw, Mapping):
+                raise GenerationError(
+                    f"Legacy destinations for {native_key!r} must contain objects."
+                )
+            short_id = str(raw.get("id", "")).strip().casefold()
+            stable_id = f"{native_key}:destination:{short_id}"
+            if not short_id or stable_id in expected_legacy_outcome_ids:
+                raise GenerationError(f"Legacy destination id {stable_id!r} is missing or duplicated.")
+            expected_legacy_outcome_ids.add(stable_id)
     source_maps: dict[str, dict[str, ParsedObjective]] = {}
     ambiguous_by_site: dict[str, set[str]] = {}
     reports: dict[str, MatchingReport] = {}
@@ -960,7 +1535,13 @@ def build_guide_artifacts(
     ] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
     target_review_steps: list[dict[str, Any]] = []
-    target_review_mission_destinations: list[dict[str, Any]] = []
+    target_review_target_failures: list[dict[str, Any]] = []
+    target_review_objective_destinations: list[dict[str, Any]] = []
+    target_review_action_ledger: list[dict[str, Any]] = []
+    target_review_candidates: list[dict[str, Any]] = []
+    target_review_groups: list[dict[str, Any]] = []
+    target_review_resolution_items: list[dict[str, Any]] = []
+    target_review_legacy_outcomes: list[dict[str, Any]] = []
     resolved_reviewed_target_steps: set[str] = set()
 
     for native in natives:
@@ -975,9 +1556,10 @@ def build_guide_artifacts(
         default_step_id = ""
         runtime_objective_key = ""
         route_steps: set[str] = set()
+        reviewed_target_failures: tuple[dict[str, Any], ...] = ()
         if matched:
             reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
-            reconciled = _resolve_reviewed_navigation_targets(
+            reconciled, reviewed_target_failures = _resolve_reviewed_navigation_targets(
                 native.key,
                 reconciled,
                 bg,
@@ -986,8 +1568,62 @@ def build_guide_artifacts(
                 nav_points,
                 nav_zone_names,
             )
+            target_review_target_failures.extend(reviewed_target_failures)
+            resolved_reviewed_target_steps.update(
+                failure["override_step_id"] for failure in reviewed_target_failures
+            )
             try:
-                mission_destinations = resolve_reviewed_mission_destinations(
+                action_resolution = resolve_objective_actions(
+                    native,
+                    reconciled,
+                    bg,
+                    ffxiclopedia,
+                    reviewed_overrides,
+                    nav_points,
+                    nav_zone_names,
+                )
+            except ObjectiveDestinationError as error:
+                raise GenerationError(str(error)) from error
+            route_ledger, route_candidates, route_groups = task3_route_contract_inputs(
+                action_resolution
+            )
+            reconciled = replace(
+                reconciled,
+                action_resolution_ledger=route_ledger,
+                objective_destination_candidates=route_candidates,
+                objective_destination_groups=route_groups,
+                objective_resolution_review_items=action_resolution.review_items,
+            )
+            for row in route_ledger:
+                target_review_action_ledger.append(
+                    {
+                        "native_key": native.key,
+                        "action_id": row.action_id,
+                        "source_action_span_ids": list(row.source_action_span_ids),
+                        "action": row.action,
+                        "status": row.status,
+                        "reason": row.reason,
+                        "candidate_ids": list(row.candidate_ids),
+                        "candidate_count": len(row.candidate_ids),
+                        "instruction": row.instruction,
+                        "material": row.material,
+                        "route_ready": False,
+                    }
+                )
+            for candidate in route_candidates:
+                target_review_candidates.append(_objective_candidate_review_row(native.key, candidate))
+            for group in route_groups:
+                target_review_groups.append(_objective_group_review_row(native.key, group))
+            for item in action_resolution.review_items:
+                target_review_resolution_items.append(
+                    _objective_review_item_row(native.key, item)
+                )
+            for outcome in action_resolution.legacy_destination_outcomes:
+                target_review_legacy_outcomes.append(
+                    _legacy_destination_outcome_review_row(native.key, outcome)
+                )
+            try:
+                objective_destinations = resolve_reviewed_objective_destinations(
                     native,
                     reconciled,
                     bg,
@@ -997,21 +1633,25 @@ def build_guide_artifacts(
                     nav_zone_names,
                     nav_edges,
                 )
-            except MissionDestinationError as error:
+            except ObjectiveDestinationError as error:
                 raise GenerationError(str(error)) from error
-            reconciled = replace(reconciled, mission_destinations=mission_destinations)
-            for destination in mission_destinations:
-                target_review_mission_destinations.append(
+            reconciled = replace(reconciled, objective_destinations=objective_destinations)
+            for destination in objective_destinations:
+                target_review_objective_destinations.append(
                     {
                         "native_key": native.key,
                         "stable_id": destination.stable_id,
                         "source_step_ids": list(destination.source_step_ids),
+                        "source_claim_ids": list(destination.source_claim_ids),
+                        "source_revisions": dict(destination.source_revisions),
                         "action": destination.action,
                         "items": list(destination.items),
                         "enemies": list(destination.enemies),
+                        "destination_id": destination.destination_id,
                         "zone": destination.zone,
                         "zone_name": destination.zone_name,
-                        "camp_label": destination.camp_label,
+                        "label": destination.label,
+                        "target_point": list(destination.target_point) if destination.target_point else None,
                         "navigation_target": {
                             "type": "static-reference",
                             "reference": {
@@ -1024,10 +1664,14 @@ def build_guide_artifacts(
                         "canonical_ingress_edge_id": destination.canonical_ingress_edge_id,
                         "canonical_ingress_from_zone": destination.canonical_ingress_from_zone,
                         "transport_id": destination.transport_id,
-                        "route_evidence": destination.route_evidence,
+                        "eligibility": destination.eligibility,
+                        "route_contract_id": destination.route_contract_id,
+                        "instruction_only": destination.instruction_only,
                         "arrival_instruction": destination.arrival_instruction,
-                        "status": "verified-reviewed-target",
-                        "route_ready": True,
+                        "classification": (
+                            "instruction-only" if destination.instruction_only else "catalogue-candidate"
+                        ),
+                        "route_ready": False,
                     }
                 )
             automatic_stages = _resolve_stage_selectors(native.key, reconciled, reviewed_overrides)
@@ -1052,13 +1696,6 @@ def build_guide_artifacts(
                 (native, reconciled, automatic_stages, default_step_id, route_steps)
             )
             for step in reconciled.steps:
-                if not (
-                    step.action != "note"
-                    or step.entities
-                    or step.zones
-                    or step.grid_coordinates
-                ):
-                    continue
                 proposal = _propose_named_npc_target(
                     step,
                     bg,
@@ -1084,16 +1721,36 @@ def build_guide_artifacts(
                     review_status = "needs-exact-target-review"
                 else:
                     review_status = "guide-only-action"
+                if step.stable_step_id in route_steps:
+                    classification = "routable"
+                elif step.comparison == "conflict":
+                    classification = "conflict"
+                else:
+                    classification = "unresolved"
                 review_row: dict[str, Any] = {
                     "native_key": native.key,
                     "stable_step_id": step.stable_step_id,
                     "action": step.action,
                     "comparison": step.comparison,
+                    "alignment_score": step.alignment_score,
+                    "alignment_reason": step.alignment_reason,
+                    "unpaired_reason": step.unpaired_reason,
                     "entities": list(step.entities),
+                    "items": list(step.items),
                     "zones": list(step.zones),
                     "grid_coordinates": list(step.grid_coordinates),
+                    "typed_claims": [_claim_review_row(claim) for claim in step.claims],
+                    "source_orders": list(step.source_orders),
+                    "source_revisions": {
+                        site: page.revision_id for site, page in sorted(matched.items())
+                    },
+                    "source_instructions": {
+                        "bg": step.bg_instruction,
+                        "ffxiclopedia": step.ffxiclopedia_instruction,
+                    },
                     "dynamic_candidate_grid": list(reconciled.dynamic_candidate_grid),
                     "review_status": review_status,
+                    "classification": classification,
                     "route_ready": step.stable_step_id in route_steps,
                 }
                 if step.navigation_target is not None:
@@ -1129,7 +1786,7 @@ def build_guide_artifacts(
         )
         if runtime_objective_key and automatic_stages:
             status = "automatic-stage"
-        elif route_steps or (reconciled is not None and reconciled.mission_destinations):
+        elif route_steps:
             status = "verified-navigation"
         elif reconciled is not None and _has_material_conflict(reconciled):
             status = "source-conflict"
@@ -1169,7 +1826,14 @@ def build_guide_artifacts(
             "runtime_objective_key": runtime_objective_key,
             "automatic_stages": automatic_stages,
             "default_step_id": default_step_id,
-            "route_ready": bool(route_steps or (reconciled and reconciled.mission_destinations)),
+            "route_ready": bool(route_steps),
+            "reviewed_target_failures": list(reviewed_target_failures),
+            "legacy_destination_outcomes": [
+                _legacy_destination_outcome_review_row(native.key, outcome)
+                for outcome in (
+                    action_resolution.legacy_destination_outcomes if matched else ()
+                )
+            ],
             "automatic_stage": bool(automatic_stages),
         }
 
@@ -1180,6 +1844,19 @@ def build_guide_artifacts(
         sample = ", ".join(sorted(unresolved_reviewed_targets)[:5])
         raise GenerationError(
             f"Reviewed targets no longer resolve to current guide steps: {sample}"
+        )
+    actual_legacy_outcome_ids = [
+        row["legacy_override_id"] for row in target_review_legacy_outcomes
+    ]
+    if (
+        len(actual_legacy_outcome_ids) != len(set(actual_legacy_outcome_ids))
+        or set(actual_legacy_outcome_ids) != expected_legacy_outcome_ids
+    ):
+        missing = sorted(expected_legacy_outcome_ids.difference(actual_legacy_outcome_ids))
+        extra = sorted(set(actual_legacy_outcome_ids).difference(expected_legacy_outcome_ids))
+        raise GenerationError(
+            "Legacy destination outcome accounting mismatch; "
+            f"missing={missing[:5]}, extra={extra[:5]}."
         )
 
     module_root = Path(module_root)
@@ -1283,9 +1960,33 @@ def build_guide_artifacts(
         data_root / "target-review.json",
         {
             "schema_version": 1,
-            "mission_destinations": sorted(
-                target_review_mission_destinations,
+            "action_resolution_ledger": sorted(
+                target_review_action_ledger,
+                key=lambda row: (row["native_key"], row["action_id"]),
+            ),
+            "objective_destination_candidates": sorted(
+                target_review_candidates,
+                key=lambda row: (row["native_key"], row["candidate_id"]),
+            ),
+            "objective_destination_groups": sorted(
+                target_review_groups,
+                key=lambda row: (row["native_key"], row["group_id"]),
+            ),
+            "objective_resolution_review_items": sorted(
+                target_review_resolution_items,
+                key=lambda row: (row["native_key"], row["review_id"]),
+            ),
+            "legacy_destination_outcomes": sorted(
+                target_review_legacy_outcomes,
+                key=lambda row: (row["native_key"], row["legacy_override_id"]),
+            ),
+            "objective_destinations": sorted(
+                target_review_objective_destinations,
                 key=lambda row: (row["native_key"], row["stable_id"]),
+            ),
+            "reviewed_target_failures": sorted(
+                target_review_target_failures,
+                key=lambda row: (row["native_key"], row["override_step_id"]),
             ),
             "steps": sorted(
                 target_review_steps,
@@ -1305,4 +2006,24 @@ def build_guide_artifacts(
             "source-snapshot.json",
             "target-review.json",
         ],
+        "route_inputs": {
+            "ledger": tuple(
+                sorted(
+                    target_review_action_ledger,
+                    key=lambda row: (row["native_key"], row["action_id"]),
+                )
+            ),
+            "candidates": tuple(
+                sorted(
+                    target_review_candidates,
+                    key=lambda row: (row["native_key"], row["candidate_id"]),
+                )
+            ),
+            "groups": tuple(
+                sorted(
+                    target_review_groups,
+                    key=lambda row: (row["native_key"], row["group_id"]),
+                )
+            ),
+        },
     }

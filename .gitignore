@@ -1,5 +1,6 @@
 # Build outputs
 /build/
+/build-collision/
 /dist/
 **/bin/
 **/obj/
@@ -24,6 +25,7 @@
 /tools/__pycache__/
 /tools/.objective-guides-venv/
 /tools/objective_guides_cache/
+/\.tools/
 /tools/xi-tinkerer/
 *.pyc
 
@@ -53,6 +55,7 @@
 /tmp/
 /scratch/
 /backups/
+/.superpowers/sdd/
 *.bak
 *.bak*
 *~

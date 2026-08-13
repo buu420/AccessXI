@@ -1,0 +1,10 @@
+LIBRARY "accessxi_collision_native"
+EXPORTS
+    AXI_GetAbiVersion
+    AXI_CreateContext
+    AXI_DestroyContext
+    AXI_BeginLoadZone
+    AXI_CancelLoad
+    AXI_PollLoadZone
+    AXI_SweepCapsule
+    AXI_FindPath

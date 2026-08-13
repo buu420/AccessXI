@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +19,16 @@ from .mediawiki import (
 )
 from .model import NativeObjective
 from .native_manifest import build_native_manifest
+from . import route_evidence
+from .site_config import (
+    SiteConfigError,
+    SiteLinkPolicy,
+    build_site_config_artifact,
+    load_site_link_policies,
+    site_config_entry_from_response,
+    validate_source_site_binding,
+    write_site_config_artifact,
+)
 from .wikitext import WikitextError, parse_objective_page
 
 
@@ -62,8 +74,14 @@ def _load_navigation_catalog(
         try:
             zone = int(fields[0])
             x, z, y = (float(fields[index]) for index in (2, 3, 4))
+            raw_spawn_ids = (
+                tuple(int(value) for value in fields[11].split(","))
+                if len(fields) >= 12 and fields[11].strip()
+                else ()
+            )
         except ValueError as error:
             raise ValueError(f"Malformed navigation destination row: {line!r}") from error
+        section = fields[8].strip() if len(fields) >= 9 else ""
         points.append(
             {
                 "zone": zone,
@@ -74,7 +92,12 @@ def _load_navigation_catalog(
                 "kind": fields[5].strip(),
                 "source": fields[6].strip(),
                 "confidence": fields[7].strip() if len(fields) >= 8 else "",
-                "note": fields[8].strip() if len(fields) >= 9 else "",
+                "section": section,
+                "note": section,
+                "destination_id": fields[9].strip() if len(fields) >= 10 else "",
+                "raw_identity": fields[10].strip() if len(fields) >= 11 else "",
+                "raw_spawn_ids": raw_spawn_ids,
+                "cluster_policy_version": fields[12].strip() if len(fields) >= 13 else "",
             }
         )
 
@@ -278,14 +301,50 @@ def _source_pages(
     return tuple(all_pages), discovery
 
 
+def _capture_source_site_config(cache_root: Path) -> dict[str, Any]:
+    entries: list[dict[str, Any]] = []
+    for site, config in SITE_CONFIG.items():
+        api_url = str(config["api_url"])
+        client = MediaWikiClient(
+            site,
+            api_url,
+            request_cache_dir=cache_root / "resume" / "site-config" / site,
+            min_request_interval=0.2,
+            request_cache_max_age=0.0,
+        )
+        response = client.site_info()
+        entries.append(site_config_entry_from_response(site, api_url, response))
+        client.clear_request_cache()
+    return build_site_config_artifact(entries)
+
+
 def _parse_pages(
     source_pages: tuple[PageRevision, ...],
+    *,
+    site_policies: dict[str, SiteLinkPolicy],
 ) -> tuple[tuple[Any, ...], tuple[dict[str, Any], ...]]:
+    for site, policy in site_policies.items():
+        if not isinstance(policy, SiteLinkPolicy):
+            raise SiteConfigError(f"Source site policy for {site!r} has an invalid type.")
+        validate_source_site_binding(site, policy.api_url, policy)
+    missing = sorted({page.site for page in source_pages if page.site not in site_policies})
+    if missing:
+        raise SiteConfigError(
+            "Source site config has no policy for revision site(s): "
+            + ", ".join(missing)
+            + "."
+        )
+    for page in source_pages:
+        validate_source_site_binding(
+            page.site,
+            page.api_url,
+            site_policies[page.site],
+        )
     parsed = []
     failures = []
     for page in sorted(source_pages, key=lambda value: (value.site, value.page_id)):
         try:
-            parsed.append(parse_objective_page(page))
+            parsed.append(parse_objective_page(page, site_policy=site_policies[page.site]))
         except (WikitextError, ValueError) as error:
             failures.append(
                 {
@@ -312,11 +371,120 @@ def _print_report(data_root: Path) -> None:
     print(f"Dual-source matches: {counts.get('dual_source', 0)}")
 
 
+def _atomic_bytes(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    try:
+        temporary.write_bytes(payload)
+        temporary.replace(path)
+    except OSError:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _build_route_artifacts(
+    *,
+    repo_root: Path,
+    data_root: Path,
+    route_inputs: dict[str, Any],
+    third_party_root: Path,
+    refresh: bool,
+    runtime_ready: bool,
+    update_runtime_pin_path: Path | None,
+) -> dict[str, Any]:
+    policy_path = data_root / "route-proof-policy.json"
+    transition_path = data_root / "route-transitions.json"
+    transition_evidence_path = data_root / "route-transition-evidence-v2.jsonl"
+    evidence_path = data_root / "route-evidence-v2.jsonl"
+    policy = route_evidence.load_policy(policy_path)
+    transition_definitions = route_evidence.load_transition_definitions(transition_path)
+    transition_evidence_rows = route_evidence.load_jsonl(transition_evidence_path)
+    existing_evidence = route_evidence.load_jsonl(evidence_path)
+    addon_data = repo_root / "ashita" / "addons" / "accessxi_reader" / "data"
+    catalogue = route_evidence.load_route_catalogue_files(
+        addon_data / "ffxi-nav-destinations.tsv",
+        addon_data / "ffxi-nav-zoneline-graph.tsv",
+    )
+    candidates = route_inputs.get("candidates")
+    if not isinstance(candidates, (list, tuple)):
+        raise route_evidence.RouteEvidenceError(
+            "Objective build did not supply typed Task 3 route candidates."
+        )
+    transition_registry_sha256 = hashlib.sha256(transition_path.read_bytes()).hexdigest()
+
+    def execute(probe_executable: Path | None) -> dict[str, Any]:
+        def probe_runner(
+            _zone: int, requests: list[dict[str, Any]] | tuple[dict[str, Any], ...]
+        ) -> tuple[dict[str, Any], ...]:
+            if probe_executable is None:
+                raise route_evidence.RouteEvidenceError(
+                    "Route refresh requested a native probe without a published worker."
+                )
+            process = route_evidence.run_native_probe_worker(
+                probe_executable,
+                third_party_root=third_party_root,
+                requests=requests,
+                timeout_seconds=300.0,
+            )
+            return route_evidence.parse_probe_jsonl(
+                requests, process.stdout, process.exit_code
+            )
+
+        return route_evidence.execute_compiled_route_pipeline(
+            candidates=candidates,
+            catalogue=catalogue,
+            policy=policy,
+            third_party_root=third_party_root,
+            transition_registry_sha256=transition_registry_sha256,
+            transition_definitions=transition_definitions,
+            transition_evidence=transition_evidence_rows,
+            existing_evidence=existing_evidence,
+            refresh=refresh,
+            offline=not refresh,
+            probe_runner=probe_runner,
+        )
+
+    if refresh:
+        with tempfile.TemporaryDirectory(prefix="accessxi-navprobe-") as temporary:
+            executable = route_evidence.publish_navprobe(
+                repo_root, Path(temporary) / "publish"
+            )
+            result = execute(executable)
+    else:
+        result = execute(None)
+    evidence_payload = route_evidence.render_route_evidence_jsonl(
+        (*result["accepted_evidence"], *result["review"])
+    )
+    _atomic_bytes(evidence_path, evidence_payload)
+    generated = route_evidence.write_route_runtime_artifacts(
+        repo_root=repo_root,
+        third_party_root=third_party_root,
+        policy=policy,
+        contracts=result["contracts"],
+        transitions=result["current_transitions"],
+        runtime_ready=runtime_ready,
+    )
+    if update_runtime_pin_path is not None:
+        route_evidence.update_runtime_pin(
+            update_runtime_pin_path,
+            generated["manifest_sha256"],
+            marker="ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256",
+        )
+    return {
+        **generated,
+        "accepted_evidence_count": len(result["accepted_evidence"]),
+        "review_count": len(result["review"]),
+        "unresolved_count": len(result["unresolved"]),
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Build AccessXI's offline, revisioned mission and quest guidance data."
     )
-    parser.add_argument("command", choices=("manifest", "fetch", "build", "report", "all"))
+    parser.add_argument(
+        "command", choices=("manifest", "fetch", "build", "routes", "report", "all")
+    )
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument(
         "--ffxi-root",
@@ -326,6 +494,21 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cache-root", type=Path)
     parser.add_argument("--module-root", type=Path)
     parser.add_argument("--data-root", type=Path)
+    parser.add_argument(
+        "--third-party-root",
+        type=Path,
+        help="Explicit read-only root containing the pinned FFXINAV DLL and navmeshes.",
+    )
+    parser.add_argument(
+        "--update-runtime-pin",
+        type=Path,
+        help="Update the single reviewed runtime manifest digest marker after generation.",
+    )
+    parser.add_argument(
+        "--runtime-ready",
+        action="store_true",
+        help="Require the later runtime consumer child and emit only a complete runtime manifest.",
+    )
     parser.add_argument(
         "--site",
         action="append",
@@ -342,8 +525,26 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _refresh_modes(
+    *, command: str, refresh: bool, offline: bool
+) -> tuple[bool, bool, bool]:
+    route_refresh = command == "routes" and refresh
+    source_refresh = command != "routes" and refresh
+    source_offline = offline or command == "routes"
+    return route_refresh, source_refresh, source_offline
+
+
+def _route_dependency_root(repo_root: Path, selected: Path | None) -> Path:
+    return route_evidence.validate_dependency_root(
+        selected if selected is not None else repo_root / "third_party"
+    )
+
+
 def run(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    route_refresh, source_refresh, source_offline = _refresh_modes(
+        command=args.command, refresh=args.refresh, offline=args.offline
+    )
     repo_root = args.repo_root.resolve()
     cache_root = (args.cache_root or repo_root / "tools" / "objective_guides_cache").resolve()
     module_root = (
@@ -363,11 +564,22 @@ def run(argv: list[str] | None = None) -> int:
         return 0
 
     selected_sites = tuple(dict.fromkeys(args.sites or SITE_CONFIG))
+    site_config_path = data_root / "source-site-config.json"
+    if source_refresh:
+        if args.offline:
+            raise MediaWikiError(
+                "--offline refuses network access and cannot be combined with --refresh."
+            )
+        write_site_config_artifact(
+            site_config_path,
+            _capture_source_site_config(cache_root),
+        )
+    site_policies = load_site_link_policies(site_config_path)
     source_pages, discovery = _source_pages(
         native_rows,
         cache_root=cache_root,
-        offline=args.offline,
-        refresh=args.refresh,
+        offline=source_offline,
+        refresh=source_refresh,
         sites=selected_sites,
     )
     print(f"Loaded {len(source_pages)} revisioned guide pages.")
@@ -375,7 +587,10 @@ def run(argv: list[str] | None = None) -> int:
         _atomic_json(data_root / "source-discovery.json", discovery)
         return 0
 
-    parsed_pages, parse_failures = _parse_pages(source_pages)
+    parsed_pages, parse_failures = _parse_pages(
+        source_pages,
+        site_policies=site_policies,
+    )
     overrides = _overrides_for_sites(
         _load_overrides(data_root / "reviewed-overrides.json"),
         selected_sites,
@@ -403,7 +618,23 @@ def run(argv: list[str] | None = None) -> int:
     )
     print(f"Parsed {len(parsed_pages)} objective pages; {len(parse_failures)} pages were excluded safely.")
     print(json.dumps(summary["counts"], sort_keys=True))
-    if args.command in {"build", "all"}:
+    if args.command in {"build", "routes", "all"}:
+        route_summary = _build_route_artifacts(
+            repo_root=repo_root,
+            data_root=data_root,
+            route_inputs=summary["route_inputs"],
+            third_party_root=_route_dependency_root(repo_root, args.third_party_root),
+            refresh=route_refresh,
+            runtime_ready=args.runtime_ready,
+            update_runtime_pin_path=(
+                args.update_runtime_pin.resolve() if args.update_runtime_pin else None
+            ),
+        )
+        print(
+            "Objective route artifacts: "
+            + json.dumps(route_summary, sort_keys=True)
+        )
+    if args.command in {"build", "routes", "all"}:
         _print_report(data_root)
     return 0
 
@@ -411,7 +642,7 @@ def run(argv: list[str] | None = None) -> int:
 def main() -> None:
     try:
         raise SystemExit(run())
-    except (MediaWikiError, OSError, ValueError) as error:
+    except (MediaWikiError, route_evidence.RouteEvidenceError, OSError, ValueError) as error:
         print(f"objective guide build failed: {error}", file=sys.stderr)
         raise SystemExit(1) from error
 

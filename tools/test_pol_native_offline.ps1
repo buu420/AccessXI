@@ -13,11 +13,11 @@ cmake -S $repo -B $build -A Win32
 if ($LASTEXITCODE -ne 0) {
     throw "Win32 CMake configuration failed with exit $LASTEXITCODE"
 }
-cmake --build $build --config $Configuration --target pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_native_speech_worker_tests pol_native_host_tests
+cmake --build $build --config $Configuration --target pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_pml_update_progress_tests pol_native_speech_worker_tests pol_native_host_tests
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness build failed with exit $LASTEXITCODE"
 }
-ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace|prelogin_semantics|pml_(selected_text|text_field|popup_text))_tests' --output-on-failure
+ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace|prelogin_semantics|pml_(selected_text|text_field|popup_text|update_progress))_tests' --output-on-failure
 if ($LASTEXITCODE -ne 0) {
     throw "Offline native harness failed with exit $LASTEXITCODE"
 }
@@ -42,4 +42,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native popup and notice integration regression failed with exit $LASTEXITCODE"
 }
 
-'ok: native PlayOnline offline queue, trace, pre-login semantics, selected text, popup text, Prism, host, fingerprint, and hook ABI tests passed.'
+'ok: native PlayOnline offline queue, trace, pre-login semantics, selected text, popup text, update progress, Prism, host, fingerprint, and hook ABI tests passed.'

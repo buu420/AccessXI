@@ -26,30 +26,287 @@ local function copy_table(value)
     return result;
 end
 
-local function copy_array(value)
-    local result = {};
+local function deep_copy(value, seen)
     if (type(value) ~= 'table') then
-        return result;
+        return value;
     end
-    for _, item in ipairs(value) do
-        result[#result + 1] = item;
+    seen = seen or {};
+    if (seen[value] ~= nil) then
+        return seen[value];
+    end
+    local result = {};
+    seen[value] = result;
+    for key, item in pairs(value) do
+        result[deep_copy(key, seen)] = deep_copy(item, seen);
     end
     return result;
 end
 
-local function copy_mission_destination(value)
-    local result = copy_table(value);
-    if (result == nil) then
+local function step_policy_text(step)
+    local parts = {
+        clean(type(step) == 'table' and step.primary_instruction or ''),
+        clean(type(step) == 'table' and step.bg_instruction or ''),
+        clean(type(step) == 'table' and step.ffxiclopedia_instruction or ''),
+    };
+    for _, field in ipairs({ 'entities', 'items', 'key_items' }) do
+        for _, value in ipairs(type(step) == 'table' and type(step[field]) == 'table'
+            and step[field] or {}) do
+            parts[#parts + 1] = clean(type(value) == 'table'
+                and (value.name or value.item or value.key_item) or value);
+        end
+    end
+    return clean(table.concat(parts, ' ')):lower();
+end
+
+local function optional_shortcut_step(step, text)
+    local action = clean(type(step) == 'table' and step.action or ''):lower();
+    if (text:find('shortcut', 1, true) ~= nil
+        or text:find('fastest', 1, true) ~= nil
+        or text:find('faster route', 1, true) ~= nil) then
+        return true;
+    end
+    return (action == 'travel' or action == 'use')
+        and (text:find('warp', 1, true) ~= nil
+            or text:find('teleport', 1, true) ~= nil
+            or text:find('home point', 1, true) ~= nil
+            or text:find('survival guide', 1, true) ~= nil
+            or text:find('unity', 1, true) ~= nil);
+end
+
+local route_recommendation_items = {
+    ['silent oil'] = 'Recommended: carry Silent Oil. Use it before entering areas with sound-detecting enemies to avoid aggro.',
+    ['prism powder'] = 'Recommended: carry Prism Powder. Use it before entering areas with sight-detecting enemies to avoid aggro.',
+};
+
+local function route_recommendation(step, text)
+    local advisory = text:find('precaution', 1, true) ~= nil
+        or text:find('may want', 1, true) ~= nil
+        or text:find('recommend', 1, true) ~= nil
+        or text:find('suggest', 1, true) ~= nil
+        or text:find('advisable', 1, true) ~= nil
+        or text:find('should have', 1, true) ~= nil
+        or text:find('be sure to have', 1, true) ~= nil
+        or text:find('handy', 1, true) ~= nil
+        or text:find('bring', 1, true) ~= nil
+        or text:find('carry', 1, true) ~= nil
+        or text:find('optional', 1, true) ~= nil
+        or (text:find('silent oil', 1, true) ~= nil
+            and (text:find('sneak', 1, true) ~= nil
+                or text:find('sound', 1, true) ~= nil
+                or text:find('aggro', 1, true) ~= nil))
+        or (text:find('prism powder', 1, true) ~= nil
+            and (text:find('invisible', 1, true) ~= nil
+                or text:find('sight', 1, true) ~= nil
+                or text:find('aggro', 1, true) ~= nil));
+    if (not advisory) then return nil; end
+    for item, instruction in pairs(route_recommendation_items) do
+        if (text:find(item, 1, true) ~= nil) then
+            return {
+                item = item == 'silent oil' and 'Silent Oil' or 'Prism Powder',
+                instruction = instruction,
+                stable_step_id = clean(type(step) == 'table' and step.stable_step_id or ''),
+                order = tonumber(type(step) == 'table' and step.order or nil) or 0,
+            };
+        end
+    end
+    return nil;
+end
+
+local function explicitly_optional_step(step, text)
+    local action = clean(type(step) == 'table' and step.action or ''):lower();
+    local optional = text:match('^optionally[%s,:%?%-]') ~= nil
+        or text:match('^optional[%s:%?%-]') ~= nil
+        or text:find('(optional', 1, true) ~= nil
+        or text:find('non-essential', 1, true) ~= nil
+        or text:find('extra dialogue', 1, true) ~= nil
+        or text:find('additional dialogue', 1, true) ~= nil;
+    local optional_map = action == 'obtain'
+        and text:find('map of ', 1, true) ~= nil
+        and optional;
+    return optional or optional_map;
+end
+
+local function apply_step_policy(step)
+    local text = step_policy_text(step);
+    local recommendation = route_recommendation(step, text);
+    if (recommendation ~= nil) then
+        step.route_recommendation = true;
+        step.optional_nonessential = true;
+        step.recommendation_item = recommendation.item;
+        step.recommendation_instruction = recommendation.instruction;
+        return recommendation;
+    end
+    if (optional_shortcut_step(step, text)) then
+        step.optional_shortcut = true;
         return nil;
     end
-    result.source_step_ids = copy_array(value.source_step_ids);
-    result.items = copy_array(value.items);
-    result.enemies = copy_array(value.enemies);
-    result.navigation_target = copy_table(value.navigation_target);
-    if (result.navigation_target ~= nil) then
-        result.navigation_target.reference = copy_table(value.navigation_target.reference);
+    if (explicitly_optional_step(step, text)) then
+        step.optional_nonessential = true;
     end
+    return nil;
+end
+
+local function array_value_count(values, expected)
+    local count = 0;
+    for _, value in ipairs(type(values) == 'table' and values or {}) do
+        if (clean(value) == expected) then
+            count = count + 1;
+        end
+    end
+    return count;
+end
+
+local function source_spans_belong_to(candidate, ledger)
+    local candidate_spans = type(candidate.source_action_span_ids) == 'table'
+        and candidate.source_action_span_ids or {};
+    local ledger_spans = type(ledger.source_action_span_ids) == 'table'
+        and ledger.source_action_span_ids or {};
+    if (#candidate_spans == 0 or #ledger_spans == 0) then
+        return false;
+    end
+    local seen = {};
+    for _, value in ipairs(candidate_spans) do
+        local span_id = clean(value);
+        if (span_id == '' or seen[span_id] or array_value_count(ledger_spans, span_id) ~= 1) then
+            return false;
+        end
+        seen[span_id] = true;
+    end
+    return true;
+end
+
+local function unique_nonempty_values(values)
+    if (type(values) ~= 'table' or #values == 0) then
+        return false;
+    end
+    local seen = {};
+    for _, value in ipairs(values) do
+        local key = clean(value);
+        if (key == '' or seen[key]) then
+            return false;
+        end
+        seen[key] = true;
+    end
+    return true;
+end
+
+local function exact_claim_step(reconciliation, action_id, action)
+    local owner_step = nil;
+    local owner_count = 0;
+    for _, step in ipairs(type(reconciliation.steps) == 'table' and reconciliation.steps or {}) do
+        for _, claim in ipairs(type(step.typed_claims) == 'table' and step.typed_claims or {}) do
+            if (clean(claim.stable_claim_id) == action_id) then
+                owner_count = owner_count + 1;
+                if (clean(claim.action) ~= action) then
+                    return nil;
+                end
+                owner_step = step;
+            end
+        end
+    end
+    if (owner_count ~= 1 or type(owner_step) ~= 'table'
+        or clean(owner_step.stable_step_id) == '') then
+        return nil;
+    end
+    return owner_step;
+end
+
+local function reviewed_candidate_copy(reconciliation, candidate)
+    if (type(candidate) ~= 'table') then
+        return nil;
+    end
+    local candidate_id = clean(candidate.candidate_id);
+    local action_id = clean(candidate.action_id);
+    local action = clean(candidate.action);
+    local arrival_instruction = clean(candidate.arrival_instruction);
+    if (candidate_id == '' or action_id == '' or action == '' or arrival_instruction == '') then
+        return nil;
+    end
+
+    local owner = nil;
+    local owner_count = 0;
+    for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
+        and reconciliation.action_resolution_ledger or {}) do
+        local occurrences = array_value_count(ledger.candidate_ids, candidate_id);
+        if (occurrences > 0) then
+            owner_count = owner_count + occurrences;
+            owner = ledger;
+        end
+    end
+    if (owner_count ~= 1 or clean(owner.action_id) ~= action_id
+        or clean(owner.action) ~= action or not source_spans_belong_to(candidate, owner)) then
+        return nil;
+    end
+
+    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    if (guide_step == nil) then
+        return nil;
+    end
+
+    local result = deep_copy(candidate);
+    result.classification = 'catalogue-candidate';
+    result.guide_step_id = clean(guide_step.stable_step_id);
+    result.guide_step_order = tonumber(guide_step.order) or 0;
+    -- This candidate-specific text is for speech only. Route authorization is
+    -- owned by the separately validated runtime contract index.
+    result.action_instruction = arrival_instruction;
     return result;
+end
+
+local function reviewed_instruction_copy(reconciliation, ledger)
+    if (type(ledger) ~= 'table'
+        or clean(ledger.status) ~= 'instruction-only'
+        or clean(ledger.reason) ~= 'complete-instruction'
+        or ledger.material ~= true
+        or ledger.route_ready == true
+        or type(ledger.candidate_ids) ~= 'table'
+        or #ledger.candidate_ids ~= 0
+        or not unique_nonempty_values(ledger.source_action_span_ids)) then
+        return nil;
+    end
+    local action_id = clean(ledger.action_id);
+    local action = clean(ledger.action);
+    local instruction = clean(ledger.instruction);
+    if (action_id == '' or action == '' or instruction == '') then
+        return nil;
+    end
+    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    if (guide_step == nil or clean(guide_step.comparison):lower() == 'conflict') then
+        return nil;
+    end
+    return {
+        candidate_id = '',
+        action_id = action_id,
+        source_action_span_ids = deep_copy(ledger.source_action_span_ids),
+        action = action,
+        status = 'instruction-only',
+        reason = 'complete-instruction',
+        material = true,
+        group_id = '',
+        destination_id = '',
+        guide_step_id = clean(guide_step.stable_step_id),
+        guide_step_order = tonumber(guide_step.order) or 0,
+        action_instruction = instruction,
+        instruction_only = true,
+        classification = 'instruction-only',
+        route_ready = false,
+    };
+end
+
+local function objective_destination_less(left, right)
+    local left_order = tonumber(left.guide_step_order) or 0;
+    local right_order = tonumber(right.guide_step_order) or 0;
+    if (left_order ~= right_order) then
+        return left_order < right_order;
+    end
+    for _, field in ipairs({ 'action_id', 'group_id', 'candidate_id' }) do
+        local left_value = clean(left[field]);
+        local right_value = clean(right[field]);
+        if (left_value ~= right_value) then
+            return left_value < right_value;
+        end
+    end
+    return false;
 end
 
 local function source_instruction(source, order)
@@ -59,6 +316,25 @@ local function source_instruction(source, order)
     end
     local step = source.steps[order];
     return clean(type(step) == 'table' and step.instruction or '');
+end
+
+local function source_step_values(source, order, field)
+    order = tonumber(order) or 0;
+    if (type(source) ~= 'table' or type(source.steps) ~= 'table'
+        or order <= 0 or type(field) ~= 'string') then
+        return {};
+    end
+    local step = source.steps[order];
+    local values = type(step) == 'table' and step[field] or nil;
+    return type(values) == 'table' and deep_copy(values) or {};
+end
+
+local function preferred_source_step_values(sources, orders, field)
+    local bg_values = source_step_values(sources.bg, orders[1], field);
+    if (#bg_values > 0) then
+        return bg_values;
+    end
+    return source_step_values(sources.ffxiclopedia, orders[2], field);
 end
 
 local GuideState = {};
@@ -171,6 +447,8 @@ function GuideState:resolve(native_key)
     end
 
     local steps = {};
+    local source_steps = {};
+    local route_recommendations = {};
     for _, pair in ipairs(reconciliation.steps) do
         local orders = type(pair.source_orders) == 'table' and pair.source_orders or {};
         local bg_instruction = source_instruction(sources.bg, orders[1]);
@@ -181,32 +459,93 @@ function GuideState:resolve(native_key)
             self.resolution_cache[native_key] = { available = false, reason = reason };
             return nil, reason;
         end
-        steps[#steps + 1] = {
+        local step = {
             stable_step_id = clean(pair.stable_step_id),
-            order = tonumber(pair.order) or (#steps + 1),
+            order = tonumber(pair.order) or (#source_steps + 1),
             comparison = clean(pair.comparison),
             conflicting_fields = type(pair.conflicting_fields) == 'table'
-                and pair.conflicting_fields or {},
+                and deep_copy(pair.conflicting_fields) or {},
             action = clean(pair.action),
+            entities = type(pair.entities) == 'table' and deep_copy(pair.entities) or {},
+            zones = type(pair.zones) == 'table' and deep_copy(pair.zones) or {},
+            grid_coordinates = type(pair.grid_coordinates) == 'table'
+                and deep_copy(pair.grid_coordinates) or {},
+            items = preferred_source_step_values(sources, orders, 'items'),
+            key_items = preferred_source_step_values(sources, orders, 'key_items'),
             route_ready = pair.route_ready == true,
-            navigation_target = copy_table(pair.navigation_target),
+            navigation_target = deep_copy(pair.navigation_target),
             bg_instruction = bg_instruction,
             ffxiclopedia_instruction = ffxiclopedia_instruction,
             primary_instruction = bg_instruction ~= '' and bg_instruction or ffxiclopedia_instruction,
         };
+        local recommendation = apply_step_policy(step);
+        source_steps[#source_steps + 1] = step;
+        if (recommendation ~= nil) then
+            route_recommendations[#route_recommendations + 1] = recommendation;
+        elseif (step.optional_nonessential ~= true) then
+            local visible = deep_copy(step);
+            if (visible.optional_shortcut == true) then
+                visible.primary_instruction = 'Shortcut. ' .. visible.primary_instruction;
+            end
+            steps[#steps + 1] = visible;
+        end
     end
-    if (#steps == 0) then
+    -- Attach each preparation recommendation to one route segment instead of
+    -- repeating it for every later objective.  Prefer the next source-backed
+    -- routable destination; if the corpus has no exact destination yet, use
+    -- the next material non-optional step as a conservative fallback.
+    for _, recommendation in ipairs(route_recommendations) do
+        local recommendation_order = tonumber(recommendation.order) or 0;
+        local fallback_order = nil;
+        for _, step in ipairs(source_steps) do
+            local step_order = tonumber(step.order) or 0;
+            local action = clean(step.action):lower();
+            if (step_order > recommendation_order
+                and action ~= '' and action ~= 'note'
+                and step.optional_nonessential ~= true
+                and step.route_recommendation ~= true
+                and step.optional_shortcut ~= true) then
+                fallback_order = fallback_order or step_order;
+                if (step.route_ready == true) then
+                    recommendation.route_order = step_order;
+                    break;
+                end
+            end
+        end
+        recommendation.route_order = tonumber(recommendation.route_order)
+            or fallback_order or recommendation_order;
+    end
+    if (#source_steps == 0) then
         local reason = ('No ordered walkthrough steps are available for %s.'):format(native_key);
         self.resolution_cache[native_key] = { available = false, reason = reason };
         return nil, reason;
     end
 
-    local mission_destinations = {};
-    for _, destination in ipairs(reconciliation.mission_destinations or {}) do
-        local copied = copy_mission_destination(destination);
-        if (copied ~= nil) then
-            mission_destinations[#mission_destinations + 1] = copied;
+    local typed_destinations = type(reconciliation.objective_destination_candidates) == 'table';
+    local destination_source = typed_destinations
+        and reconciliation.objective_destination_candidates
+        or (reconciliation.mission_destinations or {});
+    local objective_destinations = {};
+    for _, destination in ipairs(destination_source) do
+        local copied = nil;
+        if (typed_destinations) then
+            copied = reviewed_candidate_copy(reconciliation, destination);
+        elseif (type(destination) == 'table') then
+            copied = deep_copy(destination);
         end
+        if (copied ~= nil) then
+            objective_destinations[#objective_destinations + 1] = copied;
+        end
+    end
+    if (typed_destinations) then
+        for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
+            and reconciliation.action_resolution_ledger or {}) do
+            local copied = reviewed_instruction_copy(reconciliation, ledger);
+            if (copied ~= nil) then
+                objective_destinations[#objective_destinations + 1] = copied;
+            end
+        end
+        table.sort(objective_destinations, objective_destination_less);
     end
 
     local resolved = {
@@ -217,7 +556,9 @@ function GuideState:resolve(native_key)
         sources = sources,
         reconciliation = reconciliation,
         steps = steps,
-        mission_destinations = mission_destinations,
+        source_steps = source_steps,
+        route_recommendations = route_recommendations,
+        objective_destinations = objective_destinations,
     };
     self.resolution_cache[native_key] = resolved;
     return resolved;
@@ -368,20 +709,57 @@ function GuideState:automatic_step_id(native_key, stage_key)
     return clean(stages[clean(stage_key)]);
 end
 
-function GuideState:mission_destinations(native_key)
+function GuideState:objective_destinations(native_key)
     self:sync_identity();
     local objective = self:resolve(native_key);
     local result = {};
-    if (objective == nil or type(objective.mission_destinations) ~= 'table') then
+    if (objective == nil or type(objective.objective_destinations) ~= 'table') then
         return result;
     end
-    for _, destination in ipairs(objective.mission_destinations) do
-        local copied = copy_mission_destination(destination);
-        if (copied ~= nil) then
-            result[#result + 1] = copied;
+    for _, destination in ipairs(objective.objective_destinations) do
+        if (type(destination) == 'table') then
+            result[#result + 1] = deep_copy(destination);
         end
     end
     return result;
+end
+
+function GuideState:source_route_steps(native_key)
+    self:sync_identity();
+    local objective = self:resolve(native_key);
+    local result = {};
+    if (objective == nil or type(objective.source_steps) ~= 'table') then
+        return result;
+    end
+    for _, step in ipairs(objective.source_steps) do
+        if (type(step) == 'table') then
+            result[#result + 1] = deep_copy(step);
+        end
+    end
+    return result;
+end
+
+function GuideState:route_recommendations(native_key, through_order)
+    self:sync_identity();
+    local objective = self:resolve(native_key);
+    local result = {};
+    if (objective == nil or type(objective.route_recommendations) ~= 'table') then
+        return result;
+    end
+    through_order = tonumber(through_order);
+    for _, recommendation in ipairs(objective.route_recommendations) do
+        if (type(recommendation) == 'table'
+            and (through_order == nil
+                or (tonumber(recommendation.route_order) or tonumber(recommendation.order) or 0)
+                    == through_order)) then
+            result[#result + 1] = deep_copy(recommendation);
+        end
+    end
+    return result;
+end
+
+function GuideState:mission_destinations(native_key)
+    return self:objective_destinations(native_key);
 end
 
 function GuideState:current_index()

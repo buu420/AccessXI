@@ -35,9 +35,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $AshitaSdk 'Ashita.h') -PathType Lea
 $env:ASHITA4_SDK_PATH = [System.IO.Path]::GetFullPath($AshitaSdk)
 Invoke-Checked { cmake -S $repo -B $build -A Win32 } 'Win32 CMake configuration failed'
 Invoke-Checked {
-    cmake --build $build --config $Configuration --target accessxi_pol_hook accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_native_speech_worker_tests pol_native_host_tests
+    cmake --build $build --config $Configuration --target accessxi_pol_hook accessxi_pol_native_asi pol_native_queue_tests pol_postlogin_trace_tests pol_prelogin_semantics_tests pol_pml_selected_text_tests pol_pml_text_field_tests pol_pml_popup_text_tests pol_pml_update_progress_tests pol_native_speech_worker_tests pol_native_host_tests
 } 'Native PlayOnline build failed'
-Invoke-Checked { ctest --test-dir $build -C $Configuration --output-on-failure } 'Native PlayOnline tests failed'
+Invoke-Checked {
+    ctest --test-dir $build -C $Configuration -R 'pol_(native_(queue|speech_worker|host)|postlogin_trace|prelogin_semantics|pml_(selected_text|text_field|popup_text|update_progress))_tests' --output-on-failure
+} 'Native PlayOnline tests failed'
 
 $resolvedStage = [System.IO.Path]::GetFullPath($stage).TrimEnd('\')
 $repoPrefix = $repo + '\'

@@ -6,11 +6,12 @@ $ErrorActionPreference = 'Stop'
 
 $addonPath = Join-Path $Root 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $harnessPath = Join-Path $Root 'tools\lua_tests\test_nav_zoneline_path.lua'
+$dedupHarnessPath = Join-Path $Root 'tools\lua_tests\test_nav_zone_search_dedup.lua'
 $luaPath = Join-Path $Root 'tools\lua51\lua5.1.exe'
 if (-not (Test-Path -LiteralPath $luaPath -PathType Leaf)) {
     $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
 }
-foreach ($path in @($addonPath, $harnessPath, $luaPath)) {
+foreach ($path in @($addonPath, $harnessPath, $dedupHarnessPath, $luaPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Missing zone-search test dependency: $path"
     }
@@ -207,6 +208,11 @@ Assert-Match `
 & $luaPath $harnessPath $addonPath
 if ($LASTEXITCODE -ne 0) {
     throw "Canonical zoneline path Lua behavior harness failed with exit code $LASTEXITCODE."
+}
+
+& $luaPath $dedupHarnessPath $addonPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Zone-search presentation dedup behavior failed with exit code $LASTEXITCODE."
 }
 
 Write-Host 'nav zone search command checks ok'

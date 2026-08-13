@@ -12,6 +12,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from .site_config import SiteConfigError, validate_source_site_binding
+
 
 ACCESSXI_USER_AGENT = (
     "AccessXI-objective-guide-importer/1.0 "
@@ -122,12 +124,11 @@ class MediaWikiClient:
         min_request_interval: float = 0.0,
         request_cache_max_age: float = 7200.0,
     ) -> None:
-        if site not in SITE_LICENSES:
-            raise ValueError(f"Unsupported MediaWiki site: {site}")
+        normalized_api_url = validate_source_site_binding(site, api_url)
         if batch_size < 1 or batch_size > 50:
             raise ValueError("MediaWiki batch_size must be between 1 and 50.")
         self.site = site
-        self.api_url = api_url
+        self.api_url = normalized_api_url
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
         self.request_cache_dir = Path(request_cache_dir) if request_cache_dir is not None else None
         self.transport = transport or _http_json_transport
@@ -255,6 +256,16 @@ class MediaWikiClient:
                     break
                 time.sleep(min(8.0, 0.5 * (2**attempt)))
         raise MediaWikiError(f"MediaWiki request failed after {self.max_attempts} attempts: {last_error}") from last_error
+
+    def site_info(self) -> dict[str, Any]:
+        """Capture the complete link-prefix policy exposed by this wiki."""
+
+        return self._query(
+            {
+                "meta": "siteinfo",
+                "siprop": "general|namespaces|namespacealiases|interwikimap",
+            }
+        )
 
     def category_members(
         self,
@@ -430,10 +441,14 @@ class MediaWikiClient:
         )
 
     def cache_revision(self, revision: PageRevision) -> Path | None:
+        try:
+            revision_api_url = validate_source_site_binding(revision.site, revision.api_url)
+        except SiteConfigError as error:
+            raise MediaWikiError("Cannot cache a revision with an invalid source binding.") from error
+        if revision.site != self.site or revision_api_url != self.api_url:
+            raise MediaWikiError("Cannot place a revision from another site in this client's cache.")
         if self.cache_dir is None:
             return None
-        if revision.site != self.site:
-            raise MediaWikiError("Cannot place a revision from another site in this client's cache.")
         directory = self.cache_dir / self.site
         directory.mkdir(parents=True, exist_ok=True)
         target = directory / f"{revision.cache_key}.json"
@@ -507,6 +522,12 @@ def load_snapshot(
         raise MediaWikiError(
             f"Objective source snapshot {path} is for {site!r}, expected {expected_site!r}."
         )
+    try:
+        validate_source_site_binding(site, api_url)
+    except SiteConfigError as error:
+        raise MediaWikiError(
+            f"Objective source snapshot {path} has invalid API provenance."
+        ) from error
     if site not in SITE_LICENSES or payload.get("license") != SITE_LICENSES[site]:
         raise MediaWikiError(f"Objective source snapshot {path} has invalid license metadata.")
     raw_pages = payload.get("pages")
@@ -568,11 +589,27 @@ def write_snapshot(
     pages = tuple(sorted(pages, key=lambda page: (page.canonical_title.casefold(), page.page_id)))
     if not pages:
         raise MediaWikiError("Refusing to replace a source snapshot with no pages.")
+    try:
+        client_api = validate_source_site_binding(client.site, client.api_url)
+    except SiteConfigError as error:
+        raise MediaWikiError(
+            f"Refusing to write a source snapshot with invalid API provenance for {client.site!r}."
+        ) from error
     identities: set[int] = set()
     for page in pages:
         if page.site != client.site:
             raise MediaWikiError(
                 f"Refusing to mix {page.site!r} data into the {client.site!r} snapshot."
+            )
+        try:
+            page_api = validate_source_site_binding(page.site, page.api_url)
+        except SiteConfigError as error:
+            raise MediaWikiError(
+                f"Refusing to write {page.canonical_title!r} with invalid API provenance."
+            ) from error
+        if page_api != client_api:
+            raise MediaWikiError(
+                f"Refusing to mix API provenance for {page.canonical_title!r} into one snapshot."
             )
         if page.page_id in identities:
             raise MediaWikiError(f"Refusing to repeat source page ID {page.page_id} in one snapshot.")

@@ -87,6 +87,8 @@ internal sealed class ReleasePayloadUpdater
         "payload/Ashita/addons/accessxi_reader/modules/mission_quest_ffxiclopedia_mission_bastok.lua",
         "payload/Ashita/addons/accessxi_reader/data/mission-quest-guides/coverage.json",
         "payload/Ashita/addons/accessxi_reader/data/mission-quest-guides/source-snapshot.json",
+        "payload/Ashita/addons/accessxi_reader/data/collision-native-manifest.tsv",
+        "payload/Ashita/addons/accessxi_reader/third_party/collision/accessxi_collision_native.dll",
         "payload/PlayOnlineNative/ddraw.dll",
         "payload/PlayOnlineNative/AccessXI.PolNative.asi",
         "payload/PlayOnlineNative/AccessXI.PolNative/accessxi_pol_native.dll",

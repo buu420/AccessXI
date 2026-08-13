@@ -1,0 +1,4502 @@
+{
+  "schema_version": 1,
+  "sites": {
+    "bg": {
+      "site": "bg",
+      "api_url": "https://www.bg-wiki.com/api.php",
+      "capture_query": {
+        "action": "query",
+        "format": "json",
+        "formatversion": "2",
+        "maxlag": "5",
+        "meta": "siteinfo",
+        "siprop": "general|namespaces|namespacealiases|interwikimap"
+      },
+      "captured_at_utc": "2026-08-09T10:20:38Z",
+      "generator": "MediaWiki 1.43.9",
+      "wiki_id": "bgwiki143",
+      "normalized_siteinfo_sha256": "e0d45c0f4a752168278323d7ed707108cb2cf422a5a0c1802d0baab42cc918dd",
+      "namespaces": [
+        {
+          "id": -2,
+          "canonical": "Media",
+          "name": "Media",
+          "aliases": []
+        },
+        {
+          "id": -1,
+          "canonical": "Special",
+          "name": "Special",
+          "aliases": []
+        },
+        {
+          "id": 0,
+          "canonical": "",
+          "name": "",
+          "aliases": []
+        },
+        {
+          "id": 1,
+          "canonical": "Talk",
+          "name": "Talk",
+          "aliases": []
+        },
+        {
+          "id": 2,
+          "canonical": "User",
+          "name": "User",
+          "aliases": []
+        },
+        {
+          "id": 3,
+          "canonical": "User talk",
+          "name": "User talk",
+          "aliases": []
+        },
+        {
+          "id": 4,
+          "canonical": "Project",
+          "name": "BGWiki",
+          "aliases": []
+        },
+        {
+          "id": 5,
+          "canonical": "Project talk",
+          "name": "BGWiki talk",
+          "aliases": []
+        },
+        {
+          "id": 6,
+          "canonical": "File",
+          "name": "File",
+          "aliases": [
+            "Image"
+          ]
+        },
+        {
+          "id": 7,
+          "canonical": "File talk",
+          "name": "File talk",
+          "aliases": [
+            "Image talk"
+          ]
+        },
+        {
+          "id": 8,
+          "canonical": "MediaWiki",
+          "name": "MediaWiki",
+          "aliases": []
+        },
+        {
+          "id": 9,
+          "canonical": "MediaWiki talk",
+          "name": "MediaWiki talk",
+          "aliases": []
+        },
+        {
+          "id": 10,
+          "canonical": "Template",
+          "name": "Template",
+          "aliases": []
+        },
+        {
+          "id": 11,
+          "canonical": "Template talk",
+          "name": "Template talk",
+          "aliases": []
+        },
+        {
+          "id": 12,
+          "canonical": "Help",
+          "name": "Help",
+          "aliases": []
+        },
+        {
+          "id": 13,
+          "canonical": "Help talk",
+          "name": "Help talk",
+          "aliases": []
+        },
+        {
+          "id": 14,
+          "canonical": "Category",
+          "name": "Category",
+          "aliases": []
+        },
+        {
+          "id": 15,
+          "canonical": "Category talk",
+          "name": "Category talk",
+          "aliases": []
+        },
+        {
+          "id": 274,
+          "canonical": "Widget",
+          "name": "Widget",
+          "aliases": []
+        },
+        {
+          "id": 275,
+          "canonical": "Widget talk",
+          "name": "Widget talk",
+          "aliases": []
+        },
+        {
+          "id": 828,
+          "canonical": "Module",
+          "name": "Module",
+          "aliases": []
+        },
+        {
+          "id": 829,
+          "canonical": "Module talk",
+          "name": "Module talk",
+          "aliases": []
+        }
+      ],
+      "interwiki": [
+        {
+          "prefix": "abbenormal",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "acronym",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "advogato",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "aiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "annotationwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "arxiv",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bemi",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "c2find",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cache",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cliki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "codersbase",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "commons",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "consciousness",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "corpknowpedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "creationmatters",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dejanews",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dictionary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "disinfopedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "diveintoosx",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "docbook",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dolphinwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "drumcorpswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dwjwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "echei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ecxei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetceewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetcppwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetpythonwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetxmlwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "elibre",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eljwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "emacswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eokulturcentro",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "evowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eÄ‰ei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "finalempire",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "firstwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "foldoc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "foxwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.be",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.ca",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.fr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.org",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "freebsdman",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gamewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gej",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gentoo-wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "globalvoices",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gmailwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "google",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "googlegroups",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gotamac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "greencheese",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hammondwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "haribeau",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "herzkinderwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hewikisource",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hrwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "iawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "imdb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "infosecpedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jargonfile",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jefo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jiniwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jspwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kerimwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "knowhow",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lanifexwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lasvegaswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "linuxwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lojban",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lqwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lugkr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lutherwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mathsongswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mbtest",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "meatball",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mediawikiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mediazilla",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "memoryalpha",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metaweb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metawikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "moinmoin",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mozillawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "muweb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "netvillage",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "oeis",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "openfacts",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "openwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "opera7wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "orgpatterns",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "osi reference model",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pangalacticorg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "patwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "personaltelco",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "phpwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pikie",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pmeg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pmid",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ppr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "purlnet",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pythoninfo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pythonwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pywiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "raec",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "revo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "rfc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "s23wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "scoutpedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seapig",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seattlewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seattlewireless",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seeds",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "senseislibrary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "shakti",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "slashdot",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "smikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sockwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sourceforge",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "squeak",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "strikiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "susning",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "svgwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tavi",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tejo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "terrorwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "theopedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmbw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmnet",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "turismo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "twiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "twistedwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "uea",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "unreal",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ursine",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "usej",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "usemod",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "visualworks",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "warpedview",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webdevwikinl",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webisodes",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webseitzwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "why",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikibooks",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikicities",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikif1",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikihow",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikimedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikinews",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikinfo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiquote",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikisource",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikispecies",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikitravel",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiworld",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikt",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wiktionary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wlug",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wlwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ypsieyeball",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zzz wiki",
+          "language": false,
+          "bcp47": ""
+        }
+      ]
+    },
+    "ffxiclopedia": {
+      "site": "ffxiclopedia",
+      "api_url": "https://ffxiclopedia.fandom.com/api.php",
+      "capture_query": {
+        "action": "query",
+        "format": "json",
+        "formatversion": "2",
+        "maxlag": "5",
+        "meta": "siteinfo",
+        "siprop": "general|namespaces|namespacealiases|interwikimap"
+      },
+      "captured_at_utc": "2026-08-09T10:20:38Z",
+      "generator": "MediaWiki 1.43.9",
+      "wiki_id": "ffxi",
+      "normalized_siteinfo_sha256": "ad4e6131ca133fdc1cc8f6d6c10def76af7e9baba90b3e6c3b1d9101ce27a368",
+      "namespaces": [
+        {
+          "id": -2,
+          "canonical": "Media",
+          "name": "Media",
+          "aliases": []
+        },
+        {
+          "id": -1,
+          "canonical": "Special",
+          "name": "Special",
+          "aliases": []
+        },
+        {
+          "id": 0,
+          "canonical": "",
+          "name": "",
+          "aliases": []
+        },
+        {
+          "id": 1,
+          "canonical": "Talk",
+          "name": "Talk",
+          "aliases": []
+        },
+        {
+          "id": 2,
+          "canonical": "User",
+          "name": "User",
+          "aliases": []
+        },
+        {
+          "id": 3,
+          "canonical": "User talk",
+          "name": "User talk",
+          "aliases": []
+        },
+        {
+          "id": 4,
+          "canonical": "Project",
+          "name": "FFXIclopedia",
+          "aliases": []
+        },
+        {
+          "id": 5,
+          "canonical": "Project talk",
+          "name": "FFXIclopedia talk",
+          "aliases": []
+        },
+        {
+          "id": 6,
+          "canonical": "File",
+          "name": "File",
+          "aliases": [
+            "Image"
+          ]
+        },
+        {
+          "id": 7,
+          "canonical": "File talk",
+          "name": "File talk",
+          "aliases": [
+            "Image talk"
+          ]
+        },
+        {
+          "id": 8,
+          "canonical": "MediaWiki",
+          "name": "MediaWiki",
+          "aliases": []
+        },
+        {
+          "id": 9,
+          "canonical": "MediaWiki talk",
+          "name": "MediaWiki talk",
+          "aliases": []
+        },
+        {
+          "id": 10,
+          "canonical": "Template",
+          "name": "Template",
+          "aliases": []
+        },
+        {
+          "id": 11,
+          "canonical": "Template talk",
+          "name": "Template talk",
+          "aliases": []
+        },
+        {
+          "id": 12,
+          "canonical": "Help",
+          "name": "Help",
+          "aliases": []
+        },
+        {
+          "id": 13,
+          "canonical": "Help talk",
+          "name": "Help talk",
+          "aliases": []
+        },
+        {
+          "id": 14,
+          "canonical": "Category",
+          "name": "Category",
+          "aliases": []
+        },
+        {
+          "id": 15,
+          "canonical": "Category talk",
+          "name": "Category talk",
+          "aliases": []
+        },
+        {
+          "id": 110,
+          "canonical": "Forum",
+          "name": "Forum",
+          "aliases": []
+        },
+        {
+          "id": 111,
+          "canonical": "Forum talk",
+          "name": "Forum talk",
+          "aliases": []
+        },
+        {
+          "id": 200,
+          "canonical": "UserWiki",
+          "name": "UserWiki",
+          "aliases": []
+        },
+        {
+          "id": 201,
+          "canonical": "UserWiki talk",
+          "name": "UserWiki talk",
+          "aliases": []
+        },
+        {
+          "id": 420,
+          "canonical": "GeoJson",
+          "name": "GeoJson",
+          "aliases": []
+        },
+        {
+          "id": 421,
+          "canonical": "GeoJson talk",
+          "name": "GeoJson talk",
+          "aliases": []
+        },
+        {
+          "id": 500,
+          "canonical": "User blog",
+          "name": "User blog",
+          "aliases": []
+        },
+        {
+          "id": 501,
+          "canonical": "User blog comment",
+          "name": "User blog comment",
+          "aliases": []
+        },
+        {
+          "id": 502,
+          "canonical": "Blog",
+          "name": "Blog",
+          "aliases": []
+        },
+        {
+          "id": 503,
+          "canonical": "Blog talk",
+          "name": "Blog talk",
+          "aliases": []
+        },
+        {
+          "id": 600,
+          "canonical": "Userbox",
+          "name": "Userbox",
+          "aliases": []
+        },
+        {
+          "id": 601,
+          "canonical": "Userbox talk",
+          "name": "Userbox talk",
+          "aliases": []
+        },
+        {
+          "id": 828,
+          "canonical": "Module",
+          "name": "Module",
+          "aliases": []
+        },
+        {
+          "id": 829,
+          "canonical": "Module talk",
+          "name": "Module talk",
+          "aliases": []
+        },
+        {
+          "id": 1200,
+          "canonical": "Message Wall",
+          "name": "Message Wall",
+          "aliases": []
+        },
+        {
+          "id": 1201,
+          "canonical": "Thread",
+          "name": "Thread",
+          "aliases": []
+        },
+        {
+          "id": 1202,
+          "canonical": "Message Wall Greeting",
+          "name": "Message Wall Greeting",
+          "aliases": []
+        },
+        {
+          "id": 1203,
+          "canonical": "Message Wall Greeting Talk",
+          "name": "Message Wall Greeting Talk",
+          "aliases": []
+        },
+        {
+          "id": 2000,
+          "canonical": "Board",
+          "name": "Board",
+          "aliases": []
+        },
+        {
+          "id": 2001,
+          "canonical": "Board Thread",
+          "name": "Board Thread",
+          "aliases": []
+        },
+        {
+          "id": 2002,
+          "canonical": "Topic",
+          "name": "Topic",
+          "aliases": []
+        },
+        {
+          "id": 2900,
+          "canonical": "Map",
+          "name": "Map",
+          "aliases": []
+        },
+        {
+          "id": 2901,
+          "canonical": "Map talk",
+          "name": "Map talk",
+          "aliases": []
+        }
+      ],
+      "interwiki": [
+        {
+          "prefix": "3dgame",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "a-levels",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "abbenormal",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "abitur",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "abiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "academicjobs",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "acadwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "accountingwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "acronym",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "activeworlds",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "activism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "advogato",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "agohwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "aiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "alaska",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "alife",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "altereco",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "althistory",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "altscience",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "amazone",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "americanfederationofmusicians",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ancientcoins",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ancientworld",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "andstuff",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "anime",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "annotation",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "annotationwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "answers",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "anthropology",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "aocfinland",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "appropedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ar",
+          "language": true,
+          "bcp47": "ar"
+        },
+        {
+          "prefix": "ar.hassa",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "arbeitslos",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "arcapedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "archaeology",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "architecture",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "argentumonline",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "armchair",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "armchairgm",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "armoriale",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "artemisfowl",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "arxiv",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ashleesimpson",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "asimov",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "aspienetwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "astronomy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "asylum",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "australiawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "avegost",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "AwarenessWiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "babylon5",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "babysign",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bahrain",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "baltimore",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bangalore",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "battlestarwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "beijing",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bemi",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "benefitswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "berlin",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bestpractices",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "beyondvoting",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bloggingwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "blogsome",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "boppard",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "boston",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "box",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "brasilwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bridgeswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bulbapedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "businessowns",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "bydgoszcz",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "c2find",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "Cache",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "calgary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "camarilarequiem",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "camcorder",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cancerhelp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cantonese",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "castlemarrach",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "celebrity",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cellphones",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "censorship",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "charlesmunch",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "chdk",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "chej",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "chw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ciscavate",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cities",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cliki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cm",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "codersbase",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "collegehockey",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "comedy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "commdesign",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "commons",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "community",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "computervision",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "concordwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "conferencewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "conlang",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "connectivity",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "consciousness",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "conworld",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "corpknowpedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cpp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "craftedbycarol",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "creationmatters",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "creatures",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "cyclisme",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "datamining",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "datsun510",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dc database",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dcanimated",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dcdatabase",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "de",
+          "language": true,
+          "bcp47": "de"
+        },
+        {
+          "prefix": "debatewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dejanews",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "delphi",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "demokraatia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "desencyclopedie",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "detroit",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dfw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "diablowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dictionary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "discgolf",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "disinfopedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "disney",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "diveintoosx",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "diy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dnd",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dns",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "docbook",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "doctorwho",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "documentation",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dolphinwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "doom",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "doom_wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "downsyndrome",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dpl",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "drumcorpswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dvdlab",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dwjwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dyslexia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "dystopia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "désencyclopédie",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eagleparty",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eaglesfans",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eberron",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ec^ei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ecei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "echei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ecoreality",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ecovillage",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ecxei",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "education",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetceewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetcppwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetpythonwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efnetxmlwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "efrat",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eisenbahn",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "elderscrollscs",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eljwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "emacswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "emailwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en",
+          "language": true,
+          "bcp47": "en"
+        },
+        {
+          "prefix": "en.anime",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.cpp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.hassa",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.linuxwikia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.miqra",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.phpbb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.tibia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "en.townn-titles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "enciclopedialibre",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "enmusic",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "eokulturcentro",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "es",
+          "language": true,
+          "bcp47": "es"
+        },
+        {
+          "prefix": "esclarion",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "esperanto",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "essences",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "events",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "everquest2",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "evolutionarybusiness",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "evowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "expressways",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "EĉeI",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "facialcleansingproducts",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fadingsuns",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "familyguy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fastribe",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "featuregarden",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fet",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "feuilleton",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fi.marveldatabase",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fiction",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "filmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "finalempire",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "finalfantasy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fineart",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "firefly",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "firstwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fisherymanagement",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "flink",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "foldoc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "footy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "foundationgame",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "foxwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr",
+          "language": true,
+          "bcp47": "fr"
+        },
+        {
+          "prefix": "fr.be",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.miqra",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fr.org",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "freebasic",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "freebsd",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "freebsdman",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fruawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "fundraising",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "furry",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "future",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gamefaqs",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gameinfo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gamemaker",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "games",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gamewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "garoumush",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gausswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "geck",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gej",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "genealogy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gentoo-wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gknowledge",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "globalization",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "globalvoices",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gmailwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "google",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "googlegroups",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "googlewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gotamac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "grammar",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "granada",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "grapeswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "greencheese",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "grixml",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "guilds",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "guildwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gw2w",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "gww",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hammondwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "haribeau",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "he.miqra",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "helpwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hembygd",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "heraldry",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "herzkinderwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hewikisource",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "highlandgames",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "historywiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "homepage",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "homeschooling",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hongkong",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "horrorfilms",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hrwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "htmlwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hundewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "hypertexttheory",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "iaudio",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "iawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ib",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "idokorea",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "imdb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "incubator",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "india",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "industrialengineering",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "inferno",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "info depot wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "infosecpedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "insurancewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "inteq",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "internationalbaccalaureate",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "internshipswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "intuite",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "inuyasha",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "inventions",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "investments",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "investwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ipodwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "issuepedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "italia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ja",
+          "language": true,
+          "bcp47": "ja"
+        },
+        {
+          "prefix": "japanwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jargonfile",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jefo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jerseycity",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jiniwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "joinme",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "journalism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "jspwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "judaism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "judgedredd",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kabbalah",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "keene",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kerala",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kerimwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "knowhow",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "korea",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "kulturwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "l5r",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "laff",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lambengolmor",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lanifexwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lasvegas",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lasvegaswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lawandorder",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "legal",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "LegoWiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "liberaltalk",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "libertarian",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "libraries",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "linuxstudiowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "linuxwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "linuxwikia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "litcrit",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "logic",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lojban",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lomac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "losangeles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lostsoulswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lotr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lqwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lucid",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lug",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lugkr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "luxembourg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "lyricwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "m",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mail",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "manga",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mario wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mariowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "marvel database",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "marveldatabase",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mathsongswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "matrix",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mbtest",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "meatball",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mediawikiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mediazilla",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "medicine",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "memoryalpha",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metareciclagem",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metaweb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metawikimedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metawikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "metodolcient",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mexique",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "military",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "minneapolis",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "miqra",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mittelalter",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "moinmoin",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "money",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "morrowind",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "motorsport",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mozcom",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mozillawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mozillazinekb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "moztwwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mozwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "musicplayerdaemon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "muweb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "mw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nagasaki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nashville",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nationalparks",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "neopets",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "netvillage",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "networking",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "neverend",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "neworleans",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "newyork",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nickelodeon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nintendo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nl.phpbb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nn.miqra",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "novelas",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "novellas",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "nswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "oeis",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "olpc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "onderwijs",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "openfacts",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "openwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "opera7wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "operabrowser",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "oracle",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "orgpatterns",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "orsonwelles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "osi reference model",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "owiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pagan",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pakistan",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "palkbay",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pangalacticorg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "panzer_general",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "parenting",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "patwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pdamaps",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "peace",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pearpc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "peize",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "personals",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "personaltelco",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "peteashdown",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pg2",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "philadelphiawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "philippines",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "phpbb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "phpwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pikie",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pl.cpp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "plotwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pmeg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pmid",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pnw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pnwcommunity",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "poetrywiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "poewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pokemon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "poker",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pokémon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "polaqu",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "powerrangers",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ppr",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "protoscience",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "prowrestling",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "psychographic",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pt.linuxwikia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pt.tibia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "purlnet",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pythoninfo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pythonwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "pywiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "query",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "quitsmoking",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "quiz",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "radioscanning",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "raec",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "realestate",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "reallifesoap",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "religion",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "religion-wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "republiconline",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "reviews",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "revo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "rfc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "roadcycling",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "robotbattle",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "rollercoastertycoon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "romhack",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "royalisme",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "rpg",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ru.townn-titles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "runescape",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "russianworld",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "s23wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sageswiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sagewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "salmesykkel",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "samplitude",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sandiego",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sanfranciscowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sca21",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "schoolcomputing",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "schools",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "scoop",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "scouting",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "scratchpad",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "scriptingwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seapig",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "search",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seattlewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seattlewireless",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seeds",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "seldonshand",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "semweb",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "senseislibrary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sgcommand",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sgwireless",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "shakti",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "shoppingwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sims",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sitelibrary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "skypeme",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "slashdot",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "slektami",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "smarteam",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "smikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "smw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "socialism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sockwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "software",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "solarconquest",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sourceforge",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sourcewatch",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "spankart",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sport",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sports",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "squeak",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "srpstvo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "startrekwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "startup",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "starwars",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "storypedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "stpete",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "strategywiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "strikiwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "students",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "suceavacounty",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "suisse",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "sunrisesunset",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "superstar",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "susning",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "svgwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "svtwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "swtrain",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tablature",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tardis",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tavi",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "techcompare",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tejo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tesoltaiwan",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "thelemapedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "theopedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "theowiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "thinkwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tianjin",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmbw",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmnet",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tmwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "toronto",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tourism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "town-titles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "townn-titles",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "trains",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "transhumanism",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "translation",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "tricities",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "turismo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "turriwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "twiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "twistedwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "uea",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ufology",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ukrailways",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ukroads",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "uncyclopedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "university",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "universitywikinodewiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "unreal",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ursine",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "usej",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "usemod",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "utopia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "vancouver",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "vanishedlibrary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "vegas",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "villagearts",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "virtualpets",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "virus",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "visualworks",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "vlaamseklantenbrussel",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "voterice",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "w",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "w:c:academicjobs",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "w:c:wowwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "warpedview",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "warzone2100",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webdevwikinl",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webisodes",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "webseitzwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "westport",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "whitewolf",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "why",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiablog",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiaentertainment",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiagaming",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiahelp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikianswers",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiavideo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikible",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikibooks",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikicities",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikicomedy",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikif1",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikihelp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiindex",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikimac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikimedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikimon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikimoon",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikinews",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikinfo",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikipedia",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiquote",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikirps",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiscum",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikisource",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikispecies",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikitravel",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiversity",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikivoyage",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wikiworld",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wiktionary",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "windsurfing",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wlp",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wlug",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wnc",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "worldcitizen",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "worlds",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "wowwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "x-files",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "xao",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "ypsieyeball",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zeldapendium",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zeldawiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zemirot",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zh.anime",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zh.mac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zh.wikimac",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zhmusic",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zwiki",
+          "language": false,
+          "bcp47": ""
+        },
+        {
+          "prefix": "zzz wiki",
+          "language": false,
+          "bcp47": ""
+        }
+      ]
+    }
+  },
+  "payload_sha256": "a372ff80ec611b74cb13e1ed7542271be106efb3022c8ef0b4469261f87bdfdc"
+}

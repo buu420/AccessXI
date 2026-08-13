@@ -53,6 +53,7 @@ local phrase_source = extract(
 
 local bytes = {}
 local base = 0x01001000
+local decoded_override = nil
 local accessxi = {
     is_probe_pointer = function(ptr)
         return tonumber(ptr) == base
@@ -62,6 +63,9 @@ local accessxi = {
         return value >= 0x20 and value <= 0x7E
     end,
     decode_ffxi_menu_text_fragment = function(value)
+        if (decoded_override ~= nil) then
+            return decoded_override
+        end
         return tostring(value or '')
     end,
     survival_guide_text = function(value)
@@ -116,13 +120,29 @@ local function decode_truncated(visible, visible_count, available_pairs)
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
+local function decode_with_short_fragment(visible, visible_count, decoded)
+    bytes = {}
+    for index = 1, #visible do
+        set_pair((index - 1) * 2, visible:sub(index, index))
+    end
+    bytes[base + 0x106] = visible_count
+    decoded_override = decoded
+    local result = accessxi.native_query_visible_text_from_ptr(base)
+    decoded_override = nil
+    return result
+end
+
 assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind.')
 assert(decode('NOWHERE' .. string.char(0x0E), 8, 'SLES') == 'Nowhere.')
 assert(decode('ON SECOND THOUGHT' .. string.char(0x0C) .. ' NONE' .. string.char(0x0E), 24) == 'On second thought, none.')
 assert(decode('150-PT' .. string.char(0x0E) .. ' ITEMS' .. string.char(0x0E), 14) == '150-pt. Items.')
+assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
+assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
+assert(decode('HE' .. string.char(0x07), 3, 'S') == 'He')
 for _, bad in ipairs({ 0, 64, 255 }) do
     assert(decode('VALID', bad) == '')
 end
 assert(decode_truncated('VALID', 5, 4) == '')
+assert(decode_with_short_fragment('VALID', 5, 'VAL') == '')
 
 print('native query visible-length decoder behavior ok')

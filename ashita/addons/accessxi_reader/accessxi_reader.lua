@@ -10096,7 +10096,23 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
 
         if (accessxi.probe_printable_ascii(lo)) then
             raw:append(string.char(lo));
-        elseif (lo == 0x07 or lo == 0x0F) then
+        elseif (lo == 0x07) then
+            local next_lo = nil;
+            local next_hi = nil;
+            if ((index + 1) < count) then
+                next_lo = read_u8(ptr + ((index + 1) * 2));
+                next_hi = read_u8(ptr + ((index + 1) * 2) + 1);
+            end
+
+            local apostrophe = next_hi == 0 and next_lo == 0x53;
+            if (not apostrophe and next_hi == 0 and next_lo ~= nil) then
+                local prior = accessxi.survival_guide_text(
+                    accessxi.decode_ffxi_menu_text_fragment(raw:concat('')) or '');
+                apostrophe = prior:eq('I', true)
+                    and (next_lo == 0x64 or next_lo == 0x6C or next_lo == 0x6D or next_lo == 0x76);
+            end
+            raw:append(apostrophe and "'" or ' ');
+        elseif (lo == 0x0F) then
             raw:append(' ');
         elseif (lo == 0x0C) then
             raw:append(',');

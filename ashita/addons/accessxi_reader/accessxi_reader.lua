@@ -69389,6 +69389,7 @@ function accessxi.poll_nav_dat_collision_preload(now)
         return false;
     end
     accessxi.nav_dat_collision_preload_last_tick = now;
+    accessxi.nav_dat_collision_preload_zone = zone;
 
     if (accessxi.nav_dat_collision_state == nil
         and not accessxi.nav_dat_collision_bootstrap()) then
@@ -69396,7 +69397,6 @@ function accessxi.poll_nav_dat_collision_preload(now)
     end
     if (type(accessxi.nav_dat_collision_state) ~= 'table'
         or type(accessxi.nav_dat_collision_state.preload) ~= 'function') then
-        accessxi.nav_dat_collision_preload_zone = zone;
         log_line(('collision terrain preload unavailable zone=%d'):fmt(zone));
         return false;
     end
@@ -69416,7 +69416,6 @@ function accessxi.poll_nav_dat_collision_preload(now)
         return false;
     end
 
-    accessxi.nav_dat_collision_preload_zone = zone;
     if (started ~= true) then
         log_line(('collision terrain preload failed zone=%d reason="%s"'):fmt(
             zone,

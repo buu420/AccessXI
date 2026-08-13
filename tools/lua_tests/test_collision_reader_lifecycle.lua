@@ -140,6 +140,27 @@ check(accessxi.poll_nav_dat_collision_preload(4000) == false and #preload_calls 
     'La Theine must not start the generic collision terrain preload')
 player.zone = 101
 
+-- A broken module/DLL bootstrap is also one attempted warmup for this zone.
+-- Retrying synchronous load/hash work every render interval would recreate a
+-- hitch even though the route layer is unavailable.
+local failed_bootstrap_calls = 0
+accessxi.nav_dat_collision_state = nil
+accessxi.nav_dat_collision_failure_reason = ''
+accessxi.nav_dat_collision_preload_zone = 0
+accessxi.load_module_table = function(name)
+    if name == 'collision_navigation' then
+        failed_bootstrap_calls = failed_bootstrap_calls + 1
+    end
+    return nil
+end
+check(accessxi.poll_nav_dat_collision_preload(5000) == false,
+    'failed current-zone collision bootstrap must fail safely')
+check(accessxi.poll_nav_dat_collision_preload(6000) == false
+    and failed_bootstrap_calls == 1,
+    'failed collision bootstrap was retried in the same stable zone')
+check(accessxi.nav_dat_collision_preload_zone == 101,
+    'failed collision bootstrap did not retain the one-attempt zone key')
+
 accessxi.nav_dat_collision_state = {
     route = function(_, _, point)
         if point.name == approach.name then

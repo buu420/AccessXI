@@ -40,9 +40,20 @@ local current_rank = 1
 local current_rank_points = 0
 local current_world_id = 1001
 local current_session_epoch = 77
+local objective_progress_path = os.tmpname()
+os.remove(objective_progress_path)
 local cancelled_objective_routes = 0
 local runtime_authorize_calls = 0
 local owned_key_items = {}
+local objective_inventory_counts_by_name = {}
+local objective_inventory_item_ids = {
+    ['orcish axe'] = 16656,
+    ['orcish mail scales'] = 1112,
+    ['fetich head'] = 1624,
+    ['fetich torso'] = 1625,
+    ['fetich arms'] = 1626,
+    ['fetich legs'] = 1627,
+}
 local mission_values = {
     Bastok = 1,
     ['Rise of the Zilart'] = 2,
@@ -64,6 +75,7 @@ local mission_rows = {
         { label = 'Smash the Orcish Scouts', mission_id = 0, next_mission_id = 1 },
         { label = 'Bat Hunt', mission_id = 1, next_mission_id = 2 },
         { label = 'Save the Children', mission_id = 2, next_mission_id = 3 },
+        { label = 'The Rescue Drill', mission_id = 3, next_mission_id = 4 },
     },
     Bastok = T{
         { label = 'The Zeruhn Report', mission_id = 0, next_mission_id = 1 },
@@ -79,6 +91,9 @@ local mission_rows = {
             orders = 'Lion is waiting in the room at the end of the second-floor hallway in Norg.',
         },
         { label = "Kazham's Chieftainess", mission_id = 3, next_mission_id = 4 },
+    },
+    ["Rhapsodies of Vana'diel"] = T{
+        { label = 'Rhapsodies of Vanadiel', mission_id = 0, next_mission_id = 1 },
     },
     ['The Voracious Resurgence'] = T{
         { label = 'False TVR mission from TalesBeginning bits', mission_id = 188, next_mission_id = 189 },
@@ -116,7 +131,9 @@ end
 
 local quest_entries = {
     ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(2, 200), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    ['sandoria:completed'] = { area_key = 'sandoria', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:current'] = { area_key = 'aht_urhgan', mode = 'current', words = words_with(100, 180), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    ['aht_urhgan:completed'] = { area_key = 'aht_urhgan', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
 }
 
 local function deep_copy(value)
@@ -212,6 +229,53 @@ local guide_rows_by_native = {
             label = 'Orcish Fodder east camp', arrival_instruction = 'Defeat Orcish Fodder in East Ronfaure and obtain an Orcish Axe.',
             guide_step_id = "mission:San d'Oria:1:step-005", guide_step_order = 5,
         }),
+        guide_candidate({
+            candidate_id = "mission:San d'Oria:1:step-007:claim-01:candidate:ambrotien",
+            action_id = "mission:San d'Oria:1:step-007:claim-01",
+            group_id = '',
+            destination_id = 'npc:v1:230:ambrotien', action = 'trade',
+            items = T{ 'Orcish Axe' },
+            zone = 230, zone_name = "Southern San d'Oria", target_name = 'Ambrotien', target_kind = 'npc',
+            target_point = T{ 93.419, -57.347, 0.999 }, raw_identity = 'lsb:npc_list:ambrotien',
+            label = 'Ambrotien', arrival_instruction = 'Return to a Gate Guard and trade the Orcish Axe to finish the mission.',
+            guide_step_id = "mission:San d'Oria:1:step-007", guide_step_order = 7,
+        }),
+        guide_candidate({
+            candidate_id = "mission:San d'Oria:1:step-007:claim-01:candidate:grilau",
+            action_id = "mission:San d'Oria:1:step-007:claim-01",
+            group_id = '',
+            destination_id = 'npc:v1:231:grilau', action = 'trade',
+            items = T{ 'Orcish Axe' },
+            zone = 231, zone_name = "Northern San d'Oria", target_name = 'Grilau', target_kind = 'npc',
+            target_point = T{ -241.987, 57.887, 7.999 }, raw_identity = 'lsb:npc_list:grilau',
+            label = 'Grilau', arrival_instruction = 'Return to a Gate Guard and trade the Orcish Axe to finish the mission.',
+            guide_step_id = "mission:San d'Oria:1:step-007", guide_step_order = 7,
+        }),
+    },
+    ["mission:San d'Oria:3"] = T{
+        guide_candidate({
+            candidate_id = "mission:San d'Oria:3:step-002:claim-01:candidate:arnau",
+            action_id = "mission:San d'Oria:3:step-002:claim-01",
+            group_id = '',
+            destination_id = 'npc:v1:231:17723406', action = 'talk',
+            zone = 231, zone_name = "Northern San d'Oria", target_name = 'Arnau', target_kind = 'npc',
+            target_point = T{ 149.892, 141.873, -0.601 }, raw_identity = 'lsb:npc_list:17723406',
+            label = 'Arnau', arrival_instruction = 'Next speak to Arnau in the Cathedral in Northern San d\'Oria.',
+            guide_step_id = "mission:San d'Oria:3:step-002", guide_step_order = 2,
+        }),
+    },
+    ["mission:San d'Oria:4"] = T{
+        guide_candidate({
+            candidate_id = "mission:San d'Oria:4:step-006:claim-01:candidate:galaihaurat",
+            action_id = "mission:San d'Oria:4:step-006:claim-01",
+            group_id = '',
+            destination_id = 'npc:v1:102:17195615', action = 'talk',
+            zone = 102, zone_name = 'La Theine Plateau', target_name = 'Galaihaurat', target_kind = 'npc',
+            target_point = T{ -481.196, 220.547, -7.028 }, raw_identity = 'lsb:npc_list:17195615',
+            raw_spawn_ids = T{ 17195615 },
+            label = 'Galaihaurat', arrival_instruction = 'Talk to Galaihaurat in La Theine Plateau.',
+            guide_step_id = "mission:San d'Oria:4:step-006", guide_step_order = 6,
+        }),
     },
     ['mission:Bastok:3'] = T{
         guide_candidate({
@@ -298,6 +362,7 @@ local guide_row_mutator = nil
 
 local logs = T{}
 accessxi = {
+    objective_interaction_progress_path = objective_progress_path,
     mission_quest_nav_player = 'Alpha',
     mission_quest_nav_identity = current_identity,
     mission_packet_player = 'Alpha',
@@ -334,9 +399,34 @@ accessxi = {
         T{ zone = 172, name = 'Makarim', x = -60.925, z = -333.294, y = 8.471, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 230, name = 'Ambrotien', x = 93.419, z = -57.347, y = 0.999, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 231, name = 'Grilau', x = -241.987, z = 57.887, y = 7.999, kind = 'npc', source = 'current-nav-data' },
+        T{ zone = 231, zone_name = "Northern San d'Oria", name = 'Arnau', x = 149.892, z = 141.873, y = -0.601,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:231:17723406',
+            raw_identity = 'lsb:npc_list:17723406' },
+        T{ zone = 140, zone_name = 'Ghelsba Outpost', name = 'Hut Door', x = -165.357, z = 77.771, y = -11.672,
+            kind = 'object', source = 'lsb-npc-list-all', destination_id = 'object:v1:140:17350951',
+            raw_identity = 'lsb:npc_list:17350951' },
+        T{ zone = 102, zone_name = 'La Theine Plateau', name = 'Galaihaurat', x = -481.196, z = 220.547, y = -7.028,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:102:17195615',
+            raw_identity = 'lsb:npc_list:17195615', raw_spawn_ids = T{ 17195615 } },
+        T{ zone = 230, zone_name = "Southern San d'Oria", name = "Tales' Beginning", x = -35.660, z = 31.955, y = 0,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:230:17720021',
+            raw_identity = 'lsb:npc_list:17720021', raw_spawn_ids = T{ 17720021 } },
         T{ zone = 234, name = 'Rashid', x = -8.444, z = -123.575, y = -1.000, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 143, name = 'Amber Quadav', x = 142.000, z = 154.000, y = -0.076, kind = 'enemy', source = 'current-nav-data' },
         T{ zone = 143, name = 'Onyx Quadav', x = 220.313, z = 88.193, y = -32.280, kind = 'enemy', source = 'current-nav-data' },
+        T{ zone = 190, zone_name = "King Ranperre's Tomb", name = 'East Ronfaure zone line z5a0',
+            x = -130.011, z = 260.750, y = -3.772, kind = 'area', source = 'lsb-zoneline-all' },
+        T{ zone = 190, zone_name = "King Ranperre's Tomb", name = 'Ding Bats', x = -141.134, z = 223.168, y = -0.500,
+            kind = 'enemy', source = 'lsb-mob-spawn-camps', destination_id = 'camp:v1:190:ding-bats:461e4609e82a444d5389',
+            raw_identity = 'lsb:mob_spawn_points:group:1:mobname:Ding_Bats', raw_spawn_ids = T{ 17555457, 17555458 },
+            cluster_policy_version = 'complete-link-v1-h120-y24' },
+        T{ zone = 190, zone_name = "King Ranperre's Tomb", name = 'Ding Bats', x = 12.000, z = -91.000, y = -0.377,
+            kind = 'enemy', source = 'lsb-mob-spawn-camps', destination_id = 'camp:v1:190:ding-bats:389d351b7fa71b47b883',
+            raw_identity = 'lsb:mob_spawn_points:group:1:mobname:Ding_Bats', raw_spawn_ids = T{ 17555523, 17555529 },
+            cluster_policy_version = 'complete-link-v1-h120-y24' },
+        T{ zone = 190, zone_name = "King Ranperre's Tomb", name = 'Tombstone', x = 1.000, z = -103.608, y = -1.419,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:190:17555989',
+            raw_identity = 'lsb:npc_list:17555989' },
     },
     quests_menu_data = {
         quest_log_order = T{ 'sandoria', 'aht_urhgan' },
@@ -414,12 +504,26 @@ accessxi = {
         return nil, 'missing-detail-text'
     end,
     key_items_packet_has_id = function(id) return owned_key_items[id] == true end,
+    objective_key_item_owned_by_name = function(name)
+        local key = tostring(name or ''):lower()
+        local id = ({ ['orcish hut key'] = 157 })[key]
+        return id ~= nil and owned_key_items[id] == true, id
+    end,
+    refresh_objective_inventory_state = function() return false, true end,
+    objective_inventory_count_by_name = function(name)
+        local key = tostring(name or ''):lower()
+        return tonumber(objective_inventory_counts_by_name[key]) or 0,
+            objective_inventory_item_ids[key]
+    end,
     nav_point_effective_kind = function(point) return tostring(point.kind or ''):lower() end,
     speech_name = function(value) return tostring(value or '') end,
     sentence_fragment = function(value) return tostring(value or '') end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
     mission_quest_guide_index = {
         ["mission:San d'Oria:1"] = { status = 'guide', title = 'Smash the Orcish Scouts' },
+        ["mission:San d'Oria:3"] = { status = 'guide', title = 'Save the Children' },
+        ["mission:San d'Oria:4"] = { status = 'guide', title = 'The Rescue Drill' },
+        ["mission:Rhapsodies of Vana'diel:1"] = { status = 'guide', title = 'Rhapsodies of Vanadiel' },
         ['mission:Bastok:2'] = { status = 'guide', title = 'A Geological Survey' },
         ['mission:Bastok:3'] = { status = 'verified-navigation', title = 'Fetichism' },
         ['quest:sandoria:2'] = { status = 'guide', title = 'The Pickpocket' },
@@ -441,6 +545,201 @@ accessxi = {
         end,
         mission_destinations = function(self, native_key)
             return self:objective_destinations(native_key)
+        end,
+        source_route_steps = function(_, native_key)
+            if native_key == "mission:San d'Oria:1" then
+                return T{
+                    T{
+                        stable_step_id = "mission:San d'Oria:1:step-001",
+                        order = 1,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Gate Guard', "San d'Orian Gate Guard" },
+                        primary_instruction = "Speak to any San d'Orian Gate Guard to begin this Mission.",
+                        ffxiclopedia_instruction = "Talk to a San d'Orian Gate Guard to accept the mission.",
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:1:step-005",
+                        order = 5,
+                        comparison = 'corroborated',
+                        action = 'fight',
+                        entities = T{ 'Orcish Fodder', 'Orcish Axe' },
+                        zones = T{ 'East Ronfaure', 'West Ronfaure' },
+                        primary_instruction = 'Defeat Orcish Fodder until you obtain an Orcish Axe.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:1:step-007",
+                        order = 7,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Orcish Axe', 'Gate Guard' },
+                        zones = T{},
+                        primary_instruction = 'Return to a Gate Guard and trade the Orcish Axe to finish the mission.',
+                        route_ready = false,
+                    },
+                }
+            end
+            if native_key == "mission:San d'Oria:3" then
+                return T{
+                    T{
+                        stable_step_id = "mission:San d'Oria:3:step-002",
+                        order = 2,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Arnau', "Northern San d'Oria" },
+                        zones = T{ "Northern San d'Oria" },
+                        primary_instruction = 'Next speak to Arnau in the Cathedral in Northern San d\'Oria.',
+                        route_ready = true,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:3:step-008",
+                        order = 8,
+                        comparison = 'single-source',
+                        action = 'obtain',
+                        entities = T{ 'Orcish hut key' },
+                        zones = T{},
+                        key_items = T{ 'Orcish hut key' },
+                        primary_instruction = 'Win the battlefield and obtain the Orcish hut key.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:3:step-015",
+                        order = 15,
+                        comparison = 'single-source',
+                        action = 'travel',
+                        entities = T{ 'Ghelsba Outpost', 'battlefield' },
+                        zones = T{ 'Ghelsba Outpost' },
+                        primary_instruction = 'Head to Ghelsba Outpost at F-10 and check the Hut Door to enter the Save the Children battlefield.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:3:step-025",
+                        order = 25,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Gate Guard' },
+                        zones = T{},
+                        primary_instruction = 'Return to a Gate Guard to complete the Mission and receive Rank 2.',
+                        route_ready = false,
+                    },
+                }
+            end
+            if native_key == "mission:San d'Oria:4" then
+                return T{
+                    T{
+                        stable_step_id = "mission:San d'Oria:4:step-001",
+                        order = 1,
+                        comparison = 'single-source',
+                        action = 'obtain',
+                        entities = T{ 'Silent Oil' },
+                        primary_instruction = 'Bring Silent Oil if desired for the cave route.',
+                        route_recommendation = true,
+                        optional_nonessential = true,
+                        recommendation_item = 'Silent Oil',
+                        recommendation_instruction = 'Recommended: carry Silent Oil. Use it before entering areas with sound-detecting enemies to avoid aggro.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:4:step-002",
+                        order = 2,
+                        comparison = 'corroborated',
+                        action = 'trade',
+                        entities = T{ 'Conquest Overseer' },
+                        primary_instruction = 'Trade enough crystals to unlock the mission.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:4:step-003",
+                        order = 3,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Gate Guard' },
+                        primary_instruction = 'Speak to any Gate Guard and accept the mission.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:4:step-006",
+                        order = 6,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'La Theine Plateau', 'Galaihaurat' },
+                        zones = T{ 'La Theine Plateau' },
+                        primary_instruction = 'Head to La Theine Plateau and speak to Galaihaurat.',
+                        route_ready = false,
+                    },
+                }
+            end
+            if native_key == "mission:Rhapsodies of Vana'diel:1" then
+                return T{
+                    T{
+                        stable_step_id = "mission:Rhapsodies of Vana'diel:1:step-001",
+                        order = 1,
+                        comparison = 'corroborated',
+                        action = 'travel',
+                        entities = T{},
+                        primary_instruction = 'Zone into a starter city at level 3 or higher.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:Rhapsodies of Vana'diel:1:step-002",
+                        order = 2,
+                        comparison = 'corroborated',
+                        action = 'note',
+                        entities = T{ "Tales' Beginning" },
+                        primary_instruction = "Interact with a Tales' Beginning to resume the postponed opening cutscene.",
+                        route_ready = false,
+                    },
+                }
+            end
+            if native_key ~= "mission:San d'Oria:2" then return T{} end
+            return T{
+                T{
+                    stable_step_id = "mission:San d'Oria:2:step-005",
+                    order = 5,
+                    comparison = 'corroborated',
+                    action = 'fight',
+                        entities = T{ 'Ding Bats', "King Ranperre's Tomb", 'Orcish Mail Scales' },
+                        zones = T{},
+                        items = T{ 'Orcish Mail Scales' },
+                        primary_instruction = "Defeat Ding Bats in King Ranperre's Tomb and obtain Orcish Mail Scales.",
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:2:step-009",
+                        order = 9,
+                        comparison = 'conflict',
+                        action = 'examine',
+                        entities = T{},
+                        zones = T{ "King Ranperre's Tomb" },
+                        primary_instruction = 'Touch the Tombstone for the mission cutscene.',
+                        route_ready = false,
+                    },
+                    T{
+                        stable_step_id = "mission:San d'Oria:2:step-012",
+                        order = 12,
+                        comparison = 'corroborated',
+                        action = 'talk',
+                        entities = T{ 'Gate Guard', 'Orcish Mail Scales' },
+                        zones = T{},
+                        primary_instruction = 'Return to a Gate Guard and trade the Orcish Mail Scales to complete the mission.',
+                        route_ready = false,
+                    },
+            }
+        end,
+        route_recommendations = function(_, native_key, through_order)
+            if native_key == "mission:San d'Oria:4" and tonumber(through_order) == 6 then
+                return T{
+                    T{
+                        item = 'Silent Oil',
+                        instruction = 'Recommended: carry Silent Oil. Use it before entering areas with sound-detecting enemies to avoid aggro.',
+                        stable_step_id = "mission:San d'Oria:4:step-001",
+                        order = 1,
+                    },
+                }
+            end
+            return T{}
         end,
     },
 }
@@ -503,7 +802,7 @@ accessxi.objective_route_runtime = {
         end
         local contract = runtime_contracts[fresh.objective_candidate_id]
         if type(contract) ~= 'table' then
-            return nil, 'No rooted route contract is available for this objective destination.', 'blocked'
+            return nil, 'No rooted route contract matches this objective destination.', 'blocked'
         end
         local row = contract.row
         local point = row.target_point
@@ -640,13 +939,355 @@ local orcish = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(orcish, 'Smash the Orcish Scouts') == 2)
 assert(orcish[1].objective_destination_id == 'enemy:v1:101:orcish-east')
 assert(orcish[2].objective_destination_id == 'enemy:v1:100:orcish-west')
-assert(select(3, accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })) == 'blocked',
-    'a typed candidate without a rooted contract must remain blocked')
+
+objective_inventory_counts_by_name['orcish axe'] = 1
+local orcish_turn_in = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(orcish_turn_in, 'Smash the Orcish Scouts') == 2,
+    'an owned Orcish Axe must replace both camp rows with exact available Gate Guards')
+for _, row in ipairs(orcish_turn_in) do
+    if row.name == 'Smash the Orcish Scouts' then
+        assert(row.objective_guide_step_id == "mission:San d'Oria:1:step-007",
+            'an owned Orcish Axe did not advance to the reconciled turn-in step')
+        assert(row.objective_action_instruction:find('trade the Orcish Axe', 1, true) ~= nil,
+            'the advanced row lost the source-backed turn-in instruction')
+        assert(row.objective_target ~= nil
+            and (row.objective_target.name == 'Ambrotien' or row.objective_target.name == 'Grilau'),
+            'the advanced step did not resolve an exact San d\'Orian Gate Guard')
+    end
+end
+objective_inventory_counts_by_name['orcish axe'] = 0
+local orcish_after_item_reset = accessxi.nav_mission_quest_active_items('mission')
+assert(orcish_after_item_reset[1].objective_guide_step_id == "mission:San d'Oria:1:step-005"
+    and orcish_after_item_reset[2].objective_guide_step_id == "mission:San d'Oria:1:step-005",
+    'removing the required carried item did not restore the acquisition step')
+
+local test_target, test_message, test_mode = accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })
+assert(test_mode == 'test-ready' and test_message == '' and type(test_target) == 'table',
+    'a fresh typed candidate without a rooted contract must expose an explicit test route')
+assert(test_target.objective_test_route == true and test_target.verified ~= true,
+    'the source-backed route must not invent rooted path authorization')
+assert(test_target.objective_route_contract_id == nil and test_target.objective_contract_snapshot == nil,
+    'a source-backed route must never invent a rooted contract')
+for _, field in ipairs({
+    'objective_native_key', 'objective_guide_step_id', 'objective_candidate_id',
+    'objective_action_id', 'objective_group_id', 'objective_destination_id',
+    'objective_character_identity', 'objective_world_id', 'objective_session_epoch',
+}) do
+    assert(test_target[field] == orcish[1][field],
+        'the explicit test route lost fresh owner field ' .. field)
+end
+
+local saved_inventory_key_for_progression = accessxi.inventory_packet_key
+objective_inventory_counts_by_name['orcish axe'] = 1
+accessxi.inventory_packet_key = 'native-inventory:orcish-axe-owned'
+assert(accessxi.nav_mission_quest_route_point_is_current(test_target) == false,
+    'the acquisition route remained current after its required item advanced the mission')
+objective_inventory_counts_by_name['orcish axe'] = 0
+accessxi.inventory_packet_key = saved_inventory_key_for_progression
+assert(accessxi.nav_mission_quest_route_point_is_current(test_target) == true,
+    'an unchanged mission step was treated as superseded by unrelated inventory state')
+
+local saved_mission_packet_source = accessxi.mission_packet_source
+accessxi.mission_packet_source = 'cache'
+local packet_test_target, packet_test_message, packet_test_mode =
+    accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })
+assert(packet_test_mode == 'test-ready' and type(packet_test_target) == 'table'
+    and packet_test_target.objective_test_route == true and packet_test_target.verified ~= true,
+    ('missing current-session mission packets must leave an explicit source-backed route available; mode=%s message=%s target=%s')
+        :format(tostring(packet_test_mode), tostring(packet_test_message), type(packet_test_target)))
+assert(packet_test_message == '',
+    'packet freshness must not be spoken as a blocker for an explicit source-backed destination')
+accessxi.mission_packet_source = saved_mission_packet_source
+
+local saved_inventory_packet_source = accessxi.inventory_packet_source
+accessxi.inventory_packet_source = ''
+local auxiliary_test_target, auxiliary_test_message, auxiliary_test_mode =
+    accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })
+assert(auxiliary_test_mode == 'test-ready' and type(auxiliary_test_target) == 'table'
+    and auxiliary_test_target.objective_test_route == true and auxiliary_test_target.verified ~= true,
+    'missing current-session key-item or inventory packets must leave an explicit source-backed route available')
+assert(auxiliary_test_message == '',
+    'auxiliary packet freshness must not be spoken as a blocker for an explicit source-backed destination')
+accessxi.inventory_packet_source = saved_inventory_packet_source
+
 orcish[1].route_ready = true
 orcish[1].route_evidence = 'legacy free text'
 orcish[1].navigation_target = { route_ready = true }
-assert(select(3, accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })) == 'blocked',
-    'legacy flags and free text must never authorize a candidate')
+local legacy_target, _, legacy_mode = accessxi.nav_mission_quest_prepare_route(orcish[1], { zone = 230 })
+assert(legacy_mode == 'test-ready' and legacy_target.objective_test_route == true
+    and legacy_target.verified ~= true and legacy_target.objective_route_contract_id == nil,
+    'legacy flags and free text must never promote a test route to verified')
+accessxi.nav_destination = test_target
+local completion_logs_before_owner_checks = 0
+for _, line in ipairs(logs) do
+    if line:find('mission active context complete attempts=', 1, true) then
+        completion_logs_before_owner_checks = completion_logs_before_owner_checks + 1
+    end
+end
+for _ = 1, 12 do
+    assert(accessxi.nav_mission_quest_route_owner_mismatch() == false,
+        'the active current-session typed test route was rejected for lacking a contract')
+end
+local completion_logs_after_owner_checks = 0
+for _, line in ipairs(logs) do
+    if line:find('mission active context complete attempts=', 1, true) then
+        completion_logs_after_owner_checks = completion_logs_after_owner_checks + 1
+    end
+end
+assert(completion_logs_after_owner_checks == completion_logs_before_owner_checks,
+    'unchanged active-route ownership checks rebuilt every mission context')
+accessxi.nav_destination.objective_candidate_id = 'candidate:changed'
+assert(accessxi.nav_mission_quest_route_owner_mismatch() == true,
+    'a changed active typed test route did not cancel')
+accessxi.nav_destination = nil
+
+-- Source-backed guide facts are a global explicit-navigation fallback.  The
+-- first mission is also exercised without the test fixture's typed rows, and
+-- the following mission proves this is not a Smash-only exception.
+guide_row_mutator = function(native_key, rows)
+    if native_key == "mission:San d'Oria:1" then
+        for index = #rows, 1, -1 do table.remove(rows, index) end
+    end
+end
+accessxi.mission_packet_main.nation = 0
+accessxi.mission_packet_main.nation_mission = 0
+local source_orcish = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(source_orcish, 'Smash the Orcish Scouts') == 2,
+    'Smash must expose both source-backed Ronfaure choices without generated candidates')
+assert(source_orcish[1].objective_destination_id == 'camp:v1:101:orcish-fodder:6c7a4f36673f6091fd2c')
+assert(source_orcish[2].objective_destination_id == 'camp:v1:100:orcish-fodder:b2999235c7bf7f4860f7')
+assert(source_orcish[1].objective_destination_zone_name == 'East Ronfaure'
+    and source_orcish[2].objective_destination_zone_name == 'West Ronfaure')
+
+local saved_source_inventory_key = accessxi.inventory_packet_key
+objective_inventory_counts_by_name['orcish axe'] = 1
+accessxi.inventory_packet_key = 'source-backed:orcish-axe-owned'
+local source_orcish_turn_in = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(source_orcish_turn_in, 'Smash the Orcish Scouts') == 2
+    and source_orcish_turn_in[1].objective_guide_step_id == "mission:San d'Oria:1:step-007"
+    and source_orcish_turn_in[2].objective_guide_step_id == "mission:San d'Oria:1:step-007",
+    'owned items did not advance source-backed mission rows when generated candidates were absent')
+objective_inventory_counts_by_name['orcish axe'] = 0
+accessxi.inventory_packet_key = saved_source_inventory_key
+guide_row_mutator = nil
+
+-- The live reader does not expose the old test-only world/session accessors.
+-- Source-backed destinations still need to reach the ordinary route engine;
+-- character identity and a fresh rebuild of the active row own this path.
+local saved_world_provider = accessxi.current_player_world_id
+local saved_epoch_provider = accessxi.current_objective_session_epoch
+accessxi.current_player_world_id = nil
+accessxi.current_objective_session_epoch = nil
+guide_row_mutator = function(native_key, rows)
+    if native_key == "mission:San d'Oria:1" then
+        for index = #rows, 1, -1 do table.remove(rows, index) end
+    end
+end
+local live_source_orcish = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(live_source_orcish, 'Smash the Orcish Scouts') == 2,
+    'live source routes disappeared when optional world/session accessors were absent')
+local live_source_target, live_source_message, live_source_mode =
+    accessxi.nav_mission_quest_prepare_route(live_source_orcish[1], { zone = 230 })
+assert(live_source_mode == 'test-ready' and live_source_message == ''
+    and type(live_source_target) == 'table',
+    'a live source route did not reach explicit ordinary-route preparation')
+guide_row_mutator = nil
+
+local saved_live_inventory_source = accessxi.inventory_packet_source
+local saved_live_inventory_epoch = accessxi.inventory_packet_session_epoch
+local saved_live_inventory_key = accessxi.inventory_packet_key
+objective_inventory_counts_by_name['orcish axe'] = 1
+accessxi.inventory_packet_source = 'native-inventory'
+accessxi.inventory_packet_session_epoch = 0
+accessxi.inventory_packet_key = 'native-inventory:epoch-zero:orcish-axe'
+local live_inventory_orcish = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(live_inventory_orcish, 'Smash the Orcish Scouts') == 2
+    and live_inventory_orcish[1].objective_guide_step_id == "mission:San d'Oria:1:step-007"
+    and live_inventory_orcish[2].objective_guide_step_id == "mission:San d'Oria:1:step-007",
+    'the live native Inventory snapshot was ignored when the optional session epoch accessor was absent')
+objective_inventory_counts_by_name['orcish axe'] = 0
+accessxi.inventory_packet_source = saved_live_inventory_source
+accessxi.inventory_packet_session_epoch = saved_live_inventory_epoch
+accessxi.inventory_packet_key = saved_live_inventory_key
+accessxi.current_player_world_id = saved_world_provider
+accessxi.current_objective_session_epoch = saved_epoch_provider
+
+accessxi.mission_packet_main.nation_mission = 1
+local bat_hunt = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(bat_hunt, 'Bat Hunt') == 2,
+    'the shared source resolver must expose exact Ding Bats destinations for the next mission')
+assert(bat_hunt[1].objective_guide_step_id == "mission:San d'Oria:2:step-005")
+assert(bat_hunt[1].objective_destination_zone_name == "King Ranperre's Tomb")
+assert(bat_hunt[1].objective_target.x == -141.134 and bat_hunt[1].objective_target.z == 223.168,
+    'Bat Hunt must put the entrance Ding Bats camp first instead of routing through the Tomb to a deeper camp')
+objective_inventory_counts_by_name['orcish mail scales'] = 1
+local bat_hunt_after_scales = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(bat_hunt_after_scales, 'Bat Hunt') == 1,
+    'owned Orcish Mail Scales must replace the Ding Bats camps with one exact mission Tombstone')
+assert(bat_hunt_after_scales[1].objective_guide_step_id == "mission:San d'Oria:2:step-009",
+    'owned Orcish Mail Scales did not advance Bat Hunt to the Tombstone cutscene step')
+assert(bat_hunt_after_scales[1].objective_destination_id == 'npc:v1:190:17555989'
+    and bat_hunt_after_scales[1].objective_target.x == 1.000
+    and bat_hunt_after_scales[1].objective_target.z == -103.608,
+    'Bat Hunt did not select the authoritative upper Tombstone used by the mission script')
+assert(bat_hunt_after_scales[1].objective_action_instruction:find('Tombstone', 1, true) ~= nil,
+    'the advanced Bat Hunt row lost the source-backed Tombstone instruction')
+
+local tombstone_target, tombstone_message, tombstone_mode =
+    accessxi.nav_mission_quest_prepare_route(bat_hunt_after_scales[1], { zone = 190 })
+assert(tombstone_mode == 'test-ready' and tombstone_message == ''
+    and type(tombstone_target) == 'table',
+    'the source-backed Tombstone step did not produce an exact interaction target')
+assert(accessxi.nav_mission_quest_remember_arrival(tombstone_target, 1000) == true,
+    'arrival at the selected source-backed interaction was not retained')
+assert(accessxi.nav_mission_quest_observe_interaction_text(
+    'menu    rem4li2', 'Different target', 17555988,
+    'This wrong-target line must not complete the step.', 1100) == false,
+    'a mismatched interaction target completed the selected objective step')
+assert(accessxi.nav_mission_quest_observe_event_menu('', 1200) == false,
+    'closing an unaccepted event menu completed the selected objective step')
+assert(accessxi.nav_mission_quest_observe_interaction_text(
+    'menu    rem4li2', 'Tombstone', 17555989,
+    'Rochefogne : Hm...', 1300) == true,
+    'the exact selected Tombstone cutscene was not accepted as live progress evidence')
+assert(accessxi.nav_mission_quest_observe_event_menu('menu    rem4li2', 1400) == false,
+    'the objective advanced before the interaction menu completed')
+assert(accessxi.nav_mission_quest_observe_event_menu('', 1500) == true,
+    'closing the completed Tombstone cutscene did not advance the objective')
+
+local bat_hunt_after_cutscene = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(bat_hunt_after_cutscene, 'Bat Hunt') == 2,
+    'the completed Tombstone cutscene did not expose the exact available Gate Guards')
+for _, row in ipairs(bat_hunt_after_cutscene) do
+    if row.name == 'Bat Hunt' then
+        assert(row.objective_guide_step_id == "mission:San d'Oria:2:step-012",
+            'Bat Hunt did not advance to the next source-guide step after the cutscene')
+        assert(row.objective_action_instruction:find('Orcish Mail Scales', 1, true) ~= nil,
+            'the automatic next step lost its wiki-backed turn-in instruction')
+        assert(row.objective_target ~= nil
+            and (row.objective_target.name == 'Ambrotien'
+                or row.objective_target.name == 'Grilau'),
+            'the automatic turn-in step did not resolve an exact San d\'Orian Gate Guard')
+    end
+end
+local progress_file = assert(io.open(objective_progress_path, 'r'))
+local progress_bytes = assert(progress_file:read('*a'))
+progress_file:close()
+assert(progress_bytes:find(
+    "alpha:1001\tmission:San d'Oria:2\tmission:San d'Oria:2:step-009\t9",
+    1, true) ~= nil,
+    'completed interaction progress was not persisted for zoning or addon reload')
+assert(load_with_env(module_path, {
+    accessxi = accessxi,
+    T = T,
+    bit = bit,
+    log_line = function(text) logs:append(text) end,
+}), 'navigation module could not be reloaded for persisted-progress verification')
+local bat_hunt_after_reload = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(bat_hunt_after_reload, 'Bat Hunt') == 2
+    and bat_hunt_after_reload[1].objective_guide_step_id == "mission:San d'Oria:2:step-012"
+    and bat_hunt_after_reload[2].objective_guide_step_id == "mission:San d'Oria:2:step-012",
+    'persisted interaction progress was lost after an addon-module reload')
+objective_inventory_counts_by_name['orcish mail scales'] = 0
+accessxi.mission_packet_source = 'cache'
+local bat_target, bat_message, bat_mode = accessxi.nav_mission_quest_prepare_route(
+    bat_hunt_after_cutscene[1], { zone = 230 })
+assert(bat_mode == 'test-ready' and type(bat_target) == 'table' and bat_message == '',
+    'the next mission source destination must start without current-session packet evidence')
+accessxi.mission_packet_source = saved_mission_packet_source
+
+current_nation = 0
+accessxi.mission_packet_main.nation = 0
+accessxi.mission_packet_main.nation_mission = 2
+local save_children = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(save_children, 'Save the Children') == 1,
+    'Save the Children must initially expose only the exact Arnau objective')
+local arnau = assert(find(save_children, 'Save the Children'))
+assert(arnau.objective_guide_step_id == "mission:San d'Oria:3:step-002"
+    and arnau.objective_destination_id == 'npc:v1:231:17723406',
+    'Save the Children did not begin at the exact Arnau interaction')
+local arnau_target, arnau_message, arnau_mode =
+    accessxi.nav_mission_quest_prepare_route(arnau, { zone = 231 })
+assert(arnau_mode == 'test-ready' and arnau_message == ''
+    and type(arnau_target) == 'table',
+    'the exact Arnau objective did not produce a source-backed route')
+assert(accessxi.nav_mission_quest_remember_arrival(arnau_target, 2000) == true,
+    'arrival at Arnau was not retained for mission progression')
+assert(accessxi.nav_mission_quest_observe_interaction_text(
+    'menu    target', 'Arnau', 17723406,
+    'Pieuje : Once you know, notify a Temple Knight. Now, go!', 2100) == true,
+    'the exact Arnau text was not buffered when it arrived before the event menu')
+assert(accessxi.nav_mission_quest_observe_event_menu('menu    rem4li2', 2150) == false,
+    'the objective advanced before the late native event menu opened')
+assert(accessxi.nav_mission_quest_observe_event_menu('', 2200) == true,
+    'closing the completed Arnau cutscene did not advance Save the Children')
+
+local save_children_after_arnau = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(save_children_after_arnau, 'Save the Children') == 1,
+    'Save the Children did not replace Arnau with one exact next objective')
+local hut_door = assert(find(save_children_after_arnau, 'Save the Children'))
+assert(hut_door.objective_guide_step_id == "mission:San d'Oria:3:step-015"
+    and hut_door.objective_destination_id == 'object:v1:140:17350951'
+    and hut_door.objective_target ~= nil
+    and hut_door.objective_target.name == 'Hut Door'
+    and hut_door.objective_target.zone == 140,
+    'the Arnau cutscene did not advance to the exact Ghelsba Outpost Hut Door')
+assert(hut_door.objective_action_instruction:find('Hut Door', 1, true) ~= nil,
+    'the next Save the Children objective lost its source-backed Hut Door instruction')
+
+-- Save the Children's first Hut Door interaction only opens the battlefield.
+-- The exact retail/LSB mission state does not advance to the Gate Guard until
+-- the battlefield has awarded key item 157 (Orcish hut key) and the player
+-- checks the same door again for the rescue cutscene.
+local hut_target, hut_message, hut_mode =
+    accessxi.nav_mission_quest_prepare_route(hut_door, { zone = 140 })
+assert(hut_mode == 'test-ready' and hut_message == ''
+    and type(hut_target) == 'table'
+    and hut_target.objective_guide_step_id == "mission:San d'Oria:3:step-015",
+    'the exact Hut Door objective did not produce a source-backed route')
+assert(type(hut_target.objective_completion_key_items) == 'table'
+    and hut_target.objective_completion_key_items[1] == 'Orcish hut key',
+    'the Hut Door route did not inherit its skipped battlefield key-item prerequisite')
+assert(accessxi.nav_mission_quest_remember_arrival(hut_target, 2300) == true,
+    'arrival at the Hut Door was not retained for mission progression')
+owned_key_items[157] = nil
+assert(accessxi.nav_mission_quest_observe_interaction_text(
+    'menu    rem4li2', 'Hut Door', 17350951,
+    'Fodderchief Vokdek : Smells like people...', 2400) == false,
+    'the pre-battle Hut Door interaction advanced Save the Children too early')
+assert(accessxi.nav_mission_quest_observe_event_menu('', 2500) == false,
+    'closing the pre-battle Hut Door interaction advanced Save the Children')
+local save_children_before_rescue = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(save_children_before_rescue, 'Save the Children') == 1
+    and assert(find(save_children_before_rescue, 'Save the Children')).objective_guide_step_id
+        == "mission:San d'Oria:3:step-015",
+    'Save the Children did not remain on the Hut Door before the battlefield win')
+
+owned_key_items[157] = true
+assert(accessxi.nav_mission_quest_observe_event_packet(
+    'start', 17350951, 140, 32001, 2600) == true,
+    'the exact post-battle Hut Door event packet was not accepted')
+assert(accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17350950, 140, 32001, 2650) == false,
+    'a different event target advanced the selected mission step')
+assert(accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17350951, 140, 32001, 2700) == true,
+    'the exact completed Hut Door event packet did not advance the mission')
+owned_key_items[157] = nil
+local save_children_after_rescue = accessxi.nav_mission_quest_active_items('mission')
+assert(count_named(save_children_after_rescue, 'Save the Children') == 2,
+    'the completed rescue did not expose the exact available San d\'Orian Gate Guards')
+for _, row in ipairs(save_children_after_rescue) do
+    if row.name == 'Save the Children' then
+        assert(row.objective_guide_step_id == "mission:San d'Oria:3:step-025",
+            'the completed rescue did not advance to the reconciled Gate Guard step')
+        assert(row.objective_action_instruction:find('Gate Guard', 1, true) ~= nil,
+            'the Gate Guard follow-up lost its source-backed completion instruction')
+    end
+end
+current_nation = 1
+accessxi.mission_packet_main.nation = 1
+accessxi.mission_packet_main.nation_mission = 1
 
 local typed_quests = accessxi.nav_mission_quest_active_items('quest')
 assert(count_named(typed_quests, 'The Pickpocket') == 1,
@@ -659,13 +1300,15 @@ assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) 
 local saved_automatic_step_id = accessxi.objective_guides.automatic_step_id
 accessxi.objective_guides.automatic_step_id = function() return '' end
 local unmapped_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
-assert(unmapped_pickpocket.objective_candidate_id == nil,
-    'a live stage with no exact guide-step mapping must expose no typed candidate')
-assert(select(3, accessxi.nav_mission_quest_prepare_route(unmapped_pickpocket, { zone = 230 })) == 'blocked')
+assert(type(unmapped_pickpocket.objective_candidate_id) == 'string'
+    and unmapped_pickpocket.objective_candidate_id ~= '',
+    'an exact source-backed current target must survive a missing optional guide-step mapping')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(unmapped_pickpocket, { zone = 230 })) == 'test-ready')
 accessxi.objective_guides.automatic_step_id = function() error('intentional mapping failure') end
 local failed_mapping_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
-assert(failed_mapping_pickpocket.objective_candidate_id == nil,
-    'a failed live-stage mapping must fail closed')
+assert(type(failed_mapping_pickpocket.objective_candidate_id) == 'string'
+    and failed_mapping_pickpocket.objective_candidate_id ~= '',
+    'an exact source-backed current target must survive an optional guide mapping failure')
 accessxi.objective_guides.automatic_step_id = saved_automatic_step_id
 
 guide_row_mutator = function(native_key, rows)
@@ -720,38 +1363,38 @@ end
 guide_row_mutator = nil
 
 accessxi.mission_packet_source = 'cache'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.mission_packet_source = 'packet_in_056'
 accessxi.mission_packet_session_epoch = current_session_epoch - 1
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.mission_packet_session_epoch = current_session_epoch
 quest_entries['sandoria:current'].source = 'cache'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'test-ready')
 quest_entries['sandoria:current'].source = 'packet_in_056'
 accessxi.quest_packet_session_epoch = current_session_epoch - 1
-assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'test-ready')
 accessxi.quest_packet_session_epoch = current_session_epoch
 accessxi.key_items_packet_tables[0].source = 'cache'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.key_items_packet_tables[0].source = 'packet_in_055'
 accessxi.key_items_packet_tables[0].identity = 'alpha:9999'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.key_items_packet_tables[0].identity = current_identity
 accessxi.key_items_packet_tables[0].session_epoch = current_session_epoch - 1
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.key_items_packet_tables[0].session_epoch = current_session_epoch
 local saved_key_item_tables = accessxi.key_items_packet_tables
 accessxi.key_items_packet_tables = {}
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.key_items_packet_tables = saved_key_item_tables
 accessxi.inventory_packet_source = 'cache'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.inventory_packet_source = 'packet_in_inventory'
 accessxi.inventory_packet_identity = 'alpha:9999'
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.inventory_packet_identity = current_identity
 accessxi.inventory_packet_session_epoch = current_session_epoch - 1
-assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(typed_lower, { zone = 234 })) == 'test-ready')
 accessxi.inventory_packet_session_epoch = current_session_epoch
 local saved_contract_id = runtime_contracts[typed_lower.objective_candidate_id].contract_id
 runtime_contracts[typed_lower.objective_candidate_id].contract_id = ''
@@ -798,12 +1441,12 @@ guide_row_mutator = nil
 
 local saved_runtime = accessxi.objective_route_runtime
 accessxi.objective_route_runtime = nil
-assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'test-ready')
 accessxi.objective_route_runtime = saved_runtime
 runtime_override = function() error('intentional runtime failure') end
-assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'test-ready')
 runtime_override = function() return {}, '', 'invented-mode' end
-assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'test-ready')
 runtime_override = nil
 
 -- Restore the baseline fixture state for the older ordinary-navigation
@@ -876,22 +1519,23 @@ assert(chain_failure_reason:sub(-3) == '...')
 assert(#chain_failure_reason == 99)
 local chain_survivor = assert(find(missions, 'A Geological Survey'))
 local chain_survivor_target, chain_survivor_message, chain_survivor_mode = accessxi.nav_mission_quest_prepare_route(chain_survivor, { zone = 106 })
-assert(chain_survivor_mode == 'blocked' and chain_survivor_target == nil and chain_survivor_message ~= '')
+assert(chain_survivor_mode == 'test-ready' and type(chain_survivor_target) == 'table'
+    and chain_survivor_message == '')
 accessxi.load_mission_rom_rows = native_mission_load_mission_rom_rows
 mission_values['Chains of Promathia'] = 0
 local survey_after_failure = assert(find(missions, 'A Geological Survey'))
 local failure_target, failure_message, failure_mode = accessxi.nav_mission_quest_prepare_route(survey_after_failure, { zone = 106 })
-assert(failure_mode == 'blocked' and failure_target == nil and failure_message ~= '')
+assert(failure_mode == 'test-ready' and type(failure_target) == 'table' and failure_message == '')
 
 accessxi.mission_packet_source = 'cache'
 missions = accessxi.nav_mission_quest_active_items('mission')
 local cached_survey = assert(find(missions, 'A Geological Survey'))
 assert(find(missions, "Welcome t'Norg") ~= nil)
 local cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_survey, { zone = 106 })
-assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
+assert(type(cached_target) == 'table' and cached_mode == 'test-ready' and cached_message == '')
 accessxi.mission_packet_source = 'packet_in_056'
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_survey, { zone = 106 })
-assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
+assert(type(cached_target) == 'table' and cached_mode == 'test-ready' and cached_message == '')
 accessxi.mission_packet_identity = 'alpha:9999'
 assert(#accessxi.nav_mission_quest_active_items('mission') == 0)
 accessxi.mission_packet_identity = current_identity
@@ -929,7 +1573,8 @@ assert(lower_target.objective_route_contract_id == 'route:v2:lower')
 
 accessxi.mission_packet_source = 'cache'
 local stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(lower_fetich, { zone = 234 })
-assert(stale_target == nil and stale_mode == 'blocked' and stale_message ~= '')
+assert(type(stale_target) == 'table' and stale_target.objective_test_route == true
+    and stale_target.verified ~= true and stale_mode == 'test-ready' and stale_message == '')
 accessxi.mission_packet_source = 'packet_in_056'
 
 local other_world_row = lower_fetich
@@ -956,15 +1601,17 @@ local available_zeruhn = assert(find(missions, 'The Zeruhn Report'))
 assert(find(missions, 'A Geological Survey') == nil)
 assert(available_zeruhn.mission_availability == 'available-to-start')
 assert(available_zeruhn.objective_available == true)
-assert(available_zeruhn.objective_destination_id == nil or available_zeruhn.objective_destination_id == '')
+assert(type(available_zeruhn.objective_destination_id) == 'string'
+    and available_zeruhn.objective_destination_id ~= '')
 local available_speech = accessxi.nav_mission_quest_item_speech(available_zeruhn, 1, #missions)
 assert(available_speech:find('Available mission.', 1, true) ~= nil)
-assert(available_speech:find('No rooted objective route contract is available.', 1, true) ~= nil)
+assert(available_speech:find('Press I to start navigation.', 1, true) ~= nil)
 assert(available_speech:find('open steps', 1, true) == nil)
 local starter_target, starter_message, starter_mode = accessxi.nav_mission_quest_prepare_route(
     available_zeruhn,
     { zone = 234, x = -20, z = -120, y = -1 })
-assert(starter_mode == 'blocked' and starter_message ~= '' and starter_target == nil)
+assert(starter_mode == 'test-ready' and starter_message == '' and type(starter_target) == 'table',
+    'available missions with an exact gate-guard target must remain explicitly routeable')
 
 -- Once the dedicated Bastok 1-1 completion bit is live, the ordinary mask
 -- advances to the next currently startable mission.
@@ -1003,14 +1650,85 @@ assert(find(missions, 'Save the Children') == nil)
 starter_target, starter_message, starter_mode = accessxi.nav_mission_quest_prepare_route(
     smash,
     { zone = 231, x = -240, z = 58, y = 8 })
-assert(starter_mode == 'blocked' and starter_message ~= '' and starter_target == nil)
+assert(starter_mode == 'test-ready' and starter_message == '' and type(starter_target) == 'table')
+assert(starter_target.name == 'Ambrotien' or starter_target.name == 'Grilau',
+    'an available nation mission did not route to its exact Gate Guard acceptance step')
 accessxi.mission_packet_nations_complete = T{ 1, 0, 0, 0, 0, 0, 0, 0 }
 missions = accessxi.nav_mission_quest_active_items('mission')
 assert(find(missions, 'Smash the Orcish Scouts') ~= nil)
 assert(find(missions, 'Bat Hunt') ~= nil)
 assert(find(missions, 'Save the Children') == nil)
+
+-- A nation mission that the current 0x056 packet says is active has already
+-- passed its source-backed Gate Guard acceptance step.  The active cursor must
+-- therefore begin at the first post-acceptance destination, including after an
+-- addon reload where no interaction callback survived.
+current_rank = 3
+accessxi.mission_packet_nations_complete = words_with(1)
+missions = accessxi.nav_mission_quest_active_items('mission')
+local available_rescue = assert(find(missions, 'The Rescue Drill'))
+assert(available_rescue.mission_availability == 'available-to-start')
+assert(available_rescue.objective_guide_step_id == "mission:San d'Oria:4:step-003",
+    'the available Rescue Drill route did not own its exact Gate Guard acceptance step')
+assert(available_rescue.objective_target ~= nil
+    and (available_rescue.objective_target.name == 'Ambrotien'
+        or available_rescue.objective_target.name == 'Grilau'),
+    'the available Rescue Drill did not resolve an exact San d\'Orian Gate Guard')
+
+accessxi.mission_packet_main.nation_mission = 3
+missions = accessxi.nav_mission_quest_active_items('mission')
+local rescue_after_accept = assert(find(missions, 'The Rescue Drill'))
+assert(rescue_after_accept.mission_availability == 'active')
+assert(rescue_after_accept.objective_guide_step_id == "mission:San d'Oria:4:step-006",
+    'the authoritative active mission packet left Rescue Drill on its acceptance step')
+assert(rescue_after_accept.objective_destination_id == 'npc:v1:102:17195615'
+    and rescue_after_accept.objective_target.name == 'Galaihaurat',
+    'Rescue Drill did not advance to its first post-acceptance objective')
+assert(rescue_after_accept.objective_route_recommendation
+    == 'Recommended: carry Silent Oil. Use it before entering areas with sound-detecting enemies to avoid aggro.',
+    'the optional Silent Oil preparation was not converted into route-time guidance')
+local rescue_route, rescue_route_message, rescue_route_mode = accessxi.nav_mission_quest_prepare_route(
+    rescue_after_accept,
+    { zone = 102, x = -400, z = 200, y = -7 })
+assert(rescue_route_mode == 'test-ready' and rescue_route_message == ''
+    and rescue_route.objective_route_recommendation == rescue_after_accept.objective_route_recommendation,
+    'route preparation dropped the route-time Silent Oil recommendation')
+local rescue_start_suffix = accessxi.nav_mission_quest_start_suffix(rescue_route)
+assert(rescue_start_suffix:find(rescue_route.objective_route_recommendation, 1, true) ~= nil,
+    'route start speech omitted the Silent Oil recommendation')
+assert(accessxi.nav_mission_quest_arrival_suffix(rescue_route)
+        :find(rescue_route.objective_route_recommendation, 1, true) == nil,
+    'route recommendation was delayed until arrival instead of route start')
+
+-- TalesBeginning bit 6 is the native postponed-opening state for Rhapsodies.
+-- It must expose the first RoV mission at an exact Tales' Beginning instead of
+-- treating terminal rov=65535 as if no startable mission existed.
+accessxi.mission_packet_main.tales = 0x40
+accessxi.mission_packet_main.rov = 65535
+accessxi.nav_current_position = { zone = 230, x = 0, z = 0, y = 0 }
+missions = accessxi.nav_mission_quest_active_items('mission')
+local available_rov = assert(find(missions, 'Rhapsodies of Vanadiel'))
+assert(available_rov.mission_availability == 'available-to-start')
+assert(available_rov.objective_native_key == "mission:Rhapsodies of Vana'diel:1")
+assert(available_rov.objective_guide_step_id == "mission:Rhapsodies of Vana'diel:1:step-002")
+assert(available_rov.objective_target ~= nil
+    and available_rov.objective_target.name == "Tales' Beginning"
+    and available_rov.objective_target.zone == 230,
+    'postponed RoV did not choose the exact Tales\' Beginning in the current starter city')
+accessxi.mission_packet_main.tales = 0
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel') == nil,
+    'RoV was advertised without a live active or postponed-start packet state')
+mission_values["Rhapsodies of Vana'diel"] = 110
+local active_rov = assert(find(
+    accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel'))
+assert(active_rov.mission_availability == 'active',
+    'a decoded nonterminal RoV mission value was not exposed as active')
+mission_values["Rhapsodies of Vana'diel"] = 65535
+
+current_rank = 1
 current_nation = 1
 accessxi.mission_packet_main.nation = 1
+accessxi.mission_packet_main.nation_mission = 65535
 accessxi.mission_packet_nations_complete = words_with()
 
 mission_values.Bastok = 0
@@ -1099,6 +1817,18 @@ assert(accessxi.nav_mission_quest_item_speech(quests[2], 2, #quests):find('Nativ
 assert(quests[3].name == 'A Long Current Quest')
 assert(quests[4].name == 'Safe Aht Urhgan Quest')
 assert(find(quests, 'Overlaid Mission Word') == nil)
+
+-- Retail may leave a quest bit present on both the current and completed
+-- 0x056 pages.  The native quest log classifies that row as Completed, so it
+-- must not be expanded into active navigation choices.
+quest_entries['sandoria:completed'].words = words_with(2)
+local completed_overlap = accessxi.nav_mission_quest_active_items('quest')
+assert(find(completed_overlap, 'The Pickpocket') == nil,
+    'a completed quest must not remain in the active Quest browser')
+assert(#completed_overlap == 3,
+    'a completed quest must contribute no duplicate J/L navigation rows')
+quest_entries['sandoria:completed'].words = words_with()
+
 accessxi.quest_packet_source = 'cache'
 for _, entry in pairs(quest_entries) do entry.source = 'cache' end
 quests = accessxi.nav_mission_quest_active_items('quest')
@@ -1106,11 +1836,13 @@ assert(#quests == 4)
 local cached_pickpocket = assert(find(quests, 'The Pickpocket'))
 assert(find(quests, 'Safe Aht Urhgan Quest') ~= nil)
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
-assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
+assert(type(cached_target) == 'table' and cached_target.objective_test_route == true
+    and cached_target.verified ~= true and cached_mode == 'test-ready' and cached_message == '')
 accessxi.quest_packet_source = 'packet_in_056'
 quest_entries['aht_urhgan:current'].source = 'packet_in_056'
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
-assert(cached_target == nil and cached_mode == 'blocked' and cached_message ~= '')
+assert(type(cached_target) == 'table' and cached_target.objective_test_route == true
+    and cached_target.verified ~= true and cached_mode == 'test-ready' and cached_message == '')
 quest_entries['sandoria:current'].source = 'packet_in_056'
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
 assert(cached_target ~= nil and cached_mode == 'ready' and cached_message == '')
@@ -1130,7 +1862,7 @@ local stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepa
 assert(stale_target == nil and stale_mode == 'blocked' and stale_message:find('another character', 1, true) ~= nil)
 stale_target, stale_message, stale_mode = accessxi.nav_mission_quest_prepare_route(stale_quest_row, { zone = 106 })
 assert(stale_target == nil and stale_mode == 'blocked' and stale_message:find('another character', 1, true) ~= nil)
-assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_mission_row, { zone = 106 })) == 'blocked')
+assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_mission_row, { zone = 106 })) == 'test-ready')
 assert(select(3, accessxi.nav_mission_quest_prepare_route(fresh_quest_row, { zone = 106 })) == 'ready')
 set_live_identity('alpha:1001')
 
@@ -1151,8 +1883,8 @@ assert(survey.objective_stage == 'obtain-blue-tester')
 assert(survey.objective_target.zone == 237 and survey.objective_target.name == 'Cid')
 assert(survey.objective_instruction:find('Blue acidity tester', 1, true) ~= nil)
 local row_speech = accessxi.nav_mission_quest_item_speech(survey, 1, #missions)
-assert(row_speech:find('Current objective', 1, true) ~= nil)
-assert(row_speech:find('No rooted objective route contract is available.', 1, true) ~= nil)
+assert(row_speech:find('Objective choice', 1, true) ~= nil)
+assert(row_speech:find('Press I to start navigation.', 1, true) ~= nil)
 assert(row_speech:find('open steps', 1, true) == nil)
 
 owned_key_items[3] = true
@@ -1167,7 +1899,8 @@ assert(survey.objective_target.arrival_radius == 1.0)
 assert(survey.objective_instruction:lower():find('stand on the geyser', 1, true) ~= nil)
 assert(survey.objective_instruction:lower():find('launch', 1, true) ~= nil)
 local target, message, mode = accessxi.nav_mission_quest_prepare_route(survey, { zone = 106 })
-assert(mode == 'blocked' and target == nil and message ~= '')
+assert(mode == 'test-ready' and type(target) == 'table' and message == '',
+    'an exact current source-backed mission target must remain explicitly routeable')
 accessxi.nav_destination = typed_target
 assert(accessxi.nav_mission_quest_route_owner_mismatch() == false)
 local saved_route_contract = deep_copy(accessxi.nav_destination.objective_contract_snapshot)
@@ -1279,4 +2012,5 @@ assert(accessxi.nav_mission_quest_sync_character('test-pending-switch') == true)
 assert(cancelled_objective_routes == 2)
 assert(accessxi.nav_zone_search_target == nil)
 
+os.remove(objective_progress_path)
 return true

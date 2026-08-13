@@ -376,6 +376,8 @@ static byte[] BuildValidPackage(string marker, string? extraEntry = null)
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/modules/mission_quest_ffxiclopedia_mission_bastok.lua", "return {}");
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/data/mission-quest-guides/coverage.json", "{}");
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/data/mission-quest-guides/source-snapshot.json", "{}");
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/data/collision-native-manifest.tsv", marker);
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/third_party/collision/accessxi_collision_native.dll", marker);
         AddEntry(archive, "payload/PlayOnlineNative/ddraw.dll", marker);
         AddEntry(archive, "payload/PlayOnlineNative/AccessXI.PolNative.asi", marker);
         AddEntry(archive, "payload/PlayOnlineNative/AccessXI.PolNative/accessxi_pol_native.dll", marker);

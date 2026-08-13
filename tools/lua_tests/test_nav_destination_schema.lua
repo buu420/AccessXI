@@ -36,6 +36,7 @@ local copy_source = source:sub(copy_start, copy_finish - 1)
 local accessxi = {
     nav_points = T{},
     nav_generated_name_is_placeholder = function() return false end,
+    nav_graph_zone_name = function() return '' end,
 }
 local environment = setmetatable(
     {
@@ -71,16 +72,16 @@ assert(legacy.zone == 101 and legacy.name == 'Legacy')
 assert(legacy.x == 1 and legacy.z == 2 and legacy.y == 3)
 assert(legacy.kind == 'npc' and legacy.source == 'manual')
 assert(legacy.confidence == '' and legacy.section == '')
-assert(legacy.destination_id == nil and legacy.raw_identity == nil)
-assert(legacy.raw_spawn_ids == nil and legacy.cluster_policy_version == nil)
+assert(legacy.destination_id == '' and legacy.raw_identity == '')
+assert(legacy.raw_spawn_ids:len() == 0 and legacy.cluster_policy_version == '')
 
 local current = accessxi.nav_points[2]
 assert(current.zone == 101 and current.name == 'Current')
 assert(current.x == 4 and current.z == 5 and current.y == 6)
 assert(current.kind == 'object' and current.source == 'manual')
 assert(current.confidence == 'observed' and current.section == 'review note')
-assert(current.destination_id == nil and current.raw_identity == nil)
-assert(current.raw_spawn_ids == nil and current.cluster_policy_version == nil)
+assert(current.destination_id == '' and current.raw_identity == '')
+assert(current.raw_spawn_ids:len() == 0 and current.cluster_policy_version == '')
 
 local empty_confidence = accessxi.nav_points[3]
 assert(empty_confidence.confidence == '' and empty_confidence.section == 'section survives')
@@ -90,29 +91,36 @@ assert(appended.zone == 101 and appended.name == 'Appended')
 assert(appended.x == 7 and appended.z == 8 and appended.y == 9)
 assert(appended.kind == 'area' and appended.source == 'lsb-zoneline-all')
 assert(appended.confidence == 'untested' and appended.section == 'generated section')
-assert(appended.destination_id == nil and appended.raw_identity == nil)
-assert(appended.raw_spawn_ids == nil and appended.cluster_policy_version == nil)
+assert(appended.destination_id == 'area:v1:101:987')
+assert(appended.raw_identity == 'lsb:zonelines:987')
+assert(appended.raw_spawn_ids:len() == 0 and appended.cluster_policy_version == '')
 
 local duplicate = accessxi.nav_points[5]
 assert(duplicate.zone == appended.zone and duplicate.name == appended.name)
 assert(duplicate.x == appended.x and duplicate.z == appended.z and duplicate.y == appended.y)
 assert(duplicate.confidence == appended.confidence and duplicate.section == appended.section)
-assert(duplicate.destination_id == nil and duplicate.raw_identity == nil)
+assert(duplicate.destination_id == 'area:v1:101:988')
+assert(duplicate.raw_identity == 'lsb:zonelines:988')
 
 local enemy = accessxi.nav_points[6]
 assert(enemy.kind == 'enemy')
-assert(enemy.destination_id == nil and enemy.raw_identity == nil)
-assert(enemy.raw_spawn_ids == nil and enemy.cluster_policy_version == nil)
+assert(enemy.destination_id == 'camp:v1:101:orcish-fodder:abc')
+assert(enemy.raw_identity == 'lsb:mob_spawn_points:group:34:mobname:Orcish_Fodder')
+assert(enemy.raw_spawn_ids:len() == 2 and enemy.raw_spawn_ids[1] == 413697
+    and enemy.raw_spawn_ids[2] == 413698)
+assert(enemy.cluster_policy_version == 'complete-link-v1-h120-y24')
 
 local copied_appended = accessxi.nav_copy_point(appended)
 assert(copied_appended.zone == appended.zone and copied_appended.name == appended.name)
 assert(copied_appended.confidence == appended.confidence and copied_appended.section == appended.section)
-assert(copied_appended.destination_id == nil and copied_appended.raw_identity == nil)
-assert(copied_appended.raw_spawn_ids == nil and copied_appended.cluster_policy_version == nil)
+assert(copied_appended.destination_id == appended.destination_id)
+assert(copied_appended.raw_identity == nil and copied_appended.raw_spawn_ids == nil)
+assert(copied_appended.cluster_policy_version == nil)
 
 local copied_enemy = accessxi.nav_copy_point(enemy)
-assert(copied_enemy.destination_id == nil and copied_enemy.raw_identity == nil)
-assert(copied_enemy.raw_spawn_ids == nil and copied_enemy.cluster_policy_version == nil)
+assert(copied_enemy.destination_id == enemy.destination_id)
+assert(copied_enemy.raw_identity == nil and copied_enemy.raw_spawn_ids == nil)
+assert(copied_enemy.cluster_policy_version == nil)
 assert(accessxi.nav_points:len() == 6)
 
 print('actual navigation loader preserved first-nine behavior for 7, 9, and 13 column rows')

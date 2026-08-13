@@ -219,8 +219,16 @@ end
 
 local valid = new_fixture()
 assert(valid.ok, tostring(valid.reason))
+assert(valid.accessxi.objective_route_runtime == nil,
+    'reader constructed the objective route runtime during addon evaluation')
+assert(valid.execution_flags.runtime == 0 and #valid.compile_records == 0,
+    'reader compiled or executed the objective route runtime during addon evaluation')
+assert(type(valid.accessxi.ensure_objective_route_runtime) == 'function',
+    'reader does not expose a lazy objective route runtime initializer')
+local valid_ready, valid_reason = valid.accessxi.ensure_objective_route_runtime()
+assert(valid_ready == true, tostring(valid_reason))
 assert(type(valid.accessxi.objective_route_runtime) == 'table',
-    'reader did not construct accessxi.objective_route_runtime')
+    'reader did not construct accessxi.objective_route_runtime on demand')
 assert(valid.execution_flags.runtime == 1, 'accepted runtime module did not execute exactly once')
 assert(#valid.compile_records == 1 and valid.compile_records[1].bytes == valid.runtime_bytes,
     'reader did not compile the exact runtime bytes returned by read_and_hash_file')
@@ -228,9 +236,13 @@ assert(valid.execution_flags.runtime_options.expected_manifest_sha256 == digest(
 assert(valid.execution_flags.runtime_options.native_integrity_state
     == valid.accessxi.nav_objective_native_integrity_state)
 assert(type(valid.execution_flags.runtime_options.objective_native) == 'table')
+assert(valid.accessxi.ensure_objective_route_runtime() == true
+    and valid.execution_flags.runtime == 1 and #valid.compile_records == 1,
+    'objective route runtime initialization must be once-only')
 
 local mismatch = new_fixture({ returned_runtime_bytes = 'EXECUTION_FLAGS.runtime = 99\nreturn {}\n' })
 assert(mismatch.ok, tostring(mismatch.reason))
+assert(mismatch.accessxi.ensure_objective_route_runtime() == false)
 assert(mismatch.execution_flags.runtime == 0, 'hash-mismatched runtime bytes executed')
 assert(#mismatch.compile_records == 0, 'hash-mismatched runtime bytes reached loadstring')
 assert(mismatch.accessxi.objective_route_runtime == nil)
@@ -238,12 +250,14 @@ assert(tostring(mismatch.accessxi.objective_route_runtime_failure_reason or ''):
 
 local manifest_mismatch = new_fixture({ returned_manifest_bytes = 'not the pinned manifest bytes\n' })
 assert(manifest_mismatch.ok, tostring(manifest_mismatch.reason))
+assert(manifest_mismatch.accessxi.ensure_objective_route_runtime() == false)
 assert(manifest_mismatch.execution_flags.runtime == 0 and #manifest_mismatch.compile_records == 0,
     'unpinned manifest bytes reached runtime compilation or execution')
 assert(manifest_mismatch.accessxi.objective_route_runtime == nil)
 
 local smoke_failure = new_fixture({ smoke_failure = true })
 assert(smoke_failure.ok, tostring(smoke_failure.reason))
+assert(smoke_failure.accessxi.ensure_objective_route_runtime() == false)
 assert(smoke_failure.accessxi.objective_route_runtime == nil)
 assert(smoke_failure.accessxi.ordinary_navigation_sentinel == true,
     'SHA smoke failure disabled ordinary navigation')
@@ -254,6 +268,7 @@ for _, broken_sha in ipairs({
     new_fixture({ sha_load_invalid = true }),
 }) do
     assert(broken_sha.ok, tostring(broken_sha.reason))
+    assert(broken_sha.accessxi.ensure_objective_route_runtime() == false)
     assert(broken_sha.accessxi.objective_route_runtime == nil
         and broken_sha.accessxi.ordinary_navigation_sentinel == true,
         'malformed SHA dependency failure escaped the objective-only boundary')
@@ -337,6 +352,7 @@ assert(stale_snapshot.trusted == false,
 
 local alias = new_fixture()
 assert(alias.ok, tostring(alias.reason))
+assert(alias.accessxi.ensure_objective_route_runtime() == true)
 assert(alias.accessxi.nav_objective_native_before_dll_load(
     alias.path('third_party/FFXI-NavMesh-Builder/../FFXI-NavMesh-Builder/FFXINAV.dll')) == false,
     'native observer accepted a noncanonical DLL alias')
@@ -344,6 +360,7 @@ assert(alias.accessxi.nav_objective_native_integrity_state().trusted == false)
 
 local dll_drift = new_fixture()
 assert(dll_drift.ok, tostring(dll_drift.reason))
+assert(dll_drift.accessxi.ensure_objective_route_runtime() == true)
 local drift_dll_path = dll_drift.path('third_party/FFXI-NavMesh-Builder/FFXINAV.dll')
 local drift_mesh_path = dll_drift.path('third_party/xiNavmeshes/Fixture.nav')
 assert(dll_drift.accessxi.nav_objective_native_before_dll_load(drift_dll_path) == true)
@@ -355,6 +372,7 @@ assert(dll_drift.accessxi.nav_objective_native_integrity_state().trusted == fals
 
 local ordered = new_fixture()
 assert(ordered.ok, tostring(ordered.reason))
+assert(ordered.accessxi.ensure_objective_route_runtime() == true)
 local events = {}
 local native_library = {
     CreateFFXINavClass = function() return {} end,
@@ -423,6 +441,7 @@ assert(table.concat(events, ',') == 'observe-mesh,LoadMesh',
 local function ordinary_load_fixture(configure)
     local fixture = new_fixture()
     assert(fixture.ok, tostring(fixture.reason))
+    assert(fixture.accessxi.ensure_objective_route_runtime() == true)
     local observed_events = {}
     local library = {
         CreateFFXINavClass = function() return {} end,

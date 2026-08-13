@@ -60,6 +60,9 @@ $ashitaStartupScript = Join-Path $RepoRoot 'installer\ashita_scripts\default.txt
 $vcRedistX86 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x86.exe'
 $vcRedistX64 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x64.exe'
 $nativeStage = Join-Path $RepoRoot 'stage\pol-native'
+$collisionBuildScript = Join-Path $RepoRoot 'tools\build_collision_native.ps1'
+$collisionStage = Join-Path $RepoRoot 'stage\collision-native'
+$collisionManifest = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\collision-native-manifest.tsv'
 
 Assert-True (Test-Path -LiteralPath $packageScript) "Missing package builder: $packageScript"
 Assert-True (Test-Path -LiteralPath $installerScript) "Missing installer script: $installerScript"
@@ -75,6 +78,9 @@ Assert-True (Test-Path -LiteralPath $vcRedistX64) "Missing x64 Visual C++ redist
 Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative.asi')) 'Missing staged native PlayOnline ASI.'
 Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative\accessxi_pol_native.dll')) 'Missing staged native PlayOnline hook DLL.'
 Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative\prism.dll')) 'Missing staged native PlayOnline Prism DLL.'
+Assert-True (Test-Path -LiteralPath $collisionBuildScript) 'Missing collision navigation native build script.'
+Assert-True (Test-Path -LiteralPath $collisionManifest) 'Missing collision navigation native manifest.'
+Assert-True (Test-Path -LiteralPath (Join-Path $collisionStage 'accessxi_collision_native.dll')) 'Missing staged collision navigation native DLL.'
 
 $packageSource = Get-Content -LiteralPath $packageScript -Raw
 $installerSource = Get-Content -LiteralPath $installerScript -Raw
@@ -101,6 +107,8 @@ Assert-Contains $startupScriptSource '/bind \^\+r /addon reload accessxi_reader'
 
 Assert-Contains $packageSource 'build_pol_native_asi\.ps1' 'Package builder must refresh the native PlayOnline ASI before packaging.'
 Assert-Contains $packageSource 'test_pol_native_asi_structure\.ps1' 'Package builder must validate the native PlayOnline stage before packaging.'
+Assert-Contains $packageSource 'build_collision_native\.ps1' 'Package builder must refresh the collision navigation native DLL before packaging.'
+Assert-Contains $packageSource 'stage\\collision-native' 'Package builder must package collision navigation from its verified stage.'
 Assert-Contains $packageSource 'setup-guide\.md' 'Package builder must stage the root setup guide beside the installer script.'
 Assert-Contains $packageSource 'AccessXI Retail\.xml' 'Package builder must stage the AccessXI Ashita GUI profile.'
 Assert-Contains $packageSource 'accessxi-retail\.ini' 'Package builder must stage the AccessXI Ashita CLI profile.'
@@ -252,6 +260,14 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\LandSandBoat-server\sql\abilities.sql')) 'Package must contain job ability SQL metadata beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\LandSandBoat-server\sql\job_point_gifts.sql')) 'Package must contain job point gift SQL metadata beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll')) 'Package must contain the navmesh DLL beside the addon.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\collision\accessxi_collision_native.dll')) 'Package must contain the collision navigation native DLL beside the addon.'
+    $manifestRows = @(Import-Csv -LiteralPath $collisionManifest -Delimiter "`t")
+    Assert-True ($manifestRows.Count -eq 1) 'Collision navigation manifest must contain exactly one payload row.'
+    $manifestHash = ([string]$manifestRows[0].sha256).ToUpperInvariant()
+    $stagedCollisionHash = (Get-FileHash -LiteralPath (Join-Path $collisionStage 'accessxi_collision_native.dll') -Algorithm SHA256).Hash
+    $packagedCollisionHash = (Get-FileHash -LiteralPath (Join-Path $payloadAddon 'third_party\collision\accessxi_collision_native.dll') -Algorithm SHA256).Hash
+    Assert-True ($stagedCollisionHash -eq $manifestHash) 'Staged collision navigation native DLL does not match the signed manifest row.'
+    Assert-True ($packagedCollisionHash -eq $manifestHash) 'Packaged collision navigation native DLL does not match the signed manifest row.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\xiNavmeshes')) 'Package must contain nav meshes beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'sounds\nav_collision')) 'Package must contain the collision sound folder beside the addon.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadAddon 'ffxi-menu-reader.boot.log'))) 'Package must not contain AccessXI addon boot logs.'

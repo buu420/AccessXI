@@ -115,6 +115,10 @@ $OutputDirectory = Resolve-FullPath $OutputDirectory
 $buildNativeScript = Join-Path $RepoRoot 'tools\build_pol_native_asi.ps1'
 $testNativeStructureScript = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
 $nativeStage = Join-Path $RepoRoot 'stage\pol-native'
+$buildCollisionScript = Join-Path $RepoRoot 'tools\build_collision_native.ps1'
+$collisionStage = Join-Path $RepoRoot 'stage\collision-native'
+$stagedCollisionNative = Join-Path $collisionStage 'accessxi_collision_native.dll'
+$collisionManifest = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\collision-native-manifest.tsv'
 $fetchAsiLoaderScript = Join-Path $RepoRoot 'tools\fetch_ultimate_asi_loader.ps1'
 $ultimateAsiLoaderVersion = 'v9.7.2'
 $ultimateAsiLoaderArchiveSha256 = '0F34758B30EAA0EFB59F7AE04100DB789914E1A08891B89878B8FDB189C2A7C5'
@@ -160,6 +164,12 @@ if (-not (Test-Path -LiteralPath $buildNativeScript)) {
 }
 if (-not (Test-Path -LiteralPath $testNativeStructureScript)) {
     throw "Native PlayOnline structure test is missing: $testNativeStructureScript"
+}
+if (-not (Test-Path -LiteralPath $buildCollisionScript -PathType Leaf)) {
+    throw "Collision navigation native build script is missing: $buildCollisionScript"
+}
+if (-not (Test-Path -LiteralPath $collisionManifest -PathType Leaf)) {
+    throw "Collision navigation native manifest is missing: $collisionManifest"
 }
 if (-not (Test-Path -LiteralPath $fetchAsiLoaderScript -PathType Leaf)) {
     throw "Ultimate ASI Loader fetch script is missing: $fetchAsiLoaderScript"
@@ -231,11 +241,28 @@ if (-not $NoBuild) {
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
+    & $buildCollisionScript -RepoRoot $RepoRoot -StageRoot $collisionStage
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
 }
 
 & $testNativeStructureScript -RepoRoot $RepoRoot -StageRoot $nativeStage
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
+}
+
+$collisionManifestRows = @(Import-Csv -LiteralPath $collisionManifest -Delimiter "`t")
+if ($collisionManifestRows.Count -ne 1) {
+    throw "Collision navigation manifest must contain exactly one payload row: $collisionManifest"
+}
+$expectedCollisionHash = ([string]$collisionManifestRows[0].sha256).ToUpperInvariant()
+if (-not (Test-Path -LiteralPath $stagedCollisionNative -PathType Leaf)) {
+    throw "Staged collision navigation native DLL is missing: $stagedCollisionNative"
+}
+$actualCollisionHash = (Get-FileHash -LiteralPath $stagedCollisionNative -Algorithm SHA256).Hash
+if ($actualCollisionHash -ne $expectedCollisionHash) {
+    throw "Staged collision navigation native DLL hash mismatch. Expected $expectedCollisionHash, got $actualCollisionHash."
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
@@ -314,6 +341,7 @@ if (Test-Path -LiteralPath $payloadAddon) {
 Copy-FilteredTree -Source $repoAddonRoot -Destination $payloadAddon -ExcludePatterns @('logs', 'logs\*', '*.boot.log', '*.bak*', '*.tmp')
 Copy-FilteredTree -Source $repoDataRoot -Destination (Join-Path $payloadAddon 'data')
 Copy-FilteredTree -Source $repoSoundsRoot -Destination (Join-Path $payloadAddon 'sounds') -ExcludePatterns @('*.bak*', '*.log', '*.tmp')
+Copy-RequiredFile -Source $stagedCollisionNative -Destination (Join-Path $payloadAddon 'third_party\collision\accessxi_collision_native.dll')
 Copy-FilteredTree -Source $repoNavMeshesRoot -Destination (Join-Path $payloadAddon 'third_party\xiNavmeshes')
 Copy-RequiredFile -Source $repoDatIndex -Destination (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')
 Copy-RequiredFile -Source $repoNavMeshDll -Destination (Join-Path $payloadAddon 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll')
@@ -348,6 +376,8 @@ $manifest = [ordered]@{
     AccessXIStartupScriptHash = Get-OptionalFileHash (Join-Path $payloadAshita 'scripts\default.txt')
     AccessXIReaderHash = Get-OptionalFileHash (Join-Path $payloadAshita 'addons\accessxi_reader\accessxi_reader.lua')
     AccessXIDataHash = Get-OptionalFileHash (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')
+    CollisionNativeHash = Get-OptionalFileHash (Join-Path $payloadAddon 'third_party\collision\accessxi_collision_native.dll')
+    CollisionNativeManifestHash = Get-OptionalFileHash (Join-Path $payloadAddon 'data\collision-native-manifest.tsv')
     AccessXIDatIndexHash = Get-OptionalFileHash (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')
     UltimateAsiLoaderVersion = $ultimateAsiLoaderVersion
     PolAsiLoaderHash = Get-OptionalFileHash (Join-Path $payloadNative 'ddraw.dll')

@@ -5,6 +5,7 @@
 #include "collision_native/rom_resolver.h"
 
 #include <cmath>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -90,6 +91,19 @@ void check_clear_segments(const CollisionWorld& world, const std::vector<Vec3>& 
     }
 }
 
+void check_direct_segments(const CollisionWorld& world, const std::vector<Vec3>& points)
+{
+    CHECK(points.size() >= 2u);
+    for (std::size_t index = 1; index < points.size(); ++index)
+    {
+        CHECK(world.sweep_capsule(
+            points[index - 1u],
+            points[index],
+            0.40f,
+            1.80f).clear);
+    }
+}
+
 void run_synthetic_tests()
 {
     const ParsedZoneMesh mesh = synthetic_detour_mesh(true);
@@ -164,6 +178,35 @@ void run_installed_tomb_test(const fs::path& ffxi_root)
     check_clear_segments(world, path.points);
 }
 
+void run_installed_lathine_query_latency_test(const fs::path& ffxi_root)
+{
+    const auto snapshot = read_stable_snapshot(resolve_zone_model_dat(ffxi_root, 102u));
+    const ParsedZoneMesh mesh = parse_zone_collision(snapshot, 102u);
+    const CollisionWorld world(mesh);
+    const RecastZone zone(mesh, world);
+    const Vec3 galaihaurat{-481.196f, 7.028f, 220.547f};
+
+    // Exact 2026-08-12 automatic start. Terrain construction runs before this
+    // timer. A deployed candidate search blocked the game thread here for
+    // 50.5 seconds; path queries against an already-built zone must stay
+    // bounded. La Theine gameplay now uses the installed full-zone navmesh.
+    const auto query_started = std::chrono::steady_clock::now();
+    const auto initial = zone.find_path(
+        Vec3{-430.056f, -8.357f, 207.719f},
+        galaihaurat,
+        8.0f,
+        512u);
+    const auto query_elapsed = std::chrono::steady_clock::now() - query_started;
+    if (initial.status != PathStatus::ready)
+    {
+        throw std::runtime_error("Installed La Theine initial route failed: " + initial.reason);
+    }
+    CHECK(query_elapsed < std::chrono::seconds(5));
+    CHECK(initial.points.size() >= 2u);
+    CHECK(initial.points.size() <= 512u);
+    check_direct_segments(world, initial.points);
+}
+
 } // namespace
 
 int main(const int argc, char** argv)
@@ -176,6 +219,7 @@ int main(const int argc, char** argv)
         }
         run_synthetic_tests();
         run_installed_tomb_test(fs::path(argv[1]));
+        run_installed_lathine_query_latency_test(fs::path(argv[1]));
         std::cout << "collision Recast tests passed\n";
         return 0;
     }

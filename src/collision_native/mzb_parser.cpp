@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <set>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -201,7 +200,6 @@ void append_geometry(
     }
 
     const std::uint32_t base_vertex = static_cast<std::uint32_t>(result.vertices.size());
-    result.vertices.reserve(result.vertices.size() + vertex_count);
     for (std::size_t index = 0; index < vertex_count; ++index)
     {
         if ((index & 0xffu) == 0u)
@@ -233,7 +231,6 @@ void append_geometry(
         update_bounds(result.bounds, transformed);
     }
 
-    result.triangles.reserve(result.triangles.size() + triangle_count);
     for (std::size_t index = 0; index < triangle_count; ++index)
     {
         if ((index & 0xffu) == 0u)
@@ -300,7 +297,11 @@ void parse_mzb_payload(
     const std::size_t cell_count = columns * rows;
     require_range(bytes, grid_offset, cell_count * sizeof(std::int32_t), "MZB grid");
 
-    std::set<std::pair<std::size_t, std::size_t>> geometry_pairs;
+    // A zone can reference tens of thousands of small geometry instances.
+    // Collect them contiguously, then sort/deduplicate once.  A node-based set
+    // and exact-size reserve before every instance fragmented FFXI's 32-bit
+    // address space and made East Ronfaure end in std::bad_alloc.
+    std::vector<std::pair<std::size_t, std::size_t>> geometry_pairs;
     for (std::size_t cell = 0; cell < cell_count; ++cell)
     {
         if ((cell & 0x3ffu) == 0u)
@@ -358,9 +359,14 @@ void parse_mzb_payload(
             {
                 throw CollisionError("MZB grid geometry pair is outside the buffer.");
             }
-            geometry_pairs.insert(pair);
+            geometry_pairs.push_back(pair);
         }
     }
+
+    std::sort(geometry_pairs.begin(), geometry_pairs.end());
+    geometry_pairs.erase(
+        std::unique(geometry_pairs.begin(), geometry_pairs.end()),
+        geometry_pairs.end());
 
     if (geometry_pairs.empty())
     {

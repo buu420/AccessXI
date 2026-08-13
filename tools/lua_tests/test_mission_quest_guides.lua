@@ -18,6 +18,18 @@ local index = {
         },
         reconcile_module = 'fixture_reconcile_mission_bastok',
     },
+    ['mission:Bastok:99'] = {
+        kind = 'mission',
+        context = 'Bastok',
+        native_id = 99,
+        title = 'Optional Guidance Policy Fixture',
+        status = 'guide',
+        source_modules = {
+            bg = 'fixture_bg_optional_policy',
+            ffxiclopedia = 'fixture_ffxiclopedia_optional_policy',
+        },
+        reconcile_module = 'fixture_reconcile_optional_policy',
+    },
     ['quest:windurst:77'] = {
         kind = 'quest',
         context = 'windurst',
@@ -48,7 +60,7 @@ local modules = {
     fixture_bg_mission_bastok = {
         ['mission:Bastok:2'] = {
             steps = {
-                { order = 1, instruction = 'Talk to Cid in the Metalworks.', action = 'talk' },
+                { order = 1, instruction = 'Talk to Cid in the Metalworks.', action = 'talk', items = { 'Blue Tester' } },
                 { order = 2, instruction = 'BG says use the north geyser.', action = 'wait' },
                 { order = 3, instruction = 'Return to Cid.', action = 'talk' },
             },
@@ -130,6 +142,9 @@ local modules = {
                     comparison = 'corroborated',
                     conflicting_fields = {},
                     action = 'talk',
+                    entities = { 'Cid', 'Metalworks' },
+                    zones = { 'Metalworks' },
+                    grid_coordinates = { 'H-8' },
                     route_ready = true,
                     navigation_target = {
                         type = 'static-reference',
@@ -162,6 +177,36 @@ local modules = {
                 },
             },
         },
+    },
+    fixture_bg_optional_policy = {
+        ['mission:Bastok:99'] = { steps = {
+            { order = 1, instruction = 'Talk to the required mission NPC.', action = 'talk' },
+            { order = 2, instruction = 'Optionally, obtain the Map of Test Cavern from a treasure chest.', action = 'obtain', items = { 'Map of Test Cavern' } },
+            { order = 3, instruction = 'Optional shortcut: use the Survival Guide warp for the fastest route.', action = 'travel' },
+            { order = 4, instruction = 'Precaution: You may want to bring Silent Oil to prevent aggro from funguars.', action = 'obtain' },
+            { order = 5, instruction = 'Optional: talk to the bystander for extra dialogue.', action = 'talk' },
+            { order = 6, instruction = 'Talk to the required field NPC.', action = 'talk' },
+        } },
+    },
+    fixture_ffxiclopedia_optional_policy = {
+        ['mission:Bastok:99'] = { steps = {
+            { order = 1, instruction = 'Talk to the required mission NPC.', action = 'talk' },
+            { order = 2, instruction = 'Optionally, obtain the Map of Test Cavern.', action = 'obtain', items = { 'Map of Test Cavern' } },
+            { order = 3, instruction = 'Optional shortcut: use the Survival Guide warp.', action = 'travel' },
+            { order = 4, instruction = 'Recommended: carry Silent Oil to avoid sound aggro.', action = 'obtain' },
+            { order = 5, instruction = 'Optional non-essential dialogue.', action = 'talk' },
+            { order = 6, instruction = 'Talk to the required field NPC.', action = 'talk' },
+        } },
+    },
+    fixture_reconcile_optional_policy = {
+        ['mission:Bastok:99'] = { steps = {
+            { stable_step_id = 'mission:Bastok:99:step-001', order = 1, source_orders = { 1, 1 }, comparison = 'corroborated', action = 'talk', entities = { 'Required NPC' }, route_ready = false },
+            { stable_step_id = 'mission:Bastok:99:step-002', order = 2, source_orders = { 2, 2 }, comparison = 'corroborated', action = 'obtain', entities = { 'Map of Test Cavern' }, route_ready = false },
+            { stable_step_id = 'mission:Bastok:99:step-003', order = 3, source_orders = { 3, 3 }, comparison = 'corroborated', action = 'travel', entities = { 'Survival Guide' }, route_ready = false },
+            { stable_step_id = 'mission:Bastok:99:step-004', order = 4, source_orders = { 4, 4 }, comparison = 'corroborated', action = 'obtain', entities = { 'Silent Oil', 'funguars' }, route_ready = false },
+            { stable_step_id = 'mission:Bastok:99:step-005', order = 5, source_orders = { 5, 5 }, comparison = 'corroborated', action = 'talk', entities = { 'Bystander' }, route_ready = false },
+            { stable_step_id = 'mission:Bastok:99:step-006', order = 6, source_orders = { 6, 6 }, comparison = 'corroborated', action = 'talk', entities = { 'Required field NPC' }, route_ready = true },
+        } },
     },
     fixture_ffxiclopedia_quest_windurst = {
         ['quest:windurst:77'] = { steps = { { order = 1, instruction = 'Inspect the brazier.', action = 'examine' } } },
@@ -504,6 +549,32 @@ local function isolated_guides()
         manual_path = '',
     })
 end
+local optional_guides = isolated_guides()
+local optional_objective = assert(optional_guides:open('mission:Bastok:99'))
+assert(#optional_objective.steps == 3,
+    'optional maps, side dialogue, and consumable pickups must not become guide steps')
+assert(optional_objective.steps[1].stable_step_id == 'mission:Bastok:99:step-001')
+assert(optional_objective.steps[2].stable_step_id == 'mission:Bastok:99:step-003')
+assert(optional_objective.steps[3].stable_step_id == 'mission:Bastok:99:step-006')
+assert(optional_objective.steps[2].primary_instruction:find('Shortcut.', 1, true) == 1,
+    'an optional travel shortcut must remain visible and be labeled as a shortcut')
+local optional_source_steps = optional_guides:source_route_steps('mission:Bastok:99')
+assert(#optional_source_steps == 6,
+    'filtering the spoken guide must retain the complete source-step record')
+assert(optional_source_steps[2].optional_nonessential == true)
+assert(optional_source_steps[4].route_recommendation == true)
+assert(type(optional_guides.route_recommendations) == 'function',
+    'guide state must expose route-time recommendations separately from objective steps')
+local recommendations = optional_guides:route_recommendations('mission:Bastok:99', 6)
+assert(#recommendations == 1 and recommendations[1].item == 'Silent Oil')
+assert(recommendations[1].instruction
+    == 'Recommended: carry Silent Oil. Use it before entering areas with sound-detecting enemies to avoid aggro.',
+    'Silent Oil must be a route-time use recommendation, not an acquisition objective')
+assert(#optional_guides:route_recommendations('mission:Bastok:99', 5) == 0
+    and #optional_guides:route_recommendations('mission:Bastok:99', 7) == 0,
+    'a route recommendation must be spoken only for its first relevant route segment')
+module_loader_calls = {}
+
 local guides = guide_module.new({
     index = index,
     module_loader = module_loader,
@@ -537,6 +608,18 @@ assert(module_loader_calls[1] == 'fixture_bg_mission_bastok')
 assert(module_loader_calls[2] == 'fixture_ffxiclopedia_mission_bastok')
 assert(module_loader_calls[3] == 'fixture_reconcile_mission_bastok')
 assert(guides:automatic_step_id('mission:Bastok:2', 'obtain-blue-tester') == 'mission:Bastok:2:step-001')
+local source_steps = assert(guides:source_route_steps('mission:Bastok:2'))
+assert(#source_steps == 3 and source_steps[1].entities[1] == 'Cid'
+    and source_steps[1].zones[1] == 'Metalworks'
+    and source_steps[1].grid_coordinates[1] == 'H-8'
+    and source_steps[1].items[1] == 'Blue Tester',
+    'source route steps must preserve the exact reconciled destination facts')
+source_steps[1].entities[1] = 'caller mutation'
+source_steps[1].items[1] = 'caller item mutation'
+assert(guides:source_route_steps('mission:Bastok:2')[1].entities[1] == 'Cid',
+    'source route steps must be deep-copy isolated')
+assert(guides:source_route_steps('mission:Bastok:2')[1].items[1] == 'Blue Tester',
+    'source route item requirements must be deep-copy isolated')
 local destinations = assert(guides:objective_destinations('mission:Bastok:2'))
 assert(#destinations == 2)
 assert(destinations[1].stable_id == 'mission:Bastok:2:palborough-lower-amber')

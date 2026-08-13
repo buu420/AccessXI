@@ -127,6 +127,20 @@ READER_MANIFEST_PIN = re.compile(
     r'^local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "([0-9a-f]{64})";$',
     re.MULTILINE,
 )
+AUDIT_REVIEWED_ZONE_MESH_NAMES = {
+    105: "Batallia_Downs.nav",
+    110: "Rolanberry_Fields.nav",
+    120: "Sauromugue_Champaign.nav",
+    126: "Qufim_Island.nav",
+    195: "The_Eldieme_Necropolis.nav",
+    230: "Southern_San_dOria.nav",
+    231: "Northern_San_dOria.nav",
+    232: "Port_San_dOria.nav",
+    243: "RuLude_Gardens.nav",
+    244: "Upper_Jeuno.nav",
+    245: "Lower_Jeuno.nav",
+    246: "Port_Jeuno.nav",
+}
 
 
 class AuditInputError(ValueError):
@@ -380,13 +394,12 @@ def _contract_matches_candidate(
         and local_leg.get("action_id") == candidate.get("action_id")
         and local_leg.get("group_id") == candidate.get("group_id", "")
         and contract.get("contract_id") == "route:v2:" + _canonical_sha256(identity)
-        and isinstance(prefix, Sequence)
-        and not isinstance(prefix, (str, bytes, bytearray))
-        and len(prefix) > 0
-        and all(_positive_integer(edge_id) for edge_id in prefix)
+        and isinstance(prefix, list)
+        and len(prefix) == 1
+        and _positive_integer(prefix[0])
         and leg.get("zone") == candidate.get("zone")
         and leg.get("destination_id") == candidate.get("destination_id")
-        and leg.get("zoneline_id") == prefix[-1]
+        and leg.get("zoneline_id") == prefix[0]
     )
 
 
@@ -1293,18 +1306,18 @@ def audit_artifacts(
                     continue
                 target_evidence_by_native[native_key] += 1
                 contracts = exact_contracts_by_candidate.get(candidate_id, [])
-                if len(contracts) != 1:
+                if not contracts:
                     all_current = False
                     _issue(
                         issues,
                         "candidate-contract-missing",
                         native_key=native_key,
                         stable_step_id=stable_step_id,
-                        message=f"Candidate {candidate_id} lacks one exact current runtime contract.",
+                        message=f"Candidate {candidate_id} lacks a current runtime contract.",
                     )
                 else:
                     same_zone_by_native[native_key] += 1
-                    if contracts[0].get("authorized_directed_prefix"):
+                    if any(contract.get("authorized_directed_prefix") for contract in contracts):
                         cross_zone_by_native[native_key] += 1
             if material is not True or not candidate_ids or not candidate_complete:
                 _issue(
@@ -1608,6 +1621,118 @@ def _read_reconciled_step_ids(module_root: Path) -> list[str]:
     return values
 
 
+def _audit_required_route_mesh_names(
+    *,
+    contracts: Sequence[Mapping[str, Any]],
+    catalogue: Mapping[str, Any],
+    third_party_root: Path,
+) -> dict[int, str]:
+    ingresses = catalogue.get("ingresses")
+    if not isinstance(ingresses, Sequence):
+        raise AuditInputError("Current objective graph rows are unavailable.")
+    ingress_by_id: dict[int, Mapping[str, Any]] = {}
+    predecessors: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
+    zone_names: dict[int, set[str]] = defaultdict(set)
+    for row in ingresses:
+        if not isinstance(row, Mapping):
+            raise AuditInputError("Current objective graph contains a malformed row.")
+        zoneline_id = row.get("zoneline_id")
+        from_zone = row.get("from_zone")
+        to_zone = row.get("to_zone")
+        if (
+            isinstance(zoneline_id, bool)
+            or not isinstance(zoneline_id, int)
+            or zoneline_id < 0
+            or zoneline_id in ingress_by_id
+            or isinstance(from_zone, bool)
+            or not isinstance(from_zone, int)
+            or from_zone < 0
+            or isinstance(to_zone, bool)
+            or not isinstance(to_zone, int)
+            or to_zone < 0
+        ):
+            raise AuditInputError("Current objective graph identity is malformed or duplicated.")
+        ingress_by_id[zoneline_id] = row
+        zone_names[from_zone].add(_text(row.get("from_name")).strip())
+        zone_names[to_zone].add(_text(row.get("to_name")).strip())
+        if _text(row.get("confidence")).casefold() == "proven":
+            predecessors[to_zone].append(row)
+
+    required_zones: set[int] = set()
+    for contract in contracts:
+        if not isinstance(contract, Mapping):
+            raise AuditInputError("Generated route contracts contain a malformed row.")
+        prefix = contract.get("authorized_directed_prefix")
+        local_leg = contract.get("local_leg")
+        leg = local_leg.get("leg") if isinstance(local_leg, Mapping) else None
+        local_ingress_id = leg.get("zoneline_id") if isinstance(leg, Mapping) else None
+        if (
+            not isinstance(prefix, list)
+            or len(prefix) != 1
+            or isinstance(prefix[0], bool)
+            or not isinstance(prefix[0], int)
+            or prefix[0] < 0
+            or isinstance(local_ingress_id, bool)
+            or not isinstance(local_ingress_id, int)
+            or prefix[0] != local_ingress_id
+        ):
+            raise AuditInputError(
+                "A route:v2 contract directed prefix must equal its one local ingress."
+            )
+        ingress = ingress_by_id.get(local_ingress_id)
+        zone = contract.get("zone")
+        if (
+            ingress is None
+            or isinstance(zone, bool)
+            or not isinstance(zone, int)
+            or zone < 0
+            or _text(ingress.get("confidence")).casefold() != "proven"
+            or ingress.get("to_zone") != zone
+            or ingress.get("from_zone") == zone
+        ):
+            raise AuditInputError(
+                "A route:v2 contract local ingress is not one exact proven target edge."
+            )
+        required_zones.add(zone)
+        entry_zone = int(ingress["from_zone"])
+        queue = [entry_zone]
+        visited = {entry_zone}
+        head = 0
+        while head < len(queue):
+            current_zone = queue[head]
+            head += 1
+            for predecessor in predecessors.get(current_zone, ()):
+                predecessor_zone = int(predecessor["from_zone"])
+                if predecessor_zone not in visited:
+                    visited.add(predecessor_zone)
+                    queue.append(predecessor_zone)
+        required_zones.update(visited)
+
+    mesh_root = third_party_root / "xiNavmeshes"
+    if contracts and not mesh_root.is_dir():
+        raise AuditInputError(f"Current objective mesh directory is missing: {mesh_root}")
+    result: dict[int, str] = {}
+    available = tuple(mesh_root.glob("*.nav")) if mesh_root.is_dir() else ()
+    for zone in sorted(required_zones):
+        names = zone_names.get(zone, set())
+        if len(names) != 1 or not next(iter(names), ""):
+            raise AuditInputError(
+                f"Required objective zone {zone} has conflicting current graph names."
+            )
+        zone_name = next(iter(names))
+        expected_name = AUDIT_REVIEWED_ZONE_MESH_NAMES.get(
+            zone, zone_name.replace(" ", "_") + ".nav"
+        )
+        allowed = {expected_name.casefold(), f"{zone}.nav".casefold()}
+        matches = sorted(path.name for path in available if path.name.casefold() in allowed)
+        if len(matches) != 1:
+            raise AuditInputError(
+                f"Required objective zone {zone} has {len(matches)} exact current mesh files."
+            )
+        result[zone] = matches[0]
+    return result
+
+
 def _read_current_route_inputs(
     *,
     repo_root: Path,
@@ -1615,8 +1740,6 @@ def _read_current_route_inputs(
     guide_data_root: Path,
     contracts: Sequence[Mapping[str, Any]],
 ) -> Mapping[str, Mapping[str, Any]]:
-    if not contracts:
-        return {}
     from tools.objective_guides import route_evidence
 
     manifest_path = addon_root / "data" / "mission-quest-route-manifest.tsv"
@@ -1630,7 +1753,7 @@ def _read_current_route_inputs(
     if missing_fixed:
         raise AuditInputError(f"Current route manifest omits required children: {missing_fixed}.")
     if MANIFEST_RUNTIME_PATH not in manifest_by_path:
-        raise AuditInputError("Current contracts require the Task 5 route runtime manifest child.")
+        raise AuditInputError("Current objective root requires the Task 5 route runtime child.")
     mesh_rows: list[dict[str, str]] = []
     for row in manifest_rows:
         relative_path = row["relative_path"]
@@ -1644,8 +1767,8 @@ def _read_current_route_inputs(
         elif relative_path.startswith("third_party/xiNavmeshes/"):
             if (
                 row["kind"] != "mesh"
-                or not row["zone"].isdigit()
-                or int(row["zone"]) <= 0
+                or re.fullmatch(r"(?:0|[1-9][0-9]*)", row["zone"]) is None
+                or int(row["zone"]) < 0
                 or not row["mesh_name"]
                 or Path(relative_path).name.casefold() != row["mesh_name"].casefold()
             ):
@@ -1678,12 +1801,15 @@ def _read_current_route_inputs(
 
     zone_mesh_names: dict[str, str] = {}
     mesh_hashes: dict[str, str] = {}
+    mesh_rows_by_zone: dict[int, dict[str, str]] = {}
     for row in mesh_rows:
         zone = row["zone"]
-        if zone in zone_mesh_names:
-            raise AuditInputError(f"Route manifest maps zone {zone} to multiple meshes.")
+        zone_id = int(zone)
+        if zone_id in mesh_rows_by_zone:
+            raise AuditInputError(f"Route manifest maps zone {zone_id} to multiple meshes.")
         zone_mesh_names[zone] = row["mesh_name"]
         mesh_hashes[zone] = row["sha256"]
+        mesh_rows_by_zone[zone_id] = row
 
     try:
         policy = route_evidence.load_policy(guide_data_root / "route-proof-policy.json")
@@ -1742,6 +1868,160 @@ def _read_current_route_inputs(
         raise AuditInputError(f"Generated route transition authorization is stale: {error}") from error
     if generated_transitions != expected_transitions:
         raise AuditInputError("Generated route transitions are not the canonical current semantics.")
+
+    try:
+        transition_evidence_payload = (
+            guide_data_root / "route-transition-evidence-v2.jsonl"
+        ).read_bytes()
+        transition_evidence_rows = route_evidence._parse_transition_evidence_bytes(
+            transition_evidence_payload,
+            source="audit route-transition-evidence-v2.jsonl",
+        )
+        transition_state = route_evidence._current_transition_state(
+            definitions=transition_definitions,
+            authorized=tuple(generated_authorized),
+            evidence_rows=transition_evidence_rows,
+            ingresses=catalogue["ingresses"],
+            policy=policy,
+            transition_registry_sha256=transition_digest,
+            ffxinav_sha256=manifest_by_path[
+                "third_party/FFXI-NavMesh-Builder/FFXINAV.dll"
+            ]["sha256"],
+            destinations_sha256=catalogue["destinations_sha256"],
+            graph_sha256=catalogue["graph_sha256"],
+            third_party_root=repo_root / "third_party",
+            strict_authorized=True,
+        )
+    except (OSError, route_evidence.RouteEvidenceError) as error:
+        message = str(error)
+        if "ambiguous transition equivalence" in message:
+            raise AuditInputError(message) from error
+        if "transition equivalence" in message:
+            raise AuditInputError(message) from error
+        if "objective prefix mesh" in message:
+            match = re.search(r"zone ([0-9]+)", message)
+            missing = [int(match.group(1))] if match else []
+            raise AuditInputError(
+                "Route manifest mesh set differs from current objective contracts; "
+                f"missing={missing}, extra=[]."
+            ) from error
+        raise AuditInputError(f"transition trust root is stale: {message}") from error
+
+    # Reconstruct each target-local base contract, then independently rerun the
+    # rooted prefix enrichment. This prevents generated contract refs from
+    # serving as their own authorization oracle.
+    expected_contracts_list: list[dict[str, Any]] = []
+    exact_required_zones: set[int] = set()
+    for source_contract in contracts:
+        contract = json.loads(json.dumps(source_contract))
+        required = contract.get("required_transition_ids")
+        proof_refs = contract.get("transition_evidence_ids")
+        if not isinstance(required, list) or not isinstance(proof_refs, list):
+            raise AuditInputError("contract transition ownership fields are malformed")
+        if required != sorted(set(required)) or proof_refs != sorted(set(proof_refs)):
+            raise AuditInputError("transition trust root contract refs are not canonical")
+        expected_raw_proofs: list[str] = []
+        for transition_id in required:
+            definition = transition_state["current_by_id"].get(transition_id)
+            proof = transition_state["proof_by_id"].get(transition_id)
+            if (
+                definition is None
+                or proof is None
+                or transition_id not in transition_state["authorized_by_id"]
+            ):
+                raise AuditInputError("transition trust root contract ref is not current")
+            equivalence = transition_state["equivalence_by_id"].get(transition_id)
+            if equivalence and not equivalence[1]:
+                raise AuditInputError(
+                    "transition equivalence cannot promote an untested graph edge"
+                )
+            expected_raw_proofs.append(str(proof["transition_evidence_id"]))
+        if proof_refs != sorted(expected_raw_proofs):
+            raise AuditInputError("transition trust root contract proof refs differ")
+        remove_ids = {
+            transition_id
+            for transition_id in required
+            if (
+                transition_state["equivalence_by_id"].get(transition_id)
+                and transition_state["equivalence_by_id"][transition_id][1]
+            )
+        }
+        remove_proofs = {
+            str(transition_state["proof_by_id"][transition_id]["transition_evidence_id"])
+            for transition_id in remove_ids
+            if transition_id in transition_state["proof_by_id"]
+        }
+        contract["required_transition_ids"] = sorted(
+            transition_id for transition_id in required if transition_id not in remove_ids
+        )
+        contract["transition_evidence_ids"] = sorted(
+            proof_id for proof_id in proof_refs if proof_id not in remove_proofs
+        )
+        try:
+            contract["contract_id"] = route_evidence._route_contract_identity(contract)
+        except route_evidence.RouteEvidenceError as error:
+            raise AuditInputError(f"contract transition ownership is malformed: {error}") from error
+        owned_ids = set(required)
+        owned_state = dict(transition_state)
+        owned_state["equivalent_by_edge"] = {
+            edge_id: definition
+            for edge_id, definition in transition_state["equivalent_by_edge"].items()
+            if str(definition.get("transition_id", "")) in owned_ids
+        }
+        try:
+            rows, zones = route_evidence._enrich_objective_prefix_contracts(
+                (contract,), catalogue["ingresses"], owned_state
+            )
+        except route_evidence.RouteEvidenceError as error:
+            message = str(error)
+            if "transition trust root" in message:
+                raise AuditInputError(message) from error
+            raise AuditInputError(f"contract transition ownership is stale: {message}") from error
+        expected_contracts_list.extend(rows)
+        exact_required_zones.update(zones)
+    expected_contracts = tuple(
+        sorted(expected_contracts_list, key=lambda row: str(row.get("contract_id", "")))
+    )
+    actual_contracts = tuple(sorted(
+        (json.loads(json.dumps(row)) for row in contracts),
+        key=lambda row: str(row.get("contract_id", "")),
+    ))
+    normalized_expected_contracts = tuple(
+        json.loads(json.dumps(row)) for row in expected_contracts
+    )
+    if actual_contracts != normalized_expected_contracts:
+        raise AuditInputError(
+            "contract transition ownership differs from current proof-backed graph closure"
+        )
+
+    try:
+        required_mesh_names = route_evidence._discover_objective_route_mesh_names(
+            contracts=expected_contracts,
+            ingresses=catalogue["ingresses"],
+            third_party_root=repo_root / "third_party",
+            exact_required_zones=exact_required_zones,
+        )
+    except route_evidence.RouteEvidenceError as error:
+        raise AuditInputError(f"objective prefix mesh is unavailable: {error}") from error
+    actual_zones = set(mesh_rows_by_zone)
+    required_zones = set(required_mesh_names)
+    if actual_zones != required_zones:
+        raise AuditInputError(
+            "Route manifest mesh set differs from current objective contracts; "
+            f"missing={sorted(required_zones - actual_zones)}, "
+            f"extra={sorted(actual_zones - required_zones)}."
+        )
+    for zone, mesh_name in sorted(required_mesh_names.items()):
+        row = mesh_rows_by_zone[zone]
+        expected_path = f"third_party/xiNavmeshes/{mesh_name}"
+        if (
+            row["relative_path"] != expected_path
+            or row["mesh_name"] != mesh_name
+            or row["zone"] != str(zone)
+        ):
+            raise AuditInputError(
+                f"Route manifest mesh mapping for zone {zone} differs from current graph identity."
+            )
 
     destination_hashes = {
         str(row.get("destination_id")): route_evidence.destination_row_sha256(row)

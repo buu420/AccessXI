@@ -106,8 +106,8 @@ POLICY_LITERAL = {
 
 DLL_HASH = "beff93f959e4b7e5024b4c3c67edbeedf3c5e409e4375bcb83830511176437b3"
 MESH_HASH = "2f279fabe671bd84de510001392e2815fd0da54b5cadd80de80b9c747ca3fe85"
-REAL_DESTINATIONS_HASH = "842b4242d82754b2cb87a1fbcbcee3e05ad4028aa274c1ef807b07b1d579b8dd"
-REAL_GRAPH_HASH = "4f4bf42553912a6828f664a8c8e313ee8e94838f655b3eef23631f3228659e8e"
+REAL_DESTINATIONS_HASH = "d0fddbe282c6970ca4e3200bd41ac399458050246f0a9bc26beb80a13f08bff7"
+REAL_GRAPH_HASH = "8b982f867acc527069dd92d9a2ac8a54e65952aa9c2733426af15870d23b3206"
 TRANSITIONS_HASH = "1" * 64
 
 DESTINATION_HEADER = b"# AccessXI route-evidence fixture.\n"
@@ -2343,6 +2343,11 @@ class RuntimeManifestTests(RouteEvidenceTestCase):
         header = b"relative_path\tsha256\tkind\tzone\tmesh_name\n"
         valid_a = b"modules/a.lua\t" + (b"a" * 64) + b"\tmodule\t\t\n"
         valid_b = b"modules/b.lua\t" + (b"b" * 64) + b"\tmodule\t\t\n"
+        mesh_230 = (
+            b"third_party/xiNavmeshes/Southern_San_dOria.nav\t"
+            + (b"c" * 64)
+            + b"\tmesh\t230\tSouthern_San_dOria.nav\n"
+        )
         malformed = (
             header + valid_b + valid_a,
             header + valid_a + valid_a,
@@ -2350,6 +2355,21 @@ class RuntimeManifestTests(RouteEvidenceTestCase):
             header + b"modules/a.lua\t" + (b"a" * 64) + b"\tmodule\textra\tfields\textra\n",
             b"\xef\xbb\xbf" + header + valid_a,
             header + valid_a.rstrip(b"\n"),
+            header
+            + b"third_party/xiNavmeshes/000.nav\t"
+            + (b"d" * 64)
+            + b"\tmesh\t0230\t000.nav\n"
+            + mesh_230,
+            header
+            + b"third_party/xiNavmeshes/001.nav\t"
+            + (b"e" * 64)
+            + "\tmesh\t٠٢٣٠\t001.nav\n".encode("utf-8")
+            + mesh_230,
+            header
+            + b"third_party/xiNavmeshes/002.nav\t"
+            + (b"f" * 64)
+            + b"\tmesh\t230\t002.nav\n"
+            + mesh_230,
         )
         for payload in malformed:
             with self.subTest(payload=payload), self.assertRaises(routes.RouteEvidenceError):
@@ -2481,6 +2501,1105 @@ class RuntimeManifestTests(RouteEvidenceTestCase):
 
 
 class RouteArtifactGenerationTests(RouteEvidenceTestCase):
+    def cross_zone_writer_fixture(
+        self, root: Path, *, conflicting_zone_name: bool = False
+    ) -> dict:
+        routes = self.routes()
+        prefix_row = (
+            b"10\t100\tFixture Start\tfixture\t11.000\t22.000\t-3.000\t106\t"
+            b"North Gustaberg\tfixture\t10.000\t10.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        two_hop_row = (
+            b"9\t900\tTwo Hop Start\tfixture\t31.000\t32.000\t-3.000\t100\t"
+            b"Fixture Start\tfixture\t30.000\t30.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        alternate_row = (
+            b"11\t901\tAlternate Start\tfixture\t41.000\t42.000\t-3.000\t106\t"
+            b"North Gustaberg\tfixture\t40.000\t40.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        cycle_into_alternate = (
+            b"12\t902\tCycle Start\tfixture\t51.000\t52.000\t-3.000\t901\t"
+            b"Alternate Start\tfixture\t50.000\t50.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        alternate_back_to_cycle = (
+            b"13\t901\tAlternate Start\tfixture\t61.000\t62.000\t-3.000\t902\t"
+            b"Cycle Start\tfixture\t60.000\t60.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        second_contract_predecessor = (
+            b"14\t903\tSecond Contract Start\tfixture\t71.000\t72.000\t-3.000\t107\t"
+            b"South Gustaberg\tfixture\t70.000\t70.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        unrelated_row = (
+            b"90\t200\tUnrelated Start\tfixture\t1.000\t2.000\t3.000\t201\t"
+            b"Unrelated End\tfixture\t4.000\t5.000\t6.000\tfixture-live-walk\tproven\t\n"
+        )
+        unproven_row = (
+            b"91\t300\tUnproven Start\tfixture\t1.000\t2.000\t3.000\t100\t"
+            b"Fixture Start\tfixture\t4.000\t5.000\t6.000\tfixture-static\tuntested\t\n"
+        )
+        observed_row = (
+            b"92\t905\tObserved Start\tfixture\t1.000\t2.000\t3.000\t100\t"
+            b"Fixture Start\tfixture\t4.000\t5.000\t6.000\tfixture-observed\tobserved\t\n"
+        )
+        borrowed_transition_row = (
+            b"94\t906\tBorrowed Transition\tfixture\t1.000\t2.000\t3.000\t107\t"
+            b"South Gustaberg\tfixture\t4.000\t5.000\t6.000\tfixture-observed\tobserved\t\n"
+        )
+        unselected_target_ingress = (
+            b"93\t904\tUnselected Start\tfixture\t91.000\t92.000\t-3.000\t143\t"
+            b"Palborough Mines\tfixture\t90.000\t90.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        conflicting_row = (
+            b"15\t100\tConflicting Fixture Name\tfixture\t81.000\t82.000\t-3.000\t901\t"
+            b"Alternate Start\tfixture\t80.000\t80.000\t0.000\tfixture-live-walk\tproven\t\n"
+            if conflicting_zone_name else b""
+        )
+        graph_payload = (
+            GRAPH_HEADER
+            + two_hop_row
+            + prefix_row
+            + alternate_row
+            + cycle_into_alternate
+            + alternate_back_to_cycle
+            + second_contract_predecessor
+            + INGRESS_ROW
+            + SECOND_INGRESS_ROW
+            + unrelated_row
+            + unproven_row
+            + observed_row
+            + borrowed_transition_row
+            + unselected_target_ingress
+            + conflicting_row
+        )
+        catalogue = routes.load_route_catalogue_bytes(
+            DESTINATION_TSV,
+            graph_payload,
+            destination_source="fixture/destinations.tsv",
+            graph_source="fixture/cross-zone-graph.tsv",
+        )
+        destination = next(
+            row for row in catalogue["destinations"]
+            if row["destination_id"] == CANDIDATE["destination_id"]
+        )
+        ingress = next(
+            row for row in catalogue["ingresses"]
+            if row["zoneline_id"] == INGRESS_LITERAL["zoneline_id"]
+        )
+        second_ingress = next(
+            row for row in catalogue["ingresses"]
+            if row["zoneline_id"] == SECOND_INGRESS_LITERAL["zoneline_id"]
+        )
+
+        repository = root / "repo"
+        addon = repository / "ashita" / "addons" / "accessxi_reader"
+        modules = addon / "modules"
+        addon_data = addon / "data"
+        modules.mkdir(parents=True)
+        addon_data.mkdir()
+        (addon_data / "ffxi-nav-destinations.tsv").write_bytes(DESTINATION_TSV)
+        (addon_data / "ffxi-nav-zoneline-graph.tsv").write_bytes(graph_payload)
+        (modules / "mission_quest_route_runtime.lua").write_text(
+            "return {}\n", encoding="utf-8", newline="\n"
+        )
+        transition_root = repository / "data" / "mission-quest-guides"
+        transition_root.mkdir(parents=True)
+        transition_payload = b'{"schema_version":2,"transitions":[]}\n'
+        (transition_root / "route-transitions.json").write_bytes(transition_payload)
+        (transition_root / "route-transition-evidence-v2.jsonl").write_bytes(b"")
+
+        dependencies = repository / "third_party"
+        source_dependencies = REPO_ROOT / "third_party"
+        dll_payload = (
+            source_dependencies / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
+        ).read_bytes()
+        target_mesh_payload = (
+            source_dependencies / "xiNavmeshes" / "Palborough_Mines.nav"
+        ).read_bytes()
+        dll = dependencies / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
+        meshes = dependencies / "xiNavmeshes"
+        dll.parent.mkdir(parents=True)
+        meshes.mkdir(parents=True)
+        dll.write_bytes(dll_payload)
+        (meshes / "Fixture_Start.nav").write_bytes(b"zone 100 exact prefix mesh")
+        (meshes / "North_Gustaberg.nav").write_bytes(b"zone 106 exact ingress mesh")
+        (meshes / "South_Gustaberg.nav").write_bytes(b"zone 107 second contract ingress mesh")
+        (meshes / "Palborough_Mines.nav").write_bytes(target_mesh_payload)
+        (meshes / "Two_Hop_Start.nav").write_bytes(b"zone 900 two hop prefix mesh")
+        (meshes / "Alternate_Start.nav").write_bytes(b"zone 901 alternate prefix mesh")
+        (meshes / "Cycle_Start.nav").write_bytes(b"zone 902 cycle prefix mesh")
+        (meshes / "Second_Contract_Start.nav").write_bytes(b"zone 903 second contract prefix mesh")
+        (meshes / "Unselected_Start.nav").write_bytes(b"zone 904 unselected target ingress mesh")
+        (meshes / "Observed_Start.nav").write_bytes(b"zone 905 observed predecessor mesh")
+        (meshes / "Borrowed_Transition.nav").write_bytes(
+            b"zone 906 transition owned by another contract"
+        )
+        (meshes / "Unproven_Start.nav").write_bytes(b"zone 300 unproven predecessor mesh")
+        (meshes / "Unrelated_Start.nav").write_bytes(b"zone 200 unrelated mesh")
+
+        current = self.current_inputs()
+        current.update(
+            {
+                "ffxinav_sha256": hashlib.sha256(dll_payload).hexdigest(),
+                "mesh_sha256": hashlib.sha256(target_mesh_payload).hexdigest(),
+                "transition_registry_sha256": hashlib.sha256(transition_payload).hexdigest(),
+                "destinations_sha256": catalogue["destinations_sha256"],
+                "graph_sha256": catalogue["graph_sha256"],
+                "destination_row_sha256_by_id": {
+                    row["destination_id"]: routes.destination_row_sha256(row)
+                    for row in catalogue["destinations"]
+                },
+                "ingress_row_sha256_by_id": {
+                    str(row["zoneline_id"]): routes.ingress_row_sha256(row)
+                    for row in catalogue["ingresses"]
+                },
+                "zone_mesh_name_by_zone": {"143": "Palborough_Mines.nav"},
+            }
+        )
+        request = self.request()
+        observation = routes.classify_probe_observation(
+            request, _response(), self.policy()
+        )
+        evidence = routes.bind_local_leg_evidence(
+            candidate=copy.deepcopy(CANDIDATE),
+            destination=destination,
+            ingress=ingress,
+            request=request,
+            observation=observation,
+            current_inputs=current,
+            required_transition_ids=(),
+            policy=self.policy(),
+        )
+        second_start = {
+            "x": second_ingress["to_x"],
+            "z": second_ingress["to_z"],
+            "y": second_ingress["to_y"],
+        }
+        second_end = {
+            "x": destination["x"],
+            "z": destination["z"],
+            "y": destination["y"],
+        }
+        second_request = self.request(
+            "leg-2", start=second_start, end=second_end
+        )
+        second_waypoints = [
+            {**second_start, "clearance": 1.0},
+            {**second_end, "clearance": 1.0},
+        ]
+        second_response = _response(
+            "leg-2",
+            waypoints=second_waypoints,
+            waypoint_count=2,
+            path_length=routes.polyline_length(second_waypoints),
+            minimum_waypoint_clearance=1.0,
+        )
+        second_observation = routes.classify_probe_observation(
+            second_request, second_response, self.policy()
+        )
+        second_evidence = routes.bind_local_leg_evidence(
+            candidate=copy.deepcopy(CANDIDATE),
+            destination=destination,
+            ingress=second_ingress,
+            request=second_request,
+            observation=second_observation,
+            current_inputs=current,
+            required_transition_ids=(),
+            policy=self.policy(),
+        )
+        contracts, unresolved = routes.build_route_contracts(
+            candidates=(copy.deepcopy(CANDIDATE),),
+            destinations=catalogue["destinations"],
+            ingresses=catalogue["ingresses"],
+            evidence=(evidence, second_evidence),
+            transition_definitions=(),
+            transition_evidence=(),
+            current_inputs=current,
+            policy=self.policy(),
+        )
+        self.assertEqual(unresolved, ())
+        self.assertEqual(len(contracts), 2)
+        return {
+            "repo": repository,
+            "addon": addon,
+            "dependencies": dependencies,
+            "meshes": meshes,
+            "contracts": contracts,
+            "graph_payload": graph_payload,
+        }
+
+    def test_writer_roots_only_exact_objective_bfs_prefix_meshes_deterministically(self) -> None:
+        routes = self.routes()
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            first = routes.write_route_runtime_artifacts(
+                repo_root=fixture["repo"],
+                third_party_root=fixture["dependencies"],
+                policy=self.policy(),
+                contracts=fixture["contracts"],
+                transitions=(),
+                runtime_ready=True,
+            )
+            manifest_path = (
+                fixture["addon"] / "data" / "mission-quest-route-manifest.tsv"
+            )
+            first_manifest = manifest_path.read_bytes()
+            first_modules = {
+                path.name: path.read_bytes()
+                for path in (fixture["addon"] / "modules").glob("mission_quest_route_*.lua")
+            }
+            second = routes.write_route_runtime_artifacts(
+                repo_root=fixture["repo"],
+                third_party_root=fixture["dependencies"],
+                policy=self.policy(),
+                contracts=tuple(reversed(fixture["contracts"])),
+                transitions=(),
+                runtime_ready=True,
+            )
+            self.assertEqual(first, second)
+            self.assertEqual(first_manifest, manifest_path.read_bytes())
+            self.assertEqual(
+                first_modules,
+                {
+                    path.name: path.read_bytes()
+                    for path in (fixture["addon"] / "modules").glob("mission_quest_route_*.lua")
+                },
+            )
+            self.assertEqual(
+                first["referenced_meshes"],
+                (
+                    {"zone": 100, "mesh_name": "Fixture_Start.nav"},
+                    {"zone": 106, "mesh_name": "North_Gustaberg.nav"},
+                    {"zone": 107, "mesh_name": "South_Gustaberg.nav"},
+                    {"zone": 143, "mesh_name": "Palborough_Mines.nav"},
+                    {"zone": 900, "mesh_name": "Two_Hop_Start.nav"},
+                    {"zone": 901, "mesh_name": "Alternate_Start.nav"},
+                    {"zone": 902, "mesh_name": "Cycle_Start.nav"},
+                    {"zone": 903, "mesh_name": "Second_Contract_Start.nav"},
+                ),
+            )
+            rows = routes.parse_runtime_manifest(first_manifest)
+            mesh_rows = tuple(row for row in rows if row["kind"] == "mesh")
+            self.assertEqual(
+                tuple(
+                    sorted(
+                        (int(row["zone"]), row["mesh_name"])
+                        for row in mesh_rows
+                    )
+                ),
+                (
+                    (100, "Fixture_Start.nav"),
+                    (106, "North_Gustaberg.nav"),
+                    (107, "South_Gustaberg.nav"),
+                    (143, "Palborough_Mines.nav"),
+                    (900, "Two_Hop_Start.nav"),
+                    (901, "Alternate_Start.nav"),
+                    (902, "Cycle_Start.nav"),
+                    (903, "Second_Contract_Start.nav"),
+                ),
+            )
+            self.assertNotIn(b"Unrelated_Start.nav", first_manifest)
+            self.assertNotIn(b"Unproven_Start.nav", first_manifest)
+            self.assertNotIn(b"Observed_Start.nav", first_manifest)
+            self.assertNotIn(b"Unselected_Start.nav", first_manifest)
+            for row in mesh_rows:
+                source = fixture["meshes"] / row["mesh_name"]
+                self.assertEqual(row["sha256"], hashlib.sha256(source.read_bytes()).hexdigest())
+
+    def test_writer_roots_transition_equivalent_predecessor_only_for_exact_current_owner(self) -> None:
+        routes = self.routes()
+
+        def definition(
+            transition_id: str,
+            *,
+            edge_id: int,
+            from_zone: int,
+            to_zone: int,
+            direction: str = "forward",
+            reviewed: bool = True,
+            zone: int | None = None,
+        ) -> dict:
+            return {
+                "transition_id": transition_id,
+                "base_id": transition_id.rsplit(":", 1)[0],
+                "zone": from_zone if zone is None else zone,
+                "direction": direction,
+                "from_zone": from_zone,
+                "to_zone": to_zone,
+                "equivalent_zoneline_id": edge_id,
+                "reviewed": reviewed,
+                "pre_anchor": {"x": 1.0, "z": 2.0, "y": 3.0},
+                "post_anchor": {"x": 4.0, "z": 5.0, "y": 6.0},
+                "interaction": {"kind": "fixture", "identity": transition_id},
+                "expected_live_state": "fixture-zone-change",
+                "timeout_seconds": 45,
+                "cancellation": ["timeout", "player-left-zone"],
+                "required_destination_ids": [],
+            }
+
+        def proof(
+            fixture: dict,
+            row: dict,
+            *,
+            registry_hash: str,
+            mesh_name: str,
+        ) -> dict:
+            inputs = {
+                "policy_sha256": routes.policy_sha256(self.policy()),
+                "transition_registry_sha256": registry_hash,
+                "mesh_sha256": hashlib.sha256(
+                    (fixture["meshes"] / mesh_name).read_bytes()
+                ).hexdigest(),
+                "ffxinav_sha256": hashlib.sha256(
+                    (
+                        fixture["dependencies"]
+                        / "FFXI-NavMesh-Builder"
+                        / "FFXINAV.dll"
+                    ).read_bytes()
+                ).hexdigest(),
+                "destinations_sha256": hashlib.sha256(
+                    (
+                        fixture["addon"] / "data" / "ffxi-nav-destinations.tsv"
+                    ).read_bytes()
+                ).hexdigest(),
+                "graph_sha256": hashlib.sha256(
+                    (
+                        fixture["addon"] / "data" / "ffxi-nav-zoneline-graph.tsv"
+                    ).read_bytes()
+                ).hexdigest(),
+            }
+            evidence = {
+                "schema": 2,
+                "transition_evidence_id": "",
+                "transition_id": row["transition_id"],
+                "status": "transition-proven",
+                "direction": row["direction"],
+                "zone": row["zone"],
+                "pre_anchor": copy.deepcopy(row["pre_anchor"]),
+                "post_anchor": copy.deepcopy(row["post_anchor"]),
+                "interaction": copy.deepcopy(row["interaction"]),
+                "observed_live_state": row["expected_live_state"],
+                "timeout_seconds": row["timeout_seconds"],
+                "timeout_result": "bounded-success",
+                "cancellation_observed": copy.deepcopy(row["cancellation"]),
+                "trace": {"source": "fixture.log:1-2", "sha256": "d" * 64},
+                "inputs": inputs,
+            }
+            evidence["transition_evidence_id"] = routes.transition_evidence_id(evidence)
+            return evidence
+
+        def refresh_contract_identity(contract: dict) -> None:
+            physical_key = routes.physical_leg_reuse_key(contract["local_leg"])
+            contract["local_leg"]["evidence_id"] = "mesh:v2:" + physical_key
+            identity = {
+                "candidate_id": contract["candidate_id"],
+                "action_id": contract["action_id"],
+                "group_id": contract["group_id"],
+                "physical_leg_key": physical_key,
+                "transition_evidence_ids": contract["transition_evidence_ids"],
+            }
+            contract["contract_id"] = "route:v2:" + hashlib.sha256(
+                routes._canonical_json(identity)
+            ).hexdigest()
+
+        def stage_transition_root(
+            fixture: dict,
+            definitions: tuple[dict, ...],
+            *,
+            authorized_ids: tuple[str, ...],
+            owning_ids: tuple[str, ...],
+            proof_rows: tuple[dict, ...] | None = None,
+            proof_mesh_names: dict[str, str] | None = None,
+        ) -> tuple[tuple[dict, ...], tuple[dict, ...], tuple[dict, ...]]:
+            registry = (
+                json.dumps(
+                    {"schema_version": 2, "transitions": list(definitions)},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode("utf-8")
+            source_root = fixture["repo"] / "data" / "mission-quest-guides"
+            (source_root / "route-transitions.json").write_bytes(registry)
+            registry_hash = hashlib.sha256(registry).hexdigest()
+            definition_by_id = {row["transition_id"]: row for row in definitions}
+            if proof_rows is None:
+                names = proof_mesh_names or {
+                    "observed-predecessor:forward": "Observed_Start.nav",
+                    "borrowed-predecessor:forward": "Borrowed_Transition.nav",
+                }
+                proof_rows = tuple(
+                    proof(
+                        fixture,
+                        definition_by_id[transition_id],
+                        registry_hash=registry_hash,
+                        mesh_name=names[transition_id],
+                    )
+                    for transition_id in authorized_ids
+                )
+            (source_root / "route-transition-evidence-v2.jsonl").write_bytes(
+                b"".join(routes._canonical_json(row) for row in proof_rows)
+            )
+            proof_by_transition = {
+                row["transition_id"]: row for row in proof_rows
+            }
+            contracts = copy.deepcopy(fixture["contracts"])
+            owner = next(
+                row
+                for row in contracts
+                if tuple(row["authorized_directed_prefix"])
+                == (INGRESS_LITERAL["zoneline_id"],)
+            )
+            owner["required_transition_ids"] = tuple(sorted(set(owning_ids)))
+            owner["transition_evidence_ids"] = tuple(
+                sorted(
+                    proof_by_transition[value]["transition_evidence_id"]
+                    for value in set(owning_ids)
+                    if value in proof_by_transition
+                )
+            )
+
+            for contract in contracts:
+                for inputs in (
+                    contract["expected_inputs"],
+                    contract["local_leg"]["inputs"],
+                ):
+                    inputs["transition_registry_sha256"] = registry_hash
+                refresh_contract_identity(contract)
+            authorized = tuple(
+                copy.deepcopy(definition_by_id[value]) for value in authorized_ids
+            )
+            return tuple(contracts), authorized, tuple(proof_rows)
+
+        def assert_writer_transition_failure(
+            *,
+            fixture: dict,
+            contracts: tuple[dict, ...] | list[dict],
+            transitions: tuple[dict, ...] | list[dict],
+            reason_fragment: str,
+        ) -> None:
+            with self.assertRaises(routes.RouteEvidenceError) as captured:
+                routes.write_route_runtime_artifacts(
+                    repo_root=fixture["repo"],
+                    third_party_root=fixture["dependencies"],
+                    policy=self.policy(),
+                    contracts=contracts,
+                    transitions=transitions,
+                    runtime_ready=True,
+                )
+            message = str(captured.exception)
+            self.assertIn(reason_fragment, message)
+            self.assertNotIn("mesh is missing", message.casefold())
+            self.assertNotIn("mesh set differs", message.casefold())
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            owned = definition(
+                "observed-predecessor:forward",
+                edge_id=92,
+                from_zone=905,
+                to_zone=100,
+            )
+            borrowed = definition(
+                "borrowed-predecessor:forward",
+                edge_id=94,
+                from_zone=906,
+                to_zone=107,
+            )
+            contracts, authorized, proofs = stage_transition_root(
+                fixture,
+                (owned, borrowed),
+                authorized_ids=(owned["transition_id"], borrowed["transition_id"]),
+                owning_ids=(),
+            )
+            proof_by_transition = {
+                row["transition_id"]: row["transition_evidence_id"]
+                for row in proofs
+            }
+            expected_contracts = copy.deepcopy(contracts)
+            transition_by_ingress = {
+                INGRESS_LITERAL["zoneline_id"]: owned["transition_id"],
+                SECOND_INGRESS_LITERAL["zoneline_id"]: borrowed["transition_id"],
+            }
+            for contract in expected_contracts:
+                ingress_id = int(contract["authorized_directed_prefix"][0])
+                transition_id = transition_by_ingress[ingress_id]
+                contract["required_transition_ids"] = (transition_id,)
+                contract["transition_evidence_ids"] = (
+                    proof_by_transition[transition_id],
+                )
+                refresh_contract_identity(contract)
+            with self.subTest(failure="exact-two-owner-writer-enrichment"):
+                result = routes.write_route_runtime_artifacts(
+                    repo_root=fixture["repo"],
+                    third_party_root=fixture["dependencies"],
+                    policy=self.policy(),
+                    contracts=contracts,
+                    transitions=authorized,
+                    runtime_ready=True,
+                )
+                rooted = {
+                    row["zone"]: row["mesh_name"]
+                    for row in result["referenced_meshes"]
+                }
+                self.assertEqual(rooted.get(905), "Observed_Start.nav")
+                self.assertEqual(rooted.get(906), "Borrowed_Transition.nav")
+                self.assertEqual(
+                    (
+                        fixture["addon"]
+                        / "modules"
+                        / "mission_quest_route_contracts.lua"
+                    ).read_text(encoding="utf-8"),
+                    routes.render_contracts_lua(expected_contracts),
+                )
+
+            disconnected_contracts = copy.deepcopy(contracts)
+            disconnected_owner = next(
+                row
+                for row in disconnected_contracts
+                if tuple(row["authorized_directed_prefix"])
+                == (INGRESS_LITERAL["zoneline_id"],)
+            )
+            disconnected_owner["required_transition_ids"] = (
+                borrowed["transition_id"],
+            )
+            disconnected_owner["transition_evidence_ids"] = (
+                proof_by_transition[borrowed["transition_id"]],
+            )
+            refresh_contract_identity(disconnected_owner)
+            with self.subTest(failure="disconnected-caller-transition-ref"):
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=disconnected_contracts,
+                    transitions=authorized,
+                    reason_fragment="contract transition ownership",
+                )
+
+            (fixture["meshes"] / "Observed_Start.nav").unlink()
+            sentinels = {
+                fixture["addon"] / "modules" / "mission_quest_route_policy.lua": b"old policy\n",
+                fixture["addon"] / "modules" / "mission_quest_route_transitions.lua": b"old transitions\n",
+                fixture["addon"] / "modules" / "mission_quest_route_contracts.lua": b"old contracts\n",
+                fixture["addon"] / "data" / "mission-quest-route-manifest.tsv": b"old manifest\n",
+            }
+            for path, payload in sentinels.items():
+                path.write_bytes(payload)
+            with self.subTest(failure="transition-prefix-mesh-missing"):
+                with self.assertRaises(routes.RouteEvidenceError) as captured:
+                    routes.write_route_runtime_artifacts(
+                        repo_root=fixture["repo"],
+                        third_party_root=fixture["dependencies"],
+                        policy=self.policy(),
+                        contracts=contracts,
+                        transitions=authorized,
+                        runtime_ready=True,
+                    )
+                self.assertIn("objective prefix mesh", str(captured.exception))
+                self.assertEqual(
+                    {path: path.read_bytes() for path in sentinels}, sentinels
+                )
+
+        for failure, mutation in (
+            ("not-reviewed", {"reviewed": False}),
+            ("wrong-direction", {"direction": "reverse"}),
+            ("wrong-base", {"base_id": "wrong-base"}),
+            ("wrong-edge", {"equivalent_zoneline_id": 999}),
+            ("wrong-from", {"from_zone": 999}),
+            ("wrong-to", {"to_zone": 999}),
+            ("wrong-zone", {"zone": 906}),
+            ("wrong-pre-anchor", {"pre_anchor": {"x": 999.0, "z": 2.0, "y": 3.0}}),
+            ("wrong-post-anchor", {"post_anchor": {"x": 999.0, "z": 5.0, "y": 6.0}}),
+        ):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                fixture = self.cross_zone_writer_fixture(Path(temporary))
+                row = definition(
+                    "observed-predecessor:forward",
+                    edge_id=92,
+                    from_zone=905,
+                    to_zone=100,
+                )
+                row.update(mutation)
+                proof_names = {
+                    row["transition_id"]: (
+                        "Borrowed_Transition.nav"
+                        if row["zone"] == 906
+                        else "Observed_Start.nav"
+                    )
+                }
+                unowned_contracts, authorized, _proofs = stage_transition_root(
+                    fixture,
+                    (row,),
+                    authorized_ids=(row["transition_id"],),
+                    owning_ids=(),
+                    proof_mesh_names=proof_names,
+                )
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=unowned_contracts,
+                    transitions=authorized,
+                    reason_fragment="transition equivalence",
+                )
+
+                required_contracts = copy.deepcopy(unowned_contracts)
+                required_owner = next(
+                    item
+                    for item in required_contracts
+                    if tuple(item["authorized_directed_prefix"])
+                    == (INGRESS_LITERAL["zoneline_id"],)
+                )
+                required_owner["required_transition_ids"] = (
+                    row["transition_id"],
+                )
+                required_owner["transition_evidence_ids"] = (
+                    _proofs[0]["transition_evidence_id"],
+                )
+                refresh_contract_identity(required_owner)
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=required_contracts,
+                    transitions=authorized,
+                    reason_fragment="transition equivalence",
+                )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            untested = definition(
+                "untested-predecessor:forward",
+                edge_id=91,
+                from_zone=300,
+                to_zone=100,
+            )
+            contracts, authorized, proofs = stage_transition_root(
+                fixture,
+                (untested,),
+                authorized_ids=(untested["transition_id"],),
+                owning_ids=(),
+                proof_mesh_names={
+                    untested["transition_id"]: "Unproven_Start.nav"
+                },
+            )
+            result = routes.write_route_runtime_artifacts(
+                repo_root=fixture["repo"],
+                third_party_root=fixture["dependencies"],
+                policy=self.policy(),
+                contracts=contracts,
+                transitions=authorized,
+                runtime_ready=True,
+            )
+            self.assertNotIn(
+                300,
+                {row["zone"] for row in result["referenced_meshes"]},
+            )
+            self.assertTrue(
+                all(not row["required_transition_ids"] for row in contracts)
+            )
+            self.assertTrue(
+                all(not row["transition_evidence_ids"] for row in contracts)
+            )
+            self.assertEqual(
+                (
+                    fixture["addon"]
+                    / "modules"
+                    / "mission_quest_route_contracts.lua"
+                ).read_text(encoding="utf-8"),
+                routes.render_contracts_lua(contracts),
+            )
+            self.assertEqual(
+                (
+                    fixture["addon"]
+                    / "modules"
+                    / "mission_quest_route_transitions.lua"
+                ).read_text(encoding="utf-8"),
+                routes.render_transitions_lua(
+                    authorized,
+                    source_registry_sha256=hashlib.sha256(
+                        (
+                            fixture["repo"]
+                            / "data"
+                            / "mission-quest-guides"
+                            / "route-transitions.json"
+                        ).read_bytes()
+                    ).hexdigest(),
+                    definitions=(untested,),
+                ),
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            first = definition(
+                "observed-predecessor:forward",
+                edge_id=92,
+                from_zone=905,
+                to_zone=100,
+            )
+            alternate = definition(
+                "observed-predecessor-alternate:forward",
+                edge_id=92,
+                from_zone=905,
+                to_zone=100,
+            )
+            contracts, authorized, _proofs = stage_transition_root(
+                fixture,
+                (first, alternate),
+                authorized_ids=(first["transition_id"], alternate["transition_id"]),
+                owning_ids=(),
+                proof_mesh_names={
+                    first["transition_id"]: "Observed_Start.nav",
+                    alternate["transition_id"]: "Observed_Start.nav",
+                },
+            )
+            with self.subTest(failure="ambiguous-current-transition-equivalence"):
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=contracts,
+                    transitions=authorized,
+                    reason_fragment="ambiguous transition equivalence",
+                )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            row = definition(
+                "observed-predecessor:forward",
+                edge_id=92,
+                from_zone=905,
+                to_zone=100,
+            )
+            contracts, _authorized, _proofs = stage_transition_root(
+                fixture,
+                (row,),
+                authorized_ids=(row["transition_id"],),
+                owning_ids=(),
+            )
+            with self.subTest(failure="required-current-transition-omitted"):
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=contracts,
+                    transitions=(),
+                    reason_fragment="transition trust root",
+                )
+
+        for failure in (
+            "definition-only",
+            "forged-authorized-no-proof",
+            "duplicate-proof",
+            "stale-policy-proof",
+            "stale-registry-proof",
+            "stale-dll-proof",
+            "stale-destinations-proof",
+            "stale-graph-proof",
+            "wrong-source-zone-mesh-proof",
+        ):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                fixture = self.cross_zone_writer_fixture(Path(temporary))
+                row = definition(
+                    "observed-predecessor:forward",
+                    edge_id=92,
+                    from_zone=905,
+                    to_zone=100,
+                )
+                contracts, authorized, proofs = stage_transition_root(
+                    fixture,
+                    (row,),
+                    authorized_ids=(row["transition_id"],),
+                    owning_ids=(row["transition_id"],),
+                )
+                source = (
+                    fixture["repo"]
+                    / "data"
+                    / "mission-quest-guides"
+                    / "route-transition-evidence-v2.jsonl"
+                )
+                if failure == "definition-only":
+                    authorized = ()
+                elif failure == "forged-authorized-no-proof":
+                    source.write_bytes(b"")
+                elif failure == "duplicate-proof":
+                    source.write_bytes(
+                        routes._canonical_json(proofs[0])
+                        + routes._canonical_json(proofs[0])
+                    )
+                else:
+                    changed = copy.deepcopy(proofs[0])
+                    field_by_failure = {
+                        "stale-policy-proof": "policy_sha256",
+                        "stale-registry-proof": "transition_registry_sha256",
+                        "stale-dll-proof": "ffxinav_sha256",
+                        "stale-destinations-proof": "destinations_sha256",
+                        "stale-graph-proof": "graph_sha256",
+                        "wrong-source-zone-mesh-proof": "mesh_sha256",
+                    }
+                    field = field_by_failure[failure]
+                    changed["inputs"][field] = (
+                        hashlib.sha256(
+                            (fixture["meshes"] / "Borrowed_Transition.nav").read_bytes()
+                        ).hexdigest()
+                        if failure == "wrong-source-zone-mesh-proof"
+                        else "f" * 64
+                    )
+                    changed["transition_evidence_id"] = routes.transition_evidence_id(changed)
+                    source.write_bytes(routes._canonical_json(changed))
+                    owner = next(
+                        item
+                        for item in contracts
+                        if item["required_transition_ids"]
+                    )
+                    owner["transition_evidence_ids"] = (
+                        changed["transition_evidence_id"],
+                    )
+                    physical_key = routes.physical_leg_reuse_key(owner["local_leg"])
+                    owner["local_leg"]["evidence_id"] = "mesh:v2:" + physical_key
+                    owner["contract_id"] = "route:v2:" + hashlib.sha256(
+                        routes._canonical_json(
+                            {
+                                "candidate_id": owner["candidate_id"],
+                                "action_id": owner["action_id"],
+                                "group_id": owner["group_id"],
+                                "physical_leg_key": physical_key,
+                                "transition_evidence_ids": owner[
+                                    "transition_evidence_ids"
+                                ],
+                            }
+                        )
+                    ).hexdigest()
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=contracts,
+                    transitions=authorized,
+                    reason_fragment="transition trust root",
+                )
+
+        for failure in ("missing-ref", "extra-ref", "wrong-proof-ref", "duplicate-ref"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                fixture = self.cross_zone_writer_fixture(Path(temporary))
+                owned = definition(
+                    "observed-predecessor:forward",
+                    edge_id=92,
+                    from_zone=905,
+                    to_zone=100,
+                )
+                borrowed = definition(
+                    "borrowed-predecessor:forward",
+                    edge_id=94,
+                    from_zone=906,
+                    to_zone=107,
+                )
+                contracts, authorized, proofs = stage_transition_root(
+                    fixture,
+                    (owned, borrowed),
+                    authorized_ids=(owned["transition_id"], borrowed["transition_id"]),
+                    owning_ids=(owned["transition_id"],),
+                )
+                owner = next(
+                    item for item in contracts if item["required_transition_ids"]
+                )
+                owned_id = next(
+                    item["transition_evidence_id"]
+                    for item in proofs
+                    if item["transition_id"] == owned["transition_id"]
+                )
+                borrowed_id = next(
+                    item["transition_evidence_id"]
+                    for item in proofs
+                    if item["transition_id"] == borrowed["transition_id"]
+                )
+                owner["transition_evidence_ids"] = {
+                    "missing-ref": (),
+                    "extra-ref": (owned_id, borrowed_id),
+                    "wrong-proof-ref": (borrowed_id,),
+                    "duplicate-ref": (owned_id, owned_id),
+                }[failure]
+                physical_key = routes.physical_leg_reuse_key(owner["local_leg"])
+                owner["local_leg"]["evidence_id"] = "mesh:v2:" + physical_key
+                owner["contract_id"] = "route:v2:" + hashlib.sha256(
+                    routes._canonical_json(
+                        {
+                            "candidate_id": owner["candidate_id"],
+                            "action_id": owner["action_id"],
+                            "group_id": owner["group_id"],
+                            "physical_leg_key": physical_key,
+                            "transition_evidence_ids": owner[
+                                "transition_evidence_ids"
+                            ],
+                        }
+                    )
+                ).hexdigest()
+                assert_writer_transition_failure(
+                    fixture=fixture,
+                    contracts=contracts,
+                    transitions=authorized,
+                    reason_fragment="transition trust root",
+                )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            row = definition(
+                "borrowed-predecessor:forward",
+                edge_id=94,
+                from_zone=906,
+                to_zone=107,
+            )
+            contracts, authorized, _proofs = stage_transition_root(
+                fixture,
+                (row,),
+                authorized_ids=(row["transition_id"],),
+                owning_ids=(),
+            )
+            contracts = tuple(
+                contract
+                for contract in contracts
+                if tuple(contract["authorized_directed_prefix"])
+                == (INGRESS_LITERAL["zoneline_id"],)
+            )
+            result = routes.write_route_runtime_artifacts(
+                repo_root=fixture["repo"],
+                third_party_root=fixture["dependencies"],
+                policy=self.policy(),
+                contracts=contracts,
+                transitions=authorized,
+                runtime_ready=True,
+            )
+            self.assertNotIn(
+                906,
+                {item["zone"] for item in result["referenced_meshes"]},
+            )
+
+    def test_writer_rejects_contract_supplied_target_mesh_mapping_before_mutation(self) -> None:
+        routes = self.routes()
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(Path(temporary))
+            contracts = copy.deepcopy(fixture["contracts"])
+            wrong_name = "Unrelated_Start.nav"
+            wrong_digest = hashlib.sha256(
+                (fixture["meshes"] / wrong_name).read_bytes()
+            ).hexdigest()
+            for contract in contracts:
+                for inputs in (
+                    contract["expected_inputs"],
+                    contract["local_leg"]["inputs"],
+                ):
+                    inputs["mesh_name"] = wrong_name
+                    inputs["zone_mesh_name"] = wrong_name
+                    inputs["mesh_sha256"] = wrong_digest
+            sentinels = {
+                fixture["addon"] / "modules" / "mission_quest_route_policy.lua": b"old policy\n",
+                fixture["addon"] / "modules" / "mission_quest_route_transitions.lua": b"old transitions\n",
+                fixture["addon"] / "modules" / "mission_quest_route_contracts.lua": b"old contracts\n",
+                fixture["addon"] / "data" / "mission-quest-route-manifest.tsv": b"old manifest\n",
+            }
+            for path, payload in sentinels.items():
+                path.write_bytes(payload)
+            with self.assertRaises(routes.RouteEvidenceError):
+                routes.write_route_runtime_artifacts(
+                    repo_root=fixture["repo"],
+                    third_party_root=fixture["dependencies"],
+                    policy=self.policy(),
+                    contracts=contracts,
+                    transitions=(),
+                    runtime_ready=True,
+                )
+            self.assertEqual(
+                {path: path.read_bytes() for path in sentinels}, sentinels
+            )
+
+    def test_writer_rejects_noncanonical_route_v2_prefix_before_mutation(self) -> None:
+        routes = self.routes()
+        for failure, replacement in (
+            ("empty", ()),
+            ("multi-edge", (10, INGRESS_LITERAL["zoneline_id"])),
+            ("wrong-singleton", (10,)),
+        ):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                fixture = self.cross_zone_writer_fixture(Path(temporary))
+                contracts = copy.deepcopy(fixture["contracts"])
+                selected = next(
+                    contract
+                    for contract in contracts
+                    if tuple(contract["authorized_directed_prefix"])
+                    == (INGRESS_LITERAL["zoneline_id"],)
+                )
+                selected["authorized_directed_prefix"] = replacement
+                sentinels = {
+                    fixture["addon"] / "modules" / "mission_quest_route_policy.lua": b"old policy\n",
+                    fixture["addon"] / "modules" / "mission_quest_route_transitions.lua": b"old transitions\n",
+                    fixture["addon"] / "modules" / "mission_quest_route_contracts.lua": b"old contracts\n",
+                    fixture["addon"] / "data" / "mission-quest-route-manifest.tsv": b"old manifest\n",
+                }
+                for path, payload in sentinels.items():
+                    path.write_bytes(payload)
+                with self.assertRaises(routes.RouteEvidenceError):
+                    routes.write_route_runtime_artifacts(
+                        repo_root=fixture["repo"],
+                        third_party_root=fixture["dependencies"],
+                        policy=self.policy(),
+                        contracts=contracts,
+                        transitions=(),
+                        runtime_ready=True,
+                    )
+                self.assertEqual(
+                    {path: path.read_bytes() for path in sentinels}, sentinels
+                )
+
+    def test_writer_rejects_missing_or_ambiguous_prefix_mesh_before_mutation(self) -> None:
+        routes = self.routes()
+        for failure, mesh_name, numeric_name in (
+            ("missing-outer", "Fixture_Start.nav", "100.nav"),
+            ("ambiguous-outer", "Fixture_Start.nav", "100.nav"),
+            ("missing-ingress", "North_Gustaberg.nav", "106.nav"),
+            ("ambiguous-ingress", "North_Gustaberg.nav", "106.nav"),
+        ):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                fixture = self.cross_zone_writer_fixture(Path(temporary))
+                if failure.startswith("missing"):
+                    (fixture["meshes"] / mesh_name).unlink()
+                else:
+                    (fixture["meshes"] / numeric_name).write_bytes(b"ambiguous numeric mesh")
+                sentinels = {
+                    fixture["addon"] / "modules" / "mission_quest_route_policy.lua": b"old policy\n",
+                    fixture["addon"] / "modules" / "mission_quest_route_transitions.lua": b"old transitions\n",
+                    fixture["addon"] / "modules" / "mission_quest_route_contracts.lua": b"old contracts\n",
+                    fixture["addon"] / "data" / "mission-quest-route-manifest.tsv": b"old manifest\n",
+                }
+                for path, payload in sentinels.items():
+                    path.write_bytes(payload)
+                with self.assertRaises(routes.RouteEvidenceError):
+                    routes.write_route_runtime_artifacts(
+                        repo_root=fixture["repo"],
+                        third_party_root=fixture["dependencies"],
+                        policy=self.policy(),
+                        contracts=fixture["contracts"],
+                        transitions=(),
+                        runtime_ready=True,
+                    )
+                self.assertEqual(
+                    {path: path.read_bytes() for path in sentinels}, sentinels
+                )
+
+    def test_writer_rejects_conflicting_names_for_one_required_prefix_zone(self) -> None:
+        routes = self.routes()
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self.cross_zone_writer_fixture(
+                Path(temporary), conflicting_zone_name=True
+            )
+            sentinels = {
+                fixture["addon"] / "modules" / "mission_quest_route_policy.lua": b"old policy\n",
+                fixture["addon"] / "modules" / "mission_quest_route_transitions.lua": b"old transitions\n",
+                fixture["addon"] / "modules" / "mission_quest_route_contracts.lua": b"old contracts\n",
+                fixture["addon"] / "data" / "mission-quest-route-manifest.tsv": b"old manifest\n",
+            }
+            for path, payload in sentinels.items():
+                path.write_bytes(payload)
+            with self.assertRaises(routes.RouteEvidenceError):
+                routes.write_route_runtime_artifacts(
+                    repo_root=fixture["repo"],
+                    third_party_root=fixture["dependencies"],
+                    policy=self.policy(),
+                    contracts=fixture["contracts"],
+                    transitions=(),
+                    runtime_ready=True,
+                )
+            self.assertEqual(
+                {path: path.read_bytes() for path in sentinels}, sentinels
+            )
+
     def test_zone_mesh_discovery_rejects_fuzzy_and_ambiguous_matches(self) -> None:
         routes = self.routes()
         with tempfile.TemporaryDirectory() as temporary:
@@ -2661,6 +3780,292 @@ class RouteArtifactGenerationTests(RouteEvidenceTestCase):
                 {row["reason"] for row in result["review"]},
                 {"missing-current-local-leg-evidence"},
             )
+
+    def test_pipeline_enriches_contract_from_exact_current_source_zone_transition(self) -> None:
+        routes = self.routes()
+        observed_edge = (
+            b"92\t905\tObserved Start\tfixture\t1.000\t2.000\t3.000\t100\t"
+            b"Fixture Start\tfixture\t4.000\t5.000\t6.000\tfixture-observed\tobserved\t\n"
+        )
+        prefix_edge = (
+            b"10\t100\tFixture Start\tfixture\t11.000\t22.000\t-3.000\t106\t"
+            b"North Gustaberg\tfixture\t10.000\t10.000\t0.000\tfixture-live-walk\tproven\t\n"
+        )
+        graph_payload = GRAPH_HEADER + observed_edge + prefix_edge + INGRESS_ROW
+        catalogue = routes.load_route_catalogue_bytes(
+            DESTINATION_TSV,
+            graph_payload,
+            destination_source="fixture/destinations.tsv",
+            graph_source="fixture/source-zone-transition-graph.tsv",
+        )
+        definition = {
+            "transition_id": "observed-predecessor:forward",
+            "base_id": "observed-predecessor",
+            "zone": 905,
+            "direction": "forward",
+            "from_zone": 905,
+            "to_zone": 100,
+            "equivalent_zoneline_id": 92,
+            "reviewed": True,
+            "pre_anchor": {"x": 1.0, "z": 2.0, "y": 3.0},
+            "post_anchor": {"x": 4.0, "z": 5.0, "y": 6.0},
+            "interaction": {
+                "kind": "fixture",
+                "identity": "observed-predecessor:forward",
+            },
+            "expected_live_state": "fixture-zone-change",
+            "timeout_seconds": 45,
+            "cancellation": ["timeout", "player-left-zone"],
+            "required_destination_ids": [],
+        }
+        registry_digest = "1" * 64
+        with tempfile.TemporaryDirectory() as temporary:
+            third_party = Path(temporary) / "third_party"
+            dll = third_party / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
+            meshes = third_party / "xiNavmeshes"
+            dll.parent.mkdir(parents=True)
+            meshes.mkdir(parents=True)
+            dll.write_bytes(b"fixture dll")
+            target_mesh = meshes / "Palborough_Mines.nav"
+            source_mesh = meshes / "Observed_Start.nav"
+            target_mesh.write_bytes(b"zone 143 exact target mesh")
+            source_mesh.write_bytes(b"zone 905 exact transition source mesh")
+            proof = {
+                "schema": 2,
+                "transition_evidence_id": "",
+                "transition_id": definition["transition_id"],
+                "status": "transition-proven",
+                "direction": definition["direction"],
+                "zone": definition["zone"],
+                "pre_anchor": copy.deepcopy(definition["pre_anchor"]),
+                "post_anchor": copy.deepcopy(definition["post_anchor"]),
+                "interaction": copy.deepcopy(definition["interaction"]),
+                "observed_live_state": definition["expected_live_state"],
+                "timeout_seconds": definition["timeout_seconds"],
+                "timeout_result": "bounded-success",
+                "cancellation_observed": copy.deepcopy(definition["cancellation"]),
+                "trace": {"source": "fixture.log:1-2", "sha256": "d" * 64},
+                "inputs": {
+                    "policy_sha256": routes.policy_sha256(self.policy()),
+                    "transition_registry_sha256": registry_digest,
+                    "mesh_sha256": hashlib.sha256(source_mesh.read_bytes()).hexdigest(),
+                    "ffxinav_sha256": hashlib.sha256(dll.read_bytes()).hexdigest(),
+                    "destinations_sha256": hashlib.sha256(DESTINATION_TSV).hexdigest(),
+                    "graph_sha256": hashlib.sha256(graph_payload).hexdigest(),
+                },
+            }
+            proof["transition_evidence_id"] = routes.transition_evidence_id(proof)
+
+            def probe_runner(zone, requests):
+                self.assertEqual(zone, 143)
+                responses = []
+                for request in requests:
+                    start = request["start"]
+                    end = request["end"]
+                    distance = math.sqrt(
+                        sum(
+                            (float(end[key]) - float(start[key])) ** 2
+                            for key in ("x", "z", "y")
+                        )
+                    )
+                    segments = max(1, math.ceil(distance / 40.0))
+                    waypoints = [
+                        {
+                            key: (
+                                float(start[key])
+                                + (float(end[key]) - float(start[key])) * index / segments
+                            )
+                            for key in ("x", "z", "y")
+                        }
+                        | {"clearance": 1.0}
+                        for index in range(segments + 1)
+                    ]
+                    responses.append(
+                        _response(
+                            request["request_id"],
+                            waypoints=waypoints,
+                            waypoint_count=len(waypoints),
+                            path_length=routes.polyline_length(waypoints),
+                            minimum_waypoint_clearance=1.0,
+                            mesh_relative_path=request["mesh_relative_path"],
+                            mesh_sha256=request["mesh_sha256"],
+                            mesh_sha256_before=request["mesh_sha256"],
+                            mesh_sha256_after=request["mesh_sha256"],
+                            ffxinav_sha256=request["ffxinav_sha256"],
+                            ffxinav_sha256_before=request["ffxinav_sha256"],
+                            ffxinav_sha256_after=request["ffxinav_sha256"],
+                            loaded_dll_path=request["expected_loaded_dll_path"],
+                            loaded_mesh_path=request["expected_loaded_mesh_path"],
+                        )
+                    )
+                return tuple(responses)
+
+            def execute(
+                evidence_rows,
+                *,
+                active_catalogue=catalogue,
+                active_definitions=(definition,),
+                active_registry_digest=registry_digest,
+            ):
+                return routes.execute_compiled_route_pipeline(
+                    candidates=(copy.deepcopy(CANDIDATE),),
+                    catalogue=active_catalogue,
+                    policy=self.policy(),
+                    third_party_root=third_party,
+                    transition_registry_sha256=active_registry_digest,
+                    transition_definitions=active_definitions,
+                    transition_evidence=evidence_rows,
+                    existing_evidence=(),
+                    refresh=True,
+                    offline=False,
+                    probe_runner=probe_runner,
+                )
+
+            with self.subTest(failure="pipeline-source-zone-transition-enrichment"):
+                current = execute((proof,))
+                self.assertEqual(current["unresolved"], ())
+                self.assertEqual(len(current["contracts"]), 1)
+                contract = current["contracts"][0]
+                self.assertEqual(
+                    contract["required_transition_ids"],
+                    (definition["transition_id"],),
+                )
+                self.assertEqual(
+                    contract["transition_evidence_ids"],
+                    (proof["transition_evidence_id"],),
+                )
+                physical_key = routes.physical_leg_reuse_key(contract["local_leg"])
+                self.assertEqual(
+                    contract["contract_id"],
+                    "route:v2:"
+                    + hashlib.sha256(
+                        routes._canonical_json(
+                            {
+                                "candidate_id": contract["candidate_id"],
+                                "action_id": contract["action_id"],
+                                "group_id": contract["group_id"],
+                                "physical_leg_key": physical_key,
+                                "transition_evidence_ids": (
+                                    proof["transition_evidence_id"],
+                                ),
+                            }
+                        )
+                    ).hexdigest(),
+                )
+                self.assertEqual(
+                    tuple(
+                        row["transition_id"]
+                        for row in current["current_transitions"]
+                    ),
+                    (definition["transition_id"],),
+                )
+
+            for failure, rows in (
+                ("missing", ()),
+                (
+                    "stale-source-mesh",
+                    (
+                        {
+                            **copy.deepcopy(proof),
+                            "inputs": {
+                                **proof["inputs"],
+                                "mesh_sha256": "f" * 64,
+                            },
+                        },
+                    ),
+                ),
+            ):
+                with self.subTest(failure=failure):
+                    if rows:
+                        rows[0]["transition_evidence_id"] = (
+                            routes.transition_evidence_id(rows[0])
+                        )
+                    rejected = execute(rows)
+                    self.assertEqual(rejected["unresolved"], ())
+                    self.assertEqual(len(rejected["contracts"]), 1)
+                    self.assertEqual(
+                        rejected["contracts"][0]["required_transition_ids"], ()
+                    )
+                    self.assertEqual(
+                        rejected["contracts"][0]["transition_evidence_ids"], ()
+                    )
+                    self.assertEqual(rejected["current_transitions"], ())
+
+            untested_graph = graph_payload.replace(
+                b"fixture-observed\tobserved\t\n",
+                b"fixture-observed\tuntested\t\n",
+            )
+            untested_catalogue = routes.load_route_catalogue_bytes(
+                DESTINATION_TSV,
+                untested_graph,
+                destination_source="fixture/destinations.tsv",
+                graph_source="fixture/untested-source-zone-transition-graph.tsv",
+            )
+            untested_proof = copy.deepcopy(proof)
+            untested_proof["inputs"]["graph_sha256"] = hashlib.sha256(
+                untested_graph
+            ).hexdigest()
+            untested_proof["transition_evidence_id"] = routes.transition_evidence_id(
+                untested_proof
+            )
+            untested = execute(
+                (untested_proof,), active_catalogue=untested_catalogue
+            )
+            self.assertEqual(untested["unresolved"], ())
+            self.assertEqual(len(untested["contracts"]), 1)
+            self.assertEqual(
+                untested["contracts"][0]["required_transition_ids"], ()
+            )
+            self.assertEqual(
+                untested["contracts"][0]["transition_evidence_ids"], ()
+            )
+            self.assertEqual(untested["current_transitions"], ())
+
+            alternate_definition = {
+                **copy.deepcopy(definition),
+                "transition_id": "observed-predecessor-alternate:forward",
+                "base_id": "observed-predecessor-alternate",
+                "interaction": {
+                    "kind": "fixture",
+                    "identity": "observed-predecessor-alternate:forward",
+                },
+            }
+            ambiguous_definitions = (definition, alternate_definition)
+            ambiguous_registry_payload = (
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "transitions": list(ambiguous_definitions),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode("utf-8")
+            ambiguous_registry_digest = hashlib.sha256(
+                ambiguous_registry_payload
+            ).hexdigest()
+            ambiguous_proofs = []
+            for active_definition in ambiguous_definitions:
+                active_proof = copy.deepcopy(proof)
+                active_proof["transition_id"] = active_definition["transition_id"]
+                active_proof["interaction"] = copy.deepcopy(
+                    active_definition["interaction"]
+                )
+                active_proof["inputs"]["transition_registry_sha256"] = (
+                    ambiguous_registry_digest
+                )
+                active_proof["transition_evidence_id"] = (
+                    routes.transition_evidence_id(active_proof)
+                )
+                ambiguous_proofs.append(active_proof)
+            with self.subTest(failure="pipeline-ambiguous-current-transition-equivalence"):
+                with self.assertRaises(routes.RouteEvidenceError):
+                    execute(
+                        tuple(ambiguous_proofs),
+                        active_definitions=ambiguous_definitions,
+                        active_registry_digest=ambiguous_registry_digest,
+                    )
 
     def test_old_local_proof_becomes_one_review_row_when_zone_is_no_longer_preparable(self) -> None:
         routes = self.routes()
@@ -2864,6 +4269,7 @@ class RouteArtifactGenerationTests(RouteEvidenceTestCase):
             transition_source.mkdir(parents=True)
             transition_registry = b'{"schema_version":2,"transitions":[]}\n'
             (transition_source / "route-transitions.json").write_bytes(transition_registry)
+            (transition_source / "route-transition-evidence-v2.jsonl").write_bytes(b"")
             third_party = repo / "third_party"
             dll = third_party / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
             dll.parent.mkdir(parents=True)

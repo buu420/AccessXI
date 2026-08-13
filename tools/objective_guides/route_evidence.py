@@ -2459,6 +2459,30 @@ def execute_compiled_route_pipeline(
         current_inputs_by_zone=prepared["current_inputs_by_zone"],
         policy=policy,
     )
+    dependency_root = validate_dependency_root(third_party_root)
+    dll_path = dependency_root / "FFXI-NavMesh-Builder" / "FFXINAV.dll"
+    transition_state = _current_transition_state(
+        definitions=transition_definitions,
+        authorized=transition_definitions,
+        evidence_rows=transition_evidence,
+        ingresses=tuple(catalogue.get("ingresses", ())),
+        policy=policy,
+        transition_registry_sha256=_require_sha256(
+            transition_registry_sha256, "transition_registry_sha256"
+        ),
+        ffxinav_sha256=_sha256_bytes(dll_path.read_bytes()),
+        destinations_sha256=_require_sha256(
+            catalogue.get("destinations_sha256"), "destinations catalogue hash"
+        ),
+        graph_sha256=_require_sha256(
+            catalogue.get("graph_sha256"), "directed graph hash"
+        ),
+        third_party_root=dependency_root,
+        strict_authorized=False,
+    )
+    enriched_contracts, _required_prefix_zones = _enrich_objective_prefix_contracts(
+        compiled["contracts"], tuple(catalogue.get("ingresses", ())), transition_state
+    )
     unresolved = tuple(
         sorted(
             (*prepared["unresolved"], *compiled["unresolved"]),
@@ -2466,25 +2490,10 @@ def execute_compiled_route_pipeline(
         )
     )
     current_transitions: list[dict[str, Any]] = []
-    for zone_text, current in prepared["current_inputs_by_zone"].items():
-        zone = int(zone_text)
-        definitions = tuple(
-            row for row in transition_definitions if int(row.get("zone", -1)) == zone
-        )
-        if not definitions:
-            continue
-        ids = {str(row.get("transition_id", "")) for row in definitions}
-        rows = tuple(
-            row for row in transition_evidence if str(row.get("transition_id", "")) in ids
-        )
-        current_transitions.extend(
-            current_transition_contracts(
-                definitions,
-                rows,
-                policy,
-                current_inputs=_transition_current_inputs(current),
-            )
-        )
+    for transition_id, definition in transition_state["current_by_id"].items():
+        equivalence = transition_state["equivalence_by_id"].get(transition_id)
+        if equivalence is None or equivalence[1]:
+            current_transitions.append(copy.deepcopy(dict(definition)))
     review_by_id: dict[str, dict[str, Any]] = {}
     for row in review:
         evidence_id = _require_string(row.get("evidence_id"), "review evidence_id")
@@ -2506,7 +2515,7 @@ def execute_compiled_route_pipeline(
     return {
         "accepted_evidence": accepted_rows,
         "review": tuple(review_by_id[key] for key in sorted(review_by_id)),
-        "contracts": compiled["contracts"],
+        "contracts": enriched_contracts,
         "unresolved": unresolved,
         "current_transitions": tuple(
             sorted(current_transitions, key=lambda row: str(row["transition_id"]))
@@ -2798,6 +2807,7 @@ def parse_runtime_manifest(payload: bytes) -> tuple[dict[str, str], ...]:
         raise RouteEvidenceError("Runtime manifest header mismatch.")
     rows: list[dict[str, str]] = []
     aliases: set[str] = set()
+    zone_ids: set[int] = set()
     previous: tuple[str, str] | None = None
     for index, line in enumerate(lines[1:], start=2):
         fields = line.split("\t")
@@ -2812,6 +2822,16 @@ def parse_runtime_manifest(payload: bytes) -> tuple[dict[str, str], ...]:
         kind = _require_string(fields[2], f"manifest row {index} kind")
         if any(_CONTROL.search(value) for value in fields):
             raise RouteEvidenceError(f"Manifest row {index} contains control characters.")
+        zone = fields[3]
+        if zone:
+            if re.fullmatch(r"(?:0|[1-9][0-9]*)", zone) is None:
+                raise RouteEvidenceError(
+                    f"Manifest row {index} zone is not canonical ASCII decimal."
+                )
+            zone_id = int(zone)
+            if zone_id in zone_ids:
+                raise RouteEvidenceError(f"Duplicate manifest zone {zone_id}.")
+            zone_ids.add(zone_id)
         sort_key = (alias, relative_path)
         if previous is not None and sort_key <= previous:
             raise RouteEvidenceError("Runtime manifest rows are not canonically sorted.")
@@ -2821,7 +2841,7 @@ def parse_runtime_manifest(payload: bytes) -> tuple[dict[str, str], ...]:
                 "relative_path": relative_path,
                 "sha256": digest,
                 "kind": kind,
-                "zone": fields[3],
+                "zone": zone,
                 "mesh_name": fields[4],
             }
         )
@@ -2917,6 +2937,444 @@ _CONTRACT_EXPECTED_INPUT_FIELDS = frozenset(
 )
 
 
+def _route_v2_local_ingress_id(contract: Mapping[str, Any]) -> int:
+    prefix = contract.get("authorized_directed_prefix")
+    if not isinstance(prefix, (list, tuple)) or len(prefix) != 1:
+        raise RouteEvidenceError(
+            "A route:v2 contract directed prefix must contain exactly its local ingress."
+        )
+    prefix_id = _require_int(prefix[0], "contract directed prefix ingress", minimum=0)
+    local_leg = _require_object(contract.get("local_leg"), "contract local_leg")
+    leg = _require_object(local_leg.get("leg"), "contract local_leg leg")
+    local_ingress_id = _require_int(
+        leg.get("zoneline_id"), "contract local ingress ID", minimum=0
+    )
+    if prefix_id != local_ingress_id:
+        raise RouteEvidenceError(
+            "A route:v2 contract directed prefix differs from its local ingress."
+        )
+    return local_ingress_id
+
+
+_TRANSITION_EQUIVALENCE_FIELDS = frozenset(
+    {
+        "reviewed",
+        "from_zone",
+        "to_zone",
+        "equivalent_zoneline_id",
+    }
+)
+
+
+def _transition_equivalence(
+    definition: Mapping[str, Any],
+    ingress_by_id: Mapping[int, Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], bool] | None:
+    """Validate an optional graph-equivalence declaration.
+
+    The boolean is true only for an observed edge that a current transition
+    proof may promote into the objective-only graph. Untested declarations are
+    valid registry data but deliberately inert.
+    """
+
+    if not any(field in definition for field in _TRANSITION_EQUIVALENCE_FIELDS):
+        return None
+    if not all(field in definition for field in _TRANSITION_EQUIVALENCE_FIELDS):
+        raise RouteEvidenceError("transition equivalence fields are incomplete")
+    transition_id = _require_string(
+        definition.get("transition_id"), "transition equivalence transition_id"
+    )
+    base_id = _require_string(
+        definition.get("base_id"), "transition equivalence base_id"
+    )
+    direction = _require_string(
+        definition.get("direction"), "transition equivalence direction"
+    )
+    if transition_id != f"{base_id}:{direction}":
+        raise RouteEvidenceError("transition equivalence ID and direction disagree")
+    if definition.get("reviewed") is not True:
+        raise RouteEvidenceError("transition equivalence is not reviewed")
+    edge_id = _require_int(
+        definition.get("equivalent_zoneline_id"),
+        "transition equivalence zoneline ID",
+        minimum=0,
+    )
+    edge = ingress_by_id.get(edge_id)
+    if edge is None:
+        raise RouteEvidenceError("transition equivalence edge is absent from the rooted graph")
+    from_zone = _require_int(
+        definition.get("from_zone"), "transition equivalence from_zone", minimum=0
+    )
+    to_zone = _require_int(
+        definition.get("to_zone"), "transition equivalence to_zone", minimum=0
+    )
+    zone = _require_int(
+        definition.get("zone"), "transition equivalence zone", minimum=0
+    )
+    if (
+        from_zone != int(edge["from_zone"])
+        or to_zone != int(edge["to_zone"])
+        or zone != from_zone
+    ):
+        raise RouteEvidenceError("transition equivalence direction or source zone disagrees")
+    for anchor_name, prefix in (("pre_anchor", "from_"), ("post_anchor", "to_")):
+        anchor = _require_object(
+            definition.get(anchor_name), f"transition equivalence {anchor_name}"
+        )
+        if set(anchor) != {"x", "z", "y"}:
+            raise RouteEvidenceError(f"transition equivalence {anchor_name} fields disagree")
+        for axis in ("x", "z", "y"):
+            if _require_number(anchor.get(axis), f"{anchor_name}.{axis}") != float(
+                edge[f"{prefix}{axis}"]
+            ):
+                raise RouteEvidenceError(
+                    f"transition equivalence {anchor_name} disagrees with graph geometry"
+                )
+    confidence = str(edge.get("confidence", "")).casefold()
+    if confidence not in {"observed", "untested", "proven"}:
+        raise RouteEvidenceError("transition equivalence graph confidence is invalid")
+    return edge, confidence == "observed"
+
+
+def _parse_transition_evidence_bytes(
+    payload: bytes, *, source: str
+) -> tuple[dict[str, Any], ...]:
+    if not payload:
+        return ()
+    rows: list[dict[str, Any]] = []
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise RouteEvidenceError(f"Could not decode transition evidence {source}: {error}") from error
+    for index, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            raise RouteEvidenceError(f"Blank transition evidence row at {source}:{index}")
+        rows.append(
+            dict(_require_object(_strict_json(line), f"{source}:{index}"))
+        )
+    return tuple(rows)
+
+
+def _zone_names_from_graph(
+    ingresses: Sequence[Mapping[str, Any]],
+) -> dict[int, set[str]]:
+    result: dict[int, set[str]] = {}
+    for row in ingresses:
+        result.setdefault(int(row["from_zone"]), set()).add(
+            str(row.get("from_name", "")).strip()
+        )
+        result.setdefault(int(row["to_zone"]), set()).add(
+            str(row.get("to_name", "")).strip()
+        )
+    return result
+
+
+def _route_contract_identity(contract: Mapping[str, Any]) -> str:
+    evidence_ids = contract.get("transition_evidence_ids", ())
+    if not isinstance(evidence_ids, (list, tuple)):
+        raise RouteEvidenceError("contract transition trust root evidence refs are malformed")
+    identity = {
+        "candidate_id": contract.get("candidate_id"),
+        "action_id": contract.get("action_id"),
+        "group_id": contract.get("group_id", ""),
+        "physical_leg_key": physical_leg_reuse_key(
+            _require_object(contract.get("local_leg"), "contract local_leg")
+        ),
+        "transition_evidence_ids": tuple(evidence_ids),
+    }
+    return "route:v2:" + _sha256_bytes(_canonical_json(identity))
+
+
+def _current_transition_state(
+    *,
+    definitions: Sequence[Mapping[str, Any]],
+    authorized: Sequence[Mapping[str, Any]],
+    evidence_rows: Sequence[Mapping[str, Any]],
+    ingresses: Sequence[Mapping[str, Any]],
+    policy: RouteProofPolicy,
+    transition_registry_sha256: str,
+    ffxinav_sha256: str,
+    destinations_sha256: str,
+    graph_sha256: str,
+    third_party_root: Path,
+    strict_authorized: bool,
+) -> dict[str, Any]:
+    ingress_by_id = {int(row["zoneline_id"]): row for row in ingresses}
+    definitions_by_id = {
+        _require_string(row.get("transition_id"), "transition_id"): row
+        for row in definitions
+    }
+    if len(definitions_by_id) != len(definitions):
+        raise RouteEvidenceError("transition trust root contains duplicate definitions")
+    authorized_by_id: dict[str, Mapping[str, Any]] = {}
+    for row in authorized:
+        transition_id = _require_string(row.get("transition_id"), "authorized transition ID")
+        if transition_id in authorized_by_id or definitions_by_id.get(transition_id) != row:
+            raise RouteEvidenceError("transition trust root authorized set differs from registry")
+        authorized_by_id[transition_id] = row
+    evidence_by_id: dict[str, list[Mapping[str, Any]]] = {}
+    for row in evidence_rows:
+        if row.get("status") == "transition-proven":
+            evidence_by_id.setdefault(str(row.get("transition_id", "")), []).append(row)
+
+    equivalence_by_id: dict[str, tuple[Mapping[str, Any], bool] | None] = {}
+    for transition_id, definition in definitions_by_id.items():
+        equivalence_by_id[transition_id] = _transition_equivalence(
+            definition, ingress_by_id
+        )
+
+    names_by_zone = _zone_names_from_graph(ingresses)
+    current_by_id: dict[str, Mapping[str, Any]] = {}
+    proof_by_id: dict[str, Mapping[str, Any]] = {}
+    mesh_by_zone: dict[int, tuple[str, Path, bytes]] = {}
+    considered = set(authorized_by_id) | set(evidence_by_id)
+    for transition_id in sorted(considered):
+        definition = definitions_by_id.get(transition_id)
+        if definition is None:
+            if transition_id in authorized_by_id:
+                raise RouteEvidenceError("transition trust root references an unknown definition")
+            continue
+        zone = _require_int(definition.get("zone"), "transition zone", minimum=0)
+        names = names_by_zone.get(zone, set())
+        if len(names) != 1 or not next(iter(names), ""):
+            if transition_id in authorized_by_id:
+                raise RouteEvidenceError("transition trust root source zone is not unique")
+            continue
+        try:
+            mesh_name = _discover_zone_mesh_name(
+                zone, next(iter(names)), third_party_root
+            )
+        except RouteEvidenceError as error:
+            equivalence = equivalence_by_id.get(transition_id)
+            if transition_id in authorized_by_id and equivalence and equivalence[1]:
+                raise RouteEvidenceError(
+                    f"objective prefix mesh is unavailable for zone {zone}: {error}"
+                ) from error
+            if transition_id in authorized_by_id:
+                raise RouteEvidenceError(
+                    f"transition trust root source mesh is unavailable: {error}"
+                ) from error
+            continue
+        mesh_path = Path(third_party_root) / "xiNavmeshes" / mesh_name
+        mesh_payload = mesh_path.read_bytes()
+        mesh_by_zone[zone] = (mesh_name, mesh_path, mesh_payload)
+        current_inputs = {
+            "policy_sha256": policy_sha256(policy),
+            "transition_registry_sha256": transition_registry_sha256,
+            "mesh_sha256": _sha256_bytes(mesh_payload),
+            "ffxinav_sha256": ffxinav_sha256,
+            "destinations_sha256": destinations_sha256,
+            "graph_sha256": graph_sha256,
+        }
+        matches = [
+            row
+            for row in evidence_by_id.get(transition_id, ())
+            if validate_transition_evidence(definition, row, current_inputs)[0]
+        ]
+        if len(matches) > 1:
+            raise RouteEvidenceError(
+                f"transition trust root {transition_id!r} has multiple current proofs"
+            )
+        if len(matches) == 1:
+            current_by_id[transition_id] = definition
+            proof_by_id[transition_id] = matches[0]
+        elif strict_authorized and transition_id in authorized_by_id:
+            raise RouteEvidenceError(
+                f"transition trust root {transition_id!r} lacks one exact current proof"
+            )
+
+    equivalent_by_edge: dict[int, Mapping[str, Any]] = {}
+    for transition_id, definition in current_by_id.items():
+        equivalence = equivalence_by_id.get(transition_id)
+        if not equivalence or not equivalence[1]:
+            continue
+        edge_id = int(equivalence[0]["zoneline_id"])
+        if edge_id in equivalent_by_edge:
+            raise RouteEvidenceError(
+                f"ambiguous transition equivalence for graph edge {edge_id}"
+            )
+        equivalent_by_edge[edge_id] = definition
+    return {
+        "authorized_by_id": authorized_by_id,
+        "current_by_id": current_by_id,
+        "proof_by_id": proof_by_id,
+        "equivalence_by_id": equivalence_by_id,
+        "equivalent_by_edge": equivalent_by_edge,
+        "mesh_by_zone": mesh_by_zone,
+    }
+
+
+def _enrich_objective_prefix_contracts(
+    contracts: Sequence[Mapping[str, Any]],
+    ingresses: Sequence[Mapping[str, Any]],
+    transition_state: Mapping[str, Any],
+) -> tuple[tuple[dict[str, Any], ...], set[int]]:
+    ingress_by_id = {int(row["zoneline_id"]): row for row in ingresses}
+    predecessors: dict[int, list[Mapping[str, Any]]] = {}
+    for row in ingresses:
+        confidence = str(row.get("confidence", "")).casefold()
+        if confidence == "proven" or (
+            confidence == "observed"
+            and int(row["zoneline_id"]) in transition_state["equivalent_by_edge"]
+        ):
+            predecessors.setdefault(int(row["to_zone"]), []).append(row)
+    for rows in predecessors.values():
+        rows.sort(key=lambda row: int(row["zoneline_id"]))
+
+    enriched: list[dict[str, Any]] = []
+    required_zones: set[int] = set()
+    authorized_by_id = transition_state["authorized_by_id"]
+    current_by_id = transition_state["current_by_id"]
+    proof_by_id = transition_state["proof_by_id"]
+    equivalence_by_id = transition_state["equivalence_by_id"]
+    for source in contracts:
+        contract = copy.deepcopy(dict(source))
+        ingress_id = _route_v2_local_ingress_id(contract)
+        ingress = ingress_by_id.get(ingress_id)
+        if ingress is None:
+            raise RouteEvidenceError("contract transition ownership ingress is not rooted")
+        target_zone = _require_int(contract.get("zone"), "contract zone", minimum=0)
+        valid, reason = validate_directed_prefix((ingress,), target_zone=target_zone)
+        if not valid:
+            raise RouteEvidenceError(f"contract transition ownership is invalid: {reason}")
+        queue = [int(ingress["from_zone"])]
+        visited = set(queue)
+        used_equivalent: set[str] = set()
+        while queue:
+            zone = queue.pop(0)
+            for edge in predecessors.get(zone, ()):
+                definition = transition_state["equivalent_by_edge"].get(
+                    int(edge["zoneline_id"])
+                )
+                if definition is not None:
+                    used_equivalent.add(str(definition["transition_id"]))
+                source_zone = int(edge["from_zone"])
+                if source_zone not in visited:
+                    visited.add(source_zone)
+                    queue.append(source_zone)
+        required_zones.add(target_zone)
+        required_zones.update(visited)
+
+        raw_required = contract.get("required_transition_ids", ())
+        raw_proofs = contract.get("transition_evidence_ids", ())
+        if not isinstance(raw_required, (list, tuple)) or not isinstance(
+            raw_proofs, (list, tuple)
+        ):
+            raise RouteEvidenceError("contract transition trust root refs are malformed")
+        existing_ids = tuple(str(value) for value in raw_required)
+        existing_proofs = tuple(str(value) for value in raw_proofs)
+        if existing_ids != tuple(sorted(set(existing_ids))) or existing_proofs != tuple(
+            sorted(set(existing_proofs))
+        ):
+            raise RouteEvidenceError("contract transition trust root refs are not canonical")
+        expected_existing_proofs: list[str] = []
+        for transition_id in existing_ids:
+            definition = current_by_id.get(transition_id)
+            proof = proof_by_id.get(transition_id)
+            if (
+                definition is None
+                or proof is None
+                or transition_id not in authorized_by_id
+            ):
+                raise RouteEvidenceError("contract transition trust root is not current")
+            equivalence = equivalence_by_id.get(transition_id)
+            if equivalence and equivalence[1]:
+                if transition_id not in used_equivalent:
+                    raise RouteEvidenceError(
+                        "contract transition ownership is disconnected from its ingress"
+                    )
+            elif int(definition.get("zone", -1)) != target_zone:
+                raise RouteEvidenceError(
+                    "contract transition ownership is outside its target zone"
+                )
+            expected_existing_proofs.append(str(proof["transition_evidence_id"]))
+        if existing_proofs != tuple(sorted(expected_existing_proofs)):
+            raise RouteEvidenceError("contract transition trust root proof refs differ")
+        if not used_equivalent.issubset(set(authorized_by_id)):
+            raise RouteEvidenceError(
+                "transition trust root omits a current reachable transition"
+            )
+        final_ids = tuple(sorted(set(existing_ids) | used_equivalent))
+        final_proofs = tuple(
+            sorted(
+                str(proof_by_id[value]["transition_evidence_id"])
+                for value in final_ids
+            )
+        )
+        contract["required_transition_ids"] = final_ids
+        contract["transition_evidence_ids"] = final_proofs
+        contract["contract_id"] = _route_contract_identity(contract)
+        enriched.append(contract)
+    ids = [str(row["contract_id"]) for row in enriched]
+    if len(ids) != len(set(ids)):
+        raise RouteEvidenceError("enriched objective contracts have duplicate IDs")
+    return tuple(sorted(enriched, key=lambda row: str(row["contract_id"]))), required_zones
+
+
+def _discover_objective_route_mesh_names(
+    *,
+    contracts: Sequence[Mapping[str, Any]],
+    ingresses: Sequence[Mapping[str, Any]],
+    third_party_root: Path,
+    exact_required_zones: set[int] | None = None,
+) -> dict[int, str]:
+    if not contracts:
+        return {}
+    ingress_by_id = {
+        _require_int(row.get("zoneline_id"), "rooted graph zoneline ID", minimum=0): row
+        for row in ingresses
+    }
+    predecessors: dict[int, list[Mapping[str, Any]]] = {}
+    zone_names: dict[int, set[str]] = {}
+    for row in ingresses:
+        from_zone = _require_int(row.get("from_zone"), "rooted graph from_zone", minimum=0)
+        to_zone = _require_int(row.get("to_zone"), "rooted graph to_zone", minimum=0)
+        zone_names.setdefault(from_zone, set()).add(str(row.get("from_name", "")).strip())
+        zone_names.setdefault(to_zone, set()).add(str(row.get("to_name", "")).strip())
+        if str(row.get("confidence", "")).casefold() == "proven":
+            predecessors.setdefault(to_zone, []).append(row)
+
+    required_zones: set[int] = set(exact_required_zones or ())
+    if exact_required_zones is None:
+        for contract in contracts:
+            ingress_id = _route_v2_local_ingress_id(contract)
+            ingress = ingress_by_id.get(ingress_id)
+            if ingress is None:
+                raise RouteEvidenceError(
+                    "Contract directed prefix is absent from the rooted graph."
+                )
+            target_zone = _require_int(contract.get("zone"), "contract zone", minimum=0)
+            valid_prefix, reason = validate_directed_prefix((ingress,), target_zone=target_zone)
+            if not valid_prefix:
+                raise RouteEvidenceError(f"Contract directed prefix is invalid: {reason}")
+            entry_zone = int(ingress["from_zone"])
+            required_zones.add(target_zone)
+            queue = [entry_zone]
+            visited = {entry_zone}
+            head = 0
+            while head < len(queue):
+                zone = queue[head]
+                head += 1
+                for predecessor in predecessors.get(zone, ()):
+                    predecessor_zone = int(predecessor["from_zone"])
+                    if predecessor_zone not in visited:
+                        visited.add(predecessor_zone)
+                        queue.append(predecessor_zone)
+            required_zones.update(visited)
+
+    result: dict[int, str] = {}
+    for zone in sorted(required_zones):
+        names = zone_names.get(zone, set())
+        if len(names) != 1 or not next(iter(names), ""):
+            raise RouteEvidenceError(
+                f"Required objective prefix zone {zone} has conflicting rooted graph names."
+            )
+        result[zone] = _discover_zone_mesh_name(
+            zone, next(iter(names)), third_party_root
+        )
+    return result
+
+
 def _validate_contract_source_bindings(
     *,
     contracts: Sequence[Mapping[str, Any]],
@@ -2998,12 +3456,10 @@ def _validate_contract_source_bindings(
             raise RouteEvidenceError("Contract mesh hash differs from rooted source bytes.")
         if expected.get("destination_row_sha256") != destination_row_sha256(destination):
             raise RouteEvidenceError("Contract destination row hash is stale.")
-        prefix = contract.get("authorized_directed_prefix")
-        if not isinstance(prefix, (list, tuple)) or not prefix:
-            raise RouteEvidenceError("Contract directed prefix is missing.")
+        ingress_id = _route_v2_local_ingress_id(contract)
         try:
-            prefix_rows = tuple(ingress_by_id[int(value)] for value in prefix)
-        except (KeyError, TypeError, ValueError) as error:
+            prefix_rows = (ingress_by_id[ingress_id],)
+        except KeyError as error:
             raise RouteEvidenceError("Contract directed prefix is absent from the rooted graph.") from error
         valid_prefix, reason = validate_directed_prefix(prefix_rows, target_zone=zone)
         if not valid_prefix:
@@ -3069,11 +3525,6 @@ def write_route_runtime_artifacts(
         "graph": graph,
         "ffxinav": dll,
     }
-    for zone, mesh_name in sorted(zone_mesh_names.items()):
-        mesh = dependencies / "xiNavmeshes" / mesh_name
-        if not mesh.is_file():
-            raise RouteEvidenceError(f"Contract mesh is missing for zone {zone}: {mesh}")
-        source_paths[f"mesh:{mesh_name}"] = mesh
     transition_registry_path = (
         repository / "data" / "mission-quest-guides" / "route-transitions.json"
     )
@@ -3082,11 +3533,75 @@ def write_route_runtime_artifacts(
             f"Transition registry is missing: {transition_registry_path}"
         )
     source_paths["transition-registry"] = transition_registry_path
+    transition_evidence_path = (
+        repository
+        / "data"
+        / "mission-quest-guides"
+        / "route-transition-evidence-v2.jsonl"
+    )
+    if not transition_evidence_path.is_file():
+        raise RouteEvidenceError(
+            f"Transition evidence trust root is missing: {transition_evidence_path}"
+        )
+    source_paths["transition-evidence"] = transition_evidence_path
     source_payloads = {key: path.read_bytes() for key, path in source_paths.items()}
+    catalogue = load_route_catalogue_bytes(
+        source_payloads["destinations"],
+        source_payloads["graph"],
+        destination_source="writer destination snapshot",
+        graph_source="writer graph snapshot",
+    )
     transition_registry_payload = source_payloads["transition-registry"]
     transition_definitions = _parse_transition_definitions(
         transition_registry_payload, source="route-transitions.json snapshot"
     )
+    transition_evidence_rows = _parse_transition_evidence_bytes(
+        source_payloads["transition-evidence"],
+        source="route-transition-evidence-v2.jsonl snapshot",
+    )
+    transition_state = _current_transition_state(
+        definitions=transition_definitions,
+        authorized=transition_rows,
+        evidence_rows=transition_evidence_rows,
+        ingresses=catalogue["ingresses"],
+        policy=policy,
+        transition_registry_sha256=_sha256_bytes(transition_registry_payload),
+        ffxinav_sha256=_sha256_bytes(source_payloads["ffxinav"]),
+        destinations_sha256=_sha256_bytes(source_payloads["destinations"]),
+        graph_sha256=_sha256_bytes(source_payloads["graph"]),
+        third_party_root=dependencies,
+        strict_authorized=True,
+    )
+    contract_rows, exact_required_zones = _enrich_objective_prefix_contracts(
+        contract_rows, catalogue["ingresses"], transition_state
+    )
+    for zone, (_name, path, payload) in sorted(
+        transition_state["mesh_by_zone"].items()
+    ):
+        key = f"transition-source-mesh:{zone}"
+        source_paths[key] = path
+        source_payloads[key] = payload
+    rooted_mesh_names = _discover_objective_route_mesh_names(
+        contracts=contract_rows,
+        ingresses=catalogue["ingresses"],
+        third_party_root=dependencies,
+        exact_required_zones=exact_required_zones,
+    )
+    for zone, mesh_name in rooted_mesh_names.items():
+        previous = zone_mesh_names.get(zone)
+        if previous is not None and previous.casefold() != mesh_name.casefold():
+            raise RouteEvidenceError(f"Zone {zone} has conflicting objective mesh names.")
+        zone_mesh_names[zone] = mesh_name
+    for zone, mesh_name in sorted(zone_mesh_names.items()):
+        mesh = dependencies / "xiNavmeshes" / mesh_name
+        if not mesh.is_file():
+            raise RouteEvidenceError(f"Contract mesh is missing for zone {zone}: {mesh}")
+        key = f"mesh:{mesh_name}"
+        previous_path = source_paths.get(key)
+        if previous_path is not None and previous_path != mesh:
+            raise RouteEvidenceError(f"Mesh {mesh_name!r} has conflicting rooted paths.")
+        source_paths[key] = mesh
+        source_payloads[key] = mesh.read_bytes()
     policy_bytes = render_policy_lua(policy).encode("utf-8")
     transitions_bytes = render_transitions_lua(
         transition_rows,

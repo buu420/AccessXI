@@ -37,6 +37,7 @@ Assert-Match $addonSource 'nav_mission_quest_prepare_route' 'Route start must re
 Assert-Match $addonSource 'nav_mission_quest_item_speech' 'Mission and quest rows must use objective-aware speech.'
 Assert-Match $addonSource 'arrival_radius\s*=\s*tonumber\(point\.arrival_radius\)' 'Copied objective points must preserve their precise arrival radius.'
 Assert-Match $addonSource 'nav_mission_quest_arrival_suffix' 'Arrival speech must preserve the objective interaction instruction.'
+Assert-Match $addonSource 'text\s*=\s*text\s*\.\.\s*accessxi\.nav_mission_quest_start_suffix\(target\)' 'Verified objective route start must speak route-time recommendations.'
 Assert-Match $addonSource 'function accessxi\.current_player_identity\(' 'Mission and quest state must use a name plus native server ID identity.'
 Assert-Match $addonSource 'server_id=' 'Mission and quest packet caches must persist a collision-resistant native player ID.'
 Assert-Match $addonSource 'nav_cancel_mission_quest_route' 'Character switching must cancel copied mission/quest routes.'

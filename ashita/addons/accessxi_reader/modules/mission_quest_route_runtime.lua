@@ -21,6 +21,14 @@ local EXPECTED_POLICY_REVISION = 'objective-route-proof-v2.1'
 local EXPECTED_PROBE_PROTOCOL = 'accessxi-navprobe-jsonl-v2'
 local EXPECTED_PROBE_SCHEMA = 2
 local OBJECTIVE_TRANSITION_REVISION = 'objective-route-transition-v2'
+local REVIEWED_ZONE_MESH_NAMES = {
+    [105] = 'Batallia_Downs.nav', [110] = 'Rolanberry_Fields.nav',
+    [120] = 'Sauromugue_Champaign.nav', [126] = 'Qufim_Island.nav',
+    [195] = 'The_Eldieme_Necropolis.nav', [230] = 'Southern_San_dOria.nav',
+    [231] = 'Northern_San_dOria.nav', [232] = 'Port_San_dOria.nav',
+    [243] = 'RuLude_Gardens.nav', [244] = 'Upper_Jeuno.nav',
+    [245] = 'Lower_Jeuno.nav', [246] = 'Port_Jeuno.nav',
+}
 local CONTRACT_INPUT_FIELDS = {
     'mesh_name',
     'mesh_sha256',
@@ -224,6 +232,7 @@ local function parse_manifest(bytes)
     end
     local rows = {}
     local aliases = {}
+    local mesh_zones = {}
     local previous = nil
     for index = 2, #lines do
         local fields = split_tabs(lines[index])
@@ -249,9 +258,16 @@ local function parse_manifest(bytes)
             mesh_name = fields[5],
         }
         if row.kind == 'mesh' then
-            if not row.zone:match('^%d+$') or row.mesh_name == '' then
+            local numeric_zone = tonumber(row.zone)
+            if not row.zone:match('^%d+$')
+                or not nonnegative_integer(numeric_zone)
+                or tostring(numeric_zone) ~= row.zone
+                or row.mesh_name == ''
+                or mesh_zones[numeric_zone]
+            then
                 return nil, 'Runtime manifest mesh metadata is malformed.'
             end
+            mesh_zones[numeric_zone] = true
         elseif row.zone ~= '' or row.mesh_name ~= '' then
             return nil, 'Only runtime manifest mesh rows may carry zone metadata.'
         end
@@ -670,6 +686,27 @@ function Runtime:_validate_native_binding(contract)
     return true
 end
 
+function Runtime:_validate_native_binding_for_mesh(binding)
+    local state = private(self)
+    if type(binding) ~= 'table' or type(state.native_integrity_state) ~= 'function' then
+        return nil, 'The rooted native integrity observer is unavailable.'
+    end
+    local ok, snapshot = pcall(state.native_integrity_state)
+    local dll = state.accepted_files['third_party/FFXI-NavMesh-Builder/FFXINAV.dll']
+    local mesh = state.accepted_files[binding.relative_path]
+    if not ok or type(snapshot) ~= 'table' or snapshot.trusted ~= true
+        or type(snapshot.dll) ~= 'table' or type(snapshot.mesh) ~= 'table'
+        or dll == nil or mesh == nil
+        or snapshot.dll.path ~= dll.path or snapshot.dll.sha256 ~= dll.sha256
+        or not identity_equal(snapshot.dll.identity, dll.identity)
+        or snapshot.mesh.path ~= mesh.path or snapshot.mesh.sha256 ~= mesh.sha256
+        or not identity_equal(snapshot.mesh.identity, mesh.identity)
+        or snapshot.mesh.mesh_name ~= binding.mesh_name
+        or tonumber(snapshot.mesh.zone) ~= binding.zone
+    then return nil, 'The loaded objective DLL or mesh identity is stale.' end
+    return true
+end
+
 function Runtime:_load_generated(relative_path)
     local state = private(self)
     local row = state.manifest_rows[relative_path]
@@ -843,10 +880,16 @@ function Runtime:_validate_contracts(contracts)
             or type(contract.zone) ~= 'number' or contract.zone < 0 or contract.zone ~= math.floor(contract.zone)
             or type(contract.destination) ~= 'table' or type(contract.local_leg) ~= 'table'
             or not exact_array(contract.authorized_directed_prefix)
-            or #contract.authorized_directed_prefix == 0
+            or #contract.authorized_directed_prefix ~= 1
             or not exact_array(contract.required_transition_ids)
         then
             return nil, 'Objective route contract identity or geometry is malformed.'
+        end
+        local leg = type(contract.local_leg) == 'table' and contract.local_leg.leg or nil
+        if type(leg) ~= 'table' or not nonnegative_integer(leg.zoneline_id)
+            or contract.authorized_directed_prefix[1] ~= leg.zoneline_id
+        then
+            return nil, 'A route:v2 contract directed prefix must equal its local ingress.'
         end
         local inputs_ok, inputs_error = self:_validate_contract_inputs(contract)
         if not inputs_ok then return nil, inputs_error end
@@ -915,19 +958,30 @@ function Runtime:_transition_equivalent(edge, contract)
     local state = private(self)
     local required = {}
     for _, transition_id in ipairs(contract.required_transition_ids or {}) do required[transition_id] = true end
+    local matched = false
     for transition_id, transition in pairs(state.transitions_by_id or {}) do
         if required[transition_id] == true
+            and edge.confidence == 'observed'
             and transition.reviewed == true
+            and transition.transition_id == tostring(transition.base_id) .. ':' .. tostring(transition.direction)
             and tonumber(transition.equivalent_zoneline_id) == edge.zoneline_id
             and tonumber(transition.from_zone) == edge.from_zone
             and tonumber(transition.to_zone) == edge.to_zone
-            and type(state.transition_is_eligible) == 'function'
+            and tonumber(transition.zone) == edge.from_zone
+            and point_is_finite(transition.pre_anchor)
+            and point_is_finite(transition.post_anchor)
+            and transition.pre_anchor.x == edge.from_x
+            and transition.pre_anchor.z == edge.from_z
+            and transition.pre_anchor.y == edge.from_y
+            and transition.post_anchor.x == edge.to_x
+            and transition.post_anchor.z == edge.to_z
+            and transition.post_anchor.y == edge.to_y
         then
-            local ok, eligible = pcall(state.transition_is_eligible, transition, contract)
-            if ok and eligible == true then return true end
+            if matched then return false end
+            matched = true
         end
     end
-    return false
+    return matched
 end
 
 function Runtime:_edge_authorized(edge, contract)
@@ -958,6 +1012,76 @@ function Runtime:_validated_contract_prefix(contract)
         return nil, 'Objective route contract directed prefix does not reach its target zone.'
     end
     return prefix
+end
+
+function Runtime:_derive_required_meshes()
+    local state = private(self)
+    local zone_names = {}
+    for _, edge in ipairs(state.graph_rows or {}) do
+        zone_names[edge.from_zone] = zone_names[edge.from_zone] or {}
+        zone_names[edge.to_zone] = zone_names[edge.to_zone] or {}
+        zone_names[edge.from_zone][edge.from_name] = true
+        zone_names[edge.to_zone][edge.to_name] = true
+    end
+    local required = {}
+    for _, contract in ipairs(state.contracts or {}) do
+        local prefix, reason = self:_validated_contract_prefix(contract)
+        if prefix == nil then return nil, reason end
+        local predecessors = {}
+        for _, edge in ipairs(state.graph_rows or {}) do
+            if self:_edge_authorized(edge, contract) then
+                predecessors[edge.to_zone] = predecessors[edge.to_zone] or {}
+                predecessors[edge.to_zone][#predecessors[edge.to_zone] + 1] = edge
+            end
+        end
+        local entry = prefix[1].from_zone
+        local queue, head, visited = { entry }, 1, { [entry] = true }
+        while head <= #queue do
+            local zone = queue[head]
+            head = head + 1
+            for _, edge in ipairs(predecessors[zone] or {}) do
+                if not visited[edge.from_zone] then
+                    visited[edge.from_zone] = true
+                    queue[#queue + 1] = edge.from_zone
+                end
+            end
+        end
+        required[contract.zone] = true
+        for zone in pairs(visited) do required[zone] = true end
+    end
+    local manifest_by_zone = {}
+    for path, row in pairs(state.manifest_rows or {}) do
+        if row.kind == 'mesh' then manifest_by_zone[tonumber(row.zone)] = row end
+    end
+    for zone in pairs(manifest_by_zone) do
+        if not required[zone] then
+            return nil, 'Objective route manifest contains an unselected mesh zone.'
+        end
+    end
+    local result = {}
+    for zone in pairs(required) do
+        local names, count, zone_name = zone_names[zone], 0, nil
+        for name in pairs(names or {}) do
+            if name ~= '' then count, zone_name = count + 1, name end
+        end
+        if count ~= 1 then
+            return nil, 'Required objective graph zone names are missing or conflicting.'
+        end
+        local mesh_name = REVIEWED_ZONE_MESH_NAMES[zone]
+            or zone_name:gsub(' ', '_') .. '.nav'
+        local row = manifest_by_zone[zone]
+        local relative = 'third_party/xiNavmeshes/' .. mesh_name
+        if row == nil or row.relative_path ~= relative or row.mesh_name ~= mesh_name then
+            return nil, 'A required objective prefix mesh is missing or incorrectly mapped.'
+        end
+        result[zone] = {
+            zone = zone,
+            mesh_name = mesh_name,
+            relative_path = relative,
+            sha256 = row.sha256,
+        }
+    end
+    return result
 end
 
 function Runtime:find_objective_zone_path(start_zone, contract_id)
@@ -1188,6 +1312,177 @@ function Runtime:compute_exact_objective_leg(request, native_override, transitio
     return finish()
 end
 
+function Runtime:prepare_next_objective_prefix_leg(contract_id, player, ...)
+    if select('#', ...) ~= 0 then
+        return nil, 'Per-call objective prefix overrides are forbidden.'
+    end
+    if not self:is_ready() then return nil, self:failure_reason() end
+    local state = private(self)
+    if not nonempty(contract_id) or type(player) ~= 'table' then
+        return nil, 'Objective prefix request is malformed.'
+    end
+    local field_count = 0
+    for field in pairs(player) do
+        if field ~= 'zone' and field ~= 'x' and field ~= 'z' and field ~= 'y' then
+            return nil, 'Objective prefix player request is malformed.'
+        end
+        field_count = field_count + 1
+    end
+    if field_count ~= 4 or not nonnegative_integer(player.zone)
+        or not point_is_finite(player)
+    then return nil, 'Objective prefix player request is malformed.' end
+    local contract = state.contracts_by_id[contract_id]
+    if contract == nil then return nil, 'The rooted objective route contract is unavailable.' end
+    local suffix, path_error = self:find_objective_zone_path(player.zone, contract_id)
+    if suffix == nil then return nil, path_error end
+    local edge = suffix[1]
+    local stage = edge == nil and 'final' or 'prefix'
+    local endpoint
+    if edge ~= nil then
+        endpoint = {
+            zone = player.zone,
+            x = edge.from_x, z = edge.from_z, y = edge.from_y,
+        }
+    else
+        endpoint = {
+            zone = contract.zone,
+            x = contract.destination.x,
+            z = contract.destination.z,
+            y = contract.destination.y,
+        }
+    end
+    local binding = state.meshes_by_zone[player.zone]
+    if binding == nil then return nil, 'No rooted mesh matches the current objective zone.' end
+    local files_ok, files_error = self:_revalidate_contract_files(contract)
+    if not files_ok then return nil, files_error end
+    local mesh_ok, mesh_error = self:_verify_current(
+        binding.relative_path, 'Current objective prefix mesh')
+    if not mesh_ok then return nil, mesh_error end
+    if type(state.objective_mesh_loader) ~= 'function'
+        or type(state.objective_native) ~= 'table'
+    then return nil, 'The private objective mesh/native loader is unavailable.' end
+    local load_ok, loaded = pcall(
+        state.objective_mesh_loader, binding.zone, binding.mesh_name, binding.path)
+    if not load_ok or loaded ~= true then
+        return nil, 'The rooted objective prefix mesh could not be loaded.'
+    end
+
+    local request = {
+        zone = player.zone,
+        start = { zone = player.zone, x = player.x, z = player.z, y = player.y },
+        ['end'] = deep_copy(endpoint),
+    }
+    local observation = {
+        status = 'tool-error', start_valid = false, end_valid = false,
+        fallback_used = false, waypoint_count = 0, waypoints = {},
+        first_endpoint_error = 0, last_endpoint_error = 0,
+        start_clearance = 0, end_clearance = 0,
+        minimum_waypoint_clearance = 0, path_length = 0,
+    }
+    local function integrity()
+        local current, reason = self:_revalidate_contract_files(contract)
+        if not current then return nil, reason end
+        current, reason = self:_verify_current(binding.relative_path, 'Current objective prefix mesh')
+        if not current then return nil, reason end
+        return self:_validate_native_binding_for_mesh(binding)
+    end
+    local function checked(method, ...)
+        local current, reason = integrity()
+        if not current then return nil, nil, reason end
+        local ok, value = native_call(state.objective_native, method, ...)
+        return ok, value, nil
+    end
+    local function finish()
+        local current, reason = integrity()
+        if not current then return nil, reason end
+        local classification = classify_exact_leg(
+            state.policy, request, observation, state.transition_definitions)
+        if classification ~= 'mesh-proven' then return nil, classification end
+        local descriptor = {
+            objective_route_contract_id = contract.contract_id,
+            objective_contract_snapshot = deep_copy(contract),
+            stage = stage,
+            edge = edge == nil and {} or deep_copy(edge),
+            from_zone = player.zone,
+            to_zone = edge == nil and contract.zone or edge.to_zone,
+            edge_row_sha256 = edge == nil and '' or edge.row_sha256,
+            endpoint = deep_copy(endpoint),
+            mesh = {
+                zone = binding.zone,
+                mesh_name = binding.mesh_name,
+                relative_path = binding.relative_path,
+                path = binding.path,
+                sha256 = binding.sha256,
+            },
+            waypoints = deep_copy(observation.waypoints),
+            path_suffix = deep_copy(suffix),
+        }
+        return descriptor, ''
+    end
+    local native_start = { x = player.x, y = player.y, z = player.z }
+    local native_end = { x = endpoint.x, y = endpoint.y, z = endpoint.z }
+    local ok, value, drift = checked('is_valid_position', native_start)
+    if drift then return nil, drift end
+    if not ok or type(value) ~= 'boolean' then return nil, 'tool-error' end
+    observation.start_valid = value
+    if not value then observation.status = 'start-invalid'; return finish() end
+    ok, value, drift = checked('get_distance_to_wall', native_start)
+    if drift then return nil, drift end
+    if not ok or not finite_number(value) or value < 0 then return nil, 'tool-error' end
+    observation.start_clearance = value
+    ok, value, drift = checked('is_valid_position', native_end)
+    if drift then return nil, drift end
+    if not ok or type(value) ~= 'boolean' then return nil, 'tool-error' end
+    observation.end_valid = value
+    if not value then observation.status = 'end-invalid'; return finish() end
+    ok, value, drift = checked('get_distance_to_wall', native_end)
+    if drift then return nil, drift end
+    if not ok or not finite_number(value) or value < 0 then return nil, 'tool-error' end
+    observation.end_clearance = value
+    ok, value, drift = checked('find_path', native_start, native_end)
+    if drift then return nil, drift end
+    if not ok then return nil, 'tool-error' end
+    local maximum = state.policy.thresholds.maximum_waypoint_count
+    local waypoints_ok, native_waypoints
+    waypoints_ok, native_waypoints, drift = checked('get_waypoints', maximum)
+    if drift then return nil, drift end
+    if not waypoints_ok or not exact_array(native_waypoints) then return nil, 'tool-error' end
+    observation.waypoint_count = #native_waypoints
+    observation.status = #native_waypoints >= 2 and 'exact-path' or 'no-exact-path'
+    for index, native_point in ipairs(native_waypoints) do
+        if type(native_point) ~= 'table' or not finite_number(native_point.x)
+            or not finite_number(native_point.y) or not finite_number(native_point.z)
+        then return nil, 'waypoint-malformed' end
+        observation.waypoints[index] = {
+            zone = player.zone,
+            x = native_point.x, z = native_point.z, y = native_point.y,
+        }
+    end
+    for _, point in ipairs(observation.waypoints) do
+        ok, value, drift = checked('get_distance_to_wall', {
+            x = point.x, y = point.y, z = point.z,
+        })
+        if drift then return nil, drift end
+        if not ok or not finite_number(value) or value < 0 then return nil, 'tool-error' end
+        point.clearance = value
+    end
+    if #observation.waypoints > 0 then
+        observation.first_endpoint_error = point_distance(request.start, observation.waypoints[1])
+        observation.last_endpoint_error = point_distance(
+            request['end'], observation.waypoints[#observation.waypoints])
+        observation.minimum_waypoint_clearance = observation.waypoints[1].clearance
+        for _, point in ipairs(observation.waypoints) do
+            observation.minimum_waypoint_clearance = math.min(
+                observation.minimum_waypoint_clearance, point.clearance)
+        end
+        for index = 2, #observation.waypoints do
+            observation.path_length = observation.path_length + point_distance(
+                observation.waypoints[index - 1], observation.waypoints[index])
+        end
+    end
+    return finish()
+end
+
 function Runtime:_initialize(options)
     local state = private(self)
     if not canonical_sha256(options.expected_manifest_sha256) then
@@ -1204,8 +1499,8 @@ function Runtime:_initialize(options)
     state.file_hasher = options.file_hasher
     state.sha256 = options.sha256
     state.path_for = options.path_for
-    state.transition_is_eligible = options.transition_is_eligible
     state.objective_native = options.objective_native
+    state.objective_mesh_loader = options.objective_mesh_loader
     state.native_integrity_state = options.native_integrity_state
     state.accepted_files = {}
     state.load_chunk = type(options.load_chunk) == 'function' and options.load_chunk
@@ -1234,6 +1529,47 @@ function Runtime:_initialize(options)
         sha256 = options.expected_manifest_sha256,
         identity = deep_copy(manifest_identity),
     }
+
+    for _, static_child in ipairs({
+        { 'modules/mission_quest_route_runtime.lua', 'Objective route runtime module' },
+        { 'third_party/FFXI-NavMesh-Builder/FFXINAV.dll', 'Objective FFXINAV DLL' },
+    }) do
+        local accepted, accept_error = self:_accept_static_child(static_child[1], static_child[2])
+        if accepted == nil then return self:_block(accept_error) end
+    end
+
+    local loaded = {}
+    for _, relative_path in ipairs(GENERATED_MODULES) do
+        local value, reason = self:_load_generated(relative_path)
+        if value == nil then
+            return self:_block(reason)
+        end
+        loaded[relative_path] = value
+    end
+    state.policy = deep_copy(loaded['modules/mission_quest_route_policy.lua'])
+    local transition_bundle = deep_copy(loaded['modules/mission_quest_route_transitions.lua'])
+    local contracts = deep_copy(loaded['modules/mission_quest_route_contracts.lua'])
+    local policy_ok, policy_error = self:_validate_policy(state.policy)
+    if not policy_ok then return self:_block(policy_error) end
+    local transitions_ok, transitions_error = self:_validate_transitions(transition_bundle)
+    if not transitions_ok then return self:_block(transitions_error) end
+    if not exact_array(contracts) then
+        return self:_block('Objective route contract index is malformed.')
+    end
+    if #contracts == 0 then
+        state.destination_rows = {}
+        state.destinations_by_id = {}
+        state.graph_rows = {}
+        state.graph_by_id = {}
+        local contracts_ok, contracts_error = self:_validate_contracts(contracts)
+        if not contracts_ok then return self:_block(contracts_error) end
+        local required_meshes, mesh_error = self:_derive_required_meshes()
+        if required_meshes == nil then return self:_block(mesh_error) end
+        state.meshes_by_zone = required_meshes
+        state.ready = true
+        state.failure_reason = ''
+        return true
+    end
 
     local destination_row = rows['data/ffxi-nav-destinations.tsv']
     local destination_path_ok, destination_path = pcall(state.path_for, destination_row.relative_path)
@@ -1270,39 +1606,18 @@ function Runtime:_initialize(options)
     for _, edge in ipairs(state.graph_rows) do state.graph_by_id[edge.zoneline_id] = edge end
     self:_record_accepted(graph_row.relative_path, graph_path, graph_row.sha256, graph_identity)
 
-    for _, static_child in ipairs({
-        { 'modules/mission_quest_route_runtime.lua', 'Objective route runtime module' },
-        { 'third_party/FFXI-NavMesh-Builder/FFXINAV.dll', 'Objective FFXINAV DLL' },
-    }) do
-        local accepted, accept_error = self:_accept_static_child(static_child[1], static_child[2])
-        if accepted == nil then return self:_block(accept_error) end
-    end
-
-    local loaded = {}
-    for _, relative_path in ipairs(GENERATED_MODULES) do
-        local value, reason = self:_load_generated(relative_path)
-        if value == nil then
-            return self:_block(reason)
-        end
-        loaded[relative_path] = value
-    end
-    state.policy = deep_copy(loaded['modules/mission_quest_route_policy.lua'])
-    local transition_bundle = deep_copy(loaded['modules/mission_quest_route_transitions.lua'])
-    local contracts = deep_copy(loaded['modules/mission_quest_route_contracts.lua'])
-    local policy_ok, policy_error = self:_validate_policy(state.policy)
-    if not policy_ok then return self:_block(policy_error) end
-    local transitions_ok, transitions_error = self:_validate_transitions(transition_bundle)
-    if not transitions_ok then return self:_block(transitions_error) end
     local contracts_ok, contracts_error = self:_validate_contracts(contracts)
     if not contracts_ok then return self:_block(contracts_error) end
-    local accepted_meshes = {}
-    for _, contract in ipairs(state.contracts) do
-        local mesh_relative = 'third_party/xiNavmeshes/' .. contract.expected_inputs.mesh_name
-        if not accepted_meshes[mesh_relative] then
-            local accepted, accept_error = self:_accept_static_child(mesh_relative, 'Objective zone mesh')
-            if accepted == nil then return self:_block(accept_error) end
-            accepted_meshes[mesh_relative] = true
-        end
+    local required_meshes, mesh_error = self:_derive_required_meshes()
+    if required_meshes == nil then return self:_block(mesh_error) end
+    state.meshes_by_zone = required_meshes
+    for zone, binding in pairs(required_meshes) do
+        local accepted, accept_error = self:_accept_static_child(
+            binding.relative_path, ('Objective zone %d mesh'):format(zone))
+        if accepted == nil then return self:_block(accept_error) end
+        local accepted_file = state.accepted_files[binding.relative_path]
+        binding.path = accepted_file.path
+        binding.identity = deep_copy(accepted_file.identity)
     end
     state.ready = true
     state.failure_reason = ''

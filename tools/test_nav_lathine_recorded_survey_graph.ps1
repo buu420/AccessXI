@@ -1,25 +1,39 @@
+param(
+    [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
+    [string]$AshitaRoot = 'C:\Users\buu42\Ashita',
+    [string]$RecordingPath = '',
+    [switch]$IncludeLive
+)
+
 $ErrorActionPreference = 'Stop'
 
+$RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+$AshitaRoot = [System.IO.Path]::GetFullPath($AshitaRoot)
 $sessionId = '20260712-170700-z102'
 $sourceTag = 'live-route-recording-20260712-170700-z102'
-$recordingPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\logs\ffxi-nav-route-recordings.tsv'
+if ([string]::IsNullOrWhiteSpace($RecordingPath)) {
+    $RecordingPath = Join-Path $AshitaRoot 'addons\accessxi_reader\logs\ffxi-nav-route-recordings.tsv'
+}
+$recordingPath = [System.IO.Path]::GetFullPath($RecordingPath)
 $graphPaths = @(
-    'C:\Users\buu42\AccessXI\data\ffxi-nav-recorded-survey.tsv',
-    'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv',
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv'
+    (Join-Path $RepoRoot 'data\ffxi-nav-recorded-survey.tsv'),
+    (Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv')
 )
 $markPaths = @(
-    'C:\Users\buu42\AccessXI\data\ffxi-nav-recorded-marks.tsv',
-    'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv',
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv'
+    (Join-Path $RepoRoot 'data\ffxi-nav-recorded-marks.tsv'),
+    (Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv')
 )
-$sourceLuaPath = 'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\accessxi_reader.lua'
-$liveLuaPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
+$sourceLuaPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
+$liveLuaPath = Join-Path $AshitaRoot 'addons\accessxi_reader\accessxi_reader.lua'
 $modulePaths = @(
-    'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\modules\recorded_survey_navigation.lua',
-    'C:\Users\buu42\Ashita\addons\accessxi_reader\modules\recorded_survey_navigation.lua'
+    (Join-Path $RepoRoot 'ashita\addons\accessxi_reader\modules\recorded_survey_navigation.lua')
 )
-$luaExe = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
+if ($IncludeLive) {
+    $graphPaths += Join-Path $AshitaRoot 'addons\accessxi_reader\data\ffxi-nav-recorded-survey.tsv'
+    $markPaths += Join-Path $AshitaRoot 'addons\accessxi_reader\data\ffxi-nav-recorded-marks.tsv'
+    $modulePaths += Join-Path $AshitaRoot 'addons\accessxi_reader\modules\recorded_survey_navigation.lua'
+}
+$luaExe = Join-Path $RepoRoot 'tools\lua51\lua5.1.exe'
 
 function Assert-True {
     param([bool]$Condition, [Parameter(Mandatory = $true)][string]$Message)
@@ -160,11 +174,11 @@ Assert-True ($source -match "nav_recorded_marks_path\s*=\s*accessxi_paths\.addon
 Assert-True ($source -match "nav_recorded_survey_path\s*=\s*accessxi_paths\.addon_path\('data', 'ffxi-nav-recorded-survey\.tsv'\)") 'Main addon lacks the recorded-survey data path.'
 Assert-True ($source -match "nav_load_points_file\(accessxi\.nav_recorded_marks_path, 'live-route-recording'\)") 'Recorded marks are not loaded as navigation destinations.'
 Assert-True ($source -match "load_code_module\('recorded_survey_navigation'") 'Recorded-survey routing module is not loaded.'
-Assert-True ($source -match "load_code_module\('recorded_survey_navigation'[\s\S]*?if \(type\(accessxi\.nav_recorded_survey_load\) == 'function'\) then\s*accessxi\.nav_recorded_survey_load\(\);\s*end") 'Recorded survey is not validated eagerly during addon load.'
+Assert-True (-not ($source -match "load_code_module\('recorded_survey_navigation'[\s\S]*?if \(type\(accessxi\.nav_recorded_survey_load\) == 'function'\) then\s*accessxi\.nav_recorded_survey_load\(\);\s*end")) 'Recorded survey must remain lazy during addon load.'
 Assert-True ($source -match "route_id:startswith\('lathine-recorded-survey-'\)") 'Recorded-survey routes are not precise overrides.'
 Assert-True ($source -match "local route_id = accessxi\.nav_route_points_override_id\(points\);\s*if \(route_id:startswith\('lathine-recorded-survey-'\)\) then\s*return '';\s*end") 'Recorded-survey routes can still be replaced by a live navmesh replan.'
 Assert-True ($source -match "function accessxi\.nav_lathine_live_recorded_corridor_handoff\(player, point, current_points\)[\s\S]*?current_id:startswith\('lathine-recorded-survey-'\)[\s\S]*?return empty") 'A slice corridor can still replace an active full recorded survey.'
-Assert-True ($source -match "survey_authoritative\s*=\s*current_id:startswith\('lathine-recorded-survey-'\)[\s\S]*?lower_ravine_handoff\s*=\s*\(not survey_authoritative\)") 'A lower-ravine static override can still replace an active full recorded survey.'
+Assert-True ($source -match "survey_authoritative\s*=\s*current_id:startswith\('lathine-recorded-survey-'\)[\s\S]*?lower_ravine_handoff\s*=\s*\(not collision_authoritative\)[\s\S]*?and\s*\(not survey_authoritative\)") 'A lower-ravine static override can still replace an active full recorded survey.'
 $graphCall = $source.IndexOf('accessxi.nav_recorded_survey_route(player, point)')
 $corridorCall = $source.IndexOf('accessxi.nav_lathine_recorded_corridor_route(player, point)', $graphCall + 1)
 Assert-True ($graphCall -ge 0 -and $corridorCall -gt $graphCall) 'Recorded survey is not consulted before ordinary recorded corridors.'
@@ -239,26 +253,32 @@ function accessxi.nav_lathine_recorded_corridor_candidate(player, point, corrido
 end
 local start = { zone = 102, x = -559.850, z = 677.532, y = 0.000, name = 'survey start' }
 local finish = { zone = 102, x = 476.342, z = -373.660, y = 23.860, name = 'Cliff path 5 top' }
-local route, required = accessxi.nav_recorded_survey_route(start, finish)
-assert(required == true and route:len() > 1000 and route:len() < 2000,
-    ('graph route did not remove chronological loops count=%d required=%s'):format(route:len(), tostring(required)))
-local length = 0
-for i = 2, route:len() do
-    length = length + survey_test_distance_3d(route[i - 1], route[i])
-    assert(route[i - 1].route_override_id == 'lathine-recorded-survey-20260712',
-        'graph route lost precise route identity')
-end
-assert(math.abs(length - 3530.4) < 5.0,
-    ('graph route length %.1f did not match walked-network shortest path'):format(length))
+local route, required, collision_required = accessxi.nav_recorded_survey_route(start, finish)
+assert(required == false and collision_required == true and route:len() == 0,
+    'ordinary La Theine destination did not yield to full-zone DAT collision terrain')
 
-local missing, covered = accessxi.nav_recorded_survey_route(start,
+local current_route, current_route_required, current_collision_required =
+    accessxi.nav_recorded_survey_route(
+        { zone = 102, x = -434.488, z = 211.434, y = 8.005, name = 'current live start' },
+        { zone = 102, x = -481.196, z = 220.547, y = -7.028, name = 'Galaihaurat' })
+assert(current_route_required == false and current_collision_required == true
+    and current_route:len() == 0,
+    'ordinary La Theine destination reused the alternate 4412-to-3904 survey wall path')
+
+local wall_route, wall_route_required, collision_required = accessxi.nav_recorded_survey_route(
+    { zone = 102, x = -433.269, z = 224.810, y = 8.088, name = 'live wall position' },
+    { zone = 102, x = -481.196, z = 220.547, y = -7.028, name = 'Galaihaurat' })
+assert(wall_route_required == false and collision_required == true and wall_route:len() == 0,
+    'recorded survey accepted the unsafe reverse 3924-to-3923 wall crossing instead of yielding to DAT terrain')
+
+local missing, missing_required, missing_collision_required = accessxi.nav_recorded_survey_route(start,
     { zone = 102, x = 0, z = 1000, y = 0, name = 'unrecorded destination' })
-assert(covered == true and missing:len() == 0,
-    'covered player received a guessed tail outside the walked survey')
-local outside, outside_required = accessxi.nav_recorded_survey_route(
+assert(missing_required == false and missing_collision_required == true and missing:len() == 0,
+    'covered player did not yield an unrecorded destination to collision terrain')
+local outside, outside_required, outside_collision_required = accessxi.nav_recorded_survey_route(
     { zone = 102, x = 0, z = 1000, y = 0, name = 'outside' }, finish)
-assert(outside_required == false and outside:len() == 0,
-    'player outside graph coverage was incorrectly captured by the survey')
+assert(outside_required == false and outside_collision_required == true and outside:len() == 0,
+    'non-West La Theine destination did not yield consistently to collision terrain')
 local west_player = { zone = 102, x = 15.375, z = -288.323, y = 24.309, name = 'live stuck position' }
 local west, west_required = accessxi.nav_recorded_survey_route(west_player,
     { zone = 102, x = -558.569, z = 688.049, y = -7.049, name = 'West Ronfaure zone line' })
@@ -292,7 +312,9 @@ finally {
 }
 if ($luaExitCode -ne 0) { throw "Recorded survey Lua regression failed: $output" }
 
-Assert-Equal @((Get-FileHash -Algorithm SHA256 -LiteralPath $sourceLuaPath).Hash, (Get-FileHash -Algorithm SHA256 -LiteralPath $liveLuaPath).Hash | Select-Object -Unique).Count 1 'Source and live main Lua copies are not byte-identical.'
+if ($IncludeLive) {
+    Assert-Equal @((Get-FileHash -Algorithm SHA256 -LiteralPath $sourceLuaPath).Hash, (Get-FileHash -Algorithm SHA256 -LiteralPath $liveLuaPath).Hash | Select-Object -Unique).Count 1 'Source and live main Lua copies are not byte-identical.'
+}
 
 Write-Host 'La Theine recorded survey graph checks passed'
 Write-Host $output

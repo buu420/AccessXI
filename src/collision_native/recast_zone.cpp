@@ -25,13 +25,19 @@
 namespace accessxi::collision {
 namespace {
 
-constexpr float cell_size = 0.20f;
+// The native library shares FFXI's 32-bit process.  A 0.20-yalm full-zone grid
+// needs 2,530 tiles for East Ronfaure and can exhaust or fragment the game's
+// address space.  A 0.50-yalm grid keeps the full-zone build practical in the
+// 32-bit client while conservatively rounding the
+// 0.40-yalm player clearance up to one cell.  Every resulting segment is still
+// accepted only after the original-triangle Bullet capsule/step sweep below.
+constexpr float cell_size = 0.50f;
 constexpr float cell_height = 0.10f;
 constexpr float agent_height = 1.80f;
 constexpr float agent_radius = 0.40f;
 constexpr float agent_max_climb = 0.60f;
 constexpr float agent_max_slope = 50.0f;
-constexpr int tile_size = 128;
+constexpr int tile_size = 96;
 constexpr int max_edge_length = 60;
 constexpr float max_simplification_error = 0.3f;
 constexpr int min_region_area = 64;
@@ -61,20 +67,75 @@ float horizontal_distance(const Vec3& left, const Vec3& right)
     return std::sqrt(x * x + z * z);
 }
 
+bool segment_has_walkable_support(
+    dtNavMeshQuery* nav_query,
+    const dtQueryFilter& filter,
+    const Vec3& start,
+    const Vec3& end)
+{
+    const float horizontal = horizontal_distance(start, end);
+    const int sample_count = std::max(2, static_cast<int>(std::ceil(horizontal / cell_size)));
+    const float extents[3]{agent_radius + 0.10f, agent_height, agent_radius + 0.10f};
+    float previous_height = start.y;
+    for (int sample_index = 1; sample_index < sample_count; ++sample_index)
+    {
+        const float fraction = static_cast<float>(sample_index)
+            / static_cast<float>(sample_count);
+        const float sample[3]{
+            start.x + (end.x - start.x) * fraction,
+            start.y + (end.y - start.y) * fraction,
+            start.z + (end.z - start.z) * fraction,
+        };
+        dtPolyRef reference = 0;
+        float supported[3]{};
+        if (dtStatusFailed(nav_query->findNearestPoly(
+                sample,
+                extents,
+                &filter,
+                &reference,
+                supported))
+            || reference == 0)
+        {
+            return false;
+        }
+        const Vec3 supported_point{supported[0], supported[1], supported[2]};
+        // A nearby polygon is not proof of floor underneath the player.  The
+        // former radius-sized allowance let samples beside La Theine's steep
+        // bank snap laterally across the navmesh boundary and certified the
+        // exact pocket where the live character stopped.  Require support
+        // essentially beneath each half-cell sample instead.
+        if (horizontal_distance(supported_point, Vec3{sample[0], sample[1], sample[2]})
+                > cell_height
+            || std::fabs(supported_point.y - sample[1]) > agent_height
+            || std::fabs(supported_point.y - previous_height) > agent_max_climb + cell_height)
+        {
+            return false;
+        }
+        previous_height = supported_point.y;
+    }
+    return std::fabs(end.y - previous_height) <= agent_max_climb + cell_height;
+}
+
 bool traversable_capsule_segment(
     const CollisionWorld& collision_world,
     const Vec3& start,
-    const Vec3& end)
+    const Vec3& end,
+    const bool allow_long_step)
 {
     if (collision_world.sweep_capsule(start, end, agent_radius, agent_height).clear)
     {
         return true;
     }
 
-    // FFXI's character controller steps over short collision lips. Recast has
-    // already proved connected support within max-climb; reproduce that
-    // movement by testing the up/across/down capsule sequence. A full-height
-    // wall remains blocked during the raised horizontal sweep.
+    // FFXI's character controller steps over short collision lips.  This is a
+    // local step, not permission to float a raised capsule across an arbitrary
+    // long segment.  The old unbounded raised sweep accepted the 14-yalm La
+    // Theine cliff approach even though the live controller stopped there.
+    if (!allow_long_step && horizontal_distance(start, end) > 1.5f)
+    {
+        return false;
+    }
+
     constexpr float step_clearance = agent_max_climb + 0.05f;
     const Vec3 raised_start{start.x, start.y + step_clearance, start.z};
     const Vec3 raised_end{end.x, end.y + step_clearance, end.z};
@@ -438,6 +499,8 @@ struct RecastZone::Impl final
         const CollisionWorld& collision,
         const std::stop_token stop_token)
         : collision_world(&collision)
+        , allow_long_step_segments(mesh.zone_id != 102u)
+        , reject_excessive_local_detours(mesh.zone_id == 102u)
     {
         if (mesh.vertices.empty() || mesh.triangles.empty())
         {
@@ -449,6 +512,9 @@ struct RecastZone::Impl final
             throw CollisionError("Recast input mesh is too large.");
         }
 
+        std::vector<float> vertices;
+        std::vector<int> triangles;
+        PartitionedMesh partitioned;
         vertices.reserve(mesh.vertices.size() * 3u);
         float minimum[3]{
             std::numeric_limits<float>::infinity(),
@@ -615,9 +681,8 @@ struct RecastZone::Impl final
     }
 
     const CollisionWorld* collision_world;
-    std::vector<float> vertices;
-    std::vector<int> triangles;
-    PartitionedMesh partitioned;
+    bool allow_long_step_segments;
+    bool reject_excessive_local_detours;
     NavMeshPointer nav_mesh;
     NavQueryPointer nav_query;
     dtQueryFilter filter;
@@ -638,7 +703,7 @@ RecastZone& RecastZone::operator=(RecastZone&&) noexcept = default;
 
 const std::string& RecastZone::settings_digest()
 {
-    static const std::string digest = "8ec97ff657ee157ab9948d68ac015963e4da45e19adc6c178f4d4263b07a01be";
+    static const std::string digest = "de3351ac99f62503c219ea5c3b53ecbc97ba23b503b9f8a0b62e7c29aeaa10a1";
     return digest;
 }
 
@@ -850,7 +915,8 @@ PathResult RecastZone::find_path(
                         || !traversable_capsule_segment(
                             *impl_->collision_world,
                             waypoints[current],
-                            waypoints[candidate_index]))
+                            waypoints[candidate_index],
+                            impl_->allow_long_step_segments))
                     {
                         continue;
                     }
@@ -895,7 +961,8 @@ PathResult RecastZone::find_path(
                     if (!sweep.clear && !traversable_capsule_segment(
                             *impl_->collision_world,
                             candidate.points.back(),
-                            point))
+                            point,
+                            impl_->allow_long_step_segments))
                     {
                         rejected_by_capsule = true;
                         failed_waypoint_index = static_cast<int>(index);

@@ -3,6 +3,7 @@
 #include "pol_pml/native_popup_text.h"
 #include "pol_pml/native_selected_text.h"
 #include "pol_pml/native_text_field.h"
+#include "pol_pml/native_update_progress.h"
 #include "pol_trace/postlogin_trace.h"
 
 #include <Windows.h>
@@ -60,6 +61,7 @@ namespace
     constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x001AF193u;
     constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
     constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
+    constexpr uintptr_t UpgradeProgressOwnerGlobalRva = 0x005074E0u;
     constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
     constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0x07E88E8067FEF6CCull;
     constexpr DWORD AddMemberContextCacheTtlMs = 60000;
@@ -122,6 +124,7 @@ namespace
             accessxi::pol_pml::PopupTextTracker,
             accessxi::pol_pml::PopupOwnerRegistration::capacity()>,
         PopupOwnerKindCount> g_popup_text_trackers{};
+    accessxi::pol_pml::UpdateProgressTracker g_update_progress_tracker{};
 
     struct PreloginPmlFocusCandidate
     {
@@ -4537,6 +4540,66 @@ namespace
         }
     }
 
+    void process_upgrade_progress_text()
+    {
+        using namespace accessxi::pol_pml;
+        if (native_post_login_surface_active())
+        {
+            g_update_progress_tracker.reset();
+            return;
+        }
+
+        HMODULE app = GetModuleHandleA("app.dll");
+        if (app == nullptr)
+        {
+            g_update_progress_tracker.reset();
+            return;
+        }
+
+        const uintptr_t app_base = reinterpret_cast<uintptr_t>(app);
+        uintptr_t owner = 0;
+        if (!read_ptr_safely(
+                reinterpret_cast<const void*>(
+                    app_base + UpgradeProgressOwnerGlobalRva),
+                &owner))
+        {
+            return;
+        }
+
+        const MemoryView memory{ &read_pol_pml_memory, nullptr };
+        const UpdateProgressSnapshot snapshot = inspect_update_progress(
+            memory,
+            owner,
+            app_base);
+
+        uintptr_t retained_owner = 0;
+        if (!read_ptr_safely(
+                reinterpret_cast<const void*>(
+                    app_base + UpgradeProgressOwnerGlobalRva),
+                &retained_owner) ||
+            retained_owner != owner)
+        {
+            return;
+        }
+
+        const UpdateProgressAnnouncement announcement =
+            g_update_progress_tracker.observe(snapshot, GetTickCount());
+        if (announcement.mode == UpdateProgressSpeechMode::none)
+            return;
+
+        const std::string text = popup_text_to_utf8(announcement.text);
+        if (text.empty())
+            return;
+
+        const bool interrupt =
+            announcement.mode == UpdateProgressSpeechMode::interrupt;
+        const std::string line =
+            std::string("POL_UPDATE_PROGRESS speak interrupt=") +
+            (interrupt ? "1 text=" : "0 text=") + text;
+        log_line(line.c_str());
+        (void)dispatch_speech_sink_v1(text, interrupt ? 1 : 0);
+    }
+
     void drain_pol_ui_trace()
     {
         std::vector<std::string> lines;
@@ -5712,6 +5775,7 @@ namespace
     {
         reset_add_member_native_value_trackers();
         reset_popup_notice_state();
+        g_update_progress_tracker.reset();
         {
             std::lock_guard<std::mutex> guard(g_candidate_lock);
             g_pending_pml_focus_candidate_valid = false;
@@ -5750,6 +5814,7 @@ namespace
         process_queued_current_child_candidate("native-current-child");
         speak_pending_prelogin_pml_focus_candidate("native-focus");
         speak_current_prelogin_native_focus("native-focus");
+        process_upgrade_progress_text();
         drain_pol_ui_trace();
     }
 

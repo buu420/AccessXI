@@ -18,7 +18,7 @@ static_assert(sizeof(void*) == 4, "AccessXI collision navigation must be built f
 
 extern "C" std::uint32_t AXI_COLLISION_CALL AXI_GetAbiVersion() noexcept
 {
-    return 2u;
+    return 3u;
 }
 
 extern "C" void* AXI_COLLISION_CALL AXI_CreateContext() noexcept

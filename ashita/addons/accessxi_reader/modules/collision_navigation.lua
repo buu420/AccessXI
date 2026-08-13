@@ -1,6 +1,6 @@
 local module = {}
 
-local ABI_VERSION = 2
+local ABI_VERSION = 3
 local LOAD_PENDING = 1
 local LOAD_READY = 2
 local LOAD_FAILED = 3
@@ -8,9 +8,14 @@ local LOAD_CANCELED = 4
 local PATH_READY = 1
 local RESULT_OK = 0
 local MAX_POINTS = 512
+local ZONELINE_SUPPORT_NORMAL_Y = 0.50
+local ZONELINE_BOUNDARY_NORMAL_Y = 0.25
+local ZONELINE_BOUNDARY_HORIZONTAL_NORMAL = 0.95
+local ZONELINE_SUPPORT_ADVANCE = 0.10
+local ZONELINE_MAX_SWEEPS = 64
 local DLL_RELATIVE_PATH = 'third_party/collision/accessxi_collision_native.dll'
 local MANIFEST_HEADER = 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit'
-local SETTINGS_SHA256 = '8ec97ff657ee157ab9948d68ac015963e4da45e19adc6c178f4d4263b07a01be'
+local SETTINGS_SHA256 = 'de3351ac99f62503c219ea5c3b53ecbc97ba23b503b9f8a0b62e7c29aeaa10a1'
 local RECAST_COMMIT = '9f4ce64458dfae86e1239c525ddc219c4e9e06f1'
 local BULLET_COMMIT = '63c4d67e337017f9d8b298c900e9aabdb69296e7'
 
@@ -106,6 +111,7 @@ local function declare_ffi(ffi)
             float y;
             float z;
         } AXICollisionVec3;
+        #pragma pack(push, 4)
         typedef struct AXICollisionLoadStatus {
             unsigned int struct_size;
             int state;
@@ -116,6 +122,15 @@ local function declare_ffi(ffi)
             char dat_sha256[65];
             char settings_sha256[65];
         } AXICollisionLoadStatus;
+        #pragma pack(pop)
+        typedef struct AXICollisionSweepResult {
+            unsigned int struct_size;
+            int clear;
+            float fraction;
+            AXICollisionVec3 point;
+            AXICollisionVec3 normal;
+            int triangle_index;
+        } AXICollisionSweepResult;
         typedef struct AXICollisionPathResult {
             unsigned int struct_size;
             int status;
@@ -134,6 +149,10 @@ local function declare_ffi(ffi)
         int __cdecl AXI_CancelLoad(void* context, unsigned long long generation);
         int __cdecl AXI_PollLoadZone(void* context, unsigned long long generation,
             AXICollisionLoadStatus* status);
+        int __cdecl AXI_SweepCapsule(void* context, unsigned long long generation,
+            AXICollisionVec3 start, AXICollisionVec3 end,
+            float radius, float height,
+            AXICollisionSweepResult* result);
         int __cdecl AXI_FindPath(void* context, unsigned long long generation,
             AXICollisionVec3 start, AXICollisionVec3 destination, float arrival_radius,
             AXICollisionVec3* points, unsigned int capacity,
@@ -215,6 +234,31 @@ local function real_native(deps)
             message = ffi.string(status[0].message),
             dat_sha256 = ffi.string(status[0].dat_sha256),
             settings_sha256 = ffi.string(status[0].settings_sha256),
+        }
+    end
+    function native:sweep(context, generation, start, destination, radius, height)
+        local result = ffi.new('AXICollisionSweepResult[1]')
+        result[0].struct_size = ffi.sizeof('AXICollisionSweepResult')
+        local native_start = ffi.new('AXICollisionVec3', start)
+        local native_destination = ffi.new('AXICollisionVec3', destination)
+        local code = tonumber(library.AXI_SweepCapsule(
+            context, generation, native_start, native_destination,
+            radius, height, result))
+        if code ~= RESULT_OK then return code end
+        return code, {
+            clear = tonumber(result[0].clear) == 1,
+            fraction = tonumber(result[0].fraction),
+            point = {
+                x = tonumber(result[0].point.x),
+                y = tonumber(result[0].point.y),
+                z = tonumber(result[0].point.z),
+            },
+            normal = {
+                x = tonumber(result[0].normal.x),
+                y = tonumber(result[0].normal.y),
+                z = tonumber(result[0].normal.z),
+            },
+            triangle_index = tonumber(result[0].triangle_index),
         }
     end
     function native:find_path(context, generation, start, destination, arrival_radius, capacity)
@@ -303,15 +347,26 @@ function State:_begin(zone, destination)
     return true
 end
 
-function State:_query(player, destination)
+function State:_query(player, destination, arrival_radius)
+    local query_radius = arrival_radius
+    if query_radius ~= nil then
+        query_radius = tonumber(query_radius)
+        if not finite(query_radius) or query_radius < 1.5 or query_radius > 20 then
+            return nil, 'error', 'Collision terrain received an invalid zoneline arrival radius.'
+        end
+    else
+        query_radius = self.arrival_radius(destination)
+    end
     local ok, code, result, native_points = pcall(
         self.native.find_path,
         self.native,
         self.context,
         self.generation,
-        { x = player.x, y = player.y, z = player.z },
-        { x = destination.x, y = destination.y, z = destination.z },
-        self.arrival_radius(destination),
+        -- FFXI exposes vertical position with the opposite sign from the MZB
+        -- collision coordinate system.  X and horizontal Z are unchanged.
+        { x = player.x, y = -player.y, z = player.z },
+        { x = destination.x, y = -destination.y, z = destination.z },
+        query_radius,
         MAX_POINTS)
     if not ok then return nil, 'error', 'Collision terrain pathfinding raised an error: ' .. tostring(code) end
     if code ~= RESULT_OK then return nil, 'error', native_error('pathfinding', code) end
@@ -339,12 +394,206 @@ function State:_query(player, destination)
             name = ('Terrain waypoint %d'):format(index),
             x = point.x,
             z = point.z,
-            y = point.y,
+            y = -point.y,
             kind = 'route',
             source = 'dat-collision',
         }
     end
     self.pending_destination = nil
+    return points, 'ready', ''
+end
+
+function State:_capsule_segment_clear(start_point, end_point)
+    if type(self.native.sweep) ~= 'function' then
+        return false, 'Collision terrain capsule validation is unavailable.'
+    end
+    local start_native = {
+        x = start_point.x,
+        y = -start_point.y,
+        z = start_point.z,
+    }
+    local end_native = {
+        x = end_point.x,
+        y = -end_point.y,
+        z = end_point.z,
+    }
+    local function clear(first, last)
+        local ok, code, result = pcall(
+            self.native.sweep,
+            self.native,
+            self.context,
+            self.generation,
+            first,
+            last,
+            0.40,
+            1.80)
+        if not ok then
+            return nil, 'Collision terrain tail validation raised an error: ' .. tostring(code)
+        end
+        if code ~= RESULT_OK or type(result) ~= 'table'
+            or type(result.clear) ~= 'boolean' then
+            return nil, native_error('tail validation', code)
+        end
+        return result.clear
+    end
+    local direct, direct_reason = clear(start_native, end_native)
+    if direct == nil then return false, direct_reason end
+    if direct then return true, '' end
+
+    local raised_start = {
+        x = start_native.x,
+        y = start_native.y + 0.65,
+        z = start_native.z,
+    }
+    local raised_end = {
+        x = end_native.x,
+        y = end_native.y + 0.65,
+        z = end_native.z,
+    }
+    for _, segment in ipairs({
+        { start_native, raised_start },
+        { raised_start, raised_end },
+        { raised_end, end_native },
+    }) do
+        local segment_clear, segment_reason = clear(segment[1], segment[2])
+        if segment_clear == nil then return false, segment_reason end
+        if not segment_clear then
+            return false, 'Collision terrain zoneline tail is blocked.'
+        end
+    end
+    return true, ''
+end
+
+function State:_zoneline_tail_contact(start_point, end_point)
+    if type(self.native.sweep) ~= 'function' then
+        return false, nil, 'Collision terrain capsule validation is unavailable.'
+    end
+    local current = {
+        x = start_point.x,
+        y = -start_point.y,
+        z = start_point.z,
+    }
+    local target = {
+        x = end_point.x,
+        y = -end_point.y,
+        z = end_point.z,
+    }
+    for _ = 1, ZONELINE_MAX_SWEEPS do
+        local dx = target.x - current.x
+        local dy = target.y - current.y
+        local dz = target.z - current.z
+        local remaining = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if remaining < 0.01 then
+            return true, nil, ''
+        end
+        local ok, code, result = pcall(
+            self.native.sweep,
+            self.native,
+            self.context,
+            self.generation,
+            current,
+            target,
+            0.40,
+            1.80)
+        if not ok then
+            return false, nil,
+                'Collision terrain tail validation raised an error: ' .. tostring(code)
+        end
+        if code ~= RESULT_OK or type(result) ~= 'table'
+            or type(result.clear) ~= 'boolean' then
+            return false, nil, native_error('tail validation', code)
+        end
+        if result.clear then
+            return true, nil, ''
+        end
+        local fraction = tonumber(result.fraction)
+        local normal = result.normal
+        local nx = type(normal) == 'table' and tonumber(normal.x) or nil
+        local ny = type(normal) == 'table' and tonumber(normal.y) or nil
+        local nz = type(normal) == 'table' and tonumber(normal.z) or nil
+        if not finite(fraction) or fraction < 0 or fraction > 1
+            or not finite(nx) or not finite(ny) or not finite(nz) then
+            return false, nil, 'Collision terrain zoneline tail returned malformed contact data.'
+        end
+        if ny >= ZONELINE_SUPPORT_NORMAL_Y then
+            local next_fraction = fraction + (ZONELINE_SUPPORT_ADVANCE / remaining)
+            if next_fraction >= 1 then
+                return false, nil, 'Collision terrain zoneline tail ended on unsupported terrain.'
+            end
+            current = {
+                x = current.x + dx * next_fraction,
+                y = current.y + dy * next_fraction,
+                z = current.z + dz * next_fraction,
+            }
+        else
+            local horizontal_normal = math.sqrt(nx * nx + nz * nz)
+            local contact_x = current.x + dx * fraction
+            local contact_y = current.y + dy * fraction
+            local contact_z = current.z + dz * fraction
+            local remaining_x = target.x - contact_x
+            local remaining_y = target.y - contact_y
+            local remaining_z = target.z - contact_z
+            local remaining_to_line = math.sqrt(
+                remaining_x * remaining_x
+                + remaining_y * remaining_y
+                + remaining_z * remaining_z)
+            if math.abs(ny) > ZONELINE_BOUNDARY_NORMAL_Y
+                or horizontal_normal < ZONELINE_BOUNDARY_HORIZONTAL_NORMAL
+                or fraction <= 0
+                or remaining_to_line > 20.5 then
+                return false, nil, 'Collision terrain zoneline tail is blocked.'
+            end
+            return true, {
+                zone = self.zone,
+                name = 'Terrain zoneline boundary',
+                x = contact_x,
+                z = contact_z,
+                y = -contact_y,
+                kind = 'route',
+                source = 'dat-collision-zoneline-boundary',
+            }, ''
+        end
+    end
+    return false, nil, 'Collision terrain zoneline tail contact search did not converge.'
+end
+
+function State:route_zoneline_tail(player, approach, destination)
+    if self.shutdown_complete then
+        return nil, 'error', 'Collision terrain navigation is shut down.'
+    end
+    if type(player) ~= 'table' or type(approach) ~= 'table'
+        or type(destination) ~= 'table'
+        or not positive_integer(player.zone)
+        or player.zone ~= approach.zone
+        or player.zone ~= destination.zone
+        or self.generation == nil or self.zone ~= player.zone
+        or not finite(player.x) or not finite(player.z) or not finite(player.y)
+        or not finite(approach.x) or not finite(approach.z) or not finite(approach.y)
+        or not finite(destination.x) or not finite(destination.z) or not finite(destination.y) then
+        return nil, 'error', 'Collision terrain zoneline tail requires a ready same-zone route.'
+    end
+    local points, mode, reason = self:_query(player, approach, 20)
+    if mode ~= 'ready' or type(points) ~= 'table' or #points < 2 then
+        return nil, mode or 'error', reason
+    end
+    local last = points[#points]
+    local dx = destination.x - last.x
+    local dz = destination.z - last.z
+    local dy = destination.y - last.y
+    local horizontal = math.sqrt(dx * dx + dz * dz)
+    local spatial = math.sqrt(dx * dx + dz * dz + dy * dy)
+    if horizontal > 30 or spatial > 32 then
+        return nil, 'error', 'Collision terrain zoneline tail exceeds the bounded recovery distance.'
+    end
+    local accepted, boundary, contact_reason =
+        self:_zoneline_tail_contact(last, destination)
+    if not accepted then
+        return nil, 'error', contact_reason ~= '' and contact_reason
+            or 'Collision terrain zoneline tail is blocked.'
+    end
+    if boundary ~= nil then
+        points[#points + 1] = boundary
+    end
     return points, 'ready', ''
 end
 
@@ -378,7 +627,9 @@ function State:route(player, destination)
         return nil, 'pending', self:_pending_message(self.zone)
     end
     if status.state == LOAD_FAILED or status.state == LOAD_CANCELED then
-        return nil, 'error', tostring(status.message or 'Collision terrain mapping failed.')
+        local reason = tostring(status.message or 'Collision terrain mapping failed.')
+        self:_cancel_generation()
+        return nil, 'error', reason
     end
     if status.state ~= LOAD_READY or not canonical_sha256(status.dat_sha256) then
         return nil, 'error', 'Collision terrain returned malformed ready state.'

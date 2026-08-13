@@ -597,6 +597,7 @@ local accessxi = T{
     key_items_current_item_tick = 0,
     key_items_resource = nil,
     key_items_resource_load_tried = false,
+    objective_key_item_name_index_cache = nil,
     key_items_resource_by_category = nil,
     key_items_resource_path = '',
     key_items_dat_order = nil,
@@ -633,6 +634,7 @@ local accessxi = T{
     key_items_packet_player = '',
     key_items_packet_identity = '',
     key_items_packet_source = '',
+    key_items_packet_session_epoch = 0,
     key_items_packet_key = '',
     currency_packet_menu_speech_enabled = true,
     currency_native_help_bank = 0,
@@ -690,10 +692,13 @@ local accessxi = T{
     merit_packet_cache_path = accessxi_paths.addon_path('data', 'ffxi-merits-packet.tsv'),
     merit_packet_cache_loaded = false,
     mission_packet_cache_path = accessxi_paths.addon_path('data', 'ffxi-mission-main-packet.txt'),
+    objective_interaction_progress_path = accessxi_paths.addon_path('data', 'ffxi-objective-interaction-progress.tsv'),
     mission_packet_cache_loaded = false,
     mission_packet_player = '',
     mission_packet_identity = '',
     mission_packet_source = '',
+    objective_session_epoch = 0,
+    mission_packet_session_epoch = 0,
     mission_quest_nav_player = '',
     mission_quest_nav_identity = '',
     mission_packet_ahturghan_identity = '',
@@ -805,6 +810,7 @@ local accessxi = T{
     quest_packet_player = '',
     quest_packet_identity = '',
     quest_packet_source = '',
+    quest_packet_session_epoch = 0,
     quest_packet_tick = 0,
     quest_packet_key = '',
     last_quest_packet_key = '',
@@ -1153,6 +1159,10 @@ local accessxi = T{
     nav_mesh_dll_path = accessxi_paths.addon_path('third_party', 'FFXI-NavMesh-Builder', 'FFXINAV.dll'),
     nav_mesh_dir = accessxi_paths.addon_path('third_party', 'xiNavmeshes'),
     nav_mesh_name_cache = {},
+    nav_dat_collision_state = nil,
+    nav_dat_collision_failure_reason = '',
+    nav_dat_collision_pending = nil,
+    nav_dat_collision_last_poll_tick = 0,
     nav_beacon_parent_dir = accessxi_paths.addon_path('sounds'),
     nav_beacon_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
     nav_beacon_enabled = true,
@@ -1160,6 +1170,10 @@ local accessxi = T{
     nav_beacon_winmm = nil,
     nav_beacon_last_tick = 0,
     nav_beacon_last_key = '',
+    nav_beacon_route_identity = nil,
+    nav_beacon_route_acquired = false,
+    nav_beacon_motion_x = nil,
+    nav_beacon_motion_z = nil,
     nav_route_poll_ms = 850,
     nav_precise_route_track_tick = 0,
     nav_precise_return_target = nil,
@@ -1296,12 +1310,19 @@ local accessxi = T{
     nav_zone_load_settle_to_zone = 0,
     nav_zone_load_settle_destination = '',
     nav_zone_load_settle_ms = 8000,
+    nav_zone_load_settle_min_ms = 750,
+    nav_zone_load_settle_start_tick = 0,
+    nav_zone_load_packet_tick = 0,
+    mission_quest_state_pending = {},
+    mission_quest_state_pending_tick = 0,
+    mission_quest_state_debounce_ms = 250,
     nav_zone_transition_last_tick = 0,
     nav_position_last_tick = 0,
     nav_position_last_log_key = '',
     nav_position_last_log_tick = 0,
     nav_menu_open = false,
     nav_menu_items = T{},
+    nav_menu_dirty_categories = {},
     nav_menu_index = 1,
     nav_menu_category = 1,
     nav_menu_search_query = '',
@@ -4130,6 +4151,7 @@ function accessxi.capture_quest_packet(e)
 
     local quest_player = accessxi.current_player_name();
     local quest_identity = accessxi.current_player_identity();
+    local quest_session_epoch = accessxi.current_objective_session_epoch();
     local words = accessxi.quest_packet_data_words(data);
     local key = accessxi.quest_packet_entry_key(area_key, mode);
     accessxi.quest_packet_logs = accessxi.quest_packet_logs or {};
@@ -4140,6 +4162,7 @@ function accessxi.capture_quest_packet(e)
         words = words,
         source = 'packet_in_056',
         identity = quest_identity,
+        session_epoch = quest_session_epoch,
     };
     accessxi.quest_packet_tick = tick();
     if (quest_player ~= '') then
@@ -4147,6 +4170,7 @@ function accessxi.capture_quest_packet(e)
     end
     accessxi.quest_packet_identity = quest_identity;
     accessxi.quest_packet_source = 'packet_in_056';
+    accessxi.quest_packet_session_epoch = quest_session_epoch;
     accessxi.quest_packet_cache_loaded = true;
     accessxi.save_quest_packet_cache();
 
@@ -4164,6 +4188,10 @@ function accessxi.capture_quest_packet(e)
             area_key,
             mode,
             words_text:concat(',')));
+        if (type(accessxi.queue_mission_quest_state_change) == 'function') then
+            accessxi.queue_mission_quest_state_change(
+                'quest', ('packet-0x056-%04X'):fmt(port));
+        end
     end
 end
 
@@ -4427,12 +4455,12 @@ function accessxi.capture_mission_packet(e)
         zilart = accessxi.packet_u32(data, base + 0x08 + 1),
         cop = accessxi.packet_u32(data, base + 0x0C + 1),
         cop_status = accessxi.packet_u32(data, base + 0x10 + 1),
-        addons = accessxi.packet_u32(data, base + 0x14 + 1),
-        tales = accessxi.packet_u32(data, base + 0x18 + 1),
-        soa = accessxi.packet_u32(data, base + 0x1C + 1),
-        rov = accessxi.packet_u32(data, base + 0x20 + 1),
+        addons = accessxi.packet_u16(data, base + 0x14 + 1),
+        tales = accessxi.packet_u16(data, base + 0x16 + 1),
+        soa = accessxi.packet_u32(data, base + 0x18 + 1),
+        rov = accessxi.packet_u32(data, base + 0x1C + 1),
         port = packet_port,
-        port_raw = accessxi.packet_u16(data, base + 0x24 + 1),
+        port_raw = packet_port,
     };
     local key = accessxi.packet_hex_limit(data, 96);
     local mission_state_packet = packet_port == 0xFFFF or packet_port == 0x0080
@@ -4442,8 +4470,12 @@ function accessxi.capture_mission_packet(e)
     end
     local mission_player = accessxi.current_player_name();
     local mission_identity = accessxi.current_player_identity();
+    local mission_session_epoch = accessxi.current_objective_session_epoch();
     if (mission_state_packet and mission_player ~= '') then
         accessxi.mission_packet_player = mission_player;
+    end
+    if (mission_state_packet) then
+        accessxi.mission_packet_session_epoch = mission_session_epoch;
     end
     if (packet_port == 0xFFFF) then
         accessxi.mission_packet_main = info;
@@ -4484,6 +4516,10 @@ function accessxi.capture_mission_packet(e)
         accessxi.mission_packet_nations_complete_source = 'packet_in_056';
     end
 
+    if (not mission_state_packet) then
+        return;
+    end
+
     local log_key = ('%04X:%s'):fmt(packet_port, key);
     if (log_key ~= tostring(accessxi.last_mission_packet_key or '')) then
         accessxi.last_mission_packet_key = log_key;
@@ -4510,6 +4546,11 @@ function accessxi.capture_mission_packet(e)
             tonumber(assault_complete[3]) or 0,
             tonumber(assault_complete[4]) or 0,
             key));
+        if (mission_state_packet
+            and type(accessxi.queue_mission_quest_state_change) == 'function') then
+            accessxi.queue_mission_quest_state_change(
+                'mission', ('packet-0x056-%04X'):fmt(packet_port));
+        end
     end
 end
 
@@ -7068,6 +7109,15 @@ function accessxi.current_player_identity()
     return ('%s:%d'):fmt(player_name:lower(), server_id);
 end
 
+function accessxi.current_objective_session_epoch()
+    local epoch = tonumber(accessxi.objective_session_epoch) or 0;
+    if (epoch <= 0) then
+        epoch = math.max(1, math.floor(tonumber(os.time()) or 1));
+        accessxi.objective_session_epoch = epoch;
+    end
+    return epoch;
+end
+
 function accessxi.current_nation_mission_rank_state()
     local identity = accessxi.current_player_identity();
     if (identity == '') then
@@ -7271,6 +7321,7 @@ function accessxi.capture_key_items_packet(e)
     end
     local player_name = accessxi.current_player_name();
     local player_identity = accessxi.current_player_identity();
+    local key_item_session_epoch = accessxi.current_objective_session_epoch();
     if (player_identity ~= '' and tostring(accessxi.key_items_packet_identity or '') ~= ''
         and player_identity ~= tostring(accessxi.key_items_packet_identity or '')) then
         accessxi.key_items_packet_tables = {};
@@ -7282,6 +7333,7 @@ function accessxi.capture_key_items_packet(e)
     end
     accessxi.key_items_packet_identity = player_identity;
     accessxi.key_items_packet_source = 'packet_in_055';
+    accessxi.key_items_packet_session_epoch = key_item_session_epoch;
 
     accessxi.key_items_packet_tables = accessxi.key_items_packet_tables or {};
     accessxi.key_items_packet_tables[table_index] = {
@@ -7290,6 +7342,7 @@ function accessxi.capture_key_items_packet(e)
         tick = tick(),
         source = 'packet_in_055',
         identity = player_identity,
+        session_epoch = key_item_session_epoch,
     };
     accessxi.key_items_owned_cache = {};
     accessxi.key_items_packet_cache_loaded = true;
@@ -7305,6 +7358,10 @@ function accessxi.capture_key_items_packet(e)
             accessxi.key_items_packet_bit_count(),
             player_name,
             accessxi.packet_hex_limit(data, 32)));
+        if (type(accessxi.queue_mission_quest_state_change) == 'function') then
+            accessxi.queue_mission_quest_state_change(
+                'objective', ('packet-0x055-%d'):fmt(table_index));
+        end
     end
 end
 
@@ -21602,6 +21659,98 @@ function accessxi.key_items_resource_label(entry)
     text = text:gsub('\226\153\170', '');
     text = text:gsub('%s+', ' '):trim();
     return accessxi.plain_native_menu_label(accessxi.survival_guide_text(text));
+end
+
+function accessxi.objective_key_item_name_key(value)
+    local text = tostring(value or ''):lower();
+    -- Treat typographic apostrophes, quotes, and dashes exactly like their
+    -- ASCII punctuation counterparts before collapsing punctuation/spacing.
+    text = text:gsub('\226\128\152', ' ');
+    text = text:gsub('\226\128\153', ' ');
+    text = text:gsub('\226\128\156', ' ');
+    text = text:gsub('\226\128\157', ' ');
+    text = text:gsub('\226\128\144', ' ');
+    text = text:gsub('\226\128\145', ' ');
+    text = text:gsub('\226\128\146', ' ');
+    text = text:gsub('\226\128\147', ' ');
+    text = text:gsub('\226\128\148', ' ');
+    text = text:gsub('\226\128\149', ' ');
+    text = text:gsub('[%p%s]+', ' ');
+    return text:gsub('^%s+', ''):gsub('%s+$', '');
+end
+
+function accessxi.objective_key_item_name_index()
+    if (type(accessxi.objective_key_item_name_index_cache) == 'table') then
+        return accessxi.objective_key_item_name_index_cache;
+    end
+    local resource = accessxi.load_key_items_resource();
+    if (type(resource) ~= 'table') then
+        return nil;
+    end
+
+    local index = {};
+    for resource_id, entry in pairs(resource) do
+        if (type(entry) == 'table') then
+            local id = tonumber(entry.id or resource_id) or -1;
+            local key = accessxi.objective_key_item_name_key(
+                entry.en or entry.english or entry.name or '');
+            if (id >= 0 and key ~= '') then
+                local previous_id = index[key];
+                if (previous_id == nil) then
+                    index[key] = id;
+                elseif (previous_id ~= id) then
+                    index[key] = false;
+                end
+            end
+        end
+    end
+    accessxi.objective_key_item_name_index_cache = index;
+    return index;
+end
+
+function accessxi.objective_key_item_current_session_has_id(id)
+    id = tonumber(id) or -1;
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    if (id < 0 or identity == '' or epoch <= 0
+        or tostring(accessxi.key_items_packet_source or '') ~= 'packet_in_055'
+        or tostring(accessxi.key_items_packet_identity or ''):lower() ~= identity
+        or tonumber(accessxi.key_items_packet_session_epoch) ~= epoch) then
+        return false;
+    end
+
+    local table_index = math.floor(id / 512);
+    local bit_index = id % 512;
+    local entry = (accessxi.key_items_packet_tables or {})[table_index];
+    if (type(entry) ~= 'table'
+        or tostring(entry.source or '') ~= 'packet_in_055'
+        or tostring(entry.identity or ''):lower() ~= identity
+        or tonumber(entry.session_epoch) ~= epoch) then
+        return false;
+    end
+    local flags = tostring(entry.flags or '');
+    if (#flags < 64 or type(accessxi.packet_has_bit) ~= 'function') then
+        return false;
+    end
+    return accessxi.packet_has_bit(flags, bit_index) == true;
+end
+
+function accessxi.objective_key_item_owned_by_name(name)
+    local key = accessxi.objective_key_item_name_key(name);
+    if (key == '') then
+        return false, nil;
+    end
+    local index = accessxi.objective_key_item_name_index();
+    if (type(index) ~= 'table') then
+        return false, nil;
+    end
+    local id = index[key];
+    if (type(id) ~= 'number') then
+        return false, nil;
+    end
+    return accessxi.objective_key_item_current_session_has_id(id), id;
 end
 
 function accessxi.key_items_resource_row_for_id(id, category, resource)
@@ -67824,9 +67973,10 @@ end
 
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
 (function ()
-local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "2388e8b656b9613228087163af69c35d525d12eff7729c22e3ed20c9a8074fb7";
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "c468359e561c0de6234f829963cdedd9b1b290e1e668d963596e341f93941949";
 local accessxi_objective_manifest_rows = nil;
 local accessxi_objective_file_hasher = nil;
+local accessxi_objective_runtime_attempted = false;
 local accessxi_objective_native_observer = {
     trusted = false,
     reason = 'Objective native code has not been observed.',
@@ -68144,6 +68294,56 @@ function accessxi.nav_objective_native_revalidate_loaded_mesh(zone)
     return true;
 end
 
+function accessxi.nav_objective_load_rooted_mesh(zone, mesh_name, path)
+    zone = tonumber(zone);
+    mesh_name = tostring(mesh_name or '');
+    path = accessxi_objective_canonical_path(path);
+    local expected = mesh_name ~= ''
+        and accessxi_paths.addon_path('third_party', 'xiNavmeshes', mesh_name) or nil;
+    if (zone == nil or zone < 0 or zone ~= math.floor(zone)
+        or path == nil or path ~= expected) then
+        accessxi.nav_objective_native_mark_untrusted('The rooted objective mesh request is malformed.');
+        return false;
+    end
+    if (ffxinav == nil) then
+        accessxi.nav_objective_native_before_dll_load(accessxi.nav_mesh_dll_path);
+        local ok, library = pcall(ffi.load, accessxi.nav_mesh_dll_path);
+        if (not ok or library == nil) then
+            accessxi.nav_objective_native_mark_untrusted('FFXINAV DLL load failed.');
+            return false;
+        end
+        ffxinav = library;
+        accessxi.nav_mesh_available = true;
+    end
+    if (accessxi.nav_mesh_handle == nil) then
+        local ok, handle = pcall(function () return ffxinav.CreateFFXINavClass(); end);
+        if (not ok or handle == nil) then
+            accessxi.nav_objective_native_mark_untrusted('FFXINAV handle creation failed.');
+            return false;
+        end
+        accessxi.nav_mesh_handle = handle;
+    end
+    if (accessxi.nav_mesh_loaded == true and accessxi.nav_mesh_zone == zone
+        and accessxi_objective_native_observer.mesh ~= nil
+        and accessxi_objective_native_observer.mesh.mesh_name == mesh_name) then
+        return accessxi.nav_objective_native_revalidate_loaded_mesh(zone);
+    end
+    local wide_path = utf8_to_wide(path);
+    if (wide_path == nil
+        or accessxi.nav_objective_native_before_mesh_load(zone, mesh_name, path) ~= true) then
+        return false;
+    end
+    local ok, loaded = pcall(function ()
+        return ffxinav.LoadMesh(accessxi.nav_mesh_handle, wide_path);
+    end);
+    accessxi.nav_mesh_loaded = ok and loaded == true;
+    accessxi.nav_mesh_zone = accessxi.nav_mesh_loaded and zone or 0;
+    if (not accessxi.nav_mesh_loaded) then
+        accessxi.nav_objective_native_mark_untrusted('FFXINAV LoadMesh failed.');
+    end
+    return accessxi.nav_mesh_loaded;
+end
+
 local function accessxi_objective_runtime_failure(reason)
     accessxi.objective_route_runtime = nil;
     accessxi.objective_route_runtime_failure_reason = tostring(reason or 'Objective route runtime is unavailable.');
@@ -68246,6 +68446,7 @@ local function accessxi_objective_runtime_bootstrap()
         sha256 = sha_module.sha256,
         module_environment = module_environment,
         objective_native = native_adapter,
+        objective_mesh_loader = accessxi.nav_objective_load_rooted_mesh,
         native_integrity_state = accessxi.nav_objective_native_integrity_state,
     };
     local new_ok, runtime = pcall(runtime_module.new, options);
@@ -68262,13 +68463,27 @@ local function accessxi_objective_runtime_bootstrap()
     return true;
 end
 
-do
+function accessxi.ensure_objective_route_runtime()
+    if (type(accessxi.objective_route_runtime) == 'table') then
+        return true, '';
+    end
+    if (accessxi_objective_runtime_attempted) then
+        local prior_reason = tostring(accessxi.objective_route_runtime_failure_reason or '');
+        return false, prior_reason ~= '' and prior_reason
+            or 'Objective route runtime is unavailable.';
+    end
+    accessxi_objective_runtime_attempted = true;
     local bootstrap_ok, ready, reason = pcall(accessxi_objective_runtime_bootstrap);
     if (not bootstrap_ok) then
         accessxi_objective_runtime_failure(ready);
     elseif (ready ~= true) then
         accessxi_objective_runtime_failure(reason);
+    else
+        return true, '';
     end
+    local failure_reason = tostring(accessxi.objective_route_runtime_failure_reason or '');
+    return false, failure_reason ~= '' and failure_reason
+        or 'Objective route runtime is unavailable.';
 end
 end)();
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_END
@@ -68498,23 +68713,30 @@ end
 
 local function nav_player_position()
     local raw = safe_call(function () return GetPlayerEntity(); end, nil);
+    local player_index = nav_player_index();
+    local entity = safe_call(function () return AshitaCore:GetMemoryManager():GetEntity(); end, nil);
+    local heading = raw ~= nil and tonumber(raw.Heading) or nil;
+    if (heading == nil and entity ~= nil and player_index > 0) then
+        heading = tonumber(safe_call(function () return entity:GetHeading(player_index); end, nil));
+    end
     local pos = nil;
     if (raw ~= nil and raw.Movement ~= nil and raw.Movement.LocalPosition ~= nil) then
         pos = T{
-            index = nav_player_index(),
+            index = player_index,
             name = nav_clean_field(raw.Name or ''),
             zone = nav_zone_id(),
             x = tonumber(raw.Movement.LocalPosition.X) or 0,
             z = tonumber(raw.Movement.LocalPosition.Y) or 0,
             y = tonumber(raw.Movement.LocalPosition.Z) or 0,
-            yaw = tonumber(raw.Movement.LocalPosition.Yaw) or 0,
+            yaw = heading or tonumber(raw.Movement.LocalPosition.Yaw) or 0,
             server_id = tonumber(raw.ServerId) or 0,
         };
     end
 
     if (pos == nil or (pos.x == 0 and pos.z == 0)) then
-        local fallback = nav_entity_position(nav_player_index());
+        local fallback = nav_entity_position(player_index);
         if (fallback ~= nil and not (fallback.x == 0 and fallback.z == 0)) then
+            fallback.yaw = heading or fallback.yaw;
             pos = fallback;
         elseif (pos ~= nil and pos.x == 0 and pos.z == 0) then
             return nil;
@@ -68585,6 +68807,7 @@ function accessxi.nav_clear_zone_load_settle(reason)
     end
 
     accessxi.nav_zone_load_settle_until = 0;
+    accessxi.nav_zone_load_settle_start_tick = 0;
     accessxi.nav_zone_load_settle_reason = '';
     accessxi.nav_zone_load_settle_from_zone = 0;
     accessxi.nav_zone_load_settle_to_zone = 0;
@@ -68595,6 +68818,7 @@ function accessxi.nav_begin_zone_load_settle(reason, from_zone, to_zone, destina
     now = tonumber(now) or tick();
     local duration = tonumber(accessxi.nav_zone_load_settle_ms) or 8000;
     accessxi.nav_zone_load_settle_until = now + duration;
+    accessxi.nav_zone_load_settle_start_tick = now;
     accessxi.nav_zone_load_settle_reason = tostring(reason or '');
     accessxi.nav_zone_load_settle_from_zone = tonumber(from_zone) or 0;
     accessxi.nav_zone_load_settle_to_zone = tonumber(to_zone) or 0;
@@ -68672,10 +68896,26 @@ function accessxi.nav_zoning_watch_active(now)
     return true;
 end
 
+function accessxi.nav_observe_zone_load_packet(e, now)
+    if (type(e) ~= 'table' or tonumber(e.id) ~= 0x00A) then
+        return false;
+    end
+    accessxi.nav_zone_load_packet_tick = tonumber(now) or tick();
+    return true;
+end
+
 function accessxi.nav_zone_load_settle_active(now)
     now = tonumber(now) or tick();
     local until_tick = tonumber(accessxi.nav_zone_load_settle_until) or 0;
     if (until_tick <= 0) then
+        return false;
+    end
+    local started = tonumber(accessxi.nav_zone_load_settle_start_tick) or 0;
+    local zone_packet = tonumber(accessxi.nav_zone_load_packet_tick) or 0;
+    local minimum = tonumber(accessxi.nav_zone_load_settle_min_ms) or 750;
+    if (started > 0 and zone_packet >= (started - 3000)
+        and now >= (started + minimum)) then
+        accessxi.nav_clear_zone_load_settle('zone-in-ready');
         return false;
     end
     if (now >= until_tick) then
@@ -68686,7 +68926,17 @@ function accessxi.nav_zone_load_settle_active(now)
 end
 
 function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
+    if ((tonumber(new_zone) or 0) > 0) then
+        accessxi.nav_last_seen_zone = tonumber(new_zone);
+    end
     accessxi.nav_clear_zoning_watch('zone-change');
+    if (type(accessxi.nav_mission_quest_clear_pending_interaction) == 'function') then
+        accessxi.nav_mission_quest_clear_pending_interaction('zone-change');
+    end
+    if (accessxi.nav_dat_collision_state ~= nil) then
+        accessxi.nav_dat_collision_state:cancel('zone-change');
+    end
+    accessxi.nav_dat_collision_pending = nil;
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('zone-change');
     end
@@ -68701,6 +68951,7 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_position_last_log_key = '';
     accessxi.nav_menu_open = false;
     accessxi.nav_menu_items:clear();
+    accessxi.nav_menu_dirty_categories = {};
     accessxi.nav_menu_index = 1;
     accessxi.nav_menu_category = 1;
     accessxi.nav_menu_search_query = '';
@@ -69028,6 +69279,270 @@ function accessxi.nav_arrival_radius(destination)
     return 8;
 end
 
+function accessxi.nav_dat_collision_bootstrap()
+    if accessxi.nav_dat_collision_state ~= nil then
+        return true;
+    end
+    local collision_module = accessxi.load_module_table('collision_navigation', nil);
+    local sha_module = accessxi.load_module_table('accessxi_sha256', nil);
+    if (type(collision_module) ~= 'table' or type(collision_module.new) ~= 'function') then
+        accessxi.nav_dat_collision_failure_reason = 'Collision terrain module is unavailable.';
+        return false;
+    end
+    if (type(sha_module) ~= 'table' or type(sha_module.sha256) ~= 'function') then
+        accessxi.nav_dat_collision_failure_reason = 'Collision terrain SHA-256 support is unavailable.';
+        return false;
+    end
+    local ok, state, reason = pcall(collision_module.new, T{
+        ffi = ffi,
+        utf8_to_wide = utf8_to_wide,
+        addon_root = accessxi_paths.addon_path(),
+        manifest_path = accessxi_paths.addon_path('data', 'collision-native-manifest.tsv'),
+        dll_path = accessxi_paths.addon_path('third_party', 'collision', 'accessxi_collision_native.dll'),
+        sha256 = sha_module.sha256,
+        ffxi_root = accessxi_paths.ffxi_root,
+        cache_root = accessxi_paths.addon_path('cache', 'collision'),
+        zone_name = function(zone)
+            local name = safe_call(function ()
+                return AshitaCore:GetResourceManager():GetString('zones.names', tonumber(zone) or 0);
+            end, '');
+            name = nav_clean_field(name);
+            return name ~= '' and name or ('Zone %d'):fmt(tonumber(zone) or 0);
+        end,
+        arrival_radius = function(destination)
+            return accessxi.nav_arrival_radius(destination);
+        end,
+    });
+    if (not ok or type(state) ~= 'table') then
+        accessxi.nav_dat_collision_failure_reason = tostring(ok and reason or state);
+        log_line('collision terrain disabled: ' .. accessxi.escape_probe_log_text(accessxi.nav_dat_collision_failure_reason));
+        return false;
+    end
+    accessxi.nav_dat_collision_state = state;
+    accessxi.nav_dat_collision_failure_reason = '';
+    log_line('collision terrain navigation ready');
+    return true;
+end
+
+function accessxi.nav_dat_collision_destination_copy(point)
+    if (type(accessxi.nav_copy_point) == 'function') then
+        return accessxi.nav_copy_point(point);
+    end
+    return T{
+        zone = tonumber(point ~= nil and point.zone) or 0,
+        name = tostring(point ~= nil and point.name or ''),
+        x = tonumber(point ~= nil and point.x),
+        z = tonumber(point ~= nil and point.z),
+        y = tonumber(point ~= nil and point.y),
+        kind = tostring(point ~= nil and point.kind or ''),
+        source = tostring(point ~= nil and point.source or ''),
+        arrival_radius = tonumber(point ~= nil and point.arrival_radius),
+        to_zone = tonumber(point ~= nil and point.to_zone),
+        to_zone_name = tostring(point ~= nil and point.to_zone_name or ''),
+        final_zone = tonumber(point ~= nil and point.final_zone),
+        final_name = tostring(point ~= nil and point.final_name or ''),
+        same_zone_reentry_step = tonumber(point ~= nil and point.same_zone_reentry_step),
+        same_zone_reentry_edge_id = tonumber(point ~= nil and point.same_zone_reentry_edge_id),
+    };
+end
+
+function accessxi.nav_dat_collision_route(player, point)
+    if (player == nil or point == nil
+        or (tonumber(player.zone) or 0) <= 0
+        or (tonumber(player.zone) or 0) ~= (tonumber(point.zone) or 0)) then
+        return T{}, 'skip', '';
+    end
+    if (accessxi.nav_dat_collision_state == nil and not accessxi.nav_dat_collision_bootstrap()) then
+        local reason = nav_clean_field(accessxi.nav_dat_collision_failure_reason);
+        return T{}, 'error', reason ~= '' and reason or 'Collision terrain navigation is unavailable.';
+    end
+    local ok, points, mode, message = pcall(
+        accessxi.nav_dat_collision_state.route,
+        accessxi.nav_dat_collision_state,
+        player,
+        point);
+    if (not ok) then
+        return T{}, 'error', 'Collision terrain route failed: ' .. tostring(points);
+    end
+    mode = tostring(mode or 'error');
+    message = nav_clean_field(message);
+    if (mode == 'ready' and type(points) == 'table' and #points > 1) then
+        local copied = T{};
+        for _, waypoint in ipairs(points) do
+            copied:append(T{
+                zone = tonumber(waypoint.zone) or tonumber(point.zone) or 0,
+                name = tostring(waypoint.name or 'Terrain waypoint'),
+                x = tonumber(waypoint.x),
+                z = tonumber(waypoint.z),
+                y = tonumber(waypoint.y),
+                kind = 'route',
+                source = 'dat-collision',
+            });
+        end
+        accessxi.nav_dat_collision_pending = nil;
+        log_line(('collision terrain route destination="%s" zone=%d count=%d'):fmt(
+            accessxi.escape_probe_log_text(point.name or ''),
+            tonumber(point.zone) or 0,
+            copied:len()));
+        return copied, 'ready', '';
+    end
+    if (mode == 'pending') then
+        accessxi.nav_dat_collision_pending = T{
+            destination = accessxi.nav_dat_collision_destination_copy(point),
+            message = message,
+        };
+        return T{}, 'pending', message;
+    end
+    accessxi.nav_dat_collision_pending = nil;
+    return T{}, 'error', message ~= '' and message or 'No collision-safe route reaches this destination.';
+end
+
+function accessxi.nav_dat_collision_zoneline_approach(player, destination)
+    if (player == nil or destination == nil
+        or type(accessxi.nav_point_is_zoneline) ~= 'function'
+        or not accessxi.nav_point_is_zoneline(destination)
+        or type(accessxi.nav_zoneline_approach_candidates) ~= 'function'
+        or type(accessxi.nav_append_final_zoneline_point) ~= 'function') then
+        return T{}, 'skip', '';
+    end
+
+    local last_reason = '';
+    for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(destination)) do
+        local points, mode, message = accessxi.nav_dat_collision_route(player, approach);
+        if (mode == 'ready' and points:len() > 1) then
+            accessxi.nav_append_final_zoneline_point(points, destination);
+            log_line(('collision terrain zoneline approach destination="%s" approach=(%.3f,%.3f,%.3f) count=%d'):fmt(
+                accessxi.escape_probe_log_text(destination.name or ''),
+                tonumber(approach.x) or 0,
+                tonumber(approach.z) or 0,
+                tonumber(approach.y) or 0,
+                points:len()));
+            return points, 'ready', '';
+        end
+        if (mode == 'pending') then
+            return T{}, 'pending', nav_clean_field(message);
+        end
+        local reason = nav_clean_field(message);
+        if (reason ~= '') then
+            last_reason = reason;
+        end
+        if (reason == 'The generated walkable terrain has no connected corridor.'
+            and type(accessxi.nav_dat_collision_state) == 'table'
+            and type(accessxi.nav_dat_collision_state.route_zoneline_tail) == 'function') then
+            local tail_ok, tail_points, tail_mode = pcall(
+                accessxi.nav_dat_collision_state.route_zoneline_tail,
+                accessxi.nav_dat_collision_state,
+                player,
+                approach,
+                destination);
+            if (tail_ok and tail_mode == 'ready'
+                and type(tail_points) == 'table' and #tail_points > 1) then
+                local copied = T{};
+                for _, waypoint in ipairs(tail_points) do
+                    copied:append(T{
+                        zone = tonumber(waypoint.zone) or tonumber(destination.zone) or 0,
+                        name = tostring(waypoint.name or 'Terrain waypoint'),
+                        x = tonumber(waypoint.x),
+                        z = tonumber(waypoint.z),
+                        y = tonumber(waypoint.y),
+                        kind = 'route',
+                        source = 'dat-collision-zoneline-tail',
+                    });
+                end
+                accessxi.nav_append_final_zoneline_point(copied, destination);
+                log_line(('collision terrain zoneline tail recovered destination="%s" approach=(%.3f,%.3f,%.3f) count=%d'):fmt(
+                    accessxi.escape_probe_log_text(destination.name or ''),
+                    tonumber(approach.x) or 0,
+                    tonumber(approach.z) or 0,
+                    tonumber(approach.y) or 0,
+                    copied:len()));
+                return copied, 'ready', '';
+            end
+        end
+    end
+
+    return T{}, 'error', last_reason;
+end
+
+function accessxi.poll_nav_dat_collision(now)
+    if (accessxi.nav_dat_collision_pending == nil or accessxi.nav_dat_collision_state == nil) then
+        return false;
+    end
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_dat_collision_last_poll_tick) or 0)) < 200) then
+        return true;
+    end
+    accessxi.nav_dat_collision_last_poll_tick = now;
+    local player = nav_cached_player_position();
+    local pending = accessxi.nav_dat_collision_pending;
+    local destination = pending ~= nil and pending.destination or nil;
+    if (player == nil or destination == nil
+        or (tonumber(player.zone) or 0) ~= (tonumber(destination.zone) or 0)) then
+        accessxi.nav_dat_collision_state:cancel('zone-change');
+        accessxi.nav_dat_collision_pending = nil;
+        return false;
+    end
+    local ok, points, mode, message = pcall(
+        accessxi.nav_dat_collision_state.poll,
+        accessxi.nav_dat_collision_state,
+        player);
+    if (not ok) then
+        points, mode, message = nil, 'error', tostring(points);
+    end
+    if mode == 'pending' then
+        return true;
+    end
+    accessxi.nav_dat_collision_pending = nil;
+    if (mode ~= 'ready' or type(points) ~= 'table' or #points <= 1) then
+        local approach_points, approach_mode, approach_message =
+            accessxi.nav_dat_collision_zoneline_approach(player, destination);
+        if (approach_mode == 'ready') then
+            points, mode, message = approach_points, 'ready', '';
+        elseif (approach_mode == 'pending') then
+            return true;
+        elseif (nav_clean_field(message) == '' and nav_clean_field(approach_message) ~= '') then
+            message = approach_message;
+        end
+    end
+    if mode ~= 'ready' or type(points) ~= 'table' or #points <= 1 then
+        local text = nav_clean_field(message);
+        text = text ~= '' and text or 'No collision-safe route reaches this destination.';
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        log_line('collision terrain route stopped: ' .. accessxi.escape_probe_log_text(text));
+        return false;
+    end
+    local copied = T{};
+    for _, waypoint in ipairs(points) do
+        copied:append(T{
+            zone = tonumber(waypoint.zone) or tonumber(destination.zone) or 0,
+            name = tostring(waypoint.name or 'Terrain waypoint'),
+            x = tonumber(waypoint.x),
+            z = tonumber(waypoint.z),
+            y = tonumber(waypoint.y),
+            kind = 'route',
+            source = 'dat-collision',
+        });
+    end
+    accessxi.nav_route_points = copied;
+    accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, copied, destination);
+    accessxi.nav_route_last_recalc_tick = now;
+    accessxi.nav_active = true;
+    accessxi.nav_destination = destination;
+    local text = ('Terrain map ready. Starting route to %s. %d waypoints.'):fmt(
+        destination.name ~= '' and destination.name or 'destination', copied:len());
+    accessxi.nav_last_direction_text = text;
+    speak(text);
+    log_line(('collision terrain automatic start destination="%s" zone=%d count=%d'):fmt(
+        accessxi.escape_probe_log_text(destination.name or ''),
+        tonumber(destination.zone) or 0,
+        copied:len()));
+    return false;
+end
+
 function accessxi.nav_route_lookahead_distance(player, destination)
     local distance = (player ~= nil and destination ~= nil) and nav_distance(player, destination) or 999999;
     local wall = accessxi.nav_wall_distance(player);
@@ -69057,6 +69572,12 @@ function accessxi.nav_first_route_index(from_pos, points, destination)
     local count = points ~= nil and points:len() or 0;
     if (count <= 1) then
         return 1;
+    end
+
+    local first = points[1] or T{};
+    local precise_route_id = tostring(first.route_override_id or first.source or '');
+    if (precise_route_id == 'dat-collision' or precise_route_id == 'lathine-navmesh') then
+        return 2;
     end
 
     local radius = accessxi.nav_route_waypoint_arrival_radius(destination);
@@ -69143,7 +69664,7 @@ function accessxi.nav_project_to_segment(pos, a, b)
     return point, t, math.sqrt((dx * dx) + (dz * dz));
 end
 
-function accessxi.nav_route_live_match(pos, points, preferred_segment)
+function accessxi.nav_route_live_match(pos, points, preferred_segment, first_segment, last_segment)
     local count = points ~= nil and points:len() or 0;
     if (pos == nil or count < 2) then
         return nil;
@@ -69154,7 +69675,9 @@ function accessxi.nav_route_live_match(pos, points, preferred_segment)
     local forward_best = nil;
     local preferred = nil;
     preferred_segment = math.floor(tonumber(preferred_segment) or 0);
-    for i = 1, count - 1 do
+    first_segment = math.max(1, math.floor(tonumber(first_segment) or 1));
+    last_segment = math.min(count - 1, math.floor(tonumber(last_segment) or (count - 1)));
+    for i = first_segment, last_segment do
         local projected, t, horizontal = accessxi.nav_project_to_segment(pos, points[i], points[i + 1]);
         if (projected ~= nil) then
             local vertical = math.abs(py - (tonumber(projected.y) or 0));
@@ -69194,7 +69717,7 @@ function accessxi.nav_route_live_match(pos, points, preferred_segment)
     return best;
 end
 
-function accessxi.nav_route_target_from_match(player, points, match, lookahead, smooth_lookahead)
+function accessxi.nav_route_target_from_match(player, points, match, lookahead, smooth_lookahead, segment_bounded)
     local count = points ~= nil and points:len() or 0;
     if (player == nil or match == nil or match.point == nil or count < 2) then
         return nil;
@@ -69206,7 +69729,7 @@ function accessxi.nav_route_target_from_match(player, points, match, lookahead, 
 
     local segment = math.max(1, math.min(tonumber(match.segment) or 1, count - 1));
     local match_t = tonumber(match.t) or 0;
-    if (not smooth_lookahead
+    if (not segment_bounded and not smooth_lookahead
         and (tonumber(match.horizontal) or 0) > 0.75
         and (match_t <= 0.05 or match_t >= 0.95)) then
         local exit_target = nil;
@@ -69237,6 +69760,24 @@ function accessxi.nav_route_target_from_match(player, points, match, lookahead, 
 
     local remaining = math.max(0.5, tonumber(lookahead) or 5);
     local current = match.point;
+    if (segment_bounded) then
+        local target = points[segment + 1];
+        local distance = nav_distance(current, target);
+        if (distance >= remaining and distance > 0.001) then
+            local ratio = remaining / distance;
+            return T{
+                zone = player.zone,
+                name = 'Collision route steering target',
+                x = (tonumber(current.x) or 0) + (ratio * ((tonumber(target.x) or 0) - (tonumber(current.x) or 0))),
+                z = (tonumber(current.z) or 0) + (ratio * ((tonumber(target.z) or 0) - (tonumber(current.z) or 0))),
+                y = (tonumber(current.y) or 0) + (ratio * ((tonumber(target.y) or 0) - (tonumber(current.y) or 0))),
+                kind = 'route',
+                source = 'dat-collision-segment-steering',
+                route_override_id = 'dat-collision',
+            };
+        end
+        return target;
+    end
     for i = segment, count - 1 do
         local target = points[i + 1];
         local start_point = (i == segment) and current or points[i];
@@ -69317,6 +69858,19 @@ function accessxi.nav_precise_route_track_index(player, now)
     end
 
     local desired = math.min((tonumber(match.segment) or 1) + 1, count);
+    local precise_route_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
+    if (desired == index and (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)
+        or precise_route_id == 'lathine-navmesh')) then
+        local current_target = accessxi.nav_route_points[index];
+        if (current_target ~= nil) then
+            local horizontal = nav_distance(player, current_target);
+            local vertical = math.abs((tonumber(player.y) or 0) - (tonumber(current_target.y) or 0));
+            if (horizontal <= 1.5 and vertical <= 2.0) then
+                desired = math.min(index + 1, count);
+                accessxi.nav_precise_route_return_clear();
+            end
+        end
+    end
     if (desired < index) then
         return false;
     end
@@ -69444,15 +69998,27 @@ function accessxi.nav_route_live_replan_reason(player, destination, points, delt
     return '';
 end
 
-function accessxi.nav_nearest_route_segment(pos, points)
+function accessxi.nav_route_points_are_collision(points)
+    return type(points) == 'table'
+        and points[1] ~= nil
+        and tostring(points[1].source or '') == 'dat-collision';
+end
+
+function accessxi.nav_nearest_route_segment(pos, points, first_segment, last_segment)
     local count = points ~= nil and points:len() or 0;
     if (count < 2) then
         return 0, 999999;
     end
 
-    local best_index = 1;
+    first_segment = math.max(1, math.floor(tonumber(first_segment) or 1));
+    last_segment = math.min(count - 1, math.floor(tonumber(last_segment) or (count - 1)));
+    if (first_segment > last_segment) then
+        return 0, 999999;
+    end
+
+    local best_index = first_segment;
     local best_distance = 999999;
-    for i = 1, count - 1 do
+    for i = first_segment, last_segment do
         local distance = accessxi.nav_distance_to_segment(pos, points[i], points[i + 1]);
         if (distance < best_distance) then
             best_distance = distance;
@@ -69557,7 +70123,17 @@ function accessxi.nav_sync_route_index(pos)
         return;
     end
 
-    local segment, segment_distance = accessxi.nav_nearest_route_segment(pos, accessxi.nav_route_points);
+    local first_segment = nil;
+    local last_segment = nil;
+    if (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)) then
+        local current = math.max(2, math.min(
+            tonumber(accessxi.nav_route_point_index) or 2,
+            count));
+        first_segment = math.max(1, current - 2);
+        last_segment = math.min(count - 1, current + 1);
+    end
+    local segment, segment_distance = accessxi.nav_nearest_route_segment(
+        pos, accessxi.nav_route_points, first_segment, last_segment);
     if (segment <= 0) then
         return;
     end
@@ -69800,6 +70376,18 @@ function accessxi.nav_objective_native_get_waypoints(maximum)
 end
 
 function accessxi.nav_compute_exact_objective_leg(request)
+    if (type(request) ~= 'table'
+        or nav_clean_field(request.objective_route_contract_id) == '') then
+        return nil, 'Verified objective route authorization is incomplete.';
+    end
+    if (type(accessxi.ensure_objective_route_runtime) ~= 'function') then
+        return nil, 'Verified objective route execution is unavailable.';
+    end
+    local runtime_ready, runtime_reason = accessxi.ensure_objective_route_runtime();
+    if (runtime_ready ~= true) then
+        return nil, nav_clean_field(runtime_reason) ~= '' and nav_clean_field(runtime_reason)
+            or 'Verified objective route execution is unavailable.';
+    end
     local runtime = accessxi.objective_route_runtime;
     if (type(runtime) ~= 'table' or type(runtime.compute_exact_objective_leg) ~= 'function') then
         return nil, nav_clean_field(accessxi.objective_route_runtime_failure_reason)
@@ -69816,7 +70404,7 @@ function accessxi.nav_compute_exact_objective_leg(request)
     return points, reason, evidence;
 end
 
-local function nav_compute_mesh_route(start_pos, end_pos)
+local function nav_compute_mesh_route(start_pos, end_pos, quiet)
     local points = T{};
     if (start_pos == nil or end_pos == nil or (tonumber(start_pos.zone) or 0) ~= (tonumber(end_pos.zone) or 0)) then
         return points;
@@ -69842,15 +70430,17 @@ local function nav_compute_mesh_route(start_pos, end_pos)
         count = tonumber(ffxinav.Get_WayPoints(accessxi.nav_mesh_handle, ptr)) or 0;
     end
 
-    log_line(('navmesh route zone=%d start=(%.3f,%.3f,%.3f) end=(%.3f,%.3f,%.3f) count=%d'):fmt(
-        start_pos.zone or 0,
-        start_pos.x or 0,
-        start_pos.z or 0,
-        start_pos.y or 0,
-        end_pos.x or 0,
-        end_pos.z or 0,
-        end_pos.y or 0,
-        count));
+    if (not quiet) then
+        log_line(('navmesh route zone=%d start=(%.3f,%.3f,%.3f) end=(%.3f,%.3f,%.3f) count=%d'):fmt(
+            start_pos.zone or 0,
+            start_pos.x or 0,
+            start_pos.z or 0,
+            start_pos.y or 0,
+            end_pos.x or 0,
+            end_pos.z or 0,
+            end_pos.y or 0,
+            count));
+    end
 
     if (count <= 0 or ptr[0] == nil) then
         return points;
@@ -69872,11 +70462,13 @@ local function nav_compute_mesh_route(start_pos, end_pos)
     local quarantine = accessxi.nav_route_quarantine_reason(points, end_pos);
     if (quarantine ~= '') then
         accessxi.nav_route_last_reject_reason = quarantine;
-        log_line(('navmesh route rejected zone=%d destination="%s" quarantine="%s" count=%d'):fmt(
-            start_pos.zone or 0,
-            end_pos.name or '',
-            accessxi.escape_probe_log_text(quarantine),
-            points:len()));
+        if (not quiet) then
+            log_line(('navmesh route rejected zone=%d destination="%s" quarantine="%s" count=%d'):fmt(
+                start_pos.zone or 0,
+                end_pos.name or '',
+                accessxi.escape_probe_log_text(quarantine),
+                points:len()));
+        end
         points:clear();
         return points;
     end
@@ -70130,6 +70722,9 @@ function accessxi.nav_route_points_override_id(points)
                 return route_id;
             end
             local source = tostring(point.source or ''):lower();
+            if (source == 'dat-collision') then
+                return 'dat-collision';
+            end
             local source_id = source:match('route%-override:([^:]+)');
             if (source_id ~= nil and source_id ~= '') then
                 return source_id;
@@ -70347,6 +70942,9 @@ function accessxi.nav_route_precise_override_active(player, points)
     local route_id = accessxi.nav_route_points_override_id(points);
     local px = tonumber(player.x) or 0;
     local pz = tonumber(player.z) or 0;
+    if (route_id == 'dat-collision') then
+        return true;
+    end
     if (route_id:startswith('lathine-recorded-survey-')) then
         return true;
     end
@@ -70354,6 +70952,9 @@ function accessxi.nav_route_precise_override_active(player, points)
         return true;
     end
     if (route_id:startswith('lathine-recorded-ravine-escape-')) then
+        return true;
+    end
+    if (route_id == 'lathine-navmesh') then
         return true;
     end
     if (route_id == 'lathine-open-shelf-via-f6-to-ordelle-z2u6') then
@@ -70635,7 +71236,9 @@ function accessxi.nav_route_points_are_override(points)
     for _, point in ipairs(points) do
         if (point ~= nil) then
             local source = tostring(point.source or ''):lower();
-            if (source:contains('route-override') or nav_clean_field(point.route_override_id or '') ~= '') then
+            if (source == 'dat-collision'
+                or source:contains('route-override')
+                or nav_clean_field(point.route_override_id or '') ~= '') then
                 return true;
             end
         end
@@ -70726,6 +71329,10 @@ function accessxi.nav_zoneline_edge_rank(edge, player)
         rank = 6;
     elseif (confidence:contains('untested')) then
         rank = 8;
+    end
+
+    if (type(accessxi.nav_recorded_survey_zoneline_edge_priority) == 'function') then
+        rank = rank + (tonumber(accessxi.nav_recorded_survey_zoneline_edge_priority(edge)) or 0);
     end
 
     local distance = 999999;
@@ -71362,6 +71969,12 @@ function accessxi.nav_lathine_live_recorded_corridor_handoff(player, point, curr
     end
 
     local current_id = accessxi.nav_route_points_override_id(current_points);
+    if (current_id == 'dat-collision') then
+        return empty;
+    end
+    if (current_id == 'lathine-navmesh') then
+        return empty;
+    end
     if (current_id:startswith('lathine-recorded-survey-')) then
         return empty;
     end
@@ -71384,9 +71997,6 @@ accessxi.load_code_module('recorded_survey_navigation', T{
     nav_clean_field = nav_clean_field,
     log_line = log_line,
 });
-if (type(accessxi.nav_recorded_survey_load) == 'function') then
-    accessxi.nav_recorded_survey_load();
-end
 
 accessxi.load_code_module('metalworks_elevator_navigation', T{
     T = T,
@@ -71397,13 +72007,27 @@ accessxi.load_code_module('metalworks_elevator_navigation', T{
     speak = speak,
     tick = tick,
     objective_transition_is_authorized = function(request)
+        local contract_id = nav_clean_field(request ~= nil
+            and request.objective_route_contract_id or '');
+        local transition_id = nav_clean_field(request ~= nil
+            and request.objective_transition_id or '');
+        if (contract_id == '' or transition_id == '') then
+            return nil, 'The rooted objective transition authorization is incomplete.';
+        end
+        if (type(accessxi.ensure_objective_route_runtime) ~= 'function') then
+            return nil, 'The rooted objective transition runtime is unavailable.';
+        end
+        local runtime_ready, runtime_reason = accessxi.ensure_objective_route_runtime();
+        if (runtime_ready ~= true) then
+            return nil, nav_clean_field(runtime_reason);
+        end
         local runtime = accessxi.objective_route_runtime;
         if (type(runtime) ~= 'table' or type(runtime.authorize_transition) ~= 'function') then
             return nil, 'The rooted objective transition runtime is unavailable.';
         end
         return runtime:authorize_transition(
-            tostring(request ~= nil and request.objective_route_contract_id or ''),
-            tostring(request ~= nil and request.objective_transition_id or ''));
+            contract_id,
+            transition_id);
     end,
     nav_compute_exact_objective_leg = function(request)
         return accessxi.nav_compute_exact_objective_leg(request);
@@ -71421,64 +72045,150 @@ accessxi.load_code_module('dangruf_fount_drop_navigation', T{
 
 function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     accessxi.nav_route_last_reject_reason = '';
+    local survey_collision_fallback = false;
     if (type(accessxi.nav_recorded_survey_route) == 'function') then
-        local recorded_survey, survey_required = accessxi.nav_recorded_survey_route(player, point);
+        local recorded_survey, survey_required, collision_required = accessxi.nav_recorded_survey_route(player, point);
         if (recorded_survey:len() > 1) then
             return recorded_survey, nil;
         end
         if (survey_required) then
             return T{}, nil;
         end
+        survey_collision_fallback = collision_required == true;
     end
 
-    local recorded_corridor, corridor_required = accessxi.nav_lathine_recorded_corridor_route(player, point);
-    if (recorded_corridor:len() > 1) then
-        return recorded_corridor, nil;
-    end
-    if (corridor_required) then
-        return T{}, nil;
-    end
-
-    local recorded_ravine_escape = accessxi.nav_lathine_recorded_ravine_escape_route(player, point);
-    if (recorded_ravine_escape:len() > 1) then
-        return recorded_ravine_escape, nil;
-    end
-    if (accessxi.nav_lathine_recorded_ravine_escape_required(player, point)) then
-        return T{}, nil;
-    end
-
-    local lower_ravine_recovery = accessxi.nav_lathine_lower_ravine_recovery_route(player, point);
-    if (lower_ravine_recovery:len() > 1) then
-        return lower_ravine_recovery, nil;
-    end
-
-    local override_route = accessxi.nav_route_override_points(player, point);
-    if (override_route:len() > 1) then
-        accessxi.nav_route_last_reject_reason = '';
-        return override_route, nil;
-    end
-
-    if (accessxi.nav_nearby_zoneline_direct_route_allowed(player, point)) then
-        log_line(('nav direct nearby zoneline route destination="%s" distance=%.1f'):fmt(
-            point.name or '',
-            nav_distance(player, point)));
-        return T{}, nil;
-    end
-
-    local required_transport_id = nav_clean_field(point ~= nil and point.objective_transport_id or '');
-    if (required_transport_id ~= '' and type(accessxi.nav_verified_elevator_route) == 'function') then
-        local transport_route, transport_required = accessxi.nav_verified_elevator_route(player, point);
-        if (transport_route:len() > 1) then
-            accessxi.nav_route_last_reject_reason = '';
-            return transport_route, nil;
+    -- La Theine's installed full-zone navmesh answers immediately and avoids
+    -- the synchronous DAT terrain build. The DAT mapper twice produced a
+    -- live-disproved loop at the Galaihaurat cliff and the latest build kept
+    -- the game silent for more than two minutes. Prefer the existing full
+    -- zone mesh for same-zone destinations and keep each returned segment
+    -- bounded so steering cannot cut a narrow corner.  Zonelines use the
+    -- paired reverse landing as their mesh endpoint, then append only the
+    -- nearby proven transition point.  Never fall through to the slow DAT
+    -- terrain builder for La Theine when this installed mesh has no path.
+    if survey_collision_fallback
+        and player ~= nil and point ~= nil
+        and (tonumber(player.zone) or 0) == 102
+        and (tonumber(point.zone) or 0) == 102 then
+        local lathine_mesh_route = T{};
+        local is_zoneline = accessxi.nav_point_is_zoneline(point);
+        if (is_zoneline) then
+            local override_route = accessxi.nav_route_override_points(player, point);
+            if (override_route:len() > 1) then
+                accessxi.nav_route_last_reject_reason = '';
+                return override_route, nil;
+            end
+            if (accessxi.nav_nearby_zoneline_direct_route_allowed(player, point)) then
+                log_line(('nav direct nearby zoneline route destination="%s" distance=%.1f'):fmt(
+                    point.name or '',
+                    nav_distance(player, point)));
+                return T{}, nil;
+            end
+            for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
+                lathine_mesh_route = nav_compute_mesh_route(player, approach);
+                if (lathine_mesh_route:len() > 1) then
+                    accessxi.nav_append_final_zoneline_point(lathine_mesh_route, point);
+                    break;
+                end
+            end
+        else
+            lathine_mesh_route = nav_compute_mesh_route(player, point);
         end
-        if (transport_required == true) then
-            accessxi.nav_route_last_reject_reason = 'required verified transport route unavailable';
-            log_line(('nav required transport unavailable id="%s" destination="%s"'):fmt(
-                accessxi.escape_probe_log_text(required_transport_id),
-                accessxi.escape_probe_log_text(point.name or '')));
+        if lathine_mesh_route:len() > 1 then
+            for _, waypoint in ipairs(lathine_mesh_route) do
+                waypoint.route_override_id = 'lathine-navmesh';
+            end
+            accessxi.nav_route_last_reject_reason = '';
+            log_line(('nav La Theine full-zone navmesh route destination="%s" count=%d'):fmt(
+                point.name or '', lathine_mesh_route:len()));
+            return lathine_mesh_route, nil;
+        end
+        if (is_zoneline) then
+            accessxi.nav_route_last_reject_reason =
+                'installed La Theine navmesh has no route to this zone line';
+            log_line(('nav La Theine zoneline navmesh unavailable destination="%s"'):fmt(
+                point.name or ''));
             return T{}, nil;
         end
+    end
+
+    if (not survey_collision_fallback) then
+        local recorded_corridor, corridor_required = accessxi.nav_lathine_recorded_corridor_route(player, point);
+        if (recorded_corridor:len() > 1) then
+            return recorded_corridor, nil;
+        end
+        if (corridor_required) then
+            return T{}, nil;
+        end
+
+        local recorded_ravine_escape = accessxi.nav_lathine_recorded_ravine_escape_route(player, point);
+        if (recorded_ravine_escape:len() > 1) then
+            return recorded_ravine_escape, nil;
+        end
+        if (accessxi.nav_lathine_recorded_ravine_escape_required(player, point)) then
+            return T{}, nil;
+        end
+
+        local lower_ravine_recovery = accessxi.nav_lathine_lower_ravine_recovery_route(player, point);
+        if (lower_ravine_recovery:len() > 1) then
+            return lower_ravine_recovery, nil;
+        end
+
+        local override_route = accessxi.nav_route_override_points(player, point);
+        if (override_route:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            return override_route, nil;
+        end
+
+        if (accessxi.nav_nearby_zoneline_direct_route_allowed(player, point)) then
+            log_line(('nav direct nearby zoneline route destination="%s" distance=%.1f'):fmt(
+                point.name or '',
+                nav_distance(player, point)));
+            return T{}, nil;
+        end
+
+        local required_transport_id = nav_clean_field(point ~= nil and point.objective_transport_id or '');
+        if (required_transport_id ~= '' and type(accessxi.nav_verified_elevator_route) == 'function') then
+            local transport_route, transport_required = accessxi.nav_verified_elevator_route(player, point);
+            if (transport_route:len() > 1) then
+                accessxi.nav_route_last_reject_reason = '';
+                return transport_route, nil;
+            end
+            if (transport_required == true) then
+                accessxi.nav_route_last_reject_reason = 'required verified transport route unavailable';
+                log_line(('nav required transport unavailable id="%s" destination="%s"'):fmt(
+                    accessxi.escape_probe_log_text(required_transport_id),
+                    accessxi.escape_probe_log_text(point.name or '')));
+                return T{}, nil;
+            end
+        end
+    end
+
+    local collision_route, collision_mode, collision_message = accessxi.nav_dat_collision_route(player, point);
+    if (collision_mode == 'ready') then
+        accessxi.nav_route_last_reject_reason = '';
+        return collision_route, nil;
+    end
+    if (collision_mode == 'pending') then
+        accessxi.nav_route_last_reject_reason = '';
+        return T{}, nil;
+    end
+    if (collision_mode == 'error') then
+        local approach_route, approach_mode, approach_message =
+            accessxi.nav_dat_collision_zoneline_approach(player, point);
+        if (approach_mode == 'ready') then
+            accessxi.nav_route_last_reject_reason = '';
+            return approach_route, nil;
+        end
+        if (approach_mode == 'pending') then
+            accessxi.nav_route_last_reject_reason = '';
+            return T{}, nil;
+        end
+        accessxi.nav_route_last_reject_reason = nav_clean_field(collision_message);
+        if (accessxi.nav_route_last_reject_reason == '') then
+            accessxi.nav_route_last_reject_reason = nav_clean_field(approach_message);
+        end
+        return T{}, nil;
     end
 
     local route = nav_compute_mesh_route(player, point);
@@ -71582,8 +72292,14 @@ local function nav_load_points_file(path, default_source)
                         and kind:lower() == 'discovered'
                         and source_lower:sub(1, 7) == 'entity:');
                     if (not legacy_entity_capture and not accessxi.nav_generated_name_is_placeholder(name, source)) then
+                        local raw_spawn_ids = T{};
+                        for value in tostring(parts[12] or ''):gmatch('[^,]+') do
+                            local spawn_id = tonumber(nav_clean_field(value));
+                            if (spawn_id ~= nil) then raw_spawn_ids:append(spawn_id); end
+                        end
                         accessxi.nav_points:append(T{
                             zone = zone,
+                            zone_name = accessxi.nav_graph_zone_name(zone),
                             name = name,
                             x = x,
                             z = z,
@@ -71592,6 +72308,10 @@ local function nav_load_points_file(path, default_source)
                             source = source,
                             confidence = nav_clean_field(parts[8] or ''),
                             section = nav_clean_field(parts[9] or ''),
+                            destination_id = nav_clean_field(parts[10] or ''),
+                            raw_identity = nav_clean_field(parts[11] or ''),
+                            raw_spawn_ids = raw_spawn_ids,
+                            cluster_policy_version = nav_clean_field(parts[13] or ''),
                         });
                         loaded = loaded + 1;
                     end
@@ -72807,6 +73527,14 @@ local function nav_refresh_search_results()
     for _, item in ipairs(items) do
         accessxi.nav_menu_search_results:append(item);
     end
+    if (type(accessxi.nav_zone_search_npc_results) == 'function') then
+        local zone_results = accessxi.nav_zone_search_npc_results(query, nav_cached_player_position());
+        for _, item in ipairs(zone_results) do
+            if (item.zone_search_zone_result == true) then
+                accessxi.nav_menu_search_results:append(item);
+            end
+        end
+    end
     return accessxi.nav_menu_search_results:len();
 end
 
@@ -72971,10 +73699,36 @@ local function nav_close_menu_silent(reason)
     log_line(('nav menu silent close reason="%s"'):fmt(accessxi.escape_probe_log_text(reason or '')));
 end
 
+accessxi.nav_menu_selection_key = function (item)
+    item = type(item) == 'table' and item or {};
+    local kind = nav_clean_field(item.objective_kind or item.kind):lower();
+    if (kind == 'mission' or kind == 'quest') then
+        return table.concat({
+            kind,
+            nav_clean_field(item.objective_native_key),
+            nav_clean_field(item.objective_guide_step_id or item.guide_step_id),
+            nav_clean_field(item.objective_candidate_id),
+            nav_clean_field(item.objective_action_id),
+            nav_clean_field(item.objective_group_id),
+            nav_clean_field(item.objective_destination_id),
+            item.objective_instruction_only == true and 'instruction' or 'destination',
+        }, '\t');
+    end
+    return table.concat({
+        tostring(item.source or ''),
+        tostring(item.name or ''),
+    }, '\t');
+end
+
 local function nav_menu_rebuild(preserve_selection)
     local previous = preserve_selection and accessxi.nav_menu_items[accessxi.nav_menu_index] or nil;
     local previous_index = accessxi.nav_menu_index;
     local items = nav_build_menu_items();
+    local category = nav_current_category();
+    local category_key = nav_clean_field(type(category) == 'table' and category.key or ''):lower();
+    if (type(accessxi.nav_menu_dirty_categories) == 'table' and category_key ~= '') then
+        accessxi.nav_menu_dirty_categories[category_key] = nil;
+    end
     accessxi.nav_menu_items = T{};
     for _, item in ipairs(items) do
         accessxi.nav_menu_items:append(item);
@@ -72983,11 +73737,10 @@ local function nav_menu_rebuild(preserve_selection)
     accessxi.nav_menu_index = 1;
     if (preserve_selection and accessxi.nav_menu_items:len() > 0) then
         if (previous ~= nil) then
-            local previous_source = tostring(previous.source or '');
-            local previous_name = tostring(previous.name or '');
+            local previous_key = accessxi.nav_menu_selection_key(previous);
             for i = 1, accessxi.nav_menu_items:len() do
                 local item = accessxi.nav_menu_items[i];
-                if (tostring(item.source or '') == previous_source and tostring(item.name or '') == previous_name) then
+                if (accessxi.nav_menu_selection_key(item) == previous_key) then
                     accessxi.nav_menu_index = i;
                     return;
                 end
@@ -72997,9 +73750,144 @@ local function nav_menu_rebuild(preserve_selection)
     end
 end
 
+function accessxi.queue_mission_quest_state_change(kind, reason, now)
+    kind = nav_clean_field(kind):lower();
+    if (kind ~= 'mission' and kind ~= 'quest' and kind ~= 'objective') then
+        return false;
+    end
+    accessxi.mission_quest_state_pending = accessxi.mission_quest_state_pending or {};
+    accessxi.mission_quest_state_pending[kind] = nav_clean_field(reason);
+    accessxi.mission_quest_state_pending_tick = tonumber(now) or tick();
+    return true;
+end
+
+function accessxi.poll_mission_quest_state_changes(now)
+    now = tonumber(now) or tick();
+    local pending = accessxi.mission_quest_state_pending or {};
+    if (next(pending) == nil) then return false; end
+    if ((type(accessxi.nav_zoning_watch_active) == 'function'
+            and accessxi.nav_zoning_watch_active(now))
+        or (type(accessxi.nav_zone_load_settle_active) == 'function'
+            and accessxi.nav_zone_load_settle_active(now))) then
+        return false;
+    end
+    local debounce = tonumber(accessxi.mission_quest_state_debounce_ms) or 250;
+    if ((now - (tonumber(accessxi.mission_quest_state_pending_tick) or 0)) < debounce) then
+        return false;
+    end
+
+    accessxi.mission_quest_state_pending = {};
+    local kinds = pending.objective ~= nil and T{ 'objective' }
+        or T{ 'mission', 'quest' };
+    for _, kind in ipairs(kinds) do
+        if (pending[kind] ~= nil and type(accessxi.on_mission_quest_state_changed) == 'function') then
+            local ok, err = pcall(
+                accessxi.on_mission_quest_state_changed,
+                kind,
+                pending[kind]);
+            if (not ok) then
+                log_line(('objective state refresh failed kind=%s reason="%s"'):fmt(
+                    kind,
+                    accessxi.escape_probe_log_text(tostring(err or 'unknown'))));
+            end
+        end
+    end
+    return true;
+end
+
+function accessxi.on_mission_quest_state_changed(kind, reason)
+    kind = nav_clean_field(kind):lower();
+    if (kind ~= 'mission' and kind ~= 'quest' and kind ~= 'objective') then
+        return false, false;
+    end
+    accessxi.nav_menu_poll_key = 0;
+
+    local route_point = nil;
+    if (type(accessxi.nav_is_mission_quest_point) == 'function'
+        and accessxi.nav_is_mission_quest_point(accessxi.nav_destination)) then
+        route_point = accessxi.nav_destination;
+    elseif (type(accessxi.nav_is_mission_quest_point) == 'function'
+        and accessxi.nav_is_mission_quest_point(accessxi.nav_zone_search_target)) then
+        route_point = accessxi.nav_zone_search_target;
+    end
+    local route_kind = nav_clean_field(type(route_point) == 'table'
+        and (route_point.objective_kind or route_point.kind) or ''):lower();
+    local cancelled = false;
+    if (route_point ~= nil and (kind == 'objective' or route_kind == kind)
+        and type(accessxi.nav_mission_quest_route_point_is_current) == 'function') then
+        local current_ok, current = pcall(
+            accessxi.nav_mission_quest_route_point_is_current,
+            route_point);
+        if (current_ok and current ~= true
+            and type(accessxi.nav_cancel_mission_quest_route) == 'function') then
+            cancelled = accessxi.nav_cancel_mission_quest_route(
+                'objective-state-changed') == true;
+        elseif (not current_ok) then
+            log_line(('objective state route check failed kind=%s reason="%s"'):fmt(
+                kind,
+                accessxi.escape_probe_log_text(current or 'unknown')));
+        end
+    end
+
+    local changed = false;
+    local category = type(nav_current_category) == 'function' and nav_current_category() or nil;
+    local category_key = nav_clean_field(type(category) == 'table' and category.key or ''):lower();
+    if (accessxi.nav_menu_open == true
+        and (category_key == 'mission' or category_key == 'quest')
+        and (kind == 'objective' or kind == category_key)) then
+        local before = accessxi.nav_menu_items[accessxi.nav_menu_index];
+        local before_key = before ~= nil and accessxi.nav_menu_selection_key(before) or '';
+        local before_count = accessxi.nav_menu_items:len();
+        nav_menu_rebuild(true);
+        local after = accessxi.nav_menu_items[accessxi.nav_menu_index];
+        local after_key = after ~= nil and accessxi.nav_menu_selection_key(after) or '';
+        changed = before_count ~= accessxi.nav_menu_items:len() or before_key ~= after_key;
+    end
+
+    if (cancelled) then
+        local label = route_kind == 'quest' and 'Quest' or 'Mission';
+        local text = label .. ' updated. Route stopped. Select the next destination and press I when ready.';
+        speak(text);
+        log_line(('objective state progression kind=%s reason="%s" route=cancelled'):fmt(
+            route_kind,
+            accessxi.escape_probe_log_text(reason or 'state-changed')));
+    elseif (changed) then
+        log_line(('objective state progression kind=%s reason="%s" route=none'):fmt(
+            category_key,
+            accessxi.escape_probe_log_text(reason or 'state-changed')));
+    end
+    return changed, cancelled;
+end
+
+function accessxi.on_objective_interaction_progress_changed(kind, cancelled)
+    kind = nav_clean_field(kind):lower();
+    accessxi.nav_menu_dirty_categories = accessxi.nav_menu_dirty_categories or {};
+    accessxi.nav_menu_dirty_categories[kind] = true;
+    accessxi.nav_menu_poll_key = 0;
+    local category = nav_current_category();
+    if (accessxi.nav_menu_open == true and type(category) == 'table'
+        and tostring(category.key or '') == kind) then
+        nav_menu_rebuild(true);
+    end
+    if (cancelled == true) then
+        local label = kind == 'quest' and 'Quest' or 'Mission';
+        local text = label .. ' updated. Route stopped. Select the next destination and press I when ready.';
+        speak(text);
+        log_line(('objective interaction progression kind=%s route=cancelled'):fmt(kind));
+    end
+end
+
 local function nav_menu_move(delta)
     local category = nav_current_category();
-    if (accessxi.nav_menu_items:len() == 0 or (category ~= nil and accessxi.nav_live_category(category.key))) then
+    local category_key = category ~= nil and tostring(category.key or '') or '';
+    local refresh_live_rows = category ~= nil
+        and accessxi.nav_live_category(category_key)
+        and category_key ~= 'enemy'
+        and category_key ~= 'mission'
+        and category_key ~= 'quest';
+    if (accessxi.nav_menu_items:len() == 0 or refresh_live_rows
+        or (type(accessxi.nav_menu_dirty_categories) == 'table'
+            and accessxi.nav_menu_dirty_categories[nav_clean_field(category_key):lower()] == true)) then
         nav_menu_rebuild(true);
     end
 
@@ -73031,7 +73919,11 @@ function accessxi.nav_objective_step_view_open()
 end
 
 local function nav_menu_start_route()
-    if (accessxi.nav_menu_items:len() == 0) then
+    local category = nav_current_category();
+    local category_key = category ~= nil and tostring(category.key or '') or '';
+    if (accessxi.nav_menu_items:len() == 0
+        or (type(accessxi.nav_menu_dirty_categories) == 'table'
+            and accessxi.nav_menu_dirty_categories[nav_clean_field(category_key):lower()] == true)) then
         nav_menu_rebuild(true);
     end
 
@@ -73044,7 +73936,7 @@ local function nav_menu_start_route()
     local objective_kind = nav_clean_field(item.objective_kind or item.kind):lower();
     if (objective_kind == 'mission' or objective_kind == 'quest') then
         if (type(accessxi.nav_mission_quest_prepare_route) ~= 'function') then
-            local text = 'Verified objective route preparation is unavailable.';
+            local text = 'Objective route preparation is unavailable.';
             speak(text);
             log_line('nav objective start blocked ' .. text);
             return;
@@ -73059,7 +73951,7 @@ local function nav_menu_start_route()
             item,
             objective_player);
         if (not prepare_ok) then
-            local text = 'Verified objective route preparation is unavailable.';
+            local text = 'Objective route preparation is unavailable.';
             speak(text);
             log_line('nav objective start blocked ' .. text);
             return;
@@ -73067,16 +73959,73 @@ local function nav_menu_start_route()
         if (objective_mode == 'instruction') then
             local text = nav_clean_field(target or objective_message);
             if (text == '') then
-                text = 'No verified current destination is available for this objective.';
+                text = 'No exact source-backed destination is available for this objective.';
             end
             speak(text);
             log_line('nav objective instruction ' .. text);
             return;
         end
+        if (objective_mode == 'test-ready') then
+            local test_complete = type(target) == 'table'
+                and target.objective_test_route == true
+                and target.verified ~= true
+                and nav_clean_field(target.objective_kind) ~= ''
+                and nav_clean_field(target.objective_native_key) ~= ''
+                and nav_clean_field(target.objective_guide_step_id) ~= ''
+                and nav_clean_field(target.objective_character_identity) ~= ''
+                and tonumber(target.objective_world_id) ~= nil
+                and tonumber(target.objective_session_epoch) ~= nil
+                and nav_clean_field(target.objective_candidate_id) ~= ''
+                and nav_clean_field(target.objective_action_id) ~= ''
+                and type(target.objective_group_id) == 'string'
+                and nav_clean_field(target.objective_destination_id) ~= ''
+                and nav_clean_field(target.objective_classification) == 'catalogue-candidate'
+                and nav_clean_field(target.objective_action_instruction) ~= ''
+                and nav_clean_field(target.objective_route_contract_id) == ''
+                and target.objective_contract_snapshot == nil;
+            if (not test_complete or type(accessxi.nav_start_test_objective_route) ~= 'function') then
+                local text = 'Source-backed objective route execution is unavailable.';
+                speak(text);
+                log_line('nav objective source route blocked ' .. text);
+                return;
+            end
+            local start_ok, text, started = pcall(
+                accessxi.nav_start_test_objective_route,
+                target,
+                objective_player);
+            if (not start_ok) then
+                text = 'Source-backed objective route execution failed safely.';
+                started = false;
+            else
+                text = nav_clean_field(text);
+                if (text == '') then
+                    text = started == true
+                        and 'Source-backed objective route started.'
+                        or 'Source-backed objective route could not start.';
+                end
+            end
+            local warning = nav_clean_field(objective_message);
+            if (warning ~= '') then
+                local marker = nav_clean_field(target.objective_kind):lower() == 'quest'
+                    and 'Source-verified quest objective.'
+                    or 'Source-verified mission objective.';
+                local suffix = text;
+                if (suffix:sub(1, #marker) == marker) then
+                    suffix = nav_clean_field(suffix:sub(#marker + 1));
+                end
+                text = marker .. ' ' .. warning
+                    .. (suffix ~= '' and (' ' .. suffix) or '');
+            end
+            speak(text);
+            log_line((started == true
+                and 'nav objective source route start '
+                or 'nav objective source route blocked ') .. text);
+            return;
+        end
         if (objective_mode ~= 'ready' or type(target) ~= 'table') then
             local text = nav_clean_field(objective_message);
             if (text == '') then
-                text = 'No verified current destination is available for this objective.';
+                text = 'No exact source-backed destination is available for this objective.';
             end
             speak(text);
             log_line('nav objective start blocked ' .. text);
@@ -73399,6 +74348,12 @@ function accessxi.nav_copy_point(point)
         kind = nav_clean_field(point.kind or ''),
         source = nav_clean_field(point.source or ''),
         confidence = nav_clean_field(point.confidence or ''),
+        to_zone = tonumber(point.to_zone),
+        to_zone_name = nav_clean_field(point.to_zone_name or ''),
+        final_zone = tonumber(point.final_zone),
+        final_name = nav_clean_field(point.final_name or ''),
+        same_zone_reentry_step = tonumber(point.same_zone_reentry_step),
+        same_zone_reentry_edge_id = tonumber(point.same_zone_reentry_edge_id),
         section = nav_clean_field(point.section or ''),
         distance = tonumber(point.distance) or 0,
         index = tonumber(point.index),
@@ -73425,11 +74380,16 @@ function accessxi.nav_copy_point(point)
         objective_action_id = nav_clean_field(point.objective_action_id or ''),
         objective_group_id = type(point.objective_group_id) == 'string' and point.objective_group_id or nil,
         objective_destination_id = nav_clean_field(point.objective_destination_id or ''),
+        destination_id = nav_clean_field(point.destination_id or ''),
         objective_classification = nav_clean_field(point.objective_classification or ''),
         objective_action_instruction = nav_clean_field(point.objective_action_instruction or ''),
+        objective_route_recommendation = nav_clean_field(point.objective_route_recommendation or ''),
         objective_instruction_only = point.objective_instruction_only == true,
         objective_route_contract_id = nav_clean_field(point.objective_route_contract_id or ''),
         objective_contract_snapshot = copy_nested(point.objective_contract_snapshot),
+        objective_test_route = point.objective_test_route == true,
+        objective_active_state_signature = nav_clean_field(point.objective_active_state_signature or ''),
+        objective_active_owner_key = nav_clean_field(point.objective_active_owner_key or ''),
         objective_action = nav_clean_field(point.objective_action or ''),
         objective_items_text = nav_clean_field(point.objective_items_text or ''),
         objective_enemies_text = nav_clean_field(point.objective_enemies_text or ''),
@@ -73439,6 +74399,8 @@ function accessxi.nav_copy_point(point)
         objective_canonical_from_zone = tonumber(point.objective_canonical_from_zone),
         objective_transport_id = nav_clean_field(point.objective_transport_id or ''),
         objective_route_evidence = nav_clean_field(point.objective_route_evidence or ''),
+        objective_completion_items = copy_nested(point.objective_completion_items),
+        objective_completion_key_items = copy_nested(point.objective_completion_key_items),
         route_context_label = nav_clean_field(point.route_context_label or ''),
     };
 end
@@ -73499,7 +74461,7 @@ function accessxi.nav_objective_route_revalidate_or_cancel(player)
     return false, reason;
 end
 
-function accessxi.nav_activate_authorized_objective_points(target, player, route, authorization)
+function accessxi.nav_activate_authorized_objective_points(target, player, route, authorization, descriptor)
     if (type(route) ~= 'table' or #route < 2) then
         return 'No exact current objective leg is proven from here.', false;
     end
@@ -73508,6 +74470,14 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
     accessxi.nav_destination = accessxi.nav_copy_point(target);
     accessxi.nav_objective_route_state = accessxi.nav_copy_point(target);
     accessxi.nav_objective_route_state.objective_transition_authorization = authorization;
+    accessxi.nav_objective_route_state.objective_prefix_descriptor = descriptor;
+    if (type(descriptor) == 'table' and type(descriptor.endpoint) == 'table') then
+        accessxi.nav_destination.zone = tonumber(descriptor.endpoint.zone) or player.zone;
+        accessxi.nav_destination.x = tonumber(descriptor.endpoint.x) or 0;
+        accessxi.nav_destination.z = tonumber(descriptor.endpoint.z) or 0;
+        accessxi.nav_destination.y = tonumber(descriptor.endpoint.y) or 0;
+        accessxi.nav_destination.objective_stage = nav_clean_field(descriptor.stage);
+    end
     accessxi.nav_route_points = route;
     accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, route, target);
     accessxi.nav_route_last_recalc_tick = tick();
@@ -73535,15 +74505,58 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
         target.name or 'objective destination',
         #route,
         suffix);
+    if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
+        text = text .. accessxi.nav_mission_quest_start_suffix(target);
+    end
     accessxi.nav_last_direction_text = text;
     return text, true;
 end
 
-function accessxi.nav_start_authorized_objective_route(target, player)
-    local runtime = accessxi.objective_route_runtime;
-    if (type(runtime) ~= 'table' or type(runtime.compute_exact_objective_leg) ~= 'function') then
-        return 'Verified objective route execution is unavailable.', false;
+function accessxi.nav_start_test_objective_route(target, player)
+    if (type(target) ~= 'table' or target.objective_test_route ~= true
+        or type(player) ~= 'table'
+        or nav_clean_field(target.objective_route_contract_id) ~= ''
+        or target.objective_contract_snapshot ~= nil) then
+        return 'Source-backed objective route information is incomplete.', false;
     end
+    local target_zone = tonumber(target.zone) or 0;
+    local player_zone = tonumber(player.zone) or 0;
+    if (target_zone <= 0 or player_zone <= 0) then
+        return 'Source-backed objective route position is unavailable.', false;
+    end
+
+    accessxi.nav_clear_zone_search();
+    accessxi.nav_objective_route_state = nil;
+    local route_text = '';
+    if (target_zone == player_zone) then
+        route_text = accessxi.nav_start_route_to_point(
+            accessxi.nav_copy_point(target),
+            'objective-test-route');
+    else
+        accessxi.nav_zone_search_target = accessxi.nav_copy_point(target);
+        accessxi.nav_zone_search_query = nav_clean_field(target.name or 'objective destination');
+        accessxi.nav_zone_search_waiting_zone = 0;
+        accessxi.nav_zone_search_waiting_from_zone = 0;
+        accessxi.nav_zone_search_last_replan_tick = 0;
+        route_text = accessxi.nav_zone_search_start_next_leg('objective-test-route');
+    end
+    route_text = nav_clean_field(route_text);
+    if (accessxi.nav_active ~= true) then
+        return 'Source-backed objective route could not start.'
+            .. (route_text ~= '' and (' ' .. route_text) or ''), false;
+    end
+    accessxi.nav_menu_open = false;
+    accessxi.nav_menu_poll_key = 0;
+    accessxi.nav_menu_poll_tick = 0;
+    accessxi.nav_menu_open_tick = 0;
+    local marker = nav_clean_field(target.objective_kind):lower() == 'quest'
+        and 'Source-verified quest objective.'
+        or 'Source-verified mission objective.';
+    return marker
+        .. (route_text ~= '' and (' ' .. route_text) or ''), true;
+end
+
+function accessxi.nav_start_authorized_objective_route(target, player)
     if (type(target) ~= 'table' or type(player) ~= 'table') then
         return 'The current objective target or player position is unavailable.', false;
     end
@@ -73553,20 +74566,54 @@ function accessxi.nav_start_authorized_objective_route(target, player)
     if (target_zone == nil or player_zone == nil or contract_id == '') then
         return 'Verified objective route authorization is incomplete.', false;
     end
+    if (type(accessxi.ensure_objective_route_runtime) ~= 'function') then
+        return 'Verified objective route execution is unavailable.', false;
+    end
+    local runtime_ready, runtime_reason = accessxi.ensure_objective_route_runtime();
+    if (runtime_ready ~= true) then
+        return nav_clean_field(runtime_reason) ~= '' and nav_clean_field(runtime_reason)
+            or 'Verified objective route execution is unavailable.', false;
+    end
+    local runtime = accessxi.objective_route_runtime;
+    if (type(runtime) ~= 'table' or type(runtime.compute_exact_objective_leg) ~= 'function') then
+        return 'Verified objective route execution is unavailable.', false;
+    end
     if (player_zone ~= target_zone) then
-        if (type(runtime.find_objective_zone_path) ~= 'function') then
+        if (type(runtime.prepare_next_objective_prefix_leg) ~= 'function') then
             return 'No exact current objective leg is proven from this zone.', false;
         end
-        local ok, path, reason = pcall(
-            runtime.find_objective_zone_path,
+        local ok, descriptor, reason = pcall(
+            runtime.prepare_next_objective_prefix_leg,
             runtime,
-            player_zone,
-            contract_id);
-        if (not ok or type(path) ~= 'table') then
+            contract_id,
+            { zone = player_zone, x = player.x, z = player.z, y = player.y });
+        if (not ok or type(descriptor) ~= 'table'
+            or type(descriptor.waypoints) ~= 'table' or #descriptor.waypoints < 2) then
             return nav_clean_field(ok and reason or '') ~= '' and nav_clean_field(reason)
                 or 'No exact current objective leg is proven from this zone.', false;
         end
-        return 'No exact current objective leg is proven from this zone.', false;
+        if (nav_clean_field(descriptor.objective_route_contract_id) ~= contract_id
+            or type(descriptor.objective_contract_snapshot) ~= 'table'
+            or descriptor.objective_contract_snapshot.contract_id ~= contract_id
+            or tonumber(descriptor.from_zone) ~= player_zone) then
+            return 'The rooted objective prefix authorization changed.', false;
+        end
+        local route = T{};
+        for index, point in ipairs(descriptor.waypoints) do
+            local x, z, y = tonumber(point.x), tonumber(point.z), tonumber(point.y);
+            if (x == nil or z == nil or y == nil
+                or x ~= x or z ~= z or y ~= y) then
+                return 'The exact objective prefix returned a malformed waypoint.', false;
+            end
+            route:append(T{
+                zone = player_zone,
+                name = ('Objective prefix waypoint %d'):fmt(index),
+                x = x, z = z, y = y,
+                kind = 'route', source = 'objective-prefix-runtime',
+            });
+        end
+        return accessxi.nav_activate_authorized_objective_points(
+            target, player, route, nil, descriptor);
     end
     if (not nav_try_load_mesh(target_zone)) then
         return 'The rooted objective navmesh is unavailable for this zone.', false;
@@ -73743,6 +74790,25 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_route_live_replan_last_key = '';
     accessxi.nav_route_live_replan_last_tick = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, point);
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        local pending_text = nav_clean_field(accessxi.nav_dat_collision_pending.message);
+        pending_text = pending_text ~= '' and pending_text
+            or 'Mapping terrain. Navigation will start automatically.';
+        accessxi.nav_last_direction_text = pending_text;
+        log_line(('collision terrain pending destination="%s" zone=%d'):fmt(
+            accessxi.escape_probe_log_text(point.name or ''),
+            tonumber(point.zone) or 0));
+        return pending_text;
+    end
+    if (accessxi.nav_route_points:len() <= 1
+        and nav_clean_field(accessxi.nav_route_last_reject_reason) ~= '') then
+        local collision_text = nav_clean_field(accessxi.nav_route_last_reject_reason);
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+        accessxi.nav_last_direction_text = collision_text;
+        return collision_text;
+    end
     local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, point);
     if (accessxi.nav_route_points:len() <= 1
         and unsafe_route_text ~= ''
@@ -73814,6 +74880,11 @@ end
 
 function accessxi.nav_zone_search_npc_results(query, player)
     nav_load_points();
+    if (type(accessxi.nav_load_zoneline_graph) == 'function') then
+        accessxi.nav_load_zoneline_graph();
+    end
+    local graph_edges = type(accessxi.nav_zoneline_edges) == 'table'
+        and accessxi.nav_zoneline_edges or T{};
     query = nav_clean_field(query);
     local results = {};
     if (query == '') then
@@ -73823,6 +74894,87 @@ function accessxi.nav_zone_search_npc_results(query, player)
     local current_zone = tonumber(player ~= nil and player.zone or nav_zone_id()) or 0;
     local query_key = accessxi.nav_search_text(query);
     local candidates = {};
+
+    local graph_zones = {};
+    for _, edge in ipairs(graph_edges) do
+        local from_zone = tonumber(edge.from_zone) or 0;
+        local to_zone = tonumber(edge.to_zone) or 0;
+        if (from_zone > 0 and graph_zones[from_zone] == nil) then
+            graph_zones[from_zone] = nav_clean_field(edge.from_name or '');
+        end
+        if (to_zone > 0 and graph_zones[to_zone] == nil) then
+            graph_zones[to_zone] = nav_clean_field(edge.to_name or '');
+        end
+    end
+
+    for zone, graph_name in pairs(graph_zones) do
+        local zone_name = accessxi.nav_graph_zone_name(zone);
+        if (zone_name == '' or zone_name == ('zone %d'):fmt(zone)) then
+            zone_name = graph_name;
+        end
+        if (zone_name ~= '' and accessxi.nav_search_text(zone_name) == query_key) then
+            local incoming = {};
+            for _, edge in ipairs(graph_edges) do
+                if ((tonumber(edge.to_zone) or 0) == zone) then
+                    local path = T{};
+                    local reachable = current_zone > 0 and current_zone == zone;
+                    local path_len = reachable and 0 or 999999;
+                    if (current_zone > 0 and current_zone ~= zone) then
+                        path = accessxi.nav_zoneline_path(current_zone, zone, tonumber(edge.id) or 0);
+                        reachable = path:len() > 0;
+                        path_len = reachable and path:len() or 999999;
+                    end
+                    local rank = accessxi.nav_zoneline_edge_rank(edge, player);
+                    table.insert(incoming, T{
+                        edge = edge,
+                        rank = rank,
+                        reachable = reachable,
+                        path_len = path_len,
+                    });
+                end
+            end
+            table.sort(incoming, function (a, b)
+                if a.rank ~= b.rank then
+                    return a.rank < b.rank;
+                end
+                if a.reachable ~= b.reachable then
+                    return a.reachable == true;
+                end
+                if a.path_len ~= b.path_len then
+                    return a.path_len < b.path_len;
+                end
+                return (tonumber(a.edge.id) or 0) < (tonumber(b.edge.id) or 0);
+            end);
+
+            local representative = incoming[1];
+            if (representative ~= nil and representative.edge ~= nil) then
+                local edge = representative.edge;
+                local candidate = T{
+                    zone = zone,
+                    name = zone_name,
+                    x = tonumber(edge.to_x) or 0,
+                    z = tonumber(edge.to_z) or 0,
+                    y = tonumber(edge.to_y) or 0,
+                    kind = 'area',
+                    source = 'zone-search:graph-zone:' .. tostring(zone),
+                    confidence = nav_clean_field(edge.confidence or ''),
+                    section = 'global zone',
+                    zone_search_exact = true,
+                    zone_search_reachable = representative.reachable,
+                    zone_search_path_len = representative.path_len,
+                    zone_search_result = true,
+                    zone_search_zone_result = true,
+                    zone_search_query = query,
+                    zone_search_player_distance = player ~= nil and current_zone == zone
+                        and nav_distance(player, T{ x = edge.to_x, z = edge.to_z, y = edge.to_y }) or 999999,
+                    zone_search_canonical_edge_id = tonumber(edge.id) or 0,
+                    zone_search_canonical_from_zone = tonumber(edge.from_zone) or 0,
+                };
+                table.insert(candidates, candidate);
+            end
+        end
+    end
+
     for _, point in ipairs(accessxi.nav_points) do
         if (nav_clean_field(point.name or '') ~= ''
             and accessxi.nav_point_effective_kind(point) == 'npc'
@@ -74010,8 +75162,10 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         return text;
     end
 
-    local canonical_edge_id = tonumber(target.objective_canonical_edge_id) or 0;
-    local canonical_from_zone = tonumber(target.objective_canonical_from_zone) or 0;
+    local canonical_edge_id = tonumber(target.zone_search_canonical_edge_id
+        or target.objective_canonical_edge_id) or 0;
+    local canonical_from_zone = tonumber(target.zone_search_canonical_from_zone
+        or target.objective_canonical_from_zone) or 0;
     local path = accessxi.nav_zoneline_path(player.zone, target.zone, canonical_edge_id);
     if (canonical_edge_id > 0) then
         local final_edge = path[path:len()];
@@ -74049,8 +75203,8 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         final_name = target.name or 'NPC',
     };
 
-    accessxi.nav_zone_search_waiting_zone = 0;
-    accessxi.nav_zone_search_waiting_from_zone = 0;
+    accessxi.nav_zone_search_waiting_zone = next_zone;
+    accessxi.nav_zone_search_waiting_from_zone = player_zone;
     local start_text = accessxi.nav_start_route_to_point(leg, reason or 'zone-search');
     if (not accessxi.nav_active) then
         accessxi.nav_clear_zone_search();
@@ -74069,7 +75223,7 @@ end
 function accessxi.nav_zone_search_start(query)
     query = nav_clean_field(query);
     if (query == '') then
-        return 'Zone search needs an NPC name.';
+        return 'Zone search needs a destination or zone name.';
     end
 
     local player = nav_cached_player_position();
@@ -74079,7 +75233,7 @@ function accessxi.nav_zone_search_start(query)
 
     local results = accessxi.nav_zone_search_npc_results(query, player);
     if (#results == 0) then
-        return ('No NPC matched %s.'):fmt(query);
+        return ('No destination or zone matched %s.'):fmt(query);
     end
 
     accessxi.nav_clear_zone_search();
@@ -74129,8 +75283,20 @@ function accessxi.poll_nav_zone_search()
 
     local waiting_zone = tonumber(accessxi.nav_zone_search_waiting_zone) or 0;
     local waiting_from_zone = tonumber(accessxi.nav_zone_search_waiting_from_zone) or 0;
-    if (waiting_zone > 0 and waiting_from_zone > 0 and (tonumber(player.zone) or 0) == waiting_from_zone) then
-        return false;
+    if (waiting_zone > 0 and waiting_from_zone > 0) then
+        local player_zone = tonumber(player.zone) or 0;
+        if (player_zone == waiting_from_zone) then
+            return false;
+        end
+        if (player_zone ~= waiting_zone) then
+            if (type(accessxi.nav_cancel_mission_quest_route) == 'function'
+                and accessxi.nav_cancel_mission_quest_route('pending-route-unexpected-zone')) then
+                speak('Mission or quest route stopped after an unexpected zone change.');
+                log_line('nav objective pending unexpected zone');
+                return true;
+            end
+            return false;
+        end
     end
 
     local now = tick();
@@ -86744,6 +87910,200 @@ local function inventory_item_info_speech(info, suppress_count)
     return join_speech_parts(parts);
 end
 
+function accessxi.refresh_objective_inventory_state(reason)
+    local player = type(accessxi.current_player_name) == 'function'
+        and tostring(accessxi.current_player_name() or '') or '';
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    if (player == '' or identity == '') then
+        return false, false;
+    end
+
+    local manager_ok, manager = pcall(function () return AshitaCore:GetMemoryManager(); end);
+    local inventory_ok, inventory = false, nil;
+    if (manager_ok and manager ~= nil) then
+        inventory_ok, inventory = pcall(function () return manager:GetInventory(); end);
+    end
+    if (not manager_ok or manager == nil or not inventory_ok or inventory == nil) then
+        log_line(('objective inventory scan unavailable reason="%s" stage="inventory"'):fmt(
+            accessxi.escape_probe_log_text(reason or 'refresh')));
+        return false, false;
+    end
+
+    local max_ok, max_count = pcall(function () return inventory:GetContainerCountMax(0); end);
+    max_count = tonumber(max_count);
+    if (not max_ok or max_count == nil or max_count < 0 or max_count > 256
+        or max_count ~= math.floor(max_count)) then
+        log_line(('objective inventory scan unavailable reason="%s" stage="capacity"'):fmt(
+            accessxi.escape_probe_log_text(reason or 'refresh')));
+        return false, false;
+    end
+
+    local counts = {};
+    for slot = 1, max_count do
+        local item_ok, item = pcall(function () return inventory:GetContainerItem(0, slot); end);
+        if (not item_ok) then
+            log_line(('objective inventory scan unavailable reason="%s" stage="slot" slot=%d'):fmt(
+                accessxi.escape_probe_log_text(reason or 'refresh'), slot));
+            return false, false;
+        end
+        local id_ok, item_id = pcall(function () return tonumber(item.Id or item.id) or 0; end);
+        item_id = id_ok and item_id or 0;
+        local count = tonumber(inventory_item_count(item)) or 0;
+        if (item_id > 0 and item_id <= 65535 and count > 0) then
+            counts[item_id] = (tonumber(counts[item_id]) or 0) + math.floor(count);
+        end
+    end
+
+    local ids = {};
+    for item_id in pairs(counts) do ids[#ids + 1] = item_id; end
+    table.sort(ids);
+    local key_parts = { identity, tostring(epoch) };
+    for _, item_id in ipairs(ids) do
+        key_parts[#key_parts + 1] = ('%d=%d'):fmt(item_id, counts[item_id]);
+    end
+    local key = table.concat(key_parts, ';');
+    local changed = key ~= tostring(accessxi.inventory_packet_key or '')
+        or tostring(accessxi.inventory_packet_source or '') ~= 'native-inventory'
+        or tostring(accessxi.inventory_packet_identity or ''):lower() ~= identity;
+
+    accessxi.objective_inventory_counts = counts;
+    accessxi.inventory_packet_player = player;
+    accessxi.inventory_packet_identity = identity;
+    accessxi.inventory_packet_session_epoch = epoch;
+    accessxi.inventory_packet_source = 'native-inventory';
+    accessxi.inventory_packet_key = key;
+    accessxi.inventory_packet_tick = tick();
+    if (changed) then
+        log_line(('objective inventory changed reason="%s" items=%d key="%s"'):fmt(
+            accessxi.escape_probe_log_text(reason or 'refresh'),
+            #ids,
+            accessxi.escape_probe_log_text(key)));
+    end
+    return changed, true;
+end
+
+function accessxi.objective_inventory_count(item_id)
+    item_id = tonumber(item_id) or 0;
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    if (item_id <= 0 or identity == ''
+        or tostring(accessxi.inventory_packet_source or '') ~= 'native-inventory'
+        or tostring(accessxi.inventory_packet_identity or ''):lower() ~= identity
+        or tonumber(accessxi.inventory_packet_session_epoch) ~= epoch) then
+        return 0;
+    end
+    return math.max(0, tonumber((accessxi.objective_inventory_counts or {})[item_id]) or 0);
+end
+
+function accessxi.objective_inventory_count_by_name(name)
+    if (type(accessxi.resource_item_info_by_name) ~= 'function') then
+        return 0, nil;
+    end
+    local ok, info = pcall(accessxi.resource_item_info_by_name, tostring(name or ''));
+    local item_id = ok and type(info) == 'table'
+        and (tonumber(info.id or info.Id) or 0) or 0;
+    if (item_id <= 0) then
+        return 0, nil;
+    end
+    return accessxi.objective_inventory_count(item_id), item_id;
+end
+
+function accessxi.schedule_objective_inventory_refresh(reason, delay_ms)
+    accessxi.objective_inventory_refresh_pending = true;
+    accessxi.objective_inventory_refresh_reason = tostring(reason or 'inventory-packet');
+    accessxi.objective_inventory_refresh_tick = tick() + math.max(0, tonumber(delay_ms) or 100);
+end
+
+function accessxi.poll_objective_inventory_refresh(now)
+    if (accessxi.objective_inventory_refresh_pending ~= true
+        or (tonumber(now) or tick()) < (tonumber(accessxi.objective_inventory_refresh_tick) or 0)) then
+        return false;
+    end
+    accessxi.objective_inventory_refresh_pending = false;
+    local changed, available = accessxi.refresh_objective_inventory_state(
+        accessxi.objective_inventory_refresh_reason or 'inventory-packet');
+    if (changed and available and type(accessxi.on_objective_inventory_changed) == 'function') then
+        local ok, message = pcall(
+            accessxi.on_objective_inventory_changed,
+            accessxi.objective_inventory_refresh_reason or 'inventory-packet');
+        if (not ok) then
+            log_line(('objective inventory refresh handler failed reason="%s"'):fmt(
+                accessxi.escape_probe_log_text(message or 'unknown')));
+        end
+    end
+    return changed == true;
+end
+
+function accessxi.capture_objective_inventory_packet(e)
+    local packet_id = tonumber(type(e) == 'table' and e.id or nil) or -1;
+    if (packet_id == 0x001D or packet_id == 0x001E
+        or packet_id == 0x001F or packet_id == 0x0020
+        or packet_id == 0x0037 or packet_id == 0x0050 or packet_id == 0x0051
+        or packet_id == 0x0116 or packet_id == 0x0117) then
+        accessxi.schedule_objective_inventory_refresh(('packet-0x%03X'):fmt(packet_id), 100);
+    end
+end
+
+function accessxi.capture_mission_quest_event_packet(e, direction)
+    if (e == nil or type(accessxi.nav_mission_quest_observe_event_packet) ~= 'function') then
+        return false;
+    end
+    local packet_id = tonumber(e.id) or -1;
+    local data = e.data_modified or e.data or '';
+    direction = tostring(direction or ''):lower();
+    local phase = '';
+    local target_server_id = 0;
+    local zone_id = 0;
+    local event_id = 0;
+    if (direction == 'in' and packet_id == 0x0034) then
+        phase = 'start';
+        target_server_id = accessxi.packet_u32(data, 0x04 + 1);
+        zone_id = accessxi.packet_u16(data, 0x2A + 1);
+        event_id = accessxi.packet_u16(data, 0x2C + 1);
+    elseif (direction == 'in' and packet_id == 0x0032) then
+        phase = 'start';
+        target_server_id = accessxi.packet_u32(data, 0x04 + 1);
+        zone_id = accessxi.packet_u16(data, 0x0A + 1);
+        event_id = accessxi.packet_u16(data, 0x0C + 1);
+    elseif (direction == 'out' and packet_id == 0x005B) then
+        phase = 'finish';
+        target_server_id = accessxi.packet_u32(data, 0x04 + 1);
+        zone_id = accessxi.packet_u16(data, 0x10 + 1);
+        event_id = accessxi.packet_u16(data, 0x12 + 1);
+    else
+        return false;
+    end
+    if (target_server_id <= 0 or zone_id <= 0 or event_id <= 0) then
+        return false;
+    end
+    local ok, result = pcall(
+        accessxi.nav_mission_quest_observe_event_packet,
+        phase,
+        target_server_id,
+        zone_id,
+        event_id,
+        tick());
+    if (not ok) then
+        log_line(('objective event correlation failed packet=0x%03X reason="%s"'):fmt(
+            packet_id,
+            accessxi.escape_probe_log_text(tostring(result or 'unknown'))));
+        return false;
+    end
+    return result == true;
+end
+
+function accessxi.on_objective_inventory_changed(reason)
+    if (type(accessxi.on_mission_quest_state_changed) == 'function') then
+        return accessxi.on_mission_quest_state_changed('objective', reason or 'inventory-changed');
+    end
+    return false, false;
+end
+
 function accessxi.current_inventory_gil()
     local inv = AshitaCore:GetMemoryManager():GetInventory();
     if (inv == nil) then
@@ -88824,6 +90184,11 @@ local function current_menu_speech(full_details)
     end
 
     local name = get_menu_name();
+    if (type(accessxi.nav_mission_quest_observe_event_menu) == 'function') then
+        pcall(function ()
+            accessxi.nav_mission_quest_observe_event_menu(name or '', tick());
+        end);
+    end
     accessxi.current_menu_speech_title = '';
     if (name == nil or name == '') then
         local blank_speech = accessxi.mog_door_blank_menu_probe('no-menu');
@@ -90881,6 +92246,10 @@ function accessxi.nav_collision_update_control_interrupt(now)
         accessxi.nav_collision_control_interrupt_reason = '';
         accessxi.nav_collision_control_interrupt_tick = now;
         local return_reason = last_reason ~= '' and last_reason or 'unknown';
+        if ((return_reason:startswith('menu:') or return_reason:startswith('target-menu:'))
+            and type(accessxi.nav_mission_quest_observe_event_menu) == 'function') then
+            pcall(accessxi.nav_mission_quest_observe_event_menu, '', now);
+        end
         accessxi.nav_collision_quiet('control-return:' .. return_reason, accessxi.nav_collision_control_return_quiet_ms, now);
 
         local key = 'return:' .. return_reason;
@@ -91344,6 +92713,7 @@ function accessxi.nav_collision_watch(player, destination, route_target, destina
 
     local text;
     if (state.state == 'blocked') then
+        accessxi.nav_wall_escape_begin_recovery(now);
         text = 'Collision detected. You are not moving forward. Turn until the beacon moves off-center, then go forward.';
     else
         text = 'Edge contact. You are scraping a wall. Steer away from the wall, then continue.';
@@ -91601,6 +92971,14 @@ function accessxi.nav_current_route_instruction()
     local destination = accessxi.nav_destination;
     if (accessxi.nav_objective_route_state ~= nil) then
         local objective_state = accessxi.nav_objective_route_state;
+        local owner_current, owner_reason = accessxi.nav_objective_route_revalidate_or_cancel(player);
+        if (not owner_current) then
+            local text = nav_clean_field(owner_reason) ~= '' and nav_clean_field(owner_reason)
+                or 'The active objective route changed.';
+            speak(text);
+            log_line('nav objective owner blocked ' .. text);
+            return;
+        end
         if (type(accessxi.nav_objective_transport_active) == 'function'
             and accessxi.nav_objective_transport_active()) then
             local authorization = objective_state.objective_transition_authorization;
@@ -91637,15 +93015,46 @@ function accessxi.nav_current_route_instruction()
             return;
         end
 
+        local prefix_descriptor = objective_state.objective_prefix_descriptor;
         if ((tonumber(destination.zone) or 0) ~= (tonumber(player.zone) or 0)) then
-            accessxi.nav_cancel_mission_quest_route('objective-player-left-zone');
-            speak('Objective route stopped because the current zone changed.');
+            if (type(prefix_descriptor) == 'table'
+                and nav_clean_field(prefix_descriptor.stage) == 'prefix'
+                and tonumber(player.zone) == tonumber(prefix_descriptor.to_zone)) then
+                local ok, text, started = pcall(
+                    accessxi.nav_start_authorized_objective_route,
+                    objective_state,
+                    player);
+                if (ok and started == true) then
+                    speak(nav_clean_field(text) ~= '' and nav_clean_field(text)
+                        or 'Continuing verified objective route.');
+                    log_line('nav objective zone continuation');
+                    return;
+                end
+                accessxi.nav_cancel_mission_quest_route('objective-zone-continuation-blocked');
+                text = nav_clean_field(ok and text or '') ~= '' and nav_clean_field(text)
+                    or 'No exact objective route continues from the new zone.';
+                speak(text);
+                log_line('nav objective zone continuation blocked ' .. text);
+                return;
+            end
+            accessxi.nav_cancel_mission_quest_route('objective-player-left-expected-zone');
+            speak('Objective route stopped because the zone change was not authorized.');
             return;
         end
         local arrival_radius = math.max(1.5, tonumber(accessxi.nav_arrival_radius(destination)) or 0);
         if (nav_distance(player, destination) <= arrival_radius
             and math.abs((tonumber(player.y) or 0) - (tonumber(destination.y) or 0)) <= 4.0) then
+            if (type(prefix_descriptor) == 'table'
+                and nav_clean_field(prefix_descriptor.stage) == 'prefix') then
+                accessxi.nav_last_direction_text = 'At the verified zone line. Continue into the next zone.';
+                return accessxi.nav_last_direction_text;
+            end
             local text = ('Arrived at %s.'):fmt(destination.name or 'objective destination');
+            if (type(accessxi.nav_mission_quest_remember_arrival) == 'function') then
+                pcall(function ()
+                    accessxi.nav_mission_quest_remember_arrival(destination, now);
+                end);
+            end
             accessxi.nav_active = false;
             accessxi.nav_destination = nil;
             accessxi.nav_objective_route_state = nil;
@@ -91658,6 +93067,21 @@ function accessxi.nav_current_route_instruction()
         end
         if ((now - (tonumber(accessxi.nav_route_last_recalc_tick) or 0)) >= 1000) then
             accessxi.nav_route_last_recalc_tick = now;
+            if (type(prefix_descriptor) == 'table'
+                and nav_clean_field(prefix_descriptor.stage) == 'prefix') then
+                local ok, _text, started = pcall(
+                    accessxi.nav_start_authorized_objective_route,
+                    objective_state,
+                    player);
+                if (not ok or started ~= true) then
+                    local text = nav_clean_field(ok and _text or '') ~= '' and nav_clean_field(_text)
+                        or 'No exact current objective prefix is proven from here.';
+                    accessxi.nav_cancel_mission_quest_route('objective-prefix-leg-changed');
+                    speak(text);
+                    log_line('nav objective prefix blocked ' .. text);
+                end
+                return;
+            end
             if (not nav_try_load_mesh(player.zone)) then
                 accessxi.nav_cancel_mission_quest_route('objective-mesh-unavailable');
                 speak('The rooted objective navmesh is unavailable for this zone.');
@@ -92540,16 +93964,189 @@ function accessxi.nav_precise_route_return_clear()
     accessxi.nav_precise_return_segment = 0;
 end
 
-function accessxi.nav_precise_steering_target(player, points, index, lookahead)
+function accessxi.nav_lathine_local_target_cache_clear()
+    accessxi.nav_lathine_local_target = nil;
+    accessxi.nav_lathine_local_target_points = nil;
+    accessxi.nav_lathine_local_target_index = 0;
+    accessxi.nav_lathine_local_target_tick = 0;
+    accessxi.nav_lathine_local_target_player = nil;
+end
+
+function accessxi.nav_lathine_direct_target_safe(player, target)
+    if (player == nil or target == nil
+        or (tonumber(player.zone) or 0) ~= (tonumber(target.zone) or 0)
+        or not accessxi.nav_valid_mesh_position(target)) then
+        return false;
+    end
+
+    local wall_distance = tonumber(accessxi.nav_wall_distance(target));
+    if (wall_distance == nil or wall_distance < 1.2) then
+        return false;
+    end
+
+    local local_route = nav_compute_mesh_route(player, target, true);
+    local count = local_route ~= nil and local_route:len() or 0;
+    if (count <= 0) then
+        return false;
+    end
+
+    -- FFXINAV FindClosestPath can return both the projected endpoint and the
+    -- requested endpoint at identical X/Z with a tiny height correction.  It
+    -- is still a direct local leg; only a geometrically distinct intermediate
+    -- point represents another corner that steering must not cut across.
+    local distinct_points = 1;
+    local previous = local_route[1];
+    for route_index = 2, count do
+        local current = local_route[route_index];
+        local horizontal = nav_distance(previous, current);
+        local vertical = math.abs((tonumber(current ~= nil and current.y) or 0)
+            - (tonumber(previous ~= nil and previous.y) or 0));
+        if (horizontal > 0.05 or vertical > 2.0) then
+            distinct_points = distinct_points + 1;
+        end
+        previous = current;
+    end
+    if (distinct_points > 2) then
+        return false;
+    end
+
+    local finish = local_route[count];
+    return finish ~= nil
+        and nav_distance(finish, target) <= 1.25
+        and math.abs((tonumber(finish.y) or 0) - (tonumber(target.y) or 0)) <= 2.0;
+end
+
+function accessxi.nav_lathine_cache_local_target(player, points, index, target)
+    accessxi.nav_lathine_local_target = target;
+    accessxi.nav_lathine_local_target_points = points;
+    accessxi.nav_lathine_local_target_index = tonumber(index) or 1;
+    accessxi.nav_lathine_local_target_tick = tick();
+    accessxi.nav_lathine_local_target_player = T{
+        zone = player.zone,
+        x = player.x,
+        z = player.z,
+        y = player.y,
+    };
+    return target;
+end
+
+function accessxi.nav_lathine_cached_local_target(player, points, index)
+    local target = accessxi.nav_lathine_local_target;
+    local origin = accessxi.nav_lathine_local_target_player;
+    local age = tick() - (tonumber(accessxi.nav_lathine_local_target_tick) or 0);
+    if (target ~= nil
+        and origin ~= nil
+        and accessxi.nav_lathine_local_target_points == points
+        and (tonumber(accessxi.nav_lathine_local_target_index) or 0) == (tonumber(index) or 1)
+        and age >= 0 and age <= 400
+        and nav_distance(player, origin) <= 0.4
+        and accessxi.nav_valid_mesh_position(target)
+        and (tonumber(accessxi.nav_wall_distance(target)) or -1) >= 1.2) then
+        return target;
+    end
+    accessxi.nav_lathine_local_target_cache_clear();
+    return nil;
+end
+
+function accessxi.nav_lathine_locally_safe_target(player, points, index, nominal)
+    local cached = accessxi.nav_lathine_cached_local_target(player, points, index);
+    if (cached ~= nil) then
+        return cached;
+    end
+
+    if (accessxi.nav_lathine_direct_target_safe(player, nominal)) then
+        return accessxi.nav_lathine_cache_local_target(player, points, index, nominal);
+    end
+
+    local goal = points ~= nil and points[tonumber(index) or 1] or nil;
+    if (goal == nil) then
+        return nil;
+    end
+    local dx = (tonumber(goal.x) or 0) - (tonumber(player.x) or 0);
+    local dz = (tonumber(goal.z) or 0) - (tonumber(player.z) or 0);
+    local distance = math.sqrt((dx * dx) + (dz * dz));
+    if (distance <= 0.35) then
+        return nil;
+    end
+
+    local unit_x = dx / distance;
+    local unit_z = dz / distance;
+    local side_x = -unit_z;
+    local side_z = unit_x;
+    local forward_steps = { math.min(2.0, distance), math.min(1.25, distance), math.min(0.75, distance) };
+    local side_steps = { 0, 1.25, -1.25, 2.0, -2.0 };
+    for _, forward in ipairs(forward_steps) do
+        for _, side in ipairs(side_steps) do
+            local candidate = T{
+                zone = player.zone,
+                name = 'Local safe waypoint',
+                x = (tonumber(player.x) or 0) + (unit_x * forward) + (side_x * side),
+                z = (tonumber(player.z) or 0) + (unit_z * forward) + (side_z * side),
+                y = (tonumber(player.y) or 0)
+                    + (((tonumber(goal.y) or 0) - (tonumber(player.y) or 0)) * (forward / distance)),
+                kind = 'route',
+                source = 'lathine-local-safe',
+                route_override_id = 'lathine-navmesh',
+            };
+            if (nav_distance(candidate, goal) + 0.05 < distance
+                and accessxi.nav_lathine_direct_target_safe(player, candidate)) then
+                return accessxi.nav_lathine_cache_local_target(player, points, index, candidate);
+            end
+        end
+    end
+    return nil;
+end
+
+function accessxi.nav_lathine_replan_or_stop(player, points, lookahead, already_replanned)
+    local destination = accessxi.nav_destination;
+    local owns_active_route = accessxi.nav_active
+        and destination ~= nil
+        and accessxi.nav_route_points == points
+        and (tonumber(destination.zone) or 0) == (tonumber(player.zone) or 0);
+    if (owns_active_route and not already_replanned) then
+        local refreshed = nav_compute_mesh_route(player, destination, true);
+        if (refreshed ~= nil and refreshed:len() > 1) then
+            for _, point in ipairs(refreshed) do
+                point.route_override_id = 'lathine-navmesh';
+            end
+            accessxi.nav_route_points = refreshed;
+            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, destination);
+            accessxi.nav_route_last_recalc_tick = tick();
+            accessxi.nav_precise_route_return_clear();
+            accessxi.nav_lathine_local_target_cache_clear();
+            log_line(('nav lathine local safety replan destination="%s" count=%d'):fmt(
+                destination.name or '', refreshed:len()));
+            return accessxi.nav_precise_steering_target(
+                player, refreshed, accessxi.nav_route_point_index, lookahead, true);
+        end
+    end
+
+    if (owns_active_route) then
+        local name = tostring(destination.name or 'destination');
+        nav_route_stop();
+        local text = ('Navigation stopped. No locally reachable path to %s.'):fmt(name);
+        speak(text);
+        log_line(('nav lathine local safety blocked destination="%s"'):fmt(name));
+    end
+    return nil;
+end
+
+function accessxi.nav_precise_steering_target(player, points, index, lookahead, safety_replanned)
     if (player == nil) then
         return nil;
     end
 
     index = tonumber(index) or 1;
     local preferred_segment = math.max(1, index - 1);
-    local route_id = tostring(points ~= nil and points[1] ~= nil and points[1].route_override_id or ''):lower();
+    local route_id = accessxi.nav_route_points_override_id(points);
+    local collision_segment = route_id == 'dat-collision' or route_id == 'lathine-navmesh';
+    local match_first = collision_segment and preferred_segment or nil;
+    local match_last = collision_segment and preferred_segment or nil;
     local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1;
     local effective_lookahead = smooth_lookahead and math.max(9, tonumber(lookahead) or 0) or lookahead;
+    if (collision_segment) then
+        effective_lookahead = math.min(2.0, tonumber(effective_lookahead) or 5);
+    end
     local px = tonumber(player.x) or 0;
     local pz = tonumber(player.z) or 0;
     local delicate_recorded_curve = route_id == 'lathine-recorded-corridor-20260712-01'
@@ -92564,7 +94161,8 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead)
         if (accessxi.nav_precise_return_points ~= points) then
             accessxi.nav_precise_route_return_clear();
         else
-            match = accessxi.nav_route_live_match(player, points, preferred_segment);
+            match = accessxi.nav_route_live_match(
+                player, points, preferred_segment, match_first, match_last);
             local anchor_segment = tonumber(accessxi.nav_precise_return_segment) or 0;
             local safely_ahead = match ~= nil
                 and (tonumber(match.segment) or 0) > anchor_segment
@@ -92580,7 +94178,16 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead)
                 if (horizontal <= reached_distance and vertical <= 2.0) then
                     accessxi.nav_precise_route_return_clear();
                 elseif (horizontal <= 6.0 and vertical <= 4.5) then
-                    return anchor;
+                    if (route_id ~= 'lathine-navmesh') then
+                        return anchor;
+                    end
+                    local safe_anchor = accessxi.nav_lathine_locally_safe_target(
+                        player, points, index, anchor);
+                    if (safe_anchor ~= nil) then
+                        return safe_anchor;
+                    end
+                    return accessxi.nav_lathine_replan_or_stop(
+                        player, points, lookahead, safety_replanned == true);
                 else
                     return nil;
                 end
@@ -92588,9 +94195,10 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead)
         end
     end
 
-    match = match or accessxi.nav_route_live_match(player, points, preferred_segment);
+    match = match or accessxi.nav_route_live_match(
+        player, points, preferred_segment, match_first, match_last);
     local target = accessxi.nav_route_target_from_match(
-        player, points, match, effective_lookahead, smooth_lookahead);
+        player, points, match, effective_lookahead, smooth_lookahead, collision_segment);
     if (target ~= nil and tostring(target.source or '') == 'live-route-return') then
         accessxi.nav_precise_return_target = target;
         accessxi.nav_precise_return_points = points;
@@ -92598,11 +94206,21 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead)
     else
         accessxi.nav_precise_route_return_clear();
     end
+    if (route_id == 'lathine-navmesh') then
+        local safe_target = accessxi.nav_lathine_locally_safe_target(player, points, index, target);
+        if (safe_target ~= nil) then
+            return safe_target;
+        end
+        return accessxi.nav_lathine_replan_or_stop(player, points, lookahead, safety_replanned == true);
+    end
     return target;
 end
 
 function accessxi.nav_beacon_route_target(player)
     if (player == nil or not accessxi.nav_active or accessxi.nav_destination == nil) then
+        return nil;
+    end
+    if accessxi.nav_dat_collision_pending ~= nil then
         return nil;
     end
 
@@ -92636,6 +94254,103 @@ function accessxi.nav_beacon_route_target(player)
     end
 
     return destination;
+end
+
+function accessxi.nav_beacon_direction_delta(player, route_target, points, index, route_geometry)
+    local target_heading = accessxi.nav_heading_to(player, route_target);
+    local yaw = player ~= nil and tonumber(player.yaw) or nil;
+    if (target_heading == nil or yaw == nil) then
+        return nil;
+    end
+    if (math.abs(yaw) > (math.pi * 2.1)) then
+        yaw = yaw * math.pi / 180;
+    end
+
+    local raw_delta = accessxi.nav_normalize_angle(target_heading + yaw);
+    local source = tostring(route_target ~= nil and route_target.source or '');
+    local explicit_correction = source == 'live-route-return'
+        or source == 'dynamic-obstacle'
+        or source == 'wall-escape'
+        or source == 'lathine-local-safe';
+    local count = points ~= nil and points:len() or 0;
+    if (route_geometry ~= true or count < 2 or explicit_correction) then
+        accessxi.nav_beacon_motion_x = tonumber(player.x);
+        accessxi.nav_beacon_motion_z = tonumber(player.z);
+        return raw_delta;
+    end
+
+    if (accessxi.nav_beacon_route_acquired ~= true) then
+        accessxi.nav_beacon_motion_x = tonumber(player.x);
+        accessxi.nav_beacon_motion_z = tonumber(player.z);
+        if (math.abs(raw_delta) <= (20 * math.pi / 180)) then
+            accessxi.nav_beacon_route_acquired = true;
+            return 0;
+        end
+        return raw_delta;
+    end
+
+    index = math.max(1, math.min(math.floor(tonumber(index) or 1), count));
+    local corner = points[index];
+    local previous = nil;
+    local inbound = nil;
+    for candidate_index = index - 1, 1, -1 do
+        local candidate = points[candidate_index];
+        local heading = accessxi.nav_heading_to(candidate, corner);
+        if (heading ~= nil) then
+            previous = candidate;
+            inbound = heading;
+            break;
+        end
+    end
+    if (inbound == nil and index < count) then
+        inbound = accessxi.nav_heading_to(corner, points[index + 1]);
+    end
+
+    local px = tonumber(player.x);
+    local pz = tonumber(player.z);
+    local last_x = tonumber(accessxi.nav_beacon_motion_x);
+    local last_z = tonumber(accessxi.nav_beacon_motion_z);
+    if (px ~= nil and pz ~= nil) then
+        if (last_x == nil or last_z == nil) then
+            accessxi.nav_beacon_motion_x = px;
+            accessxi.nav_beacon_motion_z = pz;
+        else
+            local moved_x = px - last_x;
+            local moved_z = pz - last_z;
+            local moved = math.sqrt((moved_x * moved_x) + (moved_z * moved_z));
+            if (moved >= 0.75) then
+                accessxi.nav_beacon_motion_x = px;
+                accessxi.nav_beacon_motion_z = pz;
+                local motion_heading = accessxi.nav_atan2(moved_z, moved_x);
+                if (inbound ~= nil) then
+                    local course_delta = accessxi.nav_normalize_angle(inbound - motion_heading);
+                    if (math.abs(course_delta) >= (35 * math.pi / 180)) then
+                        return course_delta;
+                    end
+                end
+            end
+        end
+    end
+
+    if (index <= 1 or index >= count or previous == nil or corner == nil
+        or nav_distance(player, corner) > 5.0) then
+        return 0;
+    end
+    local outbound = nil;
+    for candidate_index = index + 1, count do
+        outbound = accessxi.nav_heading_to(corner, points[candidate_index]);
+        if (outbound ~= nil) then
+            break;
+        end
+    end
+    if (inbound == nil or outbound == nil) then
+        return 0;
+    end
+    local turn_delta = accessxi.nav_normalize_angle(outbound - inbound);
+    if (math.abs(turn_delta) < (25 * math.pi / 180)) then
+        return 0;
+    end
+    return turn_delta;
 end
 
 function accessxi.nav_beacon_file_for_delta(delta)
@@ -92804,6 +94519,9 @@ function accessxi.nav_obstacle_avoidance_target(player, route_target)
 end
 
 function accessxi.nav_apply_dynamic_obstacle(player, route_target)
+    if (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)) then
+        return route_target, nil;
+    end
     local avoid, obstacle = accessxi.nav_obstacle_avoidance_target(player, route_target);
     if (obstacle == nil) then
         return route_target, nil;
@@ -92901,6 +94619,11 @@ function accessxi.nav_wall_escape_target(player, route_target)
 end
 
 function accessxi.nav_apply_wall_avoidance(player, route_target)
+    local now = tick();
+    if (not accessxi.nav_wall_escape_recovery_active(now)) then
+        accessxi.nav_wall_avoid_last_key = '';
+        return route_target, nil;
+    end
     local escape, wall = accessxi.nav_wall_escape_target(player, route_target);
     if (escape == nil) then
         if (wall == nil or wall > 1.2) then
@@ -92909,7 +94632,6 @@ function accessxi.nav_apply_wall_avoidance(player, route_target)
         return route_target, wall;
     end
 
-    local now = tick();
     local key = ('%d:%d:%d'):fmt(
         math.floor((tonumber(escape.x) or 0) * 2),
         math.floor((tonumber(escape.z) or 0) * 2),
@@ -92926,6 +94648,16 @@ function accessxi.nav_apply_wall_avoidance(player, route_target)
     end
 
     return escape, wall;
+end
+
+function accessxi.nav_wall_escape_recovery_active(now)
+    now = tonumber(now) or tick();
+    local started = tonumber(accessxi.nav_progress_last_block_tick) or 0;
+    return started > 0 and now >= started and (now - started) <= 4500;
+end
+
+function accessxi.nav_wall_escape_begin_recovery(now)
+    accessxi.nav_progress_last_block_tick = tonumber(now) or tick();
 end
 
 function accessxi.nav_reset_progress_watch(player, destination_distance, now)
@@ -92972,7 +94704,7 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
         return false;
     end
 
-    accessxi.nav_progress_last_block_tick = now;
+    accessxi.nav_wall_escape_begin_recovery(now);
     local wall = accessxi.nav_wall_distance(player);
     local route_distance = nav_distance(player, route_target);
     local text = 'No forward progress.';
@@ -93089,20 +94821,20 @@ function accessxi.poll_nav_beacon()
         return;
     end
 
-    local target_heading = accessxi.nav_heading_to(player, route_target);
-    if (target_heading == nil) then
+    local route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
+    if (accessxi.nav_beacon_route_identity ~= route_identity) then
+        accessxi.nav_beacon_route_identity = route_identity;
+        accessxi.nav_beacon_route_acquired = false;
+        accessxi.nav_beacon_motion_x = nil;
+        accessxi.nav_beacon_motion_z = nil;
+    end
+    local route_geometry = not drop_handled and not transport_waiting
+        and accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() > 1;
+    local delta = accessxi.nav_beacon_direction_delta(
+        player, route_target, accessxi.nav_route_points, accessxi.nav_route_point_index, route_geometry);
+    if (delta == nil) then
         return;
     end
-
-    local yaw = tonumber(player.yaw);
-    if (yaw == nil) then
-        return;
-    end
-    if (math.abs(yaw) > (math.pi * 2.1)) then
-        yaw = yaw * math.pi / 180;
-    end
-
-    local delta = accessxi.nav_normalize_angle(target_heading + yaw);
     local path, prefix, bin, pan = accessxi.nav_beacon_file_for_delta(delta);
     if (not accessxi.nav_beacon_ensure_files()) then
         return;
@@ -93121,6 +94853,9 @@ end
 
 local function poll_nav_route()
     if (not accessxi.nav_active or accessxi.nav_destination == nil) then
+        return;
+    end
+    if (accessxi.nav_dat_collision_pending ~= nil) then
         return;
     end
     if (type(accessxi.nav_mission_quest_route_owner_mismatch) == 'function'
@@ -93249,8 +94984,10 @@ local function poll_nav_route()
     if (route_count > 1) then
         local current_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
         local current_is_override = accessxi.nav_route_points_are_override(accessxi.nav_route_points);
+        local collision_authoritative = current_id == 'dat-collision';
         local survey_authoritative = current_id:startswith('lathine-recorded-survey-');
-        local lower_ravine_handoff = (not survey_authoritative)
+        local lower_ravine_handoff = (not collision_authoritative)
+            and (not survey_authoritative)
             and accessxi.nav_lathine_lower_ravine_position(player)
             and current_id ~= 'lathine-fallen-ravine-to-west-ronfaure-zoneline';
         local override_handoff = T{};
@@ -93471,6 +95208,11 @@ local function poll_nav_route()
             return;
         end
         nav_write_route_evidence('arrived', player, destination, route_target, T{ reason = 'arrival' });
+        if (type(accessxi.nav_mission_quest_remember_arrival) == 'function') then
+            pcall(function ()
+                accessxi.nav_mission_quest_remember_arrival(destination, now);
+            end);
+        end
         local arrival_name = tostring(destination.name or ''):lower();
         if (arrival_name:find('zone line', 1, true) ~= nil) then
             accessxi.nav_begin_zoning_watch('zone-line-arrival', player, destination, now);
@@ -93620,6 +95362,10 @@ accessxi.run_load_startup('top-level');
 
 ashita.events.register('unload', 'unload_cb', function ()
     accessxi.axi_drive_stop('unload');
+    if (accessxi.nav_dat_collision_state ~= nil) then
+        accessxi.nav_dat_collision_state:shutdown();
+        accessxi.nav_dat_collision_state = nil;
+    end
     local ok, result = pcall(function () return accessxi.unload_searchhook(); end);
     if (not ok) then
         log_line(('searchhook shutdown failed during unload error="%s"'):fmt(
@@ -93653,6 +95399,19 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
     end, false);
 
     local now = tick();
+    if ((mid == 150 or mid == 151)
+        and type(accessxi.nav_mission_quest_observe_interaction_text) == 'function') then
+        local target_name = accessxi.combat_target_name();
+        if (target_name == '') then target_name = tostring(accessxi.last_target_name or ''); end
+        pcall(function ()
+            accessxi.nav_mission_quest_observe_interaction_text(
+                get_menu_name() or '',
+                target_name,
+                accessxi.combat_current_target_server_id(),
+                text,
+                now);
+        end);
+    end
     if (mid ~= 150 and mid ~= 151) then
         if (accessxi.chat_text_is_recent_npc_echo(mid, text, now)) then
             log_line(('chat text npc echo suppressed mode=%d "%s"'):fmt(mid, accessxi.escape_probe_log_text(text)));
@@ -93726,6 +95485,9 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
 end);
 
 ashita.events.register('packet_in', 'accessxi_reader_packet_in_cb', function (e)
+    accessxi.nav_observe_zone_load_packet(e, tick());
+    accessxi.capture_objective_inventory_packet(e);
+    accessxi.capture_mission_quest_event_packet(e, 'in');
     accessxi.trace_character_creation_world_packet(e, 'in');
     accessxi.capture_character_creation_world_packet(e);
     accessxi.capture_combat_action_packet(e);
@@ -93762,6 +95524,7 @@ ashita.events.register('packet_in', 'accessxi_reader_packet_in_cb', function (e)
 end);
 
 ashita.events.register('packet_out', 'accessxi_reader_packet_out_cb', function (e)
+    accessxi.capture_mission_quest_event_packet(e, 'out');
     accessxi.trace_character_creation_world_packet(e, 'out');
     accessxi.capture_mog_door_outgoing_packet(e);
     accessxi.capture_friend_list_packet(e, 'out');
@@ -94547,13 +96310,20 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     if (accessxi.poll_axi_external_control(now)) then
         return;
     end
-    if (accessxi.nav_zoning_watch_active(now) or accessxi.nav_zone_load_settle_active(now)) then
+    local zoning_watch = accessxi.nav_zoning_watch_active(now);
+    local zone_settle = accessxi.nav_zone_load_settle_active(now);
+    if (zoning_watch or zone_settle) then
         accessxi.nav_poll_zone_transition_only(now);
         accessxi.nav_route_recorder_poll(now);
-        return;
+        if (accessxi.nav_zone_load_settle_active(now)) then
+            return;
+        end
+    else
+        poll_nav_position();
+        accessxi.nav_route_recorder_poll(now);
     end
-    poll_nav_position();
-    accessxi.nav_route_recorder_poll(now);
+    accessxi.poll_mission_quest_state_changes(now);
+    accessxi.poll_objective_inventory_refresh(now);
     accessxi.poll_compass_hotkey();
     accessxi.poll_view_hotkey();
     accessxi.poll_combat_action_feedback();
@@ -94599,6 +96369,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     end
     accessxi.poll_nav_browser_hotkeys();
     poll_target();
+    accessxi.poll_nav_dat_collision(now);
     accessxi.poll_nav_collision_sound();
     if (accessxi.poll_nav_zone_search()) then
         return;

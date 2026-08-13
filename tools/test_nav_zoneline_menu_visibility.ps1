@@ -444,7 +444,7 @@ if ($syncRouteStart -lt 0 -or $syncRouteEnd -lt 0) {
 $syncRouteBody = $source.Substring($syncRouteStart, $syncRouteEnd - $syncRouteStart)
 Assert-Match `
     -Text $syncRouteBody `
-    -Pattern "nav_nearest_route_segment\(pos,\s*accessxi\.nav_route_points\)[\s\S]*?nav_route_points_are_override\(accessxi\.nav_route_points\)[\s\S]*?segment_distance[\s\S]*?>\s*3\.0[\s\S]*?return" `
+    -Pattern "nav_nearest_route_segment\(\s*pos,\s*accessxi\.nav_route_points(?:,\s*first_segment,\s*last_segment)?\)[\s\S]*?nav_route_points_are_override\(accessxi\.nav_route_points\)[\s\S]*?segment_distance[\s\S]*?>\s*3\.0[\s\S]*?return" `
     -Message 'Override route index sync must not jump ahead when the player is clearly off the tight corridor.'
 
 $pollRouteStart = $source.IndexOf('local function poll_nav_route')

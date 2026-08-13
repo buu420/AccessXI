@@ -1,6 +1,16 @@
+param(
+    [string] $AddonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua',
+    [string] $NavigationDataPath = ''
+)
+
 $ErrorActionPreference = 'Stop'
 
-$addonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
+$addonPath = $AddonPath
+$navigationDataPath = if ([string]::IsNullOrWhiteSpace($NavigationDataPath)) {
+    Join-Path (Split-Path -Parent $addonPath) 'modules\navigation_data.lua'
+} else {
+    $NavigationDataPath
+}
 $source = Get-Content -LiteralPath $addonPath -Raw
 
 function Assert-Match {
@@ -43,7 +53,7 @@ Assert-Match `
     -Message 'Nav browser should expose a transient Search Results category when search hits exist.'
 
 Assert-NotMatch `
-    -Text (Get-Content -LiteralPath 'C:\Users\buu42\Ashita\addons\accessxi_reader\modules\navigation_data.lua' -Raw) `
+    -Text (Get-Content -LiteralPath $navigationDataPath -Raw) `
     -Pattern "Search Results" `
     -Message 'Search Results should not be a permanent navigation category.'
 
@@ -234,8 +244,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $presentBody `
-    -Pattern "(?s)if \(accessxi\.nav_zoning_watch_active\(now\) or accessxi\.nav_zone_load_settle_active\(now\)\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*return;\s*end\s*poll_nav_position\(\);.*?accessxi\.poll_compass_hotkey\(\)" `
-    -Message 'Present loop should preserve explicit route recording but stop normal addon polling while a zone-line loading handoff or post-zone settle is pending.'
+    -Pattern "(?s)local zoning_watch = accessxi\.nav_zoning_watch_active\(now\);\s*local zone_settle = accessxi\.nav_zone_load_settle_active\(now\);\s*if \(zoning_watch or zone_settle\) then\s*accessxi\.nav_poll_zone_transition_only\(now\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*if \(accessxi\.nav_zone_load_settle_active\(now\)\) then\s*return;\s*end\s*else\s*poll_nav_position\(\);\s*accessxi\.nav_route_recorder_poll\(now\);\s*end\s*accessxi\.poll_mission_quest_state_changes\(now\);\s*accessxi\.poll_objective_inventory_refresh\(now\);\s*accessxi\.poll_compass_hotkey\(\).*?accessxi\.poll_chat_reader_hotkeys\(\).*?accessxi\.poll_nav_browser_hotkeys\(\)" `
+    -Message 'A pending zone-line handoff must keep screen-reader and navigation-browser polling responsive; expensive objective refresh work must drain only after actual zone loading has settled.'
 
 Assert-Match `
     -Text $source `

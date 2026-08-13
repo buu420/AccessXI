@@ -46,6 +46,7 @@ struct AXIVec3 final
     float z;
 };
 
+#pragma pack(push, 4)
 struct AXILoadStatus final
 {
     std::uint32_t struct_size;
@@ -57,6 +58,10 @@ struct AXILoadStatus final
     char dat_sha256[65];
     char settings_sha256[65];
 };
+#pragma pack(pop)
+
+static_assert(sizeof(AXILoadStatus) == 412u,
+    "AXILoadStatus must match the explicitly packed LuaJIT FFI ABI.");
 
 struct AXISweepResult final
 {

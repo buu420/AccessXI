@@ -24,9 +24,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 GENERATED_SOURCE = "lsb-zoneline-all"
+GENERATED_SCRIPTED_SOURCE = "lsb-scripted-trigger"
 GENERATED_NPC_SOURCE = "lsb-npc-list-all"
 GENERATED_ENEMY_SOURCE = "lsb-mob-spawn-camps"
-GENERATED_SOURCES = (GENERATED_SOURCE, GENERATED_NPC_SOURCE, GENERATED_ENEMY_SOURCE)
+GENERATED_SOURCES = (
+    GENERATED_SOURCE,
+    GENERATED_SCRIPTED_SOURCE,
+    GENERATED_NPC_SOURCE,
+    GENERATED_ENEMY_SOURCE,
+)
 GENERATED_SECTION = "world-zonelines-2026-06-20"
 GENERATED_NPC_SECTION = "world-npcs-2026-06-20"
 GENERATED_ENEMY_SECTION = "world-enemy-camps-2026-07-01"
@@ -37,6 +43,15 @@ ENEMY_IDENTITY_SCHEMA_REVISION = "v1"
 ENEMY_CLUSTER_POLICY_VERSION = "complete-link-v1-h120-y24"
 
 GRAPH_EDGE_OVERRIDES = {
+    231233001: {
+        "source": GENERATED_SCRIPTED_SOURCE,
+        "confidence": "proven",
+        "note": (
+            "requires: Chateau d'Oraguille access; eligibility is enforced by "
+            "Northern San d'Oria event 569"
+        ),
+        "raw_identity": "lsb:scripted_trigger:231233001",
+    },
     # Live /axi pos evidence for the Port San d'Oria -> Northern San d'Oria
     # trigger.  The raw LSB endpoint is close but steers into the wall.
     812070522: {
@@ -106,6 +121,30 @@ class ZoneLine:
     to_code: str
     note: str
     comment: str
+
+
+SCRIPTED_TRANSITIONS = (
+    ZoneLine(
+        zoneline_id=231233001,
+        from_zone=231,
+        from_x=0.0,
+        from_y=-2.0,
+        from_z=110.0,
+        to_zone=233,
+        to_x=0.0,
+        to_y=0.0,
+        to_z=-13.0,
+        from_label="Northern San d'Oria",
+        from_code="trigger-area-1",
+        to_label="Chateau d'Oraguille",
+        to_code="event-569",
+        note=(
+            "requires: Chateau d'Oraguille access; eligibility is enforced by "
+            "Northern San d'Oria event 569"
+        ),
+        comment="Northern San d'Oria trigger area 1 -> Chateau d'Oraguille event 569",
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -636,7 +675,7 @@ def destination_section(edge: ZoneLine) -> str:
 
 def generated_destination(edge: ZoneLine, name: str) -> Destination:
     override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
-    raw_identity = f"lsb:zonelines:{edge.zoneline_id}"
+    raw_identity = override.get("raw_identity", f"lsb:zonelines:{edge.zoneline_id}")
     return Destination(
         zone=edge.from_zone,
         name=name,
@@ -653,7 +692,10 @@ def generated_destination(edge: ZoneLine, name: str) -> Destination:
 
 
 def apply_edge_policy(edges: list[ZoneLine]) -> list[ZoneLine]:
-    return [edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS]
+    return [
+        *(edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS),
+        *SCRIPTED_TRANSITIONS,
+    ]
 
 
 def generate_destinations(edges: list[ZoneLine], zone_names: dict[int, str], existing: list[Destination]) -> list[Destination]:

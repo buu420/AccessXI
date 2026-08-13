@@ -1,6 +1,15 @@
 local survey_id = '20260712-170700-z102';
 local route_id = 'lathine-recorded-survey-20260712';
 local west_corridor_prefix = 'lathine-recorded-corridor-20260712-west-via-';
+local survey_collision_blocked_edges = {
+    ['3924:3923'] = true,
+};
+local survey_zoneline_marked_edges = {
+    [947204730] = {
+        node_id = 845,
+        label = 'ordelles caves zone 2',
+    },
+};
 
 local function survey_horizontal_vertical(a, b)
     local dx = (tonumber(a ~= nil and a.x) or 0) - (tonumber(b ~= nil and b.x) or 0);
@@ -121,6 +130,22 @@ function accessxi.nav_recorded_survey_nearest(pos)
     return best_id, best_horizontal, best_vertical, best_distance;
 end
 
+function accessxi.nav_recorded_survey_zoneline_edge_priority(edge)
+    local edge_id = math.floor(tonumber(edge ~= nil and edge.id) or 0);
+    local expected = survey_zoneline_marked_edges[edge_id];
+    if (expected == nil or not accessxi.nav_recorded_survey_load()) then
+        return 0;
+    end
+
+    local node = accessxi.nav_recorded_survey_nodes[expected.node_id];
+    if (node == nil
+        or tostring(node.event or ''):lower() ~= 'mark'
+        or tostring(node.label or ''):lower() ~= expected.label) then
+        return 0;
+    end
+    return -1;
+end
+
 local function survey_heap_push(heap, item)
     heap[#heap + 1] = item;
     local index = #heap;
@@ -222,6 +247,17 @@ function accessxi.nav_recorded_survey_shortest_path(start_id, destination_id)
     return result;
 end
 
+local function survey_path_collision_blocked_edge(path)
+    for index = 2, path:len() do
+        local from_id = math.floor(tonumber(path[index - 1]) or 0);
+        local to_id = math.floor(tonumber(path[index]) or 0);
+        if (survey_collision_blocked_edges[('%d:%d'):fmt(from_id, to_id)] == true) then
+            return from_id, to_id;
+        end
+    end
+    return 0, 0;
+end
+
 local function survey_route_append(route, point, node_id)
     if (route == nil or point == nil) then
         return;
@@ -246,9 +282,10 @@ end
 
 local function survey_west_route(player_id, point)
     local empty = T{};
+    local saw_collision_blocked_path = false;
     if type(accessxi.nav_load_route_overrides) ~= 'function'
         or type(accessxi.nav_lathine_recorded_corridor_candidate) ~= 'function' then
-        return empty;
+        return empty, false;
     end
 
     accessxi.nav_load_route_overrides();
@@ -261,7 +298,12 @@ local function survey_west_route(player_id, point)
             if anchor_id > 0 and anchor_horizontal <= 0.500001 and anchor_vertical <= 0.750001 then
                 local path = accessxi.nav_recorded_survey_shortest_path(player_id, anchor_id);
                 local tail = accessxi.nav_lathine_recorded_corridor_candidate(anchor, point, corridor, 1, 1);
-                if path:len() > 0 and tail ~= nil and tail:len() > 1 then
+                local blocked_from, blocked_to = survey_path_collision_blocked_edge(path);
+                if (blocked_from > 0) then
+                    saw_collision_blocked_path = true;
+                    log_line(('nav recorded survey yielded collision-blocked edge %d->%d destination="%s"'):fmt(
+                        blocked_from, blocked_to, point.name or ''));
+                elseif path:len() > 0 and tail ~= nil and tail:len() > 1 then
                     local candidate = T{};
                     for _, node_id in ipairs(path) do
                         local node = accessxi.nav_recorded_survey_nodes[node_id];
@@ -277,13 +319,13 @@ local function survey_west_route(player_id, point)
                         survey_route_append(candidate, waypoint, nil);
                     end
                     if candidate:len() > 1 then
-                        return candidate;
+                        return candidate, false;
                     end
                 end
             end
         end
     end
-    return empty;
+    return empty, saw_collision_blocked_path;
 end
 
 function accessxi.nav_recorded_survey_route(player, point)
@@ -296,6 +338,12 @@ function accessxi.nav_recorded_survey_route(player, point)
 
     local destination_name = tostring(point.name or ''):lower();
     local destination_is_west = destination_name:find('west ronfaure', 1, true) ~= nil;
+    if (not destination_is_west) then
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey yielded to full-zone collision terrain destination="%s"'):fmt(
+            point.name or ''));
+        return route, false, true;
+    end
 
     local player_id, player_horizontal, player_vertical = accessxi.nav_recorded_survey_nearest(player);
     local player_covered = player_id > 0 and player_horizontal <= 6.0 and player_vertical <= 4.5;
@@ -304,12 +352,17 @@ function accessxi.nav_recorded_survey_route(player, point)
     end
 
     if (destination_is_west) then
-        route = survey_west_route(player_id, point);
+        local collision_blocked = false;
+        route, collision_blocked = survey_west_route(player_id, point);
         if (route:len() > 1) then
             accessxi.nav_route_last_reject_reason = '';
             log_line(('nav recorded survey west route destination="%s" start=%d count=%d'):fmt(
                 point.name or '', player_id, route:len()));
             return route, true;
+        end
+        if (collision_blocked) then
+            accessxi.nav_route_last_reject_reason = '';
+            return T{}, false, true;
         end
         accessxi.nav_route_last_reject_reason = 'complete walked La Theine survey has no proven West exit connection';
         return T{}, true;
@@ -325,6 +378,13 @@ function accessxi.nav_recorded_survey_route(player, point)
     if (path:len() <= 0) then
         accessxi.nav_route_last_reject_reason = 'complete walked La Theine survey has no connected course';
         return route, true;
+    end
+    local blocked_from, blocked_to = survey_path_collision_blocked_edge(path);
+    if (blocked_from > 0) then
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey yielded collision-blocked edge %d->%d destination="%s"'):fmt(
+            blocked_from, blocked_to, point.name or ''));
+        return T{}, false, true;
     end
     for _, node_id in ipairs(path) do
         local node = accessxi.nav_recorded_survey_nodes[node_id];

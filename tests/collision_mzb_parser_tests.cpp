@@ -168,6 +168,27 @@ void run_installed_tomb_test(const fs::path& ffxi_root)
     CHECK(current_bad_hits >= 1u);
 }
 
+void run_installed_east_ronfaure_test(const fs::path& ffxi_root)
+{
+    const FileSnapshot snapshot = read_stable_snapshot(resolve_zone_model_dat(ffxi_root, 101u));
+    const ParsedZoneMesh mesh = parse_zone_collision(snapshot, 101u);
+
+    // This large outdoor zone reproduced the in-game std::bad_alloc.  Pin its
+    // installed geometry shape so a faster parser cannot silently omit the
+    // repeated MZB instances that make the test meaningful.
+    CHECK(mesh.zone_id == 101u);
+    CHECK(mesh.source_sha256 == snapshot.sha256_hex);
+    CHECK(mesh.vertices.size() == 447043u);
+    CHECK(mesh.triangles.size() == 385748u);
+    CHECK(mesh.geometry_instances == 65893u);
+    CHECK(mesh.bounds.minimum.x < -279.9f);
+    CHECK(mesh.bounds.minimum.y < -5.0f);
+    CHECK(mesh.bounds.minimum.z < -719.9f);
+    CHECK(mesh.bounds.maximum.x > 879.9f);
+    CHECK(mesh.bounds.maximum.y > 101.9f);
+    CHECK(mesh.bounds.maximum.z > 679.9f);
+}
+
 } // namespace
 
 int main(const int argc, char** argv)
@@ -180,6 +201,7 @@ int main(const int argc, char** argv)
         }
         run_invalid_input_tests();
         run_installed_tomb_test(fs::path(argv[1]));
+        run_installed_east_ronfaure_test(fs::path(argv[1]));
         std::cout << "collision MZB parser tests passed\n";
         return 0;
     }

@@ -743,6 +743,126 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             {f"area:v1:102:{edge_id}" for edge_id in edge_ids},
         )
 
+    def test_scripted_chateau_gate_is_generator_owned_and_one_way(self) -> None:
+        access_note = (
+            "requires: Chateau d'Oraguille access; eligibility is enforced by "
+            "Northern San d'Oria event 569"
+        )
+        expected_edge = (
+            231233001,
+            231,
+            "Northern San d'Oria",
+            "trigger-area-1",
+            0.0,
+            -2.0,
+            110.0,
+            233,
+            "Chateau d'Oraguille",
+            "event-569",
+            0.0,
+            0.0,
+            -13.0,
+            access_note,
+        )
+
+        edges = navgen.apply_edge_policy([])
+        chateau_edges = [
+            edge
+            for edge in edges
+            if edge.from_zone in {231, 233} and edge.to_zone in {231, 233}
+        ]
+
+        self.assertEqual(
+            [
+                (
+                    edge.zoneline_id,
+                    edge.from_zone,
+                    edge.from_label,
+                    edge.from_code,
+                    edge.from_x,
+                    edge.from_y,
+                    edge.from_z,
+                    edge.to_zone,
+                    edge.to_label,
+                    edge.to_code,
+                    edge.to_x,
+                    edge.to_y,
+                    edge.to_z,
+                    edge.note,
+                )
+                for edge in chateau_edges
+            ],
+            [expected_edge],
+        )
+
+        destinations = navgen.generate_destinations(
+            edges,
+            {231: "Northern San d'Oria", 233: "Chateau d'Oraguille"},
+            [],
+        )
+        self.assertEqual(
+            [
+                (
+                    row.zone,
+                    row.name,
+                    row.x,
+                    row.z,
+                    row.y,
+                    row.kind,
+                    row.source,
+                    row.confidence,
+                    row.section,
+                    row.destination_id,
+                    row.raw_identity,
+                )
+                for row in destinations
+            ],
+            [
+                (
+                    231,
+                    "Chateau d'Oraguille zone line",
+                    0.0,
+                    110.0,
+                    -2.0,
+                    "area",
+                    "lsb-scripted-trigger",
+                    "proven",
+                    access_note,
+                    "area:v1:231:231233001",
+                    "lsb:scripted_trigger:231233001",
+                )
+            ],
+        )
+
+        repo_root = Path(navgen.__file__).resolve().parents[1]
+        expected_graph_row = (
+            "231233001\t231\tNorthern San d'Oria\ttrigger-area-1\t0.000\t110.000\t-2.000\t"
+            "233\tChateau d'Oraguille\tevent-569\t0.000\t-13.000\t0.000\t"
+            f"lsb-scripted-trigger\tproven\t{access_note}"
+        )
+        for graph_path in (
+            repo_root / "data" / "ffxi-nav-zoneline-graph.tsv",
+            repo_root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-zoneline-graph.tsv",
+        ):
+            rows = graph_path.read_text(encoding="utf-8").splitlines()
+            self.assertEqual([row for row in rows if row.startswith("231233001\t")], [expected_graph_row])
+            self.assertFalse(any(row.startswith("231233001\t233\t") for row in rows))
+
+        expected_destination_row = (
+            "231\tChateau d'Oraguille zone line\t0.000\t110.000\t-2.000\tarea\t"
+            f"lsb-scripted-trigger\tproven\t{access_note}\tarea:v1:231:231233001\t"
+            "lsb:scripted_trigger:231233001\t\t"
+        )
+        for destination_path in (
+            repo_root / "data" / "ffxi-nav-destinations.tsv",
+            repo_root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-destinations.tsv",
+        ):
+            rows = destination_path.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(
+                [row for row in rows if "\tarea:v1:231:231233001\t" in row],
+                [expected_destination_row],
+            )
+
     def test_cli_rejects_another_repo_shaped_root_before_dry_run_or_write(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             other = Path(temporary) / "other-repo"

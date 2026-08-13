@@ -16,8 +16,10 @@ import wave
 try:
     import h5py
     import numpy as np
+    import scipy
+    from scipy.signal import resample_poly
 except ImportError as exc:  # pragma: no cover - dependency error is user-facing
-    raise SystemExit("generate_nav_beacon_hrtf.py requires numpy and h5py") from exc
+    raise SystemExit("generate_nav_beacon_hrtf.py requires numpy, scipy, and h5py") from exc
 
 
 DATASET_NAME = "SADIE II D2 KEMAR 48 kHz 256-tap diffuse-field-equalized HRIR"
@@ -26,7 +28,10 @@ DATASET_URL = (
     "D2_48K_24bit_256tap_FIR_SOFA.sofa"
 )
 DATASET_SHA256 = "bb5980288fc5c990c821e02c5ddfa274759079b723973cd6ca47ac577243aa0c"
-FORMAT_VERSION = "accessxi-nav-beacon-hrtf-v1"
+FORMAT_VERSION = "accessxi-nav-beacon-hrtf-v2"
+COMPATIBILITY_SOURCE_SHA256 = (
+    "cc6dcc1ba231af8f74afec7f4372effd4b29c274162d28ac18454948442b0f1a"
+)
 
 
 def sha256(path: Path) -> str:
@@ -76,32 +81,34 @@ def canonical_selector_angles() -> dict[tuple[str, int], float]:
     return result
 
 
-def make_source(sample_rate: int) -> np.ndarray:
-    frame_count = round(sample_rate * 0.105)
-    t = np.arange(frame_count, dtype=np.float64) / sample_rate
-    phase = 2.0 * np.pi * (650.0 * t + (0.5 * ((6200.0 - 650.0) / 0.105) * t * t))
-    chirp = np.sin(phase)
-    body = (
-        0.48 * np.sin(2.0 * np.pi * 980.0 * t)
-        + 0.32 * np.sin(2.0 * np.pi * 1470.0 * t + 0.35)
-        + 0.20 * np.sin(2.0 * np.pi * 2940.0 * t + 0.9)
+def load_familiar_source(path: Path, target_rate: int) -> np.ndarray:
+    actual_hash = sha256(path)
+    if actual_hash != COMPATIBILITY_SOURCE_SHA256:
+        raise SystemExit(
+            "familiar compatibility source SHA-256 mismatch: "
+            f"expected {COMPATIBILITY_SOURCE_SHA256}, got {actual_hash}"
+        )
+    with wave.open(str(path), "rb") as source_file:
+        if source_file.getnchannels() != 2 or source_file.getsampwidth() != 2:
+            raise SystemExit("compatibility source must be stereo PCM16")
+        source_rate = source_file.getframerate()
+        frame_count = source_file.getnframes()
+        payload = source_file.readframes(frame_count)
+    if source_rate != 44_100 or frame_count != 5529:
+        raise SystemExit("compatibility center source format or duration drifted")
+    interleaved = np.frombuffer(payload, dtype="<i2").reshape((-1, 2))
+    if not np.array_equal(interleaved[:, 0], interleaved[:, 1]):
+        raise SystemExit("compatibility center source must have identical left/right channels")
+    mono = interleaved[:, 0].astype(np.float64) / 32767.0
+    if target_rate != 48_000:
+        raise SystemExit("HRTF output rate must remain 48 kHz")
+    return resample_poly(
+        mono,
+        160,
+        147,
+        window=("kaiser", 5.0),
+        padtype="constant",
     )
-    rng = np.random.default_rng(0xA11CE55)
-    noise = rng.standard_normal(frame_count)
-    spectrum = np.fft.rfft(noise)
-    frequencies = np.fft.rfftfreq(frame_count, 1.0 / sample_rate)
-    spectrum[(frequencies < 700.0) | (frequencies > 9000.0)] = 0.0
-    broadband = np.fft.irfft(spectrum, frame_count)
-    broadband /= max(1e-12, float(np.max(np.abs(broadband))))
-
-    attack = np.minimum(1.0, t / 0.004)
-    envelope = attack * np.exp(-18.0 * t)
-    fade_frames = max(1, round(sample_rate * 0.014))
-    envelope[-fade_frames:] *= np.linspace(1.0, 0.0, fade_frames, endpoint=True)
-    source = ((0.50 * chirp) + (0.30 * body) + (0.20 * broadband)) * envelope
-    source -= float(np.mean(source))
-    source *= 0.72 / max(1e-12, float(np.max(np.abs(source))))
-    return source
 
 
 def write_pcm16(path: Path, samples: np.ndarray, sample_rate: int) -> None:
@@ -121,7 +128,7 @@ def nearest_measurement(positions: np.ndarray, angle_degrees: float) -> int:
     return int(np.argmin(score))
 
 
-def render(sofa_path: Path, output_dir: Path) -> None:
+def render(sofa_path: Path, source_cue_path: Path, output_dir: Path) -> None:
     acquire_dataset(sofa_path)
     with h5py.File(sofa_path, "r") as sofa:
         sample_rate = int(round(float(sofa["Data.SamplingRate"][0])))
@@ -136,7 +143,8 @@ def render(sofa_path: Path, output_dir: Path) -> None:
             else str(license_value)
         )
 
-    source = make_source(sample_rate)
+    source = load_familiar_source(source_cue_path, sample_rate)
+    source_energy = float(np.sum(source * source))
     output_dir.mkdir(parents=True, exist_ok=True)
     source_path = output_dir / "source_mono.wav"
     write_pcm16(source_path, source, sample_rate)
@@ -151,14 +159,11 @@ def render(sofa_path: Path, output_dir: Path) -> None:
             measurement = nearest_measurement(positions, angle_degrees)
             channels = [np.convolve(source, impulse_responses[measurement, ear]) for ear in range(2)]
             stereo = np.column_stack(channels)
-            target_frames = max(stereo.shape[0], round(sample_rate * 0.125))
-            if stereo.shape[0] < target_frames:
-                stereo = np.pad(stereo, ((0, target_frames - stereo.shape[0]), (0, 0)))
-            rms = math.sqrt(float(np.mean(stereo * stereo)))
-            gain = 0.105 / max(1e-12, rms)
+            stereo_energy = float(np.sum(stereo * stereo)) / 2.0
+            gain = math.sqrt(source_energy / max(1e-12, stereo_energy))
             peak = float(np.max(np.abs(stereo))) * gain
-            if peak > 0.78:
-                gain *= 0.78 / peak
+            if peak > 0.999:
+                gain *= 0.999 / peak
             stereo *= gain
 
             filename = f"{prefix}_{bin_number:02d}.wav"
@@ -186,6 +191,8 @@ def render(sofa_path: Path, output_dir: Path) -> None:
     notice = (
         "AccessXI navigation beacon HRTF bank\n\n"
         f"Format: {FORMAT_VERSION}\n"
+        "Compatibility source cue: sounds/nav_beacon/front_06.wav\n"
+        f"Compatibility source SHA-256: {sha256(source_cue_path)}\n"
         f"Source cue SHA-256: {source_hash}\n"
         f"HRTF dataset: {DATASET_NAME}\n"
         f"Dataset URL: {DATASET_URL}\n"
@@ -193,7 +200,11 @@ def render(sofa_path: Path, output_dir: Path) -> None:
         f"Generator SHA-256: {sha256(Path(__file__).resolve())}\n"
         f"Python: {'.'.join(map(str, __import__('sys').version_info[:3]))}\n"
         f"numpy: {np.__version__}\n"
+        f"scipy: {scipy.__version__}\n"
         f"h5py: {h5py.__version__}\n\n"
+        "Source resampling: scipy.signal.resample_poly up=160 down=147 "
+        "window=kaiser(5.0) padtype=constant\n"
+        "Output normalization: average per-ear integrated energy matches source cue\n\n"
         "SADIE Database Copyright 2018 The University of York. This product includes data\n"
         "developed at The Audio Lab, University of York, UK (Cal Armstrong, Lewis Thresh,\n"
         "Gavin Kearney) as part of the SADIE Project. The SADIE II dataset is licensed\n"
@@ -212,12 +223,17 @@ def main() -> None:
         default=repo_root / "build" / "hrtf" / Path(DATASET_URL).name,
     )
     parser.add_argument(
+        "--source-cue",
+        type=Path,
+        default=repo_root / "ashita" / "addons" / "accessxi_reader" / "sounds" / "nav_beacon" / "front_06.wav",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=repo_root / "ashita" / "addons" / "accessxi_reader" / "sounds" / "nav_beacon_hrtf",
     )
     args = parser.parse_args()
-    render(args.sofa.resolve(), args.output_dir.resolve())
+    render(args.sofa.resolve(), args.source_cue.resolve(), args.output_dir.resolve())
 
 
 if __name__ == "__main__":

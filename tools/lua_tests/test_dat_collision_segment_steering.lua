@@ -360,6 +360,45 @@ local target = accessxi.nav_precise_steering_target(player, collision_points, 2,
 assert(target ~= nil and math.abs(target.x - 1) < 0.001 and math.abs(target.z) < 0.001,
     'collision steering skipped the current capsule-validated segment endpoint')
 
+-- Reduced reproduction of the exact 64-yalm Upper Jeuno DAT-collision leg.
+-- A two-yalm carrot turns a routine 1.5-yalm lateral offset into a 37-degree
+-- correction and then flips sides after the player crosses the centerline.
+-- Keep the target on the current validated segment, but look far enough ahead
+-- to avoid making a blind walker weave down an otherwise straight corridor.
+local upper_straight_points = T({
+    T({ zone = 244, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 20, z = 0, y = 0, source = 'dat-collision' }),
+})
+local upper_straight_player = T({ zone = 244, x = 2, z = 1.5, y = 0 })
+local upper_straight_target = accessxi.nav_precise_steering_target(
+    upper_straight_player, upper_straight_points, 2, 5)
+assert(upper_straight_target ~= nil
+        and math.abs(upper_straight_target.x - 7) < 0.001
+        and math.abs(upper_straight_target.z) < 0.001,
+    'DAT collision steering still overcorrects with a two-yalm straight-leg target')
+
+local upper_corner_points = T({
+    T({ zone = 244, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 4, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 4, z = 10, y = 0, source = 'dat-collision' }),
+})
+local upper_corner_target = accessxi.nav_precise_steering_target(
+    T({ zone = 244, x = 2, z = 1, y = 0 }), upper_corner_points, 2, 5)
+assert(upper_corner_target ~= nil
+        and math.abs(upper_corner_target.x - 4) < 0.001
+        and math.abs(upper_corner_target.z) < 0.001,
+    'smoother DAT collision steering cut across its next validated corner')
+
+local lathine_straight_points = T({
+    T({ zone = 102, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 102, x = 20, z = 0, y = 0, source = 'dat-collision' }),
+})
+local lathine_straight_target = accessxi.nav_precise_steering_target(
+    T({ zone = 102, x = 2, z = 1.5, y = 0 }), lathine_straight_points, 2, 5)
+assert(lathine_straight_target ~= nil
+        and math.abs(lathine_straight_target.x - 4) < 0.001,
+    'La Theine lost its narrow-path two-yalm collision steering cap')
+
 -- Walking just beyond the bounded segment match tolerance must not silently
 -- leave a route active with no beacon target.  Production may recover a
 -- target or fail the route closed, but it cannot keep silent navigation state.

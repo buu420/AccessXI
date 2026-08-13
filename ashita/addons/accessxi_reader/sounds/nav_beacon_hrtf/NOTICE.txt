@@ -1,15 +1,21 @@
 AccessXI navigation beacon HRTF bank
 
-Format: accessxi-nav-beacon-hrtf-v1
-Source cue SHA-256: f50045c7fed362fff6436ccdb3fc54cf6864008d4ca97dabdfe477064800ce59
+Format: accessxi-nav-beacon-hrtf-v2
+Compatibility source cue: sounds/nav_beacon/front_06.wav
+Compatibility source SHA-256: cc6dcc1ba231af8f74afec7f4372effd4b29c274162d28ac18454948442b0f1a
+Source cue SHA-256: 9fa79a2d2e7aa23c8075614ff3b30135a22c84edead768268fbc265dd917ec8c
 HRTF dataset: SADIE II D2 KEMAR 48 kHz 256-tap diffuse-field-equalized HRIR
 Dataset URL: https://sofacoustics.org/data/database/sadie/D2_48K_24bit_256tap_FIR_SOFA.sofa
 Dataset SHA-256: bb5980288fc5c990c821e02c5ddfa274759079b723973cd6ca47ac577243aa0c
 
-Generator SHA-256: e367e3e58ab035c48669a9df22a77c7a5f22c9037d8a390270e8c3e6da3f4548
-Python: 3.12.13
+Generator SHA-256: 5e2b07db0c2d2091f8d42f052bc2b88099134faa0cce6daf5667a5185560e10c
+Python: 3.12.7
 numpy: 2.3.5
+scipy: 1.18.0
 h5py: 3.14.0
+
+Source resampling: scipy.signal.resample_poly up=160 down=147 window=kaiser(5.0) padtype=constant
+Output normalization: average per-ear integrated energy matches source cue
 
 SADIE Database Copyright 2018 The University of York. This product includes data
 developed at The Audio Lab, University of York, UK (Cal Armstrong, Lewis Thresh,

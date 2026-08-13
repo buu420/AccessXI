@@ -93445,7 +93445,7 @@ function accessxi.nav_beacon_hrtf_wav_valid(path)
     local header = file:read(44) or '';
     local size = file:seek('end') or 0;
     file:close();
-    return size == 24044 and #header == 44
+    return size == 25136 and #header == 44
         and header:sub(1, 4) == 'RIFF' and header:sub(9, 12) == 'WAVE'
         and header:sub(13, 16) == 'fmt ' and header:sub(37, 40) == 'data'
         and accessxi.nav_beacon_read_le_u32(header, 17) == 16
@@ -93455,7 +93455,7 @@ function accessxi.nav_beacon_hrtf_wav_valid(path)
         and accessxi.nav_beacon_read_le_u32(header, 29) == 192000
         and accessxi.nav_beacon_read_le_u16(header, 33) == 4
         and accessxi.nav_beacon_read_le_u16(header, 35) == 16
-        and accessxi.nav_beacon_read_le_u32(header, 41) == 24000;
+        and accessxi.nav_beacon_read_le_u32(header, 41) == 25092;
 end
 
 function accessxi.nav_beacon_hrtf_manifest_valid()
@@ -93470,7 +93470,7 @@ function accessxi.nav_beacon_hrtf_manifest_valid()
     for line in file:lines() do
         local version, name, angle, measurement, azimuth, elevation, digest = line:match(
             '^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$');
-        if (version ~= 'accessxi-nav-beacon-hrtf-v1'
+        if (version ~= 'accessxi-nav-beacon-hrtf-v2'
             or name == nil or digest == nil or #digest ~= 64
             or not digest:match('^[0-9a-fA-F]+$')) then
             file:close();
@@ -94409,12 +94409,16 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
     local preferred_segment = math.max(1, index - 1);
     local route_id = accessxi.nav_route_points_override_id(points);
     local collision_segment = route_id == 'dat-collision' or route_id == 'lathine-navmesh';
+    local narrow_collision_segment = route_id == 'lathine-navmesh'
+        or (route_id == 'dat-collision' and (tonumber(player.zone) or 0) == 102);
     local match_first = collision_segment and preferred_segment or nil;
     local match_last = collision_segment and preferred_segment or nil;
     local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1;
     local effective_lookahead = smooth_lookahead and math.max(9, tonumber(lookahead) or 0) or lookahead;
-    if (collision_segment) then
+    if (narrow_collision_segment) then
         effective_lookahead = math.min(2.0, tonumber(effective_lookahead) or 5);
+    elseif (collision_segment) then
+        effective_lookahead = math.min(5.0, tonumber(effective_lookahead) or 5);
     end
     local px = tonumber(player.x) or 0;
     local pz = tonumber(player.z) or 0;

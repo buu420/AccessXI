@@ -95151,12 +95151,28 @@ function accessxi.poll_nav_beacon()
     end
     local route_geometry = not drop_handled and not transport_waiting
         and accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() > 1;
+    local direction_acquired_before = accessxi.nav_beacon_route_acquired;
+    local direction_centered_before = accessxi.nav_beacon_centered;
+    local direction_center_index_before = accessxi.nav_beacon_center_index;
+    local direction_previous_delta_before = accessxi.nav_beacon_previous_delta;
+    local direction_motion_x_before = accessxi.nav_beacon_motion_x;
+    local direction_motion_z_before = accessxi.nav_beacon_motion_z;
+    local function restore_unheard_direction_state()
+        accessxi.nav_beacon_route_acquired = direction_acquired_before;
+        accessxi.nav_beacon_centered = direction_centered_before;
+        accessxi.nav_beacon_center_index = direction_center_index_before;
+        accessxi.nav_beacon_previous_delta = direction_previous_delta_before;
+        accessxi.nav_beacon_motion_x = direction_motion_x_before;
+        accessxi.nav_beacon_motion_z = direction_motion_z_before;
+    end
     local delta = accessxi.nav_beacon_direction_delta(
         player, route_target, accessxi.nav_route_points, accessxi.nav_route_point_index, route_geometry);
     if (delta == nil) then
+        restore_unheard_direction_state();
         return;
     end
     if (not accessxi.nav_beacon_ensure_files()) then
+        restore_unheard_direction_state();
         return;
     end
     local path, prefix, bin, pan = accessxi.nav_beacon_file_for_delta(delta);
@@ -95165,6 +95181,7 @@ function accessxi.poll_nav_beacon()
 
     accessxi.nav_beacon_last_attempt_tick = now;
     if (not accessxi.nav_beacon_play(path, now, fallback_path)) then
+        restore_unheard_direction_state();
         return;
     end
     accessxi.nav_beacon_last_tick = now;

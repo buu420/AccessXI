@@ -46,6 +46,7 @@ local ffi_load_calls = 0
 local claim_calls = 0
 local logs = {}
 local direction_acquired = {}
+local direction_mutation = false
 local primary_winmm = nil
 local reloaded_winmm = nil
 
@@ -112,6 +113,11 @@ function accessxi.nav_apply_wall_avoidance(_, target) return target end
 function accessxi.nav_arrival_radius() return 3 end
 function accessxi.nav_beacon_direction_delta()
     direction_acquired[#direction_acquired + 1] = accessxi.nav_beacon_route_acquired
+    if (direction_mutation) then
+        accessxi.nav_beacon_centered = true
+        accessxi.nav_beacon_center_index = 2
+        accessxi.nav_beacon_previous_delta = 10 * math.pi / 180
+    end
     return 0
 end
 function accessxi.nav_beacon_file_for_delta()
@@ -156,6 +162,7 @@ local function reset(results, start_now)
     claim_calls = 0
     logs = {}
     direction_acquired = {}
+    direction_mutation = false
     now = start_now or 1000
     primary_winmm = new_winmm()
     reloaded_winmm = new_winmm()
@@ -195,6 +202,32 @@ now = 1100
 accessxi.poll_nav_beacon()
 assert(play_calls == 3,
     'failed beacon playback retried every frame instead of respecting the 520ms pulse interval')
+
+reset({ 0, 0, 0 }, 1300)
+accessxi.nav_beacon_route_identity = accessxi.nav_route_points
+accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_centered = false
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = 15 * math.pi / 180
+direction_mutation = true
+accessxi.poll_nav_beacon()
+assert(accessxi.nav_beacon_route_acquired == true
+        and accessxi.nav_beacon_centered == false
+        and accessxi.nav_beacon_center_index == 2
+        and math.abs(accessxi.nav_beacon_previous_delta - (15 * math.pi / 180)) < 0.0001,
+    'an unheard failed beacon pulse changed the next centering decision')
+
+reset({ 1 }, 1820)
+accessxi.nav_beacon_route_identity = accessxi.nav_route_points
+accessxi.nav_beacon_route_acquired = true
+accessxi.nav_beacon_centered = false
+accessxi.nav_beacon_center_index = 2
+accessxi.nav_beacon_previous_delta = 15 * math.pi / 180
+direction_mutation = true
+accessxi.poll_nav_beacon()
+assert(accessxi.nav_beacon_centered == true
+        and math.abs(accessxi.nav_beacon_previous_delta - (10 * math.pi / 180)) < 0.0001,
+    'a successfully heard beacon pulse did not commit its centering decision')
 
 reset({ 0, 1 })
 accessxi.poll_nav_beacon()

@@ -20,6 +20,7 @@ local selected = table.concat({
     block('function accessxi.nav_route_points_are_collision', 'function accessxi.nav_nearest_route_segment'),
     block('function accessxi.nav_route_points_are_override', 'function accessxi.nav_load_zoneline_graph'),
     block('function accessxi.nav_route_precise_override_active', 'function accessxi.nav_route_override_requires_full_start'),
+    block('function accessxi.nav_sync_route_index', 'local function nav_route_phrase'),
     block('function accessxi.nav_lathine_live_recorded_corridor_handoff',
         "accessxi.load_code_module('recorded_survey_navigation'"),
     block('function accessxi.nav_precise_route_return_clear', 'function accessxi.nav_precise_steering_target'),
@@ -327,6 +328,27 @@ assert(f91_blocked_target == nil and accessxi.nav_active == false,
 assert(accessxi.nav_destination == nil and accessxi.nav_route_points:len() == 0,
     'La Theine fail-closed route left an unsafe destination active')
 
+-- The generic precise-route recovery layer must not revive or pulse a route
+-- that La Theine's stricter local-safety layer has already stopped.
+local stopped_route_recovery_calls = 0
+function accessxi.nav_compute_route_with_zoneline_approach(start_point, _)
+    stopped_route_recovery_calls = stopped_route_recovery_calls + 1
+    return T({
+        T({ zone = 102, x = start_point.x, z = start_point.z, y = start_point.y,
+            source = 'dat-collision' }),
+        T({ zone = 102, x = -440, z = 210, y = 4, source = 'dat-collision' }),
+    })
+end
+accessxi.nav_active = true
+accessxi.nav_destination = f91_destination
+accessxi.nav_route_points = original_f91_points
+accessxi.nav_route_point_index = 4
+local stopped_route_beacon_target = accessxi.nav_beacon_route_target(f91_player)
+assert(stopped_route_beacon_target == nil and accessxi.nav_active == false,
+    'La Theine fail-closed route emitted a phantom beacon target')
+assert(stopped_route_recovery_calls == 0,
+    'generic precise recovery revived a route already stopped by local safety')
+
 function accessxi.nav_valid_mesh_position(_) return true end
 function accessxi.nav_wall_distance(_) return 5 end
 function nav_compute_mesh_route(start_point, end_point)
@@ -337,6 +359,94 @@ accessxi.nav_destination = nil
 local target = accessxi.nav_precise_steering_target(player, collision_points, 2, 5)
 assert(target ~= nil and math.abs(target.x - 1) < 0.001 and math.abs(target.z) < 0.001,
     'collision steering skipped the current capsule-validated segment endpoint')
+
+-- Reduced reproduction of the exact 64-yalm Upper Jeuno DAT-collision leg.
+-- A two-yalm carrot turns a routine 1.5-yalm lateral offset into a 37-degree
+-- correction and then flips sides after the player crosses the centerline.
+-- Keep the target on the current validated segment, but look far enough ahead
+-- to avoid making a blind walker weave down an otherwise straight corridor.
+local upper_straight_points = T({
+    T({ zone = 244, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 20, z = 0, y = 0, source = 'dat-collision' }),
+})
+local upper_straight_player = T({ zone = 244, x = 2, z = 1.5, y = 0 })
+local upper_straight_target = accessxi.nav_precise_steering_target(
+    upper_straight_player, upper_straight_points, 2, 5)
+assert(upper_straight_target ~= nil
+        and math.abs(upper_straight_target.x - 11) < 0.001
+        and math.abs(upper_straight_target.z) < 0.001,
+    'DAT collision steering did not use the measured nine-yalm straight-leg target')
+
+local upper_corner_points = T({
+    T({ zone = 244, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 4, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 244, x = 4, z = 10, y = 0, source = 'dat-collision' }),
+})
+local upper_corner_target = accessxi.nav_precise_steering_target(
+    T({ zone = 244, x = 2, z = 1, y = 0 }), upper_corner_points, 2, 5)
+assert(upper_corner_target ~= nil
+        and math.abs(upper_corner_target.x - 4) < 0.001
+        and math.abs(upper_corner_target.z) < 0.001,
+    'smoother DAT collision steering cut across its next validated corner')
+
+local lathine_straight_points = T({
+    T({ zone = 102, x = 0, z = 0, y = 0, source = 'dat-collision' }),
+    T({ zone = 102, x = 20, z = 0, y = 0, source = 'dat-collision' }),
+})
+local lathine_straight_target = accessxi.nav_precise_steering_target(
+    T({ zone = 102, x = 2, z = 1.5, y = 0 }), lathine_straight_points, 2, 5)
+assert(lathine_straight_target ~= nil
+        and math.abs(lathine_straight_target.x - 4) < 0.001,
+    'La Theine lost its narrow-path two-yalm collision steering cap')
+
+-- Walking just beyond the bounded segment match tolerance must not silently
+-- leave a route active with no beacon target.  Production may recover a
+-- target or fail the route closed, but it cannot keep silent navigation state.
+local beacon_regression_failures = {}
+local function beacon_regression_expect(condition, message)
+    if not condition then
+        beacon_regression_failures[#beacon_regression_failures + 1] = message
+    end
+end
+local off_segment_player = T({ zone = 102, x = 0.5, z = 6.01, y = 0 })
+local recovered_collision_points = T({
+    T({ zone = 102, x = off_segment_player.x, z = off_segment_player.z, y = 0,
+        source = 'dat-collision' }),
+    T({ zone = 102, x = 4, z = 6.01, y = 0, source = 'dat-collision' }),
+    T({ zone = 102, x = 10, z = 6.01, y = 0, source = 'dat-collision' }),
+})
+local precise_recovery_calls = 0
+function accessxi.nav_compute_route_with_zoneline_approach(_, _)
+    precise_recovery_calls = precise_recovery_calls + 1
+    return recovered_collision_points
+end
+accessxi.nav_active = true
+accessxi.nav_destination = collision_points[collision_points:len()]
+accessxi.nav_route_points = collision_points
+accessxi.nav_route_point_index = 2
+accessxi.nav_precise_route_return_clear()
+local off_segment_target = accessxi.nav_beacon_route_target(off_segment_player)
+beacon_regression_expect(
+    off_segment_target ~= nil and accessxi.nav_active == true and precise_recovery_calls == 1,
+    'collision route did not immediately recover an audible target at 6.01 yalms off its bounded segment')
+
+-- A retained correction anchor belongs only while it remains locally useful.
+-- When it is stale but the player still matches the same live route, steering
+-- must discard it and rematch instead of returning nil and silencing beacons.
+local rematch_player = T({ zone = 102, x = 0.5, z = 0, y = 0 })
+accessxi.nav_precise_return_target = T({
+    zone = 102, x = 10, z = 0, y = 0, source = 'live-route-return',
+})
+accessxi.nav_precise_return_points = collision_points
+accessxi.nav_precise_return_segment = 1
+local rematched_target = accessxi.nav_precise_steering_target(
+    rematch_player, collision_points, 2, 5)
+beacon_regression_expect(
+    rematched_target ~= nil and accessxi.nav_precise_return_target == nil,
+    'stale same-route precise-return anchor was not cleared and rematched to an audible target')
+if #beacon_regression_failures > 0 then
+    error(table.concat(beacon_regression_failures, '\n'))
+end
 
 accessxi.nav_active = true
 accessxi.nav_destination = T({ zone = 102, x = 10, z = 10, y = 0 })

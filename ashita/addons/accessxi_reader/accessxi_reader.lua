@@ -1165,14 +1165,26 @@ local accessxi = T{
     nav_dat_collision_pending = nil,
     nav_dat_collision_last_poll_tick = 0,
     nav_beacon_parent_dir = accessxi_paths.addon_path('sounds'),
+    nav_beacon_compat_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
+    nav_beacon_hrtf_dir = accessxi_paths.addon_path('sounds', 'nav_beacon_hrtf'),
+    nav_beacon_audio_mode_path = accessxi_paths.addon_path('data', 'nav-beacon-audio-mode.txt'),
+    nav_beacon_audio_mode = 'compatibility',
+    nav_beacon_audio_mode_loaded = false,
     nav_beacon_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
+    nav_beacon_bank = 'compatibility',
     nav_beacon_enabled = true,
     nav_beacon_files_ready = false,
     nav_beacon_winmm = nil,
     nav_beacon_last_tick = 0,
+    nav_beacon_last_attempt_tick = 0,
     nav_beacon_last_key = '',
+    nav_beacon_last_play_failure_tick = 0,
+    nav_beacon_last_play_failure_key = '',
     nav_beacon_route_identity = nil,
     nav_beacon_route_acquired = false,
+    nav_beacon_centered = false,
+    nav_beacon_center_index = nil,
+    nav_beacon_previous_delta = nil,
     nav_beacon_motion_x = nil,
     nav_beacon_motion_z = nil,
     nav_route_poll_ms = 850,
@@ -68005,7 +68017,7 @@ end
 
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
 (function ()
-local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "c468359e561c0de6234f829963cdedd9b1b290e1e668d963596e341f93941949";
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "eacce7146bcc5dd94c06fbdbefede1fd92528f60bf1f33d5773d8e79192f73a2";
 local accessxi_objective_manifest_rows = nil;
 local accessxi_objective_file_hasher = nil;
 local accessxi_objective_runtime_attempted = false;
@@ -69004,6 +69016,7 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -69378,6 +69391,22 @@ function accessxi.nav_dat_collision_destination_copy(point)
     };
 end
 
+function accessxi.nav_dat_collision_prefer_smoother(player, point, points)
+    if (type(accessxi.nav_collision_smoother_route) ~= 'function') then
+        return points;
+    end
+    local ok, selected = pcall(accessxi.nav_collision_smoother_route, player, point, points);
+    if (not ok) then
+        log_line('collision terrain smoother corridor failed safely: '
+            .. accessxi.escape_probe_log_text(selected));
+        return points;
+    end
+    if (type(selected) ~= 'table' or #selected <= 1) then
+        return points;
+    end
+    return selected;
+end
+
 function accessxi.nav_dat_collision_route(player, point)
     if (player == nil or point == nil
         or (tonumber(player.zone) or 0) <= 0
@@ -69411,6 +69440,7 @@ function accessxi.nav_dat_collision_route(player, point)
                 source = 'dat-collision',
             });
         end
+        copied = accessxi.nav_dat_collision_prefer_smoother(player, point, copied);
         accessxi.nav_dat_collision_pending = nil;
         log_line(('collision terrain route destination="%s" zone=%d count=%d'):fmt(
             accessxi.escape_probe_log_text(point.name or ''),
@@ -69559,6 +69589,7 @@ function accessxi.poll_nav_dat_collision(now)
             source = 'dat-collision',
         });
     end
+    copied = accessxi.nav_dat_collision_prefer_smoother(player, destination, copied);
     accessxi.nav_route_points = copied;
     accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, copied, destination);
     accessxi.nav_route_last_recalc_tick = now;
@@ -70505,6 +70536,181 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
         return points;
     end
     return points;
+end
+
+function accessxi.nav_collision_smoother_route(player, destination, collision_points)
+    if (type(collision_points) ~= 'table' or #collision_points < 5
+        or type(accessxi.nav_dat_collision_state) ~= 'table'
+        or type(accessxi.nav_dat_collision_state.validate_direct_route) ~= 'function'
+        or (tonumber(player ~= nil and player.zone) or 0) == 102) then
+        return collision_points;
+    end
+
+    local function copy_point(point)
+        return T{
+            zone = tonumber(point ~= nil and point.zone) or 0,
+            name = tostring(point ~= nil and point.name or 'Terrain waypoint'),
+            x = tonumber(point ~= nil and point.x) or 0,
+            z = tonumber(point ~= nil and point.z) or 0,
+            y = tonumber(point ~= nil and point.y) or 0,
+            kind = 'route',
+            source = 'dat-collision',
+        };
+    end
+
+    local function horizontal_distance(first, second)
+        local dx = (tonumber(second ~= nil and second.x) or 0)
+            - (tonumber(first ~= nil and first.x) or 0);
+        local dz = (tonumber(second ~= nil and second.z) or 0)
+            - (tonumber(first ~= nil and first.z) or 0);
+        return math.sqrt((dx * dx) + (dz * dz));
+    end
+
+    local function append_distinct(points, point)
+        local copied = copy_point(point);
+        local previous = points[#points];
+        if (previous == nil or horizontal_distance(previous, copied) >= 0.01) then
+            points:append(copied);
+        end
+    end
+
+    local function normalized(points)
+        local result = T{};
+        for _, point in ipairs(points or {}) do
+            append_distinct(result, point);
+        end
+        return result;
+    end
+
+    local function metrics(points)
+        local length = 0;
+        local maximum_turn = 0;
+        local cumulative_turn = 0;
+        for index = 2, #points do
+            length = length + horizontal_distance(points[index - 1], points[index]);
+        end
+        for index = 2, #points - 1 do
+            local incoming = accessxi.nav_atan2(
+                (tonumber(points[index].z) or 0) - (tonumber(points[index - 1].z) or 0),
+                (tonumber(points[index].x) or 0) - (tonumber(points[index - 1].x) or 0));
+            local outgoing = accessxi.nav_atan2(
+                (tonumber(points[index + 1].z) or 0) - (tonumber(points[index].z) or 0),
+                (tonumber(points[index + 1].x) or 0) - (tonumber(points[index].x) or 0));
+            local turn = math.abs(accessxi.nav_normalize_angle(outgoing - incoming));
+            if (turn > maximum_turn) then maximum_turn = turn; end
+            cumulative_turn = cumulative_turn + turn;
+        end
+        return length, maximum_turn, cumulative_turn;
+    end
+
+    local collision = normalized(collision_points);
+    local collision_length, collision_turn, collision_cumulative_turn = metrics(collision);
+    local severe_turn = 75 * math.pi / 180;
+    if (collision_turn < severe_turn) then
+        return collision_points;
+    end
+
+    local mesh_ok, mesh_points = pcall(nav_compute_mesh_route, player, destination, true);
+    if (not mesh_ok or type(mesh_points) ~= 'table' or #mesh_points < 2) then
+        return collision_points;
+    end
+    local mesh = normalized(mesh_points);
+    local candidates = {};
+    local minimum_turn_gain = 15 * math.pi / 180;
+    for collision_index = 2, #collision - 1 do
+        for mesh_index = 2, #mesh - 1 do
+            local bridge_length = horizontal_distance(
+                collision[collision_index], mesh[mesh_index]);
+            local vertical_gap = math.abs(
+                (tonumber(collision[collision_index].y) or 0)
+                - (tonumber(mesh[mesh_index].y) or 0));
+            if (bridge_length <= 6.0 and vertical_gap <= 1.5) then
+                local candidate = T{};
+                for index = 1, collision_index do
+                    append_distinct(candidate, collision[index]);
+                end
+                for index = mesh_index, #mesh do
+                    append_distinct(candidate, mesh[index]);
+                end
+                local length, maximum_turn, cumulative_turn = metrics(candidate);
+                if (length <= collision_length - 1.0
+                    and maximum_turn <= collision_turn - minimum_turn_gain
+                    and cumulative_turn <= collision_cumulative_turn * 0.80) then
+                    candidates[#candidates + 1] = {
+                        collision_index = collision_index,
+                        mesh_index = mesh_index,
+                        length = length,
+                        maximum_turn = maximum_turn,
+                        cumulative_turn = cumulative_turn,
+                    };
+                end
+            end
+        end
+    end
+    table.sort(candidates, function(first, second)
+        if (math.abs(first.cumulative_turn - second.cumulative_turn) > 0.0001) then
+            return first.cumulative_turn < second.cumulative_turn;
+        end
+        if (math.abs(first.maximum_turn - second.maximum_turn) > 0.0001) then
+            return first.maximum_turn < second.maximum_turn;
+        end
+        if (math.abs(first.length - second.length) > 0.0001) then
+            return first.length < second.length;
+        end
+        if (first.collision_index ~= second.collision_index) then
+            return first.collision_index < second.collision_index;
+        end
+        return first.mesh_index < second.mesh_index;
+    end);
+
+    for _, entry in ipairs(candidates) do
+        local bridge_start = collision[entry.collision_index];
+        local bridge_end = mesh[entry.mesh_index];
+        local bridge_ok, bridge_points = pcall(
+            nav_compute_mesh_route, bridge_start, bridge_end, true);
+        if (bridge_ok and type(bridge_points) == 'table') then
+            local bridge = normalized(bridge_points);
+            if (#bridge == 2
+                and horizontal_distance(bridge[1], bridge_start) <= 0.25
+                and horizontal_distance(bridge[2], bridge_end) <= 0.25) then
+                local candidate = T{};
+                for index = 1, entry.collision_index do
+                    append_distinct(candidate, collision[index]);
+                end
+                append_distinct(candidate, bridge[2]);
+                for index = entry.mesh_index + 1, #mesh do
+                    append_distinct(candidate, mesh[index]);
+                end
+                local length, maximum_turn, cumulative_turn = metrics(candidate);
+                local valid_ok, clear, reason = pcall(
+                    accessxi.nav_dat_collision_state.validate_direct_route,
+                    accessxi.nav_dat_collision_state,
+                    candidate);
+                if (valid_ok and clear == true
+                    and length <= collision_length - 1.0
+                    and maximum_turn <= collision_turn - minimum_turn_gain
+                    and cumulative_turn <= collision_cumulative_turn * 0.80) then
+                    log_line(('collision terrain smoother corridor selected '
+                        .. 'collision_count=%d hybrid_count=%d collision_length=%.2f '
+                        .. 'hybrid_length=%.2f collision_turn=%.1f hybrid_turn=%.1f '
+                        .. 'collision_cumulative_turn=%.1f hybrid_cumulative_turn=%.1f'):fmt(
+                        #collision,
+                        #candidate,
+                        collision_length,
+                        length,
+                        collision_turn * 180 / math.pi,
+                        maximum_turn * 180 / math.pi,
+                        collision_cumulative_turn * 180 / math.pi,
+                        cumulative_turn * 180 / math.pi));
+                    return candidate;
+                end
+                if (valid_ok and nav_clean_field(reason) ~= '') then
+                    accessxi.nav_route_last_reject_reason = nav_clean_field(reason);
+                end
+            end
+        end
+    end
+    return collision_points;
 end
 
 function accessxi.nav_compute_mesh_endpoint_approach(player, point)
@@ -73385,8 +73591,16 @@ local function nav_point_source_rank(point)
 
     local source = tostring(point.source or ''):lower();
     local kind = tostring(point.kind or ''):lower();
+    local raw_identity = tostring(point.raw_identity or ''):lower();
+    local exact_zoneline_bias = 0;
+    if ((kind:contains('area') or kind:contains('transition'))
+        and tostring(point.destination_id or '') ~= ''
+        and (raw_identity:sub(1, 14) == 'lsb:zonelines:'
+            or raw_identity:sub(1, 21) == 'lsb:scripted_trigger:')) then
+        exact_zoneline_bias = -0.25;
+    end
     if (kind:contains('area') or kind:contains('transition')) then
-        return confidence_rank + 0;
+        return confidence_rank + exact_zoneline_bias;
     end
     if (source:contains('database') or kind:contains('home') or kind:contains('waypoint')) then
         return confidence_rank + 1;
@@ -73423,6 +73637,20 @@ accessxi.nav_menu_static_key = function (point)
         tonumber(point.zone) or 0,
         kind,
         tostring(point.name or ''):lower():gsub('%s+', ' '));
+end
+
+accessxi.nav_static_destination_is_better = function (point, previous)
+    if (point == nil) then
+        return false;
+    end
+    if (previous == nil) then
+        return true;
+    end
+    local point_rank = nav_point_source_rank(point);
+    local previous_rank = nav_point_source_rank(previous);
+    return point_rank < previous_rank
+        or (point_rank == previous_rank
+            and (tonumber(point.distance) or 999999) < (tonumber(previous.distance) or 999999));
 end
 
 accessxi.nav_search_text = function (value)
@@ -73486,9 +73714,7 @@ local function nav_collect_menu_items(category_key, search_query)
                 static_destination_keys[duplicate_key] = true;
             end
             local previous = static_by_key[key];
-            if (previous == nil
-                or nav_point_source_rank(point) < nav_point_source_rank(previous)
-                or (nav_point_source_rank(point) == nav_point_source_rank(previous) and (tonumber(point.distance) or 999999) < (tonumber(previous.distance) or 999999))) then
+            if (accessxi.nav_static_destination_is_better(point, previous)) then
                 static_by_key[key] = point;
             end
         end
@@ -74156,6 +74382,7 @@ local function nav_menu_start_route()
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74519,6 +74746,7 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74789,6 +75017,7 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_reset_direction_state();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -76297,6 +76526,7 @@ end
 nav_route_stop = function ()
     accessxi.nav_clear_zone_search();
     accessxi.nav_clear_zoning_watch('route-stop');
+    accessxi.nav_beacon_reset_direction_state();
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('route-stop');
     end
@@ -93345,6 +93575,131 @@ function accessxi.nav_beacon_write_wav(path, pan, rear)
     return true;
 end
 
+function accessxi.nav_beacon_normalize_audio_mode(value)
+    value = tostring(value or ''):lower():gsub('[^%w]+', '');
+    if (value == 'hrtf' or value == 'headphone' or value == 'headphones'
+        or value == 'binaural') then
+        return 'hrtf';
+    end
+    if (value == 'compatibility' or value == 'compatible' or value == 'speaker'
+        or value == 'speakers' or value == 'stereo') then
+        return 'compatibility';
+    end
+    return nil;
+end
+
+function accessxi.nav_beacon_load_audio_mode()
+    if (accessxi.nav_beacon_audio_mode_loaded == true) then
+        return accessxi.nav_beacon_audio_mode;
+    end
+    accessxi.nav_beacon_audio_mode_loaded = true;
+    local mode = nil;
+    local file = io.open(accessxi.nav_beacon_audio_mode_path, 'r');
+    if (file ~= nil) then
+        mode = accessxi.nav_beacon_normalize_audio_mode(file:read('*l'));
+        file:close();
+    end
+    accessxi.nav_beacon_audio_mode = mode or 'compatibility';
+    return accessxi.nav_beacon_audio_mode;
+end
+
+function accessxi.nav_beacon_save_audio_mode(value)
+    local mode = accessxi.nav_beacon_normalize_audio_mode(value);
+    if (mode == nil) then
+        return nil, 'Unknown navigation beacon audio mode.';
+    end
+    local file = io.open(accessxi.nav_beacon_audio_mode_path, 'w');
+    if (file == nil) then
+        return nil, 'Could not save navigation beacon audio mode.';
+    end
+    file:write(mode, '\n');
+    file:close();
+    accessxi.nav_beacon_audio_mode = mode;
+    accessxi.nav_beacon_audio_mode_loaded = true;
+    accessxi.nav_beacon_files_ready = false;
+    accessxi.nav_beacon_last_tick = 0;
+    accessxi.nav_beacon_last_key = '';
+    return mode, nil;
+end
+
+function accessxi.nav_beacon_read_le_u16(data, offset)
+    local a, b = data:byte(offset, offset + 1);
+    if (a == nil or b == nil) then
+        return nil;
+    end
+    return a + (b * 256);
+end
+
+function accessxi.nav_beacon_read_le_u32(data, offset)
+    local a, b, c, d = data:byte(offset, offset + 3);
+    if (a == nil or b == nil or c == nil or d == nil) then
+        return nil;
+    end
+    return a + (b * 256) + (c * 65536) + (d * 16777216);
+end
+
+function accessxi.nav_beacon_hrtf_wav_valid(path)
+    local file = io.open(path, 'rb');
+    if (file == nil) then
+        return false;
+    end
+    local header = file:read(44) or '';
+    local size = file:seek('end') or 0;
+    file:close();
+    return size == 25136 and #header == 44
+        and header:sub(1, 4) == 'RIFF' and header:sub(9, 12) == 'WAVE'
+        and header:sub(13, 16) == 'fmt ' and header:sub(37, 40) == 'data'
+        and accessxi.nav_beacon_read_le_u32(header, 17) == 16
+        and accessxi.nav_beacon_read_le_u16(header, 21) == 1
+        and accessxi.nav_beacon_read_le_u16(header, 23) == 2
+        and accessxi.nav_beacon_read_le_u32(header, 25) == 48000
+        and accessxi.nav_beacon_read_le_u32(header, 29) == 192000
+        and accessxi.nav_beacon_read_le_u16(header, 33) == 4
+        and accessxi.nav_beacon_read_le_u16(header, 35) == 16
+        and accessxi.nav_beacon_read_le_u32(header, 41) == 25092;
+end
+
+function accessxi.nav_beacon_hrtf_manifest_valid()
+    local path = ('%s\\manifest.tsv'):fmt(accessxi.nav_beacon_hrtf_dir);
+    local file = io.open(path, 'r');
+    if (file == nil) then
+        return false;
+    end
+    local header = file:read('*l') or '';
+    local found = {};
+    local count = 0;
+    for line in file:lines() do
+        local version, name, angle, measurement, azimuth, elevation, digest = line:match(
+            '^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$');
+        if (version ~= 'accessxi-nav-beacon-hrtf-v2'
+            or name == nil or digest == nil or #digest ~= 64
+            or not digest:match('^[0-9a-fA-F]+$')) then
+            file:close();
+            return false;
+        end
+        if (found[name] == true) then
+            file:close();
+            return false;
+        end
+        found[name] = true;
+        count = count + 1;
+    end
+    file:close();
+    if (header ~= 'format_version\tfile\tselector_angle_degrees\tsofa_measurement\tsofa_azimuth_degrees\tsofa_elevation_degrees\toutput_sha256'
+        or count ~= 26) then
+        return false;
+    end
+    for mode = 0, 1 do
+        local prefix = mode == 1 and 'rear' or 'front';
+        for bin = 0, 12 do
+            if (found[('%s_%02d.wav'):fmt(prefix, bin)] ~= true) then
+                return false;
+            end
+        end
+    end
+    return true;
+end
+
 function accessxi.nav_collision_clamp_sample(value)
     value = math.floor(tonumber(value) or 0);
     if (value > 32767) then
@@ -93496,7 +93851,7 @@ function accessxi.nav_beacon_ensure_files()
     accessxi.nav_beacon_files_ready = true;
 
     pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_parent_dir), nil); end);
-    pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_dir), nil); end);
+    pcall(function () kernel32.CreateDirectoryW(utf8_to_wide(accessxi.nav_beacon_compat_dir), nil); end);
 
     local ok, lib = pcall(ffi.load, 'winmm');
     if (not ok or lib == nil) then
@@ -93510,7 +93865,7 @@ function accessxi.nav_beacon_ensure_files()
         local rear = mode == 1;
         local prefix = rear and 'rear' or 'front';
         for bin = 0, 12 do
-            local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_dir, prefix, bin);
+            local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_compat_dir, prefix, bin);
             local existing = io.open(path, 'rb');
             if (existing ~= nil) then
                 existing:close();
@@ -93523,8 +93878,89 @@ function accessxi.nav_beacon_ensure_files()
         end
     end
 
-    log_line(('nav beacon ready created=%d dir="%s"'):fmt(created, accessxi.nav_beacon_dir));
+    local requested_mode = accessxi.nav_beacon_load_audio_mode();
+    local hrtf_ready = requested_mode == 'hrtf' and accessxi.nav_beacon_hrtf_manifest_valid();
+    if (hrtf_ready) then
+        for mode = 0, 1 do
+            local prefix = mode == 1 and 'rear' or 'front';
+            for bin = 0, 12 do
+                local path = ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_hrtf_dir, prefix, bin);
+                if (not accessxi.nav_beacon_hrtf_wav_valid(path)) then
+                    hrtf_ready = false;
+                end
+            end
+        end
+    end
+    accessxi.nav_beacon_dir = hrtf_ready and accessxi.nav_beacon_hrtf_dir
+        or accessxi.nav_beacon_compat_dir;
+    accessxi.nav_beacon_bank = hrtf_ready and 'hrtf' or 'compatibility';
+    if (requested_mode == 'hrtf' and not hrtf_ready) then
+        log_line('nav beacon HRTF bank invalid or incomplete; compatibility audio active');
+    end
+    log_line(('nav beacon ready created=%d bank=%s dir="%s"'):fmt(
+        created, accessxi.nav_beacon_bank, accessxi.nav_beacon_dir));
     return true;
+end
+
+function accessxi.nav_beacon_play(path, now, fallback_path)
+    now = tonumber(now) or tick();
+
+    local function play_once(candidate)
+        if (accessxi.nav_beacon_winmm == nil) then
+            return false, 'winmm unavailable';
+        end
+        local ok, result = pcall(function ()
+            return accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(candidate), nil, 0x00020003);
+        end);
+        if (not ok) then
+            return false, tostring(result or 'PlaySoundW call failed');
+        end
+        if (result == true or (tonumber(result) or 0) ~= 0) then
+            return true, '';
+        end
+        return false, 'PlaySoundW returned false';
+    end
+
+    local played, reason = play_once(path);
+    if (not played) then
+        accessxi.nav_beacon_winmm = nil;
+        accessxi.nav_beacon_files_ready = false;
+        if (accessxi.nav_beacon_ensure_files()) then
+            played, reason = play_once(path);
+        else
+            reason = 'winmm reload failed';
+        end
+    end
+
+    if (not played and fallback_path ~= nil and tostring(fallback_path) ~= ''
+        and tostring(fallback_path) ~= tostring(path)) then
+        played, reason = play_once(fallback_path);
+        if (played) then
+            accessxi.nav_beacon_dir = accessxi.nav_beacon_compat_dir;
+            accessxi.nav_beacon_bank = 'compatibility';
+            log_line('nav beacon HRTF playback failed; compatibility audio active');
+        end
+    end
+
+    if (played) then
+        if (accessxi.nav_beacon_last_play_failure_key ~= '') then
+            log_line('nav beacon audio recovered');
+        end
+        accessxi.nav_beacon_last_play_failure_key = '';
+        return true;
+    end
+
+    local failure_key = tostring(reason or 'unknown');
+    if (failure_key ~= tostring(accessxi.nav_beacon_last_play_failure_key or '')
+        or (now - (tonumber(accessxi.nav_beacon_last_play_failure_tick) or 0)) >= 5000) then
+        accessxi.nav_beacon_last_play_failure_key = failure_key;
+        accessxi.nav_beacon_last_play_failure_tick = now;
+        local log_reason = type(accessxi.escape_probe_log_text) == 'function'
+            and accessxi.escape_probe_log_text(failure_key) or failure_key;
+        log_line(('nav beacon audio failed reason="%s"'):fmt(
+            log_reason));
+    end
+    return false;
 end
 
 function accessxi.enemy_warning_ensure_audio()
@@ -94174,12 +94610,18 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
     local preferred_segment = math.max(1, index - 1);
     local route_id = accessxi.nav_route_points_override_id(points);
     local collision_segment = route_id == 'dat-collision' or route_id == 'lathine-navmesh';
+    local narrow_collision_segment = route_id == 'lathine-navmesh'
+        or (route_id == 'dat-collision' and (tonumber(player.zone) or 0) == 102);
     local match_first = collision_segment and preferred_segment or nil;
     local match_last = collision_segment and preferred_segment or nil;
     local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1;
     local effective_lookahead = smooth_lookahead and math.max(9, tonumber(lookahead) or 0) or lookahead;
-    if (collision_segment) then
+    if (narrow_collision_segment) then
         effective_lookahead = math.min(2.0, tonumber(effective_lookahead) or 5);
+    elseif (collision_segment) then
+        -- Stay on the validated segment, but look far enough ahead that a
+        -- small lateral walking wobble does not command a sharp correction.
+        effective_lookahead = 9.0;
     end
     local px = tonumber(player.x) or 0;
     local pz = tonumber(player.z) or 0;
@@ -94223,7 +94665,8 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
                     return accessxi.nav_lathine_replan_or_stop(
                         player, points, lookahead, safety_replanned == true);
                 else
-                    return nil;
+                    accessxi.nav_precise_route_return_clear();
+                    match = nil;
                 end
             end
         end
@@ -94250,6 +94693,57 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
     return target;
 end
 
+function accessxi.nav_precise_route_recover_or_stop(player, destination, points, lookahead)
+    if (player == nil or destination == nil or accessxi.nav_dat_collision_pending ~= nil
+        or not accessxi.nav_active or accessxi.nav_destination ~= destination
+        or accessxi.nav_route_points ~= points) then
+        return nil;
+    end
+
+    accessxi.nav_route_last_recalc_tick = tick();
+    local refreshed = T{};
+    if (type(accessxi.nav_compute_route_with_zoneline_approach) == 'function') then
+        refreshed = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
+    end
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        return nil;
+    end
+
+    if (refreshed ~= nil and refreshed:len() > 1) then
+        accessxi.nav_route_points = refreshed;
+        accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, destination);
+        accessxi.nav_precise_route_return_clear();
+
+        local target = nil;
+        if (accessxi.nav_route_precise_override_active(player, refreshed)) then
+            target = accessxi.nav_precise_steering_target(
+                player, refreshed, accessxi.nav_route_point_index, lookahead, true);
+        else
+            target = accessxi.nav_indexed_lookahead_target(
+                player, refreshed, accessxi.nav_route_lookahead_distance(player, destination));
+        end
+        if (target ~= nil) then
+            log_line(('nav precise target recovered destination="%s" count=%d'):fmt(
+                destination.name or '', refreshed:len()));
+            return target;
+        end
+    end
+
+    local name = tostring(destination.name or 'destination');
+    local text = ('Navigation stopped. No safe route from the current position to %s.'):fmt(name);
+    if (type(nav_write_route_evidence) == 'function') then
+        nav_write_route_evidence('unreachable', player, destination, nil, T{
+            reason = 'precise route lost its local steering target',
+        });
+    end
+    if (accessxi.nav_active and accessxi.nav_destination == destination) then
+        nav_route_stop();
+        speak(text);
+        log_line(('nav precise target lost destination="%s"'):fmt(name));
+    end
+    return nil;
+end
+
 function accessxi.nav_beacon_route_target(player)
     if (player == nil or not accessxi.nav_active or accessxi.nav_destination == nil) then
         return nil;
@@ -94273,8 +94767,14 @@ function accessxi.nav_beacon_route_target(player)
         end
 
         if (accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
-            return accessxi.nav_precise_steering_target(
-                player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+            local route_points = accessxi.nav_route_points;
+            local target = accessxi.nav_precise_steering_target(
+                player, route_points, accessxi.nav_route_point_index, 5);
+            if (target == nil) then
+                return accessxi.nav_precise_route_recover_or_stop(
+                    player, destination, route_points, 5);
+            end
+            return target;
         end
 
         local route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
@@ -94290,6 +94790,16 @@ function accessxi.nav_beacon_route_target(player)
     return destination;
 end
 
+function accessxi.nav_beacon_reset_direction_state()
+    accessxi.nav_beacon_route_identity = nil;
+    accessxi.nav_beacon_route_acquired = false;
+    accessxi.nav_beacon_centered = false;
+    accessxi.nav_beacon_center_index = nil;
+    accessxi.nav_beacon_previous_delta = nil;
+    accessxi.nav_beacon_motion_x = nil;
+    accessxi.nav_beacon_motion_z = nil;
+end
+
 function accessxi.nav_beacon_direction_delta(player, route_target, points, index, route_geometry)
     local target_heading = accessxi.nav_heading_to(player, route_target);
     local yaw = player ~= nil and tonumber(player.yaw) or nil;
@@ -94301,90 +94811,56 @@ function accessxi.nav_beacon_direction_delta(player, route_target, points, index
     end
 
     local raw_delta = accessxi.nav_normalize_angle(target_heading + yaw);
+    local acquired_before = accessxi.nav_beacon_route_acquired == true;
     local source = tostring(route_target ~= nil and route_target.source or '');
     local explicit_correction = source == 'live-route-return'
         or source == 'dynamic-obstacle'
         or source == 'wall-escape'
         or source == 'lathine-local-safe';
     local count = points ~= nil and points:len() or 0;
-    if (route_geometry ~= true or count < 2 or explicit_correction) then
-        accessxi.nav_beacon_motion_x = tonumber(player.x);
-        accessxi.nav_beacon_motion_z = tonumber(player.z);
+    if (route_geometry == true and count >= 2 and not explicit_correction
+        and not acquired_before
+        and math.abs(raw_delta) <= (20 * math.pi / 180)) then
+        accessxi.nav_beacon_route_acquired = true;
+    end
+
+    local ordinary_tracking = route_geometry == true and count >= 2
+        and not explicit_correction and acquired_before;
+    if (not ordinary_tracking) then
+        accessxi.nav_beacon_centered = false;
+        accessxi.nav_beacon_center_index = nil;
+        accessxi.nav_beacon_previous_delta = nil;
         return raw_delta;
     end
 
-    if (accessxi.nav_beacon_route_acquired ~= true) then
-        accessxi.nav_beacon_motion_x = tonumber(player.x);
-        accessxi.nav_beacon_motion_z = tonumber(player.z);
-        if (math.abs(raw_delta) <= (20 * math.pi / 180)) then
-            accessxi.nav_beacon_route_acquired = true;
+    local current_index = tonumber(index) or 0;
+    if (accessxi.nav_beacon_center_index ~= current_index) then
+        accessxi.nav_beacon_centered = false;
+        accessxi.nav_beacon_center_index = current_index;
+        accessxi.nav_beacon_previous_delta = raw_delta;
+        return raw_delta;
+    end
+
+    local center_enter = 12 * math.pi / 180;
+    local center_exit = 18 * math.pi / 180;
+    local magnitude = math.abs(raw_delta);
+    local previous_delta = tonumber(accessxi.nav_beacon_previous_delta);
+    local center_crossing = previous_delta ~= nil
+        and (previous_delta * raw_delta) < 0
+        and math.abs(previous_delta) <= center_exit
+        and magnitude <= center_exit;
+    accessxi.nav_beacon_previous_delta = raw_delta;
+
+    if (accessxi.nav_beacon_centered == true) then
+        if (magnitude <= center_exit) then
             return 0;
         end
-        return raw_delta;
-    end
-
-    index = math.max(1, math.min(math.floor(tonumber(index) or 1), count));
-    local corner = points[index];
-    local previous = nil;
-    local inbound = nil;
-    for candidate_index = index - 1, 1, -1 do
-        local candidate = points[candidate_index];
-        local heading = accessxi.nav_heading_to(candidate, corner);
-        if (heading ~= nil) then
-            previous = candidate;
-            inbound = heading;
-            break;
-        end
-    end
-    if (inbound == nil and index < count) then
-        inbound = accessxi.nav_heading_to(corner, points[index + 1]);
-    end
-
-    local px = tonumber(player.x);
-    local pz = tonumber(player.z);
-    local last_x = tonumber(accessxi.nav_beacon_motion_x);
-    local last_z = tonumber(accessxi.nav_beacon_motion_z);
-    if (px ~= nil and pz ~= nil) then
-        if (last_x == nil or last_z == nil) then
-            accessxi.nav_beacon_motion_x = px;
-            accessxi.nav_beacon_motion_z = pz;
-        else
-            local moved_x = px - last_x;
-            local moved_z = pz - last_z;
-            local moved = math.sqrt((moved_x * moved_x) + (moved_z * moved_z));
-            if (moved >= 0.75) then
-                accessxi.nav_beacon_motion_x = px;
-                accessxi.nav_beacon_motion_z = pz;
-                local motion_heading = accessxi.nav_atan2(moved_z, moved_x);
-                if (inbound ~= nil) then
-                    local course_delta = accessxi.nav_normalize_angle(inbound - motion_heading);
-                    if (math.abs(course_delta) >= (35 * math.pi / 180)) then
-                        return course_delta;
-                    end
-                end
-            end
-        end
-    end
-
-    if (index <= 1 or index >= count or previous == nil or corner == nil
-        or nav_distance(player, corner) > 5.0) then
+        accessxi.nav_beacon_centered = false;
+    elseif (magnitude <= center_enter or center_crossing) then
+        accessxi.nav_beacon_centered = true;
         return 0;
     end
-    local outbound = nil;
-    for candidate_index = index + 1, count do
-        outbound = accessxi.nav_heading_to(corner, points[candidate_index]);
-        if (outbound ~= nil) then
-            break;
-        end
-    end
-    if (inbound == nil or outbound == nil) then
-        return 0;
-    end
-    local turn_delta = accessxi.nav_normalize_angle(outbound - inbound);
-    if (math.abs(turn_delta) < (25 * math.pi / 180)) then
-        return 0;
-    end
-    return turn_delta;
+    return raw_delta;
 end
 
 function accessxi.nav_beacon_file_for_delta(delta)
@@ -94810,7 +95286,10 @@ function accessxi.poll_nav_beacon()
     end
 
     local now = tick();
-    if ((now - (accessxi.nav_beacon_last_tick or 0)) < 520) then
+    local last_pulse_tick = math.max(
+        tonumber(accessxi.nav_beacon_last_tick) or 0,
+        tonumber(accessxi.nav_beacon_last_attempt_tick) or 0);
+    if ((now - last_pulse_tick) < 520) then
         return;
     end
     if (not accessxi.beacon_audio_available(now)) then
@@ -94855,27 +95334,50 @@ function accessxi.poll_nav_beacon()
         return;
     end
 
-    local route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
+    local route_identity = accessxi.nav_route_points;
+    if (route_identity == nil or route_identity:len() < 2) then
+        route_identity = accessxi.nav_route_start_point or accessxi.nav_destination;
+    end
     if (accessxi.nav_beacon_route_identity ~= route_identity) then
+        accessxi.nav_beacon_reset_direction_state();
         accessxi.nav_beacon_route_identity = route_identity;
-        accessxi.nav_beacon_route_acquired = false;
-        accessxi.nav_beacon_motion_x = nil;
-        accessxi.nav_beacon_motion_z = nil;
     end
     local route_geometry = not drop_handled and not transport_waiting
         and accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() > 1;
+    local direction_acquired_before = accessxi.nav_beacon_route_acquired;
+    local direction_centered_before = accessxi.nav_beacon_centered;
+    local direction_center_index_before = accessxi.nav_beacon_center_index;
+    local direction_previous_delta_before = accessxi.nav_beacon_previous_delta;
+    local direction_motion_x_before = accessxi.nav_beacon_motion_x;
+    local direction_motion_z_before = accessxi.nav_beacon_motion_z;
+    local function restore_unheard_direction_state()
+        accessxi.nav_beacon_route_acquired = direction_acquired_before;
+        accessxi.nav_beacon_centered = direction_centered_before;
+        accessxi.nav_beacon_center_index = direction_center_index_before;
+        accessxi.nav_beacon_previous_delta = direction_previous_delta_before;
+        accessxi.nav_beacon_motion_x = direction_motion_x_before;
+        accessxi.nav_beacon_motion_z = direction_motion_z_before;
+    end
     local delta = accessxi.nav_beacon_direction_delta(
         player, route_target, accessxi.nav_route_points, accessxi.nav_route_point_index, route_geometry);
     if (delta == nil) then
+        restore_unheard_direction_state();
+        return;
+    end
+    if (not accessxi.nav_beacon_ensure_files()) then
+        restore_unheard_direction_state();
         return;
     end
     local path, prefix, bin, pan = accessxi.nav_beacon_file_for_delta(delta);
-    if (not accessxi.nav_beacon_ensure_files()) then
+    local fallback_path = ('%s\\%s_%02d.wav'):fmt(
+        accessxi.nav_beacon_compat_dir, prefix, bin);
+
+    accessxi.nav_beacon_last_attempt_tick = now;
+    if (not accessxi.nav_beacon_play(path, now, fallback_path)) then
+        restore_unheard_direction_state();
         return;
     end
-
     accessxi.nav_beacon_last_tick = now;
-    pcall(function () accessxi.nav_beacon_winmm.PlaySoundW(utf8_to_wide(path), nil, 0x00020003); end);
     accessxi.beacon_audio_claim('nav', 180, now);
 
     local key = ('%s:%02d'):fmt(prefix, bin);
@@ -96012,6 +96514,32 @@ function accessxi.handle_axi_command(args, e, source)
             accessxi.nav_beacon_last_key = '';
             speak('Navigation beacon off.');
             log_line('nav beacon off');
+        elseif (#args >= 3 and args[3]:any('hrtf', 'headphone', 'headphones', 'binaural')) then
+            local mode, reason = accessxi.nav_beacon_save_audio_mode('hrtf');
+            local ready = mode ~= nil and accessxi.nav_beacon_ensure_files();
+            if (ready and accessxi.nav_beacon_bank == 'hrtf') then
+                speak('Navigation beacon headphone H R T F audio on.');
+                log_line('nav beacon audio mode hrtf');
+            else
+                speak(tostring(reason or 'H R T F audio is unavailable. Compatibility stereo is active.'));
+                log_line('nav beacon audio mode hrtf unavailable');
+            end
+        elseif (#args >= 3 and args[3]:any('speaker', 'speakers', 'stereo', 'compatibility')) then
+            local mode, reason = accessxi.nav_beacon_save_audio_mode('compatibility');
+            local ready = mode ~= nil and accessxi.nav_beacon_ensure_files();
+            if (ready) then
+                speak('Navigation beacon speaker compatibility stereo on.');
+                log_line('nav beacon audio mode compatibility');
+            else
+                speak(tostring(reason or 'Navigation beacon audio is unavailable.'));
+            end
+        elseif (#args >= 3 and args[3]:any('status', 'audio')) then
+            accessxi.nav_beacon_ensure_files();
+            local text = accessxi.nav_beacon_bank == 'hrtf'
+                and 'Navigation beacon uses headphone H R T F audio.'
+                or 'Navigation beacon uses speaker compatibility stereo.';
+            speak(text);
+            log_line('nav beacon audio status ' .. tostring(accessxi.nav_beacon_bank));
         else
             accessxi.nav_beacon_enabled = true;
             accessxi.nav_beacon_last_tick = 0;

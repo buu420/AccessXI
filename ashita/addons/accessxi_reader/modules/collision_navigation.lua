@@ -15,7 +15,7 @@ local ZONELINE_SUPPORT_ADVANCE = 0.10
 local ZONELINE_MAX_SWEEPS = 64
 local DLL_RELATIVE_PATH = 'third_party/collision/accessxi_collision_native.dll'
 local MANIFEST_HEADER = 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit'
-local SETTINGS_SHA256 = 'de3351ac99f62503c219ea5c3b53ecbc97ba23b503b9f8a0b62e7c29aeaa10a1'
+local SETTINGS_SHA256 = 'e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c'
 local RECAST_COMMIT = '9f4ce64458dfae86e1239c525ddc219c4e9e06f1'
 local BULLET_COMMIT = '63c4d67e337017f9d8b298c900e9aabdb69296e7'
 
@@ -403,9 +403,9 @@ function State:_query(player, destination, arrival_radius)
     return points, 'ready', ''
 end
 
-function State:_capsule_segment_clear(start_point, end_point)
+function State:_direct_capsule_segment_clear(start_point, end_point)
     if type(self.native.sweep) ~= 'function' then
-        return false, 'Collision terrain capsule validation is unavailable.'
+        return nil, 'Collision terrain capsule validation is unavailable.'
     end
     local start_native = {
         x = start_point.x,
@@ -417,48 +417,74 @@ function State:_capsule_segment_clear(start_point, end_point)
         y = -end_point.y,
         z = end_point.z,
     }
-    local function clear(first, last)
-        local ok, code, result = pcall(
-            self.native.sweep,
-            self.native,
-            self.context,
-            self.generation,
-            first,
-            last,
-            0.40,
-            1.80)
-        if not ok then
-            return nil, 'Collision terrain tail validation raised an error: ' .. tostring(code)
-        end
-        if code ~= RESULT_OK or type(result) ~= 'table'
-            or type(result.clear) ~= 'boolean' then
-            return nil, native_error('tail validation', code)
-        end
-        return result.clear
+    local ok, code, result = pcall(
+        self.native.sweep,
+        self.native,
+        self.context,
+        self.generation,
+        start_native,
+        end_native,
+        0.40,
+        1.80)
+    if not ok then
+        return nil, 'Collision terrain capsule validation raised an error: ' .. tostring(code)
     end
-    local direct, direct_reason = clear(start_native, end_native)
+    if code ~= RESULT_OK or type(result) ~= 'table'
+        or type(result.clear) ~= 'boolean' then
+        return nil, native_error('capsule validation', code)
+    end
+    return result.clear, ''
+end
+
+function State:_capsule_segment_clear(start_point, end_point)
+    local direct, direct_reason = self:_direct_capsule_segment_clear(start_point, end_point)
     if direct == nil then return false, direct_reason end
     if direct then return true, '' end
 
     local raised_start = {
-        x = start_native.x,
-        y = start_native.y + 0.65,
-        z = start_native.z,
+        x = start_point.x,
+        y = start_point.y - 0.65,
+        z = start_point.z,
     }
     local raised_end = {
-        x = end_native.x,
-        y = end_native.y + 0.65,
-        z = end_native.z,
+        x = end_point.x,
+        y = end_point.y - 0.65,
+        z = end_point.z,
     }
     for _, segment in ipairs({
-        { start_native, raised_start },
+        { start_point, raised_start },
         { raised_start, raised_end },
-        { raised_end, end_native },
+        { raised_end, end_point },
     }) do
-        local segment_clear, segment_reason = clear(segment[1], segment[2])
+        local segment_clear, segment_reason = self:_direct_capsule_segment_clear(
+            segment[1], segment[2])
         if segment_clear == nil then return false, segment_reason end
         if not segment_clear then
             return false, 'Collision terrain zoneline tail is blocked.'
+        end
+    end
+    return true, ''
+end
+
+function State:validate_direct_route(points)
+    if self.shutdown_complete then
+        return false, 'Collision terrain navigation is shut down.'
+    end
+    if type(points) ~= 'table' or #points < 2 or #points > MAX_POINTS then
+        return false, 'Collision terrain candidate route is malformed.'
+    end
+    for index, point in ipairs(points) do
+        if type(point) ~= 'table'
+            or not finite(point.x) or not finite(point.z) or not finite(point.y)
+            or not positive_integer(point.zone) or point.zone ~= self.zone then
+            return false, ('Collision terrain candidate waypoint %d is malformed.'):format(index)
+        end
+    end
+    for index = 2, #points do
+        local clear, reason = self:_direct_capsule_segment_clear(points[index - 1], points[index])
+        if clear == nil then return false, reason end
+        if not clear then
+            return false, ('Collision candidate segment %d is blocked.'):format(index - 1)
         end
     end
     return true, ''

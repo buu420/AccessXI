@@ -63,6 +63,7 @@ $nativeStage = Join-Path $RepoRoot 'stage\pol-native'
 $collisionBuildScript = Join-Path $RepoRoot 'tools\build_collision_native.ps1'
 $collisionStage = Join-Path $RepoRoot 'stage\collision-native'
 $collisionManifest = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\data\collision-native-manifest.tsv'
+$hrtfBank = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\sounds\nav_beacon_hrtf'
 
 Assert-True (Test-Path -LiteralPath $packageScript) "Missing package builder: $packageScript"
 Assert-True (Test-Path -LiteralPath $installerScript) "Missing installer script: $installerScript"
@@ -80,6 +81,7 @@ Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative\
 Assert-True (Test-Path -LiteralPath (Join-Path $nativeStage 'AccessXI.PolNative\prism.dll')) 'Missing staged native PlayOnline Prism DLL.'
 Assert-True (Test-Path -LiteralPath $collisionBuildScript) 'Missing collision navigation native build script.'
 Assert-True (Test-Path -LiteralPath $collisionManifest) 'Missing collision navigation native manifest.'
+Assert-True (Test-Path -LiteralPath (Join-Path $hrtfBank 'manifest.tsv')) 'Missing canonical HRTF beacon manifest.'
 Assert-True (Test-Path -LiteralPath (Join-Path $collisionStage 'accessxi_collision_native.dll')) 'Missing staged collision navigation native DLL.'
 
 $packageSource = Get-Content -LiteralPath $packageScript -Raw
@@ -270,6 +272,24 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True ($packagedCollisionHash -eq $manifestHash) 'Packaged collision navigation native DLL does not match the signed manifest row.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'third_party\xiNavmeshes')) 'Package must contain nav meshes beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'sounds\nav_collision')) 'Package must contain the collision sound folder beside the addon.'
+    $packagedHrtf = Join-Path $payloadAddon 'sounds\nav_beacon_hrtf'
+    Assert-True (Test-Path -LiteralPath (Join-Path $packagedHrtf 'manifest.tsv')) 'Package must contain the HRTF beacon manifest.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $packagedHrtf 'NOTICE.txt')) 'Package must contain HRTF provenance notices.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $packagedHrtf 'LICENSE-Apache-2.0.txt')) 'Package must contain the full SADIE Apache 2.0 license.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $packagedHrtf 'source_mono.wav')) 'Package must contain the reproducible HRTF source cue.'
+    $canonicalHrtfRows = @(Import-Csv -LiteralPath (Join-Path $hrtfBank 'manifest.tsv') -Delimiter "`t")
+    $packagedHrtfRows = @(Import-Csv -LiteralPath (Join-Path $packagedHrtf 'manifest.tsv') -Delimiter "`t")
+    Assert-True ($canonicalHrtfRows.Count -eq 26 -and $packagedHrtfRows.Count -eq 26) 'HRTF package must contain exactly 26 directional assets.'
+    foreach ($row in $packagedHrtfRows) {
+        $name = [string]$row.file
+        $expectedHash = ([string]$row.output_sha256).ToUpperInvariant()
+        $canonicalAsset = Join-Path $hrtfBank $name
+        $packagedAsset = Join-Path $packagedHrtf $name
+        Assert-True (Test-Path -LiteralPath $canonicalAsset) "Canonical HRTF asset is missing: $name"
+        Assert-True (Test-Path -LiteralPath $packagedAsset) "Packaged HRTF asset is missing: $name"
+        Assert-True ((Get-FileHash -LiteralPath $canonicalAsset -Algorithm SHA256).Hash -eq $expectedHash) "Canonical HRTF asset hash mismatch: $name"
+        Assert-True ((Get-FileHash -LiteralPath $packagedAsset -Algorithm SHA256).Hash -eq $expectedHash) "Packaged HRTF asset hash mismatch: $name"
+    }
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadAddon 'ffxi-menu-reader.boot.log'))) 'Package must not contain AccessXI addon boot logs.'
     $packagedAddonLogFiles = @()
     if (Test-Path -LiteralPath (Join-Path $payloadAddon 'logs')) {

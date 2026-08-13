@@ -4,8 +4,12 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ReaderPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $LuaPath = Join-Path $RepoRoot 'tools\lua51\lua5.1.exe'
 $LifecycleHarness = Join-Path $RepoRoot 'tools\lua_tests\test_collision_reader_lifecycle.lua'
+$HybridRouteHarness = Join-Path $RepoRoot 'tools\lua_tests\test_collision_route_hybrid.lua'
 $SegmentSteeringHarness = Join-Path $RepoRoot 'tools\lua_tests\test_dat_collision_segment_steering.lua'
 $BeaconTurnCueHarness = Join-Path $RepoRoot 'tools\lua_tests\test_nav_beacon_route_turn_cue.lua'
+$BeaconPlaybackHarness = Join-Path $RepoRoot 'tools\lua_tests\test_nav_beacon_playback.lua'
+$BeaconHrtfAssets = Join-Path $RepoRoot 'tools\test_nav_beacon_hrtf_assets.ps1'
+$BeaconAudioMode = Join-Path $RepoRoot 'tools\test_nav_beacon_audio_mode.ps1'
 $LaTheineDispatchHarness = Join-Path $RepoRoot 'tools\lua_tests\test_lathine_collision_fallback_dispatch.lua'
 $RecordedSurveyHarness = Join-Path $RepoRoot 'tools\lua_tests\test_lathine_recorded_survey_wall_fallback.lua'
 $RecordedSurveyModule = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\modules\recorded_survey_navigation.lua'
@@ -46,6 +50,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Collision reader lifecycle harness failed with exit code $LASTEXITCODE."
 }
 
+& $LuaPath $HybridRouteHarness $ReaderPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Collision route hybrid harness failed with exit code $LASTEXITCODE."
+}
+
 & $LuaPath $SegmentSteeringHarness $ReaderPath
 if ($LASTEXITCODE -ne 0) {
     throw "Collision segment steering harness failed with exit code $LASTEXITCODE."
@@ -54,6 +63,21 @@ if ($LASTEXITCODE -ne 0) {
 & $LuaPath $BeaconTurnCueHarness $ReaderPath
 if ($LASTEXITCODE -ne 0) {
     throw "Navigation beacon turn-cue harness failed with exit code $LASTEXITCODE."
+}
+
+& $LuaPath $BeaconPlaybackHarness $ReaderPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Navigation beacon playback harness failed with exit code $LASTEXITCODE."
+}
+
+& $BeaconHrtfAssets
+if ($LASTEXITCODE -ne 0) {
+    throw "Navigation beacon HRTF asset checks failed with exit code $LASTEXITCODE."
+}
+
+& $BeaconAudioMode
+if ($LASTEXITCODE -ne 0) {
+    throw "Navigation beacon audio-mode checks failed with exit code $LASTEXITCODE."
 }
 
 & $LuaPath $LaTheineDispatchHarness $ReaderPath

@@ -378,6 +378,17 @@ static byte[] BuildValidPackage(string marker, string? extraEntry = null)
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/data/mission-quest-guides/source-snapshot.json", "{}");
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/data/collision-native-manifest.tsv", marker);
         AddEntry(archive, "payload/Ashita/addons/accessxi_reader/third_party/collision/accessxi_collision_native.dll", marker);
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/sounds/nav_beacon_hrtf/manifest.tsv", marker);
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/sounds/nav_beacon_hrtf/NOTICE.txt", marker);
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/sounds/nav_beacon_hrtf/LICENSE-Apache-2.0.txt", marker);
+        AddEntry(archive, "payload/Ashita/addons/accessxi_reader/sounds/nav_beacon_hrtf/source_mono.wav", marker);
+        foreach (var prefix in new[] { "front", "rear" })
+        {
+            for (var bin = 0; bin <= 12; bin++)
+            {
+                AddEntry(archive, $"payload/Ashita/addons/accessxi_reader/sounds/nav_beacon_hrtf/{prefix}_{bin:00}.wav", marker);
+            }
+        }
         AddEntry(archive, "payload/PlayOnlineNative/ddraw.dll", marker);
         AddEntry(archive, "payload/PlayOnlineNative/AccessXI.PolNative.asi", marker);
         AddEntry(archive, "payload/PlayOnlineNative/AccessXI.PolNative/accessxi_pol_native.dll", marker);

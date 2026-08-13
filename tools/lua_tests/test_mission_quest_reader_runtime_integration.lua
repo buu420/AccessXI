@@ -502,7 +502,12 @@ local menu_environment = setmetatable({
     nav_write_route_evidence = function() end,
 }, { __index = _G })
 local menu_source = extract('local function nav_menu_start_route()', '\nlocal nav_route_stop;')
-local menu_chunk = assert(loadstring(menu_source .. '\nreturn nav_menu_start_route', '@reader-nav-menu-start'))
+local beacon_reset_source = extract(
+    'function accessxi.nav_beacon_reset_direction_state()',
+    'function accessxi.nav_beacon_direction_delta')
+local menu_chunk = assert(loadstring(
+    beacon_reset_source .. '\n' .. menu_source .. '\nreturn nav_menu_start_route',
+    '@reader-nav-menu-start'))
 setfenv(menu_chunk, menu_environment)
 local nav_menu_start_route = assert(menu_chunk())
 

@@ -80,6 +80,11 @@ local rank_chunk, rank_error = loadstring(rank_source)
 assert(rank_chunk, rank_error)
 rank_chunk()
 
+local menu_key_source = extract('accessxi.nav_menu_static_key = function (point)', 'accessxi.nav_search_text = function')
+local menu_key_chunk, menu_key_error = loadstring(menu_key_source)
+assert(menu_key_chunk, menu_key_error)
+menu_key_chunk()
+
 local search_source = extract('function accessxi.nav_zone_search_npc_results(query, player)', 'function accessxi.nav_find_zone_search_npc(query, player)')
 local search_chunk, search_error = loadstring(search_source)
 assert(search_chunk, search_error)
@@ -139,5 +144,61 @@ local different_names = results({
     point(230, 'Target Beta', 10, 10, 0, 'manual', 'observed'),
 }, 'Target')
 assert(#different_names == 2, 'different names at the same point must remain separate')
+
+local stale_upper_jeuno = T{
+    zone = 244,
+    name = "Ru'Lude Gardens zone line",
+    x = 25.136,
+    z = -41.313,
+    y = -3.000,
+    kind = 'area',
+    source = 'bg-wiki-lsb-npc-list',
+    confidence = '',
+}
+local exact_upper_jeuno = T{
+    zone = 244,
+    name = "Ru'Lude Gardens zone line",
+    x = 46.000,
+    z = -30.915,
+    y = -6.542,
+    kind = 'area',
+    source = 'lsb-zoneline-all',
+    confidence = 'untested',
+    destination_id = 'area:v1:244:879965818',
+    raw_identity = 'lsb:zonelines:879965818',
+}
+assert(nav_point_source_rank(exact_upper_jeuno) < nav_point_source_rank(stale_upper_jeuno),
+    'an exact immutable zoneline identity must beat an equally untested legacy estimate')
+
+local observed_upper_jeuno = T{
+    zone = stale_upper_jeuno.zone,
+    name = stale_upper_jeuno.name,
+    x = stale_upper_jeuno.x,
+    z = stale_upper_jeuno.z,
+    y = stale_upper_jeuno.y,
+    kind = stale_upper_jeuno.kind,
+    source = stale_upper_jeuno.source,
+    confidence = 'observed',
+}
+assert(nav_point_source_rank(observed_upper_jeuno) < nav_point_source_rank(exact_upper_jeuno),
+    'verified live evidence must still beat an untested generated zoneline')
+
+local function select_upper_jeuno(player)
+    local selected = nil
+    for _, candidate in ipairs({ stale_upper_jeuno, exact_upper_jeuno }) do
+        candidate.distance = nav_distance(player, candidate)
+        if accessxi.nav_static_destination_is_better(candidate, selected) then
+            selected = candidate
+        end
+    end
+    return selected
+end
+
+local near_stale = select_upper_jeuno(T{ x = 25.136, z = -41.313 })
+assert(near_stale.destination_id == 'area:v1:244:879965818',
+    'Upper Jeuno selected the stale Ru\'Lude estimate when the player was near it')
+local near_exact = select_upper_jeuno(T{ x = 46.000, z = -30.915 })
+assert(near_exact.destination_id == 'area:v1:244:879965818',
+    'Upper Jeuno exact Ru\'Lude identity changed with player position')
 
 print('nav zone-search presentation dedup behavior ok')

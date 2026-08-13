@@ -104,6 +104,24 @@ void check_direct_segments(const CollisionWorld& world, const std::vector<Vec3>&
     }
 }
 
+void check_bounded_step_segments(const CollisionWorld& world, const std::vector<Vec3>& points)
+{
+    CHECK(points.size() >= 2u);
+    for (std::size_t index = 1; index < points.size(); ++index)
+    {
+        const auto& start = points[index - 1u];
+        const auto& end = points[index];
+        if (world.sweep_capsule(start, end, 0.40f, 1.80f).clear)
+        {
+            continue;
+        }
+        const float dx = end.x - start.x;
+        const float dz = end.z - start.z;
+        CHECK(std::sqrt((dx * dx) + (dz * dz)) <= 1.5f);
+        CHECK(step_aware_segment_is_clear(world, start, end));
+    }
+}
+
 void run_synthetic_tests()
 {
     const ParsedZoneMesh mesh = synthetic_detour_mesh(true);
@@ -207,6 +225,26 @@ void run_installed_lathine_query_latency_test(const fs::path& ffxi_root)
     check_direct_segments(world, initial.points);
 }
 
+void run_installed_upper_jeuno_bounded_step_test(const fs::path& ffxi_root)
+{
+    const auto snapshot = read_stable_snapshot(resolve_zone_model_dat(ffxi_root, 244u));
+    const ParsedZoneMesh mesh = parse_zone_collision(snapshot, 244u);
+    const CollisionWorld world(mesh);
+    const RecastZone zone(mesh, world);
+    const auto path = zone.find_path(
+        Vec3{-105.224f, 0.0f, 186.989f},
+        Vec3{4.763f, 1.796f, -54.883f},
+        8.0f,
+        512u);
+    if (path.status != PathStatus::ready)
+    {
+        throw std::runtime_error("Installed Upper Jeuno route failed: " + path.reason);
+    }
+    CHECK(path.points.size() >= 2u);
+    CHECK(path.points.size() <= 512u);
+    check_bounded_step_segments(world, path.points);
+}
+
 } // namespace
 
 int main(const int argc, char** argv)
@@ -220,6 +258,7 @@ int main(const int argc, char** argv)
         run_synthetic_tests();
         run_installed_tomb_test(fs::path(argv[1]));
         run_installed_lathine_query_latency_test(fs::path(argv[1]));
+        run_installed_upper_jeuno_bounded_step_test(fs::path(argv[1]));
         std::cout << "collision Recast tests passed\n";
         return 0;
     }

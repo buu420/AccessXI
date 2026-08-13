@@ -1366,9 +1366,16 @@ end
 accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 accessxi.mission_packet_main.nation = 0
 accessxi.mission_packet_main.nation_mission = 0
+local saved_source_route_steps = accessxi.objective_guides.source_route_steps
+accessxi.objective_guides.source_route_steps = function()
+    error('transient source guide failure')
+end
+accessxi.nav_mission_quest_active_items('mission')
+accessxi.objective_guides.source_route_steps = saved_source_route_steps
+accessxi.inventory_packet_key = 'source-backed:transient-provider-retry'
 local source_orcish = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(source_orcish, 'Smash the Orcish Scouts') == 2,
-    'Smash must expose both source-backed Ronfaure choices without generated candidates')
+    'a transient source-guide failure was cached instead of retrying the provider')
 assert(source_orcish[1].objective_destination_id == 'camp:v1:101:orcish-fodder:6c7a4f36673f6091fd2c')
 assert(source_orcish[2].objective_destination_id == 'camp:v1:100:orcish-fodder:b2999235c7bf7f4860f7')
 assert(source_orcish[1].objective_destination_zone_name == 'East Ronfaure'

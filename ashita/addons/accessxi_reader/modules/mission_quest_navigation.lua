@@ -1133,10 +1133,10 @@ local function source_route_rows(native_key)
     end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
-        source_derivation_cache.source_routes[native_key] = T{};
-        return source_derivation_cache.source_routes[native_key];
+        return T{};
     end
-    local steps = objective_source_steps(native_key);
+    local steps, steps_ready = objective_source_steps(native_key);
+    if (steps_ready == false) then return T{}; end
     local catalog = ensure_catalog_index();
     local known_zones = catalog.zone_ids_by_name;
     local zone_entries = catalog.zone_lines;
@@ -1270,20 +1270,18 @@ objective_source_steps = function(native_key)
     reset_source_derivation_cache_if_needed();
     native_key = clean(native_key);
     if (source_derivation_cache.source_steps[native_key] ~= nil) then
-        return source_derivation_cache.source_steps[native_key];
+        return source_derivation_cache.source_steps[native_key], true;
     end
     if (type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.source_route_steps) ~= 'function') then
-        source_derivation_cache.source_steps[native_key] = T{};
-        return source_derivation_cache.source_steps[native_key];
+        return T{}, false;
     end
     local ok, steps = pcall(
         accessxi.objective_guides.source_route_steps,
         accessxi.objective_guides,
         native_key);
     if (not ok or type(steps) ~= 'table') then
-        source_derivation_cache.source_steps[native_key] = T{};
-        return source_derivation_cache.source_steps[native_key];
+        return T{}, false;
     end
     local result = T{};
     for _, step in ipairs(steps) do
@@ -1296,7 +1294,7 @@ objective_source_steps = function(native_key)
         return clean(left.stable_step_id) < clean(right.stable_step_id);
     end);
     source_derivation_cache.source_steps[native_key] = result;
-    return result;
+    return result, true;
 end;
 
 local current_objective_progress;

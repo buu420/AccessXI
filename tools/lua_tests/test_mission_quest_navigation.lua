@@ -1048,6 +1048,34 @@ assert(accessxi.hotkey_cache_volatile_mission_rows == accessxi.hotkey_cache_miss
     and accessxi.hotkey_cache_volatile_quest_rows == accessxi.hotkey_cache_quests,
     'a volatile native inventory observation tick rebuilt an active row list')
 
+for _, entry in pairs(accessxi.key_items_packet_tables) do
+    entry.source = 'cache'
+    entry.session_epoch = nil
+end
+accessxi.key_items_packet_source = 'cache'
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_missions, accessxi.hotkey_cache_mission_signature,
+    'cached key-item freshness for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quests, accessxi.hotkey_cache_quest_signature,
+    'cached key-item freshness for Quests')
+for _, entry in pairs(accessxi.key_items_packet_tables) do
+    entry.source = 'packet_in_055'
+    entry.session_epoch = current_session_epoch
+end
+accessxi.key_items_packet_source = 'packet_in_055'
+local same_key_before_live = accessxi.key_items_packet_key
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'same-byte live key-item freshness for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'same-byte live key-item freshness for Quests')
+assert(accessxi.key_items_packet_key == same_key_before_live,
+    'the key-item freshness regression changed the content key')
+accessxi.hotkey_cache_missions = accessxi.hotkey_cache_mission_rows
+accessxi.hotkey_cache_quests = accessxi.hotkey_cache_quest_rows
+
 accessxi.inventory_packet_key = 'inventory:hotkey-cache:2'
 accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
     'mission', accessxi.hotkey_cache_missions, accessxi.hotkey_cache_mission_signature,

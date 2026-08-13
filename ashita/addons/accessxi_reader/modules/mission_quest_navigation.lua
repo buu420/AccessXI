@@ -2742,6 +2742,28 @@ local function mission_rank_state_signature()
     }, ',');
 end
 
+local function key_item_freshness_signature()
+    local values = {
+        clean(accessxi.key_items_packet_source),
+        clean(accessxi.key_items_packet_player),
+        clean(accessxi.key_items_packet_identity):lower(),
+        tostring(tonumber(accessxi.key_items_packet_session_epoch) or 0),
+    };
+    local indices = {};
+    for table_index in pairs(accessxi.key_items_packet_tables or {}) do
+        indices[#indices + 1] = tonumber(table_index) or -1;
+    end
+    table.sort(indices);
+    for _, table_index in ipairs(indices) do
+        local entry = (accessxi.key_items_packet_tables or {})[table_index] or {};
+        values[#values + 1] = table.concat({
+            tostring(table_index), clean(entry.source), clean(entry.identity):lower(),
+            tostring(tonumber(entry.session_epoch) or 0),
+        }, ',');
+    end
+    return table.concat(values, '|');
+end
+
 local function active_state_signature(category_key)
     category_key = clean(category_key):lower();
     local values = {
@@ -2751,6 +2773,7 @@ local function active_state_signature(category_key)
         tostring(player_world_id()),
         tostring(objective_session_epoch()),
         clean(accessxi.key_items_packet_key),
+        key_item_freshness_signature(),
         clean(accessxi.inventory_packet_key),
         tostring(tonumber(accessxi.objective_progress_revision) or 0),
         current_nav_catalog_revision(),

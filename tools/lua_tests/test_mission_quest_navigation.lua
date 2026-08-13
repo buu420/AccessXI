@@ -111,6 +111,7 @@ end
 local quest_rows = {
     sandoria = {
         [2] = { id = 2, label = 'The Pickpocket', area = "San d'Oria", source = 'ROM test row 2' },
+        [50] = { id = 50, label = 'Hotkey Packet Quest', area = "San d'Oria", source = 'RED cache packet row' },
         [200] = { id = 200, label = 'A Long Current Quest', area = "San d'Oria", source = 'ROM test row 200' },
     },
     aht_urhgan = {
@@ -129,8 +130,21 @@ local function words_with(...)
     return words
 end
 
+-- Match the heavily progressed live character that exposed the hotkey stall:
+-- 54 active quest bits and the production-sized 42,366-point navigation catalog.
+local hotkey_scale_sandoria_ids = { 2, 200 }
+for quest_id = 60, 109 do
+    quest_rows.sandoria[quest_id] = {
+        id = quest_id,
+        label = ('Scale Quest %d'):format(quest_id),
+        area = "San d'Oria",
+        source = 'hotkey scale fixture',
+    }
+    hotkey_scale_sandoria_ids[#hotkey_scale_sandoria_ids + 1] = quest_id
+end
+
 local quest_entries = {
-    ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(2, 200), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    ['sandoria:current'] = { area_key = 'sandoria', mode = 'current', words = words_with(unpack(hotkey_scale_sandoria_ids)), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['sandoria:completed'] = { area_key = 'sandoria', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:current'] = { area_key = 'aht_urhgan', mode = 'current', words = words_with(100, 180), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:completed'] = { area_key = 'aht_urhgan', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
@@ -394,6 +408,16 @@ accessxi = {
     inventory_packet_source = 'packet_in_inventory',
     inventory_packet_identity = current_identity,
     inventory_packet_session_epoch = current_session_epoch,
+    inventory_packet_key = 'inventory:hotkey-cache:1',
+    key_items_packet_key = 'key-items:hotkey-cache:1',
+    mission_packet_hex = 'mission-hotkey-cache-1',
+    objective_progress_revision = 1,
+    nav_catalog_revision = 1,
+    last_native_inventory_item_tick = 100,
+    hotkey_cache_destination_calls = 0,
+    hotkey_cache_source_step_calls = 0,
+    hotkey_cache_mission_state_calls = 0,
+    hotkey_cache_quest_state_calls = 0,
     nav_points = T{
         T{ zone = 237, name = 'Cid', x = -12.598, z = 2.430, y = -10.988, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 172, name = 'Makarim', x = -60.925, z = -333.294, y = 8.471, kind = 'npc', source = 'current-nav-data' },
@@ -411,6 +435,9 @@ accessxi = {
         T{ zone = 230, zone_name = "Southern San d'Oria", name = "Tales' Beginning", x = -35.660, z = 31.955, y = 0,
             kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:230:17720021',
             raw_identity = 'lsb:npc_list:17720021', raw_spawn_ids = T{ 17720021 } },
+        T{ zone = 234, zone_name = 'Bastok Mines', name = "Tales' Beginning", x = 21.308, z = -96.862, y = 0,
+            kind = 'npc', source = 'lsb-npc-list-all', destination_id = 'npc:v1:234:17736073',
+            raw_identity = 'lsb:npc_list:17736073', raw_spawn_ids = T{ 17736073 } },
         T{ zone = 234, name = 'Rashid', x = -8.444, z = -123.575, y = -1.000, kind = 'npc', source = 'current-nav-data' },
         T{ zone = 143, name = 'Amber Quadav', x = 142.000, z = 154.000, y = -0.076, kind = 'enemy', source = 'current-nav-data' },
         T{ zone = 143, name = 'Onyx Quadav', x = 220.313, z = 88.193, y = -32.280, kind = 'enemy', source = 'current-nav-data' },
@@ -469,7 +496,10 @@ accessxi = {
     restore_quest_packet_cache_if_needed = function() end,
     restore_key_items_packet_cache_if_needed = function() end,
     load_mission_rom_rows = function(context) return mission_rows[context] end,
-    current_mission_value_for_context = function(context) return mission_values[context], mission_value_packet_age end,
+    current_mission_value_for_context = function(context)
+        accessxi.hotkey_cache_mission_state_calls = accessxi.hotkey_cache_mission_state_calls + 1
+        return mission_values[context], mission_value_packet_age
+    end,
     mission_rom_current_row = function(rows, value)
         local best = nil
         for _, row in ipairs(rows or {}) do
@@ -490,7 +520,10 @@ accessxi = {
         if context == 'The Voracious Resurgence' then return { packet = 'tales' } end
         return { packet = context }
     end,
-    quest_packet_entry = function(area, mode) return quest_entries[area .. ':' .. mode] end,
+    quest_packet_entry = function(area, mode)
+        accessxi.hotkey_cache_quest_state_calls = accessxi.hotkey_cache_quest_state_calls + 1
+        return quest_entries[area .. ':' .. mode]
+    end,
     quest_packet_has_id = function(entry, id)
         if entry == nil then return false end
         local word = entry.words[math.floor(id / 32) + 1] or 0
@@ -537,6 +570,7 @@ accessxi = {
             return ''
         end,
         objective_destinations = function(_, native_key)
+            accessxi.hotkey_cache_destination_calls = accessxi.hotkey_cache_destination_calls + 1
             local rows = deep_copy(guide_rows_by_native[native_key] or T{})
             if type(guide_row_mutator) == 'function' then
                 guide_row_mutator(native_key, rows)
@@ -547,6 +581,7 @@ accessxi = {
             return self:objective_destinations(native_key)
         end,
         source_route_steps = function(_, native_key)
+            accessxi.hotkey_cache_source_step_calls = accessxi.hotkey_cache_source_step_calls + 1
             if native_key == "mission:San d'Oria:1" then
                 return T{
                     T{
@@ -839,6 +874,21 @@ local function load_with_env(path, env)
     return chunk()
 end
 
+while #accessxi.nav_points < 42366 do
+    local point_id = #accessxi.nav_points + 1
+    accessxi.nav_points:append(T{
+        zone = 1,
+        zone_name = 'Scale Zone',
+        name = ('Scale Point %d'):format(point_id),
+        x = point_id % 100,
+        z = math.floor(point_id / 100),
+        y = 0,
+        kind = 'npc',
+        source = 'hotkey scale fixture',
+    })
+end
+assert(#accessxi.nav_points == 42366, 'hotkey scale fixture did not match the production catalog size')
+
 accessxi.mission_quest_objectives = load_with_env(objectives_path, { accessxi = accessxi, T = T })
 assert(type(accessxi.mission_quest_objectives) == 'table')
 accessxi.mission_quest_objectives.quests['sandoria:2'] = {
@@ -904,6 +954,267 @@ local function set_live_identity(identity)
     end
 end
 
+function accessxi.hotkey_cache_build(category_key, reason)
+    local rows = accessxi.nav_mission_quest_active_items(category_key)
+    assert(#rows > 0, reason .. ' produced no active rows')
+    local signature = tostring(rows[1].objective_active_state_signature or '')
+    assert(signature ~= '', reason .. ' did not stamp the active-state signature')
+    return rows, signature
+end
+
+function accessxi.hotkey_cache_assert_rebuilt(category_key, previous_rows, previous_signature, reason)
+    local rows, signature = accessxi.hotkey_cache_build(category_key, reason)
+    assert(signature ~= previous_signature, reason .. ' did not rebuild the affected category')
+    assert(rows ~= previous_rows, reason .. ' reused the stale active row list')
+    return rows, signature
+end
+
+function accessxi.hotkey_cache_assert_state_provider_increased(category_key, before, reason)
+    local after = category_key == 'mission' and accessxi.hotkey_cache_mission_state_calls
+        or accessxi.hotkey_cache_quest_state_calls
+    assert(after > before, reason .. ' did not re-read the affected live packet state')
+    return after
+end
+
+function accessxi.set_hotkey_cache_session_epoch(epoch)
+    current_session_epoch = epoch
+    accessxi.mission_packet_session_epoch = epoch
+    accessxi.quest_packet_session_epoch = epoch
+    accessxi.inventory_packet_session_epoch = epoch
+    for _, entry in pairs(quest_entries) do
+        entry.session_epoch = epoch
+    end
+    for _, entry in pairs(accessxi.key_items_packet_tables or {}) do
+        entry.session_epoch = epoch
+    end
+end
+
+-- Mission and Quest hotkeys run every time the browser moves over a category.
+-- The guide providers are the expensive boundary: unchanged live state must
+-- reuse both category rows without another guide expansion, but each stable
+-- freshness key must produce a newly stamped category result.
+accessxi.hotkey_cache_missions, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_build(
+    'mission', 'initial Mission hotkey build')
+accessxi.hotkey_cache_quests, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_build(
+    'quest', 'initial Quest hotkey build')
+assert(#accessxi.hotkey_cache_missions > 0 and #accessxi.hotkey_cache_quests > 0)
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_mission_state_calls
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_quest_state_calls
+accessxi.hotkey_cache_destination_baseline = accessxi.hotkey_cache_destination_calls
+accessxi.hotkey_cache_source_step_baseline = accessxi.hotkey_cache_source_step_calls
+assert(accessxi.hotkey_cache_destination_baseline > 0,
+    'initial hotkey builds did not reach the guide destination provider')
+assert(accessxi.hotkey_cache_source_step_baseline > 0,
+    'initial hotkey builds did not reach the guide source-step provider')
+
+accessxi.hotkey_cache_build('mission', 'unchanged Mission hotkey build')
+accessxi.hotkey_cache_build('quest', 'unchanged Quest hotkey build')
+assert(accessxi.hotkey_cache_destination_calls == accessxi.hotkey_cache_destination_baseline
+    and accessxi.hotkey_cache_source_step_calls == accessxi.hotkey_cache_source_step_baseline,
+    'unchanged Mission and Quest hotkey builds expanded objective guides again')
+assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline
+    and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
+    'unchanged Mission and Quest hotkey builds re-read active packet state')
+accessxi.hotkey_cache_catalog_index_baseline = accessxi.nav_objective_catalog_index_build_count
+accessxi.hotkey_cache_catalog_visit_baseline = accessxi.nav_objective_catalog_index_point_visit_count
+assert(accessxi.hotkey_cache_catalog_visit_baseline == #accessxi.nav_points,
+    'the initial hotkey build did not index the production-sized catalog exactly once')
+accessxi.hotkey_cache_prepare_item = accessxi.hotkey_cache_missions[1]
+accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
+accessxi.nav_mission_quest_prepare_route(accessxi.hotkey_cache_prepare_item, { zone = 230 })
+assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline
+    and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
+    'unchanged prepare-route calls re-read active packet state')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline,
+    'unchanged prepare-route calls rebuilt the navigation catalog index')
+assert(accessxi.nav_objective_catalog_index_point_visit_count == accessxi.hotkey_cache_catalog_visit_baseline,
+    'unchanged hotkey or prepare-route calls rescanned the production-sized catalog')
+
+accessxi.last_native_inventory_item_tick = accessxi.last_native_inventory_item_tick + 1
+accessxi.hotkey_cache_volatile_mission_rows, accessxi.hotkey_cache_volatile_mission_signature = accessxi.hotkey_cache_build(
+    'mission', 'volatile inventory-tick Mission hotkey build')
+accessxi.hotkey_cache_volatile_quest_rows, accessxi.hotkey_cache_volatile_quest_signature = accessxi.hotkey_cache_build(
+    'quest', 'volatile inventory-tick Quest hotkey build')
+assert(accessxi.hotkey_cache_destination_calls == accessxi.hotkey_cache_destination_baseline
+    and accessxi.hotkey_cache_source_step_calls == accessxi.hotkey_cache_source_step_baseline,
+    'a volatile native inventory observation tick expanded objective guides again')
+assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline
+    and accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
+    'a volatile native inventory observation tick re-read active packet state')
+assert(accessxi.hotkey_cache_volatile_mission_signature == accessxi.hotkey_cache_mission_signature
+    and accessxi.hotkey_cache_volatile_quest_signature == accessxi.hotkey_cache_quest_signature,
+    'a volatile native inventory observation tick changed an active-state signature')
+assert(accessxi.hotkey_cache_volatile_mission_rows == accessxi.hotkey_cache_missions
+    and accessxi.hotkey_cache_volatile_quest_rows == accessxi.hotkey_cache_quests,
+    'a volatile native inventory observation tick rebuilt an active row list')
+
+for _, entry in pairs(accessxi.key_items_packet_tables) do
+    entry.source = 'cache'
+    entry.session_epoch = nil
+end
+accessxi.key_items_packet_source = 'cache'
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_missions, accessxi.hotkey_cache_mission_signature,
+    'cached key-item freshness for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quests, accessxi.hotkey_cache_quest_signature,
+    'cached key-item freshness for Quests')
+for _, entry in pairs(accessxi.key_items_packet_tables) do
+    entry.source = 'packet_in_055'
+    entry.session_epoch = current_session_epoch
+end
+accessxi.key_items_packet_source = 'packet_in_055'
+local same_key_before_live = accessxi.key_items_packet_key
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'same-byte live key-item freshness for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'same-byte live key-item freshness for Quests')
+assert(accessxi.key_items_packet_key == same_key_before_live,
+    'the key-item freshness regression changed the content key')
+accessxi.hotkey_cache_missions = accessxi.hotkey_cache_mission_rows
+accessxi.hotkey_cache_quests = accessxi.hotkey_cache_quest_rows
+
+accessxi.inventory_packet_key = 'inventory:hotkey-cache:2'
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_missions, accessxi.hotkey_cache_mission_signature,
+    'inventory packet key change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quests, accessxi.hotkey_cache_quest_signature,
+    'inventory packet key change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'inventory packet key change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'inventory packet key change for Quests')
+
+accessxi.key_items_packet_key = 'key-items:hotkey-cache:2'
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'key-item packet key change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'key-item packet key change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'key-item packet key change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'key-item packet key change for Quests')
+
+accessxi.mission_packet_hex = 'mission-hotkey-cache-2'
+accessxi.mission_packet_main.nation_mission = 2
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'mission packet payload change')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'mission packet payload change')
+assert(find(accessxi.hotkey_cache_mission_rows, 'Fetichism') ~= nil,
+    'mission packet payload change did not expose the decoded Mission result')
+accessxi.hotkey_cache_unaffected_quest_rows = accessxi.hotkey_cache_quest_rows
+accessxi.hotkey_cache_quest_rows = accessxi.hotkey_cache_build('quest', 'mission packet payload Quest cache check')
+assert(accessxi.hotkey_cache_quest_rows == accessxi.hotkey_cache_unaffected_quest_rows,
+    'mission packet payload change rebuilt unaffected Quest rows')
+assert(accessxi.hotkey_cache_quest_state_calls == accessxi.hotkey_cache_quest_state_baseline,
+    'mission packet payload change re-read unaffected Quest state')
+
+quest_entries['sandoria:current'].words = words_with(2, 50, 200)
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'quest packet payload change')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'quest packet payload change')
+assert(find(accessxi.hotkey_cache_quest_rows, 'Hotkey Packet Quest') ~= nil,
+    'quest packet payload change did not expose the decoded Quest result')
+accessxi.hotkey_cache_unaffected_mission_rows = accessxi.hotkey_cache_mission_rows
+accessxi.hotkey_cache_mission_rows = accessxi.hotkey_cache_build('mission', 'quest packet payload Mission cache check')
+assert(accessxi.hotkey_cache_mission_rows == accessxi.hotkey_cache_unaffected_mission_rows,
+    'quest packet payload change rebuilt unaffected Mission rows')
+assert(accessxi.hotkey_cache_mission_state_calls == accessxi.hotkey_cache_mission_state_baseline,
+    'quest packet payload change re-read unaffected Mission state')
+
+accessxi.objective_progress_revision = accessxi.objective_progress_revision + 1
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'objective-progress revision change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'objective-progress revision change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'objective-progress revision change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'objective-progress revision change for Quests')
+
+set_live_identity('alpha:1002')
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'character identity change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'character identity change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'character identity change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'character identity change for Quests')
+
+current_world_id = 1003
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'current-world change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'current-world change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'current-world change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'current-world change for Quests')
+
+accessxi.set_hotkey_cache_session_epoch(78)
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'session epoch change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'session epoch change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'session epoch change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'session epoch change for Quests')
+
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
+accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'mission', accessxi.hotkey_cache_mission_rows, accessxi.hotkey_cache_mission_signature,
+    'navigation catalog revision change for Missions')
+accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature = accessxi.hotkey_cache_assert_rebuilt(
+    'quest', accessxi.hotkey_cache_quest_rows, accessxi.hotkey_cache_quest_signature,
+    'navigation catalog revision change for Quests')
+accessxi.hotkey_cache_mission_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'mission', accessxi.hotkey_cache_mission_state_baseline, 'navigation catalog revision change for Missions')
+accessxi.hotkey_cache_quest_state_baseline = accessxi.hotkey_cache_assert_state_provider_increased(
+    'quest', accessxi.hotkey_cache_quest_state_baseline, 'navigation catalog revision change for Quests')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
+    'a navigation catalog revision change did not rebuild the catalog index exactly once')
+assert(accessxi.nav_objective_catalog_index_point_visit_count
+        == accessxi.hotkey_cache_catalog_visit_baseline + #accessxi.nav_points,
+    'a navigation catalog revision change did not visit the catalog exactly once')
+accessxi.nav_mission_quest_active_items('mission')
+accessxi.nav_mission_quest_active_items('quest')
+assert(accessxi.nav_objective_catalog_index_build_count == accessxi.hotkey_cache_catalog_index_baseline + 1,
+    'stable navigation catalog revision rebuilt the catalog index again')
+assert(accessxi.nav_objective_catalog_index_point_visit_count
+        == accessxi.hotkey_cache_catalog_visit_baseline + #accessxi.nav_points,
+    'stable navigation catalog revision rescanned the production-sized catalog')
+
+set_live_identity('alpha:1001')
+current_world_id = 1001
+accessxi.set_hotkey_cache_session_epoch(77)
+accessxi.inventory_packet_key = 'inventory:hotkey-cache:1'
+accessxi.key_items_packet_key = 'key-items:hotkey-cache:1'
+accessxi.mission_packet_hex = 'mission-hotkey-cache-1'
+accessxi.mission_packet_main.nation_mission = 1
+quest_entries['sandoria:current'].words = words_with(2, 200)
+accessxi.objective_progress_revision = 1
+accessxi.nav_catalog_revision = 1
+accessxi.last_native_inventory_item_tick = 100
+
 -- Exact Task 3 typed rows expand missions and quests through the same path.
 -- Input order is intentionally reversed; the browser order is guide/data-owned.
 accessxi.mission_packet_main.nation = 1
@@ -940,7 +1251,9 @@ assert(count_named(orcish, 'Smash the Orcish Scouts') == 2)
 assert(orcish[1].objective_destination_id == 'enemy:v1:101:orcish-east')
 assert(orcish[2].objective_destination_id == 'enemy:v1:100:orcish-west')
 
+local saved_orcish_inventory_packet_key = accessxi.inventory_packet_key
 objective_inventory_counts_by_name['orcish axe'] = 1
+accessxi.inventory_packet_key = 'inventory:orcish-axe-owned'
 local orcish_turn_in = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(orcish_turn_in, 'Smash the Orcish Scouts') == 2,
     'an owned Orcish Axe must replace both camp rows with exact available Gate Guards')
@@ -956,6 +1269,7 @@ for _, row in ipairs(orcish_turn_in) do
     end
 end
 objective_inventory_counts_by_name['orcish axe'] = 0
+accessxi.inventory_packet_key = saved_orcish_inventory_packet_key
 local orcish_after_item_reset = accessxi.nav_mission_quest_active_items('mission')
 assert(orcish_after_item_reset[1].objective_guide_step_id == "mission:San d'Oria:1:step-005"
     and orcish_after_item_reset[2].objective_guide_step_id == "mission:San d'Oria:1:step-005",
@@ -1049,11 +1363,12 @@ guide_row_mutator = function(native_key, rows)
         for index = #rows, 1, -1 do table.remove(rows, index) end
     end
 end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 accessxi.mission_packet_main.nation = 0
 accessxi.mission_packet_main.nation_mission = 0
 local source_orcish = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(source_orcish, 'Smash the Orcish Scouts') == 2,
-    'Smash must expose both source-backed Ronfaure choices without generated candidates')
+    'source-backed Orcish Fodder camps disappeared when generated candidates were absent')
 assert(source_orcish[1].objective_destination_id == 'camp:v1:101:orcish-fodder:6c7a4f36673f6091fd2c')
 assert(source_orcish[2].objective_destination_id == 'camp:v1:100:orcish-fodder:b2999235c7bf7f4860f7')
 assert(source_orcish[1].objective_destination_zone_name == 'East Ronfaure'
@@ -1113,14 +1428,39 @@ accessxi.current_player_world_id = saved_world_provider
 accessxi.current_objective_session_epoch = saved_epoch_provider
 
 accessxi.mission_packet_main.nation_mission = 1
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
+local saved_source_route_steps = accessxi.objective_guides.source_route_steps
+local failed_source_provider_calls = 0
+accessxi.objective_guides.source_route_steps = function(self, native_key)
+    if native_key == "mission:San d'Oria:2" then
+        failed_source_provider_calls = failed_source_provider_calls + 1
+        error('transient source guide failure')
+    end
+    return saved_source_route_steps(self, native_key)
+end
+accessxi.nav_mission_quest_active_items('mission')
+assert(failed_source_provider_calls > 0,
+    'the transient source-guide fixture never exercised Bat Hunt guide derivation')
+local retry_source_provider_calls = 0
+accessxi.objective_guides.source_route_steps = function(self, native_key)
+    if native_key == "mission:San d'Oria:2" then
+        retry_source_provider_calls = retry_source_provider_calls + 1
+    end
+    return saved_source_route_steps(self, native_key)
+end
 local bat_hunt = accessxi.nav_mission_quest_active_items('mission')
+accessxi.objective_guides.source_route_steps = saved_source_route_steps
+assert(retry_source_provider_calls > 0,
+    'an incomplete active mission build was cached instead of retrying the provider with unchanged state')
 assert(count_named(bat_hunt, 'Bat Hunt') == 2,
     'the shared source resolver must expose exact Ding Bats destinations for the next mission')
 assert(bat_hunt[1].objective_guide_step_id == "mission:San d'Oria:2:step-005")
 assert(bat_hunt[1].objective_destination_zone_name == "King Ranperre's Tomb")
 assert(bat_hunt[1].objective_target.x == -141.134 and bat_hunt[1].objective_target.z == 223.168,
     'Bat Hunt must put the entrance Ding Bats camp first instead of routing through the Tomb to a deeper camp')
+local saved_bat_hunt_inventory_key = accessxi.inventory_packet_key
 objective_inventory_counts_by_name['orcish mail scales'] = 1
+accessxi.inventory_packet_key = 'inventory:orcish-mail-scales-owned'
 local bat_hunt_after_scales = accessxi.nav_mission_quest_active_items('mission')
 assert(count_named(bat_hunt_after_scales, 'Bat Hunt') == 1,
     'owned Orcish Mail Scales must replace the Ding Bats camps with one exact mission Tombstone')
@@ -1189,6 +1529,7 @@ assert(count_named(bat_hunt_after_reload, 'Bat Hunt') == 2
     and bat_hunt_after_reload[2].objective_guide_step_id == "mission:San d'Oria:2:step-012",
     'persisted interaction progress was lost after an addon-module reload')
 objective_inventory_counts_by_name['orcish mail scales'] = 0
+accessxi.inventory_packet_key = saved_bat_hunt_inventory_key
 accessxi.mission_packet_source = 'cache'
 local bat_target, bat_message, bat_mode = accessxi.nav_mission_quest_prepare_route(
     bat_hunt_after_cutscene[1], { zone = 230 })
@@ -1299,12 +1640,14 @@ assert(cid.objective_group_id == '', 'ordinary typed NPC candidates legitimately
 assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'ready')
 local saved_automatic_step_id = accessxi.objective_guides.automatic_step_id
 accessxi.objective_guides.automatic_step_id = function() return '' end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 local unmapped_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
 assert(type(unmapped_pickpocket.objective_candidate_id) == 'string'
     and unmapped_pickpocket.objective_candidate_id ~= '',
     'an exact source-backed current target must survive a missing optional guide-step mapping')
 assert(select(3, accessxi.nav_mission_quest_prepare_route(unmapped_pickpocket, { zone = 230 })) == 'test-ready')
 accessxi.objective_guides.automatic_step_id = function() error('intentional mapping failure') end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 local failed_mapping_pickpocket = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
 assert(type(failed_mapping_pickpocket.objective_candidate_id) == 'string'
     and failed_mapping_pickpocket.objective_candidate_id ~= '',
@@ -1320,6 +1663,7 @@ guide_row_mutator = function(native_key, rows)
         end
     end
 end
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 assert(select(3, accessxi.nav_mission_quest_prepare_route(cid, { zone = 230 })) == 'blocked',
     'an empty-group typed candidate cannot be rebound to a different group')
 guide_row_mutator = nil
@@ -1357,6 +1701,7 @@ for _, field in ipairs({ 'action_id', 'guide_step_id', 'action_instruction', 'st
             end
         end
     end
+    accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
     assert(select(3, accessxi.nav_mission_quest_prepare_route(instruction_rows[1], { zone = 230 })) == 'blocked',
         'changed instruction-only ownership must block: ' .. field)
 end
@@ -1434,10 +1779,12 @@ for _, field in ipairs({
             end
         end
     end
+    accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
     assert(select(3, accessxi.nav_mission_quest_prepare_route(refreshed_lower, { zone = 234 })) == 'blocked',
         'changed typed objective identity must block: ' .. field)
 end
 guide_row_mutator = nil
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 
 local saved_runtime = accessxi.objective_route_runtime
 accessxi.objective_route_runtime = nil
@@ -1473,6 +1820,7 @@ assert(welcome.objective_native_details:find('second-floor hallway', 1, true) ~=
 assert(accessxi.nav_mission_quest_item_speech(welcome, 1, #missions):find('Native mission orders:', 1, true) ~= nil)
 assert(find(missions, 'False TVR mission from TalesBeginning bits') == nil)
 mission_values['Rise of the Zilart'] = 3
+accessxi.mission_packet_hex = 'mission:zilart:3'
 mission_value_packet_age = 60
 logs:clear()
 local rows = accessxi.nav_mission_quest_active_items('mission')
@@ -1482,9 +1830,11 @@ for _, line in ipairs(logs) do
     assert(line:find('base out of range', 1, true) == nil)
 end
 mission_values['Rise of the Zilart'] = 2
+accessxi.mission_packet_hex = 'mission:zilart:2'
 mission_value_packet_age = 10
 local native_mission_load_mission_rom_rows = accessxi.load_mission_rom_rows
 mission_values['Chains of Promathia'] = 1
+accessxi.mission_packet_hex = 'mission:cop:1'
 accessxi.load_mission_rom_rows = function(context)
     if context == 'Chains of Promathia' then
         error('intentional mission context failure "quoted" ' .. string.rep('x', 180))
@@ -1523,6 +1873,7 @@ assert(chain_survivor_mode == 'test-ready' and type(chain_survivor_target) == 't
     and chain_survivor_message == '')
 accessxi.load_mission_rom_rows = native_mission_load_mission_rom_rows
 mission_values['Chains of Promathia'] = 0
+accessxi.mission_packet_hex = 'mission:cop:0'
 local survey_after_failure = assert(find(missions, 'A Geological Survey'))
 local failure_target, failure_message, failure_mode = accessxi.nav_mission_quest_prepare_route(survey_after_failure, { zone = 106 })
 assert(failure_mode == 'test-ready' and type(failure_target) == 'table' and failure_message == '')
@@ -1625,6 +1976,8 @@ accessxi.mission_packet_nations_complete = words_with()
 current_rank_points = 65535
 assert(find(accessxi.nav_mission_quest_active_items('mission'), 'The Zeruhn Report') == nil)
 current_rank_points = 0
+assert(find(accessxi.nav_mission_quest_active_items('mission'), 'The Zeruhn Report') ~= nil,
+    'a rank-points change reused stale available-mission rows')
 
 -- Cached, mismatched, incomplete, or contradictory completion evidence never
 -- creates an available mission row or a route.
@@ -1715,15 +2068,24 @@ assert(available_rov.objective_target ~= nil
     and available_rov.objective_target.name == "Tales' Beginning"
     and available_rov.objective_target.zone == 230,
     'postponed RoV did not choose the exact Tales\' Beginning in the current starter city')
+accessxi.nav_current_position = { zone = 234, x = 0, z = 0, y = 0 }
+local available_rov_bastok = assert(find(
+    accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel'))
+assert(available_rov_bastok.objective_target ~= nil
+    and available_rov_bastok.objective_target.name == "Tales' Beginning"
+    and available_rov_bastok.objective_target.zone == 234,
+    'a zone change reused the stale postponed RoV starter-city target')
 accessxi.mission_packet_main.tales = 0
 assert(find(accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel') == nil,
     'RoV was advertised without a live active or postponed-start packet state')
 mission_values["Rhapsodies of Vana'diel"] = 110
+accessxi.mission_packet_hex = 'mission:rov:110'
 local active_rov = assert(find(
     accessxi.nav_mission_quest_active_items('mission'), 'Rhapsodies of Vanadiel'))
 assert(active_rov.mission_availability == 'active',
     'a decoded nonterminal RoV mission value was not exposed as active')
 mission_values["Rhapsodies of Vana'diel"] = 65535
+accessxi.mission_packet_hex = 'mission:rov:terminal'
 
 current_rank = 1
 current_nation = 1
@@ -1888,6 +2250,7 @@ assert(row_speech:find('Press I to start navigation.', 1, true) ~= nil)
 assert(row_speech:find('open steps', 1, true) == nil)
 
 owned_key_items[3] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:blue-owned'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_stage == 'charge-blue-tester')
@@ -1931,6 +2294,7 @@ accessxi.nav_destination = nil
 
 owned_key_items[3] = nil
 owned_key_items[4] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:red-owned'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_stage == 'return-red-tester')
@@ -1938,6 +2302,7 @@ assert(survey.objective_target.zone == 237 and survey.objective_target.name == '
 
 -- Contradictory or unavailable ownership and missing nav points never guess.
 owned_key_items[3] = true
+accessxi.key_items_packet_key = 'key-items:geological-survey:contradictory'
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_available == false and survey.objective_status == 'stage-unverified')
@@ -1946,6 +2311,7 @@ assert(target == nil and mode == 'blocked' and message ~= '')
 
 owned_key_items[3] = nil
 owned_key_items[4] = nil
+accessxi.key_items_packet_key = 'key-items:geological-survey:none'
 accessxi.key_items_packet_tables = {}
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
@@ -1964,6 +2330,7 @@ accessxi.key_items_packet_tables[0].source = 'packet_in_055'
 accessxi.key_items_packet_tables[0].identity = current_identity
 accessxi.key_items_packet_tables[0].session_epoch = current_session_epoch
 accessxi.nav_points = T{}
+accessxi.nav_catalog_revision = accessxi.nav_catalog_revision + 1
 missions = accessxi.nav_mission_quest_active_items('mission')
 survey = assert(find(missions, 'A Geological Survey'))
 assert(survey.objective_available == false and survey.objective_status == 'destination-unavailable')

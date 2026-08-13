@@ -1119,6 +1119,7 @@ local accessxi = T{
     home_point_last_area_tick = 0,
     nav_points = T{},
     nav_points_loaded = false,
+    nav_catalog_revision = 0,
     nav_points_path = accessxi_paths.addon_path('data', 'ffxi-nav-points.tsv'),
     nav_discoveries_path = accessxi_paths.addon_path('data', 'ffxi-nav-discoveries.tsv'),
     nav_database_path = accessxi_paths.addon_path('data', 'ffxi-nav-destinations.tsv'),
@@ -7181,6 +7182,30 @@ function accessxi.key_items_packet_cache_key()
     return parts:concat('|');
 end
 
+function accessxi.key_items_packet_freshness_key()
+    local parts = T{
+        tostring(accessxi.key_items_packet_source or ''),
+        tostring(accessxi.key_items_packet_identity or ''):lower(),
+        tostring(tonumber(accessxi.key_items_packet_session_epoch) or 0),
+    };
+    local indices = T{};
+    for table_index, _ in pairs(accessxi.key_items_packet_tables or {}) do
+        indices:append(tonumber(table_index) or -1);
+    end
+    table.sort(indices);
+    for _, table_index in ipairs(indices) do
+        local entry = (accessxi.key_items_packet_tables or {})[table_index];
+        if (type(entry) == 'table') then
+            parts:append(('%d:%s:%s:%d'):fmt(
+                table_index,
+                tostring(entry.source or ''),
+                tostring(entry.identity or ''):lower(),
+                tonumber(entry.session_epoch) or 0));
+        end
+    end
+    return parts:concat('|');
+end
+
 function accessxi.save_key_items_packet_cache()
     local tables = accessxi.key_items_packet_tables or {};
     local player_name = accessxi.current_player_name();
@@ -7277,6 +7302,7 @@ function accessxi.restore_key_items_packet_cache_if_needed()
     accessxi.key_items_packet_identity = player_identity;
     accessxi.key_items_packet_source = 'cache';
     accessxi.key_items_packet_key = accessxi.key_items_packet_cache_key();
+    accessxi.key_items_packet_freshness = accessxi.key_items_packet_freshness_key();
     log_line(('key items packet cache restored player="%s" tables=%d ownedBits=%d'):fmt(
         player_name,
         accessxi.table_count(tables),
@@ -7335,6 +7361,9 @@ function accessxi.capture_key_items_packet(e)
     accessxi.key_items_packet_source = 'packet_in_055';
     accessxi.key_items_packet_session_epoch = key_item_session_epoch;
 
+    local previous_key = tostring(accessxi.key_items_packet_key or '');
+    local previous_freshness = type(accessxi.key_items_packet_freshness_key) == 'function'
+        and accessxi.key_items_packet_freshness_key() or '';
     accessxi.key_items_packet_tables = accessxi.key_items_packet_tables or {};
     accessxi.key_items_packet_tables[table_index] = {
         flags = data:sub(0x04 + 1, 0x04 + 64),
@@ -7348,7 +7377,9 @@ function accessxi.capture_key_items_packet(e)
     accessxi.key_items_packet_cache_loaded = true;
 
     local key = accessxi.key_items_packet_cache_key();
-    if (key ~= tostring(accessxi.key_items_packet_key or '')) then
+    local freshness = accessxi.key_items_packet_freshness_key();
+    accessxi.key_items_packet_freshness = freshness;
+    if (key ~= previous_key) then
         accessxi.key_items_packet_key = key;
         accessxi.save_key_items_packet_cache();
         log_line(('key items packet id=0x%03X table=%d tables=%d ownedBits=%d player="%s" hex="%s"'):fmt(
@@ -7358,10 +7389,11 @@ function accessxi.capture_key_items_packet(e)
             accessxi.key_items_packet_bit_count(),
             player_name,
             accessxi.packet_hex_limit(data, 32)));
-        if (type(accessxi.queue_mission_quest_state_change) == 'function') then
-            accessxi.queue_mission_quest_state_change(
-                'objective', ('packet-0x055-%d'):fmt(table_index));
-        end
+    end
+    if ((key ~= previous_key or freshness ~= previous_freshness)
+        and type(accessxi.queue_mission_quest_state_change) == 'function') then
+        accessxi.queue_mission_quest_state_change(
+            'objective', ('packet-0x055-%d'):fmt(table_index));
     end
 end
 
@@ -72334,6 +72366,7 @@ local function nav_load_points()
     local discovery_count = nav_load_points_file(accessxi.nav_discoveries_path, 'discoveries');
     local recorded_count = nav_load_points_file(accessxi.nav_recorded_marks_path, 'live-route-recording');
     local user_count = nav_load_points_file(accessxi.nav_points_path, 'manual');
+    accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1;
     log_line(('nav loaded database=%d discoveries=%d recorded=%d user=%d total=%d db="%s" discoveries="%s" recorded_path="%s" user="%s"'):fmt(
         db_count,
         discovery_count,
@@ -72360,6 +72393,7 @@ accessxi.nav_save_point_to_path = function (point, path)
     end
 
     accessxi.nav_points:append(point);
+    accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1;
     accessxi.nav_live_nm_name_cache = T{};
 
     local f = io.open(path or accessxi.nav_points_path, 'a');

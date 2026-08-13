@@ -42,6 +42,17 @@ STATIC_IDENTITY_SCHEMA_REVISION = "v1"
 ENEMY_IDENTITY_SCHEMA_REVISION = "v1"
 ENEMY_CLUSTER_POLICY_VERSION = "complete-link-v1-h120-y24"
 
+# These unverified legacy rows predate immutable zoneline identities and used
+# NPC/wiki estimates rather than the actual transition triggers.  The exact
+# generated edge owns each semantic destination now.  Keep this list narrow:
+# verified no-ID evidence must be migrated to GRAPH_EDGE_OVERRIDES instead of
+# being silently discarded.
+LEGACY_ZONELINE_REPLACEMENTS = {
+    (244, "area", "lower jeuno zone line"),
+    (244, "area", "ru'lude gardens zone line"),
+    (244, "area", "mog house entrance"),
+}
+
 GRAPH_EDGE_OVERRIDES = {
     231233001: {
         "source": GENERATED_SCRIPTED_SOURCE,
@@ -216,6 +227,19 @@ def clean_label(value: str) -> str:
     return value
 
 
+def destination_semantic_key(zone: int, kind: str, name: str) -> tuple[int, str, str]:
+    return (int(zone), clean_label(kind).casefold(), clean_label(name).casefold())
+
+
+def legacy_destination_is_verified(source: str, confidence: str) -> bool:
+    normalized_confidence = clean_label(confidence).casefold()
+    normalized_source = clean_label(source).casefold()
+    return normalized_confidence in {"observed", "proven"} or any(
+        marker in normalized_source
+        for marker in ("live-trace", "verified", "proven", "manual", "target", "entity")
+    )
+
+
 def _identity_tail(raw_identity: str) -> str:
     value = str(raw_identity or "").strip()
     tail = value.rsplit(":", 1)[-1]
@@ -278,14 +302,26 @@ def parse_zone_ids(path: Path) -> dict[int, str]:
 
 
 def parse_comment(comment: str) -> tuple[str, str, str, str, str]:
-    match = re.match(r"(.+?)\s+\(([^()]*)\)\s*->\s*(?:(.+?)\s+)?\(([^()]*)\)(?:\s+\(([^()]*)\))?\s*$", comment)
-    if not match:
+    source = re.match(r"(.+?)\s+\(([^()]*)\)\s*->\s*(.*?)\s*$", comment)
+    if not source:
         return "", "", "", "", ""
-    from_label = clean_label(match.group(1) or "")
-    from_code = clean_label(match.group(2) or "")
-    to_label = clean_label(match.group(3) or "")
-    to_code = clean_label(match.group(4) or "")
-    note = clean_label(match.group(5) or "")
+    from_label = clean_label(source.group(1) or "")
+    from_code = clean_label(source.group(2) or "")
+    target = source.group(3) or ""
+    if target.startswith("("):
+        destination = re.match(r"\(([^()]*)\)(?:\s+\(([^()]*)\))?\s*$", target)
+        if not destination:
+            return "", "", "", "", ""
+        to_label = ""
+        to_code = clean_label(destination.group(1) or "")
+        note = clean_label(destination.group(2) or "")
+    else:
+        destination = re.match(r"(.+?)\s+\(([^()]*)\)(?:\s+\(([^()]*)\))?\s*$", target)
+        if not destination:
+            return "", "", "", "", ""
+        to_label = clean_label(destination.group(1) or "")
+        to_code = clean_label(destination.group(2) or "")
+        note = clean_label(destination.group(3) or "")
     return from_label, from_code, to_label, to_code, note
 
 
@@ -718,15 +754,40 @@ def _render_destination_file(lines: list[str], generated: list[Destination]) -> 
     if len(generated_ids) != len(set(generated_ids)):
         raise ValueError("Generated navigation destinations contain duplicate immutable IDs.")
     generated_id_set = set(generated_ids)
+    generated_semantic_keys = {
+        destination_semantic_key(row.zone, row.kind, row.name)
+        for row in generated
+        if row.destination_id
+    }
 
     def generated_owned(line: str) -> bool:
         if not line or line.startswith("#"):
             return False
         fields = line.split("\t")
-        return (
+        if (
             (len(fields) >= 7 and fields[6] in GENERATED_SOURCES)
             or (len(fields) >= 10 and bool(fields[9]) and fields[9] in generated_id_set)
-        )
+        ):
+            return True
+        if len(fields) < 7:
+            return False
+        try:
+            semantic_key = destination_semantic_key(int(fields[0]), fields[5], fields[1])
+        except ValueError:
+            return False
+        if (
+            semantic_key in LEGACY_ZONELINE_REPLACEMENTS
+            and semantic_key in generated_semantic_keys
+            and (len(fields) < 10 or not fields[9])
+        ):
+            confidence = fields[7] if len(fields) >= 8 else ""
+            if legacy_destination_is_verified(fields[6], confidence):
+                raise ValueError(
+                    "Verified legacy zoneline evidence must be migrated to an exact "
+                    f"GRAPH_EDGE_OVERRIDES identity: {line!r}"
+                )
+            return True
+        return False
 
     retained = [
         line
@@ -772,6 +833,20 @@ def _render_destination_file(lines: list[str], generated: list[Destination]) -> 
     ]
     if len(final_ids) != len(set(final_ids)):
         raise ValueError("Rendered navigation destinations contain duplicate immutable IDs.")
+    semantic_counts = Counter(
+        destination_semantic_key(int(fields[0]), fields[5], fields[1])
+        for line in retained
+        if line and not line.startswith("#")
+        for fields in [line.split("\t")]
+        if len(fields) >= 7
+    )
+    unresolved = {
+        key: semantic_counts[key]
+        for key in LEGACY_ZONELINE_REPLACEMENTS
+        if key in generated_semantic_keys and semantic_counts[key] != 1
+    }
+    if unresolved:
+        raise ValueError(f"Rendered zoneline semantics are unresolved: {unresolved!r}")
     return ("\n".join(retained) + "\n").encode("utf-8")
 
 

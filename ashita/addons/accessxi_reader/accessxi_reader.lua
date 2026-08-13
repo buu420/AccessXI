@@ -68008,7 +68008,7 @@ end
 
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
 (function ()
-local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "c468359e561c0de6234f829963cdedd9b1b290e1e668d963596e341f93941949";
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "eacce7146bcc5dd94c06fbdbefede1fd92528f60bf1f33d5773d8e79192f73a2";
 local accessxi_objective_manifest_rows = nil;
 local accessxi_objective_file_hasher = nil;
 local accessxi_objective_runtime_attempted = false;
@@ -73388,8 +73388,16 @@ local function nav_point_source_rank(point)
 
     local source = tostring(point.source or ''):lower();
     local kind = tostring(point.kind or ''):lower();
+    local raw_identity = tostring(point.raw_identity or ''):lower();
+    local exact_zoneline_bias = 0;
+    if ((kind:contains('area') or kind:contains('transition'))
+        and tostring(point.destination_id or '') ~= ''
+        and (raw_identity:sub(1, 14) == 'lsb:zonelines:'
+            or raw_identity:sub(1, 21) == 'lsb:scripted_trigger:')) then
+        exact_zoneline_bias = -0.25;
+    end
     if (kind:contains('area') or kind:contains('transition')) then
-        return confidence_rank + 0;
+        return confidence_rank + exact_zoneline_bias;
     end
     if (source:contains('database') or kind:contains('home') or kind:contains('waypoint')) then
         return confidence_rank + 1;
@@ -73426,6 +73434,20 @@ accessxi.nav_menu_static_key = function (point)
         tonumber(point.zone) or 0,
         kind,
         tostring(point.name or ''):lower():gsub('%s+', ' '));
+end
+
+accessxi.nav_static_destination_is_better = function (point, previous)
+    if (point == nil) then
+        return false;
+    end
+    if (previous == nil) then
+        return true;
+    end
+    local point_rank = nav_point_source_rank(point);
+    local previous_rank = nav_point_source_rank(previous);
+    return point_rank < previous_rank
+        or (point_rank == previous_rank
+            and (tonumber(point.distance) or 999999) < (tonumber(previous.distance) or 999999));
 end
 
 accessxi.nav_search_text = function (value)
@@ -73489,9 +73511,7 @@ local function nav_collect_menu_items(category_key, search_query)
                 static_destination_keys[duplicate_key] = true;
             end
             local previous = static_by_key[key];
-            if (previous == nil
-                or nav_point_source_rank(point) < nav_point_source_rank(previous)
-                or (nav_point_source_rank(point) == nav_point_source_rank(previous) and (tonumber(point.distance) or 999999) < (tonumber(previous.distance) or 999999))) then
+            if (accessxi.nav_static_destination_is_better(point, previous)) then
                 static_by_key[key] = point;
             end
         end

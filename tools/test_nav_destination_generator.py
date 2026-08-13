@@ -863,6 +863,96 @@ class NavDestinationGeneratorTests(unittest.TestCase):
                 [expected_destination_row],
             )
 
+    def test_upper_jeuno_areas_use_the_exact_distinct_zoneline_triggers(self) -> None:
+        repo_root = Path(navgen.__file__).resolve().parents[1]
+        edges = {
+            edge.zoneline_id: edge
+            for edge in navgen.parse_zonelines(repo_root / "data" / "lsb_zonelines.sql")
+        }
+        expected = {
+            "Lower Jeuno zone line": (846411386, 4.763, -54.883, -1.796),
+            "Ru'Lude Gardens zone line": (879965818, 46.000, -30.915, -6.542),
+            "Mog House entrance": (1869770106, 49.180, -82.946, -9.642),
+        }
+
+        for name, (edge_id, x, z, y) in expected.items():
+            edge = edges[edge_id]
+            generated = navgen.generated_destination(
+                edge,
+                navgen.base_name(edge, {243: "Ru'Lude Gardens", 244: "Upper Jeuno", 245: "Lower Jeuno"}),
+            )
+            self.assertEqual(generated.name, name)
+            self.assertEqual((generated.x, generated.z, generated.y), (x, z, y))
+            self.assertEqual(generated.destination_id, f"area:v1:244:{edge_id}")
+            self.assertEqual(generated.raw_identity, f"lsb:zonelines:{edge_id}")
+
+        mog_edge = edges[1869770106]
+        self.assertEqual(mog_edge.to_code, "zmrp")
+        self.assertEqual(mog_edge.note, "Mog House")
+
+        for destination_path in (
+            repo_root / "data" / "ffxi-nav-destinations.tsv",
+            repo_root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-destinations.tsv",
+        ):
+            _lines, destinations = navgen.read_destinations(destination_path)
+            for name, (_edge_id, x, z, y) in expected.items():
+                matches = [
+                    row
+                    for row in destinations
+                    if row.zone == 244 and row.kind == "area" and row.name == name
+                ]
+                self.assertEqual(
+                    [(row.x, row.z, row.y) for row in matches],
+                    [(x, z, y)],
+                    f"{destination_path} contains a stale or duplicate Upper Jeuno {name} target",
+                )
+            upper_areas = {
+                row.name
+                for row in destinations
+                if row.zone == 244 and row.kind == "area"
+            }
+            self.assertEqual(len(upper_areas), 7)
+            self.assertNotIn("Upper Jeuno local transition", upper_areas)
+
+    def test_upper_jeuno_generated_edges_replace_only_unverified_legacy_estimates(self) -> None:
+        repo_root = Path(navgen.__file__).resolve().parents[1]
+        edge_ids = {846411386, 879965818, 1869770106}
+        zone_names = {243: "Ru'Lude Gardens", 244: "Upper Jeuno", 245: "Lower Jeuno"}
+        generated = [
+            navgen.generated_destination(edge, navgen.base_name(edge, zone_names))
+            for edge in navgen.parse_zonelines(repo_root / "data" / "lsb_zonelines.sql")
+            if edge.zoneline_id in edge_ids
+        ]
+        legacy = [
+            "244\tLower Jeuno zone line\t25.136\t-41.313\t-3.000\tarea\tbg-wiki-lsb-npc-list",
+            "244\tRu'Lude Gardens zone line\t25.136\t-41.313\t-3.000\tarea\tbg-wiki-lsb-npc-list",
+            "244\tMog House entrance\t32.000\t-44.000\t-1.000\tarea\tbg-wiki-lsb-npc-list",
+        ]
+
+        rendered = navgen._render_destination_file(legacy, generated)
+        rendered_again = navgen._render_destination_file(
+            rendered.decode("utf-8").splitlines(), generated
+        )
+        self.assertEqual(rendered_again, rendered)
+        rows = [
+            line.split("\t")
+            for line in rendered.decode("utf-8").splitlines()
+            if line and not line.startswith("#")
+        ]
+        self.assertEqual(
+            {(fields[1], fields[9]) for fields in rows},
+            {
+                ("Lower Jeuno zone line", "area:v1:244:846411386"),
+                ("Ru'Lude Gardens zone line", "area:v1:244:879965818"),
+                ("Mog House entrance", "area:v1:244:1869770106"),
+            },
+        )
+
+        verified = list(legacy)
+        verified[1] += "\tobserved\tlive route evidence"
+        with self.assertRaisesRegex(ValueError, "must be migrated"):
+            navgen._render_destination_file(verified, generated)
+
     def test_cli_rejects_another_repo_shaped_root_before_dry_run_or_write(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             other = Path(temporary) / "other-repo"

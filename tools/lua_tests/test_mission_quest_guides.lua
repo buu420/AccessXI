@@ -872,6 +872,79 @@ do
         source_authority = 'bg',
     })
 
+    -- This self-contained compact row pins field-by-field source authority:
+    -- conflicting BG facts win, while fields genuinely absent from BG fall
+    -- back to FFXIclopedia.  The exact catalogue point is sufficient for the
+    -- navigation layer to expose an ordinary non-rooted wiki-ready route.
+    local mixed_authority_key = 'mission:Bastok:1116'
+    compact_index[mixed_authority_key] = {
+        kind = 'mission', context = 'Bastok', native_id = 1116,
+        title = 'Mixed compact authority fixture', status = 'guide',
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+        source_modules = { bg = 'fixture_full_bg', ffxiclopedia = 'fixture_full_ffxiclopedia' },
+        reconcile_module = 'fixture_full_reconcile',
+        progression_module = 'fixture_compact_progression_1',
+        progression_schema_version = 1,
+        progression_revision = revision,
+    }
+    compact_objectives[mixed_authority_key] = {
+        native_key = mixed_authority_key,
+        progression_module = 'fixture_compact_progression_1',
+        progression_schema_version = 1,
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+        progression_revision = revision,
+        progression_actions = {
+            {
+                step_id = mixed_authority_key .. ':step-001', step_order = 1,
+                action_id = mixed_authority_key .. ':step-001:claim-01', action_order = 1,
+                order = 1,
+                action = 'examine', relationship = 'examine-object',
+                target = 'North Geyser', target_key = 'northgeyser', target_kind = 'object',
+                npcs = {}, objects = { 'North Geyser' }, enemies = {},
+                zones = { 'Dangruf Wadi' }, grid_coordinates = { 'H-4' },
+                items = { 'Blue Tester' }, key_items = { 'Geyser Key' }, transports = {},
+                result_items = {}, result_relation = '',
+                destination_zone_id = 191,
+                instruction = 'Examine the North Geyser at H-4 with the Blue Tester.',
+                field_sources = {
+                    action = 'bg', relationship = 'bg',
+                    target = 'ffxiclopedia', target_key = 'ffxiclopedia',
+                    target_kind = 'ffxiclopedia', npcs = 'bg',
+                    objects = 'ffxiclopedia', enemies = 'bg',
+                    zones = 'bg', grid_coordinates = 'ffxiclopedia',
+                    items = 'bg', key_items = 'ffxiclopedia', transports = 'bg',
+                    result_items = 'bg', result_relation = 'bg',
+                    destination_zone_id = 'bg',
+                    instruction = 'ffxiclopedia', count_mode = 'default',
+                    required_count = 'default', count_explicit = 'default',
+                    catalogue = 'catalogue',
+                },
+                source_revisions = { bg = 5001, ffxiclopedia = 5002 },
+                source_action_span_ids = {
+                    mixed_authority_key .. ':bg:step-001:action-01',
+                    mixed_authority_key .. ':ffxiclopedia:step-001:action-01',
+                },
+                catalogue = {
+                    {
+                        destination_id = 'object:v1:191:17797121',
+                        zone_id = 191, zone_name = 'Dangruf Wadi',
+                        target_name = 'North Geyser', target_kind = 'object',
+                        target_key = 'northgeyser', target_point = { 12.5, -30.25, 1.75 },
+                        raw_identity = 'fixture:object:north-geyser',
+                        raw_spawn_ids = { 17797121 }, cluster_policy_version = '',
+                        transport_id = '', battlefield_id = '', metadata_class = '',
+                        group_id = mixed_authority_key .. ':step-001:claim-01:zone:191',
+                        arrival_instruction = 'Examine the North Geyser.',
+                    },
+                },
+                count_mode = 'single', required_count = 1,
+                count_explicit = false, material = true, source_authority = 'bg',
+            },
+        },
+    }
+    compact_modules.fixture_compact_progression_1.objectives[mixed_authority_key]
+        = compact_objectives[mixed_authority_key]
+
     local duplicate_key = 'mission:Bastok:1099'
     compact_index[duplicate_key] = {
         kind = 'mission',
@@ -1158,15 +1231,27 @@ do
             error('full source module must not load on the reducer path: ' .. tostring(name))
         end,
     })
-    if type(compact_guides.progression_actions) ~= 'function' then
-        task2_guide_failures[#task2_guide_failures + 1]
-            = 'GuideState:progression_actions production seam is missing'
-    elseif type(compact_guides.retain_progression_keys) ~= 'function' then
-        task2_guide_failures[#task2_guide_failures + 1]
-            = 'GuideState:retain_progression_keys bounded-cache seam is missing'
-    else
+    local progression_api_available = type(compact_guides.progression_actions) == 'function'
+    local retain_api_available = type(compact_guides.retain_progression_keys) == 'function'
+    task2_guide_expect(progression_api_available,
+        'GuideState:progression_actions production seam is missing')
+    task2_guide_expect(retain_api_available,
+        'GuideState:retain_progression_keys bounded-cache seam is missing')
+    local function compact_progression_actions(native_key)
+        if not progression_api_available then
+            return nil, 'missing progression_actions production seam'
+        end
+        return compact_guides:progression_actions(native_key)
+    end
+    local function compact_retain_progression_keys(active_keys)
+        if not retain_api_available then
+            return nil, 'missing retain_progression_keys production seam'
+        end
+        return compact_guides:retain_progression_keys(active_keys)
+    end
+    do
         local ok, counted_actions = pcall(function()
-            return compact_guides:progression_actions(counted_key)
+            return compact_progression_actions(counted_key)
         end)
         task2_guide_expect(ok and type(counted_actions) == 'table'
             and #counted_actions == 3,
@@ -1214,7 +1299,7 @@ do
             counted_actions[2].source_revisions.bg = 0
             counted_actions[2].source_action_span_ids[1] = 'caller span mutation'
             counted_actions[3].items[1] = 'caller nested mutation'
-            local fresh_actions = compact_guides:progression_actions(counted_key)
+            local fresh_actions = compact_progression_actions(counted_key)
             task2_guide_expect(type(fresh_actions) == 'table'
                 and fresh_actions[1].target == 'Compact NPC 1001'
                 and fresh_actions[2].catalogue[1].target_point[1] == 10
@@ -1225,9 +1310,62 @@ do
                 'progression_actions returned a mutable cache-owned action row')
         end
 
+        local mixed_ok, mixed_actions = pcall(function()
+            return compact_progression_actions(mixed_authority_key)
+        end)
+        local mixed_action = mixed_ok and type(mixed_actions) == 'table'
+            and mixed_actions[1] or nil
+        local mixed_point = type(mixed_action) == 'table'
+            and type(mixed_action.catalogue) == 'table'
+            and mixed_action.catalogue[1] or nil
+        task2_guide_expect(type(mixed_action) == 'table'
+                and #mixed_actions == 1
+                and mixed_action.matcher == nil
+                and mixed_action.action == 'examine'
+                and mixed_action.relationship == 'examine-object'
+                and mixed_action.target == 'North Geyser'
+                and mixed_action.target_key == 'northgeyser'
+                and mixed_action.target_kind == 'object'
+                and mixed_action.objects[1] == 'North Geyser'
+                and mixed_action.zones[1] == 'Dangruf Wadi'
+                and mixed_action.grid_coordinates[1] == 'H-4'
+                and mixed_action.items[1] == 'Blue Tester'
+                and mixed_action.key_items[1] == 'Geyser Key'
+                and mixed_action.destination_zone_id == 191
+                and mixed_action.instruction
+                    == 'Examine the North Geyser at H-4 with the Blue Tester.'
+                and mixed_action.field_sources.action == 'bg'
+                and mixed_action.field_sources.relationship == 'bg'
+                and mixed_action.field_sources.target == 'ffxiclopedia'
+                and mixed_action.field_sources.objects == 'ffxiclopedia'
+                and mixed_action.field_sources.zones == 'bg'
+                and mixed_action.field_sources.grid_coordinates == 'ffxiclopedia'
+                and mixed_action.field_sources.items == 'bg'
+                and mixed_action.field_sources.key_items == 'ffxiclopedia'
+                and mixed_action.field_sources.destination_zone_id == 'bg'
+                and mixed_action.field_sources.instruction == 'ffxiclopedia'
+                and mixed_action.source_revisions.bg == 5001
+                and mixed_action.source_revisions.ffxiclopedia == 5002,
+            'compact progression row did not preserve BG-primary and field-level FFXIclopedia fallback')
+        task2_guide_expect(type(mixed_point) == 'table'
+                and mixed_point.destination_id == 'object:v1:191:17797121'
+                and mixed_point.zone_id == 191
+                and mixed_point.target_name == 'North Geyser'
+                and mixed_point.target_kind == 'object'
+                and mixed_point.target_key == 'northgeyser'
+                and type(mixed_point.target_point) == 'table'
+                and #mixed_point.target_point == 3
+                and mixed_point.target_point[1] == 12.5
+                and mixed_point.target_point[2] == -30.25
+                and mixed_point.target_point[3] == 1.75
+                and mixed_point.raw_spawn_ids[1] == 17797121
+                and mixed_point.transport_id == ''
+                and mixed_point.battlefield_id == '',
+            'mixed-authority compact action did not expose one exact finite wiki-ready catalogue point')
+
         local duplicate_actions, duplicate_reason
         ok, duplicate_actions, duplicate_reason = pcall(function()
-            return compact_guides:progression_actions(duplicate_key)
+            return compact_progression_actions(duplicate_key)
         end)
         task2_guide_expect(ok and (duplicate_actions == nil or #duplicate_actions == 0)
             and tostring(duplicate_reason):lower():find('duplicate', 1, true) ~= nil,
@@ -1256,23 +1394,27 @@ do
         }) do
             local invalid_actions, invalid_reason
             ok, invalid_actions, invalid_reason = pcall(function()
-                return compact_guides:progression_actions(invalid.key)
+                return compact_progression_actions(invalid.key)
             end)
             task2_guide_expect(ok and (invalid_actions == nil or #invalid_actions == 0)
                 and tostring(invalid_reason):lower():find(invalid.token, 1, true) ~= nil,
                 invalid.label .. ' did not fail closed')
         end
 
+        local cache_fixture_loads_ok = true
         for number = 1002, 1070 do
             local actions_ok, actions = pcall(function()
-                return compact_guides:progression_actions(
+                return compact_progression_actions(
                     'mission:Bastok:' .. tostring(number))
             end)
-            task2_guide_expect(actions_ok and type(actions) == 'table' and #actions == 1,
-                'compact progression action load failed for cache fixture ' .. tostring(number))
+            if not (actions_ok and type(actions) == 'table' and #actions == 1) then
+                cache_fixture_loads_ok = false
+            end
         end
+        task2_guide_expect(cache_fixture_loads_ok,
+            'one or more of 69 compact cache-fixture objectives failed to load')
         local retained_ok, retained_count = pcall(function()
-            return compact_guides:retain_progression_keys({
+            return compact_retain_progression_keys({
                 ['mission:Bastok:1069'] = true,
                 ['mission:Bastok:1070'] = true,
             })
@@ -1282,8 +1424,8 @@ do
             'progression action cache did not report a bounded retained count of at most 64')
         local active_module_name = 'fixture_compact_progression_6'
         local active_loads_before_reuse = compact_loader_by_name[active_module_name] or 0
-        local active_a = compact_guides:progression_actions('mission:Bastok:1069')
-        local active_b = compact_guides:progression_actions('mission:Bastok:1070')
+        local active_a = compact_progression_actions('mission:Bastok:1069')
+        local active_b = compact_progression_actions('mission:Bastok:1070')
         task2_guide_expect(type(active_a) == 'table' and #active_a == 1
                 and type(active_b) == 'table' and #active_b == 1
                 and (compact_loader_by_name[active_module_name] or 0)
@@ -1292,7 +1434,7 @@ do
         local oldest_module_name = 'fixture_compact_progression_1'
         local oldest_loads_before_reload = compact_loader_by_name[oldest_module_name] or 0
         local oldest_ok, oldest_actions = pcall(function()
-            return compact_guides:progression_actions(counted_key)
+            return compact_progression_actions(counted_key)
         end)
         task2_guide_expect(oldest_ok and type(oldest_actions) == 'table'
                 and #oldest_actions == 3
@@ -1375,9 +1517,10 @@ assert(opened ~= nil, tostring(reason))
 assert(guides:is_open() == true)
 assert(guides:step_count() == 3)
 assert(guides:current_index() == 2)
-assert(#module_loader_calls == 1,
+task2_guide_expect(#module_loader_calls == 1,
     'compact guide resolution must not load full BG or FFXIclopedia source modules')
-assert(module_loader_calls[1] == 'fixture_reconcile_mission_bastok')
+task2_guide_expect(module_loader_calls[1] == 'fixture_reconcile_mission_bastok',
+    'guide resolution loaded a full source module before the compact shard')
 assert(guides:automatic_step_id('mission:Bastok:2', 'obtain-blue-tester') == 'mission:Bastok:2:step-001')
 local source_steps = assert(guides:source_route_steps('mission:Bastok:2'))
 assert(#source_steps == 3 and source_steps[1].entities[1] == 'Cid'

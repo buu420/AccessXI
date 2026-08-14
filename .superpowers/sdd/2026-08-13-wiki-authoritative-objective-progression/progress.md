@@ -101,3 +101,14 @@ still fail closed. Fresh verification passes 188 objective-guide tests and 72
 route-evidence tests; generated corpus artifacts and Task 2 Lua files remain
 untouched and unstaged. The scoped commit is pending the explicit-path staging
 audit.
+
+Task 2 independent-review fix round 1/5 completed test-only. All three Lua
+harnesses now execute every Task 2 scenario and fail only at one final
+aggregate in a clean Git archive. Added coverage includes compact mixed
+BG-primary/FFXIclopedia fallback, bounded suffix barriers, immutable
+interaction/transport identity, malformed/latest-valid ten-field cursor rows,
+multi-unit Inventory counts, single trade/delivery, and executable raw
+0x032/0x034/0x05B/0x05C/0x055/0x056, Inventory, committed-zone, wiki-I, dirty
+category, exact route-cancellation, and no-auto-movement adapters. Clean
+snapshot `70ee869` produced 119 navigation, 35 guide, and 27 reader REDs; all
+three harnesses passed the 32-bit Lua 5.1 syntax check and scoped diff check.

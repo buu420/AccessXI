@@ -249,7 +249,9 @@ local function warp_put_le(offset, value, width)
         warp_bytes[offset + index + 1] = math.floor(value / (2 ^ (8 * index))) % 256
     end
 end
-warp_put_le(0x04, 0xA1B2C3D4, 4)
+warp_put_le(0x04, 0x3F800000, 4) -- X = 1.0
+warp_put_le(0x08, 0xC0000000, 4) -- Z = -2.0
+warp_put_le(0x0C, 0x3F000000, 4) -- Y = 0.5
 warp_put_le(0x10, 0x11223344, 4)
 warp_put_le(0x14, 0x55667788, 4)
 warp_put_le(0x18, 140, 2)
@@ -300,6 +302,9 @@ task2_reader_expect(type(warp_signal) == 'table'
         and warp_signal.target_index == 0x7788
         and warp_signal.zone_id == 140
         and warp_signal.menu_id == 0x3344
+        and warp_signal.destination_x == 1.0
+        and warp_signal.destination_z == -2.0
+        and warp_signal.destination_y == 0.5
         and warp_signal.character_identity == 'alpha:1001'
         and warp_signal.world_id == 1001
         and warp_signal.session_epoch == 77
@@ -309,6 +314,94 @@ task2_reader_expect(type(warp_signal) == 'table'
 task2_reader_expect(warp_result == false and old_event_bridge_calls == 0
         and warp_progress_calls == 0,
     '0x05C Warp Request alone completed progress or used the interaction-finish bridge')
+
+local function task2_event_packet(size, writes)
+    local bytes = {}
+    for index = 1, size do bytes[index] = 0 end
+    for _, write in ipairs(writes) do
+        for index = 0, write.width - 1 do
+            bytes[write.offset + index + 1]
+                = math.floor(write.value / (2 ^ (8 * index))) % 256
+        end
+    end
+    return string.char(unpack(bytes))
+end
+warp_accessxi.objective_entity_name_for_server_id = function(server_id)
+    if server_id == 0x11223344 then return 'Cid' end
+    return ''
+end
+local function task2_capture_event(packet_id, direction, size, writes)
+    warp_signals:clear()
+    old_event_bridge_calls = 0
+    warp_accessxi.capture_mission_quest_event_packet({
+        id = packet_id,
+        data = task2_event_packet(size, writes),
+    }, direction)
+    return warp_signals[1]
+end
+local start_032 = task2_capture_event(0x032, 'in', 0x10, {
+    { offset = 0x04, value = 0x11223344, width = 4 },
+    { offset = 0x0A, value = 237, width = 2 },
+    { offset = 0x0C, value = 0x4455, width = 2 },
+})
+task2_reader_expect(type(start_032) == 'table'
+        and start_032.kind == 'interaction-start'
+        and start_032.packet_id == 0x032
+        and start_032.direction == 'in'
+        and start_032.target_server_id == 0x11223344
+        and start_032.target_name == 'Cid'
+        and start_032.zone_id == 237
+        and start_032.event_id == 0x4455
+        and start_032.menu_id == 0x4455
+        and start_032.character_identity == 'alpha:1001'
+        and start_032.world_id == 1001
+        and start_032.session_epoch == 77
+        and tonumber(start_032.sequence) ~= nil and start_032.sequence > 0,
+    'raw incoming 0x032 did not emit one exact owner-qualified interaction-start signal')
+task2_reader_expect(old_event_bridge_calls == 0,
+    'raw 0x032 double-dispatched through the legacy interaction bridge')
+
+local start_034 = task2_capture_event(0x034, 'in', 0x30, {
+    { offset = 0x04, value = 0x11223344, width = 4 },
+    { offset = 0x2A, value = 237, width = 2 },
+    { offset = 0x2C, value = 0x4455, width = 2 },
+})
+task2_reader_expect(type(start_034) == 'table'
+        and start_034.kind == 'interaction-start'
+        and start_034.packet_id == 0x034
+        and start_034.direction == 'in'
+        and start_034.target_server_id == 0x11223344
+        and start_034.target_name == 'Cid'
+        and start_034.zone_id == 237
+        and start_034.event_id == 0x4455
+        and start_034.menu_id == 0x4455
+        and start_034.character_identity == 'alpha:1001'
+        and start_034.world_id == 1001
+        and start_034.session_epoch == 77,
+    'raw incoming 0x034 did not emit one exact owner-qualified interaction-start signal')
+task2_reader_expect(old_event_bridge_calls == 0,
+    'raw 0x034 double-dispatched through the legacy interaction bridge')
+
+local finish_05b = task2_capture_event(0x05B, 'out', 0x16, {
+    { offset = 0x04, value = 0x11223344, width = 4 },
+    { offset = 0x10, value = 237, width = 2 },
+    { offset = 0x12, value = 0x4455, width = 2 },
+})
+task2_reader_expect(type(finish_05b) == 'table'
+        and finish_05b.kind == 'interaction-finish'
+        and finish_05b.packet_id == 0x05B
+        and finish_05b.direction == 'out'
+        and finish_05b.target_server_id == 0x11223344
+        and finish_05b.target_name == 'Cid'
+        and finish_05b.zone_id == 237
+        and finish_05b.event_id == 0x4455
+        and finish_05b.menu_id == 0x4455
+        and finish_05b.character_identity == 'alpha:1001'
+        and finish_05b.world_id == 1001
+        and finish_05b.session_epoch == 77,
+    'raw outgoing 0x05B did not emit one exact owner-qualified interaction-finish signal')
+task2_reader_expect(old_event_bridge_calls == 0,
+    'raw 0x05B double-dispatched through the legacy interaction bridge')
 
 -- Combat adapters are evidence producers only.  Incoming 0x028 actions may
 -- retain bounded battle/entity context, but only incoming 0x029 Action
@@ -479,20 +572,35 @@ task2_reader_expect(#combat_signals == signals_before_falls_message,
 
 local state_change_source = extract(
     'function accessxi.on_mission_quest_state_changed(kind, reason)',
-    'function accessxi.on_objective_interaction_progress_changed(kind, cancelled)')
+    'local function nav_menu_move(delta)')
 local background_cancel_calls = 0
-local background_accessxi = {
+local background_start_calls = 0
+local background_route_current = true
+local background_accessxi
+background_accessxi = {
     nav_menu_open = false,
     nav_menu_poll_key = 999,
     nav_menu_dirty_categories = {},
     nav_menu_items = T{},
     nav_menu_index = 1,
     nav_destination = { kind = 'area', name = 'ordinary route' },
-    nav_is_mission_quest_point = function() return false end,
+    nav_active = false,
+    nav_is_mission_quest_point = function(point)
+        return type(point) == 'table' and point.objective_kind == 'mission'
+    end,
+    nav_mission_quest_route_point_is_current = function()
+        return background_route_current
+    end,
     nav_cancel_mission_quest_route = function()
         background_cancel_calls = background_cancel_calls + 1
+        background_accessxi.nav_destination = nil
         return true
     end,
+    nav_start_wiki_objective_route = function()
+        background_start_calls = background_start_calls + 1
+        background_accessxi.nav_active = true
+    end,
+    nav_menu_selection_key = function() return '' end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
 }
 local state_change_chunk = assert(loadstring(state_change_source, '@reader-task2-background-refresh'))
@@ -515,18 +623,40 @@ task2_reader_expect(background_accessxi.nav_menu_dirty_categories.mission == tru
 task2_reader_expect(background_cancel_calls == 0,
     'native mission refresh cancelled an unrelated ordinary route')
 
-task2_reader_expect(source:find('function accessxi.nav_start_wiki_objective_route(target, player)', 1, true)
-        ~= nil and source:find('objective_wiki_route', 1, true) ~= nil
-        and source:find('wiki_authoritative', 1, true) ~= nil,
-    'reader still lacks the explicit wiki-authoritative ordinary-route dispatch seam')
-task2_reader_expect(mission_capture_source:find('nav_mission_quest_reduce_signal', 1, true) ~= nil
-        and mission_capture_source:find('native-objective-state', 1, true) ~= nil,
-    '0x056 capture does not feed typed native completion/replacement state to the reducer')
-end)()
+background_accessxi.nav_menu_dirty_categories = {}
+background_accessxi.nav_destination = {
+    objective_kind = 'mission', objective_native_key = 'mission:Bastok:2',
+    objective_guide_step_id = 'mission:Bastok:2:step-001',
+    objective_action_id = 'mission:Bastok:2:step-001:claim-01',
+}
+background_route_current = false
+local obsolete_changed, obsolete_cancelled =
+    background_accessxi.on_mission_quest_state_changed('mission', 'accepted-progress')
+task2_reader_expect(obsolete_cancelled == true and obsolete_changed == false
+        and background_cancel_calls == 1
+        and background_accessxi.nav_destination == nil,
+    'accepted progression did not cancel only the exact obsolete objective route')
+task2_reader_expect(background_start_calls == 0 and background_accessxi.nav_active == false,
+    'accepted progression started movement without a fresh I press')
 
-assert(#task2_reader_failures == 0,
-    'Task 2 login-safe native reader REDs:\n- '
-        .. table.concat(task2_reader_failures, '\n- '))
+background_accessxi.nav_destination = {
+    objective_kind = 'mission', objective_native_key = 'mission:Bastok:2',
+    objective_guide_step_id = 'mission:Bastok:2:step-002',
+    objective_action_id = 'mission:Bastok:2:step-002:claim-01',
+}
+background_route_current = true
+background_accessxi.on_mission_quest_state_changed('mission', 'unrelated-refresh')
+task2_reader_expect(background_cancel_calls == 1
+        and background_accessxi.nav_destination ~= nil,
+    'native refresh cancelled an exact objective route that remained current')
+background_accessxi.on_objective_interaction_progress_changed('mission', false)
+task2_reader_expect(background_accessxi.nav_menu_dirty_categories.mission == true
+        and background_accessxi.nav_menu_poll_key == 0,
+    'accepted closed-menu progression did not dirty Missions for the next category read')
+task2_reader_expect(background_start_calls == 0 and background_accessxi.nav_active == false,
+    'category invalidation or fresh-route preservation started movement automatically')
+
+end)()
 
 -- Main 0x056 uses two packed uint16 fields before the final SoA/RoV uint32s.
 -- RoV must never alias the uint16 packet port at absolute offset 0x24.
@@ -538,7 +668,7 @@ local function put_le(offset, value, width)
     end
 end
 put_le(0x04, 0, 4)
-put_le(0x08, 3, 4)
+put_le(0x08, 1, 4)
 put_le(0x0C, 4, 4)
 put_le(0x10, 5, 4)
 put_le(0x14, 0x11223344, 4)
@@ -549,8 +679,9 @@ put_le(0x20, 110, 4)
 put_le(0x24, 0xFFFF, 2)
 local mission_data = string.char(unpack(mission_bytes))
 local mission_queue_calls = 0
+local mission_native_signals = T{}
 local decoder_accessxi = {
-    mission_packet_main = {},
+    mission_packet_main = { nation = 0, nation_mission = 0, port = 0xFFFF },
     packet_event_string = function(e) return e.data or '' end,
     packet_u16 = function(data, index)
         local a, b = data:byte(index, index + 1)
@@ -564,7 +695,12 @@ local decoder_accessxi = {
     nav_mission_quest_sync_character = function() end,
     current_player_name = function() return 'Alpha' end,
     current_player_identity = function() return 'alpha:1001' end,
+    current_player_world_id = function() return 1001 end,
     current_objective_session_epoch = function() return 77 end,
+    nav_mission_quest_reduce_signal = function(signal)
+        mission_native_signals:append(signal)
+        return false
+    end,
     save_mission_packet_cache = function() end,
     queue_mission_quest_state_change = function(kind)
         assert(kind == 'mission')
@@ -579,6 +715,11 @@ setfenv(decoder_chunk, setmetatable({
     log_line = function() end,
 }, { __index = _G }))
 decoder_chunk()
+decoder_accessxi.capture_mission_packet({
+    id = 0x056, data = mission_data:sub(1, 0x20), size = 0x20,
+})
+task2_reader_expect(#mission_native_signals == 0,
+    'partial raw 0x056 mission snapshot emitted a native completion/replacement signal')
 decoder_accessxi.capture_mission_packet({ id = 0x056, data = mission_data, size = #mission_data })
 assert(decoder_accessxi.mission_packet_main.addons == 0x0010)
 assert(decoder_accessxi.mission_packet_main.tales == 0x0040)
@@ -588,6 +729,19 @@ assert(decoder_accessxi.mission_packet_main.rov == 110,
 assert(decoder_accessxi.mission_packet_main.port == 0xFFFF
     and decoder_accessxi.mission_packet_main.port_raw == 0xFFFF)
 assert(mission_queue_calls == 1)
+local mission_native_signal = mission_native_signals[1]
+task2_reader_expect(type(mission_native_signal) == 'table'
+        and mission_native_signal.kind == 'native-objective-state'
+        and mission_native_signal.category == 'mission'
+        and mission_native_signal.previous_native_key == "mission:San d'Oria:1"
+        and mission_native_signal.current_native_key == "mission:San d'Oria:2"
+        and mission_native_signal.previous_state == 'active'
+        and mission_native_signal.current_state == 'replaced'
+        and mission_native_signal.scope_complete == true
+        and mission_native_signal.character_identity == 'alpha:1001'
+        and mission_native_signal.world_id == 1001
+        and mission_native_signal.session_epoch == 77,
+    'coherent raw 0x056 mission replacement did not emit one exact native-objective signal')
 
 -- A complete zone-load packet burst must publish at most one refresh per
 -- affected category, and no expensive active-objective scan may run while the
@@ -671,6 +825,54 @@ assert(settle_accessxi.nav_zone_load_settle_active(1749) == true
 assert(settle_accessxi.nav_zone_load_settle_active(1750) == false
     and settle_clear_reason == 'zone-in-ready',
     'the native Zone In packet did not release the fixed eight-second freeze')
+
+-- The committed zone-reset path, not raw 0x05C receipt, is the transport
+-- completion adapter.  Execute the real reset body and require one typed
+-- owner-qualified committed-zone signal before transient route state is lost.
+local committed_zone_source = extract(
+    'function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)',
+    'function accessxi.nav_poll_zone_transition_only(now)')
+local committed_zone_signals = T{}
+local committed_accessxi = {
+    nav_menu_items = T{}, nav_menu_search_results = T{}, nav_route_points = T{},
+    nav_menu_dirty_categories = {}, nav_live_entity_seen = T{},
+    nav_clear_zoning_watch = function() end,
+    nav_mission_quest_clear_pending_interaction = function() end,
+    nav_transport_clear = function() end,
+    nav_dangruf_fount_drop_clear = function() end,
+    nav_beacon_reset_direction_state = function() end,
+    nav_collision_quiet = function() end,
+    current_player_identity = function() return 'alpha:1001' end,
+    current_player_world_id = function() return 1001 end,
+    current_objective_session_epoch = function() return 77 end,
+    nav_mission_quest_reduce_signal = function(signal)
+        committed_zone_signals:append(signal)
+        return false
+    end,
+    objective_guides = { close = function() end },
+}
+local committed_zone_chunk = assert(loadstring(
+    committed_zone_source, '@reader-task2-committed-zone'))
+setfenv(committed_zone_chunk, setmetatable({
+    accessxi = committed_accessxi,
+    T = T,
+    tick = function() return 8300 end,
+    log_line = function() end,
+    ffxinav = nil,
+}, { __index = _G }))
+committed_zone_chunk()
+committed_accessxi.nav_reset_zone_state('poll-zone-change', 231, 140)
+local committed_zone_signal = committed_zone_signals[1]
+task2_reader_expect(type(committed_zone_signal) == 'table'
+        and committed_zone_signal.kind == 'committed-zone'
+        and committed_zone_signal.from_zone_id == 231
+        and committed_zone_signal.zone_id == 140
+        and committed_zone_signal.character_identity == 'alpha:1001'
+        and committed_zone_signal.world_id == 1001
+        and committed_zone_signal.session_epoch == 77
+        and tonumber(committed_zone_signal.sequence) ~= nil
+        and committed_zone_signal.sequence > 0,
+    'committed zone-reset path did not emit one exact typed committed-zone signal')
 
 local accessxi = {}
 local copy_environment = setmetatable({
@@ -945,7 +1147,7 @@ local spoken = {}
 local logged = {}
 local ordinary_route_calls = 0
 local objective_start_calls = 0
-local test_start_calls = 0
+local wiki_start_calls = 0
 local menu_environment = setmetatable({
     accessxi = accessxi,
     T = T,
@@ -973,7 +1175,7 @@ local function reset_menu(item, result_payload, result_message, result_mode)
     logged = {}
     ordinary_route_calls = 0
     objective_start_calls = 0
-    test_start_calls = 0
+    wiki_start_calls = 0
     accessxi.nav_menu_items = T{ item }
     accessxi.nav_menu_index = 1
     accessxi.nav_active = false
@@ -1005,7 +1207,7 @@ local function reset_menu(item, result_payload, result_message, result_mode)
         return 'Starting verified objective route.', true
     end
     accessxi.nav_start_wiki_objective_route = function(target, player)
-        test_start_calls = test_start_calls + 1
+        wiki_start_calls = wiki_start_calls + 1
         assert(target == result_payload and target.objective_wiki_route == true)
         assert(player.zone == 143)
         accessxi.nav_active = true
@@ -1081,7 +1283,7 @@ assert(accessxi.nav_active == true and accessxi.nav_destination == ready_payload
 assert(objective_start_calls == 1 and ordinary_route_calls == 0,
     'ready mode must dispatch only to the rooted objective route seam')
 
-local test_payload = {
+local wiki_payload = {
     zone = 144,
     name = 'Source-backed fixture target',
     x = 4,
@@ -1106,20 +1308,25 @@ local test_payload = {
     wiki_authoritative = true,
     verified = false,
 }
-reset_menu(objective_item, test_payload, '', 'wiki-ready')
+reset_menu(objective_item, wiki_payload, '', 'wiki-ready')
 nav_menu_start_route()
-assert(test_start_calls == 1 and objective_start_calls == 0 and ordinary_route_calls == 0,
-    'wiki-ready mode must dispatch only to the explicit test-route seam')
-assert(#spoken == 1 and spoken[1] == 'Source-verified mission objective. Starting ordinary route.',
+task2_reader_expect(wiki_start_calls == 1 and objective_start_calls == 0
+        and ordinary_route_calls == 0,
+    'wiki-ready mode did not dispatch only to the explicit ordinary collision-route seam')
+task2_reader_expect(#spoken == 1
+        and spoken[1] == 'Source-verified mission objective. Starting ordinary route.',
     'the explicit route must identify the source-verified mission objective')
-assert(#logged == 1 and logged[1]:lower():find('source route', 1, true) ~= nil,
+task2_reader_expect(#logged == 1
+        and logged[1]:lower():find('source route', 1, true) ~= nil,
     'the explicit route must be logged as a source route')
 
-reset_menu(objective_item, test_payload, '', 'wiki-ready')
+reset_menu(objective_item, wiki_payload, '', 'wiki-ready')
 nav_menu_start_route()
-assert(test_start_calls == 1 and objective_start_calls == 0 and ordinary_route_calls == 0,
+task2_reader_expect(wiki_start_calls == 1 and objective_start_calls == 0
+        and ordinary_route_calls == 0,
     'source-ready mode must still dispatch only to the explicit ordinary-route seam')
-assert(#spoken == 1 and spoken[1] == 'Source-verified mission objective. Starting ordinary route.',
+task2_reader_expect(#spoken == 1
+        and spoken[1] == 'Source-verified mission objective. Starting ordinary route.',
     'packet freshness must not be announced as a source-route blocker')
 
 ready_payload.zone = 144
@@ -1276,16 +1483,22 @@ assert(#spoken == 1
     and not spoken[1]:find('Beacon active', 1, true),
     'pending menu route falsely claimed an active beacon')
 
-local test_start_source = extract(
+local wiki_start_marker = source:find(
+    'function accessxi.nav_start_wiki_objective_route(target, player)', 1, true)
+if wiki_start_marker == nil then
+    task2_reader_expect(false,
+        'production wiki-ready ordinary collision-route start seam is missing')
+else
+local wiki_start_source = extract(
     'function accessxi.nav_start_wiki_objective_route(target, player)',
     'function accessxi.nav_start_authorized_objective_route(target, player)')
-local test_start_chunk = assert(loadstring(test_start_source, '@reader-objective-test-start'))
-setfenv(test_start_chunk, setmetatable({
+local wiki_start_chunk = assert(loadstring(wiki_start_source, '@reader-objective-wiki-start'))
+setfenv(wiki_start_chunk, setmetatable({
     accessxi = accessxi,
     T = T,
     nav_clean_field = clean,
 }, { __index = _G }))
-test_start_chunk()
+wiki_start_chunk()
 
 local same_zone_calls = 0
 local cross_zone_calls = 0
@@ -1307,7 +1520,7 @@ accessxi.nav_zone_search_start_next_leg = function(reason)
     return 'Starting cross-zone route.'
 end
 
-local same_target = clone(test_payload)
+local same_target = clone(wiki_payload)
 same_target.zone = 143
 local text, started = accessxi.nav_start_wiki_objective_route(same_target, { zone = 143 })
 assert(started == true and text == 'Source-verified mission objective. Starting same-zone route.')
@@ -1316,13 +1529,14 @@ assert(same_zone_calls == 1 and cross_zone_calls == 0
     'same-zone wiki route did not use ordinary point navigation')
 
 accessxi.nav_active = false
-local cross_target = clone(test_payload)
+local cross_target = clone(wiki_payload)
 text, started = accessxi.nav_start_wiki_objective_route(cross_target, { zone = 143 })
 assert(started == true and text == 'Source-verified mission objective. Starting cross-zone route.')
 assert(same_zone_calls == 1 and cross_zone_calls == 1
     and accessxi.nav_zone_search_target.objective_wiki_route == true
     and accessxi.nav_objective_route_state == nil,
     'cross-zone wiki route did not use ordinary zone-search navigation')
+end
 
 -- Mission rows can share their title and native source while representing
 -- distinct exact destinations. Rebuilding must preserve the exact row, and L
@@ -1608,6 +1822,95 @@ local unavailable_owned, unavailable_id =
 assert(unavailable_owned == false and unavailable_id == nil,
     'an unavailable key-item resource returned an ID')
 
+-- Execute the raw 0x055 adapter, not merely the name lookup.  Only a complete
+-- same-owner/session absent-to-present table transition may emit a typed
+-- key-item delta, and replay must be silent.
+local key_item_delta_signals = T{}
+local raw_key_item_accessxi
+raw_key_item_accessxi = {
+    key_items_packet_tables = {}, key_items_packet_key = '',
+    key_items_packet_freshness = '', key_items_owned_cache = {},
+    packet_u16 = function(data, index)
+        local a, b = data:byte(index, index + 1)
+        return (a or 0) + ((b or 0) * 256)
+    end,
+    packet_has_bit = function(flags, bit_index)
+        local byte = flags:byte(math.floor(bit_index / 8) + 1) or 0
+        return math.floor(byte / (2 ^ (bit_index % 8))) % 2 == 1
+    end,
+    nav_mission_quest_sync_character = function() end,
+    current_player_name = function() return 'Alpha' end,
+    current_player_identity = function() return 'alpha:1001' end,
+    current_player_world_id = function() return 1001 end,
+    current_objective_session_epoch = function() return 77 end,
+    objective_key_item_name_for_id = function(id)
+        return id == 157 and 'Orcish hut key' or ''
+    end,
+    key_items_packet_cache_key = function()
+        local row = raw_key_item_accessxi.key_items_packet_tables[0]
+        return row ~= nil and row.flags or ''
+    end,
+    key_items_packet_freshness_key = function()
+        local row = raw_key_item_accessxi.key_items_packet_tables[0]
+        return row ~= nil and (tostring(row.identity) .. ':' .. tostring(row.session_epoch)) or ''
+    end,
+    save_key_items_packet_cache = function() end,
+    table_count = function(value)
+        local count = 0
+        for _ in pairs(value or {}) do count = count + 1 end
+        return count
+    end,
+    key_items_packet_bit_count = function() return 0 end,
+    packet_hex_limit = function() return 'fixture' end,
+    queue_mission_quest_state_change = function() end,
+    nav_mission_quest_reduce_signal = function(signal)
+        key_item_delta_signals:append(signal)
+        return false
+    end,
+}
+local raw_key_item_chunk = assert(loadstring(
+    key_item_capture_source, '@reader-task2-raw-key-items'))
+setfenv(raw_key_item_chunk, setmetatable({
+    accessxi = raw_key_item_accessxi,
+    tick = function() return 8200 end,
+    log_line = function() end,
+}, { __index = _G }))
+raw_key_item_chunk()
+local function raw_key_item_packet(ids, size)
+    local bytes = {}
+    for index = 1, 0x88 do bytes[index] = 0 end
+    local flags = packet_flags_with_ids(ids)
+    for index = 1, #flags do bytes[0x04 + index] = flags:byte(index) end
+    bytes[0x84 + 1] = 0
+    bytes[0x84 + 2] = 0
+    local data = string.char(unpack(bytes))
+    size = size or #data
+    return { id = 0x055, data = data:sub(1, size) }
+end
+raw_key_item_accessxi.capture_key_items_packet(raw_key_item_packet({}, 0x40))
+task2_reader_expect(#key_item_delta_signals == 0,
+    'partial raw 0x055 emitted a key-item progression signal')
+raw_key_item_accessxi.capture_key_items_packet(raw_key_item_packet({}))
+task2_reader_expect(#key_item_delta_signals == 0,
+    'initial raw 0x055 baseline was misreported as an acquisition')
+raw_key_item_accessxi.capture_key_items_packet(raw_key_item_packet({ 157 }))
+local raw_key_delta = key_item_delta_signals[1]
+task2_reader_expect(type(raw_key_delta) == 'table'
+        and raw_key_delta.kind == 'key-item-delta'
+        and raw_key_delta.key_item_id == 157
+        and raw_key_delta.key_item_name == 'Orcish hut key'
+        and raw_key_delta.before_owned == false
+        and raw_key_delta.after_owned == true
+        and raw_key_delta.snapshot_complete == true
+        and raw_key_delta.character_identity == 'alpha:1001'
+        and raw_key_delta.world_id == 1001
+        and raw_key_delta.session_epoch == 77
+        and tonumber(raw_key_delta.sequence) ~= nil and raw_key_delta.sequence > 0,
+    'raw 0x055 absent-to-present transition did not emit one exact typed key-item delta')
+raw_key_item_accessxi.capture_key_items_packet(raw_key_item_packet({ 157 }))
+task2_reader_expect(#key_item_delta_signals == 1,
+    'replayed identical raw 0x055 emitted duplicate key-item progression evidence')
+
 -- Mission item progression must use a complete native carried-Inventory scan.
 -- Item packets only wake this scan; their payload is never the ownership source.
 assert(source:find('function accessxi.refresh_objective_inventory_state(reason)', 1, true),
@@ -1618,6 +1921,7 @@ local objective_state_change_source = extract(
 local inventory_source = extract(
     'function accessxi.refresh_objective_inventory_state(reason)',
     'function accessxi.current_inventory_gil()')
+local inventory_delta_signals = T{}
 local inventory_accessxi = {
     objective_inventory_counts = {},
     nav_menu_items = T{},
@@ -1629,7 +1933,15 @@ local inventory_accessxi = {
     inventory_packet_key = '',
     current_player_name = function() return 'Alpha' end,
     current_player_identity = function() return 'alpha:1001' end,
+    current_player_world_id = function() return 1001 end,
     current_objective_session_epoch = function() return 77 end,
+    objective_item_name_for_id = function(id)
+        return id == 16656 and 'Orcish Axe' or ''
+    end,
+    nav_mission_quest_reduce_signal = function(signal)
+        inventory_delta_signals:append(signal)
+        return false
+    end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
     resource_item_info_by_name = function(name)
         if clean(name):lower() == 'orcish axe' then
@@ -1704,6 +2016,8 @@ assert(inventory_accessxi.objective_inventory_count(16656) == 1,
 local axe_count, axe_id = inventory_accessxi.objective_inventory_count_by_name('Orcish Axe')
 assert(axe_count == 1 and axe_id == 16656,
     'native item name did not resolve to the exact carried item ID')
+task2_reader_expect(#inventory_delta_signals == 0,
+    'initial complete Inventory baseline was misreported as a cursor-entered gain')
 
 inventory_changed, inventory_available =
     inventory_accessxi.refresh_objective_inventory_state('test-identical-scan')
@@ -1717,6 +2031,8 @@ assert(inventory_changed == false and inventory_available == false,
     'a failed native Inventory scan was treated as complete')
 assert(inventory_accessxi.objective_inventory_count(16656) == 1,
     'a failed scan destroyed the last complete native Inventory snapshot')
+task2_reader_expect(#inventory_delta_signals == 0,
+    'failed or identical Inventory scan emitted causal progression evidence')
 
 inventory_accessxi.nav_is_mission_quest_point = function(point)
     return type(point) == 'table' and point.objective_kind == 'mission'
@@ -1739,6 +2055,20 @@ inventory_items[1].Count = 2
 inventory_accessxi.schedule_objective_inventory_refresh('test-required-item', 0)
 assert(inventory_accessxi.poll_objective_inventory_refresh(1000) == true,
     'a completed changed Inventory scan did not publish its event')
+local inventory_delta_signal = inventory_delta_signals[1]
+task2_reader_expect(type(inventory_delta_signal) == 'table'
+        and inventory_delta_signal.kind == 'inventory-delta'
+        and inventory_delta_signal.item_id == 16656
+        and inventory_delta_signal.item_name == 'Orcish Axe'
+        and inventory_delta_signal.before_count == 1
+        and inventory_delta_signal.after_count == 2
+        and inventory_delta_signal.snapshot_complete == true
+        and inventory_delta_signal.character_identity == 'alpha:1001'
+        and inventory_delta_signal.world_id == 1001
+        and inventory_delta_signal.session_epoch == 77
+        and tonumber(inventory_delta_signal.inventory_sequence) ~= nil
+        and inventory_delta_signal.inventory_sequence > 0,
+    'coherent native Inventory count increase did not emit one exact typed delta')
 assert(inventory_cancel_count == 1,
     'an active route to the superseded mission step was not cancelled')
 assert(inventory_route_start_count == 0,
@@ -1775,5 +2105,9 @@ inventory_accessxi.schedule_objective_inventory_refresh('test-ordinary-route', 0
 assert(inventory_accessxi.poll_objective_inventory_refresh(1000) == true)
 assert(inventory_cancel_count == 1,
     'a mission Inventory change cancelled an ordinary non-mission route')
+
+assert(#task2_reader_failures == 0,
+    'Task 2 complete login-safe native reader REDs:\n- '
+        .. table.concat(task2_reader_failures, '\n- '))
 
 print('mission and quest reader I-handler integration tests passed')

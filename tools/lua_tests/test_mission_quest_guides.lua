@@ -1,10 +1,19 @@
 local module_path = assert(arg[1], 'missing mission/quest guide module path')
 local manual_path = assert(arg[2], 'missing manual-step test path')
+local real_index_path = arg[3]
+local real_module_directory = arg[4]
 
 local module_loader_calls = {}
 local current_identity = 'alpha:1001'
 local identity_changes = 0
 local task2_guide_failures = {}
+
+local function deep_copy(value)
+    if type(value) ~= 'table' then return value end
+    local result = {}
+    for key, item in pairs(value) do result[deep_copy(key)] = deep_copy(item) end
+    return result
+end
 
 local function task2_guide_expect(value, message)
     if value ~= true then
@@ -957,6 +966,64 @@ do
     compact_modules.fixture_compact_progression_1.objectives[mixed_authority_key]
         = compact_objectives[mixed_authority_key]
 
+    -- A material wiki instruction can be authoritative without naming a
+    -- concrete target.  It remains a cursor action, but cannot manufacture a
+    -- catalogue destination.
+    local instruction_only_key = 'mission:Bastok:1119'
+    local instruction_only_action = deep_copy(
+        compact_objectives[mixed_authority_key].progression_actions[1])
+    instruction_only_action.step_id = instruction_only_key .. ':step-001'
+    instruction_only_action.action_id = instruction_only_action.step_id .. ':claim-01'
+    instruction_only_action.action = 'wait'
+    instruction_only_action.relationship = 'wait-for'
+    instruction_only_action.target = ''
+    instruction_only_action.target_key = ''
+    instruction_only_action.target_kind = ''
+    instruction_only_action.npcs = {}
+    instruction_only_action.objects = {}
+    instruction_only_action.enemies = {}
+    instruction_only_action.zones = {}
+    instruction_only_action.grid_coordinates = {}
+    instruction_only_action.items = {}
+    instruction_only_action.key_items = {}
+    instruction_only_action.destination_zone_name = ''
+    instruction_only_action.destination_zone_id = 0
+    instruction_only_action.catalogue = {}
+    instruction_only_action.instruction = 'Wait for the next authoritative instruction.'
+    instruction_only_action.field_sources.target = ''
+    instruction_only_action.field_sources.target_key = ''
+    instruction_only_action.field_sources.target_kind = ''
+    instruction_only_action.field_sources.objects = ''
+    instruction_only_action.field_sources.zones = ''
+    instruction_only_action.field_sources.grid_coordinates = ''
+    instruction_only_action.field_sources.items = ''
+    instruction_only_action.field_sources.key_items = ''
+    instruction_only_action.field_sources.destination_zone_name = ''
+    instruction_only_action.field_sources.destination_zone_id = ''
+    instruction_only_action.field_sources.catalogue = ''
+    instruction_only_action.field_sources.instruction = 'bg'
+    instruction_only_action.source_action_span_ids = {
+        instruction_only_key .. ':bg:step-001:action-01',
+    }
+    compact_index[instruction_only_key] = {
+        kind = 'mission', context = 'Bastok', native_id = 1119,
+        title = 'Instruction-only compact fixture', status = 'guide',
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+        progression_module = 'fixture_compact_progression_1',
+        progression_schema_version = 2,
+        progression_revision = revision,
+    }
+    compact_objectives[instruction_only_key] = {
+        native_key = instruction_only_key,
+        progression_module = 'fixture_compact_progression_1',
+        progression_schema_version = 2,
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+        progression_revision = revision,
+        progression_actions = { instruction_only_action },
+    }
+    compact_modules.fixture_compact_progression_1.objectives[instruction_only_key]
+        = compact_objectives[instruction_only_key]
+
     local duplicate_key = 'mission:Bastok:1099'
     compact_index[duplicate_key] = {
         kind = 'mission',
@@ -1222,6 +1289,24 @@ do
         schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { omit_target_key = true })
+    local invalid_catalogue_key = add_invalid_shard(1120, 'catalogue-target-key', {
+        schema_version = 2,
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+    })
+    local invalid_catalogue_action = compact_modules[
+        compact_index[invalid_catalogue_key].progression_module]
+        .objectives[invalid_catalogue_key].progression_actions[1]
+    invalid_catalogue_action.field_sources.catalogue = 'catalogue'
+    invalid_catalogue_action.catalogue = {
+        {
+            destination_id = 'npc:v1:237:17779999',
+            zone_id = 237, zone_name = 'Metalworks',
+            target_name = 'Invalid Fixture NPC', target_kind = 'npc',
+            target_key = '', target_point = { 1, 2, 3 },
+            raw_identity = 'fixture:invalid-catalogue-key',
+            raw_spawn_ids = { 17779999 },
+        },
+    }
     local invalid_module_name_key = add_invalid_shard(1113, 'module-name', {
         schema_version = 2,
         module_name = 'fixture_wrong_progression_module',
@@ -1396,6 +1481,19 @@ do
                 and mixed_point.battlefield_id == '',
             'mixed-authority compact action did not expose one exact finite wiki-ready catalogue point')
 
+        local instruction_ok, instruction_actions = pcall(function()
+            return compact_progression_actions(instruction_only_key)
+        end)
+        task2_guide_expect(instruction_ok and type(instruction_actions) == 'table'
+                and #instruction_actions == 1
+                and instruction_actions[1].target == ''
+                and instruction_actions[1].target_key == ''
+                and instruction_actions[1].instruction
+                    == 'Wait for the next authoritative instruction.'
+                and instruction_actions[1].field_sources.instruction == 'bg'
+                and #instruction_actions[1].catalogue == 0,
+            'authoritative instruction-only action with an empty target/key did not load')
+
         local duplicate_actions, duplicate_reason
         ok, duplicate_actions, duplicate_reason = pcall(function()
             return compact_progression_actions(duplicate_key)
@@ -1421,7 +1519,8 @@ do
             { key = invalid_single_count_key, token = 'count', label = 'single mode with repeated count' },
             { key = invalid_unknown_mode_key, token = 'count', label = 'unknown count mode' },
             { key = invalid_relationship_key, token = 'relationship', label = 'missing relationship' },
-            { key = invalid_target_key, token = 'target', label = 'missing normalized target key' },
+            { key = invalid_target_key, token = 'target', label = 'nonempty target missing normalized target key' },
+            { key = invalid_catalogue_key, token = 'catalogue', label = 'catalogue point missing normalized target key' },
             { key = invalid_module_name_key, token = 'module', label = 'mismatched shard module self-pin' },
             { key = invalid_index_schema_key, token = 'schema', label = 'index schema mismatch' },
             { key = invalid_index_v1_key, token = 'schema', label = 'obsolete v1 compact index' },
@@ -1480,6 +1579,58 @@ do
             'active progression/cache path loaded a full BG/FFXIclopedia/reconciliation module')
         task2_guide_expect((compact_loader_by_name.fixture_compact_progression_6 or 0) >= 1,
             'six distinct compact shards were not exercised by the bounded-cache fixture')
+
+        -- Internal insertion must enforce both objective and shard bounds;
+        -- callers cannot be required to remember a later explicit retain.
+        local lru_index, lru_modules, lru_loads = {}, {}, {}
+        for number = 1, 70 do
+            local native_key = 'mission:LRU:' .. tostring(number)
+            local module_name = 'fixture_lru_progression_' .. tostring(number)
+            lru_index[native_key] = {
+                kind = 'mission', context = 'LRU', native_id = number,
+                title = 'LRU fixture ' .. tostring(number), status = 'guide',
+                source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+                progression_module = module_name,
+                progression_schema_version = 2,
+                progression_revision = revision,
+            }
+            lru_modules[module_name] = {
+                schema_version = 2,
+                module_name = module_name,
+                source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+                objectives = {
+                    [native_key] = {
+                        native_key = native_key,
+                        progression_module = module_name,
+                        progression_schema_version = 2,
+                        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+                        progression_revision = revision,
+                        progression_actions = { invalid_action(native_key) },
+                    },
+                },
+            }
+        end
+        local lru_guides = guide_module.new({
+            index = lru_index,
+            identity_provider = function() return current_identity end,
+            manual_path = '',
+            module_loader = function(name)
+                lru_loads[name] = (lru_loads[name] or 0) + 1
+                return lru_modules[name]
+            end,
+        })
+        local lru_walk_ok = true
+        for number = 1, 70 do
+            local actions = lru_guides:progression_actions(
+                'mission:LRU:' .. tostring(number))
+            if type(actions) ~= 'table' or #actions ~= 1 then lru_walk_ok = false end
+        end
+        task2_guide_expect(lru_walk_ok,
+            'internal LRU stress walk failed to load all 70 valid objectives')
+        local lru_first = lru_guides:progression_actions('mission:LRU:1')
+        task2_guide_expect(type(lru_first) == 'table' and #lru_first == 1
+                and lru_loads.fixture_lru_progression_1 == 2,
+            'progression_actions insertion left objective or shard envelopes unbounded above 64')
     end
 end
 
@@ -1897,6 +2048,43 @@ assert(guides:resolve('mission:Bastok:2') ~= nil)
 
 guides:close('done')
 os.remove(manual_path)
+
+if real_index_path ~= nil and real_module_directory ~= nil then
+    local index_chunk, index_error = loadfile(real_index_path)
+    task2_guide_expect(type(index_chunk) == 'function',
+        'real compact index did not parse: ' .. tostring(index_error))
+    local real_index = type(index_chunk) == 'function' and index_chunk() or {}
+    local real_guides = guide_module.new({
+        index = real_index,
+        identity_provider = function() return current_identity end,
+        manual_path = '',
+        module_loader = function(name)
+            local path = real_module_directory .. '\\' .. tostring(name) .. '.lua'
+            local chunk, reason = loadfile(path)
+            if type(chunk) ~= 'function' then error(reason or ('cannot load ' .. path)) end
+            return chunk()
+        end,
+    })
+    local real_keys = {}
+    for native_key, entry in pairs(real_index) do
+        if type(entry) == 'table' and tostring(entry.progression_module or '') ~= '' then
+            real_keys[#real_keys + 1] = native_key
+        end
+    end
+    table.sort(real_keys)
+    local real_failures = {}
+    for _, native_key in ipairs(real_keys) do
+        local actions, reason = real_guides:progression_actions(native_key)
+        if type(actions) ~= 'table' then
+            real_failures[#real_failures + 1] = native_key .. ': ' .. tostring(reason)
+        end
+    end
+    task2_guide_expect(#real_keys == 1806,
+        ('real compact index expected 1806 loadable objectives, found %d'):format(#real_keys))
+    task2_guide_expect(#real_failures == 0,
+        'real compact index walk rejected objectives: ' .. table.concat(real_failures, '; '))
+end
+
 assert(#task2_guide_failures == 0,
     'Task 2 wiki-authoritative guide REDs:\n- '
         .. table.concat(task2_guide_failures, '\n- '))

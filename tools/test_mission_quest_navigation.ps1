@@ -11,6 +11,8 @@ $modulePath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_que
 $guidesModulePath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_quest_guides.lua'
 $harnessPath = Join-Path $Root 'tools\lua_tests\test_mission_quest_navigation.lua'
 $guidesHarnessPath = Join-Path $Root 'tools\lua_tests\test_mission_quest_guides.lua'
+$guideIndexPath = Join-Path $Root 'ashita\addons\accessxi_reader\modules\mission_quest_guide_index.lua'
+$guideModuleDirectory = Join-Path $Root 'ashita\addons\accessxi_reader\modules'
 $luaPath = Join-Path $Root 'tools\lua51\lua5.1.exe'
 if (-not (Test-Path -LiteralPath $luaPath -PathType Leaf)) {
     $luaPath = 'C:\Users\buu42\AccessXI\tools\lua51\lua5.1.exe'
@@ -21,7 +23,7 @@ function Assert-Match {
     if ($Text -notmatch $Pattern) { throw $Message }
 }
 
-foreach ($path in @($addonPath, $navigationDataPath, $objectivesPath, $modulePath, $guidesModulePath, $harnessPath, $guidesHarnessPath, $luaPath)) {
+foreach ($path in @($addonPath, $navigationDataPath, $objectivesPath, $modulePath, $guidesModulePath, $harnessPath, $guidesHarnessPath, $guideIndexPath, $luaPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Missing mission/quest navigation test dependency: $path"
     }
@@ -56,7 +58,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $manualPath = Join-Path ([System.IO.Path]::GetTempPath()) ("accessxi-objective-manual-{0}.tsv" -f [guid]::NewGuid().ToString('N'))
 try {
-    & $luaPath $guidesHarnessPath $guidesModulePath $manualPath
+    & $luaPath $guidesHarnessPath $guidesModulePath $manualPath $guideIndexPath $guideModuleDirectory
     if ($LASTEXITCODE -ne 0) {
         throw "Mission/quest guide Lua behavior harness failed with exit code $LASTEXITCODE."
     }

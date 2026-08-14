@@ -635,12 +635,7 @@ accessxi = {
                         typed_claims = T{
                             T{
                                 stable_claim_id = "mission:San d'Oria:1:step-005:claim-01",
-                                order = 1, action = 'fight', relationship = 'defeat-enemy',
-                                target = 'Orcish Fodder', target_kind = 'enemy', material = true,
-                            },
-                            T{
-                                stable_claim_id = "mission:San d'Oria:1:step-005:claim-02",
-                                order = 2, action = 'obtain', relationship = 'obtain-item',
+                                order = 1, action = 'obtain', relationship = 'obtain-item',
                                 target = 'Orcish Axe', target_kind = 'item', items = T{ 'Orcish Axe' },
                                 material = true,
                             },
@@ -791,6 +786,14 @@ accessxi = {
                         zones = T{},
                         items = T{ 'Orcish Mail Scales' },
                         primary_instruction = "Defeat Ding Bats in King Ranperre's Tomb and obtain Orcish Mail Scales.",
+                        typed_claims = T{
+                            T{
+                                stable_claim_id = "mission:San d'Oria:2:step-005:claim-01",
+                                order = 1, action = 'obtain', relationship = 'obtain-item',
+                                target = 'Orcish Mail Scales', target_kind = 'item',
+                                items = T{ 'Orcish Mail Scales' }, material = true,
+                            },
+                        },
                         route_ready = false,
                     },
                     T{
@@ -1393,6 +1396,44 @@ assert(count_named(orcish, 'Smash the Orcish Scouts') == 2)
 assert(orcish[1].objective_destination_id == 'enemy:v1:101:orcish-east')
 assert(orcish[2].objective_destination_id == 'enemy:v1:100:orcish-west')
 
+-- Production active-list construction must hand the compact loader one
+-- deduplicated native-key set even when one objective expands to many route
+-- choices.
+local task3_original_retain_progression_keys =
+    accessxi.objective_guides.retain_progression_keys
+local task3_retain_calls = T{}
+accessxi.objective_guides.retain_progression_keys = function(self, keys)
+    local captured = T{}
+    for key, value in pairs(type(keys) == 'table' and keys or T{}) do
+        captured:append(type(key) == 'number' and tostring(value) or tostring(key))
+    end
+    table.sort(captured)
+    task3_retain_calls:append(captured)
+    return task3_original_retain_progression_keys(self, keys)
+end
+accessxi.objective_progress_revision = accessxi.objective_progress_revision + 1
+local task3_retained_rows = accessxi.nav_mission_quest_active_items('mission')
+accessxi.objective_guides.retain_progression_keys = task3_original_retain_progression_keys
+local task3_expected_keys = {}
+for _, item in ipairs(task3_retained_rows) do
+    task3_expected_keys[tostring(item.objective_native_key or '')] = true
+end
+task3_expected_keys[''] = nil
+local task3_expected_count = 0
+for _ in pairs(task3_expected_keys) do task3_expected_count = task3_expected_count + 1 end
+local task3_retained = task3_retain_calls[#task3_retain_calls]
+local task3_retain_exact = type(task3_retained) == 'table'
+    and #task3_retained == task3_expected_count
+local task3_retain_seen = {}
+for _, native_key in ipairs(task3_retained or T{}) do
+    if task3_retain_seen[native_key] or not task3_expected_keys[native_key] then
+        task3_retain_exact = false
+    end
+    task3_retain_seen[native_key] = true
+end
+task2_reducer_expect(task3_retain_exact,
+    'active_items did not retain one deduplicated compact progression key per active objective')
+
 local orcish_after_item_reset
 local task2_inventory_cursor_committed = false
 local task2_restore_inventory_cursor
@@ -1413,6 +1454,38 @@ task2_reducer_expect(count_named(orcish_with_preexisting_item, 'Smash the Orcish
     'pre-existing Orcish Axe possession completed an acquisition step without a cursor-entered delta')
 objective_inventory_counts_by_name['orcish axe'] = 0
 accessxi.inventory_packet_key = saved_orcish_inventory_packet_key
+
+local orcish_kill_bytes = ''
+do
+    local file = io.open(objective_progress_path, 'rb')
+    if file ~= nil then
+        orcish_kill_bytes = file:read('*a') or ''
+        file:close()
+    end
+end
+local orcish_kill_ok, orcish_kill_accepted = pcall(
+    accessxi.nav_mission_quest_reduce_signal, {
+        kind = 'kill-credit', character_identity = current_identity,
+        world_id = current_world_id, session_epoch = current_session_epoch,
+        sequence = 5999, tick = 5999,
+        corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+        progression_revision = 'task2-progression-revision',
+        actor_server_id = 0x0A0B0C0D, actor_name = 'Alpha', actor_is_local = true,
+        actor_is_party = false, target_server_id = 1,
+        target_name = 'Orcish Fodder', zone_id = 101,
+        packet_id = 0x029, message_id = 6, battle_sequence = 5999,
+    })
+local orcish_kill_after = ''
+do
+    local file = io.open(objective_progress_path, 'rb')
+    if file ~= nil then
+        orcish_kill_after = file:read('*a') or ''
+        file:close()
+    end
+end
+task2_reducer_expect(orcish_kill_ok and orcish_kill_accepted ~= true
+        and orcish_kill_after == orcish_kill_bytes,
+    'enemy kill credit completed the current Orcish Axe acquisition action')
 
 objective_inventory_counts_by_name['orcish axe'] = 1
 local inventory_delta = {
@@ -1834,7 +1907,7 @@ local function task2_scenario_steps(native_key)
     end
     if native_key == 'quest:sandoria:2' and task2_reducer_scenario == 'key-item' then
         return T{
-            task2_typed_step(native_key, 1, 'obtain', 'obtain-key-item',
+            task2_typed_step(native_key, 1, 'obtain', 'obtain-item',
                 'Orcish Hut Key', 'key-item', {
                     key_items = T{ 'Orcish Hut Key' },
                     instruction = 'Obtain the Orcish Hut Key.',
@@ -1993,6 +2066,136 @@ local function task2_scenario_steps(native_key)
     return nil
 end
 
+local task3_base_scenario_steps = task2_scenario_steps
+local function task3_evidence_scenario()
+    local kind = task2_reducer_scenario:match('^inventory%-future%-(.+)$')
+    if kind ~= nil then return 'item', kind end
+    kind = task2_reducer_scenario:match('^key%-future%-(.+)$')
+    if kind ~= nil then return 'key-item', kind end
+    return nil, nil
+end
+
+local function task3_acquisition_step(native_key, order, evidence_kind)
+    local key_item = evidence_kind == 'key-item'
+    local name = key_item and 'Task3 Key' or 'Task3 Crystal'
+    return task2_typed_step(native_key, order, 'obtain', 'obtain-item', name,
+        key_item and 'key-item' or 'item', {
+            items = key_item and T{} or T{ name },
+            key_items = key_item and T{ name } or T{},
+            instruction = 'Obtain the exact ' .. name .. '.',
+        })
+end
+
+task2_scenario_steps = function(native_key)
+    local evidence_kind, shape = task3_evidence_scenario()
+    if evidence_kind ~= nil then
+        local quest = native_key == 'quest:sandoria:2'
+        local mission = native_key == "mission:San d'Oria:1"
+        local included = quest
+            or mission and (shape == 'cross-objective' or shape == 'current-foreign')
+        if included then
+            if shape == 'current-foreign' and quest then
+                return T{
+                    task3_acquisition_step(native_key, 1, evidence_kind),
+                    task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
+                        instruction = 'Wait after the current acquisition.', observable = false,
+                    }),
+                }
+            end
+            local first = task2_typed_step(native_key, 1, 'talk', 'talk-to',
+                'Naji', 'npc', {
+                    zone_name = 'Metalworks', instruction = 'Talk to Naji first.',
+                })
+            if shape == 'battlefield' then
+                first = task2_typed_step(native_key, 1, 'examine', 'examine-object',
+                    'Battlefield Gate', 'object', {
+                        zone_name = 'Ghelsba Outpost', instruction = 'Enter the battlefield.',
+                    })
+            elseif shape == 'transport' then
+                first = task2_typed_step(native_key, 1, 'travel', 'use-transport',
+                    'Airship Door', 'transport', {
+                        zone_name = "Port San d'Oria", instruction = 'Board the airship.',
+                    })
+            elseif shape == 'unobservable' then
+                first = task2_typed_step(native_key, 1, 'wait', 'wait-for', '', '', {
+                    instruction = 'Wait for an unobservable prerequisite.', observable = false,
+                })
+            end
+            local acquisition = task3_acquisition_step(native_key, 2, evidence_kind)
+            if shape == 'same-step' then
+                local duplicate = deep_copy(acquisition.typed_claims[1])
+                duplicate.stable_claim_id = acquisition.stable_step_id .. ':claim-02'
+                duplicate.order = 2
+                acquisition.typed_claims:append(duplicate)
+            end
+            local result = T{
+                first,
+                acquisition,
+                task2_typed_step(native_key, 3, 'wait', 'wait-for', '', '', {
+                    instruction = 'Wait after the future acquisition.', observable = false,
+                }),
+            }
+            if shape == 'later' then
+                result:append(task3_acquisition_step(native_key, 4, evidence_kind))
+            end
+            return result
+        end
+    end
+
+    local negative = task2_reducer_scenario:match('^evidence%-negative%-(.+)$')
+    if native_key == 'quest:sandoria:2' and negative ~= nil then
+        local action, relationship, target, target_kind = negative, negative .. '-item',
+            'Cid', 'npc'
+        if negative == 'talk' then
+            action, relationship = 'talk', 'talk-to'
+        elseif negative == 'wait' then
+            action, relationship, target, target_kind = 'wait', 'wait-for', '', ''
+        end
+        return T{
+            task2_typed_step(native_key, 1, action, relationship, target, target_kind, {
+                zone_name = target ~= '' and 'Metalworks' or nil,
+                items = T{ 'Task3 Crystal' }, key_items = T{ 'Task3 Key' },
+                instruction = 'Mention Task3 evidence without acquiring it.',
+                observable = negative ~= 'wait',
+            }),
+            task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
+                instruction = 'Wait after the negative evidence row.', observable = false,
+            }),
+        }
+    end
+
+    if native_key == 'quest:sandoria:2'
+        and task2_reducer_scenario == 'fetichism-shaped-obtain' then
+        return T{
+            task2_typed_step(native_key, 1, 'obtain', 'obtain-item',
+                'Fetich Arm', 'item', {
+                    zone_name = 'Pashhow Marshlands', items = T{ 'Fetich Arm' },
+                    instruction = 'Obtain a Fetich Arm from a Copper Quadav.',
+                }),
+            task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
+                instruction = 'Wait after obtaining the Fetich Arm.', observable = false,
+            }),
+        }
+    end
+    if native_key == 'quest:sandoria:2'
+        and task2_reducer_scenario == 'fetich-distinct-set' then
+        return T{
+            task2_typed_step(native_key, 1, 'obtain', 'obtain-item',
+                'Fetich Head', 'item', {
+                    zone_name = 'Palborough Mines',
+                    items = T{ 'Fetich Head', 'Fetich Torso', 'Fetich Arms', 'Fetich Legs' },
+                    instruction = 'Obtain all four distinct Fetich pieces from the Quadav.',
+                    count_mode = 'inventory-gain', required_count = 4,
+                }),
+            task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
+                instruction = 'Wait after obtaining the complete Fetich set.',
+                observable = false,
+            }),
+        }
+    end
+    return task3_base_scenario_steps(native_key)
+end
+
 local function task2_scenario_progression_actions(native_key)
     local steps = task2_scenario_steps(native_key)
     if steps == nil then return nil end
@@ -2085,6 +2288,56 @@ local function task2_scenario_progression_actions(native_key)
                 catalogue = deep_copy(catalogue),
             })
         end
+    end
+    return actions
+end
+
+local task3_base_scenario_progression_actions = task2_scenario_progression_actions
+task2_scenario_progression_actions = function(native_key)
+    local actions = task3_base_scenario_progression_actions(native_key)
+    if type(actions) ~= 'table' then return actions end
+    local _, shape = task3_evidence_scenario()
+    if type(actions[1]) == 'table' and shape == 'branch' then
+        actions[1].catalogue = T{
+            task2_progression_catalogue_row(task2_named_candidate(native_key, 1, {
+                target_name = 'Naji', server_id = 17772594, suffix = 'naji-a',
+                group_id = actions[1].step_id .. ':path-a',
+            })),
+            task2_progression_catalogue_row(task2_named_candidate(native_key, 1, {
+                target_name = 'Naji', server_id = 17772595, suffix = 'naji-b',
+                group_id = actions[1].step_id .. ':path-b',
+                destination_id = 'npc:v1:237:17772595', target_point = T{ 25, 2, -15 },
+            })),
+        }
+    elseif type(actions[1]) == 'table' and shape == 'battlefield' then
+        actions[1].catalogue = T{
+            task2_progression_catalogue_row(task2_named_candidate(native_key, 1, {
+                target_name = 'Battlefield Gate', target_kind = 'object',
+                zone = 140, zone_name = 'Ghelsba Outpost', server_id = 17350951,
+                battlefield_id = 'task3-battlefield', suffix = 'battlefield-gate',
+            })),
+        }
+    elseif type(actions[1]) == 'table' and shape == 'transport' then
+        actions[1].catalogue = T{
+            task2_progression_catalogue_row(task2_named_candidate(native_key, 1, {
+                target_name = 'Airship Door', target_kind = 'transport',
+                zone = 231, zone_name = "Port San d'Oria", server_id = 17723406,
+                transport_id = 'task3-airship', suffix = 'airship-door',
+            })),
+        }
+    end
+    if native_key == 'quest:sandoria:2'
+        and (task2_reducer_scenario == 'fetichism-shaped-obtain'
+            or task2_reducer_scenario == 'fetich-distinct-set')
+        and type(actions[1]) == 'table' then
+        actions[1].enemies = T{ 'Copper Quadav' }
+        actions[1].catalogue = T{
+            task2_progression_catalogue_row(task2_named_candidate(native_key, 1, {
+                target_name = 'Copper Quadav', target_kind = 'enemy',
+                zone = 109, zone_name = 'Pashhow Marshlands', server_id = 0x01030601,
+                destination_id = 'enemy:v1:109:16975361', suffix = 'copper-quadav',
+            })),
+        }
     end
     return actions
 end
@@ -2244,6 +2497,10 @@ local function task2_reset_reducer_scenario(name)
     owned_key_items[157] = nil
     objective_inventory_counts_by_name['orcish axe'] = 0
     objective_inventory_counts_by_name['test crystal'] = 0
+    objective_inventory_counts_by_name['fetich head'] = 0
+    objective_inventory_counts_by_name['fetich torso'] = 0
+    objective_inventory_counts_by_name['fetich arms'] = 0
+    objective_inventory_counts_by_name['fetich legs'] = 0
     os.remove(objective_progress_path)
     accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1
     accessxi.objective_progress_revision = 1
@@ -3155,6 +3412,401 @@ do
             single_interaction.label .. ' single action was incorrectly treated as item-count progress')
     end
 
+    -- Inventory and key-item state may complete only a canonical acquisition
+    -- action.  Merely mentioning the same evidence on a trade, delivery,
+    -- talk, or wait row is requirement context, not completion.
+    local function task3_evidence_delta(evidence_kind)
+        if evidence_kind == 'key-item' then
+            return task2_signal('key-item-delta', {
+                key_item_id = 301, key_item_name = 'Task3 Key',
+                before_owned = false, after_owned = true,
+                snapshot_complete = true,
+            })
+        end
+        return task2_signal('inventory-delta', {
+            item_id = 302, item_name = 'Task3 Crystal',
+            before_count = 0, after_count = 1,
+            inventory_sequence = task2_reducer_sequence + 1,
+            snapshot_complete = true,
+        })
+    end
+    for _, negative_action in ipairs(T{ 'trade', 'deliver', 'talk', 'wait' }) do
+        for _, evidence_kind in ipairs(T{ 'item', 'key-item' }) do
+            task2_reset_reducer_scenario('evidence-negative-' .. negative_action)
+            task2_reducer_expect(not task2_reduce(task3_evidence_delta(evidence_kind),
+                    negative_action .. ' ' .. evidence_kind .. ' mention'),
+                negative_action .. ' row advanced from a non-acquisition '
+                    .. evidence_kind .. ' delta')
+            task2_reducer_expect(task2_progress_bytes() == '',
+                negative_action .. ' ' .. evidence_kind .. ' mention wrote progress')
+        end
+    end
+
+    -- Fetichism-shaped rows can route to an enemy camp while the material
+    -- action is still item acquisition.  Kill credit must not complete it;
+    -- the exact positive item delta must.
+    task2_reset_reducer_scenario('fetichism-shaped-obtain')
+    task2_reducer_expect(not task2_reduce(task2_signal('kill-credit', {
+            actor_server_id = 0x0A0B0C0D, actor_name = 'Alpha',
+            actor_is_local = true, actor_is_party = false,
+            target_server_id = 0x01030601, target_name = 'Copper Quadav',
+            zone_id = 109, packet_id = 0x029, message_id = 6,
+            battle_sequence = 9401,
+        }), 'Fetichism-shaped enemy kill'),
+        'enemy catalogue on an obtain action accepted kill credit as acquisition')
+    task2_reducer_expect(task2_progress_bytes() == '',
+        'Fetichism-shaped enemy kill wrote item-acquisition progress')
+    task2_reducer_expect(task2_reduce(task2_signal('inventory-delta', {
+            item_id = 303, item_name = 'Fetich Arm', before_count = 0, after_count = 1,
+            inventory_sequence = 9402, snapshot_complete = true,
+        }), 'Fetichism-shaped item gain'),
+        'exact item gain did not complete a canonical obtain action with an enemy catalogue')
+    task2_reducer_expect(task2_last_progress_line()
+            == task2_v2_progress_row('quest:sandoria:2', 2, 1, 0),
+        'Fetichism-shaped item gain did not advance exactly one action')
+
+    -- A collective Fetich acquisition is one material obtain action, but its
+    -- count is the four distinct currently evidenced pieces.  Repeated gains
+    -- of one piece must not impersonate the missing members, and the numeric
+    -- v2 cursor must reconstruct safely after reload.
+    task2_reset_reducer_scenario('fetich-distinct-set')
+    task2_reducer_expect(not task2_reduce(task2_signal('kill-credit', {
+            actor_server_id = 0x0A0B0C0D, actor_name = 'Alpha',
+            actor_is_local = true, actor_is_party = false,
+            target_server_id = 0x01030601, target_name = 'Copper Quadav',
+            zone_id = 109, packet_id = 0x029, message_id = 6,
+            battle_sequence = 9410,
+        }), 'Fetich set enemy kill'),
+        'enemy kill credit completed a collective Fetich item-acquisition action')
+    task2_reducer_expect(task2_progress_bytes() == '',
+        'Fetich set enemy kill wrote item-acquisition progress')
+
+    local function task3_fetich_delta(name, before_count, after_count, snapshot)
+        objective_inventory_counts_by_name[name:lower()] = after_count
+        accessxi.inventory_packet_key = 'fetich-distinct-set:' .. tostring(snapshot)
+        return task2_signal('inventory-delta', {
+            item_id = objective_inventory_item_ids[name:lower()], item_name = name,
+            before_count = before_count, after_count = after_count,
+            inventory_sequence = 9410 + snapshot, snapshot_complete = true,
+        })
+    end
+
+    task2_reducer_expect(task2_reduce(
+            task3_fetich_delta('Fetich Head', 0, 1, 1), 'first distinct Fetich piece'),
+        'first distinct Fetich piece did not persist partial set progress')
+    task2_reducer_expect(task2_last_progress_line()
+            == task2_v2_progress_row('quest:sandoria:2', 1, 1, 1),
+        'first distinct Fetich piece did not persist exact count 1')
+    local task3_one_piece_bytes = task2_progress_bytes()
+    task2_reducer_expect(not task2_reduce(
+            task3_fetich_delta('Fetich Head', 1, 2, 2), 'duplicate Fetich Head gain'),
+        'duplicate gain of one Fetich piece counted as a second distinct member')
+    task2_reducer_expect(task2_progress_bytes() == task3_one_piece_bytes,
+        'duplicate Fetich Head gain rewrote distinct-set progress')
+
+    reload_navigation_module()
+    task2_reducer_expect(task2_reduce(
+            task3_fetich_delta('Fetich Torso', 0, 1, 3),
+            'second distinct Fetich piece after reload'),
+        'distinct-set progress did not resume safely after module reload')
+    task2_reducer_expect(task2_last_progress_line()
+            == task2_v2_progress_row('quest:sandoria:2', 1, 1, 2),
+        'second distinct Fetich piece did not reconstruct exact count 2 after reload')
+    task2_reducer_expect(task2_reduce(
+            task3_fetich_delta('Fetich Arms', 0, 1, 4), 'third distinct Fetich piece'),
+        'third distinct Fetich piece did not persist partial set progress')
+    task2_reducer_expect(task2_last_progress_line()
+            == task2_v2_progress_row('quest:sandoria:2', 1, 1, 3),
+        'third distinct Fetich piece did not persist exact count 3')
+
+    objective_inventory_counts_by_name['fetich head'] = 0
+    local task3_three_piece_bytes = task2_progress_bytes()
+    task2_reducer_expect(not task2_reduce(
+            task3_fetich_delta('Fetich Legs', 0, 1, 5),
+            'fourth historical but third currently owned Fetich piece'),
+        'collective Fetich action completed without all four pieces currently evidenced')
+    task2_reducer_expect(task2_progress_bytes() == task3_three_piece_bytes,
+        'incomplete current Fetich set rewrote the durable count')
+    task2_reducer_expect(task2_reduce(
+            task3_fetich_delta('Fetich Head', 0, 1, 6),
+            'restored fourth distinct Fetich piece'),
+        'complete four-member Fetich snapshot did not finish the acquisition action')
+    task2_reducer_expect(task2_last_progress_line()
+            == task2_v2_progress_row('quest:sandoria:2', 2, 1, 0),
+        'complete distinct Fetich set did not advance exactly to its successor')
+
+    -- Future inventory/key-item inference uses the same global uniqueness and
+    -- bounded-suffix safety as future interaction matching.
+    for _, evidence_kind in ipairs(T{ 'item', 'key-item' }) do
+        local prefix = evidence_kind == 'item' and 'inventory' or 'key'
+        task2_reset_reducer_scenario(prefix .. '-future-unique')
+        local task3_unique_signal = task3_evidence_delta(evidence_kind)
+        task2_reducer_expect(task2_reduce(task3_unique_signal,
+                evidence_kind .. ' unique future acquisition'),
+            'globally unique future ' .. evidence_kind .. ' acquisition was not accepted')
+        task2_reducer_expect(task2_last_progress_line()
+                == task2_v2_progress_row('quest:sandoria:2', 3, 1, 0),
+            'unique future ' .. evidence_kind .. ' acquisition did not advance to its successor')
+
+        for _, ambiguity in ipairs(T{
+            { shape = 'same-step', label = 'same-step duplicate' },
+            { shape = 'later', label = 'later duplicate' },
+            { shape = 'cross-objective', label = 'cross-objective duplicate' },
+            { shape = 'branch', label = 'branch barrier' },
+            { shape = 'unobservable', label = 'unobservable barrier' },
+            { shape = 'transport', label = 'transport barrier' },
+            { shape = 'battlefield', label = 'battlefield barrier' },
+        }) do
+            task2_reset_reducer_scenario(prefix .. '-future-' .. ambiguity.shape)
+            task2_reducer_expect(not task2_reduce(task3_evidence_delta(evidence_kind),
+                    evidence_kind .. ' ' .. ambiguity.label),
+                ambiguity.label .. ' permitted arbitrary future ' .. evidence_kind .. ' progress')
+            task2_reducer_expect(task2_progress_bytes() == '',
+                ambiguity.label .. ' wrote future ' .. evidence_kind .. ' progress')
+        end
+
+        task2_reset_reducer_scenario(prefix .. '-future-current-foreign')
+        task2_reducer_expect(task2_reduce(task3_evidence_delta(evidence_kind),
+                evidence_kind .. ' current plus foreign future'),
+            'exact current ' .. evidence_kind .. ' acquisition was lost to a foreign future match')
+        task2_reducer_expect(task2_last_progress_line_for('quest:sandoria:2')
+                == task2_v2_progress_row('quest:sandoria:2', 2, 1, 0)
+                and task2_last_progress_line_for("mission:San d'Oria:1") == '',
+            'current ' .. evidence_kind .. ' evidence also advanced a foreign future objective')
+    end
+
+    -- Two immutable arms can coexist, but once one finish moves the cursor the
+    -- older arm must revalidate and fail instead of replaying stale state.
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_arm_a = deep_copy(interaction_values)
+    task3_arm_a.event_id, task3_arm_a.menu_id = 46101, 46101
+    local task3_arm_b = deep_copy(interaction_values)
+    task3_arm_b.event_id, task3_arm_b.menu_id = 46102, 46102
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_arm_a),
+        'first concurrent interaction arm'), 'first concurrent interaction did not arm')
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_arm_b),
+        'second concurrent interaction arm'), 'second concurrent interaction did not arm')
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-finish', task3_arm_b),
+        'newer concurrent interaction finish'), 'newer concurrent interaction did not advance')
+    local task3_advanced_interaction_bytes = task2_progress_bytes()
+    task2_reducer_expect(not task2_reduce(task2_signal('interaction-finish', task3_arm_a),
+            'stale concurrent interaction finish'),
+        'stale armed interaction advanced after its current cursor changed')
+    task2_reducer_expect(task2_progress_bytes() == task3_advanced_interaction_bytes,
+        'stale armed interaction rewrote the changed cursor')
+
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_revision_arm = deep_copy(interaction_values)
+    task3_revision_arm.event_id, task3_revision_arm.menu_id = 46103, 46103
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_revision_arm),
+        'revision arm start'), 'revision arm did not start')
+    local task3_saved_quest_revision =
+        accessxi.mission_quest_guide_index['quest:sandoria:2'].progression_revision
+    accessxi.mission_quest_guide_index['quest:sandoria:2'].progression_revision
+        = 'task3-new-progression-revision'
+    task2_reducer_expect(not task2_reduce(task2_signal('interaction-finish', task3_revision_arm),
+            'finish after progression revision changed'),
+        'armed interaction ignored a changed progression revision')
+    accessxi.mission_quest_guide_index['quest:sandoria:2'].progression_revision
+        = task3_saved_quest_revision
+
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_inactive_arm = deep_copy(interaction_values)
+    task3_inactive_arm.event_id, task3_inactive_arm.menu_id = 46104, 46104
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_inactive_arm),
+        'native activity arm start'), 'native activity arm did not start')
+    quest_entries['sandoria:current'].words = words_with()
+    task2_reducer_expect(not task2_reduce(task2_signal('interaction-finish', task3_inactive_arm),
+            'finish after native objective disappeared'),
+        'armed interaction advanced after its native objective became inactive')
+    quest_entries['sandoria:current'].words = words_with(2)
+
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_completed_arm = deep_copy(interaction_values)
+    task3_completed_arm.event_id, task3_completed_arm.menu_id = 46105, 46105
+    task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_completed_arm),
+        'completion purge arm start'), 'completion purge arm did not start')
+    quest_entries['sandoria:current'].words = words_with()
+    quest_entries['sandoria:completed'].words = words_with(2)
+    task2_reducer_expect(task2_reduce(task2_signal('native-objective-state', {
+            category = 'quest', previous_native_key = 'quest:sandoria:2',
+            current_native_key = '', previous_state = 'active', current_state = 'completed',
+            scope_complete = true,
+        }), 'native completion with pending arm'),
+        'native completion did not accept while an interaction was armed')
+    task2_reducer_expect(not task2_reduce(task2_signal('interaction-finish', task3_completed_arm),
+            'finish after native completion'),
+        'native completion left its old interaction arm live')
+    quest_entries['sandoria:current'].words = words_with(2)
+    quest_entries['sandoria:completed'].words = words_with()
+
+    -- Transport correlation is replaceable only by a newer exact request.
+    -- Commit evidence must not predate the arm, and a wrong committed zone
+    -- consumes the stale intent.
+    task2_reset_reducer_scenario('transport-current')
+    local task3_wrong_zone_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47001,
+    })
+    task2_reducer_expect(task2_reduce(task3_wrong_zone_request,
+        'wrong-zone invalidation request'), 'wrong-zone invalidation request did not arm')
+    task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
+            zone_id = 141, target_server_id = 17723406, menu_id = 47001,
+            transport_sequence = task3_wrong_zone_request.sequence,
+        }), 'wrong committed transport zone'), 'wrong committed zone advanced transport')
+    task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47001,
+            transport_sequence = task3_wrong_zone_request.sequence,
+        }), 'correct zone after invalidation'),
+        'wrong committed zone did not invalidate the pending transport arm')
+
+    task2_reset_reducer_scenario('transport-current')
+    local task3_old_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47002,
+    })
+    task2_reducer_expect(task2_reduce(task3_old_request, 'old exact transport request'),
+        'old exact transport request did not arm')
+    local task3_new_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47002,
+    })
+    task2_reducer_expect(task2_reduce(task3_new_request, 'newer exact transport request'),
+        'newer exact transport request did not replace the stale arm')
+    task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47002,
+            transport_sequence = task3_old_request.sequence,
+        }), 'commit for replaced transport request'),
+        'replaced transport sequence still completed the current action')
+    task2_reducer_expect(task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47002,
+            transport_sequence = task3_new_request.sequence,
+        }), 'commit for newer transport request'),
+        'newer exact transport request did not own committed-zone completion')
+
+    task2_reset_reducer_scenario('transport-current')
+    local task3_tick_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47003, tick = 50000,
+    })
+    task2_reducer_expect(task2_reduce(task3_tick_request, 'transport tick arm'),
+        'transport tick request did not arm')
+    task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47003,
+            transport_sequence = task3_tick_request.sequence, tick = 49999,
+        }), 'commit older than transport arm'),
+        'committed zone older than its transport arm was accepted')
+    task2_reducer_expect(task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47003,
+            transport_sequence = task3_tick_request.sequence, tick = 50000,
+        }), 'commit at transport arm tick'),
+        'committed zone at the arm tick was rejected')
+
+    task2_reset_reducer_scenario('transport-current')
+    local task3_stale_transport = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47004,
+    })
+    task2_reducer_expect(task2_reduce(task3_stale_transport, 'stale transport arm'),
+        'stale transport fixture did not arm')
+    accessxi.nav_destination = {
+        objective_native_key = 'quest:sandoria:2',
+        objective_action_id = 'quest:sandoria:2:step-001:claim-01',
+        objective_destination_id = 'transport:v1:231:airship-door',
+        objective_character_identity = current_identity,
+        objective_world_id = current_world_id,
+        objective_session_epoch = current_session_epoch,
+    }
+    task2_reducer_expect(task2_reduce(task2_signal('route-arrival', {
+            objective_native_key = 'quest:sandoria:2',
+            action_id = 'quest:sandoria:2:step-001:claim-01',
+            destination_id = 'transport:v1:231:airship-door', zone_id = 231,
+        }), 'route completion after transport arm'),
+        'transport stale-cursor fixture did not move the current action')
+    local task3_transport_advanced_bytes = task2_progress_bytes()
+    task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47004,
+            transport_sequence = task3_stale_transport.sequence,
+        }), 'transport commit after cursor moved'),
+        'armed transport ignored a changed current cursor')
+    task2_reducer_expect(task2_progress_bytes() == task3_transport_advanced_bytes,
+        'stale transport commit rewrote the changed cursor')
+
+    -- Valid compact graphs may contain zero material actions.  Native
+    -- completion/replacement remains coherent without forging a cursor.
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_zero_graph_keys = T{
+        'quest:task3-zero:1', 'quest:task3-zero:2',
+        'quest:task3-zero:3', 'quest:task3-zero:4',
+        'quest:task3-zero:5', 'quest:task3-zero:6',
+    }
+    local task3_saved_index_entries = {}
+    local task3_zero_graphs = {}
+    for _, native_key in ipairs(task3_zero_graph_keys) do
+        task3_saved_index_entries[native_key] = accessxi.mission_quest_guide_index[native_key]
+        accessxi.mission_quest_guide_index[native_key] = {
+            progression_revision = 'task2-progression-revision',
+        }
+    end
+    task3_zero_graphs[task3_zero_graph_keys[1]] = T{}
+    task3_zero_graphs[task3_zero_graph_keys[2]] = T{}
+    task3_zero_graphs[task3_zero_graph_keys[3]] = T{}
+    task3_zero_graphs[task3_zero_graph_keys[5]] = T{}
+    local function task3_nonempty_graph(native_key)
+        local action = deep_copy(task2_scenario_progression_actions('quest:sandoria:2')[1])
+        action.step_id = native_key .. ':step-001'
+        action.action_id = action.step_id .. ':claim-01'
+        action.step_order, action.action_order, action.order = 1, 1, 1
+        return T{ action }
+    end
+    task3_zero_graphs[task3_zero_graph_keys[4]] = task3_nonempty_graph(task3_zero_graph_keys[4])
+    task3_zero_graphs[task3_zero_graph_keys[6]] = task3_nonempty_graph(task3_zero_graph_keys[6])
+    local task3_saved_progression_actions = accessxi.objective_guides.progression_actions
+    accessxi.objective_guides.progression_actions = function(self, native_key)
+        if task3_zero_graphs[native_key] ~= nil then
+            return deep_copy(task3_zero_graphs[native_key])
+        end
+        return task3_saved_progression_actions(self, native_key)
+    end
+    local function task3_native_replace(previous_key, current_key, label)
+        return task2_reduce(task2_signal('native-objective-state', {
+            category = 'quest', previous_native_key = previous_key,
+            current_native_key = current_key, previous_state = 'active',
+            current_state = 'replaced', scope_complete = true,
+        }), label)
+    end
+    task2_reducer_expect(task3_native_replace(task3_zero_graph_keys[1],
+            task3_zero_graph_keys[2], 'empty to empty native replacement'),
+        'empty-to-empty native replacement was rejected or raised')
+    task2_reducer_expect(task2_progress_bytes() == '',
+        'empty-to-empty native replacement forged a cursor')
+    task2_reset_reducer_scenario('current-interaction')
+    task2_reducer_expect(task3_native_replace(task3_zero_graph_keys[3],
+            task3_zero_graph_keys[4], 'empty to nonempty native replacement'),
+        'empty-to-nonempty native replacement was rejected or raised')
+    task2_reducer_expect(task2_last_progress_line_for(task3_zero_graph_keys[4])
+            == table.concat({ 'v2', current_identity, tostring(current_world_id),
+                task3_zero_graph_keys[4], 'task2-progression-revision',
+                task3_zero_graph_keys[4] .. ':step-001', '1',
+                task3_zero_graph_keys[4] .. ':step-001:claim-01', '1', '0' }, '\t')
+            and task2_last_progress_line_for(task3_zero_graph_keys[3]) == '',
+        'empty-to-nonempty native replacement wrote the wrong cursor set')
+    task2_reset_reducer_scenario('current-interaction')
+    task2_reducer_expect(task3_native_replace(task3_zero_graph_keys[6],
+            task3_zero_graph_keys[5], 'nonempty to empty native replacement'),
+        'nonempty-to-empty native replacement was rejected or raised')
+    task2_reducer_expect(task2_last_progress_line_for(task3_zero_graph_keys[6])
+            == table.concat({ 'v2', current_identity, tostring(current_world_id),
+                task3_zero_graph_keys[6], 'task2-progression-revision',
+                task3_zero_graph_keys[6] .. ':step-001', '1',
+                task3_zero_graph_keys[6] .. ':step-001:claim-01', '1', '1' }, '\t')
+            and task2_last_progress_line_for(task3_zero_graph_keys[5]) == '',
+        'nonempty-to-empty native replacement wrote the wrong cursor set')
+    accessxi.objective_guides.progression_actions = task3_saved_progression_actions
+    for _, native_key in ipairs(task3_zero_graph_keys) do
+        accessxi.mission_quest_guide_index[native_key] = task3_saved_index_entries[native_key]
+    end
+
     task2_reset_reducer_scenario('kill-repeated')
     task2_isolate_kill_quest()
     kill_values.battle_sequence = 9201
@@ -3401,6 +4053,29 @@ task2_expect(count_named(bat_hunt_preexisting_scales, 'Bat Hunt') == 2
     'pre-existing Orcish Mail Scales completed Bat Hunt without a cursor-entered inventory delta')
 objective_inventory_counts_by_name['orcish mail scales'] = 0
 accessxi.inventory_packet_key = saved_bat_hunt_inventory_key
+local function bat_progress_bytes()
+    local file = io.open(objective_progress_path, 'rb')
+    if file == nil then return '' end
+    local bytes = file:read('*a') or ''
+    file:close()
+    return bytes
+end
+local bat_kill_bytes = bat_progress_bytes()
+local bat_kill_ok, bat_kill_result = pcall(
+    accessxi.nav_mission_quest_reduce_signal, {
+        kind = 'kill-credit', character_identity = current_identity,
+        world_id = current_world_id, session_epoch = current_session_epoch,
+        sequence = 9799, tick = 9799,
+        corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+        progression_revision = 'task2-progression-revision',
+        actor_server_id = 0x0A0B0C0D, actor_name = 'Alpha', actor_is_local = true,
+        actor_is_party = false, target_server_id = 17555457,
+        target_name = 'Ding Bats', zone_id = 190,
+        packet_id = 0x029, message_id = 6, battle_sequence = 9799,
+    })
+task2_reducer_expect(bat_kill_ok and bat_kill_result ~= true
+        and bat_progress_bytes() == bat_kill_bytes,
+    'enemy kill credit completed the current Orcish Mail Scales acquisition action')
 local bat_scales_delta = {
     kind = 'inventory-delta',
     character_identity = current_identity,

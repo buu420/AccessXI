@@ -168,3 +168,16 @@ wrapper is fully GREEN; route runtime/policy, reader integrity, hotkeys,
 zone-search, zoning/key blocking, and Lua 5.1 syntax are GREEN. The 27 expected
 reader-only adapter REDs remain explicitly assigned to Task 4. Deployment is
 held pending scoped commit and independent review.
+
+Task 2 independent-review fix round 4/5 completed test-only after Task 3 review
+found obsolete acquisition shapes and missing safety regressions. Orcish Axe
+and Orcish Mail Scales now use one current canonical obtain action with enemy
+catalogue context, retain positive Inventory completion, and reject kill
+credit. New tests cover empty-target instructions, real-index loading, bounded
+internal caches, canonical/global-unique acquisition matching, distinct four-
+piece Fetich snapshots across reload, zero-action native transitions, immutable
+and revalidated interaction/transport arms, replacement, and committed-zone
+ordering. Clean snapshot `9616090` reaches one navigation aggregate with 48
+REDs and one guide aggregate with three top-level REDs; both harnesses are Lua
+5.1 syntax GREEN. No production or Task 1 corpus file is in this test-only
+round.

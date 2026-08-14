@@ -543,3 +543,51 @@ The clean snapshot harness passed the verified 32-bit Lua 5.1 syntax checker.
 No production, generated corpus, reader, guide, or Task 1 file is part of this
 fix round. The final scoped commit SHA is reported by the parent handoff because
 this report is itself part of that commit.
+
+## Independent-review fix round 4/5
+
+Task 3's critical review exposed two obsolete acquisition fixtures and required
+new executable runtime boundaries.  The San d'Orian Orcish Axe and Orcish Mail
+Scales graphs now model the material action exactly as compact schema v2 does:
+one current `obtain` / `obtain-item` action whose enemy catalogue supplies the
+route context.  The expected positive Inventory delta behavior is unchanged,
+and each graph now proves that enemy kill credit cannot complete its item-
+acquisition action.
+
+The additional review matrix covers instruction-only compact actions with an
+empty target/key, strict catalogue keys, internal objective/shard LRU bounds,
+all 1,806 real compact index entries, deduplicated active-key retention,
+canonical acquisition-only evidence, global future item/key-item uniqueness
+and barriers, zero-action native-state permutations, stale/replaced interaction
+and transport arms, revision/native-activity revalidation, committed-zone tick
+ordering, and wrong-zone invalidation.  A collective four-piece Fetich action
+also proves that duplicate gains cannot stand in for distinct set members, its
+numeric ten-field cursor resumes after module reload, and terminal completion
+requires all four members in the complete current Inventory snapshot.
+
+### Clean committed-production RED reproduction
+
+A temporary index over committed Task 3 production added only the two Lua
+harnesses and their wrapper, then `git write-tree`, `git commit-tree`, and
+`git archive` produced:
+
+```text
+snapshot: 961609044bdcd1679d03789bacf9127018da779f
+tree:     5ad8ff12b4a4d930fa64c90d12b4f0dbb0b15891
+root:     C:\Users\buu42\AppData\Local\Temp\accessxi-task2-fix4-clean-9616090
+```
+
+The direct navigation harness reached one final aggregate at line 5350 with
+48 failures.  The first was missing active-key retention and the last was the
+nonempty-to-empty native replacement writing the wrong cursor set.  The guide
+harness reached one final aggregate at line 2088 with three top-level failures:
+instruction-only empty-target loading, bounded objective/shard insertion, and
+the real-index audit.  The latter intentionally summarizes every rejected
+native key in one failure; Task 1 regeneration had not yet stabilized the
+generated corpus for this round.
+
+Both changed Lua harnesses passed the verified 32-bit Lua 5.1 syntax checker.
+Against the concurrent Task 3 follow-up production, navigation narrowed to
+exactly five REDs, all in the new distinct-Fetich set semantics.  No production,
+generated corpus, reader, Task 1 Python, or corpus file is part of this test-
+only round.

@@ -59,4 +59,4 @@ one progression notification, and reject replayed finishes.
 
 ## Commit
 
-Pending: commit after final syntax verification.
+`68a8ac1afef50b6fdcc36c151dd10ec28aca65b5` (`test: add route-less objective progression REDs`)

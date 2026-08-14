@@ -10133,6 +10133,21 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
     return text;
 end
 
+function accessxi.native_query_text_object_is_framed(ptr)
+    ptr = tonumber(ptr) or 0;
+    if (not accessxi.is_probe_pointer(ptr)) then
+        return false;
+    end
+
+    local native_style = read_u8(ptr + 0x104);
+    local native_reserved = read_u8(ptr + 0x105);
+    local native_frame = read_u8(ptr + 0x107);
+    return native_style ~= nil
+        and native_style ~= 0
+        and native_reserved == 0
+        and native_frame == 1;
+end
+
 function accessxi.native_query_phrase_from_ptr(ptr, context)
     local visible = accessxi.native_query_visible_text_from_ptr(ptr);
     if (visible == '') then
@@ -10196,7 +10211,8 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     if (phrase:eq('On second thought, none', true) and accessxi.native_query_label_looks_real(phrase)) then
         return phrase;
     end
-    if ((phrase:eq('No.', true) or phrase:eq('No', true))
+    if (accessxi.native_query_text_object_is_framed(ptr)
+        and (phrase:eq('No.', true) or phrase:eq('No', true))
         and accessxi.native_query_label_looks_real(phrase)) then
         return phrase;
     end
@@ -10803,18 +10819,12 @@ function accessxi.native_query_candidate_label_from_ptr(ptr, context)
         return '';
     end
 
-    local native_style = read_u8(ptr + 0x104);
-    local native_reserved = read_u8(ptr + 0x105);
-    local native_frame = read_u8(ptr + 0x107);
-    local recognized_native_text = native_style ~= nil
-        and native_style ~= 0
-        and native_reserved == 0
-        and native_frame == 1;
-    local phrase = accessxi.native_query_phrase_from_ptr(ptr, context);
-    if (phrase ~= '') then
-        return accessxi.native_query_normalize_phrase(phrase, context);
-    end
+    local recognized_native_text = accessxi.native_query_text_object_is_framed(ptr);
     if (recognized_native_text) then
+        local phrase = accessxi.native_query_phrase_from_ptr(ptr, context);
+        if (phrase ~= '') then
+            return accessxi.native_query_normalize_phrase(phrase, context);
+        end
         return '';
     end
 

@@ -95,7 +95,11 @@ local accessxi = {
         return tostring(value or '')
     end,
     native_query_candidate_label_from_text = function(value)
-        return tostring(value or ''):trim()
+        value = tostring(value or ''):trim()
+        if (value:find('[%c]') ~= nil) then
+            return ''
+        end
+        return value
     end,
     native_query_label_for_position = function(value)
         return tostring(value or '')
@@ -288,6 +292,26 @@ dwords[node + 0x10] = base
 assert(accessxi.native_query_candidate_label_from_node(node, '', 1, 1) == 'No.')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)
+
+assert(decode_captured({ 0x002E, 'O', 0x000E }, nil, 2) == 'NO.')
+bytes[base + 0x104] = 0
+dwords = {}
+forbidden_reads = {}
+fallback_reads = 0
+fallback_collects = 0
+local non_schema_no = accessxi.native_query_candidate_label_from_ptr(base, '')
+assert(non_schema_no == '', 'non-schema No candidate leaked: ' .. non_schema_no)
+assert(fallback_reads > 0)
+assert(fallback_collects == 1)
+
+assert(decode_captured({ 0x002E, 'OPE', 0x000E }, nil, 2) == 'NOPE.')
+bytes[base + 0x104] = 0
+write_legacy_text(base + 0x14, 'LEGACY LABEL')
+forbidden_reads = {}
+fallback_reads = 0
+fallback_collects = 0
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == 'LEGACY LABEL')
+assert(fallback_reads > 0)
 
 local copper_claimed = {
     0x0008, 0x009C, 0x0009, ' ',

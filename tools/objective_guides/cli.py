@@ -633,16 +633,29 @@ def run(argv: list[str] | None = None) -> int:
     print(f"Parsed {len(parsed_pages)} objective pages; {len(parse_failures)} pages were excluded safely.")
     print(json.dumps(summary["counts"], sort_keys=True))
     if args.command in {"build", "routes", "all"}:
+        full_runtime_publish = args.command in {"build", "all"}
+        runtime_ready = args.runtime_ready or full_runtime_publish
+        update_runtime_pin_path = (
+            args.update_runtime_pin.resolve()
+            if args.update_runtime_pin
+            else (
+                repo_root
+                / "ashita"
+                / "addons"
+                / "accessxi_reader"
+                / "accessxi_reader.lua"
+                if full_runtime_publish
+                else None
+            )
+        )
         route_summary = _build_route_artifacts(
             repo_root=repo_root,
             data_root=data_root,
             route_inputs=summary["route_inputs"],
             third_party_root=_route_dependency_root(repo_root, args.third_party_root),
             refresh=route_refresh,
-            runtime_ready=args.runtime_ready,
-            update_runtime_pin_path=(
-                args.update_runtime_pin.resolve() if args.update_runtime_pin else None
-            ),
+            runtime_ready=runtime_ready,
+            update_runtime_pin_path=update_runtime_pin_path,
         )
         print(
             "Objective route artifacts: "

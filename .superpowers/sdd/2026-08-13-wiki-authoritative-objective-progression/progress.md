@@ -76,6 +76,14 @@ are native-only elemental Mystery quests, and `Hades` is a context-disambiguated
 chapter identity. Structural statuses/provenance may improve, but none may be
 promoted to a generated material guide or filled with invented steps.
 
+Source-missing seam correction: keep all 38 at `status=source-missing` so
+runtime guide availability cannot widen. Emit a separate structural
+classification only: `native-sentinel` 7, `chapter-index` 16,
+`native-placeholder` 7, and residual `source-absent` 8. Chapter identity pages
+are provenance-only and never enter source modules, reconciliation, or
+progression. Corpus tests must pin the four exact key sets and prove the other
+1,806 objectives have no source-missing classification.
+
 Task 2 RED contract completed at `bea3600`. The scoped commit contains only
 the three Lua harnesses and task report. Fresh controller runs reproduce the
 intended production REDs: navigation lacks the typed reducer and v2 migration,
@@ -112,3 +120,19 @@ multi-unit Inventory counts, single trade/delivery, and executable raw
 category, exact route-cancellation, and no-auto-movement adapters. Clean
 snapshot `70ee869` produced 119 navigation, 35 guide, and 27 reader REDs; all
 three harnesses passed the 32-bit Lua 5.1 syntax check and scoped diff check.
+
+Task 1 final corpus completed. The official refresh attempt stopped cleanly on
+BG Wiki's `Retry-After: 1200`, so the coherent same-day two-site snapshots were
+rebuilt twice offline. The four-test corpus gate passed in 628.764 seconds and
+proved byte identity. Final accounting is 22,829 typed claims, 22,479 material,
+350 nonmaterial, 16,898 context-only ledger rows, and 1,803 exact candidates.
+Generated Lua sizes are source 19,407,941, reconciliation 19,240,256, index
+1,292,715, presentation 39,940,912, progression 32,122,900, total 72,063,812
+bytes across 104 modules. After the PC reboot, all 118 artifact hashes reproduced
+canonical digest `5920b4073c1fb86c7f96f6bca90e92fb83bc106ea71338a5a12c4f38b5f153c5`;
+the manifest and one reader pin both equal
+`0b5965660348e15f129bfc3e4d790f456011ae745932dc14db11bb98b9bd1315`.
+Fresh recovery gates pass 197 objective-guide tests, 73 route-evidence tests,
+104 Lua 5.1 generated-table loads, the SHA-256 harness, reader integrity, reader
+and route-module syntax, and all seven manifest source-child hashes. Task 1 is
+ready for explicit-path staging and independent review.

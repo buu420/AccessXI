@@ -68097,7 +68097,7 @@ end
 
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
 (function ()
-local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "5c44804bd56240eed77dd7ed5c3ce8044d60e3409545dad17018f1495175c4a7";
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "0b5965660348e15f129bfc3e4d790f456011ae745932dc14db11bb98b9bd1315";
 local accessxi_objective_manifest_rows = nil;
 local accessxi_objective_file_hasher = nil;
 local accessxi_objective_runtime_attempted = false;

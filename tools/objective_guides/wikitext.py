@@ -503,6 +503,94 @@ def _extract_zone_mentions(
     return _unique(value for _offset, value in sorted(found, key=lambda row: (row[0], row[1].casefold())))
 
 
+def _directional_destination_zone(
+    clause: str,
+    zone_mentions: Iterable[str],
+) -> str:
+    """Return one explicitly directional zone, never a mere current-location mention."""
+
+    destinations: list[str] = []
+    for zone_name in zone_mentions:
+        for alias in _zone_aliases(zone_name):
+            zone_pattern = re.compile(
+                rf"(?<![A-Za-z0-9]){re.escape(alias)}(?![A-Za-z0-9])",
+                re.IGNORECASE,
+            )
+            for occurrence in zone_pattern.finditer(clause):
+                prefix = clause[: occurrence.start()]
+                if re.search(
+                    r"(?:\b(?:to|into|towards?)\s+(?:the\s+)?|"
+                    r"\b(?:bound|headed|heading|destined)\s+for\s+(?:the\s+)?)$",
+                    prefix,
+                    re.IGNORECASE,
+                ):
+                    destinations.append(zone_name)
+    unique = _unique(destinations)
+    return unique[0] if len(unique) == 1 else ""
+
+
+def _direct_enter_destination_zone(
+    remainder: str,
+    zone_mentions: Iterable[str],
+) -> str:
+    destinations = _unique(
+        zone_name
+        for zone_name in zone_mentions
+        for alias in _zone_aliases(zone_name)
+        if re.match(
+            rf"\s+{re.escape(alias)}(?![A-Za-z0-9])",
+            remainder,
+            re.IGNORECASE,
+        )
+    )
+    return destinations[0] if len(destinations) == 1 else ""
+
+
+def _action_is_prohibited(prefix: str) -> bool:
+    if re.search(
+        r"\b(?:key|key\s+item|pass|permit|seal)\s+is\s+not\s+required\s+to\s+$",
+        prefix,
+        re.IGNORECASE,
+    ):
+        return False
+    coordinated = re.search(
+        r"(?:"
+        r"(?:no\s+need|not\s+(?:necessary|required))\s+to\s+(?:actually\s+)?|"
+        r"(?:do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:need|have)\s+to\s+|"
+        r"need\s+not\s+|will\s+not\s+need\s+to\s+|"
+        r"(?:cannot|can['’]t|unable\s+to|not\s+allowed\s+to|"
+        r"will\s+not\s+be\s+able\s+to)\s+|"
+        r"(?:do\s+not|don['’]t|never|not\s+to|not)\s+(?:try\s+to\s+)?"
+        r")"
+        r"(?:find|see|go|zone|attack|use|wait|fight|kill|defeat|trade|talk|speak|check|"
+        r"examine|enter|obtain|receive|select|choose|board|open)\b"
+        r"(?P<bridge>[^,.;:()]{0,100})\b(?:and|or)\s+$",
+        prefix,
+        re.IGNORECASE,
+    )
+    if coordinated and re.search(
+        r"\b(?:if|unless|until|before|after|when|while|then|just|instead|past)\b",
+        coordinated.group("bridge"),
+        re.IGNORECASE,
+    ) is None:
+        return True
+    return re.search(
+        r"(?:"
+        r"\b(?:no\s+need|not\s+(?:necessary|required))\s+to\s+(?:actually\s+)?|"
+        r"\b(?:do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:need|have)\s+to\s+|"
+        r"\bneed\s+not\s+|"
+        r"\bwill\s+not\s+need\s+to\s+|"
+        r"\b(?:cannot|can['’]t|unable\s+to|not\s+allowed\s+to|will\s+not\s+be\s+able\s+to)\s+|"
+        r"\b(?:do\s+not|don['’]t|never|not\s+to|not)\s+(?:try\s+to\s+)?|"
+        r"\b(?:avoid|without)\s+(?:(?:an?|the|any)\s+)?"
+        r"|\bmake\s+sure\s+not\s+to\s+go\s+past\b[^.;]{0,160}\bthat\s+"
+        r"|\b(?:the|an?)\s+(?:npc|enemy|monster|mob|bomb)\s+will\s+(?:attempt|try)\s+to\s+"
+        r")$",
+        prefix,
+        re.IGNORECASE,
+    ) is not None
+
+
 _ACTION_MATCH = re.compile(
     r"\b(?P<verb>re-examine|examine|touch|click|inspect|check|trade|give|hand over|deliver|"
     r"talk|speak|return to|report to|visit|defeat|defeating|fight|kill|killing|slay|slaying|destroy|obtain|receive|collect|"
@@ -510,6 +598,29 @@ _ACTION_MATCH = re.compile(
     r"wait|use|activate|light|open|protect|select|choose|board)\b",
     re.IGNORECASE,
 )
+
+
+def _shares_direct_prohibition(
+    text: str,
+    matches: list[re.Match[str]],
+    clause_starts: list[int],
+    index: int,
+) -> bool:
+    if index <= 0:
+        return False
+    previous = matches[index - 1]
+    bridge = text[previous.end() : matches[index].start()]
+    if len(bridge) > 100 or re.search(r"[,.;:()]", bridge):
+        return False
+    if re.search(
+        r"\b(?:if|unless|until|before|after|when|while|then|just|instead|past)\b",
+        bridge,
+        re.IGNORECASE,
+    ):
+        return False
+    if re.search(r"\b(?:and|or)\s+$", bridge, re.IGNORECASE) is None:
+        return False
+    return _action_is_prohibited(text[clause_starts[index - 1] : previous.start()])
 
 _NAME_ABBREVIATIONS = frozenset({"dr", "mr", "mrs", "ms"})
 _NUMERIC_ABBREVIATIONS = frozenset({"lv", "no"})
@@ -930,6 +1041,9 @@ def _extract_action_spans(
         end = clause_ends[index]
         raw_clause = text[start:end]
         clause = _clean(raw_clause).strip(" ,")
+        material = not _action_is_prohibited(text[start : match.start()])
+        if material and _shares_direct_prohibition(text, matches, clause_starts, index):
+            material = False
         remainder = text[match.end() : end]
         clause_zones = _unique(
             (
@@ -964,6 +1078,7 @@ def _extract_action_spans(
         object_mentions: tuple[str, ...] = ()
         enemy_mentions: tuple[str, ...] = ()
         transport_mentions: tuple[str, ...] = ()
+        destination_zone_name = ""
         count_match = re.match(
             r"\s*(?:(?:at\s+least|a\s+total\s+of|all)\s+)?(\d+)\s+",
             remainder,
@@ -1127,9 +1242,24 @@ def _extract_action_spans(
             target = clause_zones[0] if clause_zones else ""
             target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
             if relationship == "board-transport":
-                boarded = re.match(r"\s+(?:the\s+)?(.+?)(?=[;,]|$)", remainder, re.IGNORECASE)
-                target = _trim_target(boarded.group(1)) if boarded else target
-                transport_mentions = (target,) if target else ()
+                boarded = re.match(
+                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at|from|to|bound\s+for|headed\s+for)\b|[;,]|$)",
+                    remainder,
+                    re.IGNORECASE,
+                )
+                if boarded:
+                    target, transport_mentions = _refine_match_target(
+                        boarded.group(1),
+                        link_occurrences,
+                        match.end(),
+                        boarded,
+                        1,
+                        excluded_target_links,
+                    )
+                else:
+                    target = ""
+                    transport_mentions = ()
+                target_kind = "transport" if target else ""
             elif relationship == "enter-through" and not target:
                 entered = re.match(r"\s+(?:the\s+)?(.+?)(?=[;,]|$)", remainder, re.IGNORECASE)
                 target = _trim_target(entered.group(1)) if entered else ""
@@ -1159,6 +1289,13 @@ def _extract_action_spans(
                 object_mentions = ()
 
         item_mentions = _unique((*item_mentions, *clause_marked_items, *clause_key_items))
+        if action == "travel" and material:
+            destination_zone_name = _directional_destination_zone(clause, clause_zones)
+            if not destination_zone_name and relationship == "enter-through":
+                destination_zone_name = _direct_enter_destination_zone(
+                    remainder,
+                    clause_zones,
+                )
         spans.append(
             SourceActionSpan(
                 source_step_order=source_step_order,
@@ -1179,9 +1316,11 @@ def _extract_action_spans(
                 key_item_mentions=key_item_mentions,
                 transport_mentions=transport_mentions,
                 zone_mentions=clause_zones,
+                destination_zone_name=destination_zone_name,
                 temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in clause_zones) else "",
                 map_numbers=clause_maps,
                 grid_coordinates=clause_coordinates,
+                material=material,
                 required_count=required_count,
                 count_mode=count_mode,
                 count_explicit=count_explicit,
@@ -1224,6 +1363,7 @@ def _extract_action_spans(
                     ),
                     count_mode=(span.count_mode if span.count_explicit else next_span.count_mode),
                     count_explicit=span.count_explicit or next_span.count_explicit,
+                    material=span.material and next_span.material,
                 )
             )
             index += 2
@@ -1254,6 +1394,7 @@ def _extract_action_spans(
                     ),
                     count_mode=(next_span.count_mode if next_span.count_explicit else span.count_mode),
                     count_explicit=next_span.count_explicit or span.count_explicit,
+                    material=span.material and next_span.material,
                 )
             )
             index += 2

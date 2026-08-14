@@ -3669,7 +3669,7 @@
     },
     "mission:The Voracious Resurgence:38:step-001": {
       "source_revisions": {
-        "bg": 773321,
+        "bg": 775387,
         "ffxiclopedia": 1766551
       },
       "reference": {
@@ -3683,7 +3683,7 @@
     },
     "mission:The Voracious Resurgence:38:step-002": {
       "source_revisions": {
-        "bg": 773321,
+        "bg": 775387,
         "ffxiclopedia": 1766551
       },
       "reference": {
@@ -3751,9 +3751,9 @@
       "arrival_instruction": "Talk to Tarnotik.",
       "review_basis": "dual-source exact named NPC and unique current navigation point"
     },
-    "mission:The Voracious Resurgence:43:step-018": {
+    "mission:The Voracious Resurgence:43:step-016": {
       "source_revisions": {
-        "bg": 719735,
+        "bg": 775749,
         "ffxiclopedia": 1794450
       },
       "reference": {
@@ -4216,7 +4216,7 @@
     "quest:adoulin:123:step-001": {
       "source_revisions": {
         "bg": 689648,
-        "ffxiclopedia": 1767361
+        "ffxiclopedia": 1803859
       },
       "reference": {
         "zone": 257,
@@ -5503,7 +5503,7 @@
     },
     "quest:bastok:87:step-026": {
       "source_revisions": {
-        "bg": 764025,
+        "bg": 775672,
         "ffxiclopedia": 1777762
       },
       "reference": {
@@ -7212,7 +7212,7 @@
     "quest:sandoria:90:step-005": {
       "source_revisions": {
         "bg": 690876,
-        "ffxiclopedia": 1788926
+        "ffxiclopedia": 1803973
       },
       "reference": {
         "zone": 230,
@@ -7590,7 +7590,7 @@
     "quest:windurst:71:step-006": {
       "source_revisions": {
         "bg": 771154,
-        "ffxiclopedia": 1781875
+        "ffxiclopedia": 1803778
       },
       "reference": {
         "zone": 245,
@@ -7604,7 +7604,7 @@
     "quest:windurst:71:step-010": {
       "source_revisions": {
         "bg": 771154,
-        "ffxiclopedia": 1781875
+        "ffxiclopedia": 1803778
       },
       "reference": {
         "zone": 249,

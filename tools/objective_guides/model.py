@@ -43,6 +43,7 @@ class SourceActionSpan:
     key_item_mentions: tuple[str, ...] = ()
     transport_mentions: tuple[str, ...] = ()
     zone_mentions: tuple[str, ...] = ()
+    destination_zone_name: str = ""
     temporal_zone_variant: str = ""
     map_numbers: tuple[str, ...] = ()
     grid_coordinates: tuple[str, ...] = ()

@@ -12,10 +12,10 @@
         "meta": "siteinfo",
         "siprop": "general|namespaces|namespacealiases|interwikimap"
       },
-      "captured_at_utc": "2026-08-09T10:20:38Z",
+      "captured_at_utc": "2026-08-14T06:56:56Z",
       "generator": "MediaWiki 1.43.9",
       "wiki_id": "bgwiki143",
-      "normalized_siteinfo_sha256": "e0d45c0f4a752168278323d7ed707108cb2cf422a5a0c1802d0baab42cc918dd",
+      "normalized_siteinfo_sha256": "a12b0775ecb9590e32e87341a3f730f0d336c4277d46351fe5fc315d5632a36c",
       "namespaces": [
         {
           "id": -2,
@@ -1018,10 +1018,10 @@
         "meta": "siteinfo",
         "siprop": "general|namespaces|namespacealiases|interwikimap"
       },
-      "captured_at_utc": "2026-08-09T10:20:38Z",
+      "captured_at_utc": "2026-08-14T06:56:56Z",
       "generator": "MediaWiki 1.43.9",
       "wiki_id": "ffxi",
-      "normalized_siteinfo_sha256": "ad4e6131ca133fdc1cc8f6d6c10def76af7e9baba90b3e6c3b1d9101ce27a368",
+      "normalized_siteinfo_sha256": "239ab549a905063f7384515147dd9f7dd3162e1bb547acc822340ffe9e54bbff",
       "namespaces": [
         {
           "id": -2,
@@ -4498,5 +4498,5 @@
       ]
     }
   },
-  "payload_sha256": "a372ff80ec611b74cb13e1ed7542271be106efb3022c8ef0b4469261f87bdfdc"
+  "payload_sha256": "818e8ac18df5929c8ae506b9219a373d8d11d0c3c61b171cfc7ea081a1fcac7f"
 }

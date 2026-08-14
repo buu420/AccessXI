@@ -383,3 +383,89 @@ OK
 ```
 
 No generated corpus artifact or Task 2 Lua test is part of this fix round.
+
+## Final authoritative corpus rebuild and reboot recovery
+
+The official two-site refresh was attempted first. BG Wiki returned its explicit
+`Retry-After: 1200` rate limit before the transactional publisher could replace
+any checked-in artifact. The last complete same-day BG Wiki and FFXIclopedia
+snapshots were therefore retained and both final corpus generations used the
+documented `--offline` path. No partial network result was published.
+
+The completed pre-reboot hard gate was:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_wiki_authoritative_objective_corpus -v
+```
+
+```text
+Ran 4 tests in 628.764s
+OK
+```
+
+Those four tests validate the checked-in provenance/authority graph, every
+generated self-pinned flat shard, the compact-footprint boundary, and two
+consecutive offline generations with byte-identical artifacts.
+
+The final exact corpus accounting is:
+
+```text
+native objectives                         1,844
+missions                                    706
+quests                                    1,138
+source-backed objectives                  1,806
+structural source-missing rows               38
+typed action claims                      22,829
+typed material actions                   22,479
+typed nonmaterial actions                   350
+explicit context-only ledger rows        16,898
+total action-resolution ledger rows      39,727
+exact destination-review candidates       1,803
+```
+
+The 38 source-missing native records stay non-routable and are classified only
+as 7 native sentinels, 16 chapter indexes, 7 native placeholders, and 8 absent
+wiki sources. No placeholder walkthrough was invented.
+
+The generated Lua footprint is:
+
+```text
+source shards                  19,407,941 bytes (51 files)
+reconciliation shards          19,240,256 bytes (26 files)
+guide index                     1,292,715 bytes (1 file)
+presentation subtotal          39,940,912 bytes
+progression shards             32,122,900 bytes (26 files)
+runtime corpus total           72,063,812 bytes (104 files)
+```
+
+The reboot did not leave a partial output. A fresh post-reboot hash pass over
+all 118 corpus artifacts reproduced this exact canonical hash-map serialization:
+
+```text
+sha256("<relative-posix-path>\t<lowercase-file-sha256>\n" for sorted paths)
+5920b4073c1fb86c7f96f6bca90e92fb83bc106ea71338a5a12c4f38b5f153c5
+```
+
+The canonical JSON serialization of the same map is independently
+`43cd707fe34e04dd0d5818783c7da2432c6fb3571899d4f0228b651ae34a6c45`.
+The runtime manifest bytes hash to
+`0b5965660348e15f129bfc3e4d790f456011ae745932dc14db11bb98b9bd1315`,
+and the reader contains exactly that one reviewed pin. All seven manifest source
+children match their SHA-256 rows; the runtime module row is present and pins
+`e598b49ccc73ced21bbd1ba23826c350a758f89522a26b2b6b4016034a0bb317`.
+
+Fresh post-reboot focused verification:
+
+```text
+tools.test_objective_guides             Ran 197 tests in 3.221s — OK
+tools.test_objective_route_evidence      Ran 73 tests in 8.792s — OK
+Lua 5.1 generated-module execution      104/104 tables loaded
+reader objective-integrity harness      passed
+AccessXI SHA-256 behavior harness        passed
+reader plus four route modules syntax    loaded by Lua 5.1
+manifest source-child verification       7/7 hashes plus exact reader pin
+```
+
+Only the single generated manifest-pin line in `accessxi_reader.lua` belongs to
+Task 1. The uncommitted production `mission_quest_guides.lua`, Task 2 harnesses,
+navigation work, and `build-collision-mhaura-repro/` remain outside this commit.

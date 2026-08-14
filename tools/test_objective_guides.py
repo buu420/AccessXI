@@ -1559,6 +1559,266 @@ class WikitextParserTests(unittest.TestCase):
             [("talk", "talk-to", "Cid")],
         )
 
+    def test_travel_spans_pin_only_directional_destination_zone_names(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Transport destination",
+                9199,
+                81,
+                80,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            spans = parse_objective_page(page).steps[0].action_spans
+            self.assertEqual(len(spans), 1, text)
+            return spans[0]
+
+        transport = first(
+            "Board [[Airship Door]] in [[Port San d'Oria]], bound for "
+            "[[Ghelsba Outpost]]."
+        )
+        travel = first(
+            "Travel to [[Ghelsba Outpost]] from [[Port San d'Oria]]."
+        )
+        source_only = first("Board [[Airship Door]] in [[Port San d'Oria]].")
+        ambiguous = first(
+            "Board [[Airship Door]], bound for [[Ghelsba Outpost]] or "
+            "headed for [[Dangruf Wadi]]."
+        )
+        current_location = first("Enter [[Oaken Door]] in [[Norg]].")
+        direct_enter = first(
+            "Enter [[The Eldieme Necropolis]] through [[Batallia Downs]]."
+        )
+        source_enter = first("Enter from [[East Sarutabaruta]].")
+        prohibited = first(
+            "Be careful not to board the ferry to [[Al Zahbi]] by mistake."
+        )
+        other_prohibited = (
+            first("Do not board the ferry to [[Al Zahbi]]."),
+            first("Don't board the ferry to [[Al Zahbi]]."),
+            first("Never board the ferry to [[Al Zahbi]]."),
+            first("Avoid board the ferry to [[Al Zahbi]]."),
+        )
+
+        self.assertEqual(
+            (
+                transport.target,
+                transport.target_kind,
+                transport.destination_zone_name,
+                travel.destination_zone_name,
+                source_only.destination_zone_name,
+                ambiguous.destination_zone_name,
+                current_location.destination_zone_name,
+                direct_enter.destination_zone_name,
+                source_enter.destination_zone_name,
+                prohibited.material,
+                prohibited.destination_zone_name,
+                tuple((span.material, span.destination_zone_name) for span in other_prohibited),
+            ),
+            (
+                "Airship Door",
+                "transport",
+                "Ghelsba Outpost",
+                "Ghelsba Outpost",
+                "",
+                "",
+                "",
+                "The Eldieme Necropolis",
+                "",
+                False,
+                "",
+                ((False, ""),) * 4,
+            ),
+        )
+
+    def test_directly_prohibited_actions_are_nonmaterial_across_action_kinds(self) -> None:
+        def all_spans(text: str) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Action polarity",
+                9200,
+                82,
+                81,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            spans = parse_objective_page(page).steps[0].action_spans
+            self.assertTrue(spans, text)
+            return spans
+
+        def first(text: str) -> SourceActionSpan:
+            return all_spans(text)[0]
+
+        prohibited = (
+            first("There is no need to fight the Goblin."),
+            first("It is not necessary to kill the NM."),
+            first("Complete the objective without killing any Archaic Gear."),
+            first("No need to speak with Kerutoto."),
+            first("There is no need to check the ??? spots again."),
+            first("You cannot use the Survival Guide."),
+            first("You cannot trade the same kind of fish twice."),
+            first("You cannot enter the battlefield at present."),
+            first("Do not obtain the Copper Ring."),
+            first("Never select the second option."),
+            first("Avoid a fight with the guard."),
+            first("Do not obtain 3 Copper Rings by defeating the Goblin."),
+            first("Do not try to use the Survival Guide."),
+            first("You will not be able to enter the battlefield."),
+            first("You will not need to fight the Goblin."),
+            first("You do not need to wait 10 minutes."),
+            first("You don't need to wait for the next window."),
+            first("There is no need to actually wait for midnight."),
+            first("There is no need to actually trade the salt again."),
+            first("It is not necessary to zone or wait for the next window."),
+            first("You cannot attack the Goblin or use the Oaken Door."),
+            first("If you cannot obtain the Voidwatch alarum:"),
+            first("If you cannot find or obtain a Copper Ring, choose another item."),
+            first("You do not have to see the battle through or receive an evaluation."),
+            first("You do not have to go back and check all the spots again."),
+            first(
+                "At 1 HP, the bomb will attempt to use Self-Destruct, but will "
+                "then fall without using it."
+            ),
+            first(
+                "Make sure not to go past the stairs that zone into the next area."
+            ),
+        )
+        coordinated = all_spans(
+            "You cannot use the Oaken Door or trade the Copper Ring to Cid."
+        )
+        conditional = first(
+            "If you do not have a Boarding Pass, go to Al Zahbi."
+        )
+        positive_after_avoidance = first(
+            "Avoid Mijin Gakure by killing the Executor first."
+        )
+        positive_contrasts = (
+            first("No need to zone, just talk to Cid."),
+            first("Kill the Arch Ahriman without fighting any replicas."),
+            first("Check the chest without fighting."),
+            all_spans("You cannot enter before killing all three enemies.")[1],
+        )
+        positive_scope_actions = (
+            all_spans(
+                "You cannot obtain the Key Item until the other is dead. "
+                "Either pull one and wait for the other to depop."
+            )[1],
+            all_spans(
+                "The Particle Gates will not open. Find a nearby Cermet Alcove "
+                "and check it to spawn a Quasilumin NPC."
+            )[1],
+            first(
+                "If you don't have a mount, sneak across to (I-8) and check the ???."
+            ),
+            all_spans(
+                "You do not need to defeat all four Jacks. Pull one and wait for "
+                "the other three to despawn before killing it."
+            )[1],
+            all_spans(
+                "A Lamia Fang Key is not required to open this gate, just drop "
+                "Invisible and open it."
+            )[0],
+            all_spans(
+                "A Lamia Fang Key is not required to open this gate, just drop "
+                "Invisible and open it."
+            )[1],
+            all_spans(
+                "If you did not receive the item, free a slot and check the Rock "
+                "Slab again."
+            )[1],
+            all_spans(
+                "If Luto will not give you the cutscene, equip your Signal Pearl "
+                "and talk to her again."
+            )[1],
+            all_spans(
+                "You do not need to defeat the NMs if you run past them and click "
+                "the ???."
+            )[1],
+            first(
+                "You do not have to be the job seeking AF to spawn the NM and "
+                "receive the key item."
+            ),
+            all_spans(
+                "If you do not speak to your Adventuring Fellow before she "
+                "despawns, rezone and fight the NM again."
+            )[1],
+            all_spans(
+                "If you do not choose a reward, speak to Gilgamesh anytime to pick "
+                "one, but you will not complete the quest until you do."
+            )[1],
+            first(
+                "You will fail the mission if you do not return on time or defeat "
+                "enough monsters."
+            ),
+        )
+
+        self.assertEqual(
+            tuple((span.action, span.material) for span in prohibited),
+            (
+                ("fight", False),
+                ("fight", False),
+                ("fight", False),
+                ("talk", False),
+                ("examine", False),
+                ("use", False),
+                ("trade", False),
+                ("travel", False),
+                ("obtain", False),
+                ("select", False),
+                ("fight", False),
+                ("fight", False),
+                ("use", False),
+                ("travel", False),
+                ("fight", False),
+                ("wait", False),
+                ("wait", False),
+                ("wait", False),
+                ("trade", False),
+                ("wait", False),
+                ("use", False),
+                ("obtain", False),
+                ("obtain", False),
+                ("obtain", False),
+                ("examine", False),
+                ("use", False),
+                ("travel", False),
+            ),
+        )
+        self.assertEqual(
+            tuple((span.action, span.material) for span in coordinated),
+            (("use", False), ("trade", False)),
+        )
+        self.assertEqual((conditional.action, conditional.material), ("travel", True))
+        self.assertEqual(
+            (positive_after_avoidance.action, positive_after_avoidance.material),
+            ("fight", True),
+        )
+        self.assertEqual(
+            tuple((span.action, span.material) for span in positive_contrasts),
+            (("talk", True), ("fight", True), ("examine", True), ("fight", True)),
+        )
+        self.assertEqual(
+            tuple((span.action, span.material) for span in positive_scope_actions),
+            (
+                ("wait", True),
+                ("examine", True),
+                ("examine", True),
+                ("wait", True),
+                ("use", True),
+                ("use", True),
+                ("examine", True),
+                ("talk", True),
+                ("examine", True),
+                ("obtain", True),
+                ("fight", True),
+                ("talk", True),
+                ("fight", True),
+            ),
+        )
+
     def test_explicit_action_quantities_are_not_part_of_targets(self) -> None:
         def first(text: str) -> SourceActionSpan:
             page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
@@ -3542,6 +3802,54 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(unpaired.alignment_score, 0)
         self.assertEqual(unpaired.alignment_reason, "unpaired-bg")
         self.assertEqual(unpaired.unpaired_reason, "no-compatible-ffxiclopedia-step")
+
+    def test_paired_claim_materiality_uses_bg_primary_ffxiclopedia_fallback(self) -> None:
+        def page(site: str, page_id: int, material: bool) -> ParsedObjective:
+            span = SourceActionSpan(
+                source_step_order=1,
+                order=1,
+                text_start=0,
+                text_end=12,
+                supporting_clause="Talk to Cid.",
+                action="talk",
+                verb="talk",
+                relationship="talk-to",
+                target="Cid",
+                target_kind="npc",
+                npc_mentions=("Cid",),
+                material=material,
+            )
+            return ParsedObjective(
+                site=site,
+                page_id=page_id,
+                revision_id=page_id,
+                canonical_title="Paired polarity",
+                kind="quest",
+                objective_name="Paired polarity",
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        span.supporting_clause,
+                        span.supporting_clause,
+                        "talk",
+                        linked_entities=("Cid",),
+                        action_spans=(span,),
+                    ),
+                ),
+            )
+
+        for bg_material, ffxi_material, expected in (
+            (True, False, True),
+            (False, True, False),
+        ):
+            reconciled = reconcile_objectives(
+                "quest:bastok:199",
+                page("bg", 19901, bg_material),
+                page("ffxiclopedia", 19902, ffxi_material),
+            )
+            self.assertEqual(reconciled.steps[0].claims[0].material, expected)
 
     def test_fight_to_obtain_word_order_variants_reconcile_as_one_chain(self) -> None:
         pages = []
@@ -9129,6 +9437,295 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             ffxi["Acting in Good Faith"],
         )
 
+    def _build_source_missing_coverage(
+        self,
+        natives: tuple[NativeObjective, ...],
+        revisions: tuple[PageRevision, ...] = (),
+    ) -> dict:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_guide_artifacts(
+                natives,
+                (),
+                module_root=root / "modules",
+                data_root=root / "data",
+                source_revisions=revisions,
+            )
+            return json.loads((root / "data" / "coverage.json").read_text(encoding="utf-8"))
+
+    def test_source_missing_classifies_only_reserved_progress_sentinels(self) -> None:
+        natives = tuple(
+            NativeObjective(
+                "mission",
+                "Sentinel Test",
+                native_id,
+                title,
+                "missions.dat",
+                native_id * 0x80,
+                progress_id,
+            )
+            for native_id, title, progress_id in (
+                (1, "Finish sentinel", 999),
+                (2, "Start sentinel", 1000),
+                (3, "Ordinary 998", 998),
+                (4, "Ordinary 1001", 1001),
+            )
+        )
+
+        coverage = self._build_source_missing_coverage(natives)
+
+        self.assertEqual(
+            coverage["counts"].get("by_source_missing_classification"),
+            {
+                "native-sentinel": 2,
+                "chapter-index": 0,
+                "native-placeholder": 0,
+                "source-absent": 2,
+            },
+        )
+        self.assertEqual(
+            {
+                key: row.get("source_missing_classification")
+                for key, row in coverage["objectives"].items()
+            },
+            {
+                "mission:Sentinel Test:1": "native-sentinel",
+                "mission:Sentinel Test:2": "native-sentinel",
+                "mission:Sentinel Test:3": "source-absent",
+                "mission:Sentinel Test:4": "source-absent",
+            },
+        )
+        for row in coverage["objectives"].values():
+            self.assertEqual(row["status"], "source-missing")
+            self.assertEqual(row["source_pages"], {})
+            self.assertEqual(row["source_modules"], {})
+            self.assertEqual(row["reconcile_module"], "")
+            self.assertEqual(row["progression_module"], "")
+
+    def test_source_missing_native_placeholder_predicates_are_narrow(self) -> None:
+        natives = (
+            NativeObjective("quest", "test", 1, "JNQuest", "quests.dat", 0, 1, ("Client:",)),
+            NativeObjective(
+                "quest", "test", 2, "FR Quest 5", "quests.dat", 0x80, 2, ("Client\x81F",)
+            ),
+            NativeObjective(
+                "quest",
+                "test",
+                3,
+                "Gather:",
+                "quests.dat",
+                0x100,
+                3,
+                ("+Gather:", "Assignment:", "Head to X and gather five materials."),
+            ),
+            NativeObjective(
+                "quest", "test", 4, "The Sahagin's Key", "quests.dat", 0x180, 4, ("Client\x81F",)
+            ),
+            NativeObjective(
+                "quest", "test", 5, "The FR Quest Begins", "quests.dat", 0x200, 5, ("Client:",)
+            ),
+            NativeObjective(
+                "quest",
+                "test",
+                6,
+                "Gather: Ceizak Battlegrounds",
+                "quests.dat",
+                0x280,
+                6,
+                ("+Gather:", "Assignment:", "Head to X and gather five materials."),
+            ),
+        )
+
+        coverage = self._build_source_missing_coverage(natives)
+
+        self.assertEqual(
+            {
+                key
+                for key, row in coverage["objectives"].items()
+                if row.get("source_missing_classification") == "native-placeholder"
+            },
+            {"quest:test:1", "quest:test:2", "quest:test:3"},
+        )
+        self.assertEqual(
+            {
+                key
+                for key, row in coverage["objectives"].items()
+                if row.get("source_missing_classification") == "source-absent"
+            },
+            {"quest:test:4", "quest:test:5", "quest:test:6"},
+        )
+
+    def test_chapter_index_requires_content_category_context_and_unique_identity(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Chains of Promathia",
+            1,
+            "A Transient Dream",
+            "missions.dat",
+            0,
+            101,
+        )
+
+        def revision(page_id: int, content: str) -> PageRevision:
+            return PageRevision(
+                site="ffxiclopedia",
+                api_url="https://ffxiclopedia.fandom.com/api.php",
+                canonical_title="A Transient Dream",
+                page_id=page_id,
+                revision_id=page_id + 1000,
+                parent_revision_id=page_id + 999,
+                revision_timestamp="2026-08-14T00:00:00Z",
+                content=content,
+            )
+
+        positive = revision(
+            101,
+            "This chapter contains the following missions:\n"
+            "[[Category:Chains of Promathia Chapters]]",
+        )
+        coverage = self._build_source_missing_coverage((native,), (positive,))
+        self.assertEqual(
+            coverage["objectives"][native.key].get("source_missing_classification"),
+            "chapter-index",
+        )
+
+        invalid_revisions = (
+            revision(102, "A chapter summary.\n[[Category:Chains of Promathia Chapters]]"),
+            revision(103, "Contains the following missions:\n[[Category:Monsters]]"),
+            revision(
+                104,
+                "Contains the following missions:\n[[Category:Seekers of Adoulin Missions]]",
+            ),
+        )
+        for invalid in invalid_revisions:
+            with self.subTest(page_id=invalid.page_id):
+                invalid_coverage = self._build_source_missing_coverage((native,), (invalid,))
+                self.assertEqual(
+                    invalid_coverage["objectives"][native.key].get(
+                        "source_missing_classification"
+                    ),
+                    "source-absent",
+                )
+
+        duplicate = NativeObjective(
+            "mission",
+            "Chains of Promathia",
+            2,
+            "A Transient Dream",
+            "missions.dat",
+            0x80,
+            102,
+        )
+        ambiguous = self._build_source_missing_coverage((native, duplicate), (positive,))
+        self.assertEqual(
+            {
+                row.get("source_missing_classification")
+                for row in ambiguous["objectives"].values()
+            },
+            {"source-absent"},
+        )
+
+    def test_chapter_identity_normalizations_are_provenance_only(self) -> None:
+        chapter = NativeObjective(
+            "mission",
+            "Rhapsodies of Vana'diel",
+            62,
+            "Chapter 3: Reckoning",
+            "missions.dat",
+            0,
+            254,
+        )
+        hades = NativeObjective(
+            "mission",
+            "Seekers of Adoulin",
+            95,
+            "Hades",
+            "missions.dat",
+            0x80,
+            326,
+        )
+        wrong_context = NativeObjective(
+            "mission",
+            "Wrong Context",
+            1,
+            "Hades",
+            "missions.dat",
+            0x100,
+            1,
+        )
+
+        def revision(
+            page_id: int,
+            title: str,
+            category: str,
+            *,
+            chapter_index: bool = True,
+        ) -> PageRevision:
+            phrase = "Contains the following missions:\n" if chapter_index else "Monster notes.\n"
+            return PageRevision(
+                site="ffxiclopedia",
+                api_url="https://ffxiclopedia.fandom.com/api.php",
+                canonical_title=title,
+                page_id=page_id,
+                revision_id=page_id + 2000,
+                parent_revision_id=page_id + 1999,
+                revision_timestamp="2026-08-14T00:00:00Z",
+                content=f"{phrase}[[Category:{category}]]",
+            )
+
+        revisions = (
+            revision(
+                201,
+                "Chapter Three: Reckoning",
+                "Rhapsodies of Vana'diel Missions",
+            ),
+            revision(202, "Hades (Chapter)", "Seekers of Adoulin Missions"),
+            revision(203, "Hades", "Monsters", chapter_index=False),
+            revision(204, "Hades (Chapter)", "Other Missions"),
+        )
+
+        coverage = self._build_source_missing_coverage(
+            (chapter, hades, wrong_context),
+            revisions,
+        )
+
+        expected_identity = {
+            chapter.key: {
+                "page_id": 201,
+                "revision_id": 2201,
+                "title": "Chapter Three: Reckoning",
+                "source_url": "https://ffxiclopedia.fandom.com/wiki/Chapter_Three%3A_Reckoning",
+                "match_method": "chapter-ordinal-normalized",
+            },
+            hades.key: {
+                "page_id": 202,
+                "revision_id": 2202,
+                "title": "Hades (Chapter)",
+                "source_url": "https://ffxiclopedia.fandom.com/wiki/Hades_(Chapter)",
+                "match_method": "chapter-disambiguator",
+            },
+        }
+        for native in (chapter, hades):
+            row = coverage["objectives"][native.key]
+            self.assertEqual(row.get("source_missing_classification"), "chapter-index")
+            self.assertEqual(
+                row.get("source_identity_pages"),
+                {"ffxiclopedia": expected_identity[native.key]},
+            )
+            self.assertEqual(row["status"], "source-missing")
+            self.assertEqual(row["source_pages"], {})
+            self.assertEqual(row["source_modules"], {})
+            self.assertEqual(row["reconcile_module"], "")
+            self.assertEqual(row["progression_module"], "")
+        self.assertEqual(
+            coverage["objectives"][wrong_context.key].get("source_missing_classification"),
+            "source-absent",
+        )
+        self.assertEqual(
+            coverage["objectives"][wrong_context.key].get("source_identity_pages", {}),
+            {},
+        )
+
     def test_lua_escaping_and_module_names_are_stable(self) -> None:
         self.assertEqual(lua_quote("Cid's\\lab\nnext"), '"Cid\'s\\\\lab\\nnext"')
         self.assertEqual(
@@ -9455,11 +10052,11 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             ]
 
         self.assertIn('progression_module = "mission_quest_progression_mission_bastok"', index)
-        self.assertIn("progression_schema_version = 1", index)
+        self.assertIn("progression_schema_version = 2", index)
         self.assertIn('bg_instruction = "', guide)
         self.assertNotIn("typed_claims =", guide)
         self.assertNotIn("action_resolution_ledger =", guide)
-        self.assertIn("schema_version = 1", progression)
+        self.assertIn("schema_version = 2", progression)
         self.assertIn('module_name = "mission_quest_progression_mission_bastok"', progression)
         self.assertIn('primary = "bg"', progression)
         self.assertIn('fallback = "ffxiclopedia"', progression)
@@ -9469,6 +10066,8 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         self.assertIn("step_id =", progression)
         self.assertIn("action_id =", progression)
         self.assertIn("target_key =", progression)
+        self.assertIn("destination_zone_name =", progression)
+        self.assertIn("destination_zone_id =", progression)
         self.assertIn("required_count = 1", progression)
         self.assertIn('count_mode = "single"', progression)
         self.assertIn("field_sources =", progression)
@@ -9517,7 +10116,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         )
 
         self.assertEqual(payload["native_key"], "mission:San d'Oria:1")
-        self.assertEqual(payload["progression_schema_version"], 1)
+        self.assertEqual(payload["progression_schema_version"], 2)
         self.assertEqual(payload["progression_module"], module_name)
         self.assertEqual(payload["source_authority"], {"primary": "bg", "fallback": "ffxiclopedia"})
         self.assertRegex(payload["progression_revision"], r"^[0-9a-f]{64}$")
@@ -9754,6 +10353,196 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 "count_explicit": (True, "bg"),
             },
         )
+
+    def test_progression_transport_destination_uses_field_authority_and_exact_zone_id(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            194,
+            "Transport destination authority",
+            "missions.dat",
+            0,
+        )
+        base_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=72,
+            supporting_clause=(
+                "Board the Airship Door in Port San d'Oria, bound for Ghelsba Outpost."
+            ),
+            action="travel",
+            verb="board",
+            relationship="board-transport",
+            target="Airship Door",
+            target_kind="transport",
+            transport_mentions=("Airship Door",),
+            zone_mentions=("Port San d'Oria", "Ghelsba Outpost"),
+            destination_zone_name="Ghelsba Outpost",
+        )
+        ffxi_span = replace(
+            base_span,
+            supporting_clause=(
+                "Board the Airship Door in Port San d'Oria, bound for Dangruf Wadi."
+            ),
+            zone_mentions=("Port San d'Oria", "Dangruf Wadi"),
+            destination_zone_name="Dangruf Wadi",
+        )
+        bg = self._single_step_progression_page(
+            "bg", 19401, native.title, (base_span,), base_span.supporting_clause
+        )
+        ffxi = self._single_step_progression_page(
+            "ffxiclopedia", 19402, native.title, (ffxi_span,), ffxi_span.supporting_clause
+        )
+        module_name = "mission_quest_progression_mission_bastok"
+        zone_names = {
+            140: "Ghelsba Outpost",
+            191: "Dangruf Wadi",
+            231: "Port San d'Oria",
+        }
+
+        payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, bg, ffxi),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            module_name,
+            navigation_zone_names=zone_names,
+        )
+        action = payload["progression_actions"][0]
+        self.assertEqual(
+            {
+                "destination_zone_name": (
+                    action["destination_zone_name"],
+                    action["field_sources"]["destination_zone_name"],
+                ),
+                "destination_zone_id": (
+                    action["destination_zone_id"],
+                    action["field_sources"]["destination_zone_id"],
+                ),
+            },
+            {
+                "destination_zone_name": ("Ghelsba Outpost", "bg"),
+                "destination_zone_id": (140, "bg"),
+            },
+        )
+
+        fallback_bg_span = replace(base_span, destination_zone_name="")
+        fallback_ffxi_span = replace(
+            ffxi_span,
+            supporting_clause=(
+                "Board the Airship Door in Port San d'Oria, bound for Ghelsba Outpost."
+            ),
+            zone_mentions=("Port San d'Oria", "Ghelsba Outpost"),
+            destination_zone_name="Ghelsba Outpost",
+        )
+        fallback_bg = self._single_step_progression_page(
+            "bg", 19403, native.title, (fallback_bg_span,), fallback_bg_span.supporting_clause
+        )
+        fallback_ffxi = self._single_step_progression_page(
+            "ffxiclopedia",
+            19404,
+            native.title,
+            (fallback_ffxi_span,),
+            fallback_ffxi_span.supporting_clause,
+        )
+        fallback_payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, fallback_bg, fallback_ffxi),
+            {"bg": fallback_bg, "ffxiclopedia": fallback_ffxi},
+            module_name,
+            navigation_zone_names=zone_names,
+        )
+        fallback_action = fallback_payload["progression_actions"][0]
+        self.assertEqual(
+            (
+                fallback_action["destination_zone_name"],
+                fallback_action["destination_zone_id"],
+                fallback_action["field_sources"]["destination_zone_name"],
+                fallback_action["field_sources"]["destination_zone_id"],
+            ),
+            ("Ghelsba Outpost", 140, "ffxiclopedia", "ffxiclopedia"),
+        )
+
+        unresolved_payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, bg, ffxi),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            module_name,
+            navigation_zone_names={140: "Ghelsba Outpost", 999: "Ghelsba Outpost"},
+        )
+        unresolved_action = unresolved_payload["progression_actions"][0]
+        self.assertEqual(
+            (
+                unresolved_action["destination_zone_name"],
+                unresolved_action["destination_zone_id"],
+                unresolved_action["field_sources"]["destination_zone_id"],
+            ),
+            ("Ghelsba Outpost", 0, ""),
+        )
+
+        changed_bg_span = replace(base_span, destination_zone_name="Dangruf Wadi")
+        changed_bg = self._single_step_progression_page(
+            "bg", 19405, native.title, (changed_bg_span,), changed_bg_span.supporting_clause
+        )
+        changed_payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, changed_bg, ffxi),
+            {"bg": changed_bg, "ffxiclopedia": ffxi},
+            module_name,
+            navigation_zone_names=zone_names,
+        )
+        self.assertNotEqual(payload["progression_revision"], changed_payload["progression_revision"])
+
+    def test_prohibited_transport_never_emits_a_progression_action(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            195,
+            "Prohibited transport",
+            "missions.dat",
+            0,
+        )
+
+        def source(site: str, revision_id: int) -> ParsedObjective:
+            api_url = (
+                "https://www.bg-wiki.com/api.php"
+                if site == "bg"
+                else "https://ffxiclopedia.fandom.com/api.php"
+            )
+            parsed = parse_objective_page(
+                PageRevision(
+                    site,
+                    api_url,
+                    native.title,
+                    revision_id,
+                    revision_id,
+                    revision_id - 1,
+                    "2026-08-14T00:00:00Z",
+                    "{{Quest Header}}\n==Walkthrough==\n"
+                    "*Be careful not to board the ferry to [[Al Zahbi]] by mistake.",
+                )
+            )
+            span = parsed.steps[0].action_spans[0]
+            self.assertFalse(span.material)
+            return self._single_step_progression_page(
+                site,
+                revision_id,
+                native.title,
+                (span,),
+                span.supporting_clause,
+            )
+
+        bg = source("bg", 19501)
+        ffxi = source("ffxiclopedia", 19502)
+        payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, bg, ffxi),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            "mission_quest_progression_mission_bastok",
+            navigation_zone_names={48: "Al Zahbi"},
+        )
+
+        self.assertEqual(payload["progression_actions"], [])
 
     def test_progression_instruction_uses_each_authoritative_action_clause(self) -> None:
         native = NativeObjective(

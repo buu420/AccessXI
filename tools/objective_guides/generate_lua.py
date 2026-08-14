@@ -370,6 +370,27 @@ def _authoritative_value(bg_value: Any, ffxiclopedia_value: Any) -> tuple[Any, s
     return bg_value if bg_value is not None else ffxiclopedia_value, ""
 
 
+def _authoritative_count_triple(
+    bg_span: SourceActionSpan | None,
+    ffxiclopedia_span: SourceActionSpan | None,
+) -> tuple[int, str, bool, str]:
+    selected: SourceActionSpan | None
+    source: str
+    if bg_span is not None and bg_span.count_explicit:
+        selected, source = bg_span, "bg"
+    elif ffxiclopedia_span is not None and ffxiclopedia_span.count_explicit:
+        selected, source = ffxiclopedia_span, "ffxiclopedia"
+    elif bg_span is not None:
+        selected, source = bg_span, "bg"
+    elif ffxiclopedia_span is not None:
+        selected, source = ffxiclopedia_span, "ffxiclopedia"
+    else:
+        return 1, "single", False, ""
+    if selected.required_count <= 0:
+        raise GenerationError("Progression action has a non-positive required count.")
+    return selected.required_count, selected.count_mode, selected.count_explicit, source
+
+
 def _progression_catalogue_row(candidate: ObjectiveDestinationCandidate) -> dict[str, Any]:
     return {
         "destination_id": candidate.destination_id,
@@ -437,6 +458,14 @@ def progression_objective_payload(
                 continue
             bg_span = _source_span(bg_step, claim.bg_span_order)
             ffxi_span = _source_span(ffxi_step, claim.ffxiclopedia_span_order)
+            for site, declared_order, span in (
+                ("bg", claim.bg_span_order, bg_span),
+                ("ffxiclopedia", claim.ffxiclopedia_span_order, ffxi_span),
+            ):
+                if declared_order > 0 and span is None:
+                    raise GenerationError(
+                        f"Material action {claim.stable_claim_id!r} declares missing {site} source span."
+                    )
             if bg_span is None and ffxi_span is None:
                 raise GenerationError(f"Material action {claim.stable_claim_id!r} has no source span.")
             source_authority = "bg" if bg_span is not None else "ffxiclopedia"
@@ -491,20 +520,8 @@ def progression_objective_payload(
                     ffxi_span.result_relation if ffxi_span else "",
                 ),
                 "instruction": (
-                    bg_step.spoken_text if bg_step else "",
-                    ffxi_step.spoken_text if ffxi_step else "",
-                ),
-                "required_count": (
-                    bg_span.required_count if bg_span else None,
-                    ffxi_span.required_count if ffxi_span else None,
-                ),
-                "count_mode": (
-                    bg_span.count_mode if bg_span else "",
-                    ffxi_span.count_mode if ffxi_span else "",
-                ),
-                "count_explicit": (
-                    bg_span.count_explicit if bg_span else None,
-                    ffxi_span.count_explicit if ffxi_span else None,
+                    bg_span.supporting_clause if bg_span else "",
+                    ffxi_span.supporting_clause if ffxi_span else "",
                 ),
             }
             selected: dict[str, Any] = {}
@@ -515,14 +532,39 @@ def progression_objective_payload(
                     value = list(value)
                 selected[field] = value
                 field_sources[field] = source
-            selected["required_count"] = claim.required_count
-            selected["count_mode"] = claim.count_mode
-            selected["count_explicit"] = claim.count_explicit
+            required_count, count_mode, count_explicit, count_source = _authoritative_count_triple(
+                bg_span,
+                ffxi_span,
+            )
+            selected["required_count"] = required_count
+            selected["count_mode"] = count_mode
+            selected["count_explicit"] = count_explicit
+            field_sources["required_count"] = count_source
+            field_sources["count_mode"] = count_source
+            field_sources["count_explicit"] = count_source
             selected["target_key"] = normalize_title(selected["target"])
             field_sources["target_key"] = field_sources["target"]
 
             ledger = ledger_by_id.get(claim.stable_claim_id)
-            source_span_ids = list(ledger.source_action_span_ids) if ledger is not None else []
+            if ledger is None:
+                raise GenerationError(
+                    f"Material action {claim.stable_claim_id!r} has no material ledger row."
+                )
+            expected_span_ids = {
+                f"{native.key}:{site}:step-{source_order:03d}:span-{span.order:02d}"
+                for site, source_order, span in (
+                    ("bg", step.source_orders[0], bg_span),
+                    ("ffxiclopedia", step.source_orders[1], ffxi_span),
+                )
+                if span is not None
+            }
+            missing_span_ids = expected_span_ids.difference(ledger.source_action_span_ids)
+            if missing_span_ids:
+                raise GenerationError(
+                    f"Material action {claim.stable_claim_id!r} ledger is missing source span pins: "
+                    f"{sorted(missing_span_ids)!r}."
+                )
+            source_span_ids = list(ledger.source_action_span_ids)
             catalogue = [
                 _progression_catalogue_row(candidate)
                 for candidate in sorted(
@@ -647,58 +689,6 @@ def _progression_module_text(module_name: str, payloads: Iterable[Mapping[str, A
             "",
         )
     )
-
-
-def _reconciled_claim_lua(claim: ReconciledActionClaim) -> list[str]:
-    authoritative: dict[str, list[str]] = {}
-    fields = {candidate.field for candidate in claim.candidates}
-    for field in fields:
-        field_rows = [candidate for candidate in claim.candidates if candidate.field == field]
-        primary_rows = [candidate for candidate in field_rows if "bg" in candidate.sources]
-        selected_rows = primary_rows or field_rows
-        authoritative[field] = list(dict.fromkeys(candidate.value for candidate in selected_rows))
-    lines = [
-        "          {",
-        f"            stable_claim_id = {lua_quote(claim.stable_claim_id)},",
-        f"            order = {claim.order},",
-        f"            action = {lua_quote(claim.action)},",
-        f"            relationship = {lua_quote(claim.relationship)},",
-        f"            target = {lua_quote(claim.target)},",
-        f"            target_kind = {lua_quote(claim.target_kind)},",
-        f"            comparison = {lua_quote(claim.comparison)},",
-        f"            alignment_score = {claim.alignment_score},",
-        f"            alignment_reason = {lua_quote(claim.alignment_reason)},",
-        f"            unpaired_reason = {lua_quote(claim.unpaired_reason)},",
-        f"            bg_span_order = {claim.bg_span_order},",
-        f"            ffxiclopedia_span_order = {claim.ffxiclopedia_span_order},",
-        f"            material = {'true' if claim.material else 'false'},",
-        "            matcher = {",
-        f"              authority = {lua_quote('bg' if any('bg' in row.sources for row in claim.candidates) else 'ffxiclopedia')},",
-        f"              action = {lua_quote(claim.action)},",
-        f"              relationship = {lua_quote(claim.relationship)},",
-        f"              target = {lua_quote(claim.target)},",
-        f"              target_kind = {lua_quote(claim.target_kind)},",
-        f"              zones = {_lua_array(authoritative.get('zone', ()))},",
-        f"              items = {_lua_array(authoritative.get('item', ()))},",
-        f"              key_items = {_lua_array(authoritative.get('key-item', ()))},",
-        f"              result_items = {_lua_array(authoritative.get('result-item', ()))},",
-        f"              result_relation = {lua_quote(claim.result_relation)},",
-        "            },",
-        "            candidates = {",
-    ]
-    for candidate in claim.candidates:
-        lines.extend(
-            [
-                "              {",
-                f"                field = {lua_quote(candidate.field)},",
-                f"                value = {lua_quote(candidate.value)},",
-                f"                comparison = {lua_quote(candidate.comparison)},",
-                f"                sources = {_lua_array(candidate.sources)},",
-                "              },",
-            ]
-        )
-    lines.extend(["            },", "          },"])
-    return lines
 
 
 def _objective_action_ledger_lua(row: ObjectiveActionLedgerRow) -> list[str]:
@@ -1636,60 +1626,6 @@ def _native_manifest_row(native: NativeObjective) -> dict[str, Any]:
         "source_dat": native.source_dat,
         "record_offset": native.record_offset,
     }
-
-
-def _progression_revision(reconciled: ReconciledObjective | None) -> str:
-    claims = []
-    if reconciled is not None:
-        for step in reconciled.steps:
-            for claim in step.claims:
-                if not claim.material:
-                    continue
-                claims.append(
-                    {
-                        "stable_claim_id": claim.stable_claim_id,
-                        "order": claim.order,
-                        "action": claim.action,
-                        "relationship": claim.relationship,
-                        "target": claim.target,
-                        "target_kind": claim.target_kind,
-                        "result_relation": claim.result_relation,
-                        "bg_span_order": claim.bg_span_order,
-                        "ffxiclopedia_span_order": claim.ffxiclopedia_span_order,
-                        "matcher_facts": [
-                            {
-                                "field": candidate.field,
-                                "value": candidate.value,
-                                "comparison": candidate.comparison,
-                                "sources": list(candidate.sources),
-                            }
-                            for candidate in claim.candidates
-                        ],
-                        "authoritative_matcher_facts": {
-                            field: list(
-                                dict.fromkeys(
-                                    candidate.value
-                                    for candidate in (
-                                        [
-                                            row for row in claim.candidates
-                                            if row.field == field and "bg" in row.sources
-                                        ]
-                                        or [row for row in claim.candidates if row.field == field]
-                                    )
-                                )
-                            )
-                            for field in sorted({row.field for row in claim.candidates})
-                        },
-                    }
-                )
-    payload = {
-        "schema_version": _PROGRESSION_REVISION_SCHEMA,
-        "source_authority": _SOURCE_AUTHORITY,
-        "claims": claims,
-    }
-    return hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
 
 
 def _source_snapshot_page(page: ParsedObjective | PageRevision) -> dict[str, Any]:

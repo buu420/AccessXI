@@ -1013,6 +1013,28 @@ def _role_candidates(
     return tuple(result)
 
 
+def _authoritative_span_rows(
+    span_rows: tuple[tuple[str, SourceActionSpan, str, int], ...],
+    field_value: Any,
+) -> tuple[tuple[str, SourceActionSpan, str, int], ...]:
+    def present(value: object) -> bool:
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (tuple, list, set, dict)):
+            return bool(value)
+        return value is not None
+
+    for site in ("bg", "ffxiclopedia"):
+        rows = tuple(
+            row
+            for row in span_rows
+            if row[0] == site and present(field_value(row[1]))
+        )
+        if rows:
+            return rows
+    return ()
+
+
 def _claim_resolution(
     *,
     native: NativeObjective,
@@ -1077,12 +1099,12 @@ def _claim_resolution(
 
     instruction = ""
 
-    authoritative_rows = [row for row in span_rows if row[0] == "bg"] or [
-        row for row in span_rows if row[0] == "ffxiclopedia"
-    ]
-    authoritative_span = authoritative_rows[0][1] if authoritative_rows else None
-    target = authoritative_span.target if authoritative_span is not None else ""
-    target_kind = authoritative_span.target_kind if authoritative_span is not None else ""
+    target_rows = _authoritative_span_rows(span_rows, lambda span: span.target)
+    kind_rows = _authoritative_span_rows(span_rows, lambda span: span.target_kind)
+    relationship_rows = _authoritative_span_rows(span_rows, lambda span: span.relationship)
+    zone_rows = _authoritative_span_rows(span_rows, lambda span: span.zone_mentions)
+    target = target_rows[0][1].target if target_rows else ""
+    target_kind = kind_rows[0][1].target_kind if kind_rows else ""
 
     if target_kind == "role" or role_override is not None:
         if role_override is None:
@@ -1231,40 +1253,26 @@ def _claim_resolution(
             (),
         )
 
-    expected_relationship = _normalized_relationship(claim.relationship)
-    if not expected_relationship:
-        relationships = {
-            _normalized_relationship(span.relationship)
-            for _site, span, _span_id, _revision in span_rows
-            if _normalized_action(span.action) == action
-            and span.target.casefold() == target.casefold()
-            and _source_kind_supports_claim(span.target_kind, target_kind, action)
-            and _normalized_relationship(span.relationship)
-        }
-        expected_relationship = next(iter(relationships)) if len(relationships) == 1 else ""
+    expected_relationship = (
+        _normalized_relationship(relationship_rows[0][1].relationship)
+        if relationship_rows
+        else ""
+    )
+    field_support_rows = tuple(
+        {
+            row[2]: row
+            for rows in (target_rows, kind_rows, relationship_rows)
+            for row in rows
+        }.values()
+    )
 
     zone_support: dict[str, list[str]] = {}
     zone_support_ids: dict[str, list[str]] = {}
     zone_support_revisions: dict[str, dict[str, int]] = {}
     typed_span_ids_by_site: dict[str, list[str]] = {}
     zone_display: dict[str, str] = {}
-    matching_span_rows = [
-        row
-        for row in span_rows
-        if (
-            row[1].target
-            and row[1].target.casefold() == target.casefold()
-            and _normalized_action(row[1].action) == action
-            and _source_kind_supports_claim(row[1].target_kind, target_kind, action)
-            and expected_relationship
-            and _normalized_relationship(row[1].relationship) == expected_relationship
-        )
-    ]
-    authoritative_site = (
-        "bg"
-        if any(site == "bg" and span.zone_mentions for site, span, *_rest in matching_span_rows)
-        else "ffxiclopedia"
-    )
+    matching_span_rows = list(span_rows) if target and target_kind and expected_relationship else []
+    authoritative_site = zone_rows[0][0] if zone_rows else ""
     for site, span, source_span_id, revision in matching_span_rows:
         typed_span_ids_by_site.setdefault(site, []).append(source_span_id)
         for zone_name in span.zone_mentions:
@@ -1378,13 +1386,16 @@ def _claim_resolution(
         if canonical is None:
             continue
         zone, zone_name = canonical
-        eligible_kinds = ACTION_KINDS[action]
         matches = [
             point
             for point in points
             if int(point.get("zone", 0) or 0) == zone
             and _clean(point.get("name", "")).casefold() == target.casefold()
-            and _clean(point.get("kind", "")).casefold() in eligible_kinds
+            and _source_kind_supports_claim(
+                _clean(point.get("kind", "")).casefold(),
+                target_kind,
+                action,
+            )
         ]
         if matches:
             exact_match_seen = True
@@ -1403,7 +1414,31 @@ def _claim_resolution(
         if not immutable:
             continue
         evidence_level = "dual-source" if dual_zone else "single-source+game-data"
-        reason_support_sites = support_sites
+        zone_span_ids = set(zone_support_ids.get(zone_key, ()))
+        candidate_support_rows = tuple(
+            row
+            for row in span_rows
+            if row in field_support_rows or row[2] in zone_span_ids
+        )
+        candidate_support_sites = tuple(
+            dict.fromkeys((*[row[0] for row in candidate_support_rows], *support_sites))
+        )
+        candidate_support_ids = tuple(
+            dict.fromkeys(
+                (*[row[2] for row in candidate_support_rows], *zone_support_ids.get(zone_key, ()))
+            )
+        )
+        candidate_support_revisions = tuple(
+            dict.fromkeys(
+                (
+                    *((row[0], row[3]) for row in candidate_support_rows),
+                    *(
+                        (site, zone_support_revisions[zone_key][site])
+                        for site in support_sites
+                    ),
+                )
+            )
+        )
         group_id = f"{action_id}:zone:{zone}" if action in {"fight", "obtain"} else ""
         zone_candidates = tuple(
             _point_candidate(
@@ -1412,12 +1447,9 @@ def _claim_resolution(
                 point=point,
                 zone_name=zone_name,
                 span_rows=span_rows,
-                support_sites=reason_support_sites,
-                support_span_ids=tuple(zone_support_ids.get(zone_key, ())),
-                support_revisions=tuple(
-                    (site, zone_support_revisions[zone_key][site])
-                    for site in reason_support_sites
-                ),
+                support_sites=candidate_support_sites,
+                support_span_ids=candidate_support_ids,
+                support_revisions=candidate_support_revisions,
                 evidence_level=evidence_level,
                 group_id=group_id,
             )

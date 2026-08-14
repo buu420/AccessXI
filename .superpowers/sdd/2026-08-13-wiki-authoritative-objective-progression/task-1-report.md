@@ -192,3 +192,93 @@ No corpus byte-equality or final generated-artifact hashes are claimed here beca
 Deferred, unstaged paths include all refreshed/generated `ashita/addons/accessxi_reader/modules/mission_quest_*` files, `ashita/addons/accessxi_reader/data/mission-quest-route-manifest.tsv`, generated `data/mission-quest-guides/*` artifacts, `tools/test_wiki_authoritative_objective_corpus.py`, the design/plan documents, all three modified Task 2 Lua test files, and `build-collision-mhaura-repro/`.
 
 Concern: the final corpus/shard slice must run the refresh plus two deterministic builds, verify all 1,844 index mappings and generated shard self-pins, measure the checked-in runtime footprint/cache regression, update affected integrity hashes, and only then stage the generated artifacts.
+
+## Stable-review fix round 1/5
+
+The stable review of `3d97593` identified four generator authority/fail-closed defects. The fix round stayed inside the Python generator, catalogue resolver, focused tests, report, and progress ledger; it did not rebuild or stage the generated corpus and did not touch Task 2 Lua tests.
+
+### Behavioral RED
+
+Command:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest -v `
+  tools.test_objective_guides.ObjectiveActionResolutionTests.test_catalogue_resolution_applies_source_authority_per_matcher_field `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_count_triple_uses_explicit_field_authority `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_instruction_uses_each_authoritative_action_clause `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_payload_fails_closed_on_incomplete_material_pin_graph
+```
+
+Exit code: `1`.
+
+```text
+Ran 4 tests in 0.005s
+FAILED (failures=6)
+
+catalogue: split BG target/relationship plus FFXIclopedia kind/zone resolved unresolved
+count: BG default 1/single/false overrode FFXIclopedia explicit 3/inventory-gain/true
+instruction: every action emitted the enclosing BG SourceStep spoken text
+pin graph: one-sided stale declaration, missing material ledger, and missing ledger pin raised no GenerationError
+```
+
+Each expectation is a hand-derived runtime payload or exact-candidate fact. The tests execute the real reconciliation, action resolver, and progression payload rather than inspecting source strings.
+
+### GREEN implementation
+
+- The count triple is selected atomically. Explicit BG wins, otherwise explicit FFXIclopedia fills an unexplicit BG default, otherwise the normal BG/nonempty fallback applies. All three count fields carry the selected source in `field_sources`.
+- Every positive declared source-span order must resolve. Every material action must have a material ledger row, and that row must contain every exact expected source-span pin; additional reviewed fact pins remain valid.
+- `instruction` now selects the material action span's `supporting_clause` per field authority. Multi-action steps receive distinct clauses and an FFXIclopedia-only action inside a paired step cannot inherit the BG step text.
+- Catalogue target, target kind, relationship, and zone authority are selected independently. Exact game-data identity can therefore survive split source facts and a non-authoritative relationship conflict, while non-authoritative zones remain review evidence instead of being unioned into candidates.
+- The obsolete unused `_reconciled_claim_lua` and `_progression_revision` nested-schema helpers were removed after confirming no callers.
+
+Focused GREEN command: the same four-test command above.
+
+Exit code: `0`.
+
+```text
+Ran 4 tests in 0.002s
+OK
+```
+
+Focused regression command:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest -v `
+  tools.test_objective_guides.ObjectiveActionResolutionTests.test_catalogue_resolution_applies_source_authority_per_matcher_field `
+  tools.test_objective_guides.ObjectiveActionResolutionTests.test_pinned_orcish_pages_resolve_only_reviewed_gate_guards_and_east_west_camps `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_payload_is_flat_authoritative_self_pinned_and_revision_sensitive `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_count_triple_uses_explicit_field_authority `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_instruction_uses_each_authoritative_action_clause `
+  tools.test_objective_guides.GeneratedArtifactTests.test_progression_payload_fails_closed_on_incomplete_material_pin_graph
+```
+
+```text
+Ran 6 tests in 0.078s
+OK
+```
+
+### Fix-round verification
+
+The original 183-test suite now contains four new behavioral tests, so its fresh total is 187:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides
+```
+
+```text
+Ran 187 tests in 2.793s
+OK
+```
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_route_evidence
+```
+
+```text
+Ran 72 tests in 10.275s
+OK
+```
+
+The first complete-suite pass correctly exposed one stale test fixture that bypassed the new ledger contract and one candidate-support regression that omitted an exact reviewed location-fact pin. The fixture now resolves a real ledger, and candidate support retains both per-field source spans and reviewed fact pins. The six-test focused regression command above proves both corrections.
+
+Fix-round commit SHA is reported in the parent handoff because a file cannot contain the SHA of the commit that contains that same file.

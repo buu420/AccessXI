@@ -6244,6 +6244,105 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         )
         self.assertTrue(all(candidate.route_ready is False for candidate in resolution.candidates))
 
+    def test_catalogue_resolution_applies_source_authority_per_matcher_field(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            191,
+            "Split authoritative catalogue facts",
+            "missions.dat",
+            0,
+        )
+        bg_span = self._span(
+            1,
+            "talk",
+            "Alpha",
+            "",
+            (),
+            relationship="talk-to",
+        )
+        ffxi_span = replace(
+            self._span(
+                1,
+                "talk",
+                "",
+                "npc",
+                ("East Ronfaure",),
+                relationship="inspect-target",
+            ),
+            npc_mentions=("Alpha",),
+        )
+        bg = self._page("bg", 19101, native.title, (bg_span,))
+        ffxi = self._page("ffxiclopedia", 19102, native.title, (ffxi_span,))
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        point = self._point(101, "East Ronfaure", "Alpha", "npc", 191001)
+
+        resolution = action_resolver.resolve_objective_actions(
+            native,
+            reconciled,
+            bg,
+            ffxi,
+            {},
+            (point,),
+            {101: "East Ronfaure"},
+        )
+
+        self.assertEqual([row.status for row in resolution.ledger], ["catalogue-candidate"])
+        self.assertEqual(len(resolution.candidates), 1)
+        candidate = resolution.candidates[0]
+        self.assertEqual(
+            (
+                candidate.target_name,
+                candidate.target_kind,
+                candidate.zone,
+                candidate.zone_name,
+                candidate.source_sites,
+            ),
+            ("Alpha", "npc", 101, "East Ronfaure", ("bg", "ffxiclopedia")),
+        )
+        self.assertEqual(len(candidate.source_action_span_ids), 2)
+
+        payload = guide_generator.progression_objective_payload(
+            native,
+            replace(
+                reconciled,
+                action_resolution_ledger=resolution.ledger,
+                objective_destination_candidates=resolution.candidates,
+            ),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            "mission_quest_progression_mission_bastok",
+        )
+        action = payload["progression_actions"][0]
+        self.assertEqual(
+            (
+                action["target"],
+                action["target_kind"],
+                action["relationship"],
+                action["zones"],
+            ),
+            ("Alpha", "npc", "talk-to", ["East Ronfaure"]),
+        )
+        self.assertEqual(
+            {
+                field: action["field_sources"][field]
+                for field in ("target", "target_kind", "relationship", "zones")
+            },
+            {
+                "target": "bg",
+                "target_kind": "ffxiclopedia",
+                "relationship": "bg",
+                "zones": "ffxiclopedia",
+            },
+        )
+        self.assertEqual(
+            (
+                action["catalogue"][0]["target_name"],
+                action["catalogue"][0]["target_kind"],
+                action["catalogue"][0]["zone_name"],
+            ),
+            ("Alpha", "npc", "East Ronfaure"),
+        )
+
     def test_orcish_scouts_keeps_two_reviewed_zone_groups_and_every_camp(self) -> None:
         native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
         bg_span = self._span(
@@ -7292,6 +7391,81 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
 
 
 class GeneratedArtifactTests(unittest.TestCase):
+    @staticmethod
+    def _single_step_progression_page(
+        site: str,
+        revision_id: int,
+        title: str,
+        spans: tuple[SourceActionSpan, ...],
+        spoken_text: str,
+    ) -> ParsedObjective:
+        linked_entities = tuple(
+            dict.fromkeys(
+                value
+                for span in spans
+                for value in (
+                    span.target,
+                    *span.npc_mentions,
+                    *span.object_mentions,
+                    *span.enemy_mentions,
+                    *span.transport_mentions,
+                    *span.item_mentions,
+                    *span.result_items,
+                    *span.zone_mentions,
+                )
+                if value
+            )
+        )
+        return ParsedObjective(
+            site=site,
+            page_id=revision_id,
+            revision_id=revision_id,
+            canonical_title=title,
+            kind="mission",
+            objective_name=title,
+            steps=(
+                SourceStep(
+                    1,
+                    "*",
+                    1,
+                    spoken_text,
+                    spoken_text,
+                    spans[0].action,
+                    linked_entities=linked_entities,
+                    zone_candidates=tuple(
+                        dict.fromkeys(value for span in spans for value in span.zone_mentions)
+                    ),
+                    action_spans=spans,
+                ),
+            ),
+        )
+
+    @staticmethod
+    def _resolved_progression(
+        native: NativeObjective,
+        bg: ParsedObjective | None,
+        ffxiclopedia: ParsedObjective | None,
+        *,
+        overrides: dict | None = None,
+        points: tuple[dict, ...] = (),
+        zone_names: dict[int, str] | None = None,
+    ) -> object:
+        reconciled = reconcile_objectives(native.key, bg, ffxiclopedia)
+        resolution = action_resolver.resolve_objective_actions(
+            native,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            overrides or {},
+            points,
+            zone_names or {},
+        )
+        return replace(
+            reconciled,
+            action_resolution_ledger=resolution.ledger,
+            objective_destination_candidates=resolution.candidates,
+        )
+
     def test_navigation_catalog_loader_uses_exact_tsv_identity_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -9278,7 +9452,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 action_spans=(replace(bg_step.action_spans[0], zone_mentions=()),),
             ),),
         )
-        fallback_reconciled = reconcile_objectives(native.key, fallback_bg, ffxiclopedia)
+        fallback_reconciled = self._resolved_progression(native, fallback_bg, ffxiclopedia)
         fallback_payload = guide_generator.progression_objective_payload(
             native,
             fallback_reconciled,
@@ -9291,15 +9465,17 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             "ffxiclopedia",
         )
 
-        changed_claim = replace(
-            reconciled.steps[0].claims[0],
-            required_count=2,
-            count_mode="inventory-gain",
-            count_explicit=True,
-        )
-        changed_matcher = replace(
-            reconciled,
-            steps=(replace(reconciled.steps[0], claims=(changed_claim,)),),
+        changed_bg = replace(
+            bg,
+            steps=(replace(
+                bg.steps[0],
+                action_spans=(replace(
+                    bg.steps[0].action_spans[0],
+                    required_count=2,
+                    count_mode="inventory-gain",
+                    count_explicit=True,
+                ),),
+            ),),
         )
         changed_catalogue = replace(
             reconciled,
@@ -9309,8 +9485,8 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         )
         matcher_payload = guide_generator.progression_objective_payload(
             native,
-            changed_matcher,
-            {"bg": bg, "ffxiclopedia": ffxiclopedia},
+            reconciled,
+            {"bg": changed_bg, "ffxiclopedia": ffxiclopedia},
             module_name,
         )
         catalogue_payload = guide_generator.progression_objective_payload(
@@ -9331,13 +9507,247 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             reconciled,
             steps=(replace(reconciled.steps[0], claims=(missing_source_claim,)),),
         )
-        with self.assertRaisesRegex(GenerationError, "has no source span"):
+        with self.assertRaisesRegex(GenerationError, "declares missing bg source span"):
             guide_generator.progression_objective_payload(
                 native,
                 missing_source,
                 {"bg": bg, "ffxiclopedia": ffxiclopedia},
                 module_name,
             )
+
+    def test_progression_count_triple_uses_explicit_field_authority(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            192,
+            "Count authority",
+            "missions.dat",
+            0,
+        )
+        base_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=45,
+            supporting_clause="Obtain a Copper Ring from a Goblin.",
+            action="obtain",
+            verb="obtain",
+            relationship="obtain-from",
+            target="Goblin",
+            target_kind="enemy",
+            enemy_mentions=("Goblin",),
+            item_mentions=("Copper Ring",),
+            zone_mentions=("East Ronfaure",),
+            result_items=("Copper Ring",),
+            result_relation="obtain-from",
+            required_count=1,
+            count_mode="single",
+            count_explicit=False,
+        )
+        ffxi_span = replace(
+            base_span,
+            supporting_clause="Obtain 3 Copper Rings from a Goblin.",
+            required_count=3,
+            count_mode="inventory-gain",
+            count_explicit=True,
+        )
+        bg = self._single_step_progression_page(
+            "bg", 19201, native.title, (base_span,), base_span.supporting_clause
+        )
+        ffxi = self._single_step_progression_page(
+            "ffxiclopedia", 19202, native.title, (ffxi_span,), ffxi_span.supporting_clause
+        )
+        module_name = "mission_quest_progression_mission_bastok"
+
+        fallback_payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, bg, ffxi),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            module_name,
+        )
+        fallback_action = fallback_payload["progression_actions"][0]
+        self.assertEqual(
+            {
+                field: (fallback_action[field], fallback_action["field_sources"][field])
+                for field in ("required_count", "count_mode", "count_explicit")
+            },
+            {
+                "required_count": (3, "ffxiclopedia"),
+                "count_mode": ("inventory-gain", "ffxiclopedia"),
+                "count_explicit": (True, "ffxiclopedia"),
+            },
+        )
+
+        explicit_bg_span = replace(base_span, count_explicit=True)
+        explicit_bg = self._single_step_progression_page(
+            "bg",
+            19203,
+            native.title,
+            (explicit_bg_span,),
+            "Obtain 1 Copper Ring from a Goblin.",
+        )
+        primary_payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, explicit_bg, ffxi),
+            {"bg": explicit_bg, "ffxiclopedia": ffxi},
+            module_name,
+        )
+        primary_action = primary_payload["progression_actions"][0]
+        self.assertEqual(
+            {
+                field: (primary_action[field], primary_action["field_sources"][field])
+                for field in ("required_count", "count_mode", "count_explicit")
+            },
+            {
+                "required_count": (1, "bg"),
+                "count_mode": ("single", "bg"),
+                "count_explicit": (True, "bg"),
+            },
+        )
+
+    def test_progression_instruction_uses_each_authoritative_action_clause(self) -> None:
+        native = NativeObjective(
+            "mission",
+            "Bastok",
+            193,
+            "Action clause authority",
+            "missions.dat",
+            0,
+        )
+
+        def span(
+            order: int,
+            action: str,
+            target: str,
+            target_kind: str,
+            clause: str,
+        ) -> SourceActionSpan:
+            mentions: dict[str, tuple[str, ...]] = {}
+            if target_kind == "npc":
+                mentions["npc_mentions"] = (target,)
+            elif target_kind == "object":
+                mentions["object_mentions"] = (target,)
+            elif target_kind == "area":
+                mentions["object_mentions"] = (target,)
+            return SourceActionSpan(
+                source_step_order=1,
+                order=order,
+                text_start=0,
+                text_end=len(clause),
+                supporting_clause=clause,
+                action=action,
+                verb=action,
+                relationship=f"{action}-target",
+                target=target,
+                target_kind=target_kind,
+                **mentions,
+            )
+
+        bg_spans = (
+            span(1, "talk", "Cid", "npc", "Speak to Cid at the Metalworks."),
+            span(2, "examine", "Bronze Lever", "object", "Pull the Bronze Lever beside the gate."),
+        )
+        ffxi_spans = (
+            span(1, "talk", "Cid", "npc", "Talk with Cid inside the Metalworks."),
+            span(2, "examine", "Bronze Lever", "object", "Examine the Bronze Lever near the gate."),
+            span(3, "travel", "East Ronfaure zone line", "area", "Cross the East Ronfaure zone line."),
+        )
+        bg = self._single_step_progression_page(
+            "bg",
+            19301,
+            native.title,
+            bg_spans,
+            "Speak to Cid, then pull the Bronze Lever.",
+        )
+        ffxi = self._single_step_progression_page(
+            "ffxiclopedia",
+            19302,
+            native.title,
+            ffxi_spans,
+            "Talk with Cid, examine the lever, and cross into East Ronfaure.",
+        )
+        payload = guide_generator.progression_objective_payload(
+            native,
+            self._resolved_progression(native, bg, ffxi),
+            {"bg": bg, "ffxiclopedia": ffxi},
+            "mission_quest_progression_mission_bastok",
+        )
+
+        self.assertEqual(
+            [action["instruction"] for action in payload["progression_actions"]],
+            [
+                "Speak to Cid at the Metalworks.",
+                "Pull the Bronze Lever beside the gate.",
+                "Cross the East Ronfaure zone line.",
+            ],
+        )
+        self.assertEqual(
+            [action["field_sources"]["instruction"] for action in payload["progression_actions"]],
+            ["bg", "bg", "ffxiclopedia"],
+        )
+
+    def test_progression_payload_fails_closed_on_incomplete_material_pin_graph(self) -> None:
+        fixture = ObjectiveDestinationTests()
+        native, bg, ffxiclopedia, reconciled, overrides = fixture._fixture("mission")
+        resolution = action_resolver.resolve_objective_actions(
+            native,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            overrides,
+            ({
+                "zone": 101,
+                "name": "Orcish Fodder",
+                "kind": "enemy",
+                "x": 123.0,
+                "z": 45.0,
+                "y": -2.0,
+                "destination_id": fixture.FIXTURE_CAMP_ID,
+                "raw_identity": fixture.FIXTURE_CAMP_RAW_IDENTITY,
+                "raw_spawn_ids": fixture.FIXTURE_CAMP_RAW_SPAWN_IDS,
+                "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
+            },),
+            {101: "East Ronfaure"},
+        )
+        resolved = replace(
+            reconciled,
+            action_resolution_ledger=resolution.ledger,
+            objective_destination_candidates=resolution.candidates,
+        )
+        module_name = "mission_quest_progression_mission_san_doria"
+
+        stale_claim = replace(resolved.steps[0].claims[0], bg_span_order=99)
+        stale_declared_span = replace(
+            resolved,
+            steps=(replace(resolved.steps[0], claims=(stale_claim,)),),
+        )
+        missing_ledger = replace(resolved, action_resolution_ledger=())
+        ledger_row = resolved.action_resolution_ledger[0]
+        missing_expected_pin = replace(
+            resolved,
+            action_resolution_ledger=(replace(
+                ledger_row,
+                source_action_span_ids=tuple(
+                    pin
+                    for pin in ledger_row.source_action_span_ids
+                    if ":ffxiclopedia:" not in pin
+                ),
+            ),),
+        )
+
+        invalid_cases = (
+            ("one-sided-stale-declaration", stale_declared_span, "declares missing bg source span"),
+            ("missing-material-ledger", missing_ledger, "has no material ledger row"),
+            ("missing-ledger-pin", missing_expected_pin, "ledger is missing source span pins"),
+        )
+        for label, invalid, message in invalid_cases:
+            with self.subTest(label=label), self.assertRaisesRegex(GenerationError, message):
+                guide_generator.progression_objective_payload(
+                    native,
+                    invalid,
+                    {"bg": bg, "ffxiclopedia": ffxiclopedia},
+                    module_name,
+                )
 
 
 if __name__ == "__main__":

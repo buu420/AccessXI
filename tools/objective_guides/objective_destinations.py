@@ -354,9 +354,8 @@ def _select_source_claim(
         tuple[ReconciledStep, ReconciledActionClaim, dict[str, tuple[SourceActionSpan, ...]]]
     ] = []
     for step, claim in selected:
-        if claim.comparison == "conflict":
-            continue
         source_spans = _claim_source_spans(step, claim, bg, ffxiclopedia)
+        authoritative_spans = source_spans.get("bg") or source_spans.get("ffxiclopedia") or ()
         if any(
             _span_supports_destination(
                 span,
@@ -370,8 +369,7 @@ def _select_source_claim(
                 map_numbers=map_numbers,
                 grid_coordinates=grid_coordinates,
             )
-            for spans in source_spans.values()
-            for span in spans
+            for span in authoritative_spans
         ):
             matches.append((step, claim, source_spans))
     if len(matches) != 1:
@@ -1034,8 +1032,24 @@ def _claim_resolution(
     instruction = _instruction(step)
     coordinate_support, coordinate_comparison = _coordinate_evidence(span_rows)
     pages = _source_pages(bg, ffxiclopedia)
+    if not claim.material:
+        return (
+            ObjectiveActionLedgerRow(
+                action_id,
+                span_ids,
+                action,
+                "context-only",
+                "non-material-source-action-span",
+                (),
+                "",
+                False,
+            ),
+            (),
+            (),
+            (),
+        )
     role_override = _mapping_row(reviewed_overrides, "role_overrides", action_id)
-    if (claim.comparison == "conflict" and role_override is None) or coordinate_comparison == "conflict":
+    if coordinate_comparison == "conflict" and not any(site == "bg" for site, *_rest in span_rows):
         return (
             ObjectiveActionLedgerRow(
                 action_id, span_ids, action, "conflict", "source-conflict", (), "", True
@@ -1063,19 +1077,12 @@ def _claim_resolution(
 
     instruction = ""
 
-    target_kinds = _unique_values(span.target_kind for _site, span, _span_id, _revision in span_rows)
-    targets = _unique_values(span.target for _site, span, _span_id, _revision in span_rows)
-    if len(targets) > 1 and role_override is None:
-        return (
-            ObjectiveActionLedgerRow(
-                action_id, span_ids, action, "conflict", "source-conflict", (), instruction, True
-            ),
-            (),
-            (),
-            (),
-        )
-    target = targets[0] if targets else ""
-    target_kind = target_kinds[0] if len(target_kinds) == 1 else ""
+    authoritative_rows = [row for row in span_rows if row[0] == "bg"] or [
+        row for row in span_rows if row[0] == "ffxiclopedia"
+    ]
+    authoritative_span = authoritative_rows[0][1] if authoritative_rows else None
+    target = authoritative_span.target if authoritative_span is not None else ""
+    target_kind = authoritative_span.target_kind if authoritative_span is not None else ""
 
     if target_kind == "role" or role_override is not None:
         if role_override is None:
@@ -1241,16 +1248,24 @@ def _claim_resolution(
     zone_support_revisions: dict[str, dict[str, int]] = {}
     typed_span_ids_by_site: dict[str, list[str]] = {}
     zone_display: dict[str, str] = {}
-    for site, span, source_span_id, revision in span_rows:
+    matching_span_rows = [
+        row
+        for row in span_rows
         if (
-            not span.target
-            or span.target.casefold() != target.casefold()
-            or _normalized_action(span.action) != action
-            or not _source_kind_supports_claim(span.target_kind, target_kind, action)
-            or not expected_relationship
-            or _normalized_relationship(span.relationship) != expected_relationship
-        ):
-            continue
+            row[1].target
+            and row[1].target.casefold() == target.casefold()
+            and _normalized_action(row[1].action) == action
+            and _source_kind_supports_claim(row[1].target_kind, target_kind, action)
+            and expected_relationship
+            and _normalized_relationship(row[1].relationship) == expected_relationship
+        )
+    ]
+    authoritative_site = (
+        "bg"
+        if any(site == "bg" and span.zone_mentions for site, span, *_rest in matching_span_rows)
+        else "ffxiclopedia"
+    )
+    for site, span, source_span_id, revision in matching_span_rows:
         typed_span_ids_by_site.setdefault(site, []).append(source_span_id)
         for zone_name in span.zone_mentions:
             key = zone_name.casefold()
@@ -1306,6 +1321,8 @@ def _claim_resolution(
 
     if fact_ids:
         span_ids = tuple((*span_ids, *fact_ids))
+    if any("bg" in sites for sites in zone_support.values()):
+        authoritative_site = "bg"
     if not zone_support:
         return (
             ObjectiveActionLedgerRow(
@@ -1337,11 +1354,9 @@ def _claim_resolution(
     for zone_key in sorted(zone_support):
         support_sites = tuple(zone_support[zone_key])
         dual_zone = len(support_sites) == 2
-        single_page_claim = len(source_sites_present) == 1
         reviewed_zone = zone_key in reviewed_single_zones
-        if not dual_zone and not single_page_claim and not reviewed_zone:
+        if authoritative_site not in support_sites and not reviewed_zone:
             skipped_single_source = True
-            rejected_span_ids = tuple(zone_support_ids.get(zone_key, ()))
             review_items.append(
                 ObjectiveResolutionReviewItem(
                     review_id=_review_item_id(
@@ -1353,7 +1368,7 @@ def _claim_resolution(
                     target_name=target,
                     zone_name=zone_display.get(zone_key, zone_key),
                     source_sites=support_sites,
-                    source_action_span_ids=rejected_span_ids,
+                    source_action_span_ids=tuple(zone_support_ids.get(zone_key, ())),
                     reason="single-source-needs-independent-corroboration",
                     route_ready=False,
                 )
@@ -2192,10 +2207,10 @@ def resolve_objective_actions(
             action = "context"
             material = False
         else:
-            status = "unresolved"
-            reason = "missing-action-target"
-            action = step.action if step.action != "note" else "context"
-            material = True
+            status = "context-only"
+            reason = "no-material-action-span"
+            action = "context"
+            material = False
         ledger.append(
             ObjectiveActionLedgerRow(
                 action_id=action_id,
@@ -2204,7 +2219,7 @@ def resolve_objective_actions(
                 status=status,
                 reason=reason,
                 candidate_ids=(),
-                instruction=_instruction(step) if status == "context-only" else "",
+                instruction=_instruction(step) if context_override is not None else "",
                 material=material,
                 route_ready=False,
             )

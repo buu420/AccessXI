@@ -301,9 +301,14 @@ def _source_pages(
     return tuple(all_pages), discovery
 
 
-def _capture_source_site_config(cache_root: Path) -> dict[str, Any]:
+def _capture_source_site_config(
+    cache_root: Path,
+    *,
+    sites: tuple[str, ...] = tuple(SITE_CONFIG),
+) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
-    for site, config in SITE_CONFIG.items():
+    for site in sites:
+        config = SITE_CONFIG[site]
         api_url = str(config["api_url"])
         client = MediaWikiClient(
             site,
@@ -570,9 +575,18 @@ def run(argv: list[str] | None = None) -> int:
             raise MediaWikiError(
                 "--offline refuses network access and cannot be combined with --refresh."
             )
+        try:
+            current_site_config = json.loads(site_config_path.read_text(encoding="utf-8"))
+            current_entries = dict(current_site_config["sites"])
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise SiteConfigError(
+                "A selected-site refresh requires the current complete source site config."
+            ) from error
+        refreshed_config = _capture_source_site_config(cache_root, sites=selected_sites)
+        current_entries.update(refreshed_config["sites"])
         write_site_config_artifact(
             site_config_path,
-            _capture_source_site_config(cache_root),
+            build_site_config_artifact(current_entries.values()),
         )
     site_policies = load_site_link_policies(site_config_path)
     source_pages, discovery = _source_pages(

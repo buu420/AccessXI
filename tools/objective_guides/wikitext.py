@@ -969,11 +969,12 @@ def _extract_action_spans(
             remainder,
             re.IGNORECASE,
         )
-        required_count = int(count_match.group(1)) if count_match else 1
-        count_explicit = count_match is not None
+        parsed_count = int(count_match.group(1)) if count_match else 0
+        count_explicit = count_match is not None and parsed_count > 0
+        required_count = parsed_count if count_explicit else 1
         count_mode = (
-            "credited-defeat" if action == "fight"
-            else "inventory-gain" if action == "obtain"
+            "credited-defeat" if required_count > 1 and action == "fight"
+            else "inventory-gain" if required_count > 1 and action == "obtain"
             else "single"
         )
         if action not in {"fight", "obtain"}:
@@ -1094,9 +1095,34 @@ def _extract_action_spans(
                 counted_remainder,
                 re.IGNORECASE,
             )
-            target = _trim_target(obtained.group(1)) if obtained else ""
-            target_kind = "item" if target else ""
-            item_mentions = (target,) if target else ()
+            if obtained is not None:
+                target_start = counted_base + obtained.start(1)
+                target_end = counted_base + obtained.end(1)
+                target_links = _unique(
+                    (
+                        *_links_in_match(link_occurrences, counted_base, obtained, 1),
+                        *_links_with_role_in_range(
+                            link_occurrences,
+                            target_start,
+                            target_end,
+                            "item",
+                            "key-item",
+                        ),
+                    )
+                )
+                target, item_mentions = _refine_linked_target(
+                    obtained.group(1),
+                    target_links,
+                    clause_zones,
+                )
+            else:
+                target = ""
+            target_kind = (
+                "key-item" if target and target.casefold() in {value.casefold() for value in clause_key_items}
+                else "item" if target
+                else ""
+            )
+            item_mentions = (target,) if target else item_mentions
         elif action == "travel":
             target = clause_zones[0] if clause_zones else ""
             target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
@@ -1193,6 +1219,11 @@ def _extract_action_spans(
                     key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
                     result_items=(next_span.target,) if next_span.target else (),
                     result_relation="obtain-from",
+                    required_count=(
+                        span.required_count if span.count_explicit else next_span.required_count
+                    ),
+                    count_mode=(span.count_mode if span.count_explicit else next_span.count_mode),
+                    count_explicit=span.count_explicit or next_span.count_explicit,
                 )
             )
             index += 2
@@ -1218,6 +1249,11 @@ def _extract_action_spans(
                     key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
                     result_items=(span.target,) if span.target else (),
                     result_relation="obtain-from",
+                    required_count=(
+                        next_span.required_count if next_span.count_explicit else span.required_count
+                    ),
+                    count_mode=(next_span.count_mode if next_span.count_explicit else span.count_mode),
+                    count_explicit=next_span.count_explicit or span.count_explicit,
                 )
             )
             index += 2

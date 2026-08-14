@@ -24,6 +24,7 @@ from tools.objective_guides.mediawiki import (
 )
 from tools.objective_guides.wikitext import parse_objective_page
 from tools.objective_guides import wikitext as wikitext_parser
+from tools.objective_guides import generate_lua as guide_generator
 from tools.objective_guides.matching import match_objective_pages, normalize_title
 from tools.objective_guides.reconcile import ReviewedObjectiveDestination, reconcile_objectives
 from tools.objective_guides.objective_destinations import (
@@ -1576,6 +1577,103 @@ class WikitextParserTests(unittest.TestCase):
             ("Copper Rings", 3, "inventory-gain"))
         self.assertEqual((trade.item_mentions, trade.required_count, trade.count_mode),
             (("Copper Rings",), 1, "single"))
+
+    def test_uncounted_fight_and_obtain_actions_use_single_count_semantics(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
+                "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        fight = first("Defeat [[Goblin Digger]].")
+        obtain = first("Obtain a [[Copper Ring]].")
+
+        self.assertEqual(
+            (fight.required_count, fight.count_mode, fight.count_explicit),
+            (1, "single", False),
+        )
+        self.assertEqual(
+            (obtain.required_count, obtain.count_mode, obtain.count_explicit),
+            (1, "single", False),
+        )
+
+    def test_counted_obtain_uses_canonical_link_target_and_rejects_zero_count(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
+                "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        counted = first("Obtain 3 [[Copper Ring]]s.")
+        item_template = first("Obtain 3 {{Item|Copper Ring}}.")
+        item_icon_template = first("Obtain 3 {{ItemIcon|Copper Ring|22}}.")
+        zero = first("Obtain 0 [[Copper Ring]]s.")
+
+        self.assertEqual(
+            (counted.target, counted.item_mentions, counted.required_count, counted.count_mode),
+            ("Copper Ring", ("Copper Ring",), 3, "inventory-gain"),
+        )
+        self.assertEqual(
+            (zero.target, zero.item_mentions, zero.required_count, zero.count_mode, zero.count_explicit),
+            ("Copper Ring", ("Copper Ring",), 1, "single", False),
+        )
+        for span in (item_template, item_icon_template):
+            self.assertEqual(
+                (span.target, span.item_mentions, span.required_count, span.count_mode),
+                ("Copper Ring", ("Copper Ring",), 3, "inventory-gain"),
+            )
+
+    def test_explicit_one_fight_and_obtain_actions_still_use_single_count_mode(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
+                "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        fight = first("Defeat 1 [[Goblin Digger]].")
+        obtain = first("Obtain 1 [[Copper Ring]].")
+
+        self.assertEqual((fight.required_count, fight.count_mode), (1, "single"))
+        self.assertEqual((obtain.required_count, obtain.count_mode), (1, "single"))
+
+    def test_composite_fight_obtain_uses_explicit_completion_count_unless_fight_is_counted(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
+                "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
+            spans = parse_objective_page(page).steps[0].action_spans
+            self.assertEqual(len(spans), 1, text)
+            return spans[0]
+
+        completion_counted = (
+            first("Defeat [[Goblin Digger]] to obtain 3 [[Copper Ring]]s."),
+            first("Obtain 3 [[Copper Ring]]s by defeating [[Goblin Digger]]."),
+        )
+        fight_counted = (
+            first("Defeat 5 [[Goblin Digger]]s to obtain 3 [[Copper Ring]]s."),
+            first("Obtain 3 [[Copper Ring]]s by defeating 5 [[Goblin Digger]]s."),
+        )
+
+        for span in completion_counted:
+            self.assertEqual(
+                (
+                    span.action,
+                    span.target,
+                    span.result_items,
+                    span.required_count,
+                    span.count_mode,
+                    span.count_explicit,
+                ),
+                ("fight", "Goblin Digger", ("Copper Ring",), 3, "inventory-gain", True),
+            )
+        for span in fight_counted:
+            self.assertEqual(
+                (
+                    span.action,
+                    span.target,
+                    span.result_items,
+                    span.required_count,
+                    span.count_mode,
+                    span.count_explicit,
+                ),
+                ("fight", "Goblin Digger", ("Copper Ring",), 5, "credited-defeat", True),
+            )
 
     def test_typed_evidence_is_local_to_each_action_clause(self) -> None:
         page = PageRevision(
@@ -3897,10 +3995,11 @@ class ObjectiveDestinationTests(unittest.TestCase):
             review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
 
         self.assertNotIn("objective_destinations = {", reconcile)
-        self.assertIn("objective_destination_candidates = {", reconcile)
+        self.assertIn("progression_actions = {", reconcile)
+        self.assertIn("catalogue = {", reconcile)
         self.assertNotIn("mission_destinations = {", reconcile)
-        self.assertIn('["bg"] = 4001', reconcile)
-        self.assertIn('["ffxiclopedia"] = 4002', reconcile)
+        self.assertIn("bg = 4001", reconcile)
+        self.assertIn("ffxiclopedia = 4002", reconcile)
         self.assertIn(f'{native.key}:step-001:claim-01', reconcile)
         self.assertEqual(review["objective_destinations"][0]["native_key"], native.key)
         self.assertEqual(
@@ -7145,8 +7244,10 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             "single-source-needs-independent-corroboration",
         )
         self.assertFalse(review_items[0]["route_ready"])
-        self.assertIn("action_resolution_ledger = {", lua)
-        self.assertIn("objective_destination_candidates = {", lua)
+        self.assertIn("progression_actions = {", lua)
+        self.assertIn("catalogue = {", lua)
+        self.assertNotIn("action_resolution_ledger = {", lua)
+        self.assertNotIn("objective_destination_candidates = {", lua)
         self.assertNotIn("objective_resolution_review_items = {", lua)
         self.assertNotIn('status = "routable"', lua)
         self.assertNotIn("route_ready = true", lua)
@@ -7756,7 +7857,8 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
 
         self.assertNotIn("objective_destinations = {", reconcile)
         self.assertNotIn("mission_destinations = {", reconcile)
-        self.assertIn("objective_destination_candidates = {", reconcile)
+        self.assertIn("progression_actions = {", reconcile)
+        self.assertIn("catalogue = {", reconcile)
         self.assertNotIn("route_evidence", reconcile)
         self.assertEqual(review["objective_destinations"], [])
         candidates = [
@@ -9029,14 +9131,213 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             ]
 
         self.assertIn('progression_module = "mission_quest_progression_mission_bastok"', index)
+        self.assertIn("progression_schema_version = 1", index)
         self.assertIn('bg_instruction = "', guide)
         self.assertNotIn("typed_claims =", guide)
         self.assertNotIn("action_resolution_ledger =", guide)
-        self.assertIn("claims =", progression)
-        self.assertIn("action_resolution_ledger =", progression)
-        self.assertIn("objective_destination_candidates =", progression)
+        self.assertIn("schema_version = 1", progression)
+        self.assertIn('module_name = "mission_quest_progression_mission_bastok"', progression)
+        self.assertIn('primary = "bg"', progression)
+        self.assertIn('fallback = "ffxiclopedia"', progression)
+        self.assertIn('native_key = "mission:Bastok:2"', progression)
+        self.assertIn("progression_revision =", progression)
+        self.assertIn("progression_actions =", progression)
+        self.assertIn("step_id =", progression)
+        self.assertIn("action_id =", progression)
+        self.assertIn("target_key =", progression)
+        self.assertIn("required_count = 1", progression)
+        self.assertIn('count_mode = "single"', progression)
+        self.assertIn("field_sources =", progression)
+        self.assertIn("source_revisions =", progression)
+        self.assertIn("catalogue =", progression)
+        self.assertNotIn("claims =", progression)
+        self.assertNotIn("action_resolution_ledger =", progression)
+        self.assertNotIn("objective_destination_candidates =", progression)
         self.assertTrue(source_modules)
         self.assertTrue(all("action_spans =" not in text for text in source_modules))
+
+    def test_progression_payload_is_flat_authoritative_self_pinned_and_revision_sensitive(self) -> None:
+        fixture = ObjectiveDestinationTests()
+        native, bg, ffxiclopedia, reconciled, overrides = fixture._fixture("mission")
+        resolution = action_resolver.resolve_objective_actions(
+            native,
+            reconciled,
+            bg,
+            ffxiclopedia,
+            overrides,
+            ({
+                "zone": 101,
+                "name": "Orcish Fodder",
+                "kind": "enemy",
+                "x": 123.0,
+                "z": 45.0,
+                "y": -2.0,
+                "destination_id": fixture.FIXTURE_CAMP_ID,
+                "raw_identity": fixture.FIXTURE_CAMP_RAW_IDENTITY,
+                "raw_spawn_ids": fixture.FIXTURE_CAMP_RAW_SPAWN_IDS,
+                "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
+            },),
+            {101: "East Ronfaure"},
+        )
+        reconciled = replace(
+            reconciled,
+            action_resolution_ledger=resolution.ledger,
+            objective_destination_candidates=resolution.candidates,
+        )
+        module_name = "mission_quest_progression_mission_san_doria"
+        payload = guide_generator.progression_objective_payload(
+            native,
+            reconciled,
+            {"bg": bg, "ffxiclopedia": ffxiclopedia},
+            module_name,
+        )
+
+        self.assertEqual(payload["native_key"], "mission:San d'Oria:1")
+        self.assertEqual(payload["progression_schema_version"], 1)
+        self.assertEqual(payload["progression_module"], module_name)
+        self.assertEqual(payload["source_authority"], {"primary": "bg", "fallback": "ffxiclopedia"})
+        self.assertRegex(payload["progression_revision"], r"^[0-9a-f]{64}$")
+        self.assertEqual(len(payload["progression_actions"]), 1)
+        action = payload["progression_actions"][0]
+        self.assertEqual(
+            {
+                "step_id": action["step_id"],
+                "action_id": action["action_id"],
+                "order": action["order"],
+                "step_order": action["step_order"],
+                "action_order": action["action_order"],
+                "action": action["action"],
+                "relationship": action["relationship"],
+                "target": action["target"],
+                "target_kind": action["target_kind"],
+                "target_key": action["target_key"],
+                "npcs": action["npcs"],
+                "zones": action["zones"],
+                "required_count": action["required_count"],
+                "count_mode": action["count_mode"],
+                "count_explicit": action["count_explicit"],
+                "material": action["material"],
+                "source_authority": action["source_authority"],
+                "result_items": action["result_items"],
+                "result_relation": action["result_relation"],
+                "instruction": action["instruction"],
+            },
+            {
+                "step_id": "mission:San d'Oria:1:step-001",
+                "action_id": "mission:San d'Oria:1:step-001:claim-01",
+                "order": 1,
+                "step_order": 1,
+                "action_order": 1,
+                "action": "fight",
+                "relationship": "defeat-to-obtain",
+                "target": "Orcish Fodder",
+                "target_kind": "enemy",
+                "target_key": "orcishfodder",
+                "npcs": [],
+                "zones": ["East Ronfaure"],
+                "required_count": 1,
+                "count_mode": "single",
+                "count_explicit": False,
+                "material": True,
+                "source_authority": "bg",
+                "result_items": ["Orcish Axe"],
+                "result_relation": "obtain-from",
+                "instruction": "Defeat Orcish Fodder in East Ronfaure to obtain an Orcish Axe.",
+            },
+        )
+        self.assertEqual(action["field_sources"]["target"], "bg")
+        self.assertEqual(action["field_sources"]["zones"], "bg")
+        self.assertEqual(action["source_revisions"], {"bg": 4001, "ffxiclopedia": 4002})
+        self.assertEqual(
+            action["catalogue"],
+            [{
+                "destination_id": fixture.FIXTURE_CAMP_ID,
+                "zone_id": 101,
+                "zone_name": "East Ronfaure",
+                "target_name": "Orcish Fodder",
+                "target_kind": "enemy",
+                "target_key": "orcishfodder",
+                "target_point": [123.0, 45.0, -2.0],
+                "raw_identity": fixture.FIXTURE_CAMP_RAW_IDENTITY,
+                "raw_spawn_ids": list(fixture.FIXTURE_CAMP_RAW_SPAWN_IDS),
+                "cluster_policy_version": nav_destination_generator.ENEMY_CLUSTER_POLICY_VERSION,
+                "transport_id": "",
+                "battlefield_id": "",
+                "metadata_class": "",
+                "group_id": "mission:San d'Oria:1:step-001:claim-01:zone:101",
+                "arrival_instruction": "Defeat Orcish Fodder in East Ronfaure to obtain Orcish Axe.",
+            }],
+        )
+
+        bg_step = bg.steps[0]
+        fallback_bg = replace(
+            bg,
+            steps=(replace(
+                bg_step,
+                zone_candidates=(),
+                action_spans=(replace(bg_step.action_spans[0], zone_mentions=()),),
+            ),),
+        )
+        fallback_reconciled = reconcile_objectives(native.key, fallback_bg, ffxiclopedia)
+        fallback_payload = guide_generator.progression_objective_payload(
+            native,
+            fallback_reconciled,
+            {"bg": fallback_bg, "ffxiclopedia": ffxiclopedia},
+            module_name,
+        )
+        self.assertEqual(fallback_payload["progression_actions"][0]["zones"], ["East Ronfaure"])
+        self.assertEqual(
+            fallback_payload["progression_actions"][0]["field_sources"]["zones"],
+            "ffxiclopedia",
+        )
+
+        changed_claim = replace(
+            reconciled.steps[0].claims[0],
+            required_count=2,
+            count_mode="inventory-gain",
+            count_explicit=True,
+        )
+        changed_matcher = replace(
+            reconciled,
+            steps=(replace(reconciled.steps[0], claims=(changed_claim,)),),
+        )
+        changed_catalogue = replace(
+            reconciled,
+            objective_destination_candidates=(
+                replace(reconciled.objective_destination_candidates[0], zone=173),
+            ),
+        )
+        matcher_payload = guide_generator.progression_objective_payload(
+            native,
+            changed_matcher,
+            {"bg": bg, "ffxiclopedia": ffxiclopedia},
+            module_name,
+        )
+        catalogue_payload = guide_generator.progression_objective_payload(
+            native,
+            changed_catalogue,
+            {"bg": bg, "ffxiclopedia": ffxiclopedia},
+            module_name,
+        )
+        self.assertNotEqual(payload["progression_revision"], matcher_payload["progression_revision"])
+        self.assertNotEqual(payload["progression_revision"], catalogue_payload["progression_revision"])
+
+        missing_source_claim = replace(
+            reconciled.steps[0].claims[0],
+            bg_span_order=99,
+            ffxiclopedia_span_order=99,
+        )
+        missing_source = replace(
+            reconciled,
+            steps=(replace(reconciled.steps[0], claims=(missing_source_claim,)),),
+        )
+        with self.assertRaisesRegex(GenerationError, "has no source span"):
+            guide_generator.progression_objective_payload(
+                native,
+                missing_source,
+                {"bg": bg, "ffxiclopedia": ffxiclopedia},
+                module_name,
+            )
 
 
 if __name__ == "__main__":

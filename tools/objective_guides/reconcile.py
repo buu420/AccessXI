@@ -175,6 +175,10 @@ class ReconciledActionClaim:
     relationship: str
     target: str
     target_kind: str
+    result_relation: str
+    required_count: int
+    count_mode: str
+    count_explicit: bool
     comparison: str
     alignment_score: int
     alignment_reason: str
@@ -182,6 +186,7 @@ class ReconciledActionClaim:
     bg_span_order: int
     ffxiclopedia_span_order: int
     candidates: tuple[ReconciledCandidate, ...]
+    material: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -197,6 +202,7 @@ class ReconciledStep:
     action: str
     entities: tuple[str, ...]
     items: tuple[str, ...]
+    key_items: tuple[str, ...]
     zones: tuple[str, ...]
     grid_coordinates: tuple[str, ...]
     claims: tuple[ReconciledActionClaim, ...] = ()
@@ -550,27 +556,18 @@ def _reconciled_claims(
             unpaired_reason = ""
         primary = bg_span or ffxi_span
         assert primary is not None
-        target_candidate = next(
-            (candidate.value for candidate in candidates if candidate.field == "target" and candidate.comparison == "corroborated"),
-            "",
-        )
-        kind = primary.target_kind
-        if bg_span is not None and ffxi_span is not None and bg_span.target_kind != ffxi_span.target_kind:
-            kind = ""
         claims.append(
             ReconciledActionClaim(
                 stable_claim_id=f"{stable_step_id}:claim-{order:02d}",
                 order=order,
                 action=primary.action,
-                relationship=(
-                    bg_span.relationship
-                    if bg_span is not None
-                    and ffxi_span is not None
-                    and bg_span.relationship == ffxi_span.relationship
-                    else primary.relationship
-                ),
-                target=target_candidate,
-                target_kind=kind,
+                relationship=primary.relationship,
+                target=primary.target,
+                target_kind=primary.target_kind,
+                result_relation=primary.result_relation,
+                required_count=primary.required_count,
+                count_mode=primary.count_mode,
+                count_explicit=primary.count_explicit,
                 comparison=comparison,
                 alignment_score=score,
                 alignment_reason=alignment_reason,
@@ -578,6 +575,7 @@ def _reconciled_claims(
                 bg_span_order=bg_span.order if bg_span is not None else 0,
                 ffxiclopedia_span_order=ffxi_span.order if ffxi_span is not None else 0,
                 candidates=candidates,
+                material=(bg_span.material if bg_span is not None else ffxi_span.material),
             )
         )
     return tuple(claims)
@@ -632,6 +630,12 @@ def reconcile_objectives(
                 ),
             ]
         )
+        key_items = _unique(
+            [
+                *(bg_step.key_items if bg_step is not None else ()),
+                *(ffxi_step.key_items if ffxi_step is not None else ()),
+            ]
+        )
         action = bg_step.action if bg_step is not None else ffxi_step.action if ffxi_step is not None else "note"
         unpaired_reason = ""
         if bg_step is None:
@@ -651,6 +655,7 @@ def reconcile_objectives(
                 action=action,
                 entities=entities,
                 items=items,
+                key_items=key_items,
                 zones=zones,
                 grid_coordinates=coordinates,
                 claims=claims,

@@ -275,12 +275,21 @@ local copper_claimed = {
     0x0021, 0x000E, 0x002D, 0x000E, 0x0021, 0x000E, 0x002E, 0x000E,
     ' VOUCHER', 0xFEFF, ' X', 0x0017, 0x001A, ' ', 0x0011, 0x0010, 0x000E,
 }
+local dial_sundries = {
+    0x0024, 'IAL ', 0x0015, ' ', 0x0008, 0x0033, 'UNDRIES ', 0x0012,
+    0x0009, 0x001A, ' ', 0x0011, 0x0010, ' ', 0x0034, 'ALLY', 0x000E,
+}
+assert(#captured_words(dial_sundries) == 30)
+assert(decode_captured(dial_sundries, { 'STALE' }, 6) == 'DIAL 5 (SUNDRIES 2): 10 TALLY.')
+assert(accessxi.native_query_phrase_from_ptr(base, '') == 'Dial 5 (sundries 2): 10 Tally.')
+
 local cirdas_visage = {
     0xFEFE, 0x0023, 'IRDAS VISAGE ', 0x0029, 0x0036,
     0xFEFF, 0x000E, ' ', 0x0008, 0x0011, 0x0009,
 }
 assert(#captured_words(cirdas_visage) == 23)
 assert(decode_captured(cirdas_visage, { 'STALE' }, 10) == 'CIRDAS VISAGE IV. (1)')
+assert(accessxi.native_query_phrase_from_ptr(base, '') == 'Cirdas Visage IV. (1)')
 assert(decode_captured({ 0x0029, ' FORGOT WHY I', 0x0007, 'M HERE', 0x000E }) == "I FORGOT WHY I'M HERE.")
 assert(decode_captured({ 'HOW DO ', 0x0029, ' PARTICIPATE', 0x001F }) == 'HOW DO I PARTICIPATE?')
 assert(decode_captured({ 0x0029 }) == 'I')
@@ -320,7 +329,8 @@ assert(decode_captured({ 'HOME POINT ', 0x0003, 0x0013, 0x000E }) == 'HOME POINT
 assert(decode_captured({ 'I', 0x0007, 'M' }) == "I'M")
 assert(decode_captured({ 'I', 0x0007, 'D' }) == "I'D")
 assert(decode_captured({ 'I', 0x0007, 'VE' }) == "I'VE")
-assert(decode_captured({ 'TU', 0x0007, 'LIA' }) == "TU'LIA")
+assert(decode_captured({ 'TU', 0x0007, 'LIA', 0x000E }) == "TU'LIA.")
+assert(accessxi.native_query_phrase_from_ptr(base, '') == "Tu'Lia.")
 assert(decode_captured({
     0xFEFE, 'SCROLL OF INSTANT WARP', 0xFEFF, 0x000E, ' ', 0x0008, 0x0011, 0x0010, 0x0009,
 }) == 'SCROLL OF INSTANT WARP. (10)')

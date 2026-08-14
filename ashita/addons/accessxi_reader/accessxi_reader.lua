@@ -10141,8 +10141,9 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
 
     local parts = T{};
     for word in visible:gmatch('%S+') do
-        if (word:match('^%d+$') == nil and word ~= '.' and word ~= '/') then
-            if (word:upper() == word and #word > 1) then
+        if (word ~= '.' and word ~= '/') then
+            local roman = word:match('^[IVXLCDM]+[%p]?$') ~= nil;
+            if (not roman and word:upper() == word and #word > 1) then
                 word = word:sub(1, 1) .. word:sub(2):lower();
             end
             parts:append(word);
@@ -10158,6 +10159,7 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     phrase = phrase:gsub('^Claimed%. Copper A%.m%.a%.n%. Voucher X7: 10%.$',
         'Claimed. Copper A.M.A.N. voucher X7: 10.');
     phrase = phrase:gsub('^Claimed%. Themis Orb: 40%.$', 'Claimed. Themis orb: 40.');
+    phrase = phrase:gsub("^Tu'lia%.$", "Tu'Lia.");
     phrase = phrase:gsub('^Never Mind%.$', 'Never mind.');
     phrase = phrase:gsub('^On Second Thought, None%.$', 'On second thought, none.');
     phrase = phrase:gsub('^N Second Thought None$', 'On second thought, none');

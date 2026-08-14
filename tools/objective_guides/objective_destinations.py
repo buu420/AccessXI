@@ -263,10 +263,11 @@ def _claim_source_spans(
     return result
 
 
-def _span_supports_destination(
-    span: SourceActionSpan,
+def _source_spans_support_destination(
+    source_spans: Mapping[str, tuple[SourceActionSpan, ...]],
     *,
     action: str,
+    relationship: str,
     target_name: str,
     target_kind: str,
     zone_name: str,
@@ -276,12 +277,24 @@ def _span_supports_destination(
     map_numbers: tuple[str, ...],
     grid_coordinates: tuple[str, ...],
 ) -> bool:
-    if not _claims_action(span, action):
+    span_rows = tuple(
+        (site, span, "", 0)
+        for site in ("bg", "ffxiclopedia")
+        for span in source_spans.get(site, ())
+    )
+
+    def authoritative(field_value: Any) -> tuple[SourceActionSpan, ...]:
+        return tuple(row[1] for row in _authoritative_span_rows(span_rows, field_value))
+
+    if not any(_claims_action(span, action) for span in authoritative(lambda span: span.action)):
         return False
     compatible_kinds = {target_kind}
     if target_kind == "area":
         compatible_kinds.add("object")
-    if span.target_kind not in compatible_kinds:
+    if not any(
+        span.target_kind in compatible_kinds
+        for span in authoritative(lambda span: span.target_kind)
+    ):
         return False
     kind_field = {
         "npc": "npc_mentions",
@@ -291,29 +304,79 @@ def _span_supports_destination(
         "transport": "transport_mentions",
         "question-mark": "object_mentions",
     }.get(target_kind, "")
-    typed_mentions = tuple(getattr(span, kind_field)) if kind_field else ()
-    if not span.target and len({value.casefold() for value in typed_mentions}) > 1:
-        return False
-    targets = {span.target.casefold()} if span.target else set()
-    if kind_field:
-        targets.update(value.casefold() for value in typed_mentions)
+    target_spans = authoritative(
+        lambda span: tuple(
+            value
+            for value in (
+                span.target,
+                *(tuple(getattr(span, kind_field)) if kind_field else ()),
+            )
+            if value
+        )
+    )
+    for span in target_spans:
+        typed_targets = tuple(getattr(span, kind_field)) if kind_field else ()
+        if not span.target and len({value.casefold() for value in typed_targets}) > 1:
+            return False
+    targets = {
+        value.casefold()
+        for span in target_spans
+        for value in (
+            span.target,
+            *(tuple(getattr(span, kind_field)) if kind_field else ()),
+        )
+        if value
+    }
     if target_name.casefold() not in targets:
         return False
-    if zone_name.casefold() not in {value.casefold() for value in span.zone_mentions}:
+    zones = {
+        value.casefold()
+        for span in authoritative(lambda span: span.zone_mentions)
+        for value in span.zone_mentions
+    }
+    if zone_name.casefold() not in zones:
         return False
+    if relationship:
+        relationships = {
+            _normalized_relationship(span.relationship)
+            for span in authoritative(lambda span: span.relationship)
+            if _normalized_relationship(span.relationship)
+        }
+        if relationships and _normalized_relationship(relationship) not in relationships:
+            return False
     item_claims = {
         value.casefold()
+        for span in authoritative(
+            lambda span: (*span.item_mentions, *span.key_item_mentions, *span.result_items)
+        )
         for value in (*span.item_mentions, *span.key_item_mentions, *span.result_items)
     }
-    enemy_claims = {value.casefold() for value in span.enemy_mentions}
+    enemy_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.enemy_mentions)
+        for value in span.enemy_mentions
+    }
     if any(value.casefold() not in item_claims for value in items):
         return False
     if any(value.casefold() not in enemy_claims for value in enemies):
         return False
-    if result_relation and span.result_relation.casefold() != result_relation.casefold():
+    result_relations = {
+        span.result_relation.casefold()
+        for span in authoritative(lambda span: span.result_relation)
+        if span.result_relation
+    }
+    if result_relation and result_relation.casefold() not in result_relations:
         return False
-    map_claims = {value.casefold() for value in span.map_numbers}
-    grid_claims = {value.casefold() for value in span.grid_coordinates}
+    map_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.map_numbers)
+        for value in span.map_numbers
+    }
+    grid_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.grid_coordinates)
+        for value in span.grid_coordinates
+    }
     if any(value.casefold() not in map_claims for value in map_numbers):
         return False
     if any(value.casefold() not in grid_claims for value in grid_coordinates):
@@ -355,21 +418,18 @@ def _select_source_claim(
     ] = []
     for step, claim in selected:
         source_spans = _claim_source_spans(step, claim, bg, ffxiclopedia)
-        authoritative_spans = source_spans.get("bg") or source_spans.get("ffxiclopedia") or ()
-        if any(
-            _span_supports_destination(
-                span,
-                action=action,
-                target_name=target_name,
-                target_kind=target_kind,
-                zone_name=zone_name,
-                items=items,
-                enemies=enemies,
-                result_relation=result_relation,
-                map_numbers=map_numbers,
-                grid_coordinates=grid_coordinates,
-            )
-            for span in authoritative_spans
+        if _source_spans_support_destination(
+            source_spans,
+            action=action,
+            relationship=claim.relationship,
+            target_name=target_name,
+            target_kind=target_kind,
+            zone_name=zone_name,
+            items=items,
+            enemies=enemies,
+            result_relation=result_relation,
+            map_numbers=map_numbers,
+            grid_coordinates=grid_coordinates,
         ):
             matches.append((step, claim, source_spans))
     if len(matches) != 1:

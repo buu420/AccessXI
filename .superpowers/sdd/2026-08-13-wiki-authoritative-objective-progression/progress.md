@@ -92,3 +92,12 @@ FFXIclopedia-fallback authority. The two obsolete nested-schema helpers were
 removed. Fresh verification passes 187 objective-guide tests and 72 route-
 evidence tests; generated corpus artifacts and Task 2 Lua files remain untouched
 and unstaged. The scoped commit is pending the final explicit-path staging audit.
+
+Task 1 stable-review fix round 2/5 completed locally under strict RED/GREEN.
+Reviewed destination claim validation now applies BG-primary,
+FFXIclopedia-fallback authority independently to each action-span field and
+retains both source spans/revisions as provenance. Canonical multi-target spans
+still fail closed. Fresh verification passes 188 objective-guide tests and 72
+route-evidence tests; generated corpus artifacts and Task 2 Lua files remain
+untouched and unstaged. The scoped commit is pending the explicit-path staging
+audit.

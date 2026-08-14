@@ -4148,6 +4148,156 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 native, reconciled, bg, ffxi, overrides, points, {101: "East Ronfaure"}
             )
 
+    def test_reviewed_destination_uses_field_authority_across_paired_source_spans(self) -> None:
+        native = NativeObjective(
+            "quest",
+            "other_areas",
+            190,
+            "Split reviewed destination facts",
+            "quests.dat",
+            0,
+        )
+        bg_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=24,
+            supporting_clause="Talk to Alpha as directed.",
+            action="talk",
+            verb="talk",
+            relationship="talk-to",
+            target="Alpha",
+            target_kind="",
+        )
+        ffxi_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=35,
+            supporting_clause="Find the NPC in East Ronfaure.",
+            action="talk",
+            verb="talk",
+            relationship="",
+            target="",
+            target_kind="npc",
+            npc_mentions=("Alpha",),
+            zone_mentions=("East Ronfaure",),
+        )
+
+        def page(site: str, revision_id: int, span: SourceActionSpan) -> ParsedObjective:
+            return ParsedObjective(
+                site=site,
+                page_id=revision_id,
+                revision_id=revision_id,
+                canonical_title=native.title,
+                kind="quest",
+                objective_name=native.title,
+                steps=(
+                    SourceStep(
+                        1,
+                        "*",
+                        1,
+                        span.supporting_clause,
+                        span.supporting_clause,
+                        "talk",
+                        linked_entities=tuple(
+                            value
+                            for value in (span.target, *span.npc_mentions, *span.zone_mentions)
+                            if value
+                        ),
+                        zone_candidates=span.zone_mentions,
+                        action_spans=(span,),
+                    ),
+                ),
+            )
+
+        bg = page("bg", 19001, bg_span)
+        ffxi = page("ffxiclopedia", 19002, ffxi_span)
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        step_id = f"{native.key}:step-001"
+        claim_id = f"{step_id}:claim-01"
+        point = self._catalogue_point(101, "Alpha", "npc", 101190)
+        override = {
+            "id": "alpha-east-ronfaure",
+            "source_revisions": {"bg": 19001, "ffxiclopedia": 19002},
+            "source_step_ids": [step_id],
+            "source_claim_ids": [claim_id],
+            "action": "talk",
+            "items": [],
+            "enemies": [],
+            "destination_id": point["destination_id"],
+            "zone": 101,
+            "zone_name": "East Ronfaure",
+            "label": "Alpha in East Ronfaure",
+            "reference": {"name": "Alpha", "kind": "npc"},
+            "arrival_instruction": "Talk to Alpha.",
+        }
+
+        try:
+            rows = resolve_reviewed_objective_destinations(
+                native,
+                reconciled,
+                bg,
+                ffxi,
+                {"objective_destination_overrides": {native.key: [override]}},
+                (point,),
+                {101: "East Ronfaure"},
+            )
+        except ObjectiveDestinationError as error:
+            self.fail(f"Split-field reviewed destination was rejected: {error}")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            (
+                rows[0].target_name,
+                rows[0].target_kind,
+                rows[0].zone_name,
+                rows[0].source_claim_ids,
+                rows[0].source_revisions,
+            ),
+            (
+                "Alpha",
+                "npc",
+                "East Ronfaure",
+                (claim_id,),
+                (("bg", 19001), ("ffxiclopedia", 19002)),
+            ),
+        )
+
+        selected_claim_ids, selected_spans = action_resolver._select_source_claim(
+            (step_id,),
+            (claim_id,),
+            reconciled,
+            bg,
+            ffxi,
+            action="talk",
+            target_name="Alpha",
+            target_kind="npc",
+            zone_name="East Ronfaure",
+            items=(),
+            enemies=(),
+            result_relation="",
+            map_numbers=(),
+            grid_coordinates=(),
+        )
+        self.assertEqual(selected_claim_ids, (claim_id,))
+        self.assertEqual(
+            {
+                "bg": (
+                    selected_spans["bg"][0].target,
+                    selected_spans["bg"][0].relationship,
+                ),
+                "ffxiclopedia": (
+                    selected_spans["ffxiclopedia"][0].target_kind,
+                    selected_spans["ffxiclopedia"][0].zone_mentions,
+                ),
+            },
+            {
+                "bg": ("Alpha", "talk-to"),
+                "ffxiclopedia": ("npc", ("East Ronfaure",)),
+            },
+        )
+
     def test_destination_items_and_enemies_must_belong_to_the_selected_claim(self) -> None:
         native = NativeObjective("quest", "other_areas", 84, "Claim Local Destination", "quests.dat", 0)
 

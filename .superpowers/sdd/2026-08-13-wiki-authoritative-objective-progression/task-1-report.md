@@ -282,3 +282,104 @@ OK
 The first complete-suite pass correctly exposed one stale test fixture that bypassed the new ledger contract and one candidate-support regression that omitted an exact reviewed location-fact pin. The fixture now resolves a real ledger, and candidate support retains both per-field source spans and reviewed fact pins. The six-test focused regression command above proves both corrections.
 
 Fix-round commit SHA is reported in the parent handoff because a file cannot contain the SHA of the commit that contains that same file.
+
+## Stable-review fix round 2/5
+
+The remaining reviewed-destination defect selected one whole BG span and required
+that span alone to contain every destination field. A reviewed claim whose BG
+span supplied the authoritative target/relationship and whose FFXIclopedia span
+supplied the fallback kind/zone was therefore rejected even though its exact
+catalogue point survived.
+
+### Behavioral RED
+
+Command:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest -v tools.test_objective_guides.ObjectiveDestinationTests.test_reviewed_destination_uses_field_authority_across_paired_source_spans
+```
+
+Exit code: `1`.
+
+```text
+test_reviewed_destination_uses_field_authority_across_paired_source_spans ... FAIL
+
+Split-field reviewed destination was rejected: Reviewed objective destination source claim is conflicted or unsupported.
+
+Ran 1 test in 0.002s
+FAILED (failures=1)
+```
+
+This exercises the public reviewed-destination resolver with a pinned claim and
+exact catalogue point. The BG action span independently supplies `target=Alpha`
+and `relationship=talk-to`; the FFXIclopedia action span supplies
+`target_kind=npc` and `zone_mentions=(East Ronfaure,)`. The expected source
+claim and both source revisions are independently asserted.
+
+### Minimal GREEN and fail-closed regression
+
+`_select_source_claim()` now validates the paired source spans with the same
+per-field BG-primary/FFXIclopedia-fallback selector used by automatic catalogue
+semantics. It retains both original action spans as provenance. Target fallback
+keeps the existing fail-closed boundary: if the authoritative span has no exact
+`target` and exposes more than one distinct canonical typed mention, no mention
+is accepted as the reviewed target.
+
+Focused GREEN command (same single test as the RED):
+
+```text
+Ran 1 test in 0.001s
+OK
+```
+
+The first complete objective-guide run then exposed the target-ambiguity guard
+as a behavioral regression while the shared selector was being introduced:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides
+```
+
+```text
+Ran 188 tests in 2.818s
+FAILED (failures=4)
+```
+
+The four subtest failures belonged to the two existing canonical-ambiguity
+tests: both `Mob A` and `Mob B` were incorrectly accepted from one span, and the
+display-alias variant likewise stopped failing closed. After restoring the
+target-only ambiguity guard, the new split-field test and both ambiguity tests
+passed together:
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest -v `
+  tools.test_objective_guides.ObjectiveDestinationTests.test_reviewed_destination_uses_field_authority_across_paired_source_spans `
+  tools.test_objective_guides.ObjectiveDestinationTests.test_destination_uses_only_exact_linked_target_from_selected_clause `
+  tools.test_objective_guides.ObjectiveDestinationTests.test_paired_destination_uses_canonical_link_identity_not_display_aliases
+```
+
+```text
+Ran 3 tests in 0.117s
+OK
+```
+
+### Fix-round verification
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_guides
+```
+
+```text
+Ran 188 tests in 2.830s
+OK
+```
+
+```powershell
+tools\.objective-guides-venv\Scripts\python.exe -m unittest tools.test_objective_route_evidence
+```
+
+```text
+Ran 72 tests in 9.056s
+OK
+```
+
+No generated corpus artifact or Task 2 Lua test is part of this fix round.

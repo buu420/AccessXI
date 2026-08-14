@@ -154,3 +154,17 @@ target, owner, World, login generation, sequence, destination, request replay,
 and start/finish event-menu correlation remain covered. Final clean snapshot
 `6b2b086` reaches one final aggregate with all 119 intended production REDs and
 the corrected harness is Lua 5.1 syntax GREEN.
+
+Task 3 production completed locally after reboot recovery. The compact schema-v2
+guide loader now enforces exact BG-primary/FFXIclopedia-fallback self-pins,
+deep-copy isolation, and a 64-objective LRU with shard release. Navigation now
+owns the exact append-only ten-field owner-plus-World cursor, conservative
+four-field migration, stable flat-action selection, typed interaction,
+inventory, key-item, credited-kill, transport, committed-zone, route-arrival,
+and native-state reduction, counted progress, bounded causal/event state,
+identity/session/revision safety, exact wiki-ready routes, and objective-only
+cancellation without starting movement. The corrected Task 2 navigation/guide
+wrapper is fully GREEN; route runtime/policy, reader integrity, hotkeys,
+zone-search, zoning/key blocking, and Lua 5.1 syntax are GREEN. The 27 expected
+reader-only adapter REDs remain explicitly assigned to Task 4. Deployment is
+held pending scoped commit and independent review.

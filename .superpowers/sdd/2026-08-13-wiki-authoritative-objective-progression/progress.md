@@ -142,3 +142,15 @@ drift in `route-evidence-v2.jsonl` because JSONL lacked the explicit LF policy
 already applied to JSON, TSV, and Lua artifacts. A focused archive-byte test was
 RED with exactly 35 inserted CR bytes. Adding `*.jsonl text eol=lf` made it GREEN
 without changing any approved artifact byte or the `5920b407...53c5` digest.
+
+Task 2 independent-review fix round 3/5 completed test-only after recovered
+Task 3 work exposed three fixture-contract defects. The final route-less IIFE
+now owns its exact Cid catalogue row; the durable San d'Orian step-007 cursor is
+explicitly restored after reducer-isolation cleanup and immediately before
+the separate step-005 and step-007 currentness snapshots, with removal before
+unrelated packet/source-route scenarios; and transport menu-ID discrimination
+was removed because compact schema v2 has no authoritative menu field. Exact
+target, owner, World, login generation, sequence, destination, request replay,
+and start/finish event-menu correlation remain covered. Final clean snapshot
+`6b2b086` reaches one final aggregate with all 119 intended production REDs and
+the corrected harness is Lua 5.1 syntax GREEN.

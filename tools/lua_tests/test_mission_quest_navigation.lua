@@ -1395,6 +1395,13 @@ assert(orcish[2].objective_destination_id == 'enemy:v1:100:orcish-west')
 
 local orcish_after_item_reset
 local task2_inventory_cursor_committed = false
+local task2_restore_inventory_cursor
+local function task2_clear_inventory_cursor()
+    os.remove(objective_progress_path)
+    accessxi.objective_progress_revision =
+        (tonumber(accessxi.objective_progress_revision) or 0) + 1
+    reload_navigation_module()
+end
 ;(function()
 local saved_orcish_inventory_packet_key = accessxi.inventory_packet_key
 objective_inventory_counts_by_name['orcish axe'] = 1
@@ -1556,6 +1563,12 @@ local function task2_v2_progress_row(native_key, step_order, action_order, progr
         tostring(action_order),
         tostring(progress_count),
     }, '\t')
+end
+
+task2_restore_inventory_cursor = function()
+    task2_write_progress_bytes(task2_v2_progress_row(
+        "mission:San d'Oria:1", 7, 1, 0) .. '\n')
+    reload_navigation_module()
 end
 
 local task2_original_source_steps_for_reducer = accessxi.objective_guides.source_route_steps
@@ -2626,7 +2639,6 @@ do
     })
     for _, mismatch in ipairs(T{
         { target_server_id = 17723407, label = 'target' },
-        { menu_id = 32002, label = 'menu' },
         { character_identity = 'beta:1001', label = 'owner' },
         { world_id = 2002, label = 'World' },
         { session_epoch = 76, label = 'session' },
@@ -2649,7 +2661,6 @@ do
         'replayed 0x05C transport request was accepted twice')
     for _, mismatch in ipairs(T{
         { target_server_id = 17723407, label = 'target' },
-        { menu_id = 32002, label = 'menu' },
         { session_epoch = 76, label = 'session' },
         { transport_sequence = exact_transport.sequence + 1, label = 'sequence' },
     }) do
@@ -3209,8 +3220,11 @@ for _, field in ipairs({
 end
 
 if task2_inventory_cursor_committed then
+    assert(type(task2_restore_inventory_cursor) == 'function')
+    task2_restore_inventory_cursor()
     task2_reducer_expect(accessxi.nav_mission_quest_route_point_is_current(test_target) == false,
         'the committed durable cursor left the completed acquisition route current')
+    task2_clear_inventory_cursor()
 end
 
 for _, failure in ipairs(task2_reducer_failures) do
@@ -3242,6 +3256,9 @@ task2_expect(auxiliary_test_message == '',
     'auxiliary packet freshness must not be spoken as a blocker for an explicit source-backed destination')
 accessxi.inventory_packet_source = saved_inventory_packet_source
 
+if task2_inventory_cursor_committed then
+    task2_restore_inventory_cursor()
+end
 orcish_after_item_reset[1].route_ready = true
 orcish_after_item_reset[1].route_evidence = 'legacy free text'
 orcish_after_item_reset[1].navigation_target = { route_ready = true }
@@ -3280,6 +3297,9 @@ else
         'wiki-ready fixture did not provide an owned route for exact-currentness mutation')
 end
 accessxi.nav_destination = nil
+if task2_inventory_cursor_committed then
+    task2_clear_inventory_cursor()
+end
 
 -- Source-backed guide facts are a global explicit-navigation fallback.  The
 -- first mission is also exercised without the test fixture's typed rows, and
@@ -4376,6 +4396,17 @@ accessxi.on_objective_interaction_progress_changed = function()
     task2_progress_notifications = task2_progress_notifications + 1
 end
 
+local function task2_route_less_cid_catalogue()
+    return T{
+        destination_id = 'npc:v1:237:17772593', zone_id = 237,
+        zone_name = 'Metalworks', target_name = 'Cid', target_kind = 'npc',
+        target_key = 'cid', target_point = T{ -12.598, 2.430, -10.988 },
+        raw_identity = 'lsb:npc_list:17772593', raw_spawn_ids = T{ 17772593 },
+        cluster_policy_version = '', transport_id = '', battlefield_id = '',
+        metadata_class = '', group_id = '', arrival_instruction = 'Talk to Cid.',
+    }
+end
+
 local task2_original_source_route_steps = accessxi.objective_guides.source_route_steps
 local task2_original_progression_actions = accessxi.objective_guides.progression_actions
 accessxi.objective_guides.source_route_steps = function(self, native_key)
@@ -4417,8 +4448,7 @@ accessxi.objective_guides.progression_actions = function(self, native_key)
                 arrival_instruction = 'Talk to Arnau.',
             })
         elseif target == 'Cid' then
-            catalogue:append(task2_progression_catalogue_row(
-                task2_cid_candidate(native_key, step_order)))
+            catalogue:append(task2_route_less_cid_catalogue())
         end
         return T{
             step_id = step_id,

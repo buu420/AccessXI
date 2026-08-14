@@ -488,3 +488,58 @@ The clean guide aggregate includes these new schema-v2 contract failures:
 All three clean-archive harnesses passed the verified 32-bit Lua 5.1 syntax
 checker. The scoped `git diff --check` result is recorded immediately before
 the fix-round commit.
+
+## Independent-review fix round 3/5
+
+Post-reboot Task 3 GREEN work reduced the navigation aggregate from 119 REDs
+to 13 and exposed three defects in the test contract rather than safe
+production behavior. This test-only round corrects those fixtures without
+adding a runtime schema field or weakening any matcher.
+
+- The final route-less quest IIFE called `task2_cid_candidate` and
+  `task2_progression_catalogue_row`, which were local to an earlier, already
+  closed IIFE. It now owns one self-contained exact Cid compact catalogue row,
+  so the quest start/finish sequence executes instead of raising an accidental
+  global-function error.
+- The inventory test proved and persisted the San d'Orian mission step-007
+  cursor, but later reducer isolation deleted the shared progress file and
+  reloaded the navigation module before testing currentness. The fixture now
+  constructs the old step-005 route snapshot, explicitly restores the exact
+  ten-field step-007 row, reloads, then proves step 005 is stale and step 007 is
+  current. Restoration is scoped around those two exact currentness snapshots:
+  the fixture removes the row before packet-freshness checks and again after
+  the step-007 route checks, so unrelated source-route scenarios begin from
+  their documented baseline.
+- Compact schema v2 carries transport target, zone, server ID, transport ID,
+  and destination zone, but no event/menu ID. The transport request no longer
+  requires production to distinguish an invented `32001` catalogue menu from
+  `32002`. Target, owner, World, login generation, request replay, transport
+  sequence, committed target, and destination mismatches remain executable.
+  The request still carries a positive menu and the committed signal must
+  correlate the same stored menu; immutable interaction lifecycle tests retain
+  their explicit event/menu mismatch coverage.
+
+### Clean-commit RED reproduction
+
+A temporary index over committed HEAD added only the corrected navigation
+harness, then `git write-tree`, `git commit-tree`, and `git archive` produced:
+
+```text
+snapshot: 6b2b086d0e949d0e4b624b7bac390ff5548f2780
+tree:     b5439f796bea87d11d89f640701764bcb0e5193c
+root:     C:\Users\buu42\AppData\Local\Temp\accessxi-task2-fix3b-04d7fc9882e94c16a40d8e62a4c7f240
+```
+
+The direct navigation wrapper reached its one final aggregate at line 4675:
+
+```text
+exit=1
+failures=119
+first=- a fresh exact wiki candidate without a rooted contract must expose a wiki-ready route
+last=- route-less quest cursor was not persisted across navigation-module reload
+```
+
+The clean snapshot harness passed the verified 32-bit Lua 5.1 syntax checker.
+No production, generated corpus, reader, guide, or Task 1 file is part of this
+fix round. The final scoped commit SHA is reported by the parent handoff because
+this report is itself part of that commit.

@@ -1,4 +1,5 @@
 local module_path = assert(arg[1], 'collision_navigation.lua path is required')
+local manifest_path = assert(arg[2], 'collision native manifest path is required')
 local chunk = assert(loadfile(module_path))
 local collision_navigation = chunk()
 
@@ -7,6 +8,24 @@ local function check(condition, message)
         error(message or 'check failed', 2)
     end
 end
+
+local expected_settings_sha256 =
+    'a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32'
+check(collision_navigation.settings_sha256 == expected_settings_sha256,
+    'collision navigation module settings digest is stale')
+local manifest = assert(io.open(manifest_path, 'rb'))
+local header = manifest:read('*l')
+local row = manifest:read('*l')
+manifest:close()
+check(header == 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit',
+    'collision native manifest header is invalid')
+local fields = {}
+for field in tostring(row):gmatch('[^\t]+') do
+    fields[#fields + 1] = field
+end
+check(fields[3] == '3', 'collision native manifest ABI changed')
+check(fields[4] == expected_settings_sha256,
+    'collision native manifest settings digest does not match the module')
 
 local FakeNative = {}
 FakeNative.__index = FakeNative
@@ -111,6 +130,47 @@ end
 function FakeNative:destroy_context(_context)
     self.destroy_calls = self.destroy_calls + 1
 end
+
+-- Current-zone warmup must only begin the native terrain generation.  It must
+-- not create a pending destination or query a route until the user actually
+-- selects one.
+local preload_native = FakeNative.new()
+local preload_state, preload_reason = collision_navigation.new({
+    native = preload_native,
+    ffxi_root = 'C:\\FFXI',
+    cache_root = 'C:\\cache',
+    zone_name = function(zone) return 'Zone ' .. tostring(zone) end,
+    arrival_radius = function() return 8 end,
+})
+check(preload_state ~= nil, preload_reason)
+check(type(preload_state.preload) == 'function',
+    'collision navigation has no begin-only current-zone preload API')
+
+local preload_ok, preload_mode, preload_message = preload_state:preload(244)
+check(preload_ok == true and preload_mode == 'pending' and preload_message == '',
+    'first current-zone preload must begin silently')
+preload_ok, preload_mode, preload_message = preload_state:preload(244)
+check(preload_ok == true and preload_mode == 'pending' and preload_message == '',
+    'repeated same-zone preload must silently reuse the generation')
+check(preload_native.begin_calls == 1,
+    'repeated same-zone preload restarted native terrain generation')
+check(preload_native.find_calls == 0,
+    'current-zone preload queried a path before a destination was selected')
+check(preload_state.pending_destination == nil,
+    'current-zone preload created a fake pending destination')
+
+preload_native.state = 2
+local preload_player = { zone = 244, x = 0, z = 0, y = 0 }
+local preload_destination = { zone = 244, name = 'Upper Jeuno line', x = 5, z = 5, y = 0 }
+local preload_points, preload_route_mode, preload_route_message =
+    preload_state:route(preload_player, preload_destination)
+check(preload_route_mode == 'ready' and #preload_points == #preload_native.points,
+    preload_route_message)
+check(preload_native.begin_calls == 1,
+    'route selection restarted an already preloaded current-zone generation')
+check(preload_native.find_calls == 1,
+    'ready preloaded terrain did not perform exactly one selected route query')
+preload_state:shutdown()
 
 local native = FakeNative.new()
 local state, new_reason = collision_navigation.new({

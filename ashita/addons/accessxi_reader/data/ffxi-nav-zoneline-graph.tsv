@@ -727,7 +727,6 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 812004986	231	Northern San d'Oria	z6f0	-0.107	-36.133	-7.068	230	Southern San d'Oria	z6e5	-0.004	54.388	-4.182	lsb-zonelines	untested
 846359930	231	Northern San d'Oria	zmr2	134.995	-8.439	-7.068	231	Northern San d'Oria	Mog House	132.764	-6.178	-2.320	lsb-zonelines	untested	
 912668282	231	Northern San d'Oria	z6f6	-123.510	270.516	8.289	232	Port San d'Oria	z6g1	-107.682	-132.215	-10.301	lsb-zonelines	untested	
-231233001	231	Northern San d'Oria	trigger-area-1	0.000	110.000	-2.000	233	Chateau d'Oraguille	event-569	0.000	-13.000	0.000	lsb-scripted-trigger	proven	requires: Chateau d'Oraguille access; eligibility is enforced by Northern San d'Oria event 569
 812070522	232	Port San d'Oria	z6g0	-108.899	-132.949	-8.500	231	Northern San d'Oria	z6f7	-125.375	268.640	11.949	live-verified-axi-pos	proven	port-to-northern-2026-06-28
 879914362	232	Port San d'Oria	zmr4	83.260	-139.282	-19.486	232	Port San d'Oria	Mog House	79.362	-135.450	-18.173	lsb-zonelines	untested	
 845690490	233	Chateau d'Oraguille	z6h2	12.495	24.047	6.974	167	Bostaunieux Oubliette	z4n1	99.978	72.867	-25.647	lsb-zonelines	untested	
@@ -842,3 +841,6 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 946616186	273	Woh Gates	z7l8	340.000	524.000	-35.227	267	Kamihr Drifts	z7f1	500.500	-479.500	70.922	lsb-zonelines	untested	
 913061754	273	Woh Gates	z7l6	404.000	100.000	27.626	270	Cirdas Caverns	z7i1	-219.869	519.000	7.800	lsb-zonelines	untested	
 812922746	281	Leafallia	z7t0	19.355	-43.000	-5.000	267	Kamihr Drifts	z7f3	-212.000	-414.000	41.000	lsb-zonelines	untested	
+231233001	231	Northern San d'Oria	trigger-area-1	0.000	110.000	-2.000	233	Chateau d'Oraguille	event-569	0.000	-13.000	0.000	lsb-scripted-trigger	proven	requires: Chateau d'Oraguille access; eligibility is enforced by Northern San d'Oria event 569
+239242086	239	Windurst Walls	trigger-area-1	0.000	141.000	-16.500	242	Heavens Tower	event-86	0.000	-22.400	0.000	lsb-scripted-trigger	proven	
+242239041	242	Heavens Tower	trigger-area-1	0.000	-34.000	0.000	239	Windurst Walls	event-41	0.000	135.000	-17.000	lsb-scripted-trigger	proven	

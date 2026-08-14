@@ -15,7 +15,8 @@ local ZONELINE_SUPPORT_ADVANCE = 0.10
 local ZONELINE_MAX_SWEEPS = 64
 local DLL_RELATIVE_PATH = 'third_party/collision/accessxi_collision_native.dll'
 local MANIFEST_HEADER = 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit'
-local SETTINGS_SHA256 = 'e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c'
+local SETTINGS_SHA256 = 'a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32'
+module.settings_sha256 = SETTINGS_SHA256
 local RECAST_COMMIT = '9f4ce64458dfae86e1239c525ddc219c4e9e06f1'
 local BULLET_COMMIT = '63c4d67e337017f9d8b298c900e9aabdb69296e7'
 
@@ -343,8 +344,51 @@ function State:_begin(zone, destination)
         self.generation = generation
         self.zone = zone
     end
-    self.pending_destination = copy_destination(destination)
+    if destination ~= nil then
+        self.pending_destination = copy_destination(destination)
+    end
     return true
+end
+
+function State:preload(zone)
+    if self.shutdown_complete then
+        return nil, 'error', 'Collision terrain navigation is shut down.'
+    end
+    if not positive_integer(zone) then
+        return nil, 'error', 'Collision terrain preload requires a valid current zone.'
+    end
+    if self.pending_destination ~= nil then
+        return nil, 'busy', ''
+    end
+    local began, begin_reason = self:_begin(zone, nil)
+    if not began then return nil, 'error', begin_reason end
+    local ok, code, status = pcall(
+        self.native.poll_load, self.native, self.context, self.generation)
+    if not ok then
+        return nil, 'error', 'Collision terrain polling raised an error: ' .. tostring(code)
+    end
+    if code ~= RESULT_OK or type(status) ~= 'table' then
+        return nil, 'error', native_error('polling', code)
+    end
+    if status.zone_id ~= self.zone or status.generation ~= self.generation then
+        return nil, 'error', 'Collision terrain returned stale zone state.'
+    end
+    if self.expected_settings_sha256 ~= nil
+        and status.settings_sha256 ~= self.expected_settings_sha256 then
+        return nil, 'error', 'Collision terrain settings do not match the installed manifest.'
+    end
+    if status.state == LOAD_PENDING then
+        return true, 'pending', ''
+    end
+    if status.state == LOAD_FAILED or status.state == LOAD_CANCELED then
+        local reason = tostring(status.message or 'Collision terrain mapping failed.')
+        self:_cancel_generation()
+        return nil, 'error', reason
+    end
+    if status.state ~= LOAD_READY or not canonical_sha256(status.dat_sha256) then
+        return nil, 'error', 'Collision terrain returned malformed ready state.'
+    end
+    return true, 'ready', ''
 end
 
 function State:_query(player, destination, arrival_radius)

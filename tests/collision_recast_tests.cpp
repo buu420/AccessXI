@@ -24,6 +24,7 @@ using accessxi::collision::Triangle;
 using accessxi::collision::Vec3;
 using accessxi::collision::parse_zone_collision;
 using accessxi::collision::read_stable_snapshot;
+using accessxi::collision::recast_raster_walkable_climb;
 using accessxi::collision::resolve_zone_model_dat;
 
 void check(const bool condition, const char* expression, const int line)
@@ -245,6 +246,46 @@ void run_installed_upper_jeuno_bounded_step_test(const fs::path& ffxi_root)
     check_bounded_step_segments(world, path.points);
 }
 
+void run_installed_mhaura_test(const fs::path& ffxi_root)
+{
+    CHECK(RecastZone::settings_digest()
+        == "a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32");
+    CHECK(recast_raster_walkable_climb(248u) == 0.60f);
+    CHECK(recast_raster_walkable_climb(249u) == 0.80f);
+    CHECK(recast_raster_walkable_climb(250u) == 0.60f);
+
+    const auto snapshot = read_stable_snapshot(resolve_zone_model_dat(ffxi_root, 249u));
+    const ParsedZoneMesh mesh = parse_zone_collision(snapshot, 249u);
+    const CollisionWorld world(mesh);
+    const RecastZone zone(mesh, world);
+
+    // Production pairs the raw Mhaura-to-Buburimu trigger with the reverse
+    // landing from edge 845230970, then validates the short trigger tail.
+    const auto path = zone.find_path(
+        Vec3{-12.750f, 15.791f, 86.286f},
+        Vec3{0.003f, 6.252f, 117.971f},
+        20.0f,
+        512u);
+    if (path.status != PathStatus::ready)
+    {
+        throw std::runtime_error("Installed Mhaura route failed: " + path.reason);
+    }
+    CHECK(path.points.size() >= 2u);
+    CHECK(path.points.size() <= 512u);
+    CHECK(path.settings_digest == RecastZone::settings_digest());
+    for (const Vec3& point : path.points)
+    {
+        CHECK(std::isfinite(point.x));
+        CHECK(std::isfinite(point.y));
+        CHECK(std::isfinite(point.z));
+    }
+    check_clear_segments(world, path.points);
+    CHECK(step_aware_segment_is_clear(
+        world,
+        path.points.back(),
+        Vec3{-0.179f, 8.549f, 121.015f}));
+}
+
 } // namespace
 
 int main(const int argc, char** argv)
@@ -259,6 +300,7 @@ int main(const int argc, char** argv)
         run_installed_tomb_test(fs::path(argv[1]));
         run_installed_lathine_query_latency_test(fs::path(argv[1]));
         run_installed_upper_jeuno_bounded_step_test(fs::path(argv[1]));
+        run_installed_mhaura_test(fs::path(argv[1]));
         std::cout << "collision Recast tests passed\n";
         return 0;
     }

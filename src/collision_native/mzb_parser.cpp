@@ -15,6 +15,47 @@
 #include <vector>
 
 namespace accessxi::collision {
+
+TriangleDisposition classify_transformed_triangle(
+    const Vec3& a,
+    const Vec3& b,
+    const Vec3& c,
+    const bool singular,
+    const float determinant)
+{
+    const Vec3 ab{b.x - a.x, b.y - a.y, b.z - a.z};
+    const Vec3 ac{c.x - a.x, c.y - a.y, c.z - a.z};
+    const Vec3 bc{c.x - b.x, c.y - b.y, c.z - b.z};
+    const Vec3 normal{
+        ab.y * ac.z - ab.z * ac.y,
+        ab.z * ac.x - ab.x * ac.z,
+        ab.x * ac.y - ab.y * ac.x,
+    };
+    const auto length_squared = [](const Vec3& value) {
+        return value.x * value.x + value.y * value.y + value.z * value.z;
+    };
+    const float normal_length_squared = length_squared(normal);
+    const float max_edge_squared = std::max({length_squared(ab), length_squared(ac), length_squared(bc), 1.0f});
+    const float collapse_limit = 1.0e-12f * max_edge_squared * max_edge_squared;
+    if (!std::isfinite(normal.x)
+        || !std::isfinite(normal.y)
+        || !std::isfinite(normal.z)
+        || !std::isfinite(normal_length_squared)
+        || !std::isfinite(max_edge_squared)
+        || !std::isfinite(collapse_limit)
+        || normal_length_squared <= collapse_limit)
+    {
+        return TriangleDisposition::collapsed;
+    }
+    if (!singular)
+    {
+        return determinant < 0.0f ? TriangleDisposition::flip : TriangleDisposition::keep;
+    }
+    return normal.y < -1.0e-6f * std::sqrt(normal_length_squared)
+        ? TriangleDisposition::flip
+        : TriangleDisposition::keep;
+}
+
 namespace {
 
 constexpr std::uint32_t resource_type_mzb = 0x1cu;
@@ -185,21 +226,18 @@ void append_geometry(
     }
     require_range(bytes, vertices_offset, vertex_count * 12u, "MZB vertices");
     require_range(bytes, triangles_offset, triangle_count * 8u, "MZB triangles");
-    if (result.vertices.size() > std::numeric_limits<std::uint32_t>::max() - vertex_count)
-    {
-        throw CollisionError("MZB vertex index space is exhausted.");
-    }
-
     const float determinant =
         matrix[0] * (matrix[5] * matrix[10] - matrix[6] * matrix[9])
         - matrix[1] * (matrix[4] * matrix[10] - matrix[6] * matrix[8])
         + matrix[2] * (matrix[4] * matrix[9] - matrix[5] * matrix[8]);
-    if (!std::isfinite(determinant) || std::fabs(determinant) < 1.0e-12f)
+    if (!std::isfinite(determinant))
     {
         throw CollisionError("MZB transform is singular.");
     }
+    const bool singular = std::fabs(determinant) < 1.0e-12f;
 
-    const std::uint32_t base_vertex = static_cast<std::uint32_t>(result.vertices.size());
+    std::vector<Vec3> staged_vertices;
+    staged_vertices.reserve(vertex_count);
     for (std::size_t index = 0; index < vertex_count; ++index)
     {
         if ((index & 0xffu) == 0u)
@@ -227,10 +265,11 @@ void append_geometry(
         {
             throw CollisionError("MZB transformed vertex is invalid.");
         }
-        result.vertices.push_back(transformed);
-        update_bounds(result.bounds, transformed);
+        staged_vertices.push_back(transformed);
     }
 
+    std::vector<Triangle> staged_triangles;
+    staged_triangles.reserve(triangle_count);
     for (std::size_t index = 0; index < triangle_count; ++index)
     {
         if ((index & 0xffu) == 0u)
@@ -247,19 +286,47 @@ void append_geometry(
         {
             throw CollisionError("MZB triangle references an invalid vertex.");
         }
-        // The coordinate conversion negates the source Y axis and therefore
-        // reflects handedness. Flip the opposite source winding so walkable
-        // DAT floors retain upward normals in the native Y-up space.
-        if (determinant < 0.0f)
+        const TriangleDisposition disposition = classify_transformed_triangle(
+            staged_vertices[local[0]],
+            staged_vertices[local[1]],
+            staged_vertices[local[2]],
+            singular,
+            determinant);
+        if (disposition == TriangleDisposition::collapsed)
+        {
+            continue;
+        }
+        if (disposition == TriangleDisposition::flip)
         {
             std::swap(local[0], local[2]);
         }
+        staged_triangles.push_back(Triangle{local[0], local[1], local[2]});
+    }
+
+    if (staged_triangles.empty())
+    {
+        return;
+    }
+    if (result.vertices.size() > std::numeric_limits<std::uint32_t>::max() - vertex_count)
+    {
+        throw CollisionError("MZB vertex index space is exhausted.");
+    }
+
+    const std::uint32_t base_vertex = static_cast<std::uint32_t>(result.vertices.size());
+    for (const Vec3& vertex : staged_vertices)
+    {
+        result.vertices.push_back(vertex);
+        update_bounds(result.bounds, vertex);
+    }
+    for (const Triangle& triangle : staged_triangles)
+    {
         result.triangles.push_back(Triangle{
-            base_vertex + local[0],
-            base_vertex + local[1],
-            base_vertex + local[2],
+            base_vertex + triangle.a,
+            base_vertex + triangle.b,
+            base_vertex + triangle.c,
         });
     }
+    ++result.geometry_instances;
 }
 
 void parse_mzb_payload(
@@ -377,7 +444,6 @@ void parse_mzb_payload(
         check_canceled(stop_token);
         append_geometry(bytes, transform_offset, geometry_offset, result, stop_token);
     }
-    result.geometry_instances += geometry_pairs.size();
 }
 
 } // namespace

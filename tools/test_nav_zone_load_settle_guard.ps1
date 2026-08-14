@@ -109,8 +109,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $presentBody `
-    -Pattern "(?s)end\s*accessxi\.poll_mission_quest_state_changes\(now\);\s*accessxi\.poll_objective_inventory_refresh\(now\);\s*accessxi\.poll_compass_hotkey\(\)" `
-    -Message 'Mission and Inventory refresh work must drain only after the zone-settle barrier.'
+    -Pattern "(?s)end\s*accessxi\.poll_nav_dat_collision_preload\(now\);\s*accessxi\.poll_mission_quest_state_changes\(now\);\s*accessxi\.poll_objective_inventory_refresh\(now\);\s*accessxi\.poll_compass_hotkey\(\)" `
+    -Message 'Collision preload, Mission, and Inventory refresh work must drain only after the zone-settle barrier.'
 
 Assert-Match `
     -Text $presentBody `

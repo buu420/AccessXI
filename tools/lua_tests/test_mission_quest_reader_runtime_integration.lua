@@ -522,6 +522,7 @@ local function reset_menu(item, result_payload, result_message, result_mode)
     accessxi.nav_active = false
     accessxi.nav_destination = nil
     accessxi.nav_route_points = T{}
+    accessxi.nav_dat_collision_pending = nil
     accessxi.nav_zone_search_target = nil
     accessxi.nav_mission_quest_prepare_route = function()
         return result_payload, result_message, result_mode
@@ -789,6 +790,33 @@ assert(ordinary_route_calls == 1 and objective_start_calls == 0,
     'ordinary navigation no longer uses its existing route engine')
 assert(accessxi.nav_active == true and accessxi.nav_destination == ordinary_item,
     'ordinary route start behavior changed')
+
+-- A menu route selected before its silent terrain preload finishes must keep
+-- the safe asynchronous start, but it cannot claim a beacon is active while
+-- there are no usable route points or audible guidance.
+reset_menu(ordinary_item, nil, '', 'not-objective')
+accessxi.nav_compute_route_with_zoneline_approach = function(player, target)
+    ordinary_route_calls = ordinary_route_calls + 1
+    accessxi.nav_dat_collision_pending = T{
+        destination = target,
+        message = 'Mapping terrain for this area. Navigation will start automatically.',
+    }
+    return T{}
+end
+accessxi.nav_point_effective_kind = function(point) return point.kind end
+accessxi.nav_route_direct_fallback_block_reason = function() return '' end
+accessxi.nav_area_point_direct_route_allowed = function() return false end
+accessxi.nav_area_point_reachable = function() return true end
+accessxi.nav_beacon_enabled = true
+nav_menu_start_route()
+assert(ordinary_route_calls == 1 and accessxi.nav_dat_collision_pending ~= nil,
+    'pending collision route did not retain its automatic-start state')
+assert(accessxi.nav_active == true and accessxi.nav_route_points:len() == 0,
+    'pending collision route was not held for its automatic safe start')
+assert(#spoken == 1
+    and spoken[1] == 'Safe route is still preparing. Navigation will start automatically.'
+    and not spoken[1]:find('Beacon active', 1, true),
+    'pending menu route falsely claimed an active beacon')
 
 local test_start_source = extract(
     'function accessxi.nav_start_test_objective_route(target, player)',

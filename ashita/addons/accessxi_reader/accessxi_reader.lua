@@ -1164,6 +1164,8 @@ local accessxi = T{
     nav_dat_collision_failure_reason = '',
     nav_dat_collision_pending = nil,
     nav_dat_collision_last_poll_tick = 0,
+    nav_dat_collision_preload_zone = 0,
+    nav_dat_collision_preload_last_tick = 0,
     nav_beacon_parent_dir = accessxi_paths.addon_path('sounds'),
     nav_beacon_compat_dir = accessxi_paths.addon_path('sounds', 'nav_beacon'),
     nav_beacon_hrtf_dir = accessxi_paths.addon_path('sounds', 'nav_beacon_hrtf'),
@@ -10073,33 +10075,93 @@ function accessxi.native_query_candidate_label_from_text(text, context)
     return '';
 end
 
-function accessxi.native_query_phrase_from_ptr(ptr, context)
+function accessxi.native_query_visible_text_from_ptr(ptr)
     ptr = tonumber(ptr) or 0;
-    if (not accessxi.is_probe_pointer(ptr) or accessxi.collect_probe_ffxi_utf16_entries == nil) then
+    if (not accessxi.is_probe_pointer(ptr) or accessxi.survival_guide_text == nil) then
         return '';
     end
 
-    local entries = accessxi.collect_probe_ffxi_utf16_entries(ptr, 0x48, 1, 8);
-    local parts = T{};
-    for _, entry in ipairs(entries) do
-        if ((tonumber(entry.offset) or 0) >= 0x38) then
-            break;
+    local count = tonumber(read_u8(ptr + 0x106));
+    if (count == nil or count < 1 or count > 63) then
+        return '';
+    end
+
+    local units = T{};
+    for index = 0, count - 1 do
+        local lo = read_u8(ptr + 0x04 + (index * 2));
+        local hi = read_u8(ptr + 0x04 + (index * 2) + 1);
+        if (lo == nil or hi == nil) then
+            return '';
         end
-        local text = accessxi.survival_guide_text(entry.text or '');
-        if (text ~= '' and text:find('\\', 1, true) == nil) then
-            local clean = T{};
-            for word in text:gmatch('%S+') do
-                if (word:match('^%d+$') == nil and word ~= '.' and word ~= '/') then
-                    if (word:upper() == word and #word > 1) then
-                        word = word:sub(1, 1) .. word:sub(2):lower();
-                    end
-                    clean:append(word);
-                end
+        units:append(T{ lo = lo, hi = hi });
+    end
+
+    local raw = T{};
+    local consumed_units = 0;
+    for _, unit in ipairs(units) do
+        local lo = unit.lo;
+        local hi = unit.hi;
+        local decoded = nil;
+        consumed_units = consumed_units + 1;
+        if (hi == 0 and lo == 0x9C) then
+            raw:append('claimed');
+        elseif (hi == 0 and lo >= 0 and lo <= 0x1F) then
+            decoded = lo + 0x20;
+        elseif (hi == 0 and lo >= 0x21 and lo <= 0x3A) then
+            decoded = bit.bxor(lo, 0x60);
+        elseif (hi == 0 and lo >= 0x20 and lo <= 0x7E) then
+            decoded = lo;
+        elseif (hi == 0xFE and (lo == 0xFD or lo == 0xFE or lo == 0xFF)) then
+            -- Native framing/style unit: counted, but not visible.
+        else
+            return '';
+        end
+
+        if (decoded ~= nil) then
+            raw:append(string.char(decoded));
+        end
+    end
+
+    if (consumed_units ~= count) then
+        return '';
+    end
+
+    local text = accessxi.survival_guide_text(raw:concat(''));
+    if (text == '') then
+        return '';
+    end
+    return text;
+end
+
+function accessxi.native_query_text_object_is_framed(ptr)
+    ptr = tonumber(ptr) or 0;
+    if (not accessxi.is_probe_pointer(ptr)) then
+        return false;
+    end
+
+    local native_style = read_u8(ptr + 0x104);
+    local native_reserved = read_u8(ptr + 0x105);
+    local native_frame = read_u8(ptr + 0x107);
+    return native_style ~= nil
+        and native_style ~= 0
+        and native_reserved == 0
+        and native_frame == 1;
+end
+
+function accessxi.native_query_phrase_from_ptr(ptr, context)
+    local visible = accessxi.native_query_visible_text_from_ptr(ptr);
+    if (visible == '') then
+        return '';
+    end
+
+    local parts = T{};
+    for word in visible:gmatch('%S+') do
+        if (word ~= '.' and word ~= '/') then
+            local roman = word:match('^[IVXLCDM]+[%p]?$') ~= nil;
+            if (not roman and word:upper() == word and #word > 1) then
+                word = word:sub(1, 1) .. word:sub(2):lower();
             end
-            text = clean:concat(' ');
-            if (text ~= '' and accessxi.native_query_label_looks_real(text)) then
-                parts:append(text);
-            end
+            parts:append(word);
         end
     end
 
@@ -10108,6 +10170,13 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     end
 
     local phrase = parts:concat(' ');
+    phrase = phrase:gsub('^%(claimed%)%s*', 'Claimed. ');
+    phrase = phrase:gsub('^Claimed%. Copper A%.m%.a%.n%. Voucher X7: 10%.$',
+        'Claimed. Copper A.M.A.N. voucher X7: 10.');
+    phrase = phrase:gsub('^Claimed%. Themis Orb: 40%.$', 'Claimed. Themis orb: 40.');
+    phrase = phrase:gsub("^Tu'lia%.$", "Tu'Lia.");
+    phrase = phrase:gsub('^Never Mind%.$', 'Never mind.');
+    phrase = phrase:gsub('^On Second Thought, None%.$', 'On second thought, none.');
     phrase = phrase:gsub('^N Second Thought None$', 'On second thought, none');
     phrase = phrase:gsub('^On Second Thought None$', 'On second thought, none');
     phrase = phrase:gsub('^Select From Amongst Favorites$', 'Select from amongst favorites');
@@ -10140,6 +10209,11 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     phrase = accessxi.survival_guide_text(phrase);
 
     if (phrase:eq('On second thought, none', true) and accessxi.native_query_label_looks_real(phrase)) then
+        return phrase;
+    end
+    if (accessxi.native_query_text_object_is_framed(ptr)
+        and (phrase:eq('No.', true) or phrase:eq('No', true))
+        and accessxi.native_query_label_looks_real(phrase)) then
         return phrase;
     end
 
@@ -10269,7 +10343,9 @@ function accessxi.home_point_query_normalize_phrase(phrase)
         T{ 'Adoulin Isles', 'Adoulin Isles' },
     }) do
         local raw = tostring(row[1] or '');
-        if (phrase:eq(raw, true) or phrase:match('^' .. raw:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1") .. '%s') ~= nil) then
+        if (phrase:eq(raw, true)
+            or phrase:eq(raw .. '.', true)
+            or phrase:match('^' .. raw:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1") .. '%s') ~= nil) then
             return tostring(row[2] or '');
         end
     end
@@ -10745,9 +10821,13 @@ function accessxi.native_query_candidate_label_from_ptr(ptr, context)
         return '';
     end
 
-    local phrase = accessxi.native_query_phrase_from_ptr(ptr, context);
-    if (phrase ~= '') then
-        return accessxi.native_query_normalize_phrase(phrase, context);
+    local recognized_native_text = accessxi.native_query_text_object_is_framed(ptr);
+    if (recognized_native_text) then
+        local phrase = accessxi.native_query_phrase_from_ptr(ptr, context);
+        if (phrase ~= '') then
+            return accessxi.native_query_normalize_phrase(phrase, context);
+        end
+        return '';
     end
 
     for _, off in ipairs(T{ 0x00, 0x04, 0x10, 0x14, 0x18, 0x20 }) do
@@ -68017,7 +68097,7 @@ end
 
 -- ACCESSXI_OBJECTIVE_ROUTE_INTEGRITY_BEGIN
 (function ()
-local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "eacce7146bcc5dd94c06fbdbefede1fd92528f60bf1f33d5773d8e79192f73a2";
+local ACCESSXI_OBJECTIVE_ROUTE_MANIFEST_SHA256 = "5c44804bd56240eed77dd7ed5c3ce8044d60e3409545dad17018f1495175c4a7";
 local accessxi_objective_manifest_rows = nil;
 local accessxi_objective_file_hasher = nil;
 local accessxi_objective_runtime_attempted = false;
@@ -68981,6 +69061,8 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
         accessxi.nav_dat_collision_state:cancel('zone-change');
     end
     accessxi.nav_dat_collision_pending = nil;
+    accessxi.nav_dat_collision_preload_zone = 0;
+    accessxi.nav_dat_collision_preload_last_tick = 0;
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('zone-change');
     end
@@ -69366,6 +69448,61 @@ function accessxi.nav_dat_collision_bootstrap()
     accessxi.nav_dat_collision_state = state;
     accessxi.nav_dat_collision_failure_reason = '';
     log_line('collision terrain navigation ready');
+    return true;
+end
+
+function accessxi.poll_nav_dat_collision_preload(now)
+    now = tonumber(now) or tick();
+    if (accessxi.nav_active == true or accessxi.nav_dat_collision_pending ~= nil) then
+        return false;
+    end
+    if ((now - (tonumber(accessxi.nav_dat_collision_preload_last_tick) or 0)) < 500) then
+        return false;
+    end
+
+    local player = nav_cached_player_position();
+    local zone = tonumber(player ~= nil and player.zone) or 0;
+    if (zone <= 0 or zone == 102
+        or (tonumber(accessxi.nav_dat_collision_preload_zone) or 0) == zone) then
+        return false;
+    end
+    accessxi.nav_dat_collision_preload_last_tick = now;
+    accessxi.nav_dat_collision_preload_zone = zone;
+
+    if (accessxi.nav_dat_collision_state == nil
+        and not accessxi.nav_dat_collision_bootstrap()) then
+        return false;
+    end
+    if (type(accessxi.nav_dat_collision_state) ~= 'table'
+        or type(accessxi.nav_dat_collision_state.preload) ~= 'function') then
+        log_line(('collision terrain preload unavailable zone=%d'):fmt(zone));
+        return false;
+    end
+
+    local ok, started, mode, message = pcall(
+        accessxi.nav_dat_collision_state.preload,
+        accessxi.nav_dat_collision_state,
+        zone);
+    mode = tostring(mode or 'error');
+    message = nav_clean_field(message);
+    if (not ok) then
+        message = tostring(started);
+        started = nil;
+        mode = 'error';
+    end
+    if (mode == 'busy') then
+        return false;
+    end
+
+    if (started ~= true) then
+        log_line(('collision terrain preload failed zone=%d reason="%s"'):fmt(
+            zone,
+            accessxi.escape_probe_log_text(message)));
+        return false;
+    end
+    log_line(('collision terrain preload zone=%d mode=%s'):fmt(
+        zone,
+        accessxi.escape_probe_log_text(mode)));
     return true;
 end
 
@@ -74414,6 +74551,13 @@ local function nav_menu_start_route()
     accessxi.nav_route_live_replan_last_key = '';
     accessxi.nav_route_live_replan_last_tick = 0;
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, item);
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        local text = 'Safe route is still preparing. Navigation will start automatically.';
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        log_line('nav menu start pending ' .. text);
+        return;
+    end
     local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, item);
     if (accessxi.nav_route_points:len() <= 1
         and unsafe_route_text ~= ''
@@ -96884,6 +97028,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         poll_nav_position();
         accessxi.nav_route_recorder_poll(now);
     end
+    accessxi.poll_nav_dat_collision_preload(now);
     accessxi.poll_mission_quest_state_changes(now);
     accessxi.poll_objective_inventory_refresh(now);
     accessxi.poll_compass_hotkey();

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools import generate_nav_zoneline_destinations as navgen
 
@@ -482,8 +483,8 @@ class NavDestinationGeneratorTests(unittest.TestCase):
         self.assertIn("nav enemy camp checks ok", completed.stdout)
 
     def test_paired_destination_writes_are_repo_scoped_and_byte_identical(self) -> None:
-        writer = getattr(navgen, "write_destination_copies", None)
-        self.assertTrue(callable(writer), "paired atomic destination writer is missing")
+        writer = getattr(navgen, "write_navigation_copies", None)
+        self.assertTrue(callable(writer), "paired atomic navigation writer is missing")
         assert writer is not None
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -521,16 +522,17 @@ class NavDestinationGeneratorTests(unittest.TestCase):
                 )
             ]
 
-            written_hash = writer(root, lines, generated)
+            written_hashes = writer(root, lines, generated, navgen.apply_edge_policy([]))
 
             self.assertTrue(root_copy.is_file())
             self.assertTrue(addon_copy.is_file())
             self.assertEqual(root_copy.read_bytes(), addon_copy.read_bytes())
-            self.assertEqual(written_hash, hashlib.sha256(root_copy.read_bytes()).hexdigest())
+            self.assertEqual(written_hashes[0], hashlib.sha256(root_copy.read_bytes()).hexdigest())
             self.assertIn("npc:v1:101:413697", root_copy.read_text(encoding="utf-8"))
             self.assertIn("object:v1:101:77", root_copy.read_text(encoding="utf-8"))
-            self.assertEqual(root_graph.read_bytes(), graph_bytes)
-            self.assertEqual(addon_graph.read_bytes(), graph_bytes)
+            self.assertEqual(root_graph.read_bytes(), addon_graph.read_bytes())
+            self.assertTrue(root_graph.read_bytes().startswith(graph_bytes))
+            self.assertEqual(written_hashes[1], hashlib.sha256(root_graph.read_bytes()).hexdigest())
             rendered = root_copy.read_bytes()
             self.assertFalse(rendered.startswith(b"\xef\xbb\xbf"))
             self.assertNotIn(b"\r\n", rendered)
@@ -575,10 +577,10 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             ]
 
             first_lines, _rows = navgen.read_destinations(root_copy)
-            navgen.write_destination_copies(root, first_lines, generated)
+            navgen.write_navigation_copies(root, first_lines, generated, navgen.apply_edge_policy([]))
             first_render = root_copy.read_bytes()
             second_lines, _rows = navgen.read_destinations(root_copy)
-            navgen.write_destination_copies(root, second_lines, generated)
+            navgen.write_navigation_copies(root, second_lines, generated, navgen.apply_edge_policy([]))
             second_render = root_copy.read_bytes()
 
             self.assertEqual(second_render, first_render)
@@ -603,20 +605,20 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             navgen._render_destination_file(lines, [])
 
     def test_paired_writer_rejects_a_non_repo_root_before_creating_outputs(self) -> None:
-        writer = getattr(navgen, "write_destination_copies", None)
-        self.assertTrue(callable(writer), "paired atomic destination writer is missing")
+        writer = getattr(navgen, "write_navigation_copies", None)
+        self.assertTrue(callable(writer), "paired atomic navigation writer is missing")
         assert writer is not None
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "not-a-repository"
             root.mkdir()
             with self.assertRaises(ValueError):
-                writer(root, [], [])
+                writer(root, [], [], navgen.apply_edge_policy([]))
             self.assertEqual(list(root.iterdir()), [])
 
     def test_paired_writer_refuses_to_discard_a_divergent_addon_copy(self) -> None:
-        writer = getattr(navgen, "write_destination_copies", None)
-        self.assertTrue(callable(writer), "paired atomic destination writer is missing")
+        writer = getattr(navgen, "write_navigation_copies", None)
+        self.assertTrue(callable(writer), "paired atomic navigation writer is missing")
         assert writer is not None
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -635,7 +637,12 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             before_addon = addon_copy.read_bytes()
 
             with self.assertRaises(ValueError):
-                writer(root, root_copy.read_text(encoding="utf-8").splitlines(), [])
+                writer(
+                    root,
+                    root_copy.read_text(encoding="utf-8").splitlines(),
+                    [],
+                    navgen.apply_edge_policy([]),
+                )
 
             self.assertEqual(root_copy.read_bytes(), before_root)
             self.assertEqual(addon_copy.read_bytes(), before_addon)
@@ -656,16 +663,19 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             addon_graph.write_bytes(b"addon graph edit\n")
 
             with self.assertRaisesRegex(ValueError, "graph copies differ"):
-                navgen.write_destination_copies(root, destination_bytes.decode().splitlines(), [])
+                navgen.write_navigation_copies(
+                    root,
+                    destination_bytes.decode().splitlines(),
+                    [],
+                    navgen.apply_edge_policy([]),
+                )
 
             self.assertEqual(root_copy.read_bytes(), destination_bytes)
             self.assertEqual(addon_copy.read_bytes(), destination_bytes)
 
-    def test_generator_exposes_only_the_checked_paired_destination_write_boundary(self) -> None:
-        source = Path(navgen.__file__).read_text(encoding="utf-8")
-
-        self.assertNotIn("def write_destination_file(", source)
-        self.assertNotIn("def write_graph(", source)
+    def test_generator_exposes_only_the_checked_paired_navigation_write_boundary(self) -> None:
+        self.assertFalse(hasattr(navgen, "write_destination_copies"))
+        self.assertTrue(callable(getattr(navgen, "write_navigation_copies", None)))
 
     def test_manual_nearby_row_does_not_suppress_a_raw_identity_candidate(self) -> None:
         manual = navgen.Destination(
@@ -743,6 +753,237 @@ class NavDestinationGeneratorTests(unittest.TestCase):
             {f"area:v1:102:{edge_id}" for edge_id in edge_ids},
         )
 
+    def test_heavens_tower_scripted_edges_and_destinations_are_exact_and_unique(self) -> None:
+        edges = navgen.apply_edge_policy([])
+        expected_edges = [
+            (
+                239242086, 239, 0.0, -16.5, 141.0, 242, 0.0, 0.0, -22.4,
+                "Windurst Walls", "trigger-area-1", "Heavens Tower", "event-86", "",
+            ),
+            (
+                242239041, 242, 0.0, 0.0, -34.0, 239, 0.0, -17.0, 135.0,
+                "Heavens Tower", "trigger-area-1", "Windurst Walls", "event-41", "",
+            ),
+        ]
+        relevant = [
+            edge
+            for edge in edges
+            if edge.zoneline_id in {239242086, 242239041}
+        ]
+
+        self.assertEqual(
+            [
+                (
+                    edge.zoneline_id,
+                    edge.from_zone,
+                    edge.from_x,
+                    edge.from_y,
+                    edge.from_z,
+                    edge.to_zone,
+                    edge.to_x,
+                    edge.to_y,
+                    edge.to_z,
+                    edge.from_label,
+                    edge.from_code,
+                    edge.to_label,
+                    edge.to_code,
+                    edge.note,
+                )
+                for edge in relevant
+            ],
+            expected_edges,
+        )
+        self.assertEqual(len({edge.zoneline_id for edge in edges}), len(edges))
+
+        destinations = navgen.generate_destinations(
+            relevant,
+            {239: "Windurst Walls", 242: "Heavens Tower"},
+            [],
+        )
+        self.assertEqual(
+            [
+                (
+                    row.zone,
+                    row.name,
+                    row.x,
+                    row.z,
+                    row.y,
+                    row.source,
+                    row.confidence,
+                    row.section,
+                    row.destination_id,
+                    row.raw_identity,
+                )
+                for row in destinations
+            ],
+            [
+                (
+                    239,
+                    "Heavens Tower zone line",
+                    0.0,
+                    141.0,
+                    -16.5,
+                    "lsb-scripted-trigger",
+                    "proven",
+                    navgen.GENERATED_SECTION,
+                    "area:v1:239:239242086",
+                    "lsb:scripted_trigger:239242086",
+                ),
+                (
+                    242,
+                    "Windurst Walls zone line",
+                    0.0,
+                    -34.0,
+                    0.0,
+                    "lsb-scripted-trigger",
+                    "proven",
+                    navgen.GENERATED_SECTION,
+                    "area:v1:242:242239041",
+                    "lsb:scripted_trigger:242239041",
+                ),
+            ],
+        )
+
+    def test_scripted_graph_render_is_exact_idempotent_and_globally_unique(self) -> None:
+        renderer = getattr(navgen, "_render_scripted_graph_file", None)
+        self.assertTrue(callable(renderer), "scripted graph renderer is missing")
+        assert renderer is not None
+        scripted = [
+            edge
+            for edge in navgen.apply_edge_policy([])
+            if edge.zoneline_id in {239242086, 242239041}
+        ]
+        retained = "42\t10\tRetained exactly\tz001\t1\t2\t3\t11\tOther\tz002\t4\t5\t6\tmanual\tproven\tnote"
+        lines = [
+            "zoneline_id\tfrom_zone\tfrom_name\tfrom_code\tfrom_x\tfrom_z\tfrom_y\tto_zone\tto_name\tto_code\tto_x\tto_z\tto_y\tsource\tconfidence\tnote",
+            retained,
+            "239242086\tstale scripted row",
+            "242239041\tduplicate stale scripted row",
+            "242239041\tsecond stale scripted row",
+        ]
+        expected_rows = [
+            "239242086\t239\tWindurst Walls\ttrigger-area-1\t0.000\t141.000\t-16.500\t242\tHeavens Tower\tevent-86\t0.000\t-22.400\t0.000\tlsb-scripted-trigger\tproven\t",
+            "242239041\t242\tHeavens Tower\ttrigger-area-1\t0.000\t-34.000\t0.000\t239\tWindurst Walls\tevent-41\t0.000\t135.000\t-17.000\tlsb-scripted-trigger\tproven\t",
+        ]
+
+        rendered = renderer(lines, scripted)
+        rendered_again = renderer(rendered.decode("utf-8").splitlines(), scripted)
+
+        self.assertEqual(rendered_again, rendered)
+        self.assertEqual(
+            rendered.decode("utf-8").splitlines(),
+            [lines[0], retained, *expected_rows],
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate.*graph IDs"):
+            renderer([lines[0], retained, retained.replace("Retained exactly", "Duplicate")], scripted)
+
+    def test_navigation_writer_updates_both_pairs_atomically_and_idempotently(self) -> None:
+        writer = getattr(navgen, "write_navigation_copies", None)
+        self.assertTrue(callable(writer), "paired navigation writer is missing")
+        assert writer is not None
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "selected-repo"
+            root_destination, addon_destination, root_graph, addon_graph = (
+                root / "data" / "ffxi-nav-destinations.tsv",
+                root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-destinations.tsv",
+                root / "data" / "ffxi-nav-zoneline-graph.tsv",
+                root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-zoneline-graph.tsv",
+            )
+            root_destination.parent.mkdir(parents=True)
+            addon_destination.parent.mkdir(parents=True)
+            original_destination = "101\tManual\t1\t2\t3\tnpc\tmanual\n"
+            original_graph = (
+                "zoneline_id\tfrom_zone\tfrom_name\tfrom_code\tfrom_x\tfrom_z\tfrom_y\t"
+                "to_zone\tto_name\tto_code\tto_x\tto_z\tto_y\tsource\tconfidence\tnote\n"
+                "42\t10\tRetained\tz001\t1\t2\t3\t11\tOther\tz002\t4\t5\t6\tmanual\tproven\tnote\n"
+            )
+            for path in (root_destination, addon_destination):
+                path.write_text(original_destination, encoding="utf-8")
+            for path in (root_graph, addon_graph):
+                path.write_text(original_graph, encoding="utf-8")
+            edges = navgen.apply_edge_policy([])
+            generated = navgen.generate_destinations(
+                edges,
+                {231: "Northern San d'Oria", 233: "Chateau d'Oraguille", 239: "Windurst Walls", 242: "Heavens Tower"},
+                [],
+            )
+
+            first_hashes = writer(
+                root,
+                original_destination.splitlines(),
+                generated,
+                edges,
+            )
+            first_destination = root_destination.read_bytes()
+            first_graph = root_graph.read_bytes()
+            second_hashes = writer(
+                root,
+                first_destination.decode("utf-8").splitlines(),
+                generated,
+                edges,
+            )
+
+            self.assertEqual(first_hashes, second_hashes)
+            self.assertEqual(root_destination.read_bytes(), addon_destination.read_bytes())
+            self.assertEqual(root_graph.read_bytes(), addon_graph.read_bytes())
+            self.assertEqual(root_destination.read_bytes(), first_destination)
+            self.assertEqual(root_graph.read_bytes(), first_graph)
+            self.assertEqual(
+                first_hashes,
+                (
+                    hashlib.sha256(first_destination).hexdigest(),
+                    hashlib.sha256(first_graph).hexdigest(),
+                ),
+            )
+
+    def test_navigation_writer_rolls_back_all_four_outputs_after_each_replacement_failure(self) -> None:
+        writer = getattr(navgen, "write_navigation_copies", None)
+        self.assertTrue(callable(writer), "paired navigation writer is missing")
+        assert writer is not None
+        for failing_replacement in range(1, 5):
+            with self.subTest(failing_replacement=failing_replacement), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "selected-repo"
+                paths = (
+                    root / "data" / "ffxi-nav-destinations.tsv",
+                    root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-destinations.tsv",
+                    root / "data" / "ffxi-nav-zoneline-graph.tsv",
+                    root / "ashita" / "addons" / "accessxi_reader" / "data" / "ffxi-nav-zoneline-graph.tsv",
+                )
+                paths[0].parent.mkdir(parents=True)
+                paths[1].parent.mkdir(parents=True)
+                originals = {
+                    paths[0]: b"101\tRoot destination\t1\t2\t3\tnpc\tmanual\n",
+                    paths[1]: b"101\tRoot destination\t1\t2\t3\tnpc\tmanual\n",
+                    paths[2]: b"zoneline_id\tfrom_zone\n42\t10\n",
+                    paths[3]: b"zoneline_id\tfrom_zone\n42\t10\n",
+                }
+                for path, content in originals.items():
+                    path.write_bytes(content)
+                original_replace = Path.replace
+                replacement_count = 0
+                injected = False
+
+                def replace_with_one_failure(source: Path, target: Path) -> Path:
+                    nonlocal replacement_count, injected
+                    replacement_count += 1
+                    if not injected and replacement_count == failing_replacement:
+                        injected = True
+                        raise OSError("injected paired replacement failure")
+                    return original_replace(source, target)
+
+                with mock.patch.object(Path, "replace", replace_with_one_failure):
+                    with self.assertRaisesRegex(OSError, "injected paired replacement failure"):
+                        writer(
+                            root,
+                            originals[paths[0]].decode("utf-8").splitlines(),
+                            [],
+                            navgen.apply_edge_policy([]),
+                        )
+
+                self.assertTrue(injected)
+                self.assertEqual({path: path.read_bytes() for path in paths}, originals)
+                self.assertEqual(list(root.rglob("*.tmp")), [])
+
     def test_scripted_chateau_gate_is_generator_owned_and_one_way(self) -> None:
         access_note = (
             "requires: Chateau d'Oraguille access; eligibility is enforced by "
@@ -796,7 +1037,7 @@ class NavDestinationGeneratorTests(unittest.TestCase):
         )
 
         destinations = navgen.generate_destinations(
-            edges,
+            chateau_edges,
             {231: "Northern San d'Oria", 233: "Chateau d'Oraguille"},
             [],
         )

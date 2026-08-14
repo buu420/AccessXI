@@ -155,6 +155,40 @@ SCRIPTED_TRANSITIONS = (
         ),
         comment="Northern San d'Oria trigger area 1 -> Chateau d'Oraguille event 569",
     ),
+    ZoneLine(
+        zoneline_id=239242086,
+        from_zone=239,
+        from_x=0.0,
+        from_y=-16.5,
+        from_z=141.0,
+        to_zone=242,
+        to_x=0.0,
+        to_y=0.0,
+        to_z=-22.4,
+        from_label="Windurst Walls",
+        from_code="trigger-area-1",
+        to_label="Heavens Tower",
+        to_code="event-86",
+        note="",
+        comment="Windurst Walls trigger area 1 -> Heavens Tower event 86",
+    ),
+    ZoneLine(
+        zoneline_id=242239041,
+        from_zone=242,
+        from_x=0.0,
+        from_y=0.0,
+        from_z=-34.0,
+        to_zone=239,
+        to_x=0.0,
+        to_y=-17.0,
+        to_z=135.0,
+        from_label="Heavens Tower",
+        from_code="trigger-area-1",
+        to_label="Windurst Walls",
+        to_code="event-41",
+        note="",
+        comment="Heavens Tower trigger area 1 -> Windurst Walls event 41",
+    ),
 )
 
 
@@ -711,7 +745,14 @@ def destination_section(edge: ZoneLine) -> str:
 
 def generated_destination(edge: ZoneLine, name: str) -> Destination:
     override = GRAPH_EDGE_OVERRIDES.get(edge.zoneline_id, {})
-    raw_identity = override.get("raw_identity", f"lsb:zonelines:{edge.zoneline_id}")
+    scripted_ids = {transition.zoneline_id for transition in SCRIPTED_TRANSITIONS}
+    scripted = edge.zoneline_id in scripted_ids
+    raw_identity = override.get(
+        "raw_identity",
+        f"lsb:scripted_trigger:{edge.zoneline_id}"
+        if scripted
+        else f"lsb:zonelines:{edge.zoneline_id}",
+    )
     return Destination(
         zone=edge.from_zone,
         name=name,
@@ -719,8 +760,8 @@ def generated_destination(edge: ZoneLine, name: str) -> Destination:
         z=override.get("from_z", edge.from_z),
         y=override.get("from_y", edge.from_y),
         kind="area",
-        source=override.get("source", GENERATED_SOURCE),
-        confidence=override.get("confidence", "untested"),
+        source=override.get("source", GENERATED_SCRIPTED_SOURCE if scripted else GENERATED_SOURCE),
+        confidence=override.get("confidence", "proven" if scripted else "untested"),
         section=override.get("note", destination_section(edge)),
         destination_id=static_destination_id("area", edge.from_zone, raw_identity),
         raw_identity=raw_identity,
@@ -728,10 +769,15 @@ def generated_destination(edge: ZoneLine, name: str) -> Destination:
 
 
 def apply_edge_policy(edges: list[ZoneLine]) -> list[ZoneLine]:
-    return [
-        *(edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS),
+    scripted_ids = {edge.zoneline_id for edge in SCRIPTED_TRANSITIONS}
+    active = [
+        *(edge for edge in edges if edge.zoneline_id not in GRAPH_EDGE_EXCLUSIONS | scripted_ids),
         *SCRIPTED_TRANSITIONS,
     ]
+    ids = [edge.zoneline_id for edge in active]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Active navigation graph contains duplicate zoneline IDs.")
+    return active
 
 
 def generate_destinations(edges: list[ZoneLine], zone_names: dict[int, str], existing: list[Destination]) -> list[Destination]:
@@ -850,6 +896,53 @@ def _render_destination_file(lines: list[str], generated: list[Destination]) -> 
     return ("\n".join(retained) + "\n").encode("utf-8")
 
 
+def _render_scripted_graph_file(
+    existing_lines: list[str],
+    scripted_edges: list[ZoneLine],
+) -> bytes:
+    scripted_ids = [edge.zoneline_id for edge in scripted_edges]
+    if len(scripted_ids) != len(set(scripted_ids)):
+        raise ValueError("Scripted navigation graph contains duplicate graph IDs.")
+    scripted_id_set = set(scripted_ids)
+
+    def row_id(line: str) -> int | None:
+        first = line.split("\t", 1)[0]
+        try:
+            return int(first)
+        except ValueError:
+            return None
+
+    retained = [line for line in existing_lines if row_id(line) not in scripted_id_set]
+    for edge in sorted(scripted_edges, key=lambda row: row.zoneline_id):
+        retained.append(
+            "\t".join(
+                (
+                    str(edge.zoneline_id),
+                    str(edge.from_zone),
+                    edge.from_label,
+                    edge.from_code,
+                    f"{edge.from_x:.3f}",
+                    f"{edge.from_z:.3f}",
+                    f"{edge.from_y:.3f}",
+                    str(edge.to_zone),
+                    edge.to_label,
+                    edge.to_code,
+                    f"{edge.to_x:.3f}",
+                    f"{edge.to_z:.3f}",
+                    f"{edge.to_y:.3f}",
+                    GENERATED_SCRIPTED_SOURCE,
+                    "proven",
+                    edge.note,
+                )
+            )
+        )
+
+    final_ids = [identifier for line in retained if (identifier := row_id(line)) is not None]
+    if len(final_ids) != len(set(final_ids)):
+        raise ValueError("Rendered navigation graph contains duplicate graph IDs.")
+    return ("\n".join(retained) + "\n").encode("utf-8")
+
+
 def _atomic_write_bytes(path: Path, content: bytes) -> None:
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_bytes(content)
@@ -872,11 +965,12 @@ def _repo_destination_paths(repo_root: Path) -> tuple[Path, Path, Path, Path]:
     return paths
 
 
-def write_destination_copies(
+def write_navigation_copies(
     repo_root: Path,
-    lines: list[str],
-    generated: list[Destination],
-) -> str:
+    destination_lines: list[str],
+    generated_destinations: list[Destination],
+    edges: list[ZoneLine],
+) -> tuple[str, str]:
     root_path, addon_path, root_graph, addon_graph = _repo_destination_paths(Path(repo_root))
     required = (root_path, addon_path, root_graph, addon_graph)
     missing = [str(path) for path in required if not path.is_file()]
@@ -888,20 +982,34 @@ def write_destination_copies(
         raise ValueError(
             "Repository and addon destination copies differ; refusing to discard one side during refresh."
         )
-    graph_content = root_graph.read_bytes()
-    if addon_graph.read_bytes() != graph_content:
+    existing_graph_content = root_graph.read_bytes()
+    if addon_graph.read_bytes() != existing_graph_content:
         raise ValueError(
             "Repository and addon graph copies differ; refusing a destination refresh with ambiguous route evidence."
         )
 
-    content = _render_destination_file(lines, generated)
-    old_content = {path: path.read_bytes() for path in (root_path, addon_path)}
-    staged = [path.with_name(path.name + ".tmp") for path in (root_path, addon_path)]
+    current_scripted_ids = {edge.zoneline_id for edge in SCRIPTED_TRANSITIONS}
+    scripted_edges = [edge for edge in edges if edge.zoneline_id in current_scripted_ids]
+    if Counter(edge.zoneline_id for edge in scripted_edges) != Counter(current_scripted_ids):
+        raise ValueError("Navigation writer requires every current scripted graph edge exactly once.")
+
+    destination_content = _render_destination_file(destination_lines, generated_destinations)
+    graph_content = _render_scripted_graph_file(
+        existing_graph_content.decode("utf-8").splitlines(),
+        scripted_edges,
+    )
+    outputs = (root_path, addon_path, root_graph, addon_graph)
+    contents = (destination_content, destination_content, graph_content, graph_content)
+    old_content = {path: path.read_bytes() for path in outputs}
+    staged = [path.with_name(path.name + ".tmp") for path in outputs]
     try:
-        for temporary in staged:
+        for temporary, content in zip(staged, contents):
             temporary.write_bytes(content)
-        staged[0].replace(root_path)
-        staged[1].replace(addon_path)
+        for temporary, path in zip(staged, outputs):
+            temporary.replace(path)
+        for path, content in zip(outputs, contents):
+            if path.read_bytes() != content:
+                raise OSError(f"Navigation output differs after paired replacement: {path}")
     except Exception:
         for path, previous in old_content.items():
             _atomic_write_bytes(path, previous)
@@ -910,11 +1018,14 @@ def write_destination_copies(
         for temporary in staged:
             temporary.unlink(missing_ok=True)
 
-    if root_path.read_bytes() != content or addon_path.read_bytes() != content:
+    if root_path.read_bytes() != destination_content or addon_path.read_bytes() != destination_content:
         raise OSError("Paired navigation destination outputs are not byte-identical after replacement.")
     if root_graph.read_bytes() != graph_content or addon_graph.read_bytes() != graph_content:
-        raise OSError("Navigation graph evidence changed during destination-only replacement.")
-    return hashlib.sha256(content).hexdigest()
+        raise OSError("Paired navigation graph outputs are not byte-identical after replacement.")
+    return (
+        hashlib.sha256(destination_content).hexdigest(),
+        hashlib.sha256(graph_content).hexdigest(),
+    )
 
 
 def main() -> int:
@@ -933,7 +1044,7 @@ def main() -> int:
     parser.add_argument(
         "--write",
         action="store_true",
-        help="Atomically write only the repository and addon destination TSV copies; graph files are untouched.",
+        help="Atomically write the repository and addon destination and scripted graph TSV copies.",
     )
     args = parser.parse_args()
 
@@ -987,14 +1098,16 @@ def main() -> int:
     print(f"post_write_zone_coverage={len(existing_zones | generated_zones)}")
 
     if args.write:
-        digest = write_destination_copies(repo_root, lines, generated)
+        destination_digest, graph_digest = write_navigation_copies(repo_root, lines, generated, edges)
         print(f"wrote={repo_root / 'data' / 'ffxi-nav-destinations.tsv'}")
         print(
             "wrote="
             f"{repo_root / 'ashita' / 'addons' / 'accessxi_reader' / 'data' / 'ffxi-nav-destinations.tsv'}"
         )
-        print(f"destination_sha256={digest}")
-        print("graph_files=unchanged")
+        print(f"scripted_graph_rows={len(SCRIPTED_TRANSITIONS)}")
+        print("heavens_tower_scripted_graph_rows=2")
+        print(f"destination_sha256={destination_digest}")
+        print(f"graph_sha256={graph_digest}")
     elif not args.dry_run:
         print("No files written. Use --write to update nav data.")
     return 0

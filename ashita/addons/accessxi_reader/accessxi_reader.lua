@@ -10794,9 +10794,16 @@ function accessxi.native_query_candidate_label_from_ptr(ptr, context)
         return '';
     end
 
+    local native_kind = read_u8(ptr + 0x104);
+    local recognized_native_text = (native_kind == 0x01 or native_kind == 0x03)
+        and read_u8(ptr + 0x105) == 0
+        and read_u8(ptr + 0x107) == 1;
     local phrase = accessxi.native_query_phrase_from_ptr(ptr, context);
     if (phrase ~= '') then
         return accessxi.native_query_normalize_phrase(phrase, context);
+    end
+    if (recognized_native_text) then
+        return '';
     end
 
     for _, off in ipairs(T{ 0x00, 0x04, 0x10, 0x14, 0x18, 0x20 }) do

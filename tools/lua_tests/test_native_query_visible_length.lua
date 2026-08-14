@@ -50,13 +50,25 @@ local visible_source = required_extract(
 local phrase_source = extract(
     'function accessxi.native_query_phrase_from_ptr(ptr, context)',
     'function accessxi.home_point_query_normalize_phrase(phrase)')
+local candidate_ptr_source = extract(
+    'function accessxi.native_query_candidate_label_from_ptr(ptr, context)',
+    'function accessxi.native_query_candidate_label_from_node(node, context, expected_count, selected)')
+local candidate_node_source = extract(
+    'function accessxi.native_query_candidate_label_from_node(node, context, expected_count, selected)',
+    'function accessxi.native_query_collect_items_with_next(first, expected_count, next_off, context)')
 
 local bytes = {}
 local base = 0x01001000
+local node = 0x01002000
+local legacy = 0x01003000
+local dwords = {}
 local decoded_override = nil
+local fallback_reads = 0
+local fallback_collects = 0
 local accessxi = {
     is_probe_pointer = function(ptr)
-        return tonumber(ptr) == base
+        ptr = tonumber(ptr)
+        return ptr == base or ptr == node or ptr == legacy
     end,
     probe_printable_ascii = function(value)
         value = tonumber(value) or 0
@@ -80,52 +92,93 @@ local accessxi = {
     native_query_normalize_phrase = function(value)
         return tostring(value or '')
     end,
+    native_query_candidate_label_from_text = function(value)
+        return tostring(value or ''):trim()
+    end,
+    native_query_label_for_position = function(value)
+        return tostring(value or '')
+    end,
+    native_query_candidate_score = function()
+        return 1
+    end,
+    collect_probe_ffxi_utf16_entries = function()
+        fallback_collects = fallback_collects + 1
+        return T{}
+    end,
 }
 
 local function read_u8(address)
     return bytes[tonumber(address)]
 end
 
-local chunk = assert(loadstring(visible_source .. '\n' .. phrase_source, '@native-query-visible-length'))
+local function read_u32(address)
+    return dwords[tonumber(address)]
+end
+
+local function read_probe_string(address)
+    fallback_reads = fallback_reads + 1
+    local chars = T{}
+    for index = 0, 63 do
+        local lo = read_u8(address + (index * 2))
+        local hi = read_u8(address + (index * 2) + 1)
+        if (lo == nil or hi == nil or lo == 0 or hi ~= 0) then
+            break
+        end
+        chars:append(string.char(lo))
+    end
+    return chars:concat('')
+end
+
+local chunk = assert(loadstring(
+    visible_source .. '\n' .. phrase_source .. '\n' .. candidate_ptr_source .. '\n' .. candidate_node_source,
+    '@native-query-visible-length'))
 setfenv(chunk, setmetatable({
     accessxi = accessxi,
     T = T,
     read_u8 = read_u8,
+    read_u32 = read_u32,
+    read_probe_string = read_probe_string,
 }, { __index = _G }))
 chunk()
 
-local function set_pair(offset, value)
-    bytes[base + offset] = value:byte(1)
-    bytes[base + offset + 1] = 0
+local function set_pair(ptr, offset, value)
+    bytes[ptr + offset] = value:byte(1)
+    bytes[ptr + offset + 1] = 0
+end
+
+local function write_text(ptr, value)
+    for index = 1, #value do
+        set_pair(ptr, (index - 1) * 2, value:sub(index, index))
+    end
+end
+
+local function set_native_metadata(ptr, kind, count)
+    bytes[ptr + 0x104] = kind
+    bytes[ptr + 0x105] = 0
+    bytes[ptr + 0x106] = count
+    bytes[ptr + 0x107] = 1
 end
 
 local function decode(visible, visible_count, stale)
     bytes = {}
-    for index = 1, #visible do
-        set_pair((index - 1) * 2, visible:sub(index, index))
-    end
-    for index = 1, #(stale or '') do
-        set_pair((#visible + index - 1) * 2, stale:sub(index, index))
-    end
-    bytes[base + 0x106] = visible_count
+    write_text(base, visible .. (stale or ''))
+    set_native_metadata(base, 1, visible_count)
     return accessxi.native_query_phrase_from_ptr(base, '')
 end
 
 local function decode_truncated(visible, visible_count, available_pairs)
     bytes = {}
     for index = 1, math.min(#visible, available_pairs) do
-        set_pair((index - 1) * 2, visible:sub(index, index))
+        set_pair(base, (index - 1) * 2, visible:sub(index, index))
     end
-    bytes[base + 0x106] = visible_count
+    set_native_metadata(base, 1, visible_count)
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
 local function decode_with_short_fragment(visible, visible_count, decoded)
     bytes = {}
-    for index = 1, #visible do
-        set_pair((index - 1) * 2, visible:sub(index, index))
-    end
-    bytes[base + 0x106] = visible_count
+    write_text(base, visible)
+    set_native_metadata(base, 1, visible_count)
     decoded_override = decoded
     local result = accessxi.native_query_visible_text_from_ptr(base)
     decoded_override = nil
@@ -144,5 +197,58 @@ for _, bad in ipairs({ 0, 64, 255 }) do
 end
 assert(decode_truncated('VALID', 5, 4) == '')
 assert(decode_with_short_fragment('VALID', 5, 'VAL') == '')
+
+local function candidate_fixture(kind, visible_count, text, decoded)
+    bytes = {}
+    dwords = {}
+    fallback_reads = 0
+    fallback_collects = 0
+    decoded_override = decoded
+    write_text(base, text)
+    set_native_metadata(base, kind, visible_count)
+end
+
+candidate_fixture(1, 11, 'NEVER MIND' .. string.char(0x0E) .. 'FAVORITES')
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == 'Never mind.')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+dwords[node + 0x10] = base
+assert(accessxi.native_query_candidate_label_from_node(node, '', 1, 1) == 'Never mind.')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+
+candidate_fixture(1, nil, 'VALIDSTALE')
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+
+for _, malformed_count in ipairs({ 0, 64 }) do
+    candidate_fixture(1, malformed_count, 'VALIDSTALE')
+    assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
+    assert(fallback_reads == 0)
+    assert(fallback_collects == 0)
+end
+
+candidate_fixture(3, 5, 'VALIDSTALE', 'VAL')
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+dwords[node + 0x10] = base
+assert(accessxi.native_query_candidate_label_from_node(node, '', 1, 1) == '')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+decoded_override = nil
+
+bytes = {}
+dwords = {}
+fallback_reads = 0
+fallback_collects = 0
+write_text(legacy, 'LEGACY LABEL')
+bytes[legacy + 0x104] = 0x42
+bytes[legacy + 0x105] = 0x42
+bytes[legacy + 0x106] = 0
+bytes[legacy + 0x107] = 0
+assert(accessxi.native_query_candidate_label_from_ptr(legacy, '') == 'LEGACY LABEL')
+assert(fallback_reads == 1)
 
 print('native query visible-length decoder behavior ok')

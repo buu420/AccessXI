@@ -10077,7 +10077,7 @@ end
 
 function accessxi.native_query_visible_text_from_ptr(ptr)
     ptr = tonumber(ptr) or 0;
-    if (not accessxi.is_probe_pointer(ptr) or accessxi.decode_ffxi_menu_text_fragment == nil) then
+    if (not accessxi.is_probe_pointer(ptr) or accessxi.survival_guide_text == nil) then
         return '';
     end
 
@@ -10086,54 +10086,66 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
         return '';
     end
 
-    local raw = T{};
+    local units = T{};
     for index = 0, count - 1 do
         local lo = read_u8(ptr + 0x04 + (index * 2));
         local hi = read_u8(ptr + 0x04 + (index * 2) + 1);
-        if (lo == nil or hi == nil or hi ~= 0) then
+        if (lo == nil or hi == nil) then
             return '';
         end
+        units:append(T{ lo = lo, hi = hi });
+    end
 
-        if (lo == 0) then
-            raw:append(' ');
-        elseif (accessxi.probe_printable_ascii(lo)) then
-            raw:append(string.char(lo));
-        elseif (lo == 0x07) then
-            local next_lo = nil;
-            local next_hi = nil;
-            if ((index + 1) < count) then
-                next_lo = read_u8(ptr + 0x04 + ((index + 1) * 2));
-                next_hi = read_u8(ptr + 0x04 + ((index + 1) * 2) + 1);
+    local raw = T{};
+    local consumed_units = 0;
+    local previous_word = false;
+    for index, unit in ipairs(units) do
+        local lo = unit.lo;
+        local hi = unit.hi;
+        local decoded = nil;
+        consumed_units = consumed_units + 1;
+        if (hi == 0 and lo == 0x9C) then
+            raw:append('claimed');
+            previous_word = true;
+        elseif (hi == 0 and lo >= 0 and lo <= 0x1F) then
+            decoded = lo + 0x20;
+        elseif (hi == 0 and lo >= 0x20 and lo <= 0x7E) then
+            decoded = lo;
+            if (not previous_word and lo >= 0x21 and lo <= 0x3F) then
+                local next_unit = units[index + 1];
+                local next_word = next_unit == nil
+                    or (next_unit.hi == 0
+                    and ((next_unit.lo >= 0x41 and next_unit.lo <= 0x5A)
+                        or next_unit.lo == 0x07
+                        or next_unit.lo == 0x0E
+                        or next_unit.lo == 0
+                        or next_unit.lo == 0x20));
+                if (next_word) then
+                    local candidate = bit.bxor(lo, 0x60);
+                    if (candidate >= 0x41 and candidate <= 0x5A) then
+                        decoded = candidate;
+                    end
+                end
             end
-
-            local apostrophe = next_hi == 0 and next_lo == 0x53;
-            if (not apostrophe and next_hi == 0 and next_lo ~= nil) then
-                local prior = accessxi.survival_guide_text(
-                    accessxi.decode_ffxi_menu_text_fragment(raw:concat('')) or '');
-                apostrophe = prior:eq('I', true)
-                    and (next_lo == 0x64 or next_lo == 0x6C or next_lo == 0x6D or next_lo == 0x76);
-            end
-            raw:append(apostrophe and "'" or ' ');
-        elseif (lo == 0x0F) then
-            raw:append(' ');
-        elseif (lo == 0x0C) then
-            raw:append(',');
-        elseif (lo == 0x0D) then
-            raw:append('-');
-        elseif (lo == 0x0E) then
-            raw:append('.');
-        elseif (lo >= 0x10 and lo <= 0x19) then
-            raw:append(string.char(0x30 + (lo - 0x10)));
+        elseif (hi == 0xFE and (lo == 0xFD or lo == 0xFE or lo == 0xFF)) then
+            -- Native framing/style unit: counted, but not visible.
         else
             return '';
         end
+
+        if (decoded ~= nil) then
+            raw:append(string.char(decoded));
+            previous_word = (decoded >= 0x30 and decoded <= 0x39)
+                or (decoded >= 0x41 and decoded <= 0x5A)
+                or (decoded >= 0x61 and decoded <= 0x7A);
+        end
     end
 
-    if (raw:len() ~= count) then
+    if (consumed_units ~= count) then
         return '';
     end
 
-    local text = accessxi.decode_ffxi_menu_text_fragment(raw:concat('')) or '';
+    local text = accessxi.survival_guide_text(raw:concat(''));
     if (text == '') then
         return '';
     end
@@ -10161,6 +10173,10 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     end
 
     local phrase = parts:concat(' ');
+    phrase = phrase:gsub('^%(claimed%)%s*', 'Claimed. ');
+    phrase = phrase:gsub('^Claimed%. Copper A%.m%.a%.n%. Voucher X7: 10%.$',
+        'Claimed. Copper A.M.A.N. voucher X7: 10.');
+    phrase = phrase:gsub('^Claimed%. Themis Orb: 40%.$', 'Claimed. Themis orb: 40.');
     phrase = phrase:gsub('^Never Mind%.$', 'Never mind.');
     phrase = phrase:gsub('^On Second Thought, None%.$', 'On second thought, none.');
     phrase = phrase:gsub('^N Second Thought None$', 'On second thought, none');

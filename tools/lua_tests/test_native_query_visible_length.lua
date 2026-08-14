@@ -2,10 +2,6 @@ local reader_path = assert(arg[1], 'expected accessxi_reader.lua path')
 local handle = assert(io.open(reader_path, 'rb'))
 local source = handle:read('*a')
 handle:close()
-local reader_dir = assert(reader_path:match('^(.*[\\/])'), 'reader path has no directory')
-local debug_handle = assert(io.open(reader_dir .. 'modules/debug_probes.lua', 'rb'))
-local debug_source = debug_handle:read('*a')
-debug_handle:close()
 
 local function extract(first_marker, next_marker)
     local first = assert(source:find(first_marker, 1, true), 'missing source marker: ' .. first_marker)
@@ -17,12 +13,6 @@ local function required_extract(first_marker, next_marker)
     local first = source:find(first_marker, 1, true)
     assert(first ~= nil, 'missing bounded native query decoder: ' .. first_marker)
     return extract(first_marker, next_marker)
-end
-
-local function extract_debug(first_marker, next_marker)
-    local first = assert(debug_source:find(first_marker, 1, true), 'missing debug source marker: ' .. first_marker)
-    local last = assert(debug_source:find(next_marker, first + #first_marker, true), 'missing debug end marker: ' .. next_marker)
-    return debug_source:sub(first, last - 1)
 end
 
 local list_methods = {}
@@ -66,12 +56,9 @@ local candidate_ptr_source = extract(
 local candidate_node_source = extract(
     'function accessxi.native_query_candidate_label_from_node(node, context, expected_count, selected)',
     'function accessxi.native_query_collect_items_with_next(first, expected_count, next_off, context)')
-local clean_source = extract(
-    'local function clean_probe_text(text)',
-    'local function read_probe_string(ptr, length)')
-local decoder_source = extract_debug(
-    'function accessxi.decode_ffxi_menu_text_fragment(text)',
-    'function accessxi.collect_probe_ffxi_utf16_runs(ptr, length, min_len, limit)')
+local cleaner_source = extract(
+    'function accessxi.survival_guide_text(text)',
+    "accessxi.home_point_data = accessxi.load_menu_module_table('home_points', T{ points = T{} })")
 
 local bytes = {}
 local base = 0x01001000
@@ -89,9 +76,6 @@ local accessxi = {
     probe_printable_ascii = function(value)
         value = tonumber(value) or 0
         return value >= 0x20 and value <= 0x7E
-    end,
-    survival_guide_text = function(value)
-        return tostring(value or ''):gsub('[\t\r\n]', ' '):gsub('%s+', ' '):trim()
     end,
     native_query_label_looks_real = function(value)
         return tostring(value or '') ~= ''
@@ -157,7 +141,7 @@ local function read_probe_string(address)
 end
 
 local chunk = assert(loadstring(
-    clean_source .. '\n' .. decoder_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
+    cleaner_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
         .. candidate_ptr_source .. '\n' .. candidate_node_source,
     '@native-query-visible-length'))
 setfenv(chunk, setmetatable({
@@ -196,6 +180,46 @@ local function set_native_metadata(ptr, kind, count)
     bytes[ptr + 0x105] = 0
     bytes[ptr + 0x106] = count
     bytes[ptr + 0x107] = 1
+end
+
+local function captured_words(parts)
+    local words = {}
+    for _, part in ipairs(parts) do
+        if (type(part) == 'string') then
+            for index = 1, #part do
+                local glyph = part:byte(index)
+                words[#words + 1] = glyph == 0x20 and 0 or glyph
+            end
+        else
+            words[#words + 1] = assert(tonumber(part), 'captured word must be numeric')
+        end
+    end
+    return words
+end
+
+local function decode_captured(parts, stale_parts, style)
+    bytes = {}
+    forbidden_reads = {}
+    local words = captured_words(parts)
+    local stale_words = captured_words(stale_parts or {})
+    for offset = 0, 3 do
+        bytes[base + offset] = 0
+    end
+    for index, word in ipairs(words) do
+        bytes[base + 0x04 + ((index - 1) * 2)] = word % 0x100
+        bytes[base + 0x05 + ((index - 1) * 2)] = math.floor(word / 0x100)
+    end
+    for index, word in ipairs(stale_words) do
+        local pair = #words + index - 1
+        bytes[base + 0x04 + (pair * 2)] = word % 0x100
+        bytes[base + 0x05 + (pair * 2)] = math.floor(word / 0x100)
+    end
+    set_native_metadata(base, style or 1, #words)
+    if (#stale_words > 0) then
+        forbidden_reads[base + 0x04 + (#words * 2)] = true
+        forbidden_reads[base + 0x05 + (#words * 2)] = true
+    end
+    return accessxi.native_query_visible_text_from_ptr(base)
 end
 
 local function decode(visible, visible_count, stale, style)
@@ -245,6 +269,27 @@ local function decode_unsupported(visible, visible_count, bad_index, bad_lo, bad
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
+local copper_claimed = {
+    0x0008, 0x009C, 0x0009, ' ',
+    0xFEFE, 0x0023, 'OPPER ',
+    0x0021, 0x000E, 0x002D, 0x000E, 0x0021, 0x000E, 0x002E, 0x000E,
+    ' VOUCHER', 0xFEFF, ' X', 0x0017, 0x001A, ' ', 0x0011, 0x0010, 0x000E,
+}
+assert(decode_captured({ 0x0029, ' FORGOT WHY I', 0x0007, 'M HERE', 0x000E }) == "I FORGOT WHY I'M HERE.")
+assert(decode_captured({ 'HOW DO ', 0x0029, ' PARTICIPATE', 0x001F }) == 'HOW DO I PARTICIPATE?')
+assert(decode_captured({ 0x0029 }) == 'I')
+assert(#captured_words(copper_claimed) == 37)
+assert(decode_captured(copper_claimed, { 'STALE' }) == '(claimed) COPPER A.M.A.N. VOUCHER X7: 10.')
+assert(accessxi.native_query_phrase_from_ptr(base, '') == 'Claimed. Copper A.M.A.N. voucher X7: 10.')
+
+local themis_claimed = {
+    0x0008, 0x009C, 0x0009, ' ',
+    0xFEFE, 0x0034, 'HEMIS ORB', 0xFEFF, 0x001A, ' ', 0x0014, 0x0010, 0x000E,
+}
+assert(#captured_words(themis_claimed) == 21)
+assert(decode_captured(themis_claimed, { 'STALE' }) == '(claimed) THEMIS ORB: 40.')
+assert(accessxi.native_query_phrase_from_ptr(base, '') == 'Claimed. Themis orb: 40.')
+
 assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind.')
 assert(decode('NOWHERE' .. string.char(0x0E), 8, 'SLES') == 'Nowhere.')
 assert(decode_visible('TRAVEL TO ANOTHER HOME POINT' .. string.char(0x0E), 29, 1) == 'TRAVEL TO ANOTHER HOME POINT.')
@@ -252,16 +297,38 @@ assert(decode('ON SECOND THOUGHT' .. string.char(0x0C) .. ' NONE' .. string.char
 assert(decode('150' .. string.char(0x0D) .. 'PT' .. string.char(0x0E) .. ' ITEMS' .. string.char(0x0E), 14, nil, 3) == '150-pt. Items.')
 assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
 assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
-assert(decode('HE' .. string.char(0x07), 3, 'S') == 'He')
-assert(decode('HE' .. string.char(0x0F), 3, 'STALE') == 'He')
+assert(decode_captured({ 'BRING IT ON', 0x0001 }, { 'STALE' }) == 'BRING IT ON!')
+assert(decode('HE' .. string.char(0x07), 3, 'S') == "He'")
+assert(decode('HE' .. string.char(0x0F), 3, 'STALE') == 'He/')
 assert(decode('HE ', 3, 'STALE') == 'He')
 assert(decode_visible(' ', 1, 1) == '')
 for _, bad in ipairs({ 0, 64, 255 }) do
     assert(decode('VALID', bad) == '')
 end
 assert(decode_truncated('VALID', 5, 4) == '')
-assert(decode_unsupported('VALID', 5, 2, 0x1A, 0) == '')
+assert(decode_unsupported('VALID', 5, 2, 0x7F, 0) == '')
 assert(decode_unsupported('VALID', 5, 2, string.byte('L'), 1) == '')
+
+assert(decode_captured({ 'HOME POINT ', 0x0003, 0x0013, 0x000E }) == 'HOME POINT #3.')
+assert(decode_captured({ 'I', 0x0007, 'M' }) == "I'M")
+assert(decode_captured({ 'I', 0x0007, 'D' }) == "I'D")
+assert(decode_captured({ 'I', 0x0007, 'VE' }) == "I'VE")
+assert(decode_captured({ 'TU', 0x0007, 'LIA' }) == "TU'LIA")
+assert(decode_captured({
+    0xFEFE, 'SCROLL OF INSTANT WARP', 0xFEFF, 0x000E, ' ', 0x0008, 0x0011, 0x0010, 0x0009,
+}) == 'SCROLL OF INSTANT WARP. (10)')
+assert(decode_captured({ 0x000B }) == '+')
+assert(decode_captured({ 'ONE', 0x000C, ' TWO', 0x000D, 'THREE', 0x000E }) == 'ONE, TWO-THREE.')
+assert(decode_captured({ 'CHECK', 0x000F, 'EXCHANGE POINTS', 0x000E }) == 'CHECK/EXCHANGE POINTS.')
+assert(decode_captured({ 0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016, 0x0017, 0x0018, 0x0019 }) == '0123456789')
+assert(decode_captured({ 'X', 0x0017, 0x001A, ' ', 0x0011, 0x0010, 0x000E }) == 'X7: 10.')
+assert(decode_captured({ 'WOULD YOU CAST SIGNET ON ME', 0x001F }) == 'WOULD YOU CAST SIGNET ON ME?')
+assert(decode_captured({
+    0xFEFD, 'MAP OF THE JEUNO AREA', 0xFEFF,
+    ' ', 0x0008, 0x0015, 0x0010, 0x0010, ' GIL', 0x0009, 0x000E,
+}) == 'MAP OF THE JEUNO AREA (500 GIL).')
+assert(decode_captured({ 0xFEFE, 0xFEFD, 0xFEFF }) == '')
+assert(decode_captured({ 0xFEFC }) == '')
 
 local function candidate_fixture(kind, visible_count, text)
     bytes = {}
@@ -302,13 +369,13 @@ for _, framed in ipairs({ { style = 27, count = 0 }, { style = 14, count = 64 } 
 end
 
 candidate_fixture(27, 5, 'VALID')
-bytes[base + 0x08] = 0x1A
+bytes[base + 0x08] = 0x7F
 assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)
 
 candidate_fixture(3, 5, 'VALID')
-bytes[base + 0x08] = 0x1A
+bytes[base + 0x08] = 0x7F
 assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)

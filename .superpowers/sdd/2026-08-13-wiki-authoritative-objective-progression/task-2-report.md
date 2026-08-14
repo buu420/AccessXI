@@ -562,7 +562,8 @@ and barriers, zero-action native-state permutations, stale/replaced interaction
 and transport arms, revision/native-activity revalidation, committed-zone tick
 ordering, and wrong-zone invalidation.  A collective four-piece Fetich action
 also proves that duplicate gains cannot stand in for distinct set members, its
-numeric ten-field cursor resumes after module reload, and terminal completion
+numeric ten-field cursor resumes after a same-character new-session relog, and
+terminal completion
 requires all four members in the complete current Inventory snapshot.
 
 ### Clean committed-production RED reproduction

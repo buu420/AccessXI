@@ -3472,7 +3472,7 @@ do
     -- A collective Fetich acquisition is one material obtain action, but its
     -- count is the four distinct currently evidenced pieces.  Repeated gains
     -- of one piece must not impersonate the missing members, and the numeric
-    -- v2 cursor must reconstruct safely after reload.
+    -- v2 cursor must reconstruct safely after a same-character relog.
     task2_reset_reducer_scenario('fetich-distinct-set')
     task2_reducer_expect(not task2_reduce(task2_signal('kill-credit', {
             actor_server_id = 0x0A0B0C0D, actor_name = 'Alpha',
@@ -3508,14 +3508,22 @@ do
     task2_reducer_expect(task2_progress_bytes() == task3_one_piece_bytes,
         'duplicate Fetich Head gain rewrote distinct-set progress')
 
+    current_session_epoch = 78
+    accessxi.mission_packet_session_epoch = current_session_epoch
+    accessxi.quest_packet_session_epoch = current_session_epoch
+    quest_entries['sandoria:current'].session_epoch = current_session_epoch
+    quest_entries['sandoria:completed'].session_epoch = current_session_epoch
+    accessxi.key_items_packet_session_epoch = current_session_epoch
+    accessxi.key_items_packet_tables[0].session_epoch = current_session_epoch
+    accessxi.inventory_packet_session_epoch = current_session_epoch
     reload_navigation_module()
     task2_reducer_expect(task2_reduce(
             task3_fetich_delta('Fetich Torso', 0, 1, 3),
-            'second distinct Fetich piece after reload'),
-        'distinct-set progress did not resume safely after module reload')
+            'second distinct Fetich piece after same-character relog'),
+        'distinct-set progress did not resume safely after same-character relog')
     task2_reducer_expect(task2_last_progress_line()
             == task2_v2_progress_row('quest:sandoria:2', 1, 1, 2),
-        'second distinct Fetich piece did not reconstruct exact count 2 after reload')
+        'second distinct Fetich piece did not reconstruct exact count 2 after relog')
     task2_reducer_expect(task2_reduce(
             task3_fetich_delta('Fetich Arms', 0, 1, 4), 'third distinct Fetich piece'),
         'third distinct Fetich piece did not persist partial set progress')

@@ -175,7 +175,8 @@ and Orcish Mail Scales now use one current canonical obtain action with enemy
 catalogue context, retain positive Inventory completion, and reject kill
 credit. New tests cover empty-target instructions, real-index loading, bounded
 internal caches, canonical/global-unique acquisition matching, distinct four-
-piece Fetich snapshots across reload, zero-action native transitions, immutable
+piece Fetich snapshots across same-character relog, zero-action native
+transitions, immutable
 and revalidated interaction/transport arms, replacement, and committed-zone
 ordering. Clean snapshot `9616090` reaches one navigation aggregate with 48
 REDs and one guide aggregate with three top-level REDs; both harnesses are Lua

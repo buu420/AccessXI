@@ -1165,6 +1165,20 @@ def _claim_resolution(
     zone_rows = _authoritative_span_rows(span_rows, lambda span: span.zone_mentions)
     target = target_rows[0][1].target if target_rows else ""
     target_kind = kind_rows[0][1].target_kind if kind_rows else ""
+    claim_target = target
+    acquisition_enemies = _claim_enemies(span_rows)
+    acquisition_navigation = bool(
+        action == "obtain"
+        and target_kind == "item"
+        and _claim_result_relation(span_rows) == "obtain-from"
+        and len(acquisition_enemies) == 1
+    )
+    if acquisition_navigation:
+        # Reducer ownership remains the exact inventory item; route catalogue
+        # ownership points at the one exact enemy method preserved by the same
+        # typed source claim.  Kill credit never completes this obtain action.
+        target = acquisition_enemies[0]
+        target_kind = "enemy"
 
     if target_kind == "role" or role_override is not None:
         if role_override is None:
@@ -1353,7 +1367,8 @@ def _claim_resolution(
         _validate_action_override_revisions(action_id, single_source_override, pages)
         if (
             _clean(single_source_override.get("action", "")).casefold() != action
-            or _clean(single_source_override.get("target", "")).casefold() != target.casefold()
+            or _clean(single_source_override.get("target", "")).casefold()
+            != claim_target.casefold()
         ):
             raise ObjectiveDestinationError(f"Single-source zone override {action_id!r} is stale.")
         reviewed_single_zones = {
@@ -1728,7 +1743,7 @@ def _legacy_migration_candidate(
         source_revisions=source_revisions,
         coordinate_support=coordinate_support,
         coordinate_comparison=coordinate_comparison,
-        action="fight",
+        action="obtain",
         items=items,
         enemies=(enemy,),
         result_relation="obtain-from",
@@ -1851,16 +1866,23 @@ def _apply_legacy_action_migrations(
             f"Legacy action migration for {native.key!r} references stale action {action_id!r}."
         )
     parent = ledger[parent_index]
+    parent_step, parent_claim_row = parent_claim
     if (
-        _normalized_action(parent.action) != "fight"
+        _normalized_action(parent.action) != "obtain"
         or parent.status != "unresolved"
-        or parent.reason != "missing-action-target"
+        or parent.reason != "missing-zone"
         or parent.candidate_ids
+        or not parent.material
+        or not parent_claim_row.material
+        or _normalized_action(parent_claim_row.action) != "obtain"
+        or parent_claim_row.relationship != "obtain-item"
+        or parent_claim_row.required_count != 4
+        or parent_claim_row.count_mode != "inventory-gain"
+        or not parent_claim_row.count_explicit
     ):
         raise ObjectiveDestinationError(
-            f"Legacy action migration for {native.key!r} no longer matches one targetless fight claim."
+            f"Legacy action migration for {native.key!r} no longer matches one exact four-item obtain claim."
         )
-    parent_step, parent_claim_row = parent_claim
     span_rows = _span_rows(native, parent_step, parent_claim_row, bg, ffxiclopedia)
 
     zone = int(raw_migration.get("zone", 0) or 0)
@@ -1870,6 +1892,16 @@ def _apply_legacy_action_migrations(
             f"Legacy action migration for {native.key!r} has stale navigation zone metadata."
         )
     items = _strings(raw_migration.get("items"), "items", required=True)
+    parent_item_keys = {_clean(value).casefold() for value in parent_step.items}
+    if (
+        len(items) != 4
+        or len(parent_item_keys) != 4
+        or {_clean(value).casefold() for value in items} != parent_item_keys
+        or _clean(parent_claim_row.target).casefold() not in parent_item_keys
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} no longer owns the exact four-item objective."
+        )
     legacy_source_step_ids = _strings(
         raw_migration.get("legacy_source_step_ids"),
         "legacy_source_step_ids",
@@ -2006,8 +2038,13 @@ def _apply_legacy_action_migrations(
         )
     bg_farming_step = fact_rows[("bg", "farming_step_id")][0]
     bg_entities = {_clean(value).casefold() for value in bg_farming_step.linked_entities}
+    bg_farming_spans = tuple(
+        span for span in bg_farming_step.action_spans if span.action == "fight"
+    )
     if (
-        bg_farming_step.action != "fight"
+        bg_farming_step.action != "note"
+        or len(bg_farming_spans) != 1
+        or bg_farming_spans[0].material
         or tuple(value.casefold() for value in bg_farming_step.zone_candidates)
         != (zone_name.casefold(),)
         or not {enemy.casefold() for enemy in all_enemies}.issubset(bg_entities)

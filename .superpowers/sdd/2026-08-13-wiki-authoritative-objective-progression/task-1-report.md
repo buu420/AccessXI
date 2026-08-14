@@ -485,3 +485,45 @@ Before the fix it failed with the archived file 35 bytes larger. The minimal
 repository fix adds `*.jsonl text eol=lf`, matching the existing JSON, TSV, and
 Lua deterministic-artifact rules. The same focused test then passed. The corpus
 artifact digest remains exactly `5920b4073c1fb86c7f96f6bca90e92fb83bc106ea71338a5a12c4f38b5f153c5`.
+
+## Final progression-safety rebuild
+
+The release corpus was rebuilt from the complete same-day pinned BG Wiki and
+FFXIclopedia cache after the fail-closed player-instruction, branch, count,
+typed-domain, and acquisition-owner fixes. The final corpus contains 1,844
+native objectives (1,806 source-backed and 38 structurally source-missing),
+31,124 reconciled steps, 22,951 typed claims, 12,069 material actions, 10,882
+nonmaterial claims, 16,777 context-only rows, 39,728 total ledger rows, and
+1,506 exact destination candidates. Material BG spans own progression fields;
+when BG is present only as nonmaterial context, the material FFXIclopedia span
+owns them. That bounded fallback class is pinned at 467 actions across 350
+objectives and 445 steps, with no BG-owned progression field in those rows.
+
+Generated runtime size is now 19,398,289 bytes of source shards, 19,170,586
+bytes of reconciliation shards, 1,292,173 bytes of index, and 17,656,166 bytes
+of compact progression shards. The presentation subtotal is 39,861,048 bytes
+and the combined runtime corpus is 57,517,214 bytes. The route manifest remains
+`0b5965660348e15f129bfc3e4d790f456011ae745932dc14db11bb98b9bd1315`.
+
+Final acceptance evidence:
+
+```text
+objective parser/generator suite                 225 tests — OK
+frozen obligation ledger                         47 admit / 12 reject — OK
+frozen direct-imperative ledgers                  80 + 56 identities — OK
+independent high/strict semantic suspect sets     0 / 0 — OK
+deep index, shard, provenance, and ownership gate 1 test in 98.273s — OK
+offline determinism rebuild                       118 artifacts, 0 changed — OK
+generated Lua 5.1 execution                       104/104 tables loaded — OK
+git diff --check                                  clean
+```
+
+The final canonical artifact hash-map digests are
+`644d5d4e40fcaf8fe1156c0abc490dd9f5f8d5495d4b428223eb4b48a8603592`
+for sorted tab-separated path/hash rows and
+`cc297d49301108430516ad25f4d016f4b9a758ad4caa0fa98c21fdc3ac56c475`
+for canonical JSON. Eight exact obtain instructions still contain a redundant
+spoken item name produced by renderer composition; their typed completion
+semantics are correct and their stable IDs are pinned as a documented speech-
+only follow-up so no ninth row can regress silently. No additional parser
+rebuild is part of this release.

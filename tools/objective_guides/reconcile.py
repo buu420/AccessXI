@@ -240,6 +240,39 @@ def _unique(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
     return tuple(result)
 
 
+_GENERIC_FIGHT_TARGETS = {
+    "it",
+    "nm",
+    "the nm",
+    "enemy",
+    "enemies",
+    "mob",
+    "mobs",
+    "monster",
+    "monsters",
+    "boss",
+    "target",
+}
+
+
+def _exact_fight_target_key(target: str) -> str:
+    key = re.sub(r"\s+", " ", target).strip(" ,.;:!?\t\r\n").casefold()
+    return "" if not key or key in _GENERIC_FIGHT_TARGETS else key
+
+
+def _causal_gerund_fight(span: SourceActionSpan) -> bool:
+    return bool(
+        span.action == "fight"
+        and span.verb in {"defeating", "killing", "slaying"}
+        and re.match(
+            r"^\s*(?:after|upon|once)(?:\s+successfully)?\s+"
+            r"(?:defeating|killing|slaying)\b",
+            span.supporting_clause,
+            re.IGNORECASE,
+        )
+    )
+
+
 def _tokens(value: str) -> set[str]:
     return {
         token
@@ -554,7 +587,14 @@ def _reconciled_claims(
                 comparison = "compatible"
             alignment_reason = "paired-action-span"
             unpaired_reason = ""
-        primary = bg_span or ffxi_span
+        primary = next(
+            (
+                span
+                for span in (bg_span, ffxi_span)
+                if span is not None and span.material
+            ),
+            None,
+        ) or bg_span or ffxi_span
         assert primary is not None
         claims.append(
             ReconciledActionClaim(
@@ -575,7 +615,7 @@ def _reconciled_claims(
                 bg_span_order=bg_span.order if bg_span is not None else 0,
                 ffxiclopedia_span_order=ffxi_span.order if ffxi_span is not None else 0,
                 candidates=candidates,
-                material=(bg_span.material if bg_span is not None else ffxi_span.material),
+                material=primary.material,
             )
         )
     return tuple(claims)
@@ -590,10 +630,53 @@ def reconcile_objectives(
     right = ffxiclopedia.steps if ffxiclopedia is not None else ()
     aligned = _align_steps(left, right)
     steps: list[ReconciledStep] = []
+    seen_material_fights: dict[str, list[tuple[int, bool]]] = {}
     for order, (bg_step, ffxi_step, alignment_score, alignment_reason) in enumerate(aligned, start=1):
         stable_step_id = f"{native_key}:step-{order:03d}"
         comparison, agreed, conflicts = _comparison(bg_step, ffxi_step)
         claims = _reconciled_claims(stable_step_id, bg_step, ffxi_step)
+        bg_spans = {
+            span.order: span for span in (bg_step.action_spans if bg_step is not None else ())
+        }
+        ffxi_spans = {
+            span.order: span
+            for span in (ffxi_step.action_spans if ffxi_step is not None else ())
+        }
+        deduplicated_claims: list[ReconciledActionClaim] = []
+        for claim in claims:
+            claim_bg_span = bg_spans.get(claim.bg_span_order)
+            claim_ffxi_span = ffxi_spans.get(claim.ffxiclopedia_span_order)
+            primary_span = next(
+                (
+                    span
+                    for span in (claim_bg_span, claim_ffxi_span)
+                    if span is not None and span.material
+                ),
+                None,
+            ) or claim_bg_span or claim_ffxi_span
+            target_key = _exact_fight_target_key(claim.target)
+            if claim.material and claim.action == "fight" and target_key:
+                prior = seen_material_fights.get(target_key, [])
+                duplicate = bool(
+                    primary_span is not None
+                    and _causal_gerund_fight(primary_span)
+                    and any(
+                        not claim.count_explicit
+                        or (
+                            prior_explicit
+                            and prior_count == claim.required_count
+                        )
+                        for prior_count, prior_explicit in prior
+                    )
+                )
+                if duplicate:
+                    claim = replace(claim, material=False)
+                else:
+                    seen_material_fights.setdefault(target_key, []).append(
+                        (claim.required_count, claim.count_explicit)
+                    )
+            deduplicated_claims.append(claim)
+        claims = tuple(deduplicated_claims)
         if any(claim.comparison == "conflict" for claim in claims):
             comparison = "conflict"
             conflicts = _unique([*conflicts, "target_identity"])

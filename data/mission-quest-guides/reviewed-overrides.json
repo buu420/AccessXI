@@ -462,6 +462,7 @@
       "charge-blue-tester": {
         "predicate": "current-session key-item table owns Blue acidity tester",
         "step_selector": {
+          "action": "wait",
           "grid": "I-8",
           "entity": "geyser"
         }
@@ -522,8 +523,8 @@
         "bg": 766630,
         "ffxiclopedia": 1720865
       },
-      "action": "fight",
-      "target": "Orcish Fodder",
+      "action": "obtain",
+      "target": "Orcish Axe",
       "allowed_zones": [
         "East Ronfaure"
       ],
@@ -544,7 +545,7 @@
   },
   "legacy_action_migrations": {
     "mission:Bastok:3": {
-      "action_id": "mission:Bastok:3:step-006:claim-01",
+      "action_id": "mission:Bastok:3:step-003:claim-01",
       "source_revisions": {
         "bg": 754820,
         "ffxiclopedia": 1748519

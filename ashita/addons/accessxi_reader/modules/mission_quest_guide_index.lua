@@ -9,7 +9,7 @@ return {
     title = "A Crystalline Prophecy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9446c8d9806dc33dc1ec22fc4284b16ce124c1d6a311533636790bcdd53f3561",
+    progression_revision = "7eca68496933addc9b91aad3c41c7aebdb0d8bcee1c17d3898331da4a984793b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29,7 +29,7 @@ return {
     title = "Banishing the Echo",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "df71ce455a51f578d1d6d5dea8016354fabd8f9e60d44c426c8b2b2cb22961a4",
+    progression_revision = "f7c821c2a190b6a3e4da0f2dee0c01555e8aa87e29b16f8dad976a4f9e960c61",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -49,7 +49,7 @@ return {
     title = "Ode of Life Bestowing",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2dac529f2f1de5db338b41a1a0c953031bfc504745dc376deee489adedfc139c",
+    progression_revision = "63b29c2a754af90c41217e1f862c7caa4ca245c1fa54783765e5c83d121d664e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -69,7 +69,7 @@ return {
     title = "A Crystalline Prophecy (Fin.)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8f3f19f507df330cf92493e56f43de1c7d9f6347f050b52a842aa115c1b1a30a",
+    progression_revision = "135d38e8376171eb603ef4cb9a7694b7373c3a4b9bdb52cef272d632fcbffa2e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -105,9 +105,9 @@ return {
     native_id = 2,
     progress_id = 1,
     title = "The Echo Awakens",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3968c769e6e2f3045c6018921225664d53a554b215013cba6a812428772acdc3",
+    progression_revision = "2ffb26bab4e6c0e8c041bf6a0d80fd5c33239f654db1b503922f2d53f1ae68ee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -127,7 +127,7 @@ return {
     title = "Gatherer of Light (I)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bcadfb3ba2b5daac22ba745bb884f3138746223d3aad6e1d6b9a64d38a66ceb9",
+    progression_revision = "cf76edd4813b795969eac6d1f26ae87a2e7848cf9668385914b4a8e0b14164ba",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -145,9 +145,9 @@ return {
     native_id = 4,
     progress_id = 3,
     title = "Gatherer of Light (II)",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "899b2159f64e07e15fd96bb472ac8624864706d0f95f74fb1e9d78e4497ee5ad",
+    progression_revision = "ddc14d9a491eced628a1d2e4aeb4a5666c4260ff15082a5457a6e3e4ffd5c6bf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -167,7 +167,7 @@ return {
     title = "Those Who Lurk in Shadows (I)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3df598575c8c7365e8f3d0b7b22c4edd02bc69c93c69715152bb5414abe0a918",
+    progression_revision = "e4e8b8fd425c250fe70609ba3823f8509a93f23e4062745cfe07e9289f96f908",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -187,7 +187,7 @@ return {
     title = "Those Who Lurk in Shadows (II)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9833caaf7c0cbd79891b36eafc6f8f8a66d98d7600da91e7f37854dea8217cef",
+    progression_revision = "9b7615bb5b61141b0333a941faf4afd19a86adfcc2b98eb73b8ac259ab9a7566",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -207,7 +207,7 @@ return {
     title = "Those Who Lurk in Shadows (III)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4ef0cf3ccbea68cecac49384b5101cb0f695b0b1e381d71c46a0f4e112e57b21",
+    progression_revision = "feaa9fee9878e57993dfd1f691dcb9c177acb408fd169f662e2520ef6105007f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -227,7 +227,7 @@ return {
     title = "Remember Me in Your Dreams",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "44c1319c381e770fa48419c9c35cd2337fffba7ade905c325b32e0c9fbefc8c7",
+    progression_revision = "0cdb7da80f9bc736a9b36efddc0997a49a400899d64ecdb18d283fa9930b6fc5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -267,7 +267,7 @@ return {
     title = "A Moogle Kupo d'Etat",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6bb78ba00e6fe7c909abd151b50cca85174c3028eda5fe7a246ba67645df4da1",
+    progression_revision = "5739d80fbb174ca155eecf650fb66db89ee0994fcfc7477542c18919c3e89154",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -287,7 +287,7 @@ return {
     title = "Roar! A Cat Burglar Bares Her Fangs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7e3f2573bf6515e36dd9ca04ae6d21cd8b52279b30320205c8086181ccf19264",
+    progression_revision = "7fc8ddb0a4146dc3a6ec4458ce8a7e70265a40553c4de2a79bdb31b49d0b0a29",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -327,7 +327,7 @@ return {
     title = "Joy! Summoned to a Fabulous Fete",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "49b21ffdad653433be06aa861c06379522ac1e2da44a7204935ff2e03b12d76e",
+    progression_revision = "d54b133467b6baa7d8c65eba122be0d80f33f14bdd95e25753b3d8cbd91bf16a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -347,7 +347,7 @@ return {
     title = "A Challenge! You Could Be a Winner",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "66a0e6cbe40954ba111503542157f6ceaf01eba3ea7afd26b015f4a9b70e75dd",
+    progression_revision = "532e3020dec16473905438ca4ce8248da26920fda6d38d8b72cab8c1c969da67",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -367,7 +367,7 @@ return {
     title = "Smash! A Malevolent Menace",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "042b09c0fc8cbf757ce521955e96ad87c975aacd8057eb38c472e8f08c1ea4d9",
+    progression_revision = "277c7d8506a8293194e0bd1246d2502dbec18f9da9aed73c02300d302ce27a11",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -387,7 +387,7 @@ return {
     title = "A Moogle Kupo d'Etat (Fin.)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2141d9912bf80496750aa3a95ac61c9bab6f362e110ea4ab96b4f6f59c5acd98",
+    progression_revision = "333088802cc8e1494c39b984c322f56d7ec86cb53f1732549574e4dddb3cc11c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -407,7 +407,7 @@ return {
     title = "Drenched! It Began with a Raindrop",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4c21352dcc2d13be86f4ccdeddb49b66c6e6aba569897678f47ac97b29f7a556",
+    progression_revision = "054c8e4966c75a7d42ec90342c73f18cc1af9b27912d92c3c75e31af6da6e94a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -447,7 +447,7 @@ return {
     title = "Welcome! To My Decrepit Domicile",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b4b43ce20c53f5d6bde51af0a75f23ec5da7962769ec6c8070353e604033ed52",
+    progression_revision = "a4be82dc48926b9d4895996fcaa491d387a5ae9fca4b571f97afdb781a23fd19",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -467,7 +467,7 @@ return {
     title = "Curses! A Horrifically Harrowing Hex",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f8d01f0b6685822424b2e51cd37980ee991d6bb8d7691f7050ba5503a1c7e378",
+    progression_revision = "ef1a39a936924dc36bb357d76b0809dde70d05ac70dcab62be649869c6785c51",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -487,7 +487,7 @@ return {
     title = "An Errand! The Professor's Price",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "793081ff3906576f123a64d6f08bb1ffaedd52b3c54ce1f0dad41b0bc0ed5cb1",
+    progression_revision = "d834b588c2fed84c432a37aa4ea33a1652b85536d9422d2ca1de2a9e4a82ca8c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -507,7 +507,7 @@ return {
     title = "Shock! Arrant Abuse of Authority",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "29d4cd84a4f811a176d1a7e0d96b90d6821977f48528fea439d492398cd11773",
+    progression_revision = "480849954a1e321bedbb5a3a53ff401391a54ae098450a6f635d613b387737a4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -527,7 +527,7 @@ return {
     title = "Lender Beware! Read the Fine Print",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a92ec9cd257799a26c72b03c2cae55b5395c20c26c04735f9e25c24a64400d4d",
+    progression_revision = "8c1e20a8c55a692b8b3812bdc71d34177a8bd77c5176e1e4f7b6f0e643dc9581",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -545,9 +545,9 @@ return {
     native_id = 9,
     progress_id = 8,
     title = "Rescue! A Moogle's Labor of Love",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "eefd4b439b553fc78a2021792150270c627486f07552f202e0921606f5a46d08",
+    progression_revision = "e7f586e6239458201479a0f983ee1db623ca555f06e403281b78626b4d283f1f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -587,7 +587,7 @@ return {
     title = "Battaru Royale",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "249d645f646ef600e239ab88f6fd631a94b43ee5375e12d1d9f7da30481008f3",
+    progression_revision = "bf88cd4c78a437ff381ddf45905aea8fbfa2a1115c147694a03d01f1a920517a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -627,7 +627,7 @@ return {
     title = "Sisters in Arms",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "eed1fddf239aebebf01dc2635004b2198cd4a1ec132b3a8d16dfe375b86043b2",
+    progression_revision = "72d99ad44157a79b4d008031e8a0f5de9768c5fb486776650cc7be4c138d9d95",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -647,7 +647,7 @@ return {
     title = "Project: Shantottofication",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c47bf75ad08da7dc6761a83837985ccdb0eb6aa9dc83936e1515798dad0c7649",
+    progression_revision = "6a867abf38a532c299bba063ad706c8a73fd606cf59141686c59932800fef34f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -725,7 +725,7 @@ return {
     title = "Burgeoning Dread",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c651235dccf28be4600f9917e81990564b83740470a7945e9f255b92ca418b0f",
+    progression_revision = "2c6b6f2c67a9cc58be16b2d0d281430b40b57d9c03db9e3327b5cb985ce8b66a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -745,7 +745,7 @@ return {
     title = "That Which Curdles Blood",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8de699d12fbefc614f6b4f0a85827643815a798d7b94346d86f39fe0980cc7fd",
+    progression_revision = "80d28875b5d76d671d50d0e3ff84b3675dd75936d5e84bfe7ad355344fdd9bea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -765,7 +765,7 @@ return {
     title = "Sugar-coated Directive",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6eb6c97059e2cc673f4f1416ca71886e0fcfa65584cee9bf945015c65387ec14",
+    progression_revision = "3214ffdf96c0098058264c905b656ab34d791e673cb06680d095831e1ae7aa53",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -785,7 +785,7 @@ return {
     title = "Enemy of the Empire (I)",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "56c4c50a748846b75e5161c876adecaacc99710ae35cf126081c3c33013c86cc",
+    progression_revision = "0dc38448a21efd5c04c61da99fca9c8b602578a3c95910b739981e905adb67ee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -805,7 +805,7 @@ return {
     title = "Enemy of the Empire (II)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "be841d7623a4469d70f9be246a8c26a19b0b4ef7c8d8515f6dbb1074dc9f3cff",
+    progression_revision = "ef0217cf8e3f96af82e370de5e34b9ebf4f57888342fdb91d6f0fc8991c9594e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -845,7 +845,7 @@ return {
     title = "Shantotto in Chains",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7763aaad79f0a07cf6d332fdd9cf3282efde3edaae6e465078370f22c054fc6",
+    progression_revision = "fd75317439f6369fd74369e8628aca8efffcb735a76c3d6656cc857f7102778d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -865,7 +865,7 @@ return {
     title = "Fountain of Trouble",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "eb71003d4ec4f4e494605914dcb42de9c8a101e57e8f54d7f4db68e65b79e6ec",
+    progression_revision = "d6a541ad91ae19f3256f36cbcb5b1ad5433afe16db241573a1ae3a97d5e6b40d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -885,7 +885,7 @@ return {
     title = "Red Versus Blue",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "851bdde4d6fa778ed002ffb343cf01868d86de30430f946f875082acd2952327",
+    progression_revision = "a3f585c793dc05d4b97f7503d325dbc24f6d6125b3a53196faf5f563407acab9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -904,7 +904,7 @@ return {
     title = "Bloody Rondo",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "69bdd20fb90306f15d96bc475fec26ade1bc97a393a35b39b5f5d98488688783",
+    progression_revision = "3a935c0d3a8eaf3aba9022340b0e08925e449fc685e9f97a7bade15c6dc04e6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -923,7 +923,7 @@ return {
     title = "Imperial Agent Rescue",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "90cbe85d3ea1c00aa980d1f37c0db7ba95c8be6c00172b0ca1bbfabb5ef77049",
+    progression_revision = "e884eee49bab9bb7cad66246401c74218a795d3063b267fe5a4889fe9f3776d0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -942,7 +942,7 @@ return {
     title = "Preemptive Strike",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "98f25394819021fbef59d88f926d25b30cf776a6f780b355961d549122f7f27a",
+    progression_revision = "b5d4b4ccf5641a9fa4c293d3067f9f60e9b6eb49f914bb8223622e79b48931cb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -961,7 +961,7 @@ return {
     title = "Sagelord Elimination",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a6860de07f9d0f416ccaa1646ec496ec67f1fbc179547c7d9588629a65c387c7",
+    progression_revision = "33b8cc309fc151518fa75cb7b522b8b3ca92b9b7d917091228af75dcf3193a35",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -980,7 +980,7 @@ return {
     title = "Breaking Morale",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f90c93ae0b6d45669006c8cd9a25e3ab654b65f560313abe9831b5fab513975b",
+    progression_revision = "d1356878fba789da0401403fd046fd1b6a38aaceb1087733db80b120851088e5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -999,7 +999,7 @@ return {
     title = "The Double Agent",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3a91f98dd4549eb6e294e2b90cfeca7e5a86a75b2ea32ecab2f2b29131bf9d37",
+    progression_revision = "891f9059cf0cf23c0a3f7d4d23cee1bebf580f734dcdc055f8b90774ae65b0b1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1018,7 +1018,7 @@ return {
     title = "Imperial Treasure Retrieval",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ff7f2da29990d4d5de5e4cc682b92fb74c83063f555c168c5fd2793512086d1c",
+    progression_revision = "1faf51a6ca50da81536fe5e68abd7c5de03108d59073b9c3569ae449bc0459e5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1037,7 +1037,7 @@ return {
     title = "Blitzkrieg",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5f73263cac6aea6a8d638e25554a8154ea4e08aaa3297ff337c3487475caceb6",
+    progression_revision = "07db0b710aabdb3f121b78568f776d0b0334518caf6a8e2895ffb729a58b2160",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1056,7 +1056,7 @@ return {
     title = "Marids in the Mist",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d4ce0b201ac744d3c8d478230d73c14753adf7074bccd628eb0bf95b4bc54c7c",
+    progression_revision = "fc57cb02c61ed9f281326049ec07f8241eb5480532c3a03aacf490fee859b22e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1075,7 +1075,7 @@ return {
     title = "Leujaoam Cleansing",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "61aafad4b37dcfd3caef2af6609996b34e20bb1b5f226f6aae2dd871f5161fe8",
+    progression_revision = "59c709752d3e411a42ed4d6ca055ec5d7faf5b1b2d8f7ba09eae8f58ff49daac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1094,7 +1094,7 @@ return {
     title = "Azure Ailments",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5a8396961c6fae477d6de6d390a84d65c7526be326e981f81c581adf7b876cb1",
+    progression_revision = "89565a8cba5f5df9e41f1dd1a28052b1fe6de974d135b8fc18b416a48b69462d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1113,7 +1113,7 @@ return {
     title = "The Susanoo Shuffle",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6519d15f4d7322fa1c46ece3599c5fe4cf5b92faeb3ea574a050e291b5370b59",
+    progression_revision = "c32715b4f1c6b341270808fea9063bac74f90958a3498e07bbdb7aab668b2cb0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1132,7 +1132,7 @@ return {
     title = "Excavation Duty",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8828bc365293d0d168419c0736398f46953b8545815268b2a3146ba9fd383ed7",
+    progression_revision = "cbc6a6d335b75edfba8089113c042dd971ed7f92d0597870ee56aea4585c8e9b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1151,7 +1151,7 @@ return {
     title = "Lebros Supplies",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "de45cb498a4dfcb0d2083e94d23f6a3aff33ff173ac316efc5f1bd4a2c44cf74",
+    progression_revision = "21170f73d83296a11bd37ca799eb57e9c73504344f5fc7790e26a90fe15ee37e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1170,7 +1170,7 @@ return {
     title = "Troll Fugitives",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1ac41abefc9a3cde5bc2f2fe2edff8f5c81d810a9089dfe77041e0cc2a9fae6b",
+    progression_revision = "7c8f8f7d42c973e2002c23425c8a962a4f7212e11d7eabbba3a9daa3c687be41",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1189,7 +1189,7 @@ return {
     title = "Evade and Escape",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4ebdaf27249e70be54a2422c8296b451558849944ea216a1629b24df1cf1cefa",
+    progression_revision = "f744c0ddbc270110fb1763c238f643b884a023dc6d83d524e73d3cb64067e04a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1208,7 +1208,7 @@ return {
     title = "Siegemaster Assassination",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ff4fd5ac417c481a3bc2a6034a26a230a01d8136f9cfff6a6e85e7696826f334",
+    progression_revision = "d1fdad4af9fe9a8730bfe616cf13a88bacace6b8b5ebbae96b8f5a61a3105849",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1227,7 +1227,7 @@ return {
     title = "Apkallu Breeding",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c26d04c2cbb97c5d65efaeedcc2aa3bd34f8dd49243053f1421dad2d97e06610",
+    progression_revision = "67fb6f13f347e20056482aa27702ede90fc510656bbce90c1e386f5f3f349343",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1246,7 +1246,7 @@ return {
     title = "Wamoura Farm Raid",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8885da8df873180436a93b8b63b1e893ef68b761ccd65548cd207d8d71204ee7",
+    progression_revision = "72f62fc0d411539303910f4bced4007fa064ce62c04c68073f95501b7da8350a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1265,7 +1265,7 @@ return {
     title = "Egg Conservation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b32ff3d8bbc93e6ea964e3d1c6fa98450c9e5755e3106e589dac24f5cb3f801d",
+    progression_revision = "f680bd5b57039ad3d22f7b2236e45c433211cf9b41f39e2bc9140ed6f566f1ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1284,7 +1284,7 @@ return {
     title = "Orichalcum Survey",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "090aaa6893fd000f0d2ceeb1643a2070e3f593f8272d72aea2b8b20d491b268f",
+    progression_revision = "ff965cef0091a084434e72fb4c62dcfe0278119af79ac3ba363613b39b008933",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1303,7 +1303,7 @@ return {
     title = "Operation: Black Pearl",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f6c5888fd21b7928581897555e01f0a9b0bf0e603e9acc4510794933758f199",
+    progression_revision = "c1b85b70bae46d5d2c46248a2a736d17a8b2fe93ebcd8ee163cd0bba3da4fea3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1322,7 +1322,7 @@ return {
     title = "Better than One",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f29207fa90bf6e16d9c8bf57720fd42bd53b89025deea0099c776c0f52f00c43",
+    progression_revision = "bc05d23466aabb01a9259fbfa597e14c61f1677fead7921b319c6c76d2d90012",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1341,7 +1341,7 @@ return {
     title = "Seagull Grounded",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7f2b8e8df2091fcae1d4971c14a3c27775c399c750d87845e4b7fb6b5758ca2d",
+    progression_revision = "ebd431652eea0c019e3bd59eb3375575e4a65e7505a4ea986c8286530e961572",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1379,7 +1379,7 @@ return {
     title = "Saving Private Ryaaf",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "54a5f6acb2f3d9e104951ce23b607ddf8f47e4eb4b70178ab249f17084155a09",
+    progression_revision = "568a5e67dfa040f9b7e7341e1d722989b82591f91414df36a9208735ba843148",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1398,7 +1398,7 @@ return {
     title = "Shooting Down the Baron",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e3502d844338a09558de5f06598c2220839b97ebdef97c1688b2bc105007654a",
+    progression_revision = "82446053b47976e2703ea61f3eb4700bd51a2a52ddfaa558f2e4c42bd18bb3dc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1417,7 +1417,7 @@ return {
     title = "Building Bridges",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a820f81d83fbd10effe7d96c7190a140765d13fd6780d6d5c8d84846849bc6e5",
+    progression_revision = "408598a028f288a70ff859bb853b26d76fa2b03cf72e67d4abd13ee76caae3ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1436,7 +1436,7 @@ return {
     title = "Stop the Bloodshed",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a79f7578cf5786cf7aee50a8f2ef29e4a138df157538c2bcd3104b3e737cb273",
+    progression_revision = "ecae9b0eee9edb26bf9198a5af0399d8aae4b2fcd4164e089b6999528675222b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1455,7 +1455,7 @@ return {
     title = "Defuse the Threat",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6a9eb69b270dd937a77994be24c0a13b3d24fd4eb55c586ed0060d208d27c085",
+    progression_revision = "3fad4692d724ba55565c2776c16385e699e66dace86074a0c6dd44746bbf7594",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1474,7 +1474,7 @@ return {
     title = "Operation: Snake Eyes",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e3c8a852878e58ee7073e2f246f531ea864318d7384c41a442233e39accd4721",
+    progression_revision = "0b4884c25f6e7329c6a882816152fd4d5f2b58fcec2262e20b01a803a716944b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1493,7 +1493,7 @@ return {
     title = "Escort Professor Chanoix",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7a1116d4b42ca1ac30ea7e03801060c15db557c0b0410fe55cbe6ab1db92ac65",
+    progression_revision = "f7a659e38939d0b1dfe0a2791fdaf88475552c00cfe1d3ff4c8c422798b1889a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1512,7 +1512,7 @@ return {
     title = "Wake the Puppet",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d9298b86ede69c7e696b534324a1869a86c2745d151f2dda92b986d43095fce4",
+    progression_revision = "85e3b54b4141936ef130c9bfd60ef67da61cb8e7fe1edd6119c9a58e49411968",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1531,7 +1531,7 @@ return {
     title = "The Price Is Right",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a166d828b664189898dc885b8aefcc6637402fc5b020e40cdcce32ecf10f0781",
+    progression_revision = "b4548703d105af8193670d8a478f642f84bf66edf5fe575a3d2f119cf55f5e25",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1550,7 +1550,7 @@ return {
     title = "Golden Salvage",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ddcbbc358888e825f14cd9d05db3d3084a039c1d23da33d52adef47cae34a2c3",
+    progression_revision = "0bce5a53de3a501403d552aa227b95307de5677add4ed78745abb155824f4ac9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1569,7 +1569,7 @@ return {
     title = "Lamia No.13",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3ef06b1612cd6eb1988f04067eb0fd44b8b46e146759cbe8b8841e9cc2121c27",
+    progression_revision = "593a62ee45e6f1d657d17c15ba2d1570aff924ffbc05e8a3e91d331c297083ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1588,7 +1588,7 @@ return {
     title = "Extermination",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2fdb3690663df0351b94183ddfd964a72ec1f7b9459b6284860bc530700173f0",
+    progression_revision = "41d1e784e33ae17e6c46dd8a11cb4fb9d77290318dd22fd8e4e48fcd3dd89f2f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1607,7 +1607,7 @@ return {
     title = "Demolition Duty",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3cc306bd13b54ed7b991c464438486c53da80087507d0d19f2dc22a953dd3d50",
+    progression_revision = "a956cb5cec923568e4f01d8d55b8f4d63f3673c2aa52ece5bb01a0a009b44ccc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1626,7 +1626,7 @@ return {
     title = "Searat Salvation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c1716b472fadcdf3714665bc72e9d2cc99f53c3f66fea4e3fc1a5fd03612b5f0",
+    progression_revision = "5b977909d5a0b251d5b641d2b68470eb250cb9973d0f2c610d55fc3beb0d7725",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1645,7 +1645,7 @@ return {
     title = "Apkallu Seizure",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "70f9957ed818e64f710fb8435b8442caf7657bf9562253ad3e0d1e2c37a1e278",
+    progression_revision = "be8b3c03dc0525dc0f3bbba1b2ee1570afcf8840bcded0fbb898cb51d6e82a7d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1664,7 +1664,7 @@ return {
     title = "Lost and Found",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3601257c7751c9c0912777935af10d08a23863356f5f63f4ed1e483d532e050d",
+    progression_revision = "0655a62b19feffb1b605fae6597786b2cc29fd916509085c1424876c5b09dea0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1683,7 +1683,7 @@ return {
     title = "Deserter",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "900a6cdd823a15afc707918cb13e056dfd0e54707ad14d0068254f22d28b5406",
+    progression_revision = "72f85029958946c32948292d1b02946077e6daa2b9c2daaea39b959b330103a1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1702,7 +1702,7 @@ return {
     title = "Shanarha Grass Conservation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "000e2a4bbdd9290a8cdf6bc7576fa87f4ec799bc2bee1dd3954bcd97b0917f0e",
+    progression_revision = "54e9100cf85ce8a05757e2a68f4857b1fdeb25564e09c42e11648c9cbf95d98e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1721,7 +1721,7 @@ return {
     title = "Desperately Seeking Cephalopods",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e42fdada78a496eac2777d1673726014747353cb681743e3d8ff9fba68d38df9",
+    progression_revision = "bfb12d9b9de77172a2002e7dd40d76cfcd35acbdabfd58f1515f43ea4a2a449e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1740,7 +1740,7 @@ return {
     title = "Bellerophon's Bliss",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0b9416621e1c4af15d979e7b4c8305207c845c1b3be45b13450a146ddd786839",
+    progression_revision = "4fc796d4394efac7d763e0f7574f9b34892bd7ece07d526a9070a83928101c9c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1759,7 +1759,7 @@ return {
     title = "Nyzul Isle Investigation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "32ca7126e15bb33db1893ab37010f9b1cb830bef295424e14ee50a798640c81c",
+    progression_revision = "bf3ae231f8cad3aa48124827ec0a0c639898658108e4b5ad7e3f70dead162502",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1779,7 +1779,7 @@ return {
     title = "Nyzul Isle Uncharted Area Survey",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b4145938e939669ac37b093d942b28de7f48d7391e2bd3474f9bbc9f0a63e386",
+    progression_revision = "ed9134a7d619e934fdb3c7f42e75fafe2b2a469646881e0e582f3e21da591589",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1799,7 +1799,7 @@ return {
     title = "Counting Sheep",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "538f4307199c4d84b1b5a9a46a1a632a891442d556b710688411408c4377eeec",
+    progression_revision = "4ef32b5b92b2fa8a61dca0d810d87de6855b659b540d179e0f6f69d57141297e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1818,7 +1818,7 @@ return {
     title = "Supplies Recovery",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b3f336d6b1eba726852d3ccd4eef87fb11fb36873daabd7d4fcd1c1cae0b6f2e",
+    progression_revision = "540f78ecc7ce021252f314f34e6c1a556429600fc14c2d0e5c67eed9dfdd8498",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1837,7 +1837,7 @@ return {
     title = "Azure Experiments",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "95582e063c7351e94e079fe495d8b0ec43490b0342f9e1a2af537c83ed3a70bb",
+    progression_revision = "4ffb0bf139df225147c96d1e96f15c7adfa693fe5e7f008a11fec25b40ec1def",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1856,7 +1856,7 @@ return {
     title = "Imperial Code",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0e78e65d9cf1d34bf15fcb1f326ff8af86ea7c33563182895cbd2bacb1603316",
+    progression_revision = "026b5069052866ec622abbe23aa747ef00139e5a356c83bb690b8249fe5741c9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1875,7 +1875,7 @@ return {
     title = "The Zeruhn Report",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9f9ded04b163844330f60d4be94e49963c916446960d6b51293fcb60066e61ea",
+    progression_revision = "288e720b1f67c3a6f93a9959bade96149968ecd65100e6c1d2f7f8bed623e092",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1895,7 +1895,7 @@ return {
     title = "The Emissary (Windurst)",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e487d42242dd250f0661d4ea94d8618304fcad7b5d7a791b6cc612ec9cd3afad",
+    progression_revision = "7ea870a409e0cfe819fa234b38b7b59d22cb46f2f552d834c60555f5e25e38d5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1915,7 +1915,7 @@ return {
     title = "The Four Musketeers",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c69f5b7ad43f7ca199e7bd26d7dc1bea4021e5a75d6844d73e670a7494e5ef54",
+    progression_revision = "8306719e597985b08af797b47087a9186b58dac54b79c34adc2592998a3d47e6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1935,7 +1935,7 @@ return {
     title = "To the Forsaken Mines",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2305ec6c8897506838bb12291717d5a7941d3e3491e6529e42fef064bee4e9d8",
+    progression_revision = "a16651277646d883fd890939d1d4b89af3fac94e60c54622003a331a49316634",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1955,7 +1955,7 @@ return {
     title = "Jeuno",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d9e90cb58a392ba80d78837226a1b8012f95e47779287bd5ef4618c22fea6763",
+    progression_revision = "6f6698b87cd5992e868a46cbd8c3b54f5dc7ddd1c8ec4508cedda4b72cf244b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1975,7 +1975,7 @@ return {
     title = "Magicite",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3f322e9b85c5a7ded3fbe3ed75e8e945d7154696645e8f2bdee3df4e32710de7",
+    progression_revision = "0c6088b33f48169155386937bd733dfda175055f4059a08eabb16d4f8b061e83",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -1995,7 +1995,7 @@ return {
     title = "Darkness Rising",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d78eb35481130a8b063eedef68215a7cee861be70b421717aeaf53fadc6065f",
+    progression_revision = "dd8a04fae236714c48c97f2f854ba795958cbf8f37cedf8928ef6b5754a8253d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2015,7 +2015,7 @@ return {
     title = "Xarcabard, Land of Truths",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8398492e1a12bb818633a8666e5542ceb117f1fc246f901a1469b32017a84386",
+    progression_revision = "e2c4bbc513a108924a25f3a755131dfb500f5b08d658cfe3c9aada0ac2769015",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2035,7 +2035,7 @@ return {
     title = "Return of the Talekeeper",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "93b803a76b208ca74446f3cb4e802a2801f44f8733c602c57561936b97df99e2",
+    progression_revision = "0510b86c91fb26799add17af6a8f91b0097037b96d4afc9d4696c417fef4b417",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2055,7 +2055,7 @@ return {
     title = "The Pirates' Cove",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "43b41737eda80fcec8a8891235e48213a7b5ad8b82b0589f4160457bd85ef606",
+    progression_revision = "7ac0853a14bc0ed34c719dd7cd0a26b23497a423380fbd10e409538beb8bff62",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2075,7 +2075,7 @@ return {
     title = "The Final Image",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e50eeba7d772db3c66abe2147457d4f06ae68a0f2b0dd676b713e1f8f91490de",
+    progression_revision = "cd277c1a53be65e1977ad7b9af33db3e64ed6ef0e894fcf375f012dc9e710a70",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2095,7 +2095,7 @@ return {
     title = "A Geological Survey",
     status = "automatic-stage",
     progression_schema_version = 2,
-    progression_revision = "8d41002d72b8f2e14a61fed2f3f9333b4ce57ee413f0a17082fe7550c37f53c1",
+    progression_revision = "33cbe9f2e5efa064ddf5f97b955c23921ed70e142296abd1230965f8f8e2fed5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2115,7 +2115,7 @@ return {
     title = "On My Way",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "266c2e07e6d57a78766ffe154424a1b9f0b2b217ae3ce6e0f053a7714a46d36d",
+    progression_revision = "834abe25b6c43e60680a9cd7fcde10ef1dddba62975a31f38d8790b2f733e607",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2135,7 +2135,7 @@ return {
     title = "The Chains That Bind Us",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "adf7a7b8b084517e334a69880b991a7430d107fb7a86794609ff25b1007ef050",
+    progression_revision = "89d5be8d5ae359866774264608ca6bb98cb7a059d3321c85e109261358b7321e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2155,7 +2155,7 @@ return {
     title = "Enter the Talekeeper",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "58190fb00ecbdac3e76fabc653a38e6198e807619dbc8d812942c2e4e306969b",
+    progression_revision = "386d4e7bcde074031bc2e66c575213a074c7ea84f83027c600587593bef90b5b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2175,7 +2175,7 @@ return {
     title = "The Salt of the Earth",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1798c3a6892971d93a5dadf8987bb85fe4f51b8172ff70b99d04ad4955dc1c93",
+    progression_revision = "3d90bb2a201671ee3bfb022789b07c922e86e41077d203a6947543f6578bab47",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2195,7 +2195,7 @@ return {
     title = "Where Two Paths Converge",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d8605aa13e4e897ef128e28e87a93fc3ad402887508db9d8df114971a8ea8977",
+    progression_revision = "83b28970f32b5b2c71ccf819fb6c13def8f6d249e0b95abaf10ca2e3bb458610",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2215,7 +2215,7 @@ return {
     title = "Fetichism",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ac24a0a8a3be12a38dfd71ac36bfc402129fa09edafd1ab77f9e3d04e14c17d1",
+    progression_revision = "31697232dcb68ed367c401396d5c53e8d06a92365640cb0bdafbedee11a8eb09",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2235,7 +2235,7 @@ return {
     title = "The Crystal Line",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "02a0b86e6b492d5c2479635cdd0e83531eadc9f057557efcf455d7ec51f686ff",
+    progression_revision = "d34ce1f08c912a3bab31a1ae6342843fdd6675c48e5a0221cd7b697edcb8ad66",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2255,7 +2255,7 @@ return {
     title = "Wading Beasts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "61b918130105fc6b33d91e4ae7de1225e78c3b4a8732d5ab1c233537d504b39a",
+    progression_revision = "6ef965208517a9889bce82a5e69dac2d865f9e56644451ffe058c865ca761f38",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2275,7 +2275,7 @@ return {
     title = "The Emissary",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f4de81a1384267d1f77ef21a1be16364a9b6f9d597cedede27fd7719048cb179",
+    progression_revision = "f2ef9346671114bc446ded483014b687a7ad590f9879693ba601a46b46f496e7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2295,7 +2295,7 @@ return {
     title = "The Emissary (San d'Oria)",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "eb9b987a1e02b36e814e0973bcc41b9e40db58eafaeb70397811267e059a0e48",
+    progression_revision = "63791b5a04063876316a8aef71759421cccee184c60adf12de12fae1205b8c6d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2315,7 +2315,7 @@ return {
     title = "The Emissary (Windurst)",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "519630ad9d0638e1caf8b624859dfe04f69db7e490f80b973545017ba5a4d3bf",
+    progression_revision = "23294b6cc67d7afc311bcdf0e4a7ec707acdcb44cda8249882dced888b34c03d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2335,7 +2335,7 @@ return {
     title = "The Emissary (San d'Oria)",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1087087d1f665d1eb7dbeba048da9819f32ef1489300842b2d18e00d17d0377f",
+    progression_revision = "057245b8c0ca759ff26be9d62eddaa3a8e09bb7039f160d914dfc62b3f5126c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2355,7 +2355,7 @@ return {
     title = "Lost in Translocation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "83f18812aea7964142aa43a6e87edbad7bdb67d5e5ed4f472fc354be3453be25",
+    progression_revision = "61f10d8c29f0d5eb869c091621b3511dbbed1fe343e919f492ca628fb1f274c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2375,7 +2375,7 @@ return {
     title = "Steamed Rams",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0434fea1b8daabb848b848dbf304ea83152c2f34619e9b6d6d28bedcea1e8d4b",
+    progression_revision = "3cf9238c6f2d9ed3a4327432b6f1d5ffc36df9eb6c67ced264a4776c65fc95fe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2395,7 +2395,7 @@ return {
     title = "Seeing Spots",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ba6dbe70b5394a8dabd70a594e8cc4392387c78733bc5b550efc971f68363e2f",
+    progression_revision = "da752847c7b8f1dfef59305ee91a9048ae12a3ebc94e15f47cbf6770e78e0bd6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2415,7 +2415,7 @@ return {
     title = "The Flipside of Things",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "369e18539a98ffbc660dc843b10ce75c4f3f71d8affd8cdeea3cd6f15fdb1dcf",
+    progression_revision = "b02729e1e21eb445d8853078785ed4fcaa2d24374c94d3b35a98935d9fd65b27",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2435,7 +2435,7 @@ return {
     title = "Better Part of Valor",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "aa92bc6e913ebe1f3afe0c9d9d1c2e73127e9ce2994eedc5d6a6896ad5b84c52",
+    progression_revision = "0ebdb03cb90781a5820b2484e29ecbc24e8d126a463688f3d8b6d16e2983f59e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2455,7 +2455,7 @@ return {
     title = "Fires of Discontent",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "40d08b164e607069595a820d9f45983fe0858792221103c3671343adb2835828",
+    progression_revision = "451918fd30868ab3a260c5d41b1900bd94cfbee85073b1e6f092deebd1433e37",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2475,7 +2475,7 @@ return {
     title = "Hammering Hearts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8939c00ee95672c3d27997fb92884ba26730ae162240e1437323c88221c3a216",
+    progression_revision = "80f9503a9b38f4f6866cb9b30297d6340cc5727a117bf60b98e9312e06ccad96",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2495,7 +2495,7 @@ return {
     title = "Gifts of the Griffon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "93e5a9af1c0b37c07bf29cd8b05ce3fd43728490f3907d87ab734ff970c27676",
+    progression_revision = "0572371f9fe61afb3ead0f2762a027fbb2944b0980d2503a91c3192737613bfb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2515,7 +2515,7 @@ return {
     title = "Claws of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a8dd43c647c79ead80f43eb86ef6032a4e230d375ab1ac8902de2abeac06649e",
+    progression_revision = "0b49363490b75bfde8bf2daca32c38a3224c3f9312f6bd3fce6f380e86bee342",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2535,7 +2535,7 @@ return {
     title = "The Tigress Stirs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d417c4abc40b9a8af514f48416f1d23b8c9e319b6a19446ff792598a8766a1fa",
+    progression_revision = "3990db221a472ff1585fb1eff794f2a45961e8fc4e4491f6a9dc28a6954ebd1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2555,7 +2555,7 @@ return {
     title = "The Tigress Strikes",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2d6002525dfa7eef14c8577d67672c58ab34fbbbf394d09c779ebec5793cf36d",
+    progression_revision = "f8f8ee2cc7a96c907b42bc126f7aeb058e6033670658455548e87bc0aff40d26",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2575,7 +2575,7 @@ return {
     title = "Message on the Wind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a1f0ea3680813b25ca598f728cfd45d7dc95088658309c7d8cb2ca005eeb5795",
+    progression_revision = "958fde36d930da6194b7438fe1869feed0af9808aea479045c0e387b45d49704",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2595,7 +2595,7 @@ return {
     title = "Light in the Darkness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "426b782fd954d05e569f920c94efd611363354f7f1b14380a3690be387e76596",
+    progression_revision = "215350214a624ff6e3bbbc8ba8b53c2b2c2a823272a1b551ad8aee7789b8a7a3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2615,7 +2615,7 @@ return {
     title = "Burden of Suspicion",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f1e0632e38eb6a8894bdd7b3f749c7dc93678db57d7ce9d9f82c95ba05825404",
+    progression_revision = "f6271a35e4a17d9e57a34778466386d8334a4b17571577f0343f8f2b87a762ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2635,7 +2635,7 @@ return {
     title = "Evil at the Inlet",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "938b40a414f5d5fd255059bc52d384f0df7c7e91955bf21ea0a2391dd7aeff97",
+    progression_revision = "6626b2fee62ab5b7046d3cab088c710e3ec41b0e16eb421dba7544538e8e0a8b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2655,7 +2655,7 @@ return {
     title = "The Fumbling Friar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3557f1af3bfa34039ac4a5cee1920f3fd0bc7b33b9d9617098e87346f90b91aa",
+    progression_revision = "fd5d1660a3f2df2d140695231858cb25405d51533465defa9d91dc1a60b073c3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2675,7 +2675,7 @@ return {
     title = "Requiem for the Departed",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a47788ecd0cdecc86ecc2510cca387a15299a4fce03415ef3012951a77317f2c",
+    progression_revision = "1543149f1f34fae7e474e4cc42f35dd72b98c9156f0a28c6fe0f1689a5bc13af",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2695,7 +2695,7 @@ return {
     title = "Boy and the Beast",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "848dd1675b263b5bc826a50b34e285fa29fc7cbe1a5147b70453c5792c8f39d7",
+    progression_revision = "170228ed2924a1fcbeeb6bfc3f8d5c3a75963e8b654a020f3fc146ecc81a64a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2715,7 +2715,7 @@ return {
     title = "Wrath of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7ef04c31443f39853e5022d62696bc50c9f140aba032cd77d4977c15114ceb4",
+    progression_revision = "cb325f0beb4bca05f934bc7a6fa85fea2dc5ffac704b6ae4963466b3ffc58d43",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2735,7 +2735,7 @@ return {
     title = "The Lost Book",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a5efc16f469d86a8a4e09da84d9c7f9cbcb026f59076f1a12d7d7c2297e4b12c",
+    progression_revision = "b886eefd68dbc06de7d66c5810a47e84accb70ea6ea856f2c9291fd6e14c7ff6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2755,7 +2755,7 @@ return {
     title = "Knot Quite There",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "61cc3848bf36a0595a452a23f56445657e21dc3b142fb8b822df76ee074c7b3d",
+    progression_revision = "119ef91cd440e2b471a8f517e7538f2bc1444259ff3bb4ce2a13b33617712544",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2775,7 +2775,7 @@ return {
     title = "A Manifest Problem",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2c25c142ddbd0f5e792eee55e19c5af4544e4ae29d2364abc795f87ed75c2e25",
+    progression_revision = "cc96dda0bcd2337868701811d6c06a48d4d7aeb47d405bed114fe69737f8f28f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2795,7 +2795,7 @@ return {
     title = "The Weekly Adventurer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4623aa7c7e69a109306fa22a08a60e83fc519b93fd6a90ae515b9a49b49036da",
+    progression_revision = "f28a9b48fba1fce1f855eca0946d18a719d9edbb4633baceecdfd68125eebc49",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2815,7 +2815,7 @@ return {
     title = "Beans Ahoy!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fdfa92bb069e48e35edd963ce0fcb8890cf357875a19606857682a756744f29b",
+    progression_revision = "a34edd53a983a5d714764f2daab8e8fa67c1e7a720cbe78e0aba4677afa24478",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2835,7 +2835,7 @@ return {
     title = "Beast from the East",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ec701adc26178c839b7267e4d301c78cac21f22847bfb556e8e4cc6b8061943e",
+    progression_revision = "ef320d1f990cad34e40e8eb7e05ca4e7bda8ac6d3fd591ca150a255d2f7ca5fa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2855,7 +2855,7 @@ return {
     title = "The Swarm",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "30be2a5e7d704e0478941cb8e561131f112e77bf98c7a8cd797abd383316f494",
+    progression_revision = "8cd4092b8923a3d96011b18d67a4d961ac1dc5342136694424c2cf0223791b61",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2874,7 +2874,7 @@ return {
     title = "On Sabbatical",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9068443d2e396c38b802d8d819f439b96f41c8458fa6c435421f77d4b44a9477",
+    progression_revision = "6b2a4eb7b2c2f3e534104d8cbae12dd257fecbc017ef6eb4050a11e6c2d38449",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2894,7 +2894,7 @@ return {
     title = "Downward Helix",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7c10f3937cea2abf46d7c8a9b706a9975e99e0cfbb44fe205c0e2c0d0f09f746",
+    progression_revision = "fa97b826874a8fb012886a75510309b54f930f47b5ff848d51a18eb5bae198ea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2914,7 +2914,7 @@ return {
     title = "Seeing Blood-red",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "121b5a01b37c343b0644d2fb7f36671625c08b5420dab7c2757c5500f979a1f5",
+    progression_revision = "c386c335dca796ee505c486d3b8e9ad2f847e3b4e637109601574bc3c8c4e1f5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2934,7 +2934,7 @@ return {
     title = "Storm on the Horizon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6a7bab6099255e9a2393f70e0e6a2c220e231cb0f5f3084f66c2beafb06cee8e",
+    progression_revision = "5e5ccf05f4904518977fe19c0fd57cae8269f5cd8ac448c5f62570eee03c9450",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2954,7 +2954,7 @@ return {
     title = "Fire in the Hole",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "af334f78c0e2582ad8e5d458dffd14fd6f4d32d6fff171faf124d2474d01b108",
+    progression_revision = "de5999874f070e8680ee1fd52e5b4dc805aa84233ef7fcc4278ed18ce84150fb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2974,7 +2974,7 @@ return {
     title = "Perils of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8031d82393a08008ad6e48e87b04aeb70bba06f5a09f0585f0d3027cd836ddcd",
+    progression_revision = "bffe714d39055613af1d3460093be3b2927ee9642674f012249dad6609933ce6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -2994,7 +2994,7 @@ return {
     title = "In a Haze of Glory",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cdc47004d48bda38a91bc04d7d34e53a90cf64b007004133a59318fe49a32505",
+    progression_revision = "881ff2c6e41f44ce3a8eb9b5f64391c99770b74e5eee96676fa2f7d5d826d986",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3014,7 +3014,7 @@ return {
     title = "Healing Herbs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0112009b223bc096ee886c865320107a9b14eec9b5c48c3d8abc76597e2bc31d",
+    progression_revision = "533eeca415934f85612fa73a32b692ba7eb64e662e06661b638317b29373c052",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3034,7 +3034,7 @@ return {
     title = "When One Man Is Not Enough",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "268a5f050e22c63c36483deb649d9ae269a45497208c4bf24470a7e5129ec5cb",
+    progression_revision = "fa073811a2d41f2df227c71b3be7761c65ccfb3954bec66a85f0660524ad27e2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3052,9 +3052,9 @@ return {
     native_id = 41,
     progress_id = 40,
     title = "A Feast for Gnats",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3060af730787f2fa476bc19ac375ac86015a046bdeecd759eb114ec036221c91",
+    progression_revision = "308bfebe94cd3ba018b6158ef38da34cd3e4d9eff5fd4884cf253429b5ce9de3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3074,7 +3074,7 @@ return {
     title = "Say It with a Handbag",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "727249c95505e020ec3dc8075f4fd6354174ddc36ea2040ae2d4d9f41d7bfbd3",
+    progression_revision = "6720f213d0ed29327ce781d483f87569a2e2ef40b6e59b587ae7634c21c3dac3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3094,7 +3094,7 @@ return {
     title = "Quelling the Storm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "20bf9ba8efcc349b83ed35175145c8ee5b5b934cb5b12a4c04f79b1a272874b9",
+    progression_revision = "39ca1c40ec41119c0785836676dc1de9c925659fd887f4f7da4bd4356deef464",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3114,7 +3114,7 @@ return {
     title = "Honor Under Fire",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b1ed88eb90444497257c758900f21ba5fe09133d01362eea565b0010c363a9cf",
+    progression_revision = "c8de2223b272fbb5f16b6c82b53ed6114359b0c5f3b7d021f206ed06e80ff958",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3134,7 +3134,7 @@ return {
     title = "The Price of Valor",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c67bdb5dbe5d0765c4517ebe729ec78a6d1a742e20f877d4402ea8f83211452b",
+    progression_revision = "73b2f4d2465ca7e94d7e5f08a291103e8f6434bcac17ada86fc3fd2e1a27d080",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3154,7 +3154,7 @@ return {
     title = "Bonds That Never Die",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e113b48c9c39a1b9d1691d999252867a9ee4be9b9de6dabc7ef35180ee3ba9fb",
+    progression_revision = "c05897ba70bf989d94256f3741b3a9c39cf4f1c81a8f1502ac9d8b56927021a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3174,7 +3174,7 @@ return {
     title = "The Long March North",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d260277d113eb9e8ec078a96fae4b92ef749740d049fd7709b767fc6815fb043",
+    progression_revision = "32bc4cbcfd617b24e37122138dd38b50fd13b51368c00ccd76d61d02ae516acc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3194,7 +3194,7 @@ return {
     title = "The Forbidden Path",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8593cc183f8bd5493289f87ee77fd709ac1cab6e404799c4c611732c77ca792f",
+    progression_revision = "5ee9ff61704f6a6e0c9e7a2825f8eeaf5e22398822618ae9d63ef9d452d04185",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3214,7 +3214,7 @@ return {
     title = "A Jeweler's Lament",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c39b7c54dd440fd8ba7be1718398ad5cfb499fc4d1d7845bd606f630489eafc8",
+    progression_revision = "5f7a54b08180ea38839fdb3b5e5903a0c41ace4aac36e2de5e61bf20af81ae8e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3232,9 +3232,9 @@ return {
     native_id = 5,
     progress_id = 4,
     title = "Redeeming Rocks",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a6415d59e64fb558506b0552c71dff30a9b3f54cf4cd251a209339e4e411699e",
+    progression_revision = "c799ec1f1f9ec0aebda25c2455f239e6b7f1a0c5b000f4d7699331b76be01e59",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3254,7 +3254,7 @@ return {
     title = "Beneath the Mask",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2e6a5d2a0da1eb67d6c2f3ba0ce74285a87b6bf31acafef6a7c5b71a43cecff3",
+    progression_revision = "fb305ce2c82504ec3a3991c0861cdd1c61df6868b08807072b4e9599679df740",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3274,7 +3274,7 @@ return {
     title = "What Price Loyalty",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4b2b5d53533f2f1920c95047987ad480146637fbb9f3eea1859da9b00785f012",
+    progression_revision = "8fc322f6dcd1c22214a5500a483edb572e5bbcbe907cf05bafe36a06ba3bbeef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3294,7 +3294,7 @@ return {
     title = "Songbirds in a Snowstorm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "be24ecd7a5e79839b20d892a67d7efde7b871b201d6a0ec2a9bf9c3fcdb35338",
+    progression_revision = "a3429f10ca75d97eceb4952ba9ac5fd832af9781e5626de74384b4f95325c077",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3314,7 +3314,7 @@ return {
     title = "Blood of Heroes",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7ac914d3de549656decabc8f7ce9c41d991fdab1cf5f8eb132e102db1861ec77",
+    progression_revision = "99109edf6c02dce1d649c5fc6baa58d2f9bd537e427db54cd776144c9608ab3d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3334,7 +3334,7 @@ return {
     title = "Sins of the Mothers",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "07332ec5e90bbedff82a480ac885523b906c083a71c2e19050ca47f89aff17ff",
+    progression_revision = "87edd521fbd14d148f3c82f955662b1ef7253f7e556f2ba18e95c4d15b194182",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3354,7 +3354,7 @@ return {
     title = "Howl from the Heavens",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f3f9014343b0441653f33d222a008de8c0d1d26877b73af674099ea317753257",
+    progression_revision = "fe124355facdbcbc324f71e40617765c6b1eeabd1c9e860dd1db4541d2e11df0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3374,7 +3374,7 @@ return {
     title = "+Succor to the Sidhe",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8265b00990ab1fa59713947173a2be1664e808dd2b2b183db5df09828862a6b4",
+    progression_revision = "73ea6d156d31261b1a047d0e1d02afab000728e40d383a1e854b604e1430d802",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3394,7 +3394,7 @@ return {
     title = "The Young and the Threadless",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8b2717bffa22abcd7a5d657e1019a8862a4d01378fcc055dce2882a0d772cd0f",
+    progression_revision = "40805808961899404a1629af730d16f7c6712ddfb1dca51deb74f9bef7e2f3a3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3412,9 +3412,9 @@ return {
     native_id = 58,
     progress_id = 57,
     title = "Son and Father",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a8f1290ecf0a7e006c796a3a03be3c2a6a3428b2db5d24ddd0ec7fb46c4bf33a",
+    progression_revision = "36b0f8c296cd4d0e2724fede97f079c0358b4327ac66bdfe943235e6cd7efd8b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3434,7 +3434,7 @@ return {
     title = "The Truth Lies Hid",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2277dca6d1882c85cd051572a602dae073447623845f004424c4bea0db43158c",
+    progression_revision = "1fe5ca4e92608eefb048634dc85d63710be2df74f08597eecefb64dd7a4a3e12",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3454,7 +3454,7 @@ return {
     title = "The Dawn of Delectability",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "22e24ad4281a7a499122c2a827c4d8910e67b0412022606eed8a137a983acedd",
+    progression_revision = "1e8749c79b6e9d0a04362423a2756f26a117932e587fba2b5506d22ab174b0ec",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3474,7 +3474,7 @@ return {
     title = "Bonds of Mythril",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7b6f2b6b34bf4eeebd2ba5c6fe1d3a716c256042f6b8ba23f6ffcd6fa99c28b4",
+    progression_revision = "c6ea7879b21c150d6e1c417221d3706aabb39b3bc3adcf6dddb9c1a90231b80b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3494,7 +3494,7 @@ return {
     title = "Chasing Shadows",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a029adbb131430cf747c14973c230dffd670759cf635ae2c1734b1755222c41e",
+    progression_revision = "c049deedcce113fdad40c3ad658c9a74f2edd2074ea45e2c51d19c0eee6ba22c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3514,7 +3514,7 @@ return {
     title = "Face of the Future",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "42d0633277e04d11787866267ebf3aad38d9117580940438c53552ea79f9364c",
+    progression_revision = "4e5f6a586b25bae88d89bfacc3edf759a46fd61ad2841d1710bf634dece202e6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3534,7 +3534,7 @@ return {
     title = "Manifest Destiny",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "462bd3ab92c98e31364528757dd1383e5d122130851b04592a8d466535ebcbf6",
+    progression_revision = "e03106d23e077674a32eefd42f22c00a3ccdfd92cb1b80f2309219177252d6cd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3554,7 +3554,7 @@ return {
     title = "At Journey's End",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "036ea70af382271ed7be29a1eabe4e6b41b1de5f03011808e5ed2e63aaa24837",
+    progression_revision = "8aff0d3e5353ef71e25d50acd02a74c25b6092116df0301ac6ac001b5e5d0747",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3574,7 +3574,7 @@ return {
     title = "Her Memories: Homecoming Queen",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3d3e1e9c23a1274efec57e3d9402abab18994d2f0cc856166506f68ebf16179b",
+    progression_revision = "12dd58edf23a39d7afd2e4d08b5969f2666ca32c52c1079dccdc716fe11186c9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3594,7 +3594,7 @@ return {
     title = "Her Memories: Old Bean",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "83c144cd36c2fcc071719e1b39852a06bf3718d42e6df6fe301b2a3af841f50d",
+    progression_revision = "8a65d1139f9d8eb48f0e6a34d0ec84908a8a92900291fdfff7c68bf9ca98df16",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3614,7 +3614,7 @@ return {
     title = "Her Memories: The Faux Pas",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a013fe3f504d5c3b2356ff89decadff812de7c9db48a3c44e70b9ae815aa9526",
+    progression_revision = "66af6efba35f65f7ae5297ec59fd83b9975bae08cc6081a1f4557fe03b4ae7ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3634,7 +3634,7 @@ return {
     title = "Her Memories: Grave Resolve",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1486040752e67927334fca901f5258cd9de7bbbf8a9b6bfeddf5afe1ebdc9c93",
+    progression_revision = "1199ff7d0d488c85138559688203f07822e6616ea8af1c8255a78f13d1dacbc0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3654,7 +3654,7 @@ return {
     title = "Her Memories: Operation Cupid",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "87c0e3056e64274133a6c387dd1aafc8fbf0e25ade2af23a7f4669e2f24a42d8",
+    progression_revision = "95cffdb5769c4340d663d8bb241576b91c0440658cde4b77f5140108a3eddec2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3674,7 +3674,7 @@ return {
     title = "A Little Knowledge",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e93d44e87471f772b6d77c98edfdd1ff4cd947bd5051c8dfb7163416586c48fc",
+    progression_revision = "a65ecccfae20e5b771368275717ecc4d9cc75e83998ddb1a971bc191b42f54bb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3694,7 +3694,7 @@ return {
     title = "Her Memories: Carnelian Footfalls",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4e2b07edaa01eb75af37ab1da2aa0d87d7d33262a732787e15c22734e74ec851",
+    progression_revision = "b4d978756e64a2ced0c69f792d0bf7a278a1fa764f584f2e6ab99f48ac152e41",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3714,7 +3714,7 @@ return {
     title = "Her Memories: Azure Footfalls",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c88d73a88dfabc02e702bf3189d52fc138dabda69e01590dfa0de76d57250283",
+    progression_revision = "08dd608db6f9b693fb5047bf1a9030231ac6793a9d2e01e40f75b2251c88eeda",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3734,7 +3734,7 @@ return {
     title = "Her Memories: Verdure Footfalls",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4fe7e15e03096b6e491d55c6ef13163f0f3c906784b3ebd53864c18a0cd133f4",
+    progression_revision = "d2297adb6d46f63b1f923b7c12682320670b0f557daa08db274d83b1943f5226",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3754,7 +3754,7 @@ return {
     title = "Her Memories: Of Malign Maladies",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f4b0fea5165c5653a4237e4b4ca39847f1c6bdb358f2af9cb383aa1c171cd7cc",
+    progression_revision = "03032e21f30ee07da1689639cee7d77c56111a6dec4a26cda1e90813f966504b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3774,7 +3774,7 @@ return {
     title = "Champion of the Dawn",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4ea4311b4be2d1dccf322fc67e2543b155bfc8daa23e3ccc4bdeb5e5f6bdd3b8",
+    progression_revision = "c7f4a4d19f32bc21d4434cd5100f5d315e43d7eb50b8e8d391731d7e8c9328f5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3794,7 +3794,7 @@ return {
     title = "+The Dawn Also Rises",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c0ffd7530424fa6a1da895fd1ab4fb93612f205244bfbc40e5b3408cac42bb92",
+    progression_revision = "450981a7737906f5cb3ed1a9479dedff89e9589513ecba13b9b253fc67039fb3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3813,7 +3813,7 @@ return {
     title = "A Forbidden Reunion",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "500a39753616c3f0a3932b19f70cf88d3e9d891786a98b46d11658bb6656f68a",
+    progression_revision = "991f4b17251576f019183aace7fb16a7e411ae54b46b28f863e53d27196ac263",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3833,7 +3833,7 @@ return {
     title = "The Fighting Fourth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d80800983a29f5cd64cfacef23a40327c6d59b217334873482f095497a040799",
+    progression_revision = "e1b414dce9f0bc12396b334890e83e74bd7a978704a90a9a3aad38ec58192c25",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3853,7 +3853,7 @@ return {
     title = "Guardian of the Void",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d52f445c52c89c78364c52b26167c8effed7a9d812114d595dbd0ad42f84cfe1",
+    progression_revision = "fc3abd42e17f9be83ca184dfaddfbf46384b8b6559e2d65ee57e402b4885082c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3873,7 +3873,7 @@ return {
     title = "Drafted by the Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0742e31cd8ff416db1884655213b0f26592c7cfab7a32237ac8b1ff853fbc587",
+    progression_revision = "1e36ae0cf709830407da0a3eb5d1183378fd614ac26dbc2381711fbe4da3cf91",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3893,7 +3893,7 @@ return {
     title = "Battle on a New Front",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ef6dfbfa847ba62acf076f01915034a8bf80c7aaa0c366a48797b5ffdaedfefe",
+    progression_revision = "a0d7876e4e37cbf65ec8b8035f6e419d98f5889dda145f802b7d6ac96142e461",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3913,7 +3913,7 @@ return {
     title = "VW Op. #126: Qufim Incursion",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e1920a4849013db97d3ea3a04bc7c969c3e6166f5e9bd1ddb3086263bfbe0a67",
+    progression_revision = "dc10f5f465f91e378d720d192f8eac110d72a601a6fe148d433d9be0ce916864",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3953,7 +3953,7 @@ return {
     title = "The Truth Is Out There",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "519a2419b981dc3858b35fe0cd942a3f9f01fd469cae2917c4f2db21143f907c",
+    progression_revision = "658cfab7b13487bead3792e72f5dc559e9657f25776681f89ad892dc3348670b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3973,7 +3973,7 @@ return {
     title = "Re-Drafted by the Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6f732190ec07bf2b39b5b4d0b64b00d8489cb10d60369495fa8442bcbea726ce",
+    progression_revision = "9b7c624bc1df4c12d2b522af310db1eb2f5f2f11d573d39ec9804f113885dccc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -3993,7 +3993,7 @@ return {
     title = "A New Menace",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f1fab58823dce8e0b72c9249ce5d02bcb2820b2b1f148486e6c749b7823fb560",
+    progression_revision = "ca6d61a49afaf69449131af063f4d646a7f2c667ca5985749292cf02e050d8c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4013,7 +4013,7 @@ return {
     title = "No Rest for the Weary",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4e23ec41a84387ac96855d1323f20cbc26eedc7fc5634a901e2e409767e79671",
+    progression_revision = "f4b385c8ae255074a3e23ee84779d61f80d71275d026cd01edb5596a6b43085f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4033,7 +4033,7 @@ return {
     title = "Snake on the Plains",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "da167a82de38cc2840310c76706bb056939c0cf5dbafb7a56be0d8b5cba5743f",
+    progression_revision = "f465eb2c071fb11ca1d1b9b6c2f8ec5e30426e13bc84e40dd2402943e8230147",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4053,7 +4053,7 @@ return {
     title = "A World in Flux",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ca54ba582f5a328e4ae07a0b1b1fb7787234e9a0485c9fb4d9431d3424de0d9b",
+    progression_revision = "230e259d2cd96c14be3c197dff0608005e47a0dcd3cd71ec8454bd2672dacbfb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4093,7 +4093,7 @@ return {
     title = "A Farewell to Felines",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "799c99be86fa951eab6717e83c069cdc5edaee335bd79f60dc7515ca17b144f6",
+    progression_revision = "e487605cb33c4baac55e7a3e9425e8ab46b678fbfff5b8e253b09aba5e6e7fb5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4113,7 +4113,7 @@ return {
     title = "Third Tour of Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "34b62c207f1e7f4f3d1240d3a17feb1d8c29f52de677b83a5e5eb4040dcc85af",
+    progression_revision = "fac7ced5f6e924a1a5e8166655ea035819ff726fe22d5b69ef50a952964c8857",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4133,7 +4133,7 @@ return {
     title = "Glimmer of Hope",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "13b8737ac944d6913211e4c1fe3cea0aed57a1c08c2cd0133b4d66f2c29f7497",
+    progression_revision = "37c0be6603b3f615a1749879dc19456709b11984938919ea00148cce0344ed2c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4153,7 +4153,7 @@ return {
     title = "Brace for the Unknown",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6f0a3e9a7e69b3ee76e02d719b4daa3310ced8fe1eac6029b447f6d7a6254c11",
+    progression_revision = "1449f241d1f7ea11fdf96faac3351e8ea1991c02599c2407e4a684f1b0f1361f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4173,7 +4173,7 @@ return {
     title = "Provenance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3c9c205506d1cc6e8295234943aafb1a4ed0896504771c6e5cfb38250700bfaa",
+    progression_revision = "73908dc9288990a16cab1fb1c6bb06b692f38f08baa548efc23055c5a294c3b5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4193,7 +4193,7 @@ return {
     title = "Crystal Guardian",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0abcd8cfec97c904198fae07445f9f3426bab02470093ebaf49a12c26899a9b1",
+    progression_revision = "5a0e74e28c4eb994ff1518fef0bc77668e58d2619ab8e104a1f731375f4db1a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4271,7 +4271,7 @@ return {
     title = "Ancient Vows",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e492b847e0635d33da2d3a0902adb3933519b3bea0af5f83ece02de978d12b3f",
+    progression_revision = "72dfa6d8acaad19653ba09dce607f69085cd865d0090b707e91b0d840b9fdf07",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4309,7 +4309,7 @@ return {
     title = "The Call of the Wyrmking",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "52d2e890cdca6c8599bf6750d573af38c15c0668dcea21622e75a44afdbabf47",
+    progression_revision = "4ebe226d23f5d63b8950f9645dda18f10d9bfac755454baa0c7540b472ccd225",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4347,7 +4347,7 @@ return {
     title = "The Road Forks",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "8e5dcdbd7d41cd58988988d27d5044ef678a628b1be16b8cdfbba2c1db00a731",
+    progression_revision = "c46ca2d60ae42452cd5d1a3ae2cef55b270821f4fe53e49c72f4806e278e0816",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4367,7 +4367,7 @@ return {
     title = "Emerald Waters",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "6030f6036a5a1a278645d96b85db5b050b1e3bfb9636eb8cc7a13950524319bb",
+    progression_revision = "26b00a2db2a46a56af9fba9928888cb1dbf91dab4c8ab3002b5ab5b833da93cb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4387,7 +4387,7 @@ return {
     title = "Vicissitudes",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "09ecb1fa5ac4a976aea3f27691f7c13a4ce24fa17f57abcc13b715f1fb19a12a",
+    progression_revision = "249292a23ea258b0053d00c9e21715c51b2d3df7d016a158515319a6fcca20eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4407,7 +4407,7 @@ return {
     title = "Descendants of a Line Lost",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "46cc567ed70be0126352ea474c07924715fa1161578e0366350ccda5f94dadb9",
+    progression_revision = "ee88a11b14cf9af49a0af1ff3e19812492279ae8a6ab5a8dbb0bfbc4766f5bed",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4427,7 +4427,7 @@ return {
     title = "Louverance",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "6ae10cab5fbdfad80a13da27b16db55b52e820b0c235738abff0b4f0e5bb14af",
+    progression_revision = "bbaf9079274b90af30439d5a3c88732b2b2817a51ee3aa7715c58420bbabdea7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4447,7 +4447,7 @@ return {
     title = "Memories of a Maiden",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "68d842bc41deb8a0eb52312cbb1ce9e01050c8619ddadab1e8d877c857584876",
+    progression_revision = "8a5c06f7e8f418c4878735842487b28534bf8cba9ac3a763f4592375e9f3e6e1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4467,7 +4467,7 @@ return {
     title = "The Rites of Life",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f3bb8afe5fb4fcc584b68b6d15800e99ec96d241fb7ea7733ab7a12b818e7466",
+    progression_revision = "5ab3c594bb8e2b32d432f357fe94e7af1c9a5dce68168385605acb0d1d7372b3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4487,7 +4487,7 @@ return {
     title = "Comedy of Errors, Act I",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "08faf7ba59cb2f8d5bb7562677223d833e7922a0c486cf15d16c28d1afd3f1c9",
+    progression_revision = "54c4fcfc95dabd97ea632a9c947c2ed1c7b921b4bd1b933d719e70b0704d637d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4507,7 +4507,7 @@ return {
     title = "Comedy of Errors, Act II",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "003e0408fa1ca63ebddd755adc5e9cc629a1761dd7b762205ae555211395b706",
+    progression_revision = "92115393a941a59b297e1f3038d086d56a1738585f9a1462a19067696b8dfcce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4527,7 +4527,7 @@ return {
     title = "Exit Stage Left",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9b547ef65d941b820695ec611609d3ca0daf94200d0db2428afe2b70db707e84",
+    progression_revision = "bad54db0f1d6b43a20582e8d792ea10db33ad8952d6a2f91d6d112a9097097f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4547,7 +4547,7 @@ return {
     title = "Tending Aged Wounds",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "853a5e720edade18d8b787b4b6702e5ef5a47be7b73b8f7176d231c31167dcbc",
+    progression_revision = "9bbcb92a6c3c086045cfd9ba769374a0d05d405830be0de4799db8f724f20aab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4567,7 +4567,7 @@ return {
     title = "Darkness Named",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "98fd15879241f489311ff830e14a1ee757114158169ca563175fe72c10e40aac",
+    progression_revision = "bb216c0f5c342ea89813bdd4cffccaac5863028feb9a6ba9dc5f3f35eb1f2953",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4605,7 +4605,7 @@ return {
     title = "Sheltering Doubt",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2842fe0dcb49da710df9d9aa1d850b6d2b6d4865a8dac8c8f968d9210273f10b",
+    progression_revision = "410f77621bd819ff7b1b2cebfb8e9e95b2598efcc3d363835df68589b50a4bda",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4625,7 +4625,7 @@ return {
     title = "The Savage",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cb58aec59c24bd1be780fed12ab7f9ecc23aab3a5b5fc1c42e7e58cccecdfa5e",
+    progression_revision = "bbfb9988f188aee6fdde28fa25f095395db64a56bd7b36be4d9d146f3a577a50",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4645,7 +4645,7 @@ return {
     title = "The Secrets of Worship",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "96240305e1ff06737768cccdfea13e6eea53aa7c9d67d950edb51522c0ce4d26",
+    progression_revision = "333d653f9b089e9f8c5918aa009f1af3e4f435b95b9b47265f72fcb9bdb09cfd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4665,7 +4665,7 @@ return {
     title = "Slanderous Utterings",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "628ea235c3d5d6d366c385941834bb6e5173b3adb1724961ee7ba1cb2ad09d0c",
+    progression_revision = "0d9747444ae5b5119b42edbb525d9d874d8fb6456bd7cc58f771bd9a6fdf9d97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4685,7 +4685,7 @@ return {
     title = "Below the Arks",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c738683d3bdf6173113e16367376abd8667ae01f88bf4fb0ad8e045ce51b1901",
+    progression_revision = "04a8e888962eae1b3775661f6357e6b9a375bc9c51c9b2fb74b020973d422206",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4723,7 +4723,7 @@ return {
     title = "The Enduring Tumult of War",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7fdf8d4ae9bbe9c54fe07a2bf514c197449b4f7f50450829953f30feccfd3188",
+    progression_revision = "645d2deac81253c1364862961f145896a0e14d9ba04baf1c1e91f462262a2fe2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4743,7 +4743,7 @@ return {
     title = "Desires of Emptiness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "39ea70d3c6f9917894f38c6a9dce0ee9a09bbc5d28bd4ea28b274e6189676d36",
+    progression_revision = "d7faf272ff7c9d7626df41d24c4060b14c7f1cba04cea801c5bf8aced0dc968d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4763,7 +4763,7 @@ return {
     title = "Three Paths",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e214fe138d9d2f39f27cdead77ef1e430a3f8b82882c7f096bd5b69e1a349e4a",
+    progression_revision = "9ab1390ec9542276cb337f60eb06d3aa5311dc5f2155c9421f072ab01cdea712",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4783,7 +4783,7 @@ return {
     title = "Past Sins",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e10ca0dab24d6495d39c56921510aa36423505df89ec3fa981c86b5c19645d55",
+    progression_revision = "2b14783126d39ae49042f8cb7ca9734b16b138242881c2c28482c13562e953d7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4803,7 +4803,7 @@ return {
     title = "Southern Legend",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4e9641eb05cc87ab8b5a4bb667d1770f4c4b10816b4d65ebddcc71f4e6551c59",
+    progression_revision = "2fe7563a9384c954d58cfe1816599e71ba2fdfaddfcc7b79586eb287e097e5f8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4823,7 +4823,7 @@ return {
     title = "Partners Without Fame",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "bac7d7f07f94a63fe317fad695353dd09226f6fc5507fe37c234f70ee3ff0f1b",
+    progression_revision = "cb78d6f86f643ea1e78492b1d6c269436bdc198e6cf5a08e00e185be779590ac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4843,7 +4843,7 @@ return {
     title = "A Century of Hardship",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d427221afde941d11579631b7d58296c4af613ec3ef11acc672f0ce6d9aefc7f",
+    progression_revision = "e19448130cdfc0e46f44bcd7a0699882c843c27a11e0190bb6dd9492241c953a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4863,7 +4863,7 @@ return {
     title = "Departures",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "8f6a586e1988735df3452567e0068354c423ab722af81b3d9fc59d1acb5b32e9",
+    progression_revision = "c011a2c6a44eb8b5eff3f527d49d9563713c64e2569ab8fb93ad236401f53b7d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4883,7 +4883,7 @@ return {
     title = "The Pursuit of Paradise",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e471f55af16c9a58e95bfff08e6c8c28b4d7e83ff9c26bddc68e8c48a1974564",
+    progression_revision = "1c1d8edb377bb1f6fac41e37c067c511227e339664e61465b44f941a47726ca7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4903,7 +4903,7 @@ return {
     title = "The Mothercrystals",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9d7314a6c543406da1b152c2b0d6b937157cf5187c7535a586e0e85e2b30edd0",
+    progression_revision = "014c6d4e4bf7b883d4d8dad9a02ac02fda73fae0350d1b702096f4e8a0967bda",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4923,7 +4923,7 @@ return {
     title = "Spiral",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3b0e69fe239711b23a4a71d044b1da9a7261f97cd07f9bf00586ef101d4b4051",
+    progression_revision = "b584012aa54462cc3eb9ee186a7f63cba1182d81e7169671240bda8e89e98c68",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4943,7 +4943,7 @@ return {
     title = "Branded",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "6abc779ea5d5be9cfb8a16e2c0ec2a575529ba222334e152ef978457cdf89f38",
+    progression_revision = "9dc33a0bf5b34f76d2206f3bed662fe3ee342fd25d0fad594777a388424d6982",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4963,7 +4963,7 @@ return {
     title = "Pride and Honor",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "34844f4101273798c3b7717dbe6514ff619b2961cf9ddb6b1387d56f1b5e0e49",
+    progression_revision = "aa3c1959d0e6a12f4b49d7085d91cd8af5e1763434a8bedf3eccb86f924d35cd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -4983,7 +4983,7 @@ return {
     title = "And the Compass Guides",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4065885d2e3fdf433748f797570d890c8b0beb0b6a98ebca7481c2e53a6cce01",
+    progression_revision = "6cd66d3efd337aa02231dea247b7f26bab84f887b33fa2d42af8f2a7ca4c7820",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5003,7 +5003,7 @@ return {
     title = "Where Messengers Gather",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b8127ea5ec292307d396e76cb53147a40c44091dd39c1a47bdb07ca85511b83a",
+    progression_revision = "500e592bfd39c15174614da2e612c84d147f31bb8369c8575e79e66558d21848",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5023,7 +5023,7 @@ return {
     title = "Entanglement",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "82a2de799b17908813b29f6e282bfd27864376ecb4cc44b5f649a183391a37c3",
+    progression_revision = "3cb114fb8bb059fc29cfb46ffe61b8f909f17a2b41d02b616efe2de01fe4b856",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5043,7 +5043,7 @@ return {
     title = "Head Wind",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5ae7edda517985697b0bb16cfa1e5022886dab9d1e99ef0c2819b30d16c231bc",
+    progression_revision = "7a2fd44cf569b5ee968082700ab1bb2e04d4a842b08f69e6c17ea6c130a18057",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5063,7 +5063,7 @@ return {
     title = "Flames for the Dead",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2dba78a5c4d03a3cd1faa0a592f32152398cc964d598827bd45522a141efb2d7",
+    progression_revision = "b7924e683deecd8fb8641e0d1f204098ffebf7dec218e93f93bdb4cf03a1af8d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5101,7 +5101,7 @@ return {
     title = "For Whom the Verse Is Sung",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "42a52a2c0952c5dd97e105e38c21d2c470bdc855b7703a22b60a7100efa343b3",
+    progression_revision = "bb6cd79921aabb58b19c13b260ab163dfee409c487df062137ad592f27e6fbb0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5139,7 +5139,7 @@ return {
     title = "A Place to Return",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "67bcd7bdfec6ccc2ec1e2db97ff2bd669120a1bbe065aa86a04a1ec5874d991d",
+    progression_revision = "68301d9bd8a81874d842386336c16da4a339e0ad4e5b2a989d88d6dc6a32040e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5159,7 +5159,7 @@ return {
     title = "More Questions Than Answers",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4ed3ddd8741a99f92dea02c8dab2154b7a49b7afcddca26e6db5e59024b4a53a",
+    progression_revision = "f07ca9d1e30c2c42297f68bbb323d5a5e4ea12c9a4f9a2829072858c38f4beac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5179,7 +5179,7 @@ return {
     title = "One to Be Feared",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fd33aa6a0ca2561255ba73ee2827579eb66972fad2917fcf2f38a0138f7201de",
+    progression_revision = "1c2dd8ca55627bafd24faa898c823c72f06f26ca63cd2cd32bf7c1b7cf9050c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5217,7 +5217,7 @@ return {
     title = "Chains and Bonds",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1debf44b36383bb12a9e1519ef3d155bf5a7127819cb122fe800bc3f04ca0481",
+    progression_revision = "fe79dd39df47d1813fdee0397636b4fc66cc115aa28c07138b93d63c22c98376",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5237,7 +5237,7 @@ return {
     title = "Flames in the Darkness",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b351d6aaf80418a032baae8721ec062a62ec955d643650ebf4f1f0b28211588d",
+    progression_revision = "50ae4cb3bc0902c5be4361593ff4f52e2d5f4fcfa73d101931ea9369ee478f01",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5257,7 +5257,7 @@ return {
     title = "Fire in the Eyes of Men",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7785f21d513272414cc52d2b86502f72c3cee24e18493776d58a68f421d91443",
+    progression_revision = "c38249e3f84660fcc3d9936be25ef151dd8e163c4606cb8946ca2097bfa5300f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5277,7 +5277,7 @@ return {
     title = "Calm Before the Storm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c00de0c2256babbca07acc20439052b9120b71a3b7e58adca25c84e14bb7835f",
+    progression_revision = "e1f8150aa4048ded60976ac8e17a5a84cb80a23d3294bdf9a0eb05fe6e6f7f16",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5297,7 +5297,7 @@ return {
     title = "The Warrior's Path",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "075acba3b8eab5d77d243cc70cb104e932333a4ae9908b2b3503a97b16de2755",
+    progression_revision = "e196ba0c75a045830c6300e762584af3eb8257673b98c2a79213760945c04a3c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5335,7 +5335,7 @@ return {
     title = "An Invitation West",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4f449fc7100258efb087a1696c680bd4f761fff819eb9a9167e5239a0b3ecb96",
+    progression_revision = "d59c2f266c634baf2d5cffde354dca265619a5384fa6d08654a4f423f3f17d01",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5355,7 +5355,7 @@ return {
     title = "Garden of Antiquity",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bcbe4d6da40b714550b7765c3da743b7aa4913731407331686e1b8a65148b4b5",
+    progression_revision = "bc286bfc9c8e6e7598d72f873fa923d9513403035b1a1dba1eb767b58cb57a1f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5375,7 +5375,7 @@ return {
     title = "A Fate Decided",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4cff34ac3945113f3b829166bdcf43c493a9dd6af003d13227365a90b89dca7c",
+    progression_revision = "22c72f5f4aba8d789306088fe5b3021c1474d1ab05e8e12311a9b63079b17939",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5395,7 +5395,7 @@ return {
     title = "When Angels Fall",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "820f72a25cf1b3db701784f3098a14d74a611f19dd9b9ce87ab917c68b5ae973",
+    progression_revision = "21d5d836b71105b6d1b8f6b29be1a42ffcef5c4517de8fa59613d445eb7774ce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5413,9 +5413,9 @@ return {
     native_id = 63,
     progress_id = 840,
     title = "Dawn",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dde9b2f30937a9e6396a368963d11ca2b79aef0fb12424c22f30d21dcb8448f4",
+    progression_revision = "36f4a09d59bbd83158a8613d7dc913b8d71a01e6d8f0d10b910a2c0eefa40cff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5473,7 +5473,7 @@ return {
     title = "The Lost City",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a9ca500d742ea9315dc5830599950929da5e5280b1406215bb0438338383a49e",
+    progression_revision = "cf052d103fc36091c6b61a1c24bbf9ddedcf5ad97c0b70bcfaa940cebb8c99d2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5493,7 +5493,7 @@ return {
     title = "Distant Beliefs",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "be142f4e4be40f82bec9fdc2e92fd3c87947ba895e4ed37f1136154744f6819e",
+    progression_revision = "debbe757f9766d4c972413138eb7c061ce82353241884973fab70190979af6f0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5513,7 +5513,7 @@ return {
     title = "An Eternal Melody",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d1fd56ea6515ea5e766d231996e217166db329611980423368a4abaa7b51cce0",
+    progression_revision = "09baf26b801d60b5d1595d4638003c6d87ccb5028f67d793aa73b271cd205150",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5533,7 +5533,7 @@ return {
     title = "Rhapsodies of Vana'diel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f83e31e3e51aed54863c5170d55458ea244580974f958d258af14c9b40bbf26e",
+    progression_revision = "b1c393bdecc50a5805f685c18a9d45ba3db6200b725fa929583411015430ae46",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5552,7 +5552,7 @@ return {
     title = "The Lion's Roar",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "00d0dcb42ab343a8d73d577845fccff83d6c8b5fa0a907f463068a8529fcea43",
+    progression_revision = "775758604406ff30d2ef6098f6152e8efad59310ba4bbdaf8bce3a8170bd49ce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5592,7 +5592,7 @@ return {
     title = "A Land After Time",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "49e818339f825c727ba158c148bd1781ca2cb64fb86098e0965648c4b084ab30",
+    progression_revision = "40ce352edd671a26f6fb5a5cc83b7b05109e61d711a5d4670ca1f3a2f0f05a69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5612,7 +5612,7 @@ return {
     title = "Fate's Call",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "461804517a298a0737fec07e1a2fbb9bd3e452184031ddd0acd5fcafa24fa4a5",
+    progression_revision = "714b4e8c4d6e18405200b6d3ddd8666dd643a6555ee72d6f2862a822bb889e04",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5652,7 +5652,7 @@ return {
     title = "The Ties That Bind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7748a62c112008f581fa4d2357a36a30d2a8b3d41f659d5050fd0633a3ce877e",
+    progression_revision = "67a248a0f640c06df3bd65404338d8575d64546efe43327f0e2a9de4d5292c79",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5672,7 +5672,7 @@ return {
     title = "Impurity",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8c1c9d2f243a1889bedffeb671ecd043243963535a7191354df1533ef220a6bc",
+    progression_revision = "623ec67a336006bebb1d9b75fb576d15a56075be33dc73a8c38cc01f2858eccd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5692,7 +5692,7 @@ return {
     title = "The Lost Avatar",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0e813246d9a1db42efcc5cac83d49afa91f06629398880633591916d0f6028a9",
+    progression_revision = "1521c5eb197bed1acb17d45708c34f7924f41e5ad543c84e59b3adfcf04fc00b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5712,7 +5712,7 @@ return {
     title = "Volto Oscuro",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c13334ef240595f2416c1378a752c12f8773fb2bd7299a4803c2ecad26e24ea9",
+    progression_revision = "d73a029484cd054576c6db92eef99e0b7516c403c05877113f93eec522a67d12",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5732,7 +5732,7 @@ return {
     title = "Ring My Bell",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cc9b47e93ac3ee6659ec8d8d3e112fcc34f2bc39e0ae9750dd2952738b8ce4f2",
+    progression_revision = "bac2fa9d274c785b270782133e06b4c628dd07801fecdd2b4e41c9000b3743ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5788,7 +5788,7 @@ return {
     title = "Spirits Awoken",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7f1a91d1e9be18c4651c09eb2766b1c6ef656c24eacc3dd94459313152bb3c41",
+    progression_revision = "58ae00ae1507b845a294e6a1e7fc57ac6eedf79470913be141d01d7532819bd8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5808,7 +5808,7 @@ return {
     title = "Crashing Waves",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6d7a7b9fc2d7384cb538ecc25545d10ec019e31dcc499336dbb5fb28567a8597",
+    progression_revision = "1c0c90da62a079b10041af27de5b680ca7097587d0fbbaf1252f49dc1130b548",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5828,7 +5828,7 @@ return {
     title = "Call to Serve",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "08f8e3179fc73af1ccf9521e89c9afcd95da6c219e0e074780be70102ebf443a",
+    progression_revision = "35ab8d038d67893e774e106ba79700261a52a601594dca651968d29b59e3a9b1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5848,7 +5848,7 @@ return {
     title = "Numbering Days",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "40b33a09360a49302f3d49086a14d678b005fbb44203c5baf177a1d6e4b981e7",
+    progression_revision = "20ae2493984ed459f9a17761c52ce9c5a2e854495c4bba4d22e0ccc486899e39",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5868,7 +5868,7 @@ return {
     title = "Inescapable Binds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "709787016e843103b2f9054d52d6f0d8e8af18fc12361bd939c88b1807cd228d",
+    progression_revision = "ad0e6995a7979b08dc79bdf41b29712c32e29018912ef90ad72d30066de2f2f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5888,7 +5888,7 @@ return {
     title = "Desert Winds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "51a0ff41d98089fb1a1575a859aed36e5070708c72a36ad9085f3ff8148345ab",
+    progression_revision = "05256b9189d764769e86c878cf0a2baa085b90145c0e2536a311182c9226ca04",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5908,7 +5908,7 @@ return {
     title = "Ever Forward",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "411e6d6267993ebfac7eeba8a526dd1697959dcdbe5a7ad30afc8d414b7ddf81",
+    progression_revision = "1f50827461203f28c905b5c6373d81d0aaa10aa3729a2487dd2ed62a8d65d3d1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5928,7 +5928,7 @@ return {
     title = "The Endless Sky",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "03e7e96ef2da922eb5370700ee0182a7e1308f782020595843fc68aa98727d9d",
+    progression_revision = "7ff70910ea8c1a5f3b03f67f8de71c43aabfba50077b44336f67e47fdd5a4e8b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5948,7 +5948,7 @@ return {
     title = "Aphmau's Light",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "df2b28b4f7869ce139a665bae4378b9440f4f5bd5fb345674e49201f310b8525",
+    progression_revision = "1894da5c687a9291bd2b644a7978646a36ee0e1e73be84572442a2ef9cb1dad3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5968,7 +5968,7 @@ return {
     title = "Resonance",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d5771b49f8eb16f21e3de8b8a6ee11d4475933cf9bdc67deff2f01df190bbe85",
+    progression_revision = "f0a4024ef0e7e3ee6c5c4186fb9c426f17d50b13de74a03304f4e1a6cae8482b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -5988,7 +5988,7 @@ return {
     title = "Reunited",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0cbfa4d283cf280403e61a5c124b1527e6691b5891a492d7499f3c0b3f65fd7e",
+    progression_revision = "81857aabe8cc8e557e81f37d09fa101e11b2c7259d2c94a83180eb782ea54f10",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6008,7 +6008,7 @@ return {
     title = "Take Wing",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c190c11187a84d20fe685f6b1abb5412b28cfc93758723bd21ef86092a10f034",
+    progression_revision = "810c99efd75d684e871aafa2513a119d4b998660f48463511aac83a941c80151",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6028,7 +6028,7 @@ return {
     title = "Prime Number",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8929e0a05f7d753d80f8cc755d87fa8bdb9bc646c0f424ef493b0d1f62721a35",
+    progression_revision = "91cce47a6fefc5ec8bb623d584598afa5a97a05277442ac75e3a694ccb71c4d1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6048,7 +6048,7 @@ return {
     title = "From the Ruins",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b83c4f9411ad1b1863662b6847cc6ced0ad7fcc6e6ee393332fcd107ca791711",
+    progression_revision = "f814a07a7fb6767af6109444203eea9da581f86948062c89f88d427a1e953c30",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6068,7 +6068,7 @@ return {
     title = "Cauterize",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "712587bc96881db7bbd67ca753bb7c4c9f83ca7ef2636fe85e1efcd40436920d",
+    progression_revision = "ceb6ce30361a141ed4a1712d10866572b920556eff3b5bdd00ea2762e632267c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6108,7 +6108,7 @@ return {
     title = "Ganged Up On",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3db155209c9444082d670f9fc0f4ec0e2e5ab8f003f24b0db58192e8b24b94b1",
+    progression_revision = "416e455c5a1b508fa949b0496c09af5ddd90415744e08b4d25cdad294e3daff0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6128,7 +6128,7 @@ return {
     title = "Sacrifice",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3014ea6b9cd18dcf0a4dcc9a5889d7a3ee3729eb8f2a4557583bd2edde97fd84",
+    progression_revision = "bda32314a4cc556bc498b50d850681dcff4ccc57d3cf48af238476a8cf124eb8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6148,7 +6148,7 @@ return {
     title = "Somber Dreams",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "783c26924a91a705e6ee66ffa31284707bb5e6279846c06bc123050ed5f1954b",
+    progression_revision = "c95848133f0e4d03bfaafd2b9455a25f292d3aab82ac0bf72f51b5c2841007e2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6168,7 +6168,7 @@ return {
     title = "Of Light and Darkness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0a2a5448e0f7c08a4e31e7782ca76fdd10543b65037a3ca6433b47aae2407a0f",
+    progression_revision = "eb1060e41af16291dbb639c89fd96a944c0a028cbedcc22ec6d08fdd354d897f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6188,7 +6188,7 @@ return {
     title = "Emissary from the Seas",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b6d30de58b1a8f23d182b134ce65b7be1157abce2b6841eb77f81b873987fa91",
+    progression_revision = "88ed58cc1371b9cbf19023b2d0b3e64f2bc2f4736c1679816cf6e9364d7390af",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6208,7 +6208,7 @@ return {
     title = "Temporary Farewells",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d3e195d27a57fa1321a4dfc5a92eb1c4a09a25eb8ce46284de63c7c0d3675e69",
+    progression_revision = "3b385ccb3427052d59553afd6aab33ba8d9a8673de81d6cbb08599589c9acc0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6248,7 +6248,7 @@ return {
     title = "Keep On Giving",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c23305520b6bc25ad4caf1bdcab99749420493aadc39e9c6b7fd6ea523cfdbcf",
+    progression_revision = "25320c818e03661278cd283732dd7ec55e3c3ce861712ca72f6e33a68d8b9698",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6268,7 +6268,7 @@ return {
     title = "Past Imperfect",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "80fcb7fcc239a6bf1c6493b4f7dd0ca8c55c0ceaea8b3d5255132c80430d6657",
+    progression_revision = "922c1a39e22020be14a0374d9aad6d875d902030386010576e2442188bb311eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6288,7 +6288,7 @@ return {
     title = "The Cursed Temple",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0a9544c9962c2996e2491c0c28f651ab296c09446c970ac635bccfbc33ec704b",
+    progression_revision = "ae487cd374d72cd742f8cb75c10ad588cf0f3e3eae3fb06f88b58ca71ef6d05d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6308,7 +6308,7 @@ return {
     title = "Wisdom of Our Forefathers",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c2588c3336c0c7968f8691cc8d30f4d1382d0d893fae6210e7b01785297daa5f",
+    progression_revision = "8a93e64ab0f7926299d209d5471b58d847db80fa3122964104bb28c671dea66c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6328,7 +6328,7 @@ return {
     title = "Where Divinities Collide",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d257f670fdefb69abb27ac7f01b5d29c9895335008ade5126623607957029973",
+    progression_revision = "4b21b3763277bdfbade9d76a699046ba23d6dce8a745aa72c6a237c20c281f6d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6388,7 +6388,7 @@ return {
     title = "Escha - Ru'Aun",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "55ad1034226d630478b3158ec283b698aecb1e09fc3ab94d00c9fba4327403a9",
+    progression_revision = "550f77cfeebd774c6c846a806a73d8ede8583887bb1454a1d72c5ad5897ebdd4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6408,7 +6408,7 @@ return {
     title = "Set Free",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "402f70e60bd1f1536464bd41657a70571a977a395e9c04def54cae8025ede106",
+    progression_revision = "c976624e1294b8e9b4573504620ba52a2dc105775e317b0dc462cd51580a9f6f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6428,7 +6428,7 @@ return {
     title = "The Decisive Heroine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5d344944afe3bde1c695069d4ecc2ba312135c1f94725ada74986c3695b2cd9f",
+    progression_revision = "7516ae6ca8022bf98a8ea789a88a648a1f11de46c3cf2ad88e8f3304d09851f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6488,7 +6488,7 @@ return {
     title = "Over the Rainbow",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1c744c9fb8f656a4ef41536fabf3ddb9b27664fb14eb29c066f06071b90e6405",
+    progression_revision = "fbe8b54e50ca42c89f0516dabfbfd0bf35298f3ec9a818a5cedd6403822c60de",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6508,7 +6508,7 @@ return {
     title = "Cacophonous Discord",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1aa9057c403cb540dd4d129d50880a5c9cecd6a561db37696dd3cca4a83c1ad7",
+    progression_revision = "2ec1bd6d698ff6f693c249bf6d9ec7b5af7f6079f1b4e8cbbb3ae6d94cc4b8f7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6528,7 +6528,7 @@ return {
     title = "Eddies of Despair",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8a679f1056ce57ac53686fb32c375072d1846082bc87b057f85c9b3af679bcbe",
+    progression_revision = "a70bc896403690db281e93972a2ee6ec760be0509e3e7feb8b22f599de5183f4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6548,7 +6548,7 @@ return {
     title = "Pretender to the Throne",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0e130ff86a289b9563beba61be25ffef0c073d0b4e43ca61d9e7eef4e3edee62",
+    progression_revision = "9e7593d3305a8432a145b73b3b59d08b10b288d696ce8f1125362a15a0e3417c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6588,7 +6588,7 @@ return {
     title = "Call of the Void",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "91e049568257ee011218479add61ac235714d1d79971ad15b4ad1eb525af5597",
+    progression_revision = "7f90f1a8bcbc9518101338fdc7d8910632dfb1375690e93e4e7f483d9fc3c31b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6606,9 +6606,9 @@ return {
     native_id = 59,
     progress_id = 244,
     title = "Both Paths Taken",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1684d0e19762dbd8de559dc127e4a211e536fd0286e5772d7676f0dba5ed7d98",
+    progression_revision = "4be08211e9d77b337e457f15f5a81f6d6098ec7b1a8e009f2ea4b097bea4bf11",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6668,7 +6668,7 @@ return {
     title = "Uncertain Futures",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b17eeb898193c66853c7f50cb6500d8bc3b9744a0b7f286f7b4158cb6cbbe2cf",
+    progression_revision = "b234f6803b69cf4eef10a46b8065ee0f47380884a663d398884fed8cc81026d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6706,7 +6706,7 @@ return {
     title = "Darkness Beckons",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d1f5eac159d42efc10d5d418ad577020fc29fe026c9210fb37e8c4b850e3a51",
+    progression_revision = "75895ff947cf6710e1450d6471db235d34003c2c742e6203e50ca02d5539da98",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6726,7 +6726,7 @@ return {
     title = "The Brewing Storm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "46f4da206b872eca2b382882e1ee5f19d58b254bde2b4a08125cb64ce7e99d36",
+    progression_revision = "8adf3478db5cd6fb2b3f1e464fe3cac7f8f81b18d8d9db08ab23125c290ebcc0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6746,7 +6746,7 @@ return {
     title = "The River Runs Red",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c7e4eb5e980f7337ecb33f459ac613cf330c1a4dd59173fd65ec3f652b74c068",
+    progression_revision = "18ea13065ff5556f7667c6247892a361a5d873a83d0b3f7b4c4894a26a4b074c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6766,7 +6766,7 @@ return {
     title = "The Crucible",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ecf61b880912ded1b5a2d0516bc0692217acb46566424ce5fe43754ffadb609c",
+    progression_revision = "ce7f64df302f845016289b932c30c865541b27f21a7d02642728c76c2d10f088",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6786,7 +6786,7 @@ return {
     title = "Forward Thinking",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "702cc3f0377a290bf611296839b3d3c212356616047d460632400cd7c037d4fb",
+    progression_revision = "4069c5222d4141d86cf7e8b9f7dc49379659c4d11f1f0ef14a3b925e51adcf6f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6806,7 +6806,7 @@ return {
     title = "Tears of the Generals",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ee02dff65426874db94a60a0c7dfaf23590e8dfae52b91bb6ba9a3884a139deb",
+    progression_revision = "8d3800fe43333bf9ab5f2669806521f9ae30bf4750ab32d596ff29c6a9891b71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6826,7 +6826,7 @@ return {
     title = "What He Left Behind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "af724c210c6fca2dce2bbdc20496b30280854d85ecf2ffa22b4cbcbcd61fde54",
+    progression_revision = "89c223929b43a0c9bf28ddfec4c95bd2ad966b0d2efd1c0386b20405a5612144",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6846,7 +6846,7 @@ return {
     title = "Flames of Prayer",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e5d67258d092c4a3e5dbb8344e11112de1e10d91b854ced0a02c9ca2d9bd5bf2",
+    progression_revision = "80ccd631686a0c06db63da3b8b04dc2eae6ed714e27ea4b3b079efd5aad37350",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6866,7 +6866,7 @@ return {
     title = "Gone but Not Forgotten",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "59d486f98805e79172f7cabc59f1a48ab068eb5edf57d702bc44f950ee22dec4",
+    progression_revision = "57aaa7bbbaff804d979018ad2595ee9e49c7520c61122513d54ffc1ff74b8d4d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6906,7 +6906,7 @@ return {
     title = "Solemnity",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5471e599750fd7cf6310ea1dc5b52f0649a709961c5788c867f76cdf34c93770",
+    progression_revision = "27e8bac3ffc5a79cc51460f37069165500751de006885d47a543db0279515236",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6926,7 +6926,7 @@ return {
     title = "Eyes on You",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6c2c4cab929e37219a78f440e0ec6dd5dbf15920768c6d05e8edae5c41e4c50e",
+    progression_revision = "74307fbafba26e6e3968280a5b9b49afe5a780d69774bceb9f396e7a93e13ff5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6946,7 +6946,7 @@ return {
     title = "Exploring the Ruins",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5f5fab36ea415dbdc5a5033f6d0be72f59e694e2f80c4eb75c5f6fe91d6b4f85",
+    progression_revision = "6c2fa13ae35679f665701bed7c9327ffed4c68f16e7852c43fbcd7ca00658742",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6966,7 +6966,7 @@ return {
     title = "Become Something More",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b13e3c4bb4143ef3503541c468a8184edc0eb464142e034cde5b89975708f115",
+    progression_revision = "0f0957489596abd50ef4aa08d760cf27f398c85f2bd10ae5f8609d28a1e127fe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -6986,7 +6986,7 @@ return {
     title = "Unshakable Nightmares",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f601c64780aad663af393c987dadb9ef6bdbd6d5015eec03c22278269ac17533",
+    progression_revision = "b473f92da39edf5acf8dc80d275c30763662b2b0c8a9ea9ccb04e93a7cf186c5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7006,7 +7006,7 @@ return {
     title = "What Remains of Hope",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f9fef579e45c698c9b43513bb29c21f0851849dbd59bafcc7cde0e8c1d413ad8",
+    progression_revision = "0f7494649e97043535fe0417be1afc7c267998bdcf1d16894b662cb560f2ec05",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7024,9 +7024,9 @@ return {
     native_id = 78,
     progress_id = 286,
     title = "Death Cares Not",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dbb96debf3da0e351ff1f19a4a15ff8cdaf8b32ae2b6a5773bd9f31f5559bdd9",
+    progression_revision = "3c4bb4e588c04f487c0818bc195bf51c039a3397f1b5f7ebf58c577d8622f41d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7044,9 +7044,9 @@ return {
     native_id = 79,
     progress_id = 288,
     title = "No Time like the Future",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6118823c0f2d3398a7d435ccb82cda3d7fc9e200995646bd9a92f6f7c573fb3e",
+    progression_revision = "73fc67721229822f85c71481723a8ad7a88fb4c05c4b805593939319222a36ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7066,7 +7066,7 @@ return {
     title = "The Path Untraveled",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2b1cf4757dabb9f3c561a2b2c95e9b62ffd88e540d949eb0fe392e23db562e38",
+    progression_revision = "1b212bd33e779ba0c07cae8bdce84d0b168d015be8c418c672cc7a37ec3bf5c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7106,7 +7106,7 @@ return {
     title = "Penance",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ce9433193563922c45f2eb3258b49e65ad48cf8ebf817cab77602a27c97bff0b",
+    progression_revision = "60044d554dba02b752c0b35efcbac60bf384ef372342e2f75e4f7c20f3957272",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7146,7 +7146,7 @@ return {
     title = "The Lifestream of Reisenjima",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b39e74a4524ed123ed916dbee4a3f39a3e1036f025fd75f07add1aa8af512b73",
+    progression_revision = "3e744a6c4fbc6ddf4420492e6994da862b559932584390e123a6b6986c99483a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7166,7 +7166,7 @@ return {
     title = "From West to East",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "79f95f94c06c0aefa993cd11db964e383f265b04d350248393237942eae847a2",
+    progression_revision = "10fce03b4b159f5424e27a8deec9bd33010c22c87c8418651ada8c94d9b4f195",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7246,7 +7246,7 @@ return {
     title = "The Winds of Time",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9f455ce59995bdcaa44cac92e723d361471083387ae7a43af1f50e97f0e91f89",
+    progression_revision = "7db151213c1a3b8cd18af34a1fe68fb10304f2e573cc53536a76a89c3658db56",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7266,7 +7266,7 @@ return {
     title = "Calm After the Storm",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "696ad62ca50ad912a38c132ca583333decaecbb3e44e3f055fd96c1cd92b25da",
+    progression_revision = "d774cc23e37e31873f44e5adb51f1404201da109c58fed84aeeabd56f84202c4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7286,7 +7286,7 @@ return {
     title = "At the Heavens' Door",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ac3b567204ee7e3b72aaad7db47dcac0a463ded5ac9d3d1a7503f45fb72674be",
+    progression_revision = "10be3e199de8adfa9569b6794895ce3287d282a8d3aaab80b5b643668b9b22b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7306,7 +7306,7 @@ return {
     title = "Nary a Cloud in Sight",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6890897d8fcc8a0505100d73e46471cd893c29deb8ff9ac710eeff6666eeff25",
+    progression_revision = "ce47972a5108ed30f306de026e39c173a704c90070f6d87677688740517dfba7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7326,7 +7326,7 @@ return {
     title = "An Unending Song",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dbc21ed23f3c7212221b8b7ee4fa69c97c2c8f33f8302cff69cc3825e1936a48",
+    progression_revision = "e74406be3db5ccc498a5d15141cf7b87dc186a7870a875acfb079065acd22685",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7346,7 +7346,7 @@ return {
     title = "A Deep Sleep",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "392dc1c22c2779d71d93b42237b79108a59190357b221f6161de40bbdea7ccfd",
+    progression_revision = "6a7e1f6651008ff039c549d1130edabd55140539945a94295183354d8cda0a17",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7366,7 +7366,7 @@ return {
     title = "Guardians",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "59a6732c810948fa2813593a88e6430e42ed39458ac974aaed615cf33cc4a727",
+    progression_revision = "324f2f5552bfda797d6b659cfa5916a20f8b7f184b38686cbe49e934fa3a0cf5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7386,7 +7386,7 @@ return {
     title = "Iroha in Distress",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ff60be5fbaa009bd9e833dcafe3e655639a7604634e03fdc237560a252e7690e",
+    progression_revision = "ba3ac5b72a7dbb583c5b691beafb40412df8d1134addcd01dcba1222c3218d44",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7426,7 +7426,7 @@ return {
     title = "The Orb's Radiance",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5fc1e8f9a20f21c908e1fed2b666ac6ec0ac6f6737625e81ae1521e4db1d19ac",
+    progression_revision = "a685a5fceec25a2baada202f332f2bd3cdadbfac9c0a3447c9ce171cbb29adc3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7484,7 +7484,7 @@ return {
     title = "The New Frontier",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "781aac307ef8a952a095c5a9d93f79c81794038901f0c8e7db539eee5575159d",
+    progression_revision = "ff3b147f415f0185ce638ba9ac7fd6259b6c415c771225286adf6cd1b6f8f3a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7504,7 +7504,7 @@ return {
     title = "Headstone Pilgrimage",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1c2167044f1113cae218a1f9bf697e7b42e95084a347047e12d433b63c59697f",
+    progression_revision = "ff3021fe3315ace48b3671fd21de520719f3e142bad73ef7fd0defb2580795cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7524,7 +7524,7 @@ return {
     title = "Through the Quicksand Caves",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b35f05f16f740d3e4bff4a00ebc00dcea9b41be0c5b6eef8a109ecea96a0fda4",
+    progression_revision = "3d708ce63bc6808f42e92436b929822f93c5018508ece3f39e5fd868c11a71c4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7544,7 +7544,7 @@ return {
     title = "The Chamber of Oracles",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "94002834f5bcdde7ce1d079f5e5808620d6cafdaff72734476cb5bd3ff9b171f",
+    progression_revision = "c7fb3f74cbf1ff9be48db0cb35b757d6a5d7cf6d3c836f212d0f3cb2c1887c49",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7562,9 +7562,9 @@ return {
     native_id = 17,
     progress_id = 16,
     title = "Return to Delkfutt's Tower",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d89faa022b2854b9c6100e267409277b9af956d2a83b6d38a36b3df0fcf13a3",
+    progression_revision = "f0cf320a63d0b77316bea2453d723b7b12cdfd23f2abc21b9a53aa9d5589cea7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7584,7 +7584,7 @@ return {
     title = "Ro'Maeve",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1479c7916af681c402949bd73fa7ae5a0213b474037a492488aaf9210cc45a38",
+    progression_revision = "42717b0032a0451530307e62553712c8e96b4b16e7848ec9d096c335cbb4e9b0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7604,7 +7604,7 @@ return {
     title = "The Temple of Desolation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d60b6f5242b5208ae1fbeac807016f88fc4e68c5cdd6720324facb1b25331ff2",
+    progression_revision = "6e6f6a11b1574163e384f1a967d4a3ca245f4c760a90fc840375559670080f11",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7622,9 +7622,9 @@ return {
     native_id = 23,
     progress_id = 22,
     title = "The Hall of the Gods",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "36fe7a310b16ffa2029ea4ed8c6c82c6778b698af7e02a01b42a7d1d330dfdfb",
+    progression_revision = "de8264391c6a5593ba4f94cd5d6ec43ba6bd0d63241832c988be5caf07de3b97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7644,7 +7644,7 @@ return {
     title = "The Mithra and the Crystal",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "77ce693dd29edb829eb4461adcfd6fbb73fc14c74be64e6073e56fe53fd97fbe",
+    progression_revision = "23df08a7c11e8a208a666333cbabc82e9860ea4d7afec9cf08d4447a587e9364",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7664,7 +7664,7 @@ return {
     title = "The Gate of the Gods",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9f638a3061982505e4d670df79f4bfdfe871974230b9ae074cf86d371aace74a",
+    progression_revision = "c39d83223637cda0a4294570e4459477e554dfdc50533930742952473aa28a57",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7684,7 +7684,7 @@ return {
     title = "Ark Angels",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fca10edda5c865a54cee4c6079858dbd1cbbef3ede1cccb7e0c373c0fb806ead",
+    progression_revision = "5bc22e82d2564af28e57c09bf78f2a6fdf8d65653b4edb7dc24db3d21d1dc8ea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7704,7 +7704,7 @@ return {
     title = "The Sealed Shrine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ebd9ebefa80bd4d7a24eef21a302c545cedd36f04b5226175dc2aa781ce0447a",
+    progression_revision = "bdf72728002746f8a8e3b5d98b58d8f103fa9fce1fc56dced2956b70a63ff951",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7724,7 +7724,7 @@ return {
     title = "The Celestial Nexus",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a75ca732de55215740f7c78de7cdfbdf2e73d767a33a81f315e5dd91c03c1221",
+    progression_revision = "d7773eb77614113221a34fbbe9a3e939e46c8230625d0c8334016820227d9362",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7744,7 +7744,7 @@ return {
     title = "The Outlands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4af985cdf92116dd1e83d95800cfbd4057cf1d8586ed39e07b81c4d9515a6e30",
+    progression_revision = "1503558a6c644e86e98be6c2bd071406319cca3006c2734febd02fadc8e5a840",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7762,9 +7762,9 @@ return {
     native_id = 31,
     progress_id = 30,
     title = "Awakening",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d17402ae1341e2731002614ef77c461fa20e6858f6e44a6922753233725d08e4",
+    progression_revision = "58de07203441ec1c84290d5ee895f3ec9b094e8794f9c8191bf3d15119966c23",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7804,7 +7804,7 @@ return {
     title = "Welcome t'Norg",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a328c9bdc44720874c2ff09c87eab199166fb864c91f903dbd3d6d6bea0b7792",
+    progression_revision = "4817b86bfe2d3bf99719e94613ce03c289c4a7b04849e12a664a34dd90f39923",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7842,7 +7842,7 @@ return {
     title = "Kazham's Chieftainess",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "540bb69a93aaf38be53717913591cdb3f6009fae71f17a50a944d275e485a36e",
+    progression_revision = "058e1d8dab307f4eadf96993d2598ba3a948ff50b49907229d4851f65880a0ef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7862,7 +7862,7 @@ return {
     title = "The Temple of Uggalepih",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c4c7f6556e709c58205adf23b13f39f6df2547318537452a0d0bc6cb6a71b90f",
+    progression_revision = "ca30437cbfa53c1a2133e2eab700e70dd676e5684fefaed0510303d03bed6561",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7882,7 +7882,7 @@ return {
     title = "Smash the Orcish Scouts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "35b1039a94a66ff512d1110fca12b7961cc2fac4494c33c64e834287323b96cd",
+    progression_revision = "5016337d041c7fdf869d5b22e295c99d926c94cf4c7f1673d277be69ea9ab655",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7902,7 +7902,7 @@ return {
     title = "Journey to Windurst",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fd6f9af5ca7719d71488c0b4a0216d2ab2237a43ef12ffd91f0c4088d6e782c9",
+    progression_revision = "5f36b07a3213182a4c263f5207b2f2b03ae23f8ee3899ca2cbaa00327617501c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7922,7 +7922,7 @@ return {
     title = "Infiltrate Davoi",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "801d4217e7b5e53c690a73fc350ef783f076c0315494ca73b9208e6e6194ec8a",
+    progression_revision = "2af8afaa6fa1144215502995baf2dab7fb03ea40d32b599c0979796b723c94d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7942,7 +7942,7 @@ return {
     title = "The Crystal Spring",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "30da8643e507f913d757b5408b033bceece578e65274c967825980783caf8395",
+    progression_revision = "b8e0eb6e044e068c7c105f1eb563c499587753c5648a8c5766a08c6322e6ea43",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7962,7 +7962,7 @@ return {
     title = "Appointment to Jeuno",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "30bb4fad4d478a8e47563f35d3104c67949e2393c84d88cefead36774530c230",
+    progression_revision = "1f01a60566c68c7d7b9b935a484d0f1e80748e327a87e2d9fafe04f1103d6665",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -7982,7 +7982,7 @@ return {
     title = "Magicite",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2200a03183a32c4f151a786db148063e43c162f862b5fde60bad558985382b1e",
+    progression_revision = "581f7d987c4f9138b899d6149009a1ca307f8c57b52e166d617a9ec731b740b1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8002,7 +8002,7 @@ return {
     title = "The Ruins of Fei'Yin",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6cc068ac5952f9fc0fb1764167cb4bc8985a4d6c38e0e98011e6709b7a1badcd",
+    progression_revision = "5c48956a404d085eda4cd8937d99645615ee7491fbe4127b17a66fd45c8db8e9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8022,7 +8022,7 @@ return {
     title = "The Shadow Lord",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "41e4dddd971c1df4a0f65e1ce33af8548475fd847461dc23ba9e79e8c894c131",
+    progression_revision = "a115dc67891695151ac050d91e2dd63f799b6d6b8645e4f8d1083eebf6be1e61",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8042,7 +8042,7 @@ return {
     title = "Leaute's Last Wishes",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "89b390ff296860b615c34ef6cb789d50f95c4bed07243370775486a2ab934189",
+    progression_revision = "623ec6b64d4cb4078bc1c4c85c38e4f589cb1e09e14ea3d7404e52ebedd7de15",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8062,7 +8062,7 @@ return {
     title = "Ranperre's Final Rest",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5a8049fd3c37c0b5f0065aa043bb5742e84747d108f97e6b96177e53cfb1b1cb",
+    progression_revision = "9ee5298bd99ba6fc967f750024bb55d9decbcf32a62aa20c7cb3c819e89c0565",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8082,7 +8082,7 @@ return {
     title = "Prestige of the Papsque",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3a0032f334e1e1840b6387c8b1a3f5edfc68ebbc421a059ed65b58dcf0dcb134",
+    progression_revision = "32608d7c3ca277f85b7dd5974bfba8ea0cbf634299af7353aea23b56551d7a6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8102,7 +8102,7 @@ return {
     title = "Bat Hunt",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "61131d5f40a7c6f634c0065d909d0f1b5ee913698b3c68520757d9d6b8cd072d",
+    progression_revision = "4cd25594a71128e43189ecd91a8940e5c6a97899289dd6d0134e117053a5373a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8122,7 +8122,7 @@ return {
     title = "The Secret Weapon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c56b8b12e0fec9a5c55604e1ccc9949c605856847763be746fb05e4eb55b78b7",
+    progression_revision = "56f97318816b20414cb668f7378519c05272d217865142ab1163318e6947a514",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8142,7 +8142,7 @@ return {
     title = "Coming of Age",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d1e960cfa80500170a7db8397ca327494b65e3ac1081e307a50597221ba92efa",
+    progression_revision = "474cf51f05a3172ea44f251f94a28a8338d0d2df5a53cd99f49cc4d153b1040f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8162,7 +8162,7 @@ return {
     title = "Lightbringer",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e646f778535d3542cbd58ae7f56e5e47ad171d1e3fed30b5a768b2b58969761c",
+    progression_revision = "dc533071d656497a39d6ec741244a01d41bbd893f0134231e016fbf8d249be8a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8182,7 +8182,7 @@ return {
     title = "Breaking Barriers",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8a466d4b0e341d7d492e1d31ba4438b6cb3f65d9d790c4a73d3d659c49c2e4d0",
+    progression_revision = "54d03482e24ba2ed2f8f2acbdff4a1a334a8dd98d09b4627e1d40c3b5a6a20b6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8202,7 +8202,7 @@ return {
     title = "The Heir to the Light",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4ecf9a2acd23c06d997d9b9483b48b4dbb6dbd14201bf39998a97995dbec7ab3",
+    progression_revision = "e6dc4bf8774ec3f33c94c618307c650709eb55553efa21376afa9817456841dd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8220,9 +8220,9 @@ return {
     native_id = 3,
     progress_id = 2,
     title = "Save the Children",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "932433b1325c0686b99746697060fb9020c2afbe2d0a76a12279a7b7b10ac7c3",
+    progression_revision = "03e2df1f9f21eb1fb0ec0341cc1a5d75f02c08337590004e1dc44b72a480bcc9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8242,7 +8242,7 @@ return {
     title = "The Rescue Drill",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "16d520eaece70f54c35217b0cc63a1a92614af1e89f86a24d530d765226bad6b",
+    progression_revision = "4b1962a08a4b7b51d3d45b67b45b5d1a06b9c3c7ea10ebab20f2d4e49add28c5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8262,7 +8262,7 @@ return {
     title = "The Davoi Report",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "57c33188317a3cdfd39dc62ff8c8de2788fc91bea3167a43f5c7fa4b8c37069b",
+    progression_revision = "ca138bf89d1b220501038c5b2c2661e1e1f4bd6b95ec61d2b4bda8ab8f0cc45c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8282,7 +8282,7 @@ return {
     title = "Journey Abroad",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bbacd117c0361a1b5a18ad7dd7ae30c580423076d0e030a2311260940074c1f2",
+    progression_revision = "3361d5f0362a74d05491e407f3787295b570acaa3b6253d98990d5c46a2da5d3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8302,7 +8302,7 @@ return {
     title = "Journey to Bastok",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "42a69bb8ba793b49b7f64bad193b373b5897fabbd528dfb6b241c611bd1ba738",
+    progression_revision = "a6d3e35401be5eddc764c676d0c45bec22532c93a6bed2bd9cfaf5445b503777",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8322,7 +8322,7 @@ return {
     title = "Journey to Windurst",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ea5f7b06129b3bcacd2f23a70428227b32b12bb312638ea3a0c0b32c7437cd21",
+    progression_revision = "faf8484e90ab2332d1ce6a62be460c888633eea7929a51310ae6463337b0c13f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8342,7 +8342,7 @@ return {
     title = "Journey to Bastok",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3136a245fd4e47fe52288292250df5a4d10c3f44d0f71fc937e214f1bdae677d",
+    progression_revision = "e59d9deeca9daf29a5d400e52e39f690029a35d9bd9de9b634d2211a41ec8133",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8398,7 +8398,7 @@ return {
     title = "Yggdrasil Beckons",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "72fc0e98cc17015d6a6f3553729f435ab39e82b2d25e0ce0ab67fc3a002d8913",
+    progression_revision = "b76427a4f7b6da2065e0ff241084c12392acb8e442d534c17c08bf99b28e1ff6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8418,7 +8418,7 @@ return {
     title = "Returning to the Trees",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "44b6e0af020fc2fed5ea425314d604d87d011173c41c8c38f71b1ce1341c63f1",
+    progression_revision = "404788a52eafb31846c4ef5c72b952895f9ea30f59a4565abfb35eedf3ddf73c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8438,7 +8438,7 @@ return {
     title = "The Key to the Turris",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "80023438e844a3d8bf01ebbbbc6bd391ab8e6864482febd5debdf0c36fa30062",
+    progression_revision = "eb4ab04a9a2fcc404b6bbf090ed66e720a14332968845d981c6784129ac948d4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8458,7 +8458,7 @@ return {
     title = "Teodor's Summons",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ec1d5edd38f109f6e2af7959ddfbd5731aa0f4d50573e4be3d8ba754f644650a",
+    progression_revision = "952a1c0225d2e72326b8a3ab986ce545a0484299127f96d02d1b441ac06b926a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8498,7 +8498,7 @@ return {
     title = "Watery Grave",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3c43a1ab839eafd47012b8aef0c07c51f14e31850c9f7b2ae79d3133f34ddd6e",
+    progression_revision = "ba1b69489db00f70caca2f659e30f468d1b2947ee151263822430f7b6d7073a5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8518,7 +8518,7 @@ return {
     title = "Blood for Blood",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ea1adac0ed9677d6614bdf5a0ac3803ec3d40b14ebf25262e8c21bcb137a5d60",
+    progression_revision = "caa18c19eff2d6616121df3a6e3454f1c840fe1b54b907358402b32a197152ce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8538,7 +8538,7 @@ return {
     title = "Reckoning",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6e79e0030fc6d4723091ab019ce8570e34eae9a1f195b806743fd0ebe364af33",
+    progression_revision = "362927839078079074758b957d4efbedeeaf6641d67dcd7a4bc98cc763357e4a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8558,7 +8558,7 @@ return {
     title = "Abomination",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d10268d4e0cc33ac58d54c313342fbc2010160c095967b5c19de54edc3fc76de",
+    progression_revision = "c905d629429b8be97ca4ecf690338a69bb052835fde04a564f2f3656d0f9e186",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8578,7 +8578,7 @@ return {
     title = "Undying Light",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b48df9b2bdc83b7bac7d37835febfbdecd4a2fb85c762925244049f60e5aaa03",
+    progression_revision = "988ea3a5b47eb6f2aaa62f2e7f07198ba38d1d767d94afd314d9a495b68fcc9b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8598,7 +8598,7 @@ return {
     title = "Budding Prospects",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2ee19ccd1c60525e168cc4c7221b7c60e1f160aa05f14a83c0fa0b3629cbbcc4",
+    progression_revision = "0bb2f4a94b9fbfbc5e6ed3ad13882ef8f901d948bad5439efe0edf685aae14db",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8618,7 +8618,7 @@ return {
     title = "The Light Within",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1331c0208d0e703309e680231a088e2ee92462e136684c1fc01626a181e0b596",
+    progression_revision = "79bc486c7cbf8fac24303803f0c72e00f003a65dabf05c851c34a4048532b181",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8714,7 +8714,7 @@ return {
     title = "An Aimless Journey",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7ebfe24ece76028ec4c177a0015366cbf5c527ca9d19a8a61a3e98dcc5f3bfe3",
+    progression_revision = "fd5d7232d432636a649c7a45802b17f31eb3c5e58c67f337f009b0d882b4c738",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8734,7 +8734,7 @@ return {
     title = "Ortharsyne",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c5759e0714236a97f2cec115e3a0a51cb3f2aa712669d1ee02f1795bbd17a912",
+    progression_revision = "0b76c3fb90ae26515e1b4089516922afa6bd098247f75dc8257e5d6a0560feba",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8754,7 +8754,7 @@ return {
     title = "In the Presence of Royalty",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "625f7cd794eb2d9333198ed7a28e91e4ce9c0dd5cbe6bcc22aa91d5996ebc826",
+    progression_revision = "08d9d89060b729001a63929c4811b29620d2765ec7c2634f1e745cc238394c84",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8834,7 +8834,7 @@ return {
     title = "Rumors from the West",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "50a72d69565b5b12566116dee8c33a28333200fa9feb5db9704800332d3d2cbc",
+    progression_revision = "bd1c56789d459f03c873a6bfceefcb3193b86be240fcd82d21560a7b838308df",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8874,7 +8874,7 @@ return {
     title = "The Celennia Memorial Library",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cd5050b4abb83b8eaa2ed6d2af6f03f237233549a8f03b645642c1c65db39ce0",
+    progression_revision = "cf21a2d251e278b2270ee2adf9e589765482547b8e188761b36616ecbf0a4215",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8894,7 +8894,7 @@ return {
     title = "For Whom Do We Toil?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f705279adb3a4347354bb102b46d5a7b28d42a31ac13bda2f5a706af2d812706",
+    progression_revision = "04d4076849a45ac5697b61f90d8fb8268ad83f1e54243fa7728786dbaf9027cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8914,7 +8914,7 @@ return {
     title = "Aiming for Ygnas",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5063fac47d55c14a2ae8337f15cc92300eff4ce1cc6c2e6edd58b9ced8ef9651",
+    progression_revision = "a4108d22f102ed1017621a1d6074ac347e205643932831e051e0f0d12e47429c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8934,7 +8934,7 @@ return {
     title = "Calamity in the Kitchen",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1fbc5f82b914b49f481c1de79237c4aa3abc2564bf7ff7c370040fa84936f466",
+    progression_revision = "e9dc83bca9f1d1b3ca9d732015dd57f9b7fa78614757d2da6d1e48e7f7670473",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8954,7 +8954,7 @@ return {
     title = "Arciela's Promise",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9ab231224deb6ac13bbbd85334dc058efddc20843ad0ce6bd1c4a98c43eb8392",
+    progression_revision = "9b0112f576f099496719163184808b673e64da5bd800f333934997721a11e92b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8972,9 +8972,9 @@ return {
     native_id = 26,
     progress_id = 170,
     title = "Predators and Prey",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "849cb3cb4beada29ad336a79832728e716b878be706adc7d51d0650bc31f8235",
+    progression_revision = "736a40f562d6f6d54d14a63c13c91ded3bad6fa4a28a3558c1b00e0239cdb22f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8992,9 +8992,9 @@ return {
     native_id = 27,
     progress_id = 172,
     title = "Behind the Sluices",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6336fc88299517888204e04296d413f333d868b50e9a40a88354d7859c381c0c",
+    progression_revision = "5bae7fed2de09dc3e2d7603c7fd9ab97cd23e85947ebd2f60e9f7b818bff352d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9054,7 +9054,7 @@ return {
     title = "The Geomagnetron",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "517603540237d74023011c6f0514898581141f521d5e0fc85e508d04726dfd27",
+    progression_revision = "c5aced6defbdc7c4ed492ce9ac8e6d1fc48337ca74187f548e615a6ea8a33e04",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9132,7 +9132,7 @@ return {
     title = "A Curse from the Past",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2cf041fec681a614b5d7fb6fbd6ede5769391e5bd5c8aeca7c61501bdbf2382e",
+    progression_revision = "0f7053283625cd7103a9b04bea508cc6c4bccba64557ff768411501913b6d78e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9192,7 +9192,7 @@ return {
     title = "The Princess's Dilemma",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2df72fef9029e7aa400f77b59b7810f7d61063b3ee3e3956a5669b3861e82690",
+    progression_revision = "855be8ba902006d582d084cbf3c26799a2eed1a5a280f1b0bd6babeb5562fe38",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9232,7 +9232,7 @@ return {
     title = "The Smallest of Favors",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a11d01b2068c7c317063774f69154fedcabee1d0e82c2ba2f44795fce74c8bcd",
+    progression_revision = "a2f8a29ebf07eeaef0ddc0e583f191f9e2f891fc952c0d8ffe77a79fc05f9e6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9252,7 +9252,7 @@ return {
     title = "Summoned by Spirits",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3f6bbe6b938dab59cf3bc57a1558cd64ecb9cf81acc3824d396bb1c0818d59c6",
+    progression_revision = "7d9749c4020e06020f4a9da180d3ede134c0429498c4e72e43ebaa6df6f79b28",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9352,7 +9352,7 @@ return {
     title = "Shared Consciousness",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0fe2420ce4aa97fd28318ed7658b27c009f76df6ea9da0dacf4e03946596d2e9",
+    progression_revision = "5095f9c606c6dd164883eb07e13f1c49a502bb101311c959e56652444b1280a6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9392,7 +9392,7 @@ return {
     title = "The Man in Black",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "0d134caa04f4d5af8fc2e409be0486b1135055acaeaaff1b0bb8469ffa2af3e9",
+    progression_revision = "1718eac0bb7bf1744004a8543f28f4bc8c820e2127840ae81211bdf4230d9dd4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9412,7 +9412,7 @@ return {
     title = "To the Victor...",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f6f6151abc6820ce1de55551968a4d833734c11c2f6e465dd82a670356792af3",
+    progression_revision = "567f1e2f32b84ef506838b530c3961fb9b1f1b8b70b2e722f8349afd2780fdcf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9432,7 +9432,7 @@ return {
     title = "An Extraordinary Gentleman",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e3a35218d5b57125adab7a0d28b1971ce4bd4e9af1bb853c8e55102560b000e4",
+    progression_revision = "710b484993eb8fb5d7df13bfa032a819dd14175196a0d38ad32814f09c2ec509",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9452,7 +9452,7 @@ return {
     title = "The Order's Treasures",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8f62ebab59a84015dfd0cdf95ebcc0c5705524aa8106d0569dd1a1db6e6da1f8",
+    progression_revision = "6c86a9cf81e279de81a67487384035bd8f6f7f5a99df70ef924f9ee2d7aa3412",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9492,7 +9492,7 @@ return {
     title = "Heartwings and the Kindhearted",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "14cc186a9a77149b93aba037952ff8abb5fae66691b8a703a4d2c5f20ef87d70",
+    progression_revision = "73cc710e693136ddd5415e908446f7d795a0716c57163c8b1b5c86a90522cda7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9512,7 +9512,7 @@ return {
     title = "Beauty and the Beast",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e42bf3758fb7c79021519f1db9233cc3607b571e77a359c46363ff008074e278",
+    progression_revision = "b3e0273da9b31ecc3c7fca3b29e2231c4fab71f6a578f09faa9ea7cb475a8ef6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9552,7 +9552,7 @@ return {
     title = "In Search of Arciela",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "830abb1f0693d165b79eb71a97ac8b7db3c1e2c286d2f43fcfab15eab7d9094c",
+    progression_revision = "58fee80425966700f95f87538b729184018509c7c5ca02a347fecd1603027da2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9572,7 +9572,7 @@ return {
     title = "Looking For Leads",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a89a2bfa7dd6cb35656c27465890497fa9625bb7061199dc0ea90b16184d3769",
+    progression_revision = "13c35e26d68a81864ebebfc34a98f2b867c822e8de9ead6c4a66f4564dfb390c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9592,7 +9592,7 @@ return {
     title = "Drifting Northwest",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7714b620161c5c356dcc1e4dd501a901b85ea37955d95f0f7b04ae5b5e780d2",
+    progression_revision = "75c8198a7f3f6a1c2c9c448bbd5dff4a4a4dd40a1c5612817572566cd18c6aff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9612,7 +9612,7 @@ return {
     title = "Kumhau, the Flashfrost Naakual",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8ee4dc1633b7ef1ee05e8731fd9790b216879f9923200f5fbcb61f0dc18de705",
+    progression_revision = "6603880192c1fcac7d21b0503835124c5e71c78d75bf8f3cc44a712981322291",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9632,7 +9632,7 @@ return {
     title = "Soul Siphon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a1076013532376c90e28906335d5c7c156bb71005fb11aa1b91983070618afb6",
+    progression_revision = "6775cd90d45476747ade5e24dedcf2c5da024fdc2c0f976dcc1ec8c8bad6c44c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9652,7 +9652,7 @@ return {
     title = "Stonewalled",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bed9eed6a13e1bb0f6c63c38e956010f9eae926e36cc3e56d5b0c9b0d623fa5f",
+    progression_revision = "8a365ba039cfa10b032cbc497b12ed9f1adc6065625b9cd81dd187b726d4428d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9672,7 +9672,7 @@ return {
     title = "Salvation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "47805c59f4f3bce69c634cbada4a901866ac8c037c90848482cd2dd7f8bc94ec",
+    progression_revision = "6efb1aeb6a5eb1e64134e296ce183744a709f32d631afe801041b82a25ef170e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9712,7 +9712,7 @@ return {
     title = "Pioneer Registration",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "aa8d9be0400e8ae5f06f47c4b302464813f64206126f632b3858a2d1fb1d3b02",
+    progression_revision = "ad008f6429ce810e4697824f9c6daee05fdcb351a9dc45db828271ecfebe0c7f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9750,7 +9750,7 @@ return {
     title = "...Into the Fire",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6bece01aad13e53e65e6f00af4483fae208acfbf9d9f0c01c7a94c3bd3f336f3",
+    progression_revision = "6edd77fb6e60ee5cf3dcf6a10dd040cb74494ee1807e9e363944f6dda08271ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9770,7 +9770,7 @@ return {
     title = "Melvien de Malecroix",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "29ab7533d4d16faaaf09f14d982825e14dd21d8f32bda2462f587a516edbdfc2",
+    progression_revision = "12fa87a6bbea09ef772ebfe93117f2c4ac66a09cdd9976e1e239fc5a6782bda2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9790,7 +9790,7 @@ return {
     title = "Courier Catastrophe",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c385a07eef61ca7007c0dd70097113e0bb35c2baf71b98e8fb584b503f98c58a",
+    progression_revision = "a6a902c8e9759a1cbfc8b4439768d953f7743a6fc9a40bc37c734c3ff71ce32f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9850,7 +9850,7 @@ return {
     title = "A Day in the Life of a Pioneer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f2fb98a2dbf9ab7216accfcbd61312cd1e5f1aaf217ff79bbd5c58e068ecb517",
+    progression_revision = "f2fca7f8d63c3fa76b52042e114f6ba7d85f8222eeedb11d63ca06ccc0c3e8f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9870,7 +9870,7 @@ return {
     title = "Lighting the Way",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a8818957875926b62a84238e920de36939f176d5746e90b7278795d85b65ea3e",
+    progression_revision = "35221ea61d91e8651457780fbf8a8b5eeba75840ede527c8383cb1695ab4cffb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9890,7 +9890,7 @@ return {
     title = "Sajj'aka",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "61d031baac1623e49ee4b7756ffa7160ac19f202b76d2223061ece6009cdbefe",
+    progression_revision = "73ff7711ea04d96934b83abfe4c7fbe7c6236e98d031c7dca8628ce2a287c3c0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9910,7 +9910,7 @@ return {
     title = "Studying Up",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1c515fb0404b9e7b5ee2016072862f10fe9516884f905f3e5e118bef1fbebe93",
+    progression_revision = "67a885c074c99d109a20d8455921ec25381125175afaae3181924bde8a649302",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9930,7 +9930,7 @@ return {
     title = "Life on the Frontier",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6817014d74b57793a96aacb02a97366b82ae8939885e47144a391b0787098ee8",
+    progression_revision = "377f02ebcb3d307594c87f11affd28cdbfe1551e6901de5e3fe7b77ade3ee0b5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9950,7 +9950,7 @@ return {
     title = "A Vow of Truth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "694e79d7f45f5f99f42130b9cb8921e7bc7c6d062d1f88dad4aff718841230d3",
+    progression_revision = "026fec461967d228e2caf0ef2db22d3104230e64e38eecbabab50d9b81a1d52b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9970,7 +9970,7 @@ return {
     title = "Darrcuiln",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c825e04f6a398239cbc4e4b67a7dcd47fde7633c9414f2e44eb80623797ec06c",
+    progression_revision = "4bf16022a090356e48b517f2ec62af999632066ca0ad4e42fe8fae4def29f166",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -9990,7 +9990,7 @@ return {
     title = "The Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c04de2b652782599d5a8f285c749eb17b5bd1aa8618bfbba922c072ab715dc3b",
+    progression_revision = "5f0679c0b76f1a762e2dc13987670e3f79d481cdb81281bb1aaf3c8a847f6224",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10010,7 +10010,7 @@ return {
     title = "Morimar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1d041e5d788ff92f94205dac33c6b65b62357a53a2fb6ec2f5af655aeb8a4abe",
+    progression_revision = "d93007f4c660961ecdf613aa97d914fa6308603cc32ea2864a6a89222381ec11",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10030,7 +10030,7 @@ return {
     title = "A New Force Arises",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9a69e8d9eca033ffd611862d19da146ad2cb9c049abf26ce8f97e79338f9c10d",
+    progression_revision = "5097948beabd24a1e67ad7ff87bdd1cfa3fd2a104919a2d2506f4bc4f7de72cf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10090,7 +10090,7 @@ return {
     title = "A Shrouded Canopy",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fb36a99b8cdacffe60f86f38217761125548eb12f3d6c2594dade001dbbbe14b",
+    progression_revision = "410eee4622b68f241a96651ecc826bd1b8a8edc7ba597d9cf743c7ac1f728a89",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10110,7 +10110,7 @@ return {
     title = "Leafallia",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "90cbae3d29b596d5f8e5027811e804157b003c9531975384b613cbb50aa74e46",
+    progression_revision = "6a0c7d45f098f407e351dc90354ade29791bd0c1866473eb0d3804225fc202ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10130,7 +10130,7 @@ return {
     title = "Rosulatia's Promise",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c7c38324dc0677f383b8b614cd29006e0c94624991b3ebb16655375d5c7d1318",
+    progression_revision = "d09c712af4e246a0c12eb9fda4b197afbedbd0f6b431ec9de3cec9c70c514929",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10150,7 +10150,7 @@ return {
     title = "Meeting of the Minds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5eef2dd9e42b877baa429e811e24a054f5c2ab74ce2bd68f9b68d731e4e8b839",
+    progression_revision = "e102f6386efc3a0c539ffdc05213ef7e4d5326bcc6b0f63aa51b56a8a3ce68e9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10229,7 +10229,7 @@ return {
     title = "Seeds of Doubt",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3ba2d4e3aa668d8c1603e8b0f5b3dc1ec8d20364c0b1ec6d25216789d9c3e5e3",
+    progression_revision = "d581db6d091eed8c28b8486260ce4905740eaf8c2e757a29a41719b9ec668a89",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10269,7 +10269,7 @@ return {
     title = "A Grave Mistake",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a20e7d19aaf7dc986c8dcf04ea834456dbf7a31902f0a410f5770a1c880a605c",
+    progression_revision = "f7483438119814c0ce9b73e0c204f62b461077922e1aec3fe54a34c5aac6b868",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10287,9 +10287,9 @@ return {
     native_id = 86,
     progress_id = 306,
     title = "An Emergency Convocation",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "04580b1a2677442f8abd70bbea3b47eb921140beaa854ea8d6771de27db7b512",
+    progression_revision = "d69f17ab56d31653e5c56cb3b6b984a4e0763929e85e3f2df25cf5bbb0389e83",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10309,7 +10309,7 @@ return {
     title = "Balamor, the Deathborne Xol",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f4ddce38c2e673e1ece820b47a45d3317999d8f3bd39f1b1cac4e48a0f86616",
+    progression_revision = "bb7520e5fb34747a93b0f2545844c5e68953b515ba8800dbef702f4390723c07",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10329,7 +10329,7 @@ return {
     title = "Anagnorisis",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4515c999da96e4f2cb5bfa778ed7b0b028c86c4863272a55a113aa462f8319aa",
+    progression_revision = "fbdb720bf55eadcc59e07c07caef6113478b3050595b98ba1e2bd452148f9673",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10349,7 +10349,7 @@ return {
     title = "Just the Thing",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "98d21bb56d0817b448589129a2b46d10712c12beb8900006921efa9b1b0ec66a",
+    progression_revision = "94ce1318bca93489eb95066391fefd9685c0b73c364f10a9e6d29a49638b3e10",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10369,7 +10369,7 @@ return {
     title = "Arciela Appears Again",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7e9df36f99f1dc4e0ab02e90e7a855e77c7e148c925d41a65c9f92448afbe77",
+    progression_revision = "b27460db055b55ed0b03d6e556eaac6ebb0eb2343fed5e4c6754011b4725552b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10389,7 +10389,7 @@ return {
     title = "Sugarcoated Salvation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b9dfc71f024f3116c1cf987131b01cf44db6d4eb3c4f0afe22e6fe5329ab1acf",
+    progression_revision = "cce87d10f893c469e6c22ced9b36472bdb194e92f4753e953d7c577b10b465eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10409,7 +10409,7 @@ return {
     title = "Arciela's Resolve",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "18a28bba3dd5a1528b12227c340976c66b71b5a806d0c050c976642edddd9d49",
+    progression_revision = "c6d649ec940ac160c2fb9d79c89403501cae81ea8752a66c15105095e7c1ab8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10427,9 +10427,9 @@ return {
     native_id = 92,
     progress_id = 318,
     title = "Balamor's Ruse",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "753a55383393c289e9d859192e4e64781e716aaf980a6708b639184e5a825b8c",
+    progression_revision = "c9d0c89e87d3274acfb98e434ebb6c13a2d337fa8060b87b1039e36a51e43969",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10449,7 +10449,7 @@ return {
     title = "The Charlatan",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bd3c44172c9a9f96802f49ddacdcf1a0355f175d1e7964424e9acdc5b3024c9f",
+    progression_revision = "70d386a0020ebc0534a0fd1e696b1eeb6a86f8197a3843be658e52bf41d47491",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10507,7 +10507,7 @@ return {
     title = "Arboreal Rumors",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "71cbce55b3053b62457a5ce4dad2ebee564127bd7f969ea55643238ff103b9b1",
+    progression_revision = "bd81f69e45d2ffcc7ddb89f14ae7557792fbb5bbcc162fd9bb72501fe26c0c01",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10547,7 +10547,7 @@ return {
     title = "Heroes, Unite!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "082262f094ec02d366fcc063f66adc5940e1b77da82549685ff77662d6296abf",
+    progression_revision = "b188b56f5e2520cc2dd409d55fd73c30bffd2a3b4ab66d1de4a3355cc7a6d053",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10567,7 +10567,7 @@ return {
     title = "A Portent Most Ominous",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bf00b59165f23e436a561757d163f783580f65d2d1a642b8f5a3f72a23879908",
+    progression_revision = "dce0e9d416d97ced25cba9ec012104dee24226a0f04436b7b53992e6a1fb392f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10607,7 +10607,7 @@ return {
     title = "Dancing Prince",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5cc6596a4c676f00a76f91c0719410938853436dbfafb1940d5bd7bf2c2d588d",
+    progression_revision = "febeb5fdf532a2163e8695456aa8667af34c3f38c64cf19f76be65e62e131062",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10627,7 +10627,7 @@ return {
     title = "Claidie's Concern",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "815d4e7545a910be1e0d149d13c9c820214cc86af5b6adc5c80ee451b11d7796",
+    progression_revision = "d8d1dc8b10d69ad04bff69dc6ca28f9d58f5fe978d15a050f8d9ffa6159acc57",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10647,7 +10647,7 @@ return {
     title = "Curilla Unleashed",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "07de143f1f3771da06f7c1f39a805abff6c57015238d903e851f1d861bbf6d84",
+    progression_revision = "802ddb4dd8caa516c34c8bc442cd77c93583c6a12709289b8a3fd6f18d03a1dd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10667,7 +10667,7 @@ return {
     title = "Run, Excenmille, Run!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c3d329946f513eaf579c05fdd9debb6fd342294b52ac6111308a42b78696d223",
+    progression_revision = "ff451b3f346f4115a7aba918ad331b104cb89aecb81f666d52e6b063b125fa49",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10687,7 +10687,7 @@ return {
     title = "Of Knights and Orcs",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9dd22996a994ff520b66ab3bdc42bbb6e4ad7933ba6608fa4c4779635128d4a2",
+    progression_revision = "9148fdd7c8650f5895f6736941dca7af63bf44641948df41f678c2125d61831a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10707,7 +10707,7 @@ return {
     title = "Best Served Cold",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d01ed7b23cdf7cc4f2224a87b34925b636eba408ecd0b1572b033503cafa1f92",
+    progression_revision = "33adba0a4b926d7ebfc39603700e154cc78d658c0f0c36770f231dd98cc0ce79",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10727,7 +10727,7 @@ return {
     title = "Cornelia's Call to Action",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a32d6d06b674b038d5255a652cab0ca5492f44c5d20e9604fae5d9e8e9b9c0b6",
+    progression_revision = "af4e6809dcaa71e9cb5222c5923fcc15aeb0c7556f1dd1452c185fc1c12bd1a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10747,7 +10747,7 @@ return {
     title = "Naja the Ambitious",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b38f649f53d544fd97dc28ca1020c29e066277637c003010711609ebc9d4309e",
+    progression_revision = "27643be62168be2a0fab0d931f6d026ca355b1eab6665b31bf254045bbfc262d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10765,9 +10765,9 @@ return {
     native_id = 18,
     progress_id = 298,
     title = "Raubahn the Blue",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3827db8034399cbc5714bb7a41015c665953bef3c7d07432742ec531388342da",
+    progression_revision = "a02139c2436c6d0720bdfc971dd5061a8542703b234167f0b991fe4ea924e216",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10787,7 +10787,7 @@ return {
     title = "Ghatsad's Quandary",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7202649cba585e59f4c6b1d27b601611b4e14a8572819bd0977bc3dd62012cb0",
+    progression_revision = "1911206407b56797311ec423d6178a9d749b37e01e88b833c525ec4d6f2abb1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10807,7 +10807,7 @@ return {
     title = "The Gloom Phantom's Approach",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "07ab1673f2e6532f8e508538912151242f6bafbd386fb554676ce74cd3b9eb70",
+    progression_revision = "a93cc66f9b66eba4fbf7542718500fb2ec1c21f3aacfd0f85a2b2b95ebfc8330",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10827,7 +10827,7 @@ return {
     title = "The Revelation",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "42ee9d6a0577eb48e90519b643c6e034af5cef0d7825ae5b635408be2e24c294",
+    progression_revision = "512bd5a644b941729c089b146820057108fd6c022f9ab6ab7ba7c542d0ed46a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10847,7 +10847,7 @@ return {
     title = "Tateeya's Worries",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "80b463040902b6797eeba1b39a1291329e01bb3c26414d14a17e954742c40053",
+    progression_revision = "c72c192e905476829cf7e7e7aa11e6430fc363f6b79f539584452a6c0aad66c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10867,7 +10867,7 @@ return {
     title = "The Seagull Phratrie",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0455c6492aff2449f79235e4a73f2855c029dcdf8e1ee915804544eb3d6b1174",
+    progression_revision = "c83d08863acf045512e105e267e08807de096057d068c752f1259dfef67dfe3a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10885,9 +10885,9 @@ return {
     native_id = 23,
     progress_id = 362,
     title = "The Sea Sage",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "be9c05c8ddafb1161bac0706d7351891a41960759d01af478492bf41ed5052a2",
+    progression_revision = "db9558ddab957c599fb5f246fab56150ef4ccc25b53eb095cb5e947e0589ec4f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10907,7 +10907,7 @@ return {
     title = "Sky, Moon, Incantrix",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dfe1111440e5d8c6d2eb37f59088443c2e75ac13acac47ad4998b8631bc289ee",
+    progression_revision = "7971dc78919eac47a66a8b4d449f39108c1a5e3fe66d308a698af59691b91f60",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10927,7 +10927,7 @@ return {
     title = "Nii's Last Stand",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1e8136ecfef54db2500b0bc81ac008ca49ff5e8ffbafc45a1cead72e775f57a7",
+    progression_revision = "d7ca03802381ae58b6163af5a1c2bc8fbf976ded6022d8a43888b3939ba7301d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10947,7 +10947,7 @@ return {
     title = "Dance of the Tengu",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fc30f7296b8d75811ab77bf5ff55e70b9f8d53f97a3a0be82e44db098064fcf6",
+    progression_revision = "2cdfd61d79a00552d1df80e58f9bcbe8215eca960b02fe59f252d59af3655bb9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10967,7 +10967,7 @@ return {
     title = "Raebrimm's Rebirth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1e3258e55d0da185224fe3f6ba28b507267c3aa3fe056ac2f06cd8793bdd1f52",
+    progression_revision = "afc597018b3e03941e062e498dc73bb3438bd2666085e8a62ba719a03f034eef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -10987,7 +10987,7 @@ return {
     title = "Uran-Mafran of the Maelstrom",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "823bca53ce2d64b6abb8030b70d5fbfed674549fe82941abd74f3277acea3b7e",
+    progression_revision = "966a1f9f00e98d7c0fd380667d440a3516af57054292b4ed3487c4170b2bf549",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11005,9 +11005,9 @@ return {
     native_id = 29,
     progress_id = 452,
     title = "Koru-Moru's Hypothesis",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d1e266a0633d9f6227f97d8c7723e584ebd602878320fe17ae0a6bbe4919b394",
+    progression_revision = "16616a8855fd05cfe9514e6b36eb192c03980ab5987cfb18aeba698a0fa0622c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11027,7 +11027,7 @@ return {
     title = "The Brygid Cup",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "abed37928c30eaea2c47903648145427c6540f3b7d34fd4ee284d16a56a74344",
+    progression_revision = "14d04157a5ee7e1d0b219bc73baaf63c4e4435da35698c87758377108591e341",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11047,7 +11047,7 @@ return {
     title = "Altennia Burns Bright",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "80c28692cbbbb9311b0025fd97cf90aa6fd72aecf787763fcd4d9e4194e8efb0",
+    progression_revision = "34263540e1a89fafe30c38cb6211f83b529340474a8277a415ee53f9a3ec1de6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11067,7 +11067,7 @@ return {
     title = "Maat on the Rampage",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3d279e12b55cbf09656c0242440fad4a6d7de6b26c09709ab5d734467a62c222",
+    progression_revision = "4c26125f4090edb8b74fdd4b6be86f5e210f6066ca8081d730de0575688270eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11087,7 +11087,7 @@ return {
     title = "Not Just a Pretty Face",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2f12e44c45278cf183a7168293e2b2a4b4f1a588f3863bddc9d4a3093644c119",
+    progression_revision = "0578aba8883ee82c383f74c463981e0403ba3c9ffe0be2224db817f915c2e4c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11107,7 +11107,7 @@ return {
     title = "Delkfutt the Great",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b75f28ae09ed7154e5e34caa8c8214e184148f4a73e386a7d7cc8603e51c8b3c",
+    progression_revision = "632c083e0fe10f1aa66cf98cdb25e96422806adee04b49e7409121466a9fb7b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11127,7 +11127,7 @@ return {
     title = "Oshasha Violation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6cbee3fbdc60fda4ed62d9c4d1b2d53214b3a926b4f0838f5abdddce987ac390",
+    progression_revision = "d6952de735bcead67f317138000e07f541b052d0631fce45cc7d946bf904693e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11147,7 +11147,7 @@ return {
     title = "Phantasmic Heroes",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5b7ad6d99694bd724dd55590327125298161a98f3221f0a4cce910dee0257268",
+    progression_revision = "6f2707bcf4eeb05526a173b46a3f01b4a196477c51a8863d2adef3088003c519",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11167,7 +11167,7 @@ return {
     title = "Skokkr Undrborn's Temptation",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f15ad2e959ad7a404a72a2e62f012671875cabec13cb5ff8e980983cc02cdef6",
+    progression_revision = "23d935f5006a6bdbcdd1553b5cb4b81e13dd00945555837e9ca8acde717f7df9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11185,9 +11185,9 @@ return {
     native_id = 37,
     progress_id = 542,
     title = "The Prime Weapons",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "00e7a726384a8fc66354e7050ff03dcf2a1a5ee81fda9fc2f161f9f41c446172",
+    progression_revision = "ff29ce5f1b0a65a00d1d0b22e51678ab9495cca588a145728c54a7c22dafc5ae",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11207,7 +11207,7 @@ return {
     title = "To Movalpolos!",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1c01b60e343d756e63342bfb4843744638c4203322ad7b1ab78e7abe3e48bdec",
+    progression_revision = "282d4c652ef4b5dbbca7c0d805df019e5946642e92946e6ad14479123d6438f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11227,7 +11227,7 @@ return {
     title = "Magh Bihu on the Prowl",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2aa33fc50f454c64e1958d8a576aabb2ad7765d1f782666487f3b927f9b6cf61",
+    progression_revision = "1c39965c91f900d2d95a1c1dd043b1dd3a20ebc951e29fba20bdf646ae86f2b5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11247,7 +11247,7 @@ return {
     title = "The Destiny Destroyers",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ad553ab98bec0daab4d555c733b8a1ad29ca5421b142eefc568fae70a8d6468b",
+    progression_revision = "23f50b7595d95b1f967fbd814d0ea4fcd770e2c2faee58ba9a680a2680fa5c6f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11265,9 +11265,9 @@ return {
     native_id = 40,
     progress_id = 574,
     title = "101 Dazbogs",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "72f08f6081d1dadeb062d7d40a749a3c875aad077966ae3e3433759c881214fa",
+    progression_revision = "15b1d8d502fdab41b36496a6fd503ca708fa7ea3efc4a5f28b0bf486cf3eff0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11287,7 +11287,7 @@ return {
     title = "Kipdrix the Faithful",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1d3b5ea09844c166b26e4cf3bb1424a4d95ad2174668193cc6b1aab0dabb9f36",
+    progression_revision = "53eb304ee7b9b2f40322fc977e922e32585c957543ee875d9a55e23df6316848",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11307,7 +11307,7 @@ return {
     title = "Duke Alloces's Decision",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c7f12d5ea77c860982103021d5568193c2609394c32479c8bde1b443cf8ce748",
+    progression_revision = "a95082317ac911230e63b09c4a436e79c1693c754341cd18a361a99292ef53ee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11327,7 +11327,7 @@ return {
     title = "Odin's Eye",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "6eae0235f072012b1fd988e17d2aa7cd4692c97edc2479a6f6c6a7478c994605",
+    progression_revision = "b9e507294691d609140074712d6a895f858a1a735289af1fc41ec127763b7493",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11347,7 +11347,7 @@ return {
     title = "Moglesse Oblige",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b7218342ae5cf2dc650dfa39bd71ebee9f6415093f7994c51c35137bbe429452",
+    progression_revision = "391735430ea8ef839db7709bbfcc9b5bdafe1013c117f7217156e57df346bacc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11367,7 +11367,7 @@ return {
     title = "The Voracious Beast",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bfaf64674907849e573a59b3cbae5523b0b443a6a5073f33a5b3b4e7e0a1f0db",
+    progression_revision = "263300a22e1774f14797330c34dd2314b23302eac5e144825ec9122e7988f028",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11385,9 +11385,9 @@ return {
     native_id = 46,
     progress_id = 642,
     title = "Your Decision",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "872202c19acea335216bfe416901bd4683728a125285734b49fb1665313953ec",
+    progression_revision = "d0de0d04c1e229738c6f1286c4edd2a70626bafdb298c8b7670408c1d2e554e7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11407,7 +11407,7 @@ return {
     title = "Kupipi's Dilemma",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7ebe50c0485f0361ee6450b9b3420cae53fcc9d32968946e5768f50f8cbddd7f",
+    progression_revision = "364514200b4cb2de68052cf6f13f790e014f880eb853cf187cdb719edb661b7d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11427,7 +11427,7 @@ return {
     title = "The Cardians' Duty",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9b1d37d4fde8e87d11bf4acd5517d923506f0607da4d1221f439857f5eefd9bf",
+    progression_revision = "38031bcc4b4a46d531827d2ff2f7ac00721dc12a9300960bda19ee994311f899",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11447,7 +11447,7 @@ return {
     title = "Zhuu Buxu's Gambit",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "db4bbd5678b4c51f48a61d124eb04619dc4479b4499b2517f13d1173e00df45a",
+    progression_revision = "38f1685bea277c1a5b0786a00c84743b50168b0bd1be30aad6b6b4a54ca8e61a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11467,7 +11467,7 @@ return {
     title = "Star Onion Fortune",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7a9b37db0b9f08deed70a1c5f344bb3c1e27af51958d9fd275f7f2e0575e8fdc",
+    progression_revision = "7ac582c74745a4c41f9e38ce85566ad13b36c31487d33a377f5fdcc988a7cd31",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11487,7 +11487,7 @@ return {
     title = "The Doll Whisperer",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5617e8e7394778de0858bd498ef1d46b8605864219d2a95cdb4cad668c80009e",
+    progression_revision = "aa215bfe175cce63fa222a8c16e46b17e7e02976fd7f1e766fb654a57fa4b4a8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11507,7 +11507,7 @@ return {
     title = "Land of Sacred Serpents",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2c81c578d62b7b25e9bfa164058ac859368e0f673f61910671d6042671aaacb1",
+    progression_revision = "561e76ca3d69e766c8fe3220fc2298568dfbdf257b8843be70299cc6ac958325",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11547,7 +11547,7 @@ return {
     title = "Imperial Schemes",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "64f63067dea58cb17333414d6d820aebce4b92c2c2074e956dc8a1d1b71b548c",
+    progression_revision = "95b4a23fe576d64c081f793a674568c6078df7fa80b9c5a8f767438309480d02",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11565,9 +11565,9 @@ return {
     native_id = 12,
     progress_id = 11,
     title = "Royal Puppeteer",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b43b98f17ad20e7eaa2097cf84f30ca0e0ad8fb02564dff86a4d7ae7da714424",
+    progression_revision = "2b9df9c583bd7a3b95b8e3c6a4bea5022bd2d6a1f7f93413832a35daf32dfa97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11587,7 +11587,7 @@ return {
     title = "Lost Kingdom",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "02d30518ca8035ecb90c9082e2d2e07647be9ff359a966f11a15cee5951d4bbe",
+    progression_revision = "c61cb3e1a88d17b7c18a7eda0beb98c8497d8b764c8603092b9dd53b5da6e984",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11607,7 +11607,7 @@ return {
     title = "The Dolphin Crest",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9a15f7eb6c4a9e4e5e309a9a8dbdfa411fc72c99299f30ae359c5be0037dd41c",
+    progression_revision = "302612dca2712ff4ccee89c6d80232b74183ef8e610df3c477db426db6c0d4e9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11627,7 +11627,7 @@ return {
     title = "The Black Coffin",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ff739942043ef2452e1be97c8cd50dd50c84c2e115609883e4c7ef1079a93027",
+    progression_revision = "3649d4cfc7b3cdaab765934b0a909cd73f4c622ad9dffe260d58b9ee67f8d31d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11647,7 +11647,7 @@ return {
     title = "Ghosts of the Past",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a736bb523f1939311953dad20f30d33dbc5fa7229028a87551f6f5b43c7e91dc",
+    progression_revision = "4a27a0db38c9d7f868c82c21125c57305a937a1d459187e90ddc2eb4838886cf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11667,7 +11667,7 @@ return {
     title = "Guests of the Empire",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "15430d5517297d9ea569e68c5e85f9003c5d2f2ec561abf13c571255952b7b95",
+    progression_revision = "734473e957c17584ff3644ab5edb6bdbbd7752e5961784cb54f73e8a9d06c100",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11687,7 +11687,7 @@ return {
     title = "Passing Glory",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "03a08ad7a559ad2abc81150624f9b4b23f048d961fb4acf90627fad6f1225bc7",
+    progression_revision = "5315bad450de81fc68436e31afe8879901a3583eca528a3e0fd391a5a6f87624",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11707,7 +11707,7 @@ return {
     title = "Sweets for the Soul",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7d1bda4fd67ddd09a568a0e60a6bf111f0215a314d9ee52faebd548bb48acad",
+    progression_revision = "01b8390f3f06c33eaf0d0e5df25f722f9f5898a9fcf7efcbbab16be15dd3d7d7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11727,7 +11727,7 @@ return {
     title = "Immortal Sentries",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "221952da6320a71b1e803e0bc3016834dc3c3f0a3c35cda32e2002d47e9c41e4",
+    progression_revision = "0446295f12a2ea989f1f9850c80778439e5bf2a9edfe1acdfea7bc234cd26f0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11747,7 +11747,7 @@ return {
     title = "Teahouse Tumult",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c213878087afdeaf310620d14025275cb6bd3101cd2cdbe922af725f68b71d68",
+    progression_revision = "177e8a434d9b4678ea302ea1f61e5ef82825b959410a7fec0c5047a24656bca0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11787,7 +11787,7 @@ return {
     title = "Shield of Diplomacy",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a2e345187f59a7597205d896aebc8e367cbc29729743528f3614b843cb944e49",
+    progression_revision = "c61e6a87d39eb8c011667af002316ddd0fa4caa46e33152fd855cef8e031a729",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11827,7 +11827,7 @@ return {
     title = "Foiled Ambition",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8ab1cbd1a7b8db62c14c33d94284b99202c8f047db9dd016e2339c40fccba693",
+    progression_revision = "c1333010722e573cab01e0c8fc54543966dc956e439d2c8f5a9b0529d8926e75",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11847,7 +11847,7 @@ return {
     title = "Playing the Part",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "466a628338c5d229c8fe06c2ae6a18d9c61409d447227cf2dedcb070f1e000c2",
+    progression_revision = "9001d416b3af2bbc27dbd100c6e9303e351bb81048daadf50ff9c409019f9883",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11867,7 +11867,7 @@ return {
     title = "Seal of the Serpent",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ff9303fb209c94c9320ef3269bb693bbe884f8748e667542b713887cfba642ae",
+    progression_revision = "424543e97204ab3ab69b7d24373ccb5e84b6da6994d581589f5c9f094b84a524",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11887,7 +11887,7 @@ return {
     title = "Misplaced Nobility",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9d3a2d25c1911cb6e4610aa944ab23a1e03580cc0903aa4616ddb8056f1f655c",
+    progression_revision = "bef5412acd0dde3168387ac7b7cdfeaf5d2cf77e23cddf7d3d513e9187d7db26",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11927,7 +11927,7 @@ return {
     title = "Puppet in Peril",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a51c4f35a9e5c98c18473294700e9bbfd6dcbdcbb34fab2064cba445240c6bdc",
+    progression_revision = "e70d497c40203019b93fc7191385056866f156a71b3426c8d556a7a99102ce18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11947,7 +11947,7 @@ return {
     title = "President Salaheem",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "63150222f63c42d7435d5ffc1c594dc4eaa3f285748fcb81b544b04dec7849a4",
+    progression_revision = "4169d47ef66d42069be5266d16f60381cbe4bc848ec0ef2fe923f71176b78430",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11967,7 +11967,7 @@ return {
     title = "Prevalence of Pirates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "319e2acfa6190d6c81f7c01ea3f5337ef8ce86bebcfd6100a31b77716864e201",
+    progression_revision = "3a4dd41c519bacc5dbaa515f6474b017dbec52734769d630dc030f7061c33db4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -11987,7 +11987,7 @@ return {
     title = "Shades of Vengeance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1925d7cd49973cd57eeaee5fb19d883c9c156c25e8ad035b99c81a9802dc0b6d",
+    progression_revision = "3c2da5609c0454e22b67fefeb0766031665085781d08a97452d795f80a7530fd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12027,7 +12027,7 @@ return {
     title = "Sentinels' Honor",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6f247e80595444eb289e2e8cee74d6173c1bffa410f0c4ebb8fe2f390e3f672f",
+    progression_revision = "d88311def1ab0ff0a396ca29c9477971bf0897ea1f8b59374d0604f7585e0432",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12047,7 +12047,7 @@ return {
     title = "Testing the Waters",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "59b9563f5b52de1203f35949f1a088a107e745f514fa0b3bfd3b648cabba4897",
+    progression_revision = "11637a247aa892167a45c61b69ecccb33ffe55bef1788b52575ec9fd23f0378f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12067,7 +12067,7 @@ return {
     title = "Legacy of the Lost",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "60982fb8be8322f68e9c72076342bc95c9e29ba1021436fd3445964840659e83",
+    progression_revision = "2864e81b02ed26f1b552cc4d1fc4b2a8b3ba6bcb238bc884b4eeffe5fff38eea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12087,7 +12087,7 @@ return {
     title = "Gaze of the Saboteur",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b3613c909516671e1c84410cee18602fa9a5beeea25653da3e2d0bc1ae8e38d2",
+    progression_revision = "075b55655e0b564358153e7f93b67114e987bde17244e2ed5f1e75e758218c11",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12127,7 +12127,7 @@ return {
     title = "Stirrings of War",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5a4e74b99420be1399dde037954b251bca0a329b735c82bb63d8264788de9161",
+    progression_revision = "f520af98df82794134a0364b9ae71ae143a5f65fe832323042d43586ef1cf281",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12167,7 +12167,7 @@ return {
     title = "Knight of Gold",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "94f6b06cac5fb66237dfb81b3a48299a053f13f07e7919fa14557a421abaea89",
+    progression_revision = "05a650c6df0cd8ed27070ebd5cb8042c5225c1228de11f93ea9b1a00dca0b503",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12185,9 +12185,9 @@ return {
     native_id = 40,
     progress_id = 39,
     title = "Unraveling Reason",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9a87b9ea92e758ad1aa68a9b1a6f2a38e427ef86b5ae30457cbfa5c8a8d1da44",
+    progression_revision = "adf8755cc96de8c88f0a1bbc7b826dc8dd5d9ffa26fe5dd8811367a93864cd60",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12207,7 +12207,7 @@ return {
     title = "Light of Judgment",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fb1ba0fffec64b65285c9aaa51f8a5f08d1225365ecc2d0a7c441f262af40e59",
+    progression_revision = "ae5ace45f4d74a0955ad3bb5227887675a789c8a7a3e8f433d67c4d1a03e87ec",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12227,7 +12227,7 @@ return {
     title = "Path of Darkness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "553154cefc3a9e9d78d27e4d3790c77b1800e0c1eb3e1e147a941997df45a2e4",
+    progression_revision = "d3a5c4bb082e391ba7da6425766cebd720d276e2710d0feaf3bf000834e04491",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12247,7 +12247,7 @@ return {
     title = "Fangs of the Lion",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "17b9f135b3aa05c86770b996f1b695466785b9727f06e86cc16df67d713e44cf",
+    progression_revision = "6da81637db68e18ec345cb469b1dbfe20d5dea751875c834817c1bb88933b32b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12267,7 +12267,7 @@ return {
     title = "Nashmeira's Plea",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e5873057a95186f53fd8a87bc52a8df35ecdb000ad44fedf8cc0aef1d8926903",
+    progression_revision = "bab7c4eb3d66ae024e563e8561ea1bbb4fc7541a972fcb46663ecd7b0d67d666",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12307,7 +12307,7 @@ return {
     title = "Imperial Coronation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "91687367a3a019164429d48af52d1d039879e028654fb034ed2c74f475db356c",
+    progression_revision = "6825ebad198c4f61feac3e4af77b551bb5ef56bccd0755d73e9357269dfe13da",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12327,7 +12327,7 @@ return {
     title = "The Empress Crowned",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "687a337bb1709593d2f0f3b0dd8ba5417fbffadbe95842248bc14461917da536",
+    progression_revision = "2cf6b7ec677eaa484e9ba5ef168907e72655befd6fd4259718fe88926827980c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12367,7 +12367,7 @@ return {
     title = "Confessions of Royalty",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "37762d6c24cd8d4cbb2372e73c00de10040634e5f264510c6d9ace783d4aaafb",
+    progression_revision = "90f36325cb690961936d904e3e50bea0e94ce080d9505676744959066dacdc1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12387,7 +12387,7 @@ return {
     title = "Easterly Winds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "81e4e6ba105c860bef7e24227df1a3d6dbfee93cbd0f1c39a914644bd7dbd6d4",
+    progression_revision = "5169eb5e866b8e8886c799ef26560a176583f7e5d91e72dc033e8b43d343ff58",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12407,7 +12407,7 @@ return {
     title = "Westerly Winds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "95f0aa4711856b085bdfc58d0c5bf192d6d6994a0da9b30f49a59cfc1304e347",
+    progression_revision = "e571641427296a547328dc2604fd8dfd957d2141eb708e17feb2c3094cbc6c19",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12427,7 +12427,7 @@ return {
     title = "A Mercenary Life",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b5f08bd692ffa9f09072d44693e48526c7ec8085ac4ed2713666339f283b93d5",
+    progression_revision = "3beeb14b7d6c0702be58b782ff93044016bdf444cff00d801ebbd5485e092bad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12447,7 +12447,7 @@ return {
     title = "Undersea Scouting",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "322eb033b98dbd88b63d9a8b3e70d3cd3fd912a706133bdab60b1778ebb61682",
+    progression_revision = "c274ec61e311b2e7269d2d44ab16b2c893d3917c067bb107a4f91f0ba0c1fc93",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12467,7 +12467,7 @@ return {
     title = "The Horutoto Ruins Experiment",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "83c5322849a39cbf9d326ac0267b01aef84c5b668c982fe26a863c844c824a67",
+    progression_revision = "b796a233e302dcca108f549fadb7bfd9ba5a8af97e4911e523155dbeaaf7315e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12487,7 +12487,7 @@ return {
     title = "The Three Kingdoms (Bastok)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "019518652f566db229e3e9777b3c3e9ecc0a361d95df8f8c0daefed23a4085dc",
+    progression_revision = "d698e210e5318c8a5d770f61522fd0e816eaf53271675fa6aeb2a8d67144037d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12507,7 +12507,7 @@ return {
     title = "To Each His Own Right",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "64fbc7179d50615e3595ae6225993b61acd839dcef2399411ea129c272fafdce",
+    progression_revision = "12bc5a0bcccada268fc68608f88b7c6a6212b97f77613fdbe27b2abbf9eb59b0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12527,7 +12527,7 @@ return {
     title = "Written in the Stars",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fbf14bee8cc856e1e950c63077ea66edc0e7d70d5d25e3f53bd3df6c5ee896c8",
+    progression_revision = "9660a02c2d73490bc856d7e3877721cb0cc45dabec1bfca5c0afacc330c450fb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12547,7 +12547,7 @@ return {
     title = "A New Journey",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e1872907b5e8f59e0b3c8d3916b560bce4b9ec274fde3295c780c3b01267bf21",
+    progression_revision = "343e0e341339cda50611ece5b5f4b65694206cf7a04b0ed0723337cfeffa87c5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12567,7 +12567,7 @@ return {
     title = "Magicite",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9239ddb59afdaac8247ccfa7a9b27219e2b2957fa423c8f5721c13ce2ddaab5a",
+    progression_revision = "eacc5ee113b275e44d82ea7b934a135e25302fbce94f73af9b960b7aa5d1c2f7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12587,7 +12587,7 @@ return {
     title = "The Final Seal",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3598ebbddbd9ca890364f6bf8737a767887e7c47eeb6bcd4a691c087449240bb",
+    progression_revision = "876ec1b3ddcdd5a4d6fb5f19437dc4624e4338141689c5431dd2b1369fe0cf5c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12607,7 +12607,7 @@ return {
     title = "The Shadow Awaits",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ba877e8ff57137df8df8480b4374af09fb0afe8a9185cb5d4bff0be15235a9ba",
+    progression_revision = "7e8cc836bbcb33a1496561f083f32b99085ca5b948fbc81122566bd5bad652ba",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12627,7 +12627,7 @@ return {
     title = "Full Moon Fountain",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cf8422a4eca8bb452ae8c0ba551b0eef2181fec1c060a715e2c9ba6822c21656",
+    progression_revision = "865629392ec2360ccc1c348a66181c24e5485faf20e7f4354dc5db2a617c7975",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12647,7 +12647,7 @@ return {
     title = "Saintly Invitation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "139541e050a42d31cad5d69dc3c6e7b6d72adceff2845e4d7d730ce0b992168f",
+    progression_revision = "ccccc698645abcf664d3ff70e9c0672d54444ab70925c6db6c5b8887e4c76213",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12667,7 +12667,7 @@ return {
     title = "The Sixth Ministry",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d70a8f74056b2e3f7b10703ad826e6718df51d87005c557b6015ca4ff333db56",
+    progression_revision = "30b4279ad4b27e7abacd7ce23c4168cf6eb3a23b5393d6cdb492c90b5c0e5053",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12687,7 +12687,7 @@ return {
     title = "The Heart of the Matter",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9701ef3611a2c6a446017dbcc438cc0d49e9e457b955ec0c6b7af871134dec83",
+    progression_revision = "00079feab6ad217f4cb02fccea72bc8875193d4183605179db0046bcb81edda2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12707,7 +12707,7 @@ return {
     title = "Awakening of the Gods",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "86b6923113819b441340befa9dafc3c4cd6a3d172a861d7ed5bc4e1407cc971f",
+    progression_revision = "df0ebf567a613281809d26991d2f3c0f32c965ecc679ed8309ae95c2626ede65",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12727,7 +12727,7 @@ return {
     title = "Vain",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5441bdd0a58de99f955538f36c08bb01be8fb0f92249259a0bbe1f4091537635",
+    progression_revision = "90ccd1da2e1562049cbb1079c1a211d3944fbc35c984a5cad5b40c4415e4e2b4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12747,7 +12747,7 @@ return {
     title = "The Jester Who'd Be King",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2e6517c1a38a59ae12a456a9def667edd8c62112f64f0ae2c64d9fbacfe72a6e",
+    progression_revision = "c5c10ffd80baddedb93ac4b69b7fe6619238d9da50248f4115b52973a1183a89",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12767,7 +12767,7 @@ return {
     title = "Doll of the Dead",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d016cd03a577b4b8ea70ce032a98cea070bd3fb4354391f05c6c30a67b55a1c6",
+    progression_revision = "8ed76183610a7fa4806d64ea49e87c271844afb135687177c7b58da93f7a0119",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12787,7 +12787,7 @@ return {
     title = "Moon Reading",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bc52ca298fa68d792a11a33a4478e73f7c55fa4acff46aa56cbff87137639017",
+    progression_revision = "849de02dfac970cafe17fc3a4ef418a99784cfef6f6898d24b4cfbb092a60e7c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12807,7 +12807,7 @@ return {
     title = "The Price of Peace",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "890f1dd4dcdd304ad595f97b13c09b7c2a3a3f9c3011e4ef3eef11c4bcc91bad",
+    progression_revision = "2351f41540677bae4c20d30688755862747ff9026300c10e3be039a45d07a947",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12827,7 +12827,7 @@ return {
     title = "Lost for Words",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "22c4e2c0acb59d35257833a7f53688abf8601eb53d1f381b652ee5ef02fa9059",
+    progression_revision = "f213276f7127600bd992181f24801a79cae2bf3b3187e950c86f04bdc59f6e77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12847,7 +12847,7 @@ return {
     title = "A Testing Time",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b116aee4c27a376ae00a1d13d88d9b102c49718ce991a4ce4c47f912ef8bed17",
+    progression_revision = "aa48ce8ab284f76aae962549045369f1c9b84259f13819d39264109ed518ffac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12867,7 +12867,7 @@ return {
     title = "The Three Kingdoms",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "85c560c145a7bcb3fcfab48be653faf3eaaec997ad4dceb1b304485f38de39cf",
+    progression_revision = "b41baac5f5c9bf33e827d99e18246c503fe99dc49dccc496e07575bc6de4244e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12887,7 +12887,7 @@ return {
     title = "The Three Kingdoms (San d'Oria)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4757630f7b4cb86e8c05bce506d8b5832df7559794b98ac1eb7077fd712aa9a0",
+    progression_revision = "11c8236414ed43957731992d9e7a83328c8443c3d179c6606c5bbb5455eb8a60",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12907,7 +12907,7 @@ return {
     title = "The Three Kingdoms (Bastok)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1b59aaa5e8f71a528eba07a93e7bcc7015d87a23e850d4071fd67fb961ce246a",
+    progression_revision = "e42c8419903c9a1ee01697ac2a9cc9d0c83553671d2f74937361b24bf010bb22",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12927,7 +12927,7 @@ return {
     title = "The Three Kingdoms (San d'Oria)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7993d5f90090867d1f2d936b5e516495b9a65d12246af0caaf0d1383900d0255",
+    progression_revision = "6aa58601ce78046d9ef781b0251ce2b817ace7d735fdaa4fc1e1a34903b38d8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12947,7 +12947,7 @@ return {
     title = "Cavernous Maws",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1e7ef9c95ad06590d848c46a8fcf5327c9ac6d57f03fffeafd0d3330fe015251",
+    progression_revision = "57caae24b15fd99b934bae1afd26e8f7f435d12327e04ce1642cdd36f85a3a10",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -12967,7 +12967,7 @@ return {
     title = "Daughter of a Knight",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f690862838d90324db55123f5ff1b8b670c058a3d8c2f620501a42da07e201e7",
+    progression_revision = "5e47cb09bddb0e546eebdcef85a4580d774dcddec2b9656c8a9606bc8c00ee2d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13007,7 +13007,7 @@ return {
     title = "Affairs of State",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7cf4b65d02be166efac57072e9cd9e8dd1d92b8c36d587b1430bed47832ca482",
+    progression_revision = "c383855e5e29ed079217443948d327ecc805cd2a99954d93403e590c0ebbf75c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13027,7 +13027,7 @@ return {
     title = "Borne by the Wind",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "101c6e77c50cb2643297a0dd3f637f07db41da72b0db23950c05095d649cbc04",
+    progression_revision = "bbd4b9156e9808313ffedd6d2c1463969400ee193df5198fdf6341a953bc4fad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13047,7 +13047,7 @@ return {
     title = "A Nation on the Brink",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0d0800b735f4e83680f2d2f6e6059c7dcefa7b17c8bcea3e31b5103d45a199cc",
+    progression_revision = "1489726b410a8ab5a0f41f4eb952f0dcc249883b9adfd1e693f88571bef93b05",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13067,7 +13067,7 @@ return {
     title = "Crossroads of Time",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ac24e6c458cb2618ae2c04d5bc2464829258b89e7960fede6f90540155980956",
+    progression_revision = "96fdad9e01ca5b1a58f49f304550901488b995ff3ccf9aee16950675add9b91f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13087,7 +13087,7 @@ return {
     title = "Sandswept Memories",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bcfbf9c6df559f33eec0f61b8e08980b2f790b382a2815e0530c26f9418c724f",
+    progression_revision = "a6e3008637ca88063e2690e98fc33ffabf5257d8846a03cb734ac74b02597e92",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13107,7 +13107,7 @@ return {
     title = "Northland Exposure",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cae0b5c9e036867908790418ef6926080b17e2eff13d7a482b9c0c1d09d203de",
+    progression_revision = "0d0023885e964f35ab7fe54d256b7fd1b67b8495a54fc5b1bb5391b969ab521b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13127,7 +13127,7 @@ return {
     title = "Traitor in the Midst",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0a6e385378aa0b851758bef5a9c8d84c43fc31ff7495f6a91b24cab853a62763",
+    progression_revision = "94bdc9908ca2036defa2f951ec22c3c17e5b90dc43b680de0852bbe28349a452",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13147,7 +13147,7 @@ return {
     title = "Betrayal at Beaucedine",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c0c1092194269af7f527a24d2aa4e309917eb3e98f21ed88b73d7a37a115f14c",
+    progression_revision = "d9ebecc5483c6ab05e536c26cca70f12a1dcfa0842809aaa380086d8002262fb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13167,7 +13167,7 @@ return {
     title = "Back to the Beginning",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d0507693c035602e3030f982a2e4007c3dac97f00c07f9ac4a016fbb6f89d01d",
+    progression_revision = "0847932bfae242841faecb241ce62011df3ef2dd8ccd840710709c8e00bc27c0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13207,7 +13207,7 @@ return {
     title = "Proof of Valor",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4b98357c6f59799e7c6e51d51e8200f23e0c7e30952cb5b0527262ab95db6075",
+    progression_revision = "6b30aa52a602ca41553eb7f088833a4029eb531f8658de14842fb7b1536692b3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13227,7 +13227,7 @@ return {
     title = "A Sanguinary Prelude",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c34271cfac6b2434e25b9beea3c78b855ac824178d3951ed6f49da1e97dd53d5",
+    progression_revision = "b73095da7874fc4242ee951d06ac4caa3d3f85f3b29132b94c3f0150ce806b58",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13247,7 +13247,7 @@ return {
     title = "Dungeons and Dancers",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "03b6453825ef97ab239be3bdf700a242684427693982934f883aa4c9879bc726",
+    progression_revision = "4805992465cffac6cfa89e5ee8d0e0f28c87fc732ceb10d2c8357590b6ec03b2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13267,7 +13267,7 @@ return {
     title = "Distorter of Time",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "65a2d748d4b5c1a07b41cbd42e22892a80dfa2dd2bbbdbe64d6c3ed05184f6b9",
+    progression_revision = "9f417cdb85e48b818b2564b0ffaa17c7ff009b396c9bf0e024d8a6fb92514393",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13327,7 +13327,7 @@ return {
     title = "The Scent of Battle",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7c47b335f2cb9478b9ece8f45fc08bf2d926ad4275f2d0e2417ec5dbbdee2326",
+    progression_revision = "95d5153b6288074d131d8de784f2ad325d0466c4b680f5c169f510343ce5658f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13347,7 +13347,7 @@ return {
     title = "Another World",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c666ed39e5a7de6e41f26e372425dca94a9c99281699bc289d64072720a4cc44",
+    progression_revision = "d0abc39326550959b09ccf8ce62ccc2830540c7028cd630a10be9dc1e9ceb283",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13387,7 +13387,7 @@ return {
     title = "Cait Sith",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "038c544855a203210055bf055edb0fe5c195ca57275aa207965e3dd43de510ca",
+    progression_revision = "3b0f153ed1503e01c0a2f35bc14fefaf80a3b6f6e488e2c6ad7bc31352f0edac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13407,7 +13407,7 @@ return {
     title = "The Battle of Xarcabard",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b7cc8a77c7229797e92a17402bbc7f949c1e5cd399a8b921e9f31185da9e0a2a",
+    progression_revision = "0787e8e31a9473ad972ecf5182d5022206d1a060766076432d8834735fffeefd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13427,7 +13427,7 @@ return {
     title = "Prelude to a Storm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1967a30458492c1f6f719b8fe7ff8d9e70e8da96bdc54b9107430e068a7724b3",
+    progression_revision = "4024bd3372ee1ce13156cc1431db296a2e874c30dac2d23ed8272637cc166e6c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13447,7 +13447,7 @@ return {
     title = "Storm's Crescendo",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "607dd2be3581a5d51f193f01837273152bd5491444247af2978a0353d9785d4b",
+    progression_revision = "95fefa4bbe739f4485ac4482dd1b259a52a239ceb759764c626bcc905bdb1afa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13467,7 +13467,7 @@ return {
     title = "Into the Beast's Maw",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3b6f4bc5942b19c346d1cd6c9c83b1ab8e2a59f356f17ec2e132b1beae7920e7",
+    progression_revision = "3a1635a4d426c1594b726ac67736ad2ba9ed6bc403fa7df36f5170028833e213",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13507,7 +13507,7 @@ return {
     title = "Flight of the Lion",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "03c03fc437b5ba7ffe80f5be729efbdc746b55bce7875feeedd5c9bce37f46bd",
+    progression_revision = "0557d3cd05e3050b9f3eb7184b621ee02ab7b5d820c374f4513b7b2c0310c488",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13547,7 +13547,7 @@ return {
     title = "Darkness Descends",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1c352772ce6e396f2518582487b3aad0782898d3a4f3ae54aa984ce2e0eac44f",
+    progression_revision = "e796c98a024e29f9892c6627250c9d30c1b16196d776baeac621f1b2a7d432e6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13567,7 +13567,7 @@ return {
     title = "Adieu, Lilisette",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f57ef38fedbfcdd32574be330fe8b7d6b54530743da9e715b8b41124389c9123",
+    progression_revision = "6d9b20e9d0f31c56c1564fc1d14c26baed62802518b069add4937229d5715c8d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13607,7 +13607,7 @@ return {
     title = "The Queen of the Dance",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fac85a5d45b93a4c8007bb2bd5e816cd7c6ef908e79081bc12c19689aa79e27d",
+    progression_revision = "3f91b33229e5be5de9ae803e287b706bf60f6adfc8aa53ca88973b49d7631d96",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13627,7 +13627,7 @@ return {
     title = "Edge of Existence",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d05d1a28cc4acbc55e0eedf274f99431fe25defe1ff836e16849c38a34f14da0",
+    progression_revision = "869adcdd74eca0dfb22806214c2f462ce0855cedd916f8ed57567379699c7fb2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13647,7 +13647,7 @@ return {
     title = "Her Memories",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9fe72b955632e9b20e056be18998442a7c68973caca6c290c5188aa94e2ac8af",
+    progression_revision = "18500464152207d5f71aa445a1109405a08b46fbe851566e2f4bc41bd721aeb0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13667,7 +13667,7 @@ return {
     title = "Forget Me Not",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "284c9ba2dd929ea523170b4131360d087b4ccdc33414e5d3c0f7afdfe73f139e",
+    progression_revision = "0e1da0800934a0b1989f825de5924ffb56a5b299bbbcb7b760cb94ca7f3829a8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13687,7 +13687,7 @@ return {
     title = "Pillar of Hope",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0cfaf57cc57543a87e805b2644acf52d7e0337543113226a7d5f8eb3a757e2f3",
+    progression_revision = "d405bdfd33a61a3b2b66e3196e836558695a0fe057717efd905d7d5ab9022503",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13707,7 +13707,7 @@ return {
     title = "Glimmer of Life",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "63ffc757f747941765d0d6121a676d6e03a3dcd23e523965de3863fddf882a4d",
+    progression_revision = "71ff54b1a9a815ff8491a8b38fc6221b0b3fb443b58f049463eb45b6d298ee21",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13727,7 +13727,7 @@ return {
     title = "Time Slips Away",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "76b7b3779dcc0dbeedf648b4192ddfc0a89e8dd369c10303038d286caffda141",
+    progression_revision = "222c96bb559618ce5d1698374832e6f7bda0ec4704ff7dec0764d2ed925cbe02",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13747,7 +13747,7 @@ return {
     title = "When Wills Collide",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fc5d054c4f885c27845fde163abfc303523adcf196d6a59dc4445520770d09e3",
+    progression_revision = "c107af5ed27fb6eba57d5ab72acd64d942f5d10514873e7cdb0a0f4e47351018",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13767,7 +13767,7 @@ return {
     title = "Whispers of Dawn",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4a29102d6081e7f5177e586237fcc8a30978ec81eeadbd3ed049c4bcc2862966",
+    progression_revision = "9ad3e924f5ff295127072d8e58fa38b81588837122196fc635508cfc8a2dad29",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13787,7 +13787,7 @@ return {
     title = "A Dreamy Interlude",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f8183296fda620c335a8e3e1a71b8682929634ba2bc8458d3c435ffa6dfb3dae",
+    progression_revision = "f1feef219424a8917739f44c67db546018e9dd61fce572d0748da11be004c07e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13807,7 +13807,7 @@ return {
     title = "Cait in the Woods",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5e757b9dbd5343bf13f5709dfc73a44809e14cf9f88b3ff069fd4c542a82f58c",
+    progression_revision = "987bbb0fd534dc7133a2957c24bdcb5e080221d2b33c5154cbd3d564c1a9d05a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13827,7 +13827,7 @@ return {
     title = "While the Cat Is Away",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7cfc47cc0450496100c2553e5ef66ed04e67c7625ba10b3d5da3c8ca3f3891c4",
+    progression_revision = "d350cdcb7a58821f0208d55ac1937a3048ad8ef54d9c1c42160ff0192bc6c649",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13847,7 +13847,7 @@ return {
     title = "Fork in the Road",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "07c9396a4f395afca469397bc15a58414c50537e10ba6838595f0e9d1f71eb2f",
+    progression_revision = "d71ad7c0d7bb5ba5f7a327a5badf5569a30116adecdca580c2383a48672d0964",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13867,7 +13867,7 @@ return {
     title = "Maiden of the Dusk",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4d851aaf6368fddb845e45e0f66f34aa36145e84e825a397acf4bc9e9e27f1f5",
+    progression_revision = "3e4a4de5a5bd7f2b20970b0cf62f3cb06158f17f2849f7b27ab5bc4b3875d733",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13907,7 +13907,7 @@ return {
     title = "A Token of Troth",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dfd9c6cf77a395c101170f828037ca1823041e86275a9b31896ab8bf303ab129",
+    progression_revision = "a657909f8f16f40bfadd27e8dc10e103781b9b700fded54b583b8e64528c95c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13927,7 +13927,7 @@ return {
     title = "Lest We Forget",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "da2d374bb7b677f176312dedc501b54c0f70da973e44f12bc8bff3d03716bdaa",
+    progression_revision = "12587b8d0ff63676bf769faba9049adb6d689ac2fa3ec05d32653f304dc2bd93",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13947,7 +13947,7 @@ return {
     title = "A Timeswept Butterfly",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7503def79fac965b1ed3479c0bd707b4237c904fa1c7b1aa191285cd2691f740",
+    progression_revision = "53c9cc0eb791ec4628ddfa1607e3edd2a770cc740429b96a68f3c361fa9b029d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13967,7 +13967,7 @@ return {
     title = "Purple, The New Black",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "43ec5b58e3469c3bcc79be682be47dc5621fb39398e6d3b3acc13669b2382306",
+    progression_revision = "68d3cb68398335118d39653d2bc039cb98cbd02dd93938e8311536e7969342e8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -13987,7 +13987,7 @@ return {
     title = "In the Name of the Father",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9b8bea5bd14f0e71da0129a80c964b6bd8651ca4dac39b629aa1d725f23fcc82",
+    progression_revision = "8ecdcddf51c047d28b76384a9eeed4081f7926f7eb4533f3f8e5d51687b06ffe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14007,7 +14007,7 @@ return {
     title = "Dancers in Distress",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b359922fc84e315874ad21085344fa96dcbf53554b47fbe102f4d63a538ec861",
+    progression_revision = "55e77d8782e065d4a8fd1688d63d567e9c4d09bd49c43cbc143294d3a6ae8ace",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14047,7 +14047,7 @@ return {
     title = "Gift of Light",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "43d8a5007a5dd1e40253b9d44c09a34199405f9db6e8e60b081f5cb5650dd33d",
+    progression_revision = "cfd1cea9db38f0a992821ab6483217713c03dd4d6ac02f4f97c43550a7196e38",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14067,7 +14067,7 @@ return {
     title = "Hope Blooms on the Battlefield",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f6341a4801700f6bcfc627682f37d554be0b2bfb8f9a281469771f025e1d3003",
+    progression_revision = "70cbc9203eaea5cf5f6013cfdb8b0a9f15c0a3adfca2b5ee63ee0c7bf2731acb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14287,7 +14287,7 @@ return {
     title = "Of Malnourished Martellos",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5de4b4270201b718a98fde81e5dd7deab1033e308b704766a734034dde272ec5",
+    progression_revision = "14565006703c8dec0bd83834d8d7ca949b177240634d60123c150f00620401eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14507,7 +14507,7 @@ return {
     title = "Rose on the Heath",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "034e0f0327a374083eb9dd751d30f723dee92e0095818203b8d7b20d5790108c",
+    progression_revision = "868e4eae6fb2cc73610b2be649626e3c882dbf39083aa468dd9327efe7920fb5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14607,7 +14607,7 @@ return {
     title = "Ward Warden I (Attohwa)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9d17f8fc3b91789e015fca96f3213e0d144492452152547e7e9078cf9f0e29ac",
+    progression_revision = "445f480444189cc9649d20212690ed75bd3529bbdcfd9443ce2da8f7063bbfdc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14627,7 +14627,7 @@ return {
     title = "Ward Warden I (Misareaux)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8119b3f40f6761909d0d82614c035339018b375a5378ef64bd3c93e612bd3487",
+    progression_revision = "0225de0d467a77881e9438aaf5c1511ebccf9ff85e734c658ebeedec9e7c330b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14647,7 +14647,7 @@ return {
     title = "Ward Warden I (Vunkerl)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8220faa462462d659e31486b11dd78ac8260c927d35d09742c682b1045e8dcd9",
+    progression_revision = "db118931245a74af7eeb747072b77e1364bd874fc81efe4f905f7da46599f0e8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14667,7 +14667,7 @@ return {
     title = "Ward Warden II (Attohwa)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2fd2fc0f4e299ebfc67e125d6df8daa4043964a596158b6594dae136f0f2c68c",
+    progression_revision = "6ce5b411e6ad3527397dc12843f9f00a92b70762b82752f7800b0411e1ed0c69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14687,7 +14687,7 @@ return {
     title = "Ward Warden II (Misareaux)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d631c87289de3a810ccdc9c0e36f1c37005c18c5b6d693627f7484f064f1d6eb",
+    progression_revision = "f4f0c4548cdabf501db01c326daffc4670f7adc62fc3729b601b50149b8d7980",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14707,7 +14707,7 @@ return {
     title = "Ward Warden II (Vunkerl)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6884e6759c553e44d2005d6d1f657d088592773f0da29764b707340204d8f65e",
+    progression_revision = "b6beef8c4584ec271671a1c6488fbd72108798ae7200144c8dac3fa6563143a8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14727,7 +14727,7 @@ return {
     title = "Full-of-Himself Alchemist",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "41f546b9bd5aa3c82541187e42ee8d97f635c1ca2da8085c71e19aec9306fec8",
+    progression_revision = "15ff397dd41354bbcd6e5380aff04f3af93238dfd614da5c04caa8209d7e8765",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14747,7 +14747,7 @@ return {
     title = "Desert Rain I (Attohwa)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b2b9817af0a20d6b24d9df21a81c84e0bd9802bb15d606886932875dd8b19136",
+    progression_revision = "1edef628361cb330f0804443791ab07e51e72e6a621cd0d0d048f3aba67d7880",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14767,7 +14767,7 @@ return {
     title = "Desert Rain I (Misareaux)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f4869fe759238fb304d950a5266d1bef237fa4d5e3b5097e00eecbbef3d1e095",
+    progression_revision = "1c2985457b322b2bcee19023230defad32a8dec8a9bad2a42e46db218f1a2069",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14787,7 +14787,7 @@ return {
     title = "Desert Rain I (Vunkerl)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "212231fa648f82cc6cf5793a1ece2f57a9cf688ef90b1306c51443b85b6ca3ff",
+    progression_revision = "4be4c90da45618f8baca5b774755ad4a7b1a8845f09066469d47d2eab887084c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14807,7 +14807,7 @@ return {
     title = "Desert Rain II (Attohwa)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ef1eaa6de0a7e4dcbdd7eb80fadedb540c9f8ac22d938e201fd2c501a1820145",
+    progression_revision = "c45e140eb15d77406ff3e9da0d8ad9a0d1bd0a958d45d2b5c970424acffa72f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14827,7 +14827,7 @@ return {
     title = "Desert Rain II (Misareaux)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4ce4c7fa205d5ca69f72ae39292c4bc970bb08473b34cbe46f5b9503cae475c4",
+    progression_revision = "7466ab30ebcacb14c980b391e16cb4ffeb35270508a80af3d290becffd98e2c4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14847,7 +14847,7 @@ return {
     title = "Desert Rain II (Vunkerl)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "07da1b35a13ca1f9e90f2402c34a14103cb12152c5efb0dd8c383f76493493e1",
+    progression_revision = "417b518384b7f3a17b8b096d21645f4d9f08d3c0c576485d6c5c656f5dc332cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14867,7 +14867,7 @@ return {
     title = "Crimson Carpet I (Attohwa)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b7e006ebd05bf31f8ac7b82d0b82f2fa9c4a60caf25340ae1f7743ab33a879a9",
+    progression_revision = "6297bf52ccc0f1a007bd09ad0f6a1a2df1cb01b951a8ef586990338cf5baa47a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14887,7 +14887,7 @@ return {
     title = "Crimson Carpet I (Misareaux)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "245da0e46b6c5a35f53354a34f190c1620d2215c1fcb812b6038051d8e8fde86",
+    progression_revision = "0d6af1cbdafa2400db5c34ac8cd1e2a6f706d790d498281d501a06c6b7636597",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14907,7 +14907,7 @@ return {
     title = "Crimson Carpet I (Vunkerl)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2f7151c198cb50bef137bc9e0b6a5ee6db18c0d2090abe32fd6ccce3e34e8238",
+    progression_revision = "752a9403fe0f4464b09ad2984a60e2398988b836cba7e29c26924e23b8af2a78",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14925,9 +14925,9 @@ return {
     native_id = 139,
     progress_id = 139,
     title = "Crimson Carpet II (Attohwa)",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a76c9227952d58b6030ceaab40553d74268f4acda945284a1fe796abdb1b4cd2",
+    progression_revision = "e9cd42d4dbe57d9fee97b4e51fdb5f247d429f782dd978fa1ab3304ff1953406",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14947,7 +14947,7 @@ return {
     title = "The Walking Wounded",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ba236b349f5a3ea84c73588c3489cc22b94482b9680af7a9b171948afba58bb1",
+    progression_revision = "b404a090d95e2db20e2723c1e273751e707a3df8118bbe66142ddcce1e7d3af8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14965,9 +14965,9 @@ return {
     native_id = 140,
     progress_id = 140,
     title = "Crimson Carpet II (Misareaux)",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "650f8eb52179dd2e152e96f41c63e6238b72d870e6a3ca272e954a70f6d127f3",
+    progression_revision = "ca720537410ce8b676630948d8ea875b389fc160aedee54f590e9f269cd89b1e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -14987,7 +14987,7 @@ return {
     title = "Crimson Carpet II (Vunkerl)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bd53676096d30b3866a32eeea409f4f26c839ac3de165dc0dc899931671a9138",
+    progression_revision = "c9a5959e66ca32505d718c771a4ec31e0eec4f593fcd65986656e859eede1463",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15007,7 +15007,7 @@ return {
     title = "Refuel and Replenish (La Theine)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d37ff37a531c2791a43b8538fb643527299cae6e8cd9a5ac10c6b024daab8062",
+    progression_revision = "e1a6ad7af76e9b2a2a0f409f5d8922bc713cceca5384fd81ad5b40e6da58945f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15027,7 +15027,7 @@ return {
     title = "Refuel and Replenish (Konschtat)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5eecca05b6e0d6d4e6c3f89c4475155c64db5cd576e37440e69e94e62c354e81",
+    progression_revision = "67cd4a0b90ff6e070758c16daf62cee95d3e5f197b2efd4217d6549920862c74",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15047,7 +15047,7 @@ return {
     title = "Refuel and Replenish (Tahrongi)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c1959a94a95817c16207b7295e4b3481de9e0645c82035da34109ec258d106bb",
+    progression_revision = "988bd88aefc5750a45816d490470f9d9a6f972c4035e6a6a6d3843de14d2a46c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15067,7 +15067,7 @@ return {
     title = "Refuel and Replenish (Attohwa)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7d0eb0a8251d3637ae5b47d2011da125a23190c538093c342e21e3f0c88e3be8",
+    progression_revision = "12410709e616927c3d56a191ef5fd88a03d97705b20d97520470d779c20b362f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15087,7 +15087,7 @@ return {
     title = "Refuel and Replenish (Misareaux)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "89eca352e3da5789bb5963c8d2db67c5b51d9d07b387e5ce90b70864942b4748",
+    progression_revision = "08d4788933f939ceda660f4efa2a98056e970905ef4590e7c6621b337d8ba8b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15107,7 +15107,7 @@ return {
     title = "Refuel and Replenish (Vunkerl)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c88967ea24aa82e515ea332399dad8f0dce9c94ed02edb1755152aa2903c2f9f",
+    progression_revision = "77e4aeadb077af84246e269778db6425b3080eaff250ee3a4ff781e3dd5a8c17",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15127,7 +15127,7 @@ return {
     title = "Refuel and Replenish (Altepa)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "62ab9d2d0c70cf62ea2e407af6f3728c62596e45864aceb0fd5ab2ed16e7f0d5",
+    progression_revision = "bbddf7a7b0ec75528202962972ad5ba3df819b265294aaa05832543cfd786aeb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15147,7 +15147,7 @@ return {
     title = "Refuel and Replenish (Uleguerand)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b6508b4ccf7f7f0928584d66a6cbe2f3d5c5be7ddd8faf3531ee83b1726ae384",
+    progression_revision = "7fa9710a9ef48362cb4e75b31b43165c98bc02475d032a72fe27de2f87165a24",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15187,7 +15187,7 @@ return {
     title = "Refuel and Replenish (Grauberg)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "561f991a79f1bdf6729f070e09b4f375de6886f30bbe0956163ebe8527346e14",
+    progression_revision = "f9d273d2f5d0222bf3b540fdbf8c61e5ea092e79f7fb0d24488362e1be61d136",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15207,7 +15207,7 @@ return {
     title = "A Mightier Martello (La Theine)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a17bb8822ac6fc24d48a418ec099bc202089817b1f5304283bd1a0377f25cb43",
+    progression_revision = "e0fe2028a86fed07808a4c5926230174bdfb03f0f1787ed28a1b41e6a46ee1c6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15227,7 +15227,7 @@ return {
     title = "A Mightier Martello (Konschtat)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7b8060a5a414ecb4b20e585e968d8add5bafa00b0f11a457010c6888122f552d",
+    progression_revision = "773a4d830f80f5bb237f4e5d7ab1b265888fa417e6e7191c5e9f90c6bf564524",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15247,7 +15247,7 @@ return {
     title = "A Mightier Martello (Tahrongi)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1250980844fced812b62ca88aef0424e9461556121e6628fc690bbb438a9b62e",
+    progression_revision = "c8ff4de3d4be737b66f11470eb515cf24cb34dc42f507a6d1901618215505a8c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15267,7 +15267,7 @@ return {
     title = "A Mightier Martello (Attohwa)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "96f76e99af8ce3795c96ded225475c18e45312eba8b5138ce2e2a4ee9acc5281",
+    progression_revision = "300978337b6bc209db477d191a210b896ac250ba7fc8eb1228bcd1b68dbb04ef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15287,7 +15287,7 @@ return {
     title = "A Mightier Martello (Misareaux)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "76e8266ca6bb2e37f27ead80ac72e376855e783e77bf8bf589f595fae7400fcf",
+    progression_revision = "c6851f919598873ab398fb8cbab30a9ddaea5587059eb73a35374e8bd2491b16",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15307,7 +15307,7 @@ return {
     title = "A Mightier Martello (Vunkerl)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f1f3ce000c91256da2a988338d847af1148b6c16318edf5b3fecc9cc9e396e21",
+    progression_revision = "80aaa8492a8cf01e89bcf05f69e923d5cf08c9e64671f6f9060478a2cc51c476",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15327,7 +15327,7 @@ return {
     title = "A Mightier Martello (Altepa)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7b744fea26a53fa33bc7196b8a1dd0099b1db10373f38b74e552f95d7bc8d3b7",
+    progression_revision = "04071821374dfb997340e69a10a66a0afda08c6f344873d96e2ce810092080b3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15347,7 +15347,7 @@ return {
     title = "A Mightier Martello (Uleguerand)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "52cf0b1cd3de85bb0cb2d15917bd46486fa6a7ed8ba3a37d9a88097a35035585",
+    progression_revision = "4f0f3801ea720373f529a5c933fc3775eb1cf66d01ee474bc81c9167cd52bb2c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15367,7 +15367,7 @@ return {
     title = "A Mightier Martello (Grauberg)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3b3d5b765f362560d38e3cb5487bb81932031091a7584fd3391a627e4b06fcff",
+    progression_revision = "c08ea605d2c004d4ac526622d34853055c43b28d617125cb4f0d59dd756120eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15387,7 +15387,7 @@ return {
     title = "Addled Mind, Undying Dreams",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f60ea696a511102d5ddcd8534c23fbb676d50ca52bf397b998efaf54e3ec86fd",
+    progression_revision = "70a28896c62538909a855b565ff443e84ab01541bc16e81324c8e15595f4760f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15407,7 +15407,7 @@ return {
     title = "A Journey Begins",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "260493d5c337d07ef5f7aa4f4715a27d28029a666d989dc0211643a239d4cd58",
+    progression_revision = "47d118a17fa79edd521b8c36dfe887631dfaf4be03caff07ed072e11347649e7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15427,7 +15427,7 @@ return {
     title = "The Truth Beckons",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "89b2f78edc814df8d4b0c74dd3505d9e2289eb9ba2ac4e7959f8779425803ed1",
+    progression_revision = "3c81d22f85c794256906a6fa202f11d205fd7244df36a592ab28bceeab592fcf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15467,7 +15467,7 @@ return {
     title = "A Goldstruck Gigas",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "69bc3753e7901ec8de0b1a06968ca423e08497505c66e4a10b66addbc7c3e214",
+    progression_revision = "c74d661e3332ca7b630bf37977702c3aa19d5373569b30bcbc96b317955446b9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15487,7 +15487,7 @@ return {
     title = "To Paste a Peiste",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bc8182915bd61f82d52dce312d807221e6070ff8b2c1a5244883f423fe52dfd6",
+    progression_revision = "55083f54c7517bc95fdf3657a22a430c04cbf87ac1b90f245200dfc553b6316b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15507,7 +15507,7 @@ return {
     title = "Megadrile Menace",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8fcb375b71a193af280c01aa3e6118373e8ce1f3835eba08b1582e9233ceeaae",
+    progression_revision = "1228cae8db38f9748db54999043197deaa969bf5fe315b1e8d5dd0edc4a4523a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15527,7 +15527,7 @@ return {
     title = "The Forbidden Frontier",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ff892dfb195fee75a49bb68a4164f2460ce7588b3b5f661f194639dbbadc9860",
+    progression_revision = "9d33b72c74bcda65e0328c6482a8790850905a6b070617ace3bde090b04961a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15565,9 +15565,9 @@ return {
     native_id = 168,
     progress_id = 168,
     title = "An Officer and a Pirate",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0ab1fba1973eeb8f700c6f2538866dc774dec4b3a1df951ba77e9d09f1094407",
+    progression_revision = "38bc54ba2eda3409fed458b3cf290c964fb562ee96650816f9459ae4eaf01df4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15587,7 +15587,7 @@ return {
     title = "Heart of Madness",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9b601ad2685d4224aad884d72f7790e2cbb87ddcba5e8525f5e413cab83f2d1b",
+    progression_revision = "7fcd317a008e2540e4bd53968eece82d632e892b762db888f7641faac0c3c93c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15607,7 +15607,7 @@ return {
     title = "The Soul of the Matter",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "69bb8811e2929b14c65b5e395d6e6ba18c730360d538977ef24d8a44b99ac62d",
+    progression_revision = "0878332abffc3a27d9295737d33188f48dca6470575e7f1a7692fbff23bfb49a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15667,7 +15667,7 @@ return {
     title = "The Beast of Bastore",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "20a78c77ef26e94e432695eb703c7e4266f979534fdaa052e8c6e3b8dc1fdc6b",
+    progression_revision = "c117cfe4adb9c80154176fe4d3f60ea12a640b9bf343ca950884bf70989d5f0b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15687,7 +15687,7 @@ return {
     title = "A Delectable Demon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "75e44e9afa73c36fa3f3b9c98bbb6b115ab65fb270b1482b227aca640ca93359",
+    progression_revision = "08eb37e08f2b086558a2842109c41ba7d2948b6feac3dc7503fb8f97bc19b130",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15707,7 +15707,7 @@ return {
     title = "A Fluttery Fiend",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f38cb54abb15d50b22394a17832072ebc70ba2ace4fd77f5cd6af0f3bcffb758",
+    progression_revision = "bfeb2f677a5251d0f984dcecf71783adf4652ca796f7441a700192d2b8e3b37d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15727,7 +15727,7 @@ return {
     title = "Scars of Abyssea",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "bd2f755896cb97084c04705aad4492a395bf76881ceaf3cd6b3c8bcb70fa232c",
+    progression_revision = "8475d2b997afafc1edd45c96345eac76701b0371d8b016b1c2a7c1f5e2c2adb9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15747,7 +15747,7 @@ return {
     title = "A Beaked Blusterer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "70ab7cae9e6f69f5a84094f5bc567dfe92d447748bbc56c7e6fe302e20ecc0cd",
+    progression_revision = "8beeee6892377bfddae2f5c9eda05a9917ea541ef79a1394ce0cc5090988509f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15767,7 +15767,7 @@ return {
     title = "A Man-eating Mite",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2ddde68873fc62db6fc9ce3af3ae96852f1a1e94010cfa012a39d657e13f7c3e",
+    progression_revision = "6813824b1bf4cae97194ef623659a1cd4037c6ef35da4ddf8ce5f3f3708e92e1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15787,7 +15787,7 @@ return {
     title = "An Ulcerous Uragnite",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0245c69c02b14ea723f2a3fc485a4adc743638915ddd39ff7daa68ff71f64075",
+    progression_revision = "eb423955264bb2ddefaf0de35c652e55f931bff095d945b28c5e82f6410ba3d0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15807,7 +15807,7 @@ return {
     title = "Heroes of Abyssea",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "cf2518c390cfb79ec257044e17299ca4c0db2f8cee35c2083370ace6fede7adc",
+    progression_revision = "2e61a87c791bc78eaca3960e52a224487a3bd1b02325875485ad7529577a84e5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15827,7 +15827,7 @@ return {
     title = "Secret Agent Man",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e04ef20d9a889bc54a989825240685c0c65b21b23d2e494d6be1ab92313a4321",
+    progression_revision = "3131c10d33d1f02abff9a8aa453070b0bd604c7186d716d2e09e641cb5220da9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15847,7 +15847,7 @@ return {
     title = "A Sea Dog's Summons",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8146bc115f0912cb9ad48df483ab9aa329e87c0f1d137a7a5868dce6b3e2395f",
+    progression_revision = "e963ff9fc15676af9a410fe1f85d9a05c240e9f61a42c0313c0f3673d98e5c5b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15867,7 +15867,7 @@ return {
     title = "Death and Rebirth",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a5cc92d5cd53ae7a66b3dcb91f3bed1e90297bd202e3933c987e562f593b3cdc",
+    progression_revision = "0b6e4dfee63aad18519e674ee49a642106322a3bd9e94db90cd96295e1fb9994",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15887,7 +15887,7 @@ return {
     title = "Emissaries of God",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "87ea3a72cc06fd108132d7e33194138a9a49c2caf4220cf0b3e329485fd87ecd",
+    progression_revision = "93c2cb1e06147566f1813c7aba96393a683495e199418f92053d44a6621a867e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15907,7 +15907,7 @@ return {
     title = "Beneath a Blood-red Sky",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "57700dfe50af509fc16f20318bc47c2c44d242c6874a33c12b5cbe504c1e1689",
+    progression_revision = "a7905f3660447517ec3eb63b2a9dca2e9068112343ab4b8e1de91badf7be1657",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15927,7 +15927,7 @@ return {
     title = "The Wyrm God",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7040c588184fd08fb57f1dfd603fbc922994a62e110d2e26b1dad2afa843718e",
+    progression_revision = "d086e3bfef92cbbbc86efd8329eb1819582cb093bfed08170fdaaab9ac694758",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -15947,7 +15947,7 @@ return {
     title = "Meanwhile, Back on Abyssea",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "dbc5aa8bbc70fe10296d03662b655fb9eacc5aa379525b8694a24d31352dc3e1",
+    progression_revision = "704e07bedc719252245479fa433263e9e93a912d503427783c0a3afc1514da3e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16047,7 +16047,7 @@ return {
     title = "Playing Paparazzi",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4aa453bfec57f0bd4ee6bdea3378c2a7469f84683dfd4b036230e8a539eb8601",
+    progression_revision = "fb47141e3a7da3ccc46e133ff92ccad4c42314d3134503a4190f7cac45128373",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16125,9 +16125,9 @@ return {
     native_id = 20,
     progress_id = 20,
     title = "His Box, His Beloved",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2a27fb6c6caee74c35508c725b61d9a10703a353fca6d56dfd4466555e18ac93",
+    progression_revision = "03b734a6cf2c526f829435cd82eabd1085e2fcf47c4bd70d55a2cd8dc2580439",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16147,7 +16147,7 @@ return {
     title = "Weapons, Not Worries",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d819768d40de823b340b9fe4edda2b5326e40552061d229ce5be3588019ef5b2",
+    progression_revision = "48b77e3fc1180dd26ee12c2d200ed56d5d703e1bb8f19a69ea6697c766a687e9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16167,7 +16167,7 @@ return {
     title = "Cleansing the Canyon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "36e59b7bf8419d823cfc27984b6cf129ecc27e8f9ce0fc4d214fcb243671dd11",
+    progression_revision = "19e5f417542d8b69151c2313b09edcd4722b17d1e153798f471d820a91ad69f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16187,7 +16187,7 @@ return {
     title = "Savory Salvation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e4194206cba8e0b44d819e29e15f274bfc075dec991166a949f04e0b48ba0080",
+    progression_revision = "a0e754a57b8fa12afed1d098b6e837569259182e361d9081bd69dd8fc7c2ebad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16207,7 +16207,7 @@ return {
     title = "Bringing Down the Mountain",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a1b72369cc7d7c9a871780830cb2694068b8c9bc664d4851da0480505f84b8d9",
+    progression_revision = "0d0705e6e8ff292e15fedfd88b296bcf75efa7d2b7d976ced3fabc74093a0b8b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16227,7 +16227,7 @@ return {
     title = "A Sterling Specimen",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "07e58572630483f446f2ce8916f85ead768b04e651cd08c71e9a3155ed643ce4",
+    progression_revision = "19b72ce438125e8752c3d71f5f1fcf9d7d4348ce7a839004ae731b22a473a7a5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16247,7 +16247,7 @@ return {
     title = "For Love of a Daughter",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4b9d085c02234bd188133750133422240dd31896d06a9a9ad53e0d31cb4eaacc",
+    progression_revision = "953e1eaab6a27858f4873226be02a1ac773b2bbc266143e1059bc5b7da0649ac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16287,7 +16287,7 @@ return {
     title = "When Good Cardians Go Bad",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0b08ff957862299da9f1cf4849d0221690c063f156ac3cee4fde66681d3f9eab",
+    progression_revision = "d6c85dafd8270162f4a92069eed1c044178c98021384ab129330073b7893a16a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16307,7 +16307,7 @@ return {
     title = "Tangling with Tongue-twisters",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cd56a8c088c01ff27a6c35a6d8fb69b04051c805048ca9af5496f8d22a6ab225",
+    progression_revision = "eb724d409433534bf84998269568e959b6de2f598a9f3e00f865e8abd7ea2edc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16327,7 +16327,7 @@ return {
     title = "An Eye for Revenge",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c21b70101f5f08305cf9dc200eaeb56075988f0ff1fcafd684e3cb46e403d6c0",
+    progression_revision = "afc2d11a4d17b73cf42f6ae79dee22229763785a1715090463235627bea43d87",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16347,7 +16347,7 @@ return {
     title = "A Ward to End All Wards",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "203e35efbebd069d5fa63b538a5a9f6168565582748fcd9f464d6ab63771946d",
+    progression_revision = "6ceb29b2eff0328a1843f59869bc63d53ab1d4020800871e0056b994352425d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16367,7 +16367,7 @@ return {
     title = "The Boxwatcher's Behest",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d157bc8ed52fa74c98b49717417fc922c6efef16e77e0c2b28786b0453a702e4",
+    progression_revision = "4bce19f0883562a473ebb1f28c2dc4209915eca592c1fccc3525fa921877dde2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16387,7 +16387,7 @@ return {
     title = "His Bridge, His Beloved",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2dc7a75c07b1c4390f48f69b0e7507fac9f33c491137b630afadfa3e61a58ab3",
+    progression_revision = "9adab066861bad96853d4e9e21922139799da0f7dfa21b06250eba369d94b28e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16407,7 +16407,7 @@ return {
     title = "Bad Communication",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "726880b99ee5dc394bb6be7118c60ba8511e36631b338cfb9af88246d98609b6",
+    progression_revision = "e02a2a4054d44973db3ac9853f98f5eb81aef7ed89a1f5d0141f51c2b231cc8d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16427,7 +16427,7 @@ return {
     title = "Family Ties",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "239a3dca6fbe44c63f0b29be457b714c0cf9d5be4aa0b19601b45874f050247d",
+    progression_revision = "3d470e80c007832f53b086989c0d92867921453b33b049263ed9d27746d1f621",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16465,9 +16465,9 @@ return {
     native_id = 36,
     progress_id = 36,
     title = "Aqua Puraga",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c504f77d00c5490a3344f7d6f9e3795df627c2227a2c637136d6ebbf8e2ede30",
+    progression_revision = "d43bfc4220efc52773e8dbf6ec4ce1e99d0c973fb33ae3b824cf2702361b306d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16487,7 +16487,7 @@ return {
     title = "Whither the Whisker",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e1ec8e73ef694684631d75e3e2008c7538d3f41701e847aae20480739bb22e1b",
+    progression_revision = "2a2f695712ef3f21562a90db0c839410d4351799781dea09de6da8990fdeb9d3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16507,7 +16507,7 @@ return {
     title = "Scattered Shells, Scattered Mind",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6a20681727f82b77154196c1d0b18db06df8cc3db73d42e69d72c644358acacb",
+    progression_revision = "21f9b7316e101e99d530fccb66df7859e581fd3abb398c89c25242390b7c6a4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16545,9 +16545,9 @@ return {
     native_id = 4,
     progress_id = 4,
     title = "Unbreak His Heart",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4f42cd4cf172945f3f4796c59f8accbab844ff514b732b8112f459beb6e70fc9",
+    progression_revision = "ec5d222c18e40b5fcbc6d43b9b410ab71e512f0935a67063608da4aa84cc0bbb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16567,7 +16567,7 @@ return {
     title = "Looking for Lookouts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2107c2539c103d5ce4c4ae04880b4165ecba507af5fb93bccc51495450406a30",
+    progression_revision = "54d06473088742dea67118ab6e7f7909125a462cc443f3d031ceff53b50f0e9a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16587,7 +16587,7 @@ return {
     title = "Flown the Coop",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "50cebd9434af4ded89c542102ae9128cd32efdda1b21dbd84716a643147d3ac1",
+    progression_revision = "16878f53d1caed26309b279fc5ac40e92e2752959036c83963a65d5a2ff94ad3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16607,7 +16607,7 @@ return {
     title = "Threadbare Tribulations",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b0ea10f521567f7f98dcf3912ac4fbb92b738c89269a9a4f1d6dc66fe1fc9726",
+    progression_revision = "160f5c32b5dfce77f20339d69a5e34b52c26540fba42c1a0e7aa6a8b427320f0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16627,7 +16627,7 @@ return {
     title = "An Offer You Can't Refuse",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8100f047d6262d0d70dd4a88d5e3b923e57613f308c074f3d337e3d7efa3fed2",
+    progression_revision = "c9186853ea4b2471a7c0cc00815bebbb17c004d6ac8c1c6db4cdb4f95b366c05",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16647,7 +16647,7 @@ return {
     title = "Something in the Air",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c28fc2df5c2d35d609f79da233fedcd77bbf109a8664fd9d2d003fb552d9f631",
+    progression_revision = "b9f5e0ac37dabfa34763d7526011b4675c3cde4c088bc65d57ebee96202da470",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16667,7 +16667,7 @@ return {
     title = "An Acrididaen Anodyne",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "69b6925f292d785b4185e8c7c4f3bd563fc0e2e9ee6038ba37a44236fbf0b954",
+    progression_revision = "062c9d1720f1b5bf4dac9e1a0ddda28f3a6ee8eb85ebcc5de6b85e8a64bb4399",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16687,7 +16687,7 @@ return {
     title = "Hazy Prospects",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "73a2840cee6ce3e4d58cc02ab4adb6e24a62be1eaa66770eb99c502b47274b04",
+    progression_revision = "5389c1b080d6fa09e884df4ee36f9ebd8dd3149b6da02b669a91371b5fac8f5c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16707,7 +16707,7 @@ return {
     title = "For Want of a Pot",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e260cb7e66e96e1f8c1b2918a36c281e611d230129650758745278d8a3f6e0f2",
+    progression_revision = "073e271982d2475753d151d4a1a61d44d6778d5ab5712ea3b8295a853840d070",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16727,7 +16727,7 @@ return {
     title = "Missing in Action",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "64d483d9f225a70faa4ac38d530089b9f895494b9fe78ab60829314a48162313",
+    progression_revision = "9c857625cb9a0601c97b39892c80ce63a47f7292c1025c71873e0ba20faee54c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16747,7 +16747,7 @@ return {
     title = "I Dream of Flowers",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "efef5bde2ce424b8c1581fafe6f4139b391f7ea1b24133b90b6f614307a8461e",
+    progression_revision = "2675c3e7d848817e28efc6f1df45704d62a8e112d128a1785b11ad3d3665aec1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16767,7 +16767,7 @@ return {
     title = "Explosive Endeavors",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c8b3fc52ae1ca90e7c7e0f397708047b7beca296a41fef951f3166d69cd41e96",
+    progression_revision = "178fd674db75dbe4013f7574af96c81557f65a66768ca45fea46677cae64d4e6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16787,7 +16787,7 @@ return {
     title = "Destiny Odyssey",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c057b0789fe5e61e3eb2f36a8b1d896e82bc3f7336e3cddb35d688f9ae9aede7",
+    progression_revision = "14d2bc48d4090d19bd118d54e6d842de89f06e0122d77cff5fd2ca1347d19e20",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16807,7 +16807,7 @@ return {
     title = "Unidentified Research Object",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "33376fdea840cdbfdeeca2f3f500d5590ce250b6d4e6718521e96e000ef93218",
+    progression_revision = "e01b8c63c00c513706420b0d4ce161ec348123766dae49a39043ffcadc4e3609",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16827,7 +16827,7 @@ return {
     title = "Cookbook of Hope Restoring",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "50b6e950e8607ef5ec7fbdd467b05131f665fc0d5c6b7e4a6a7e6b75505b6302",
+    progression_revision = "5dd5113669ce83cdea4a162f1791bd00e3db5e33594de6723852ed57f225d3d2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16847,7 +16847,7 @@ return {
     title = "Smoke over the Coast",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a3d22fcf412ddcbf6468538272d29742c9d3561f8dda470a567db195c9369e24",
+    progression_revision = "e7dc24c543885388f749c4cbded316a4f3c0728a8d77c533a9c98aaef07866ff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16867,7 +16867,7 @@ return {
     title = "Soil and Green",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dba9a9a55572e38032a2d952ec1146e7fd59221013f88ec26b3bb571be102d8e",
+    progression_revision = "1c66f779d1351c4eca3a15f71c0e82dff0c00b2e0204f87e4428ff24bc9522e4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16887,7 +16887,7 @@ return {
     title = "Dropping the Bomb",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "450f0760e2262b981c42d470ad0176264f3911f6c670e0f4cf3729bf336a4aa0",
+    progression_revision = "a9638d9ccc41139abdb1f1c0f7163315396ad91b5f162f4e2a714af519f5a6bd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16907,7 +16907,7 @@ return {
     title = "Wanted: Medical Supplies",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "90d5c18fd1307fe1d8749e763a5b160451427623fdbe05a8b0b25b6ff099610e",
+    progression_revision = "89d5bcec98699c9c5f3669b0b23f369afbd1fabb661abbc0bf8f44d01fab3d4f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16927,7 +16927,7 @@ return {
     title = "Voices from Beyond",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "864b991972f63094054e5dae10bce4e5f6cb9053929c18174bdaba5bf5f135ba",
+    progression_revision = "26cf0cd215c05daab2be981e9236203af60f3f139561048847148f9d208e14de",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16947,7 +16947,7 @@ return {
     title = "Benevolence Lost",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0b74b75364864f3e702b8d59a0661bc9dab9fe6fe30af3cab7b3eb81cef4c6c2",
+    progression_revision = "890bd127e6e93bd688d2bc1cbe9b1a6335783764defd330feb35567bcbf96366",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16967,7 +16967,7 @@ return {
     title = "Brugaire's Ambition",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e2adabb9e54290e1c3f45213d83a6cba679d2df6faa4cfb91dc1dc9341fb9aa7",
+    progression_revision = "8b6447d6b1f24ac876794a5ae399e1fd6672bc70af4ba93d5de4df45f326297e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -16987,7 +16987,7 @@ return {
     title = "The Angling Armorer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "381ce16a91a754ce82f34b25b3c014889d02f829bea9202a65f6c2a9e7a2ebb8",
+    progression_revision = "f9745d8ef48db2d07cb825e9a93fdba334f63f3967404410fbebf0df79ba9680",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17007,7 +17007,7 @@ return {
     title = "Chocobo Panic",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7f5c6174b95f0cb13abb238094a39b73f55ebe7732b84296e30f565f55f388c8",
+    progression_revision = "4d249ecb7a46eb5412ab2a4b6b832da897e7a1993127a976c8531f795f0edf71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17027,7 +17027,7 @@ return {
     title = "The Egg Enthusiast",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "460731ffa3c7e2cc26ab92cb1656f950e56fa00ed2add5b94e090f68862e4708",
+    progression_revision = "1d205a846930550d3533a8dea96b0146e22e392ac3380041d3f0461824142cc7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17047,7 +17047,7 @@ return {
     title = "Getting Lucky",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a1c0adb54aef6ea656fa7e1595e80cea1bda5ce04f61613414d40eab3b345dca",
+    progression_revision = "d9512a4a3563537dfc9ebc9166abad64a785bb67b4af0d80c2528e9d1654bdf7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17067,7 +17067,7 @@ return {
     title = "Her Father's Legacy",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3c40a85e40aeb8c91419f430cfe5bc33a285b7af2ac59d021025f69513842158",
+    progression_revision = "8919dce3acabb8a81e55ad9ff5b606afaff5b531f6bda269762a74b7373924ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17087,7 +17087,7 @@ return {
     title = "The Mysterious Head Patrol",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c59a35335af8f5e25e3f3a815afaf56574366e9564ef18fcd6c80e10e5ea89d1",
+    progression_revision = "381b37bdf75c2032364b3a3714733db1a6e1ab8695b7fed175397723abcfa572",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17107,7 +17107,7 @@ return {
     title = "Master Missing, Master Missed",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "068ffa19a2738b410adec589797484fd270084c5c4e0969bebf0846cc5a8165f",
+    progression_revision = "9315ad94a798691d70350aba43d3efa16563677aca8b89fce2a5686c0cdfe197",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17127,7 +17127,7 @@ return {
     title = "The Perils of Kororo",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "201c4a400ad783e6075e89cd9c6abc2a05fca885126f6935b8c0c6c484db5090",
+    progression_revision = "06591bbb2ca0e448cb3e2b69d8e0617339c24d96ca8756884ba053d4447bf148",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17147,7 +17147,7 @@ return {
     title = "Let There Be Light",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "da43d0ebf7e19601777d4c472c7d0e2f2fca55ab45c7061090fc090363c500ae",
+    progression_revision = "b9e6ce204bde7528789c1a15f25d87408d271952504f102a3098436da56a1f21",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17167,7 +17167,7 @@ return {
     title = "Look Out Below",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8da0af6a6d428adad1b84af9c4b6e1381b6b2a2ed5942b3c3452b44a10cfe9bd",
+    progression_revision = "d5884f3407118cb767a1ada4818f0a59fed4233271c946bf7193c0170c64d4f4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17187,7 +17187,7 @@ return {
     title = "Home, Home on the Range",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1ae8ae641998158ade25bf759ee6ea3d4226628d5109b5cbfbc498e7348b2238",
+    progression_revision = "9921dc2145dada7eab7b1ee9cd0e459e5717cbb2ee7f070e300b88a473d2ada3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17207,7 +17207,7 @@ return {
     title = "Water of Life",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b6086eeb00673412ccfab1c478a91223f282ea3267c4ea6544dc086708202fed",
+    progression_revision = "d9e7e8465fdc316f136a0d9a4edeb0b3bbcd67593f7561f9a3ced090d1dd8772",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17247,7 +17247,7 @@ return {
     title = "Imperial Espionage II",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2e11b6236b49b71a82eff1797e129465a270ee41045684ba99c74388ffd582fe",
+    progression_revision = "b1ddd85ba037855d26d760db6be7d5afb398bb232ea4565babaf92b4306ca817",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17267,7 +17267,7 @@ return {
     title = "Boreal Blossoms",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2cac02d7ec29b962f4c7a2bde2a36c405d610e12f07a561c6dea0064d91ec889",
+    progression_revision = "05be7d755220783664907049b19af1e8e32e82328c3ffb3aae293fb15dd391f0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17287,7 +17287,7 @@ return {
     title = "Brothers in Arms",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ee61f2b705ba0cab9c5eedab35f0059b1866f7a1546a79bddb933e645696469d",
+    progression_revision = "c5e5d2bfa6241c3b8212a843b52deaf1b6237ab1379d4be2fd6480dc763cdc79",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17307,7 +17307,7 @@ return {
     title = "Scouts Astray",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c8c62d8695a5658d4c036600364b437005ca514cdb832f5b7530f636ba43cef4",
+    progression_revision = "7f1299ece002593516781edd7865fc97655dc8c62c505208669eda6468867a8a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17327,7 +17327,7 @@ return {
     title = "Frozen Flame Redux",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6063984d5d04e020637f721a4b00ca45b173744f83a19d8dc6e1874f00cb50cc",
+    progression_revision = "30b479b6a6644064d0318079b115bb3a50152de35b93444e63b492544712edd5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17347,7 +17347,7 @@ return {
     title = "Slip Slidin' Away",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4e6d710bb5ea1ab2bf51f44f13d773ddbe4ac7213b83fe8a603d14ce5428da4a",
+    progression_revision = "c2c4bdf6ac580b9026cc5c36969b9d17006e182dd74def4143da0dfa3ff94d0b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17367,7 +17367,7 @@ return {
     title = "Classrooms Without Borders",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d107463bff919e8447bae49dff2aa4011ea99df5785819193ca44c3e58a77b06",
+    progression_revision = "4e75986c52a7911c897654bdd65f78f90428ea28cb83d2a8d321502806a1127a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17387,7 +17387,7 @@ return {
     title = "The Secret Ingredient",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "864cb2c6db5935ca5ea09f5005a5a4a51d3db20d5e9b13d1252e4fc63b928d89",
+    progression_revision = "a87cf7859c8f05d49a69da739116578e3c23ca8399bc916a06e514e4870bd912",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17407,7 +17407,7 @@ return {
     title = "Help Not Wanted",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "eb9ffd5971cb4fe78764bcd65984a86ff48eb1e36634b69bdacfb6d528860da0",
+    progression_revision = "f47a40de18bc5944e1144f19a2b3bf81d2bf7aa14c769ccc87c0a3dc1f213ff3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17425,9 +17425,9 @@ return {
     native_id = 8,
     progress_id = 8,
     title = "Out of Touch",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "958271bdb4a62bc310c5d38b45720ffa061dce2df0e9d55190a9f8bde9a7fef7",
+    progression_revision = "f4e4fc1ab7bf77f12fe4acd4a5a3f4d82c1d875acf318e660579827f930331cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17467,7 +17467,7 @@ return {
     title = "Slacking Subordinates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f21ee9c4c7d98e3e58c2a27c78b76a8035057c80b0ea3c801b21aa81015589b6",
+    progression_revision = "321cf280b75c1ad87cc3be50e2433ee4e25d24f51b90d015909c424b335759d4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17487,7 +17487,7 @@ return {
     title = "Motherly Love",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "152202996a51da30d6b9ea16045d98d832c73e3d69f1fb281bb214faaa3c465d",
+    progression_revision = "d446eabf7666ea18775de4d0c3021facf75cc3cda5605d202a79c7f80250094e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17507,7 +17507,7 @@ return {
     title = "Look to the Sky",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c714e4b36aaf0e838d7cf76a1aa80d0de44cfd00f56da8996a95f970a0c07781",
+    progression_revision = "d389debc5945fd4fe8c4e43e87f18c70c92ada70e6f0b0db159437484ff9cf1e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17527,7 +17527,7 @@ return {
     title = "The Unmarked Tomb",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3531b15389baa1df0c5b8e35fc8c2378ea6a20f8492ea4e45fa6a522a18f1ae7",
+    progression_revision = "03c38b5279a40fa00bd3bc1307ac448fdf847c2f1ecf024a28238105c5cd85fa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17547,7 +17547,7 @@ return {
     title = "Proof of the Lion",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b8ef4e2e0a121e1ed9d858483f29a9aaf0f25325f1c4cc0465ce2c616ebb870d",
+    progression_revision = "9dcd5855096a1a4ecba2fe495978e3d05e1aa2a7158a3c51f554015179243005",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17567,7 +17567,7 @@ return {
     title = "Brygid the Stylist Strikes Back",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "db928cdc697d31b5aa71042724af9a025dcb49a74083ef7b8a2e89f5b7036ed8",
+    progression_revision = "0240eab804c6b7da5b6d19887d6fca035715e64a8c25606a1acb7434452cd450",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17647,7 +17647,7 @@ return {
     title = "Lost Memories",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c3b1ed6d30f987ebb244d4829e31ce68f5a152582fa5acc8dad5e0fa20c2c8f1",
+    progression_revision = "090b74ebf6590b2145ee12f3b25808fe6d46282b0dd33a53a20c1b6bddcbf45d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17867,7 +17867,7 @@ return {
     title = "Twitherym Dust",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "40df8dc52f156003c77061dc58cbde312e3d7104efa5531ca41cf8ce390e7b5f",
+    progression_revision = "9f4a810615331afa3213a403d191da515af9770f9aa3f7a95c70d4e971bffd9a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17887,7 +17887,7 @@ return {
     title = "To Catch a Predator",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2e6b0ed5874f34218175f486a6166a39dca622bf425dcb5fccdb68431a0825a5",
+    progression_revision = "c51bbfd3fe54134d0fee99a25763a6286b0e5340e0e9b22e9bc0e6bd1731cf22",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17907,7 +17907,7 @@ return {
     title = "Poisoning the Well",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "29bd44db340db88f98bcdbbd21a2c59629bfecb579ccac2a3616aaffaf5df33e",
+    progression_revision = "ff3e75d7006a32c8c8491bb76c914bb7b23041e9ed52795d9fecbe74328c4822",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17927,7 +17927,7 @@ return {
     title = "Open the Floodgates",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "94aa0b3406672a1d72185599d3d44291b16400ca9098c21fa9a3a80a7d857d02",
+    progression_revision = "af73d50ceb9ac552d609833f07f853adda1938ed1a74da8d08c9cbb34bb1bd5b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17947,7 +17947,7 @@ return {
     title = "No Laughing Matter",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c7eef0ee2f6e37e55ae691086eba160c9710fa44196bf21a713798bc1e58c35f",
+    progression_revision = "bb9901f9caedc4900b73656bb4b4f99dedb6096b8fee2234ada9c3cea5abbcf9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17967,7 +17967,7 @@ return {
     title = "All the Way to the Bank",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9b6a595f7fa8e080060c06f52da302fd5bfdb5ad82edc2514200a547d69ac6c9",
+    progression_revision = "d3235d53cfa8e9cf5a2653a9ed6640b3117accefe6a1b7ad2402c6269ed9a8c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -17987,7 +17987,7 @@ return {
     title = "To Laugh Is to Love",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "dad87339c04d3c97d602ad28b5610c611b622befd43cd672f3b8fc0e9b36577a",
+    progression_revision = "eec429ec9b3150a076302e3edc016e1d6129781b81a3bc7f66c3601c28085ccd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18007,7 +18007,7 @@ return {
     title = "A Barrel of Laughs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f0080d4efef7d8813e3d4edf37e58876b66b4b7765192867aa61592987b7777d",
+    progression_revision = "ba3c2b896d599f56f412b684209063da9c4e6919573c716e729da972a48c1f36",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18027,7 +18027,7 @@ return {
     title = "Vegetable Vegetable Revolution",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d460049cc4c495817f968cc90f4c8781de696b7dfe478089e76dcc9b441cf21b",
+    progression_revision = "ab11ac0328bca67c3c44aeca1cd6f4d4f77338654a9fe839f9f5786822011d72",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18045,9 +18045,9 @@ return {
     native_id = 109,
     progress_id = 109,
     title = "Vegetable Vegetable Evolution",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "303a9ee703aefa67e746c011c14d0b9d32631e210e5291cca91a9de8e85750de",
+    progression_revision = "71eecdfe5193fa4aa106a09b7a45594c34836a7a93761b3ff0bd27a46344bf02",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18067,7 +18067,7 @@ return {
     title = "Vegetable Vegetable Crisis",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4aa819fb0a2d06652e9dcbcb5ca033cef17fa051393e2f94fd2abbdc86b463a9",
+    progression_revision = "06b6729697abcb529551c0b371e1f50a35627e440cc1481b14fa38daad961dd6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18087,7 +18087,7 @@ return {
     title = "Vegetable Vegetable Frustration",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3df81064efbcf031cad9f1090078e2fa147bb4626e2ff7dc575bfe1016308c51",
+    progression_revision = "d5e6480475f99ba97551fe3ab88af09c2080d12a31f23ef93124cd4610c4421e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18107,7 +18107,7 @@ return {
     title = "A Thirst for the Ages",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7c56d12b7b73718676f98a3de7a4e45447ed886c7365fdd0ae32e26e480c2354",
+    progression_revision = "f5ff103e86c6ddbc043e31c189c9b010ac69b52cb77c099ab9218eb61af73293",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18127,7 +18127,7 @@ return {
     title = "A Thirst for the Eons",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1b02bc5e15e0fa2cf7b478c4eb42b68d8bbd808076923b71aba76802c3ccf14a",
+    progression_revision = "ba545a2abe95f435372e1626a29fd3e66fcebfc82e6fec7524baced98b1395b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18147,7 +18147,7 @@ return {
     title = "A Thirst for Eternity",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b10659b60f1a1b1471b37c54e5b8206fa1793f33fc9103f45c70e76798adb0b8",
+    progression_revision = "9724015b49ff71c3e3a5b20479c594fee6966d4930d77bf428d1830acb3eedac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18167,7 +18167,7 @@ return {
     title = "A Thirst Before Time",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b3e1cd894d2716cf720bb81a32d1e6a2ed215e767b50fc0666fe6059d6b75ad5",
+    progression_revision = "fd806e62a226b50d1e48ceebff48b3bfa34a7008b102b1aab0e8d1fe8e3c9284",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18187,7 +18187,7 @@ return {
     title = "Dances with Luopans",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "084a01cb286a01f9149458c747d7539b218b692b8942f9f98a1fd10ce39a09e6",
+    progression_revision = "64932d361b7c7cf60e4f65db8311c05f9d87990f8132b0baf4f17dd886d8aabc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18207,7 +18207,7 @@ return {
     title = "Children of the Rune",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b0e7c1ae5b1ae3c92e03786860919b3b7dab3b37fdc88a1a55d0a08b15f60ec6",
+    progression_revision = "669bb4b20ee3d24336a4f524037237bda3bdd1ee522be21835d4c6083a7afa35",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18227,7 +18227,7 @@ return {
     title = "Unsullied Lands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a9fccbcc59b3396d83b44ff29cb51cb9e80ef19414769473c7d3a8ebc60cd408",
+    progression_revision = "d10112a3a23fe294a58907020e9cb000eb8e70e4b1c844365b71607562b84835",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18247,7 +18247,7 @@ return {
     title = "Flowers for Svenja",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f228ba93e78282d3039a7bd57ccd3ac44ec8bde1f6cec28b7e696063dd0116da",
+    progression_revision = "81b834e82226be95ac108f3c2921cb6508afb2f412e4bee6b5627dc6f5e6dc9f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18287,7 +18287,7 @@ return {
     title = "Do Not Go Into the Light",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "929b5deffc28b3b5fb0d8b1f02c41bbc13502933f910e57a4995de1179caed04",
+    progression_revision = "78dbf2667aa8553376137cb0e45471e6542ec2e52774eb7e6e6a98d856ceea14",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18327,7 +18327,7 @@ return {
     title = "Hypocritical Oath",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "65c184f516e5d754caee27bc8d409a9d71adc0aa748d0db583be1005c9d51649",
+    progression_revision = "8e38ce2e7005747b9992debbd34dbf24fafb1d5d1215d112405f05268c5f4722",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18347,7 +18347,7 @@ return {
     title = "The Good, the Bad, the Clement",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3be0b30baa9bb3fadf027a6e9a634f97af5e6bbdfe15240a281fe192dc9b8a3c",
+    progression_revision = "db84a864e7265d7286f3551e8b08fcba8a72651aab29f59a03f937c176f3eac9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18367,7 +18367,7 @@ return {
     title = "Lerene's Lament",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b32b70f1321f629f8f473f6932793efe5448acf6091cb10386f5658565cd4fa9",
+    progression_revision = "f90b2587d22c6b544814975b628c3867b16268a1598ee3479a4ba767043dc8a1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18387,7 +18387,7 @@ return {
     title = "The Secret to Success",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "01c1196d0d01731abbe1e2835cf0f1793338b08c305609a1ff2ba70920c30d06",
+    progression_revision = "a2b27911193afe63c4e3cc9bd4886ce1f91855d9338e6d70864efe017b37857b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18407,7 +18407,7 @@ return {
     title = "No Mercy for the Wicked",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "66991d941d6668b991659b0ed4dfcaba1f948d699b7a76cd1c0de54c9e0eacbd",
+    progression_revision = "8d932c44d5d695b38dae5e5df7842194d015487ecf138f8225e6bbd4184f2d82",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18427,7 +18427,7 @@ return {
     title = "Mistress of Ceremonies",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5fe9d5d51ec587ef91b5896693ba383ea11110360fb91b96c310ba55a4dbad60",
+    progression_revision = "a7ce73c912da3caa3065907a9201a036c1cbbac729e380a55b5a7e0bfc5ade55",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18447,7 +18447,7 @@ return {
     title = "Saved by the Bell",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "08f956125f50b5b0ba5f0d0101f21c1c6407a214d115c2145cc7003bb03662da",
+    progression_revision = "edfd5d392a0002cc1ae95706123169544111f5bf603ec6ec078faa4f5381c07f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18467,7 +18467,7 @@ return {
     title = "Quiescence",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1c850d186cb25a676b1a6678bb4238025792784b48e78b2a8dcfaa3d269e1caf",
+    progression_revision = "2a8417c489643d9d693875d1528b60c5ddd854a43107f42ee9d1065cc536060d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18487,7 +18487,7 @@ return {
     title = "Sick and Tired",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "96403042459323b4eb7a0df571af214ea77f10ed5031c6021366b58eaa99df6c",
+    progression_revision = "c089377f1817d73e65d2dab53e31d1832c111cebca6b68eb5090975bb1bcfec0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18507,7 +18507,7 @@ return {
     title = "Geomancerrific",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1920a441dbb5cd3ad6a7b1f372478dbe9b18b0e5b5017e3f4bc8d0d32d2a5f1a",
+    progression_revision = "091c9aa5adee9200cd41a80d52988298ce61c27069f07a5433f9a0f71f205a94",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18527,7 +18527,7 @@ return {
     title = "Rune Fencing the Night Away",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "755a44f9b52363d2803e45ac68811efa349df7e1904caf902a80789560e43548",
+    progression_revision = "7253ba9e9c22fe4347f0f5d36c05e6994009e13b805f0f149fda6f270babbe4b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18547,7 +18547,7 @@ return {
     title = "The Weatherspoon Inquisition",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a044f2a7c90402b9f32ef2453a4964601b8c6342865364edb466077c24de1573",
+    progression_revision = "703c2adc2c9fe53377df4673123c71c76186a92c6db86e19cba0590b08aa1a7f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18567,7 +18567,7 @@ return {
     title = "Eye of the Beholder",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2c5e3fe958fb9f792c0eee8d47f32bbba815c28953187f2bf7899c9aa207449c",
+    progression_revision = "58f8395becdbd9e8289754a988aa617fbe7175657b6a54a94644a6fb39262368",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18587,7 +18587,7 @@ return {
     title = "The Curious Case of Melvien",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7f66d5819af4961d1bfd76e55c7001217ec69af308c5dc37e5d537fb3d93039a",
+    progression_revision = "e193a02b695a659b2a053693511f821859fb147ad7eafc333dcbe72936050dd3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18607,7 +18607,7 @@ return {
     title = "Not-So-Clean Bill",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4938128e0131defb6b34a56f73d45d747fff56df0caa9a639a8a252d95e02797",
+    progression_revision = "66cdc5cb9904d2dc991909dcc21200f2a57f6fefba06192cd6f14f7b22616e18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18627,7 +18627,7 @@ return {
     title = "In the Land of the Blind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "85cf78b0d3578de4131f4868a7590eb4a943a4766292f53cc80d7918c0524844",
+    progression_revision = "c31195f929d7a500adb42ff7cf5833dd70060bd520dd7cc3ed9e42cf1c84c628",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18647,7 +18647,7 @@ return {
     title = "The Weatherspoon War",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3dec8db72f8f58c68f110d8d7673d54afe1313f7ceaf1d07f69b9b9b7b69ebb0",
+    progression_revision = "8fb4f8c0e7523a7a07f61abcdfe0d37acd9fa700ea8ba751c2652bcf91ffe155",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18667,7 +18667,7 @@ return {
     title = "Treasures of the Earth",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a241873fc37197a671e632814f9e7d4b95995244baf9716cbf691de61b751d08",
+    progression_revision = "9e880822c279b48330f09f3940cfec339be6daf2eee51842ef9ee29e6ba38a91",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18687,7 +18687,7 @@ return {
     title = "Epiphany",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "00bf9637064af2be26ff102c7e590e9f9e19d94aec57a7beb9a578e59e864517",
+    progression_revision = "5fe5afb3a966bba7d189d1d4ae530f3e3867b69dc071416de64ab30ceb600d2d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18707,7 +18707,7 @@ return {
     title = "The Silent Forest",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "166c74575ec08bc1b9bd2f5fa330bb9da162f3cea23a9bb2d3fc45e8b0fed12a",
+    progression_revision = "1005232bd56b98bf368f577b1019cc5d23a2308879ebf380f2768e2396624825",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18727,7 +18727,7 @@ return {
     title = "Winds of Eternity",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "162e196a061491a46f5402b56619e5152212d7846a1aecb2361311e2675bee0b",
+    progression_revision = "10a34ca694d767793a20d6397e9d22150f2f8af336d2f48f192a888af6c8dfed",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18747,7 +18747,7 @@ return {
     title = "No Rime Like the Present",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6b7a0db04190327822bb54fb8852cc4b6f0281535f9def24ffe5b2d87386c7c9",
+    progression_revision = "3ee789f9f80edcbc68c489b21e4a3ed9bbbf50abefb39922a772a0636ac278b1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18767,7 +18767,7 @@ return {
     title = "A Geothermal Expedition",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ad5510ef093eed4c8d79d84f5492b3b20a91937a688c22c8781586529a3139be",
+    progression_revision = "68c398250fd0e3eda31f61ff7f5aa32eb32aab34b92ddd0aca78ca595f782343",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18787,7 +18787,7 @@ return {
     title = "Empty Nest",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "102d03f12d4426da7030b8137901d87f0e1c6c6f501234252ddbcef8a148b66e",
+    progression_revision = "04eac66eb9bcfc122d64514e9f751dbaaaf554aca631feb0a922366666599459",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18827,7 +18827,7 @@ return {
     title = "Release the Fleece",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fc6c587958f512d23e18a8dd62f67847729b0da8923748c7a7b5b61b2a6a5dd1",
+    progression_revision = "34f3b046ae47aa2d4de09a8c6ae2ef0149e55e65698678da769e0377c7c59104",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18847,7 +18847,7 @@ return {
     title = "Feeding Frenzy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9ea9e1a139dee8c2965aafd20fa8f1c58689fb768ac023e349908a7076e92088",
+    progression_revision = "bdfb1a793a8263c6a5c9f160f29e3aecd59fcf57a08a35281fe3c034c2a10017",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18867,7 +18867,7 @@ return {
     title = "Cry Not, Caretaker",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fdf8701cb9412e712f0324392d1fe7eb197f575451f62c3161598d3840108839",
+    progression_revision = "ecd25ba16bb1acadd69f169dbf6564dc7dac31e0c3d65a5a71d939862dbe6b62",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18887,7 +18887,7 @@ return {
     title = "Chacharoon's Cheer",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3869007ec7854e5c3262e0ce8cae6d75713aeffb34db71173689dcf37695829b",
+    progression_revision = "bb69951a266ba521dea1af99eb5cb2833322a554f89aa79e70590c1e67a2bc29",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18907,7 +18907,7 @@ return {
     title = "Trial of the Chacharoon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4d4de41864e0b04ff0f8f3eb196e7da3a25b6ef179d5d97aebe3c5751c4ae7f6",
+    progression_revision = "375e43ce14c676ed3e84966710e051d3883f11f3a8139da5932cab63c28a673e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18927,7 +18927,7 @@ return {
     title = "Doctor Chacharoon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1581eafcee99b8de4530aa186db74171407d58fd0bca1f010a9d6262429a309e",
+    progression_revision = "3bcd932a0a135e7413279cffa98fa716a31a05fb401c4bcc97fb5efd0240b743",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18947,7 +18947,7 @@ return {
     title = "Rowing Together",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3b01d9fe77b539a22e5eb7b5ea6f089cc730d6d9963d619a64e5f961e114f806",
+    progression_revision = "7dbef1b9486dce24bccd44c797ba2ab43296d1ad60b0a851231c1b1c534f7411",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18967,7 +18967,7 @@ return {
     title = "Glittering Gals",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a98d8ef992d82aa5de217f447516302ebd1fd68a9d44606beebefa1fb78d0789",
+    progression_revision = "64e3174673700aae091285d4e5221480d7b45be481a4510f1556981090489a97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -18987,7 +18987,7 @@ return {
     title = "Sally Forth!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c494fadea03391f3225a64073c7500b8e914f9582f8c296b10cf2dfae6acd00e",
+    progression_revision = "2019f9752078b94ae7da44394f3816a388f06473281aa21cd66d8174683fa727",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19007,7 +19007,7 @@ return {
     title = "Endeavoring to Awaken",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f0ac2ad99ff671016b7ff1592e727dcfdc660e088fb86df3e469c2a32ce3c141",
+    progression_revision = "7fedab889598fd8324598e759c261b3558f7047fa8755aee20893df0eab5ed18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19025,9 +19025,9 @@ return {
     native_id = 23,
     progress_id = 23,
     title = "Forging New Bonds",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a2758ec7efe2e028da9808118aa5d6cc2f480f198c09159051f4af41397535b7",
+    progression_revision = "8d82a5896711ddc0264a87e50d3dff06fc5fc14ffe2aa4906619f8aa0b6da0c4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19047,7 +19047,7 @@ return {
     title = "Legacies Lost and Found",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d1a4a7382d5bab638b5012025cbb3e4791a6006543970517edf60c6731b171d9",
+    progression_revision = "7899f1fc0c668165f65499be51a0bba1dd744845f353817d132ff348dbce7ccd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19067,7 +19067,7 @@ return {
     title = "Destiny's Device",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fd714e84a3ea18398a951ce30f8bbd9c7abe643cdcd0d1111fc4d877627f79e8",
+    progression_revision = "a7ffd2b1d4df9117eaf0df2d976ea1a6c4531bf27c70607527b92d925e89ff75",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19087,7 +19087,7 @@ return {
     title = "Granddaddy Dearest",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9398748cfc8959857e6e04c828bb35386692f5acd2f5cf2259c03f7c102b906f",
+    progression_revision = "4a0cdc3779eb5c55967c77ddea2ec842d1a127cec71bd1c1f4f7b16ec339d6b7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19107,7 +19107,7 @@ return {
     title = "Wayward Waypoints",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9288ea47046697cf2e535dc634feb06998e45ae7274fdb59201a0f88c7c478ff",
+    progression_revision = "4f537cf479ef0bcf79e15d3c0bafc73a6d978c3e55c3f7035e9b541de9416b52",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19127,7 +19127,7 @@ return {
     title = "One Good Turn...",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ebcd4e39c2110106de4cf25b5314752af3fa4341b2b3d80ef5986ee0b036bf83",
+    progression_revision = "ead20bc1b8f59c64d29ca11904a22a6c856029ee88d2540c4b76447dd607039c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19147,7 +19147,7 @@ return {
     title = "F.A.I.L.ure Is Not an Option",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "00d7c659a2be4e7031085c97923deabb57addeab87ad97932fad05e977f85851",
+    progression_revision = "49a24ae30d2f8c3567142712ab1341c2807449af723bd2624fc4fc82cee05d1c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19165,9 +19165,9 @@ return {
     native_id = 30,
     progress_id = 30,
     title = "Order Up",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8704bf5b3ea1629fb7ef3e017912731c718c664f6c3720bfde844d6bc25d7663",
+    progression_revision = "3b48618ecf3ffb7997a585ff5a9ebb8fc8c6d5d7aca30310552d7985ccdd9842",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19187,7 +19187,7 @@ return {
     title = "It Never Goes Out of Style",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f7f27c930b606dcc6a5bd162426fb7769ae20999c2b83e2b55c6dc67a2426635",
+    progression_revision = "e297c61c8faab878ba85d497c095416b6332978c5995a9f02a1ed6ae19002256",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19207,7 +19207,7 @@ return {
     title = "Water, Water, Everywhere",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "0b4dcbd83d1a40e1414043fc5367bb7f5ef8bce6df8fff079120b9b9b2275601",
+    progression_revision = "b6094a72b5fb2dc90d5e4259dc0cfc574d4ad0fe24a58af35372f783e2ce5149",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19227,7 +19227,7 @@ return {
     title = "Dirt Cheap",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3777f09003ccd0f5c9f652847168a855ec203846497e42f81abcb49465eb1dc0",
+    progression_revision = "ac0a596911aee2234cd08ddc8e6d0e7d96e06576fd1ae035d4304f16a3610ab8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19247,7 +19247,7 @@ return {
     title = "Flower Power",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b2e1f85f75084ce238d5a4f5d4adafee2fbbe04cc4d3198a20ff9c0a7568f580",
+    progression_revision = "b3cda288cf72ec3134ed847189c233b3d177830967b3ce9aa10f27ca20b1de25",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19267,7 +19267,7 @@ return {
     title = "Elementary, My Dear Sylvie",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c09027631e93bc75c4bd1d4c06ab69d859d76d572c54c404cad2246744ef133f",
+    progression_revision = "3c425d25d856096997747b0e09c475c971b66ebcdc786af63069314c5a05da8b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19287,7 +19287,7 @@ return {
     title = "For Whom the Bell Tolls",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1be4101b6e7730bce78b5bbb2f71e98992ee28d8f70e285e6818372ca42c7650",
+    progression_revision = "b05248b58a35f96d731485a3602ae4ce46ccdb2c83bcd1f5bcdc6b8f61e885d1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19307,7 +19307,7 @@ return {
     title = "The Bloodline of Zacariah",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2ebe7a7355e18cc7565d7b660bbb7372a8f36f8400f766bbfd1ec9684bdf235c",
+    progression_revision = "4ae19075a4c5b400cd174ccf500495e30e2180b83ec7995746988f147ce53f7c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19327,7 +19327,7 @@ return {
     title = "The Communion",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "0b97a0b7b945d22fe81eec50d297ac171a790409d232b0ebf73ad14d5e42c743",
+    progression_revision = "aae9a26cb64e11f33237909168bcffc5ef0bae57d2f2a03a9c9792b812fade3a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19347,7 +19347,7 @@ return {
     title = "Full Fields",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3a6f251818ba726ccc4036a4b2a1af8792aac4454238c0e7252d4f370510eb54",
+    progression_revision = "f546e0dd4f785f31b42aac202f39084cc23b74c7a663aac460896e691aaf4b92",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19367,7 +19367,7 @@ return {
     title = "Green Groves",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6aa958382e277c35ebefa5a5e5f702b8d3252f19158381aafde5dd4759da0b08",
+    progression_revision = "bd2613f5007de8638f700f0a8bf2395e9d7155d8316993b3e22f1e5fb611b46f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19387,7 +19387,7 @@ return {
     title = "Mining Missive",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "81805a414c82ef1320f3ac05dd1524197f4846cfc1e11bef636753c9a890752a",
+    progression_revision = "80b606b06dc639f157e26a718431cb871c10867ffc1073c20d930f3055a28ec1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19407,7 +19407,7 @@ return {
     title = "Pond Probing",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7ebc1c066a78c783e9576a279f36b3359eddf0e5fbd91045051643244d876957",
+    progression_revision = "c1fd68552b70eb393ea974f33bc1cb2ef2b72dce4874ad729ef81e716cece08c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19427,7 +19427,7 @@ return {
     title = "Coastal Chaos",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4cb6f308c43b7a3b55ff553fff4604b7cfd4af7067a6daa161c5a6c58269cec8",
+    progression_revision = "6ec9b6753eb29cd6c113bb1bd30094a2b66cc720bf5e539475aa284cc17da0b6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19467,7 +19467,7 @@ return {
     title = "Flotsam Finding",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "72769987ce855ba3cd564304c9f6cf315c00696d90306c44d35e7bd45d50e1b0",
+    progression_revision = "2f74325d290bf66a0ac42c8f21563854de84a72b8c3613f4725030df2222f1fc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19487,7 +19487,7 @@ return {
     title = "Flavors of Our Lives",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c41d8f55142b2e2824d59fa0a907da24aaf424dbd383c88fc1e7ad47f9d42953",
+    progression_revision = "89776dec8596c3a990e4a71519ee9d6c9e342e876bef93a5cb5bf23ab5f205f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19507,7 +19507,7 @@ return {
     title = "Courtesy Crustacean",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e07554ba62debfa7d2bba316edf1cf723336d2b03a56f609243b27322a59d0fb",
+    progression_revision = "943d0db547e74b052fbae86def40fcaf893a7290586cf3b7e43be632671f0cc3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19527,7 +19527,7 @@ return {
     title = "Trinket for the Tyrant",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "59ad95918b7264065f8dbff157b86868a82dd8b8e77376765bf83468f8ce12ee",
+    progression_revision = "9ea8439f7926a488c1c6e77f6c37d6d0790b11474840d48fdf67bb57006ee48b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19547,7 +19547,7 @@ return {
     title = "Hypnotic Hospitality",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7c5fc719087e40d0e6ecc5b02b7020ffdbe8bf9334256d22dadbc5634770f5a5",
+    progression_revision = "74145e5eec24c47306fed9685fb4e766248eabebd2309a4109c7194d7f388f1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19567,7 +19567,7 @@ return {
     title = "Don't Clam Up on Me Now",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "405dc14defbe96da7ec7c6f5c7181a5de5bcf6387207ef07bf15f2cf30b5e94a",
+    progression_revision = "26aabfe9459977e7bdfb36402934a852ddab598f2423d275948daa3c01701d01",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19587,7 +19587,7 @@ return {
     title = "Western Waypoints, Ho!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "130e01d445ccdeef8e5397672da0de6f139184af7445659ad72bbb624a56c832",
+    progression_revision = "b32cdd5d8b257116b1f7e662e1858765279d7036f823220f97f9c6e633abab18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19607,7 +19607,7 @@ return {
     title = "Wes...Eastern Waypoints, Ho!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "84aa630c3e00bbe405455cbc4265de17c9f55ce40a84a6c3c5fc99dccc4ee135",
+    progression_revision = "599925007ff1f26c60d91a34f012e075ca2a1b1eb2c6803b480b5d765eb1bfb1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19627,7 +19627,7 @@ return {
     title = "Grind to Sawdust",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4a048934e36252d806e6d4228c129461af6c44e27c6a9eed4e0781e9cd63ddbd",
+    progression_revision = "0ec068c6e71c67d426214f671c18badb91280a7270c13810285dc39d0bb785f8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19647,7 +19647,7 @@ return {
     title = "Breaking the Ice",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "caa991b535d66b46f8bb5f090e6f4dffe34fa4b89050a0d3bb738bc865e14d40",
+    progression_revision = "dcb83749a62d14312363ca85a1c004eaadeb5a4312c4fbca088bcf0494623c79",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19665,9 +19665,9 @@ return {
     native_id = 55,
     progress_id = 55,
     title = "I'm on a Boat",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c6823936b6258425a11e18cb2ffe12b6fb9be1c3e77f8d4ece4a5a3bdf638319",
+    progression_revision = "8809647c4ba1ee2d6a87d57eac60e514978077f879fd493068aec26261658610",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19687,7 +19687,7 @@ return {
     title = "A Stone's Throw Away",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1aa04104fdd3573f98642d90fe0878e19c8ef7731d0acf00bae7ffd670cdc7d8",
+    progression_revision = "d03d19dd756eb44f702e1a89994037cccfd264f73a6b894446dded4ad9200369",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19707,7 +19707,7 @@ return {
     title = "Hide and Go Peak",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0f5e765959bd084d7642636abedca0e8f76bfae966867a0014c2a17520b28849",
+    progression_revision = "5a70446177b42a4c29ed62e7ab0df4c5e578d94b732dd82dae4d3028844fd683",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19725,9 +19725,9 @@ return {
     native_id = 58,
     progress_id = 58,
     title = "The Whole Place Is Abuzz",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d6f8e6e4e54e5b0e863473c139cc803b68f0c1b5f7877900e10458aa57249fe7",
+    progression_revision = "3d3caba506f98098e35775bc1f70e9c43269150e4d2dce7b1ca7d1c91e977b7a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19747,7 +19747,7 @@ return {
     title = "Orobon Appetit",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d5b2404eba0bfbc18266aecd8cc58f9f9305f6705e7f0a54d7f6b36f45c59b3",
+    progression_revision = "1c90fb2d45aec63ea24810aa6766e95bebb071be2af14126f0eb6b9a7de39433",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19767,7 +19767,7 @@ return {
     title = "Hop to It",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e7a75ca19aa6280ffc2e36d05674f4e5015a90838a83abad66f0a369784bb013",
+    progression_revision = "82347607bd75ffb9d163ef951ec6e62fc043b3244a3fcdb516ad2cc650087c54",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19787,7 +19787,7 @@ return {
     title = "Talk About Wrinkly Skin",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "20aaf106bec1a2f908eecc1a7a7d676eaa87bd338d7c4b31e6d41ecc1f2d8096",
+    progression_revision = "4d91b03108ca0fac2e9e90a4c2b979bc87f83fcac428911cfe328f7300198f04",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19807,7 +19807,7 @@ return {
     title = "No Love Lost",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "987aa2db93d20bb0e8711645438cb635dc2117de24b70aaedac014336288f24e",
+    progression_revision = "fa0246be79885a05a3f43fee9b00aaca2cc93e635b220fc8c526f8e1432d6b33",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19827,7 +19827,7 @@ return {
     title = "Did You Feel That?",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f53ceef810ebb0418ef31feb4704e8be1cb8a4e2735255b9afde04b8b6ec1e12",
+    progression_revision = "7f565f5375318282efca27a9692bd0a0b4c4f96fb47c04b2506a229d22f7b653",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19847,7 +19847,7 @@ return {
     title = "Don't Ever Leaf Me",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "05013c6f52ddaf3b368bc24144a40183f0dbfb7b84326452d80cacbce592dd97",
+    progression_revision = "abe0d1227a9824124a6126873a571a3c9a41ab34dfe0331ac3eba6b3828b5c66",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19867,7 +19867,7 @@ return {
     title = "Keep Your Bloomers On, Erisa",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "96121eff046e332462bfca17f062a741578f8b7f942134faf4e865ce0ee91039",
+    progression_revision = "c5ecd8f58f73b6e915a86d9a59efa16f4aeb44f040c51bae6191b15e8078d437",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19887,7 +19887,7 @@ return {
     title = "Scaredy-Cats",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5b0f991d55a02c3856dcb64666b2abc29c5e3ab02edf85c7d4492cdffad88395",
+    progression_revision = "b2e7e89296b16c735cb7d19afd8d6e669fadc8d46a1098017f8ae0f24eeae835",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19907,7 +19907,7 @@ return {
     title = "Raptor Rapture",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4a1bdfb6d2b3e3e3a208ae2535515678ce0edbd354ecf1623cf3a5673657c7af",
+    progression_revision = "d5468309349713ed9b4c52483f8299490a3b7702b89b24925095c4a85a5a8b0a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19927,7 +19927,7 @@ return {
     title = "Exotic Delicacies",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2972b827e76e1072f8bb7520c5d4353fd82b54d67c5d45716dfed742838525db",
+    progression_revision = "38e6224193d06e0772fca836feb56a8d35618edc4d8198b3b445f09a4a04fcfa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19967,7 +19967,7 @@ return {
     title = "Hunger Strikes",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "88c07381e9b50ed1f3016821943d21413d8a28738da36ba05cdf4e536515a6c3",
+    progression_revision = "24dd49da67a070829d8b791670666370a39e8001778cba85d9e71a1e79bd2042",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -19987,7 +19987,7 @@ return {
     title = "The Old Man and the Harpoon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5bc1c6f5c6921dda3ac2173560d09f21562f2ea408fce9a8115e8083c0017697",
+    progression_revision = "fc310c033e6cd3112deb2a854a481449fd3e979fc22fc82e876a905f0edfe725",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20007,7 +20007,7 @@ return {
     title = "A Certain Substitute Patrolman",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "213784210696efda262e7ab1f97c4f6b2a39e3bfb385b15c8d50f933f36607f8",
+    progression_revision = "5f699005e38892034f0664eb866ccfafb6e3a090ef1dc11b304b4d2aec4b0366",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20027,7 +20027,7 @@ return {
     title = "It Sets My Heart Aflutter",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a9dc3c2d461b33c4c68ee8b7c5ca28c71ed6f6dab1c0058761421617138a6f8e",
+    progression_revision = "9e309de40bbf7f17e7f5e99f96de7eef2a8d0369b53141e96aed3182af36858b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20047,7 +20047,7 @@ return {
     title = "Transporting",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0bf607e7ac96963e2baf2f8b797bed2e985f68ce51aa64fb7cad6c47594fc599",
+    progression_revision = "174c7486be7518e71f91082f5d296777ed85b1fc8b7fb854d877b4266cee95ec",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20067,7 +20067,7 @@ return {
     title = "The Starving",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bed41c6e6c3173b291e3dbdfbba51d7223d279a012910207167f8f2cb556443e",
+    progression_revision = "5516d1b5cbddd9cd54f0e5bf6e4ac846905ff2adea57fff46745b8f6a8de7c18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20087,7 +20087,7 @@ return {
     title = "Fertile Ground",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9392b0f2d83a10ffde2050a3070f5d1270066ce8c4365045c38eef64bd08c68b",
+    progression_revision = "b6a92d59f2cc9823ffba3ed21a47d9cc4afe6909a7e6db97d0706344447ccb8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20107,7 +20107,7 @@ return {
     title = "\"Always more,\" Quoth the Ravenous",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d3a8d1b6b721ae62e18f4745bf45771350364707170d0bbfe8897205768e52c8",
+    progression_revision = "c6f034b81139d8405faea3ceeddd0403c4c1b776093e6c81e25e51df1a53bb41",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20127,7 +20127,7 @@ return {
     title = "Meg-alomaniac",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "90d01c08290ca9e712ebb3ed260ec0a98f9e7e1bb93bcab6f24b0c72cfe22fa3",
+    progression_revision = "11620b239994fd9d07f8c1823ede47f5afdb7c02ca5fbf885cc2bbed270b1e2c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20147,7 +20147,7 @@ return {
     title = "Boiling Over",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ccd4cd43a9ea943f3e1a74dcd9584a6135551db29e6fc2ae499c3109dd1769ec",
+    progression_revision = "694975d15ba7cbae849d4cb9ff6af65e4c927004ae4c6742dc81e26d4344b5de",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20167,7 +20167,7 @@ return {
     title = "The Longest Way Round...",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1cd8ae9c5c98d2fb0cef0545d448981b5ae078d42e3a2dcd5934ba2dbd15c9c3",
+    progression_revision = "e2552e64684f4e0a65d6ab840a28561a3067540468401c1c2195816f09ce4beb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20187,7 +20187,7 @@ return {
     title = "A Good Pair of Crocs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "47ec6430b43eb64ab5c1d66ce8bc3263476737f57a0e4cbc7244088d5bc4a091",
+    progression_revision = "6770b372f3e4fcd687a00b45b51be418cc1ed79617b69e6c487c9f0d4b1f9ff5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20207,7 +20207,7 @@ return {
     title = "Cafe...teria",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5a1fb6ae2ac70ab30245adce5776f6c6c4025b60bc42a1acac87dff118d9f954",
+    progression_revision = "2c3babd64e37c523b501d10e4819d7f22eada0d721a12e96bcfd6dc9adbf7f93",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20247,7 +20247,7 @@ return {
     title = "Keeping Notes",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8d7db52bf9c8a69e88ba81ce60aa7cdfd3425f8266bca20b0df0eceae5ee6d9f",
+    progression_revision = "6216c8fbafe75a8fafb09615e9afb377a2fb125d2d8d49e08526e9611e72baca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20265,9 +20265,9 @@ return {
     native_id = 1,
     progress_id = 1,
     title = "Arts and Crafts",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2f1135e79a32078887ffc44271393ea5b8b09a55b15dcf18fc3852eda2660335",
+    progression_revision = "7a2a2bda33231f95cbe3e2429736f8019164a1fcfab2e6c3e5c0a31f4ba2c992",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20287,7 +20287,7 @@ return {
     title = "The Art of War",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "74c2347329f0e8adf9490acf971cf157447899e65b06253cf596788747ef0466",
+    progression_revision = "6423e03d389b37bfa3fa72af22031e47fa3901f08df4b6baa1e1f52620d1ff22",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20307,7 +20307,7 @@ return {
     title = "Scouting the Ashu Talif",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "20f3a36b83fc69e6fff814147f9c0bc42f112cadddb6f7b2fe42d322b1a8011d",
+    progression_revision = "335e8dcc429e1b0418090eb755513fd225d0b4f9b9880345ea6cb92e9f341f77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20327,7 +20327,7 @@ return {
     title = "Royal Painter Escort",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cc6c8a8deb21afd4a177acd1846ddfb015abd4c6fa866299e44e3e44a1415d00",
+    progression_revision = "70fdb231ca27e4a99a4c3cfa9d11ee022262e7edc4104a985662180f7acfe3c3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20347,7 +20347,7 @@ return {
     title = "Targeting the Captain",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2a4ea6c1476417eaf6365b11da70df63062a63dfbdc589d9d4c26e1cdb72d625",
+    progression_revision = "50b716e639ce7c60cd6ac1779d2c9a4d343b8f313cf8b1ee01fd3b91bf720d4a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20367,7 +20367,7 @@ return {
     title = "A Taste of Honey",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2b8d1c943956dc57eb18c4a350349e04c6e098aa095911752a76075f646b5390",
+    progression_revision = "3a96e71c2285914ffc4a34328b6c24e1920ae678cabffdf13f281949f6c5cd4d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20387,7 +20387,7 @@ return {
     title = "Such Sweet Sorrow",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "aacb2e41d810e0c78d09fc82199b1555beda6b8e1619489c3e56e789b71206a9",
+    progression_revision = "65736e869388524c207a5cbddbab8e2cb437bfe9bbc98bbc92c9d253ff44d211",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20427,7 +20427,7 @@ return {
     title = "Cook-a-roon?",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "62ec2970c23b252fb5d15be44fe479fffd6dcb69ffa9a3bbe3238f2d3ea40be0",
+    progression_revision = "b88e7bfe0c74ea6385ad02d238e0c96f92d4fcb2b206fa1c2e5c4b153bba5798",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20447,7 +20447,7 @@ return {
     title = "The Die Is Cast",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cf55bbfb99249667d6af64097419cdc7172ad8eacf4fbcac375d935fc3b38f8e",
+    progression_revision = "1492b8ac31dba828a18918387c900edcc483b4160e5cae399f48a594d8d283dc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20465,9 +20465,9 @@ return {
     native_id = 17,
     progress_id = 17,
     title = "Two Horn the Savage",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "998560c9b46aaf8e142b50008664bb9b19c973921b38942db000b4233e209cf9",
+    progression_revision = "9818a705390fc0b2fdfa4b29b1611f5b84b7a8c1e1926a6f52dd675ff1ffb769",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20487,7 +20487,7 @@ return {
     title = "Totoroon's Treasure Hunt",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "04c759760062c79db22566862fb886014456df8944e8a636714aeceb8c77e6c4",
+    progression_revision = "aa257fb1d26fd355a9d2f0065b1f4e0f1ae989780c2cd4a3fb52b7bb617ae1ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20507,7 +20507,7 @@ return {
     title = "What Friends Are For",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "446ef7e49cdc0d090f5937e5a1e772498e35c38f2a95d4d5806328fb25fb5492",
+    progression_revision = "40c7554a091dfaa4fda8775f443144f46c0527e09abf129bb860d949969a253c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20527,7 +20527,7 @@ return {
     title = "Olduum",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b3f7eba7ad3664cb51374fabaa9d21e691e04ac441c6484f8d3124dbdbcf8d36",
+    progression_revision = "39af525884f51e598522772597e37b852c7b00da76b213e8b7ea3cc1c9276456",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20547,7 +20547,7 @@ return {
     title = "Rock Bottom",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e4e3600f76c8c049b393e09bdbe87d77fb75aa0c5b7e711160264c05bc8be3fa",
+    progression_revision = "c0466bbe825e00740d6114b105eead5234e43c7c5f4404349d5a9cfb059a604e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20567,7 +20567,7 @@ return {
     title = "Beginnings",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dcefd0d0515f8fbf22d2ecd0d29b3a8a2b7d54d59a77751720e2a46c1b89d3af",
+    progression_revision = "8777abef65062a972d68a0581f9670d9bf80e29ef739310f0e7d6d1d22f95f72",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20587,7 +20587,7 @@ return {
     title = "Omens",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1e95ca52f7412becb098e77a05b1836812e6327bd7a2a52a46a4f4516984b1d9",
+    progression_revision = "d27967dbe02fc9d7859eb85ed95b85dfa14a71d25a55e3c533f512cd1eeeef55",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20607,7 +20607,7 @@ return {
     title = "Transformations",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "251691fcf65ee3bb3db7095a5a24152f18a8fd2728b1dbb86dc7db32e1f0b1bd",
+    progression_revision = "7864bb929f536939169c9772354df0fb83af9a65c2dbaf2445d6458d85a6790f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20627,7 +20627,7 @@ return {
     title = "Equipped for All Occasions",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d4c46f10ae1be036baf5897d25c6e733a3d9fcc9371b42024d1d2f576fde8988",
+    progression_revision = "24de5a1c5f27034b138ba088cb53af348eb6f193843377298fcc6c8d74a6f527",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20647,7 +20647,7 @@ return {
     title = "Navigating the Unfriendly Seas",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f918693d3572f98015d64ea62b970e2a32f94247e80c1f3e5eff4c752ea1a2f2",
+    progression_revision = "f9b7adb8aa7cd9c9557b06c4fd7094f39b0cd8f49c41fe9572560d05d24dd8c0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20667,7 +20667,7 @@ return {
     title = "Against All Odds",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9d3b8d9bfffe63893d2b6214ef17d750683e651465ac1fe1798498ea14dd22fe",
+    progression_revision = "69143a89c401aaa1e6b0a0b6aedc309df59ed2c8fdece40cc88fbabbb1b43cf2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20687,7 +20687,7 @@ return {
     title = "The Wayward Automaton",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "08f8991cb60a8566bd348e7b1e252148a63e4a6e5b96e8574c7dd4469a594c3c",
+    progression_revision = "f3944fe02bb52e4ed79c9e0a4e893125af62fa1d365ba144e7f8a040452f9730",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20707,7 +20707,7 @@ return {
     title = "Operation Teatime",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "77654c9de4bceea684e7fcbead5e96975eaa9f2f17f1e75cb53b0739ffea93dc",
+    progression_revision = "9bf9d7edd296ccbb88cd03deb00c0ccf9bee05d710cae5915bd8da707706062c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20727,7 +20727,7 @@ return {
     title = "Puppetmaster Blues",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "64142f8df8c51592e210ae872cae78988a590024ee50c939921808e4e81e000a",
+    progression_revision = "80c33aeb8248ca2858dec389d0fa49771a056e4be665da7ae72c14a74d38c88e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20747,7 +20747,7 @@ return {
     title = "Got It All",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d573437c6e0afb3802aa3e78f617a785c4beb3512bb9e10c753304ab896231f4",
+    progression_revision = "b08d23d087114d41b0271a2ec83f92c08c4b40d3d30f2e3fdaf7c0604d435ce5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20767,7 +20767,7 @@ return {
     title = "Moment of Truth",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "009067e0e81c67245a8dfbdc609478945427215379dcb4afe9224ab3eb0ab9ad",
+    progression_revision = "ee9a038c01076de5b226caf60d8c76fc4831b347db2d2718df564929a8464773",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20787,7 +20787,7 @@ return {
     title = "Three Men and a Closet",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cc1efec243f3eb1328ce579e059dc71652536cf6419ef949f4e776eed52ff429",
+    progression_revision = "6f34aebf28d9c5c8ce8b36ea19505f83f8c90372830be141d11a6d4382bd5720",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20807,7 +20807,7 @@ return {
     title = "Five Seconds of Fame",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "92edb361578398faa140d0f990629a772b790fd254a95cb0cefae5463f93f687",
+    progression_revision = "91a5732ad39787ceb3cd88c0db670bc1fb4ccf5e36463455afb7025704b4da6e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20827,7 +20827,7 @@ return {
     title = "Get the Picture",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "128ac01a10e1b2eccc0f66555cc1ede910f21d5fbaaf678875de4ffaa8d6e1aa",
+    progression_revision = "0cb56162d44dec72697bf192ed85758cc1872f1d353826bf3c3bc6609d098ba2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20847,7 +20847,7 @@ return {
     title = "The Beast Within",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0e332a8f46fce9389a4c958dfb1409de99cedfb2788d9fe01e06d73bde0a7ea3",
+    progression_revision = "b5449a55559585f4a8c320886f2766fdded7015da8deb572cb942f216b57fae4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20867,7 +20867,7 @@ return {
     title = "Breaking the Bonds of Fate",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ef4dddf83325118d3290c24ca66441e4e6350bfe985931871354b4bb735720f2",
+    progression_revision = "a0ecfa57f19170cd175fedb37597fbfec0e1f1b9ea50ba99c6cd9b7393a14dfd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20887,7 +20887,7 @@ return {
     title = "Saga of the Skyserpent",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d095815f8f5b439f32dc06d2af80c5e2329513b9198d333698c7f7e122fd445e",
+    progression_revision = "737cceb3fd5f053ec028b59de1a27caf1512a9a035ea89db5e5f637110dfb0e8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20907,7 +20907,7 @@ return {
     title = "Ode to the Serpents",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5a3e9a9a73c596e56c0df520988aabe52b63254713e44d7edfba103980850bab",
+    progression_revision = "df0c9759604be542e46014b03a922b1d5e95c2d267aaff5d45eae21e0d1e3b47",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20927,7 +20927,7 @@ return {
     title = "When the Bow Breaks",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "39f0d01411999d97ab62b7fd971d8f7bf3c6105e6f345df5d86885ec188427ca",
+    progression_revision = "048c6db09f76748977db65d0b8854bc5a69e7017aeb86267cb7f292a2676b2b7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20947,7 +20947,7 @@ return {
     title = "Fist of the People",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "59e5adfa19c5ff2bcd3c2d2e5ca117a8fa4f80b350f0fb471bdee4700480b7d3",
+    progression_revision = "4d7765c80e7aeccd245cbcc10e252dfeec7ce893962b90a445241f1dde823a36",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20967,7 +20967,7 @@ return {
     title = "Soothing Waters",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5a957608d8cd761e19df5e7940439eda905dbbffc29fe5dc59ffa7843c3e69eb",
+    progression_revision = "eb3073e461b666d9effdf152de54708924174b69be28442db944c421e22d2e4f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -20987,7 +20987,7 @@ return {
     title = "Embers of His Past",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8ee942a7021e453134f8c19df8c0dc480716eab802cf1faa1ffd9d3bda257e3d",
+    progression_revision = "81067dc1ebc6bc5873c16af75f6fe0b7178d72f11b929ba8caaac51a05e04997",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21007,7 +21007,7 @@ return {
     title = "An Empty Vessel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c08cd3f890482f4f1b03b2aef9be56e01e552047225af976c71849b204b1056b",
+    progression_revision = "26e9d2c852138a3c20a8321017bf2ea01bf836ae3acc151ca7c3d53dc59cee69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21027,7 +21027,7 @@ return {
     title = "Luck of the Draw",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "821170a04354a8b873da43549ab3a9a7fa253921dc53137c7abf531bf86ee878",
+    progression_revision = "c2ab718bb8f5483208c9f347c189aa52dfd2d2943904357407c76bf78503e0f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21047,7 +21047,7 @@ return {
     title = "The Prankster",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "acfd17759308ec4fd028c117f57fad279d1ed9bf3f35dee6d32914715efaf738",
+    progression_revision = "a0620d82e34f4bc36bd939847b531c3220585ef9d2b717cacd49c1e39d5de180",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21067,7 +21067,7 @@ return {
     title = "Delivering the Goods",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "de8bd90ee25213d1ae1ca06f35b489beba2959012a021a883ab4ef741aef7076",
+    progression_revision = "92a17ee9059d251e67139bfd2366f001c49e368854473d7d6cf71f1434f8005b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21087,7 +21087,7 @@ return {
     title = "Vanishing Act",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cdfb78fbf83cd2e6b4a2c6ccc809a7380edea6ba63399bf6eeb329e3ee3bca31",
+    progression_revision = "1a6e1baee3f46ccaadbdc10ff26c0bfd38fe8bf67f52f703f10f9f297b0fcaa3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21107,7 +21107,7 @@ return {
     title = "Striking a Balance",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8bd51bac8927561f12155d4bfffbc4c4ef258c57c9f949a5093478988a333f2e",
+    progression_revision = "8307dbfac04405d96e3a5aaef72c62510ca29eea1217b04443496325b5dd2fd6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21127,7 +21127,7 @@ return {
     title = "Not Meant to Be",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e77d04e0e95aeaef57ba294b9403fd181d8326b2e7f5148207c1a4eea05550b7",
+    progression_revision = "b2fe6d78df1c230b8bbb6b5b4d91273c1efa3567597a656e129a58006a799e61",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21147,7 +21147,7 @@ return {
     title = "Led Astray",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b55db086f88874de51c105e95ccb6733bc4a881c59e3161e4f096c0daf8aa020",
+    progression_revision = "8fce5b12fe2c85d9af73623b8390980f60acd431cad1010146ec1fe2aa61b5a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21167,7 +21167,7 @@ return {
     title = "Rat Race",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e9d44f2e4685ad92e3a3729ed83dcf55eb6c014b715d1c6eb25d2556be0869ce",
+    progression_revision = "35a0c46712d307470117b0a2a9cd8f09fe8fdfe3c468191477984832805fc3ee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21187,7 +21187,7 @@ return {
     title = "The Prince and the Hopper",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9b04dc30b3b330752794ae05a868b0cd511dfa471c1700373d0692b0e7ce6920",
+    progression_revision = "6d5e85b629347dfd85b26e72064081334120b6612e5689e9f187afe220f4a085",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21207,7 +21207,7 @@ return {
     title = "VW Op. #050: Aht Urhgan Assault",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5b70ca86640562b0ea825135f956b06dd97b3791054973b7f5bfbe1f276b0248",
+    progression_revision = "9b2419886b10566e369fdf988763796b9948e7a7d9c2e55f93bfe2802b843b77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21247,7 +21247,7 @@ return {
     title = "No Strings Attached",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "65eaa96976876725b9fbcdd090151fd10db47832d69a5d31b99e44e5652d60f9",
+    progression_revision = "4f1f8f357d0b69296866575763217beb0bdb5add5032332613d9ebe81a907798",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21267,7 +21267,7 @@ return {
     title = "An Imperial Heist",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "01673305d87b51807d470dd864728bb2fe1edc4fd723dd37b5c8193794fdd717",
+    progression_revision = "ed217aca31b3d2843d97e0fe8087d43d8ce19c3657187a3576f362b51a60bf62",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21287,7 +21287,7 @@ return {
     title = "Duties, Tasks, and Deeds",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2301c41ef432fe187db8eebe0ea005e5518c9267e0375a4d531bafe800832093",
+    progression_revision = "1e45eb78ff5239a95ab76220277f066929c15a8741117a242f3c37df34a3edd8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21307,7 +21307,7 @@ return {
     title = "Forging a New Myth",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b65a29a3afd5ab5b7b4fc21accc1f7a75dfeff8b55a3d8f5be89b03d08dc5e40",
+    progression_revision = "e72eee8efc809c3180fa3bb5d30eb61f7d4d395a61a6b6d1a2f13dc8d48695c3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21327,7 +21327,7 @@ return {
     title = "Coming Full Circle",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "29a51a1e7f2a4a4a888e1af73c63e3e476323e2c4774a1d0d5d5c108b6224b8b",
+    progression_revision = "bfc4896ee07d5c5eb04f4fc0cbab03bcdf054b2870fe83b30a771161bea82a3d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21347,7 +21347,7 @@ return {
     title = "Waking the Colossus",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "74174042697a82d32e7e67e884bc28440adb35a7aaaf8615d138c5cc04c87e9e",
+    progression_revision = "18ebddc7832ac6c503bc063412e8652d8e4a713a491207cb1749278c33df1212",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21367,7 +21367,7 @@ return {
     title = "Divine Interference",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7070af8758408fc1d9c7d8d37a34578f459f3ff61531a6c013317fd8a07c6ee6",
+    progression_revision = "92ab77cb028b67b45dcae717168e7e8df7048b23e23c7cdf01d294944481e196",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21387,7 +21387,7 @@ return {
     title = "The Rider Cometh",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d11f2afdae8eb904c829791c61c5569c55e7112632e562ab2c70702300fff0d2",
+    progression_revision = "c4a9c3be0c7cfd9847833603c311a60e8dab424dac36fed3c946e3269f37671c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21407,7 +21407,7 @@ return {
     title = "Unwavering Resolve",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "60a3d0b11131317ebf1d470d50c89d62928d73153e8d0041812fd738a6c88f79",
+    progression_revision = "d133d742c96c60f5fbe3be3428fd5906ecc4a91cd34084109d61be6cabf644da",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21427,7 +21427,7 @@ return {
     title = "A Stygian Pact",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ae1ce57735a9305b5382bc96d00df07894b0110b597f017cc3c48dfa91c8f9a7",
+    progression_revision = "1d749282a23f3b7721015ed3a786a2172b3801c8061e8d373eb71a4870f7e1f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21447,7 +21447,7 @@ return {
     title = "Finding Faults",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5ce88f722055e263050cc555787248ee2a466686a28fdd721aab11b67e8eab0a",
+    progression_revision = "e51ca75ab33faf23502177821b1920a163721fdc2359ec0043e38d623ead0aab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21467,7 +21467,7 @@ return {
     title = "Give Peace a Chance",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a980f01ce4f5772073c060e5b08085bbf6e777131da4b63e37b7ec364e5fef12",
+    progression_revision = "3cf4e0c83c152c9a934b757f3a5ed85298665c75469a571b27f5e256340e8a82",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21487,7 +21487,7 @@ return {
     title = "Promotion: Private First Class",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f7402cc56abdf5f7da216e717ab91231c41a560324d927b2f627a70fb8fb98e5",
+    progression_revision = "3ac4ae2b4b18b16e149eb68dd0141e06cfbb8ce4338984bbe48568bd70e3b157",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21507,7 +21507,7 @@ return {
     title = "Promotion: Superior Private",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "67b92c8d2f45376c71f766e8138933d56b3fdc19b2db0380e2b746ee69e42ed7",
+    progression_revision = "646e88aca1388071ef64cf3e4dd83253cf9283c88867c4ef92a697003e3e8d0b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21527,7 +21527,7 @@ return {
     title = "Promotion: Lance Corporal",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "dc0674c636fa6ce6ee0d6cc457b4fd1b9ba7e4021f99e005d210cfe88e12e692",
+    progression_revision = "b325c37794fa6c04ba43f699927303afcf0d7a527ce241c11d39e4cc949eaf71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21547,7 +21547,7 @@ return {
     title = "Promotion: Corporal",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c77b0e42c3b880b196047e577850b07a0f1c0375ff15f9e6e86468542045d98b",
+    progression_revision = "bf21d76b4b3eb137be4fb5eb9f501180c4c6bdc0fe1b4f45448cf7e518bbc8aa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21567,7 +21567,7 @@ return {
     title = "Promotion: Sergeant",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "974d01078d88a7ac9a94b5ce098cf5a40049f5d85e2e0c4d624a9331619e200c",
+    progression_revision = "6ac8cfae04213c9884cdd5d573efcdc98786608b7606fa7da796847bba3a6126",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21587,7 +21587,7 @@ return {
     title = "Promotion: Sergeant Major",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2d8a7df2728661ca45a0001d30c93af66b8d4eda5c28da27c7acf35455c62c0b",
+    progression_revision = "fdc0241810b13a5d0a1f00bd78fbbb12bc84c3b15919f19b3f09da3867c6475a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21607,7 +21607,7 @@ return {
     title = "Promotion: Chief Sergeant",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0f9bd0a6c2d419ed2514294d1adecf27820128f2ea86d91da9697e84eeb6f22d",
+    progression_revision = "8cc71763e36a4e2fdaeab218a5d4a7438056a2d1c8318aebab4bd2d2f9b6f895",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21627,7 +21627,7 @@ return {
     title = "Promotion: Second Lieutenant",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "610eaa3aacd1f4995688a6549341d3a4c4c54d5ded972b31395ba9f3c1e8bdf9",
+    progression_revision = "e880a1bfed54707a048d883486042948201bc0fa82fe1022b2744abe8e05d7cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21647,7 +21647,7 @@ return {
     title = "Promotion: First Lieutenant",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "024680224067c2f3bfd7a2b2f7904f5c83397fd8d96b75b0151f204a2ea32714",
+    progression_revision = "a3b73c44724bb5e7deaa80966295c53225b318b1bcae098d0d92c20ececc36ed",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21667,7 +21667,7 @@ return {
     title = "Promotion: Captain",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3ea89ef95ae95fc092aed0ff473bbf8500b5f3f1077ed19f9a30ec05ad6cf941",
+    progression_revision = "ac506eef33c4b1be83b3abbe7c0821ec02f5fc7a413e78b2aa2534d1070c73f0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21685,9 +21685,9 @@ return {
     native_id = 0,
     progress_id = 0,
     title = "The Siren's Tear",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a6c83bdf6ff6854116aca2d1291de8a84635ef5a4fb4cf1dcbc195e9781adce4",
+    progression_revision = "69dc32e7d4bd132db31e8daf310521eafd9d739fca2675eeb2b79e742c94fa84",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21707,7 +21707,7 @@ return {
     title = "Beauty and the Galka",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1a02ac7c1de93ae0c25162267a115b9150e775c40da603e1f7e0f2cc1184b58b",
+    progression_revision = "c421e39f39c8a171113562f5104b9ed7544d485b3596a03957d4712d93c5b95b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21727,7 +21727,7 @@ return {
     title = "Breaking Stones",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7236de8cdc3fd670a0810bc6d7daa9b90f310724014bd70caa4f136224217945",
+    progression_revision = "9a9ca8bd8bbef661218dea2e5981c75674fffebadf3836a6c5eff27be8b0d8c9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21747,7 +21747,7 @@ return {
     title = "The Cold Light of Day",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a5df24ab2b8fba0a4e4b7b2b863e48a83931e241cee3290443cc1f1439e202aa",
+    progression_revision = "969e1dfc854d402908641339c5b466d0f5185027480b1b0818cf864ec48e18e2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21767,7 +21767,7 @@ return {
     title = "Gourmet",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "29920126f559c6ae8658e7d6f7e547868fed69ab12669e4796bf9e072c30a8f2",
+    progression_revision = "2b9a6573d581790a35edf08321c964a8066f61a43938522067e03278d3a3eaee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21787,7 +21787,7 @@ return {
     title = "The Elvaan Goldsmith",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "64b2bb61ae790ee99d3903a2fe53970100e7cf233c0f6877856f2293613f9b3a",
+    progression_revision = "46e9afd2ea73521a2783aec9d3a7334ea67b74bef1ddabc6558150ae58e5dbf3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21807,7 +21807,7 @@ return {
     title = "A Flash in the Pan",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5471677397a08d481ec8d22e2abaec1292f44e94dfcb4077462a5afba764780f",
+    progression_revision = "d97acef70c377e3ba66301f913e9624a9c8a59f9ec87e3974ea949b88d18f353",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21827,7 +21827,7 @@ return {
     title = "Smoke on the Mountain",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d436a14c0898464414cdb3544be7a7c871cd46c444ffb89024b0096b7e0c4fb8",
+    progression_revision = "3d1eab1fbe650741bc75b24bc48302111281c4e736be476d6bf7f1222f98d5f5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21847,7 +21847,7 @@ return {
     title = "Stamp Hunt",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d2c2a709b2f9bbf8337f5b87e9f4f2afe9cc75a881d0e58993e3f20f6dc41e4e",
+    progression_revision = "7d81bca8bace691a0548b57c7447a7797ba45ed3edccbade32a62ff67238801b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21867,7 +21867,7 @@ return {
     title = "Forever to Hold",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7473abd5bb068dfed97ce0a444949830779adffc5d5e14866949d424ee207b9c",
+    progression_revision = "1f06db4c22ce3026da1ca8520f778a857c53beccf1b5213756c8aab3993408bb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21887,7 +21887,7 @@ return {
     title = "Till Death Do Us Part",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6ce21e12b135472c7c9c99d57d191f81a40f60096c4d96c84c19099ae4536ecf",
+    progression_revision = "1254aff32fcc5c8441b9fc4a717eeb7721f3046489ea33d8e43ca2cd128df4ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21907,7 +21907,7 @@ return {
     title = "Fallen Comrades",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9418d575acae62c357f1b33ebd67bb61ccb9f056e0da5618c9223fc7ccd9afbb",
+    progression_revision = "e9c25ff7676155cf5b06758ac6b8943b12d393f4fdf4ce5d077aeb05d49d879a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21927,7 +21927,7 @@ return {
     title = "Welcome to Bastok",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b65912585032f89f055720e1c0047af3e8179a2ea7a10df548f13ab3a58fcbac",
+    progression_revision = "49891a4873b517711ee727c063a26f60c0fdf93d7c017a6fcc2d239ea98fb0b0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21947,7 +21947,7 @@ return {
     title = "Rivals",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "08b21c5b15088e5a6877ea4709534ebbb02fffb3deabfa828b8d6f7ffc032e5c",
+    progression_revision = "69b02f9c5361352da1fbad18a3273b61498328b907e2bab62a50cc50a9509e83",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21967,7 +21967,7 @@ return {
     title = "Mom, the Adventurer?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fc5bdc88134a532dddfc30abe30a7423063ee755682f9a9b528b92c6b91c904f",
+    progression_revision = "a619789c53722a21b4bc0f7ba88a1e6ea07d11314b24ce3df0bb118027e1f121",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -21987,7 +21987,7 @@ return {
     title = "The Signpost Marks the Spot",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "75be8955c643d10988a2709495d58f060374640731195221bad9c90256e91d36",
+    progression_revision = "0ee730dbf0124052a9d4addd3bb82008720807cab5c675585c0ab40962a48d95",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22007,7 +22007,7 @@ return {
     title = "Past Perfect",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4f8a6947b409e8e9b79e927ad642da3c0cd9858b5fa94627ff8837c2dfc487d9",
+    progression_revision = "a2d19e1c199821a75fa3eb46af0d911f4cc7150f672c1eca96cc0000225cbcd9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22027,7 +22027,7 @@ return {
     title = "Stardust",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5a3d5350aa3287d036c7a125c4c2eb0ffee8a9af0bd2b42b7ee5a0684caf5061",
+    progression_revision = "7c270851f6d32569e90c694fbd163a444dd90aedb089dab18fb37461d1e26d0d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22047,7 +22047,7 @@ return {
     title = "Mean Machine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b3fd6bf396d505f5933daf1a25e73dc28d4e2fce19b75af1a78f1c46356b07dc",
+    progression_revision = "91ca2f9848e81b00d610e176f8fb4c34279f58b0650dc54066dc72ee75b6a884",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22067,7 +22067,7 @@ return {
     title = "Cid's Secret",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "aa632b877ccc92ec4d06d184a44e03dc6798fe145797a2d954917b9e4c443255",
+    progression_revision = "3b0555190b8ed062180310aa97db10697bc6af2a5a76bb1d1933dab0ec150f4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22087,7 +22087,7 @@ return {
     title = "The Usual",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1a05ed3af44c90b1dfe99fdcb878f5577fe0c3b817969a4516f368783002e3a2",
+    progression_revision = "305ea874c525d9af0d4b1ad5994f4647230e7c5e534e9ec504b5d58ae3d1f5df",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22105,9 +22105,9 @@ return {
     native_id = 28,
     progress_id = 28,
     title = "Blade of Darkness",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "20fa8e91f7d5c51718e92fd8e30af6626e1fcefe4d6606e04db9673c5cfed429",
+    progression_revision = "fffb2c87a708151901f992496e195a0dc583d00c1c65cc2a8fdd2226be29fad5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22147,7 +22147,7 @@ return {
     title = "Guest of Hauteur",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9edbe4e4571417d7161b71172299cea4046988c9e685632b2857e6460b554cc6",
+    progression_revision = "76c1077e98af3dcb37545617b8d1c05ecb864a7e87d11b16e305f3e958afda8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22187,7 +22187,7 @@ return {
     title = "Drachenfall",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "83bf57f45bfe09e70c8dc0870b7b863c10e0ac64214fdc3ee0361fb0f0b9b4dc",
+    progression_revision = "49af7d1423fbd808a0e7c12543df47aa510c6d9aed7ab8217de8571d31e61131",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22207,7 +22207,7 @@ return {
     title = "Vengeful Wrath",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b365e8cd0ece7532c2d4cf2735242252464584f8ba0f979757211e8747429f56",
+    progression_revision = "fbb30a57293063db1b7cb31b0a7615daef1fa406165cce7c1455e4a90b44fdd2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22227,7 +22227,7 @@ return {
     title = "Beadeaux Smog",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "01a5a5f5ad75a1d4e4c9ac1cce7cc0020dbf4b9733dd42eda3b4b3ad6977a99f",
+    progression_revision = "4c83040db95699497c4cbd310ca861a523db4fd024d827845af5788edf0c173c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22247,7 +22247,7 @@ return {
     title = "The Curse Collector",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "aabac3349facd532cbc25d8656ec0ca1a82e4f1906c4f28c0b72d82885f59322",
+    progression_revision = "3a79aad5e4d6758d283d7e7343a3a0941a54d51ea6618d99bad2831b5d1665d8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22267,7 +22267,7 @@ return {
     title = "Fear of Flying",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b00b0b0dae614112dcda6b697bf39d6e9a35ed147947e8476cdbd328b9781ff5",
+    progression_revision = "ada172faa4171252c14d306a350976e9b26e88ecb0b99a16afe4cfa7bafdb60d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22307,7 +22307,7 @@ return {
     title = "Groceries",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "223c9d8dfbd8e6bbd039b2af68fcc71bdd1aeead0a3c206cd23b0d91d197f298",
+    progression_revision = "6c9440bafe3fc8577babb2a1ccf8043dca77787aad3a57b48934948b2adc5ace",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22327,7 +22327,7 @@ return {
     title = "The Bare Bones",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "57e4a08bf9d3dc3127f142834cb8e1ca5aa676d36948f036e6994696e49f0a74",
+    progression_revision = "4cdcab9127643e08c0ad5baa2b6e33564423c19f52ccec24dd60fa7117f7a437",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22347,7 +22347,7 @@ return {
     title = "Minesweeper",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5b63d13cf592492c0e1fed218924672e2ae2d50af3eaa71ea5a6cf916bea842f",
+    progression_revision = "70e39c888e17ce46723309ae183d4723c9c34adf72a468b4420d07a27f6d3e73",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22367,7 +22367,7 @@ return {
     title = "The Quadav's Curse",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "440242b54b4ac549ff0f771bec544687ddfdfb1b2ccc55b26f8a611f9c88f541",
+    progression_revision = "7edbf869d70048e2ba29241d96e67a81c1371f49f6888b661acec264edcb17ce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22387,7 +22387,7 @@ return {
     title = "The Darksmith",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5a0f0aea4eb0b7241545c2a74e3a814acd06a413f8519fb45da7c40e25a1b5ed",
+    progression_revision = "a5e5c1891bacbd241f7db4002303b437eaa8337eec29de6a2fceca1f5845251f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22407,7 +22407,7 @@ return {
     title = "Buckets of Gold",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d736f0ea748d45c9bf7302618e96b6aa7f2f3ab9a8ffd715eaad28e399719119",
+    progression_revision = "2dea5dc62d247aa00116a5eb6d2aadf2fdbb37504fbff5bb10648dca650d72e1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22427,7 +22427,7 @@ return {
     title = "The Stars of Ifrit",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "13e5b1b388bdc076ceadc15774280395fdaa446a1c5375a165e96e59285874f9",
+    progression_revision = "1c67c86a887705cd6eb77aa974cf6f91817843d270d00dc0d9be3da66687ea3a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22447,7 +22447,7 @@ return {
     title = "Love and Ice",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9ba51bad3354b8ee537dd76152359402ca2b8d0724e3a0bdf6eb07e03488c743",
+    progression_revision = "c6d193933a4ea52603b3089b3445419af5860ee470b4eeacfa42fd95aa603c10",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22467,7 +22467,7 @@ return {
     title = "Brygid the Stylist",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "d52627e1ea6cc086708a5feb6441b8abc63c2e90f6cf13f928117a71720ff8ad",
+    progression_revision = "5577865607edd8b8539b258afd25fbfdec76adeffe25e1d8c05eef58db8f343b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22487,7 +22487,7 @@ return {
     title = "The Gustaberg Tour",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6bb998a77a4bd306281505823ad2ca6ede594c86fb54ff9c508544272aa44d0c",
+    progression_revision = "c53b22aaaa70c213a5c6d4d24df7b79f39f968326c4af7763c317f1667148947",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22505,9 +22505,9 @@ return {
     native_id = 46,
     progress_id = 46,
     title = "Bite the Dust",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9d0f1c3ea0edd4606eb96efdcd9d31bcd6a1960d1a97291ba053fdec0b28afb1",
+    progression_revision = "f85afebbf0c0115df4d40b9017b51ec0d1a149cbdd26f99dac2eb52624e3148e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22527,7 +22527,7 @@ return {
     title = "Blade of Death",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bedc974824af56f7adc1f9550983c9c82ece8e20a37f1543820f2d0ac48e6e64",
+    progression_revision = "07294cf4dc05dabfac6489ce670b0882a66f7339eab2683a6baa65be5f75a137",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22547,7 +22547,7 @@ return {
     title = "Silence of the Rams",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "07f3ac957b601624864d4647d1b041fcde19622420a8bbfbe38a7817b4162d71",
+    progression_revision = "ac02ac8ab9f58011fce210dc9f07b70e9512806fdd0b65e1742d78edf3b7f672",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22567,7 +22567,7 @@ return {
     title = "Altana's Sorrow",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "42d6815cdc9c702bbcfc002955df0434440de9ccd1eb81089060763b188a1f15",
+    progression_revision = "0a7c5cbf17888a06cd2eca9920322b3e2bdbe0c4132f63a10f7387040d2b0159",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22587,7 +22587,7 @@ return {
     title = "Out of One's Shell",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3da11a16d22f9752bf884da363e8ec35973c901d0a008a91e51e48d55c82ee51",
+    progression_revision = "719f608af8da0e0116852f7ff17971f78fe1f0ac3f8b83f52e279052205a6384",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22607,7 +22607,7 @@ return {
     title = "A Lady's Heart",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "33ae800e9095e050c19d3f71dc3986df676650462d91652300d3b09b544a61f1",
+    progression_revision = "a05d7f59e9a7e22d2f115e2de7ba8ca385ac959d8c65281f70f617fbf2f2c1a6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22627,7 +22627,7 @@ return {
     title = "Ghosts of the Past",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4d34f459068cd6923d9f00c0387a94728107ab772bacbe2180116c10df453edd",
+    progression_revision = "6b87cf8e25a0622873ebafc3dc27445c5caaf27fb474da414454da266ab0ee38",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22647,7 +22647,7 @@ return {
     title = "The First Meeting",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e42ae4c72659ed66175737f4c8071a50eb9112485e581212b455bc22e7745710",
+    progression_revision = "b6c71d5ed49dc545aa11fa37e712de79fd25c8fd61b14484a1ce3699995900da",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22667,7 +22667,7 @@ return {
     title = "True Strength",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "381589372599962fb219736fd15f3cb9f4e21d7f4179d44d744249d7d645399a",
+    progression_revision = "0f35dd5550cabe33eb54b4bffe827be4f7dcd61a4d272daf118e23e4855ca360",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22685,9 +22685,9 @@ return {
     native_id = 54,
     progress_id = 54,
     title = "The Doorman",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ca51caf22f655ba8eb114a65c0091cd2621e21c907fc80568ce5e9690edc27ad",
+    progression_revision = "6ed723e70b99e7df4bf473f8d4ef0658078695a89e0516aaa5be7f32b4702415",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22707,7 +22707,7 @@ return {
     title = "The Talekeeper's Truth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "08c80e2bf8fcbc431eec896fe91052cdee75cc30269497b99a4f82148ed92284",
+    progression_revision = "fa4ccc1124b33a452844382f65d4134689eb1ad33805e247610f5c15f41465d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22727,7 +22727,7 @@ return {
     title = "The Talekeeper's Gift",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "35a0ad98a74a722dbf20bdd1b2fa37d0dfa9b94d82178ed1a8b7b0faed2f16d2",
+    progression_revision = "d821bd3ca48a876d33c90b3fc276f3f5fec35706e84b823c6aa6427e134dbe90",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22747,7 +22747,7 @@ return {
     title = "Dark Legacy",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4b0a7e1b0e7c86e6662a8e82772ae5ff318b070a384d4431d2bb00c95d0d016e",
+    progression_revision = "48c27add19d2940a17be2912955b5844a01d0c92a4381bf3c904a88b4699720b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22767,7 +22767,7 @@ return {
     title = "Dark Puppet",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5a13100c75770f27aa9b27e73ab7790d169125fb446aad11a32befd05d0729f2",
+    progression_revision = "3078899863712db9966ff80907ebccbf286a1e46fa1bf8cb2d85d720b12c1878",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22787,7 +22787,7 @@ return {
     title = "Blade of Evil",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d400358391f81220d127ce5870aee2aca4ea26ed24d05db06060efd71b39dc91",
+    progression_revision = "5bbe65725d42a5d6c2b17cdbc67b35675ba58f1bb833e6698d14f0faf60f2926",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22807,7 +22807,7 @@ return {
     title = "Hearts of Mythril",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ce6455b79f21f9396915ec98ddf9eacd6a5916e189430ea4d2da0cc50b45919d",
+    progression_revision = "38f26d687a63823faf07e385f61351344427f965153e102fb5c2032a626868b2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22827,7 +22827,7 @@ return {
     title = "Ayame and Kaede",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1bd7b37edefdcc33298c2e41fa5643548af0a8d0019d75eaf76b1e0c297305ac",
+    progression_revision = "749e4b48c3799d60ce8858e6e72fffae4ed44c09070ac752cade4e6c24e8351f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22847,7 +22847,7 @@ return {
     title = "Trial by Earth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6c58e49bb8abe5001e0692c5e402b8055eae23e2688726c8f260e6c234f88b46",
+    progression_revision = "53d4c795e1608f2095bc10cc5d8c5e7a7dfa3181ef065d12ca49676312359f4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22867,7 +22867,7 @@ return {
     title = "A Test of True Love",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c78143e35a2fcac6887f330b72a6b5431303ae7b7eab95ef89a26183560c996f",
+    progression_revision = "8678104d5180eca0643578505fd1389fd7f7b27cebfd2874fcaead2a330cf602",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22887,7 +22887,7 @@ return {
     title = "Lovers in the Dusk",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "110848ef169257ed48f13cac4b07f0b4354fe66a73b31a759b1388137d273319",
+    progression_revision = "0bdf1e2d689c981dcf06470c9b30972f921505c2f5b5adce7e43b9bc3830abbd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22907,7 +22907,7 @@ return {
     title = "Wish Upon a Star",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4e1acccdbe95472cbbb81253defd8c7ff98998d2b658b4c05d19cc5a5c48e379",
+    progression_revision = "860ab632409d4618dbe008647f568ce832931de3838bbbb09535b51d8da2c3ae",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22927,7 +22927,7 @@ return {
     title = "Eco-Warrior",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "1a626319c5e5771d889ed15814b6dc244fe3835540c08daf252f1cad17338a4f",
+    progression_revision = "b418df690b8ebf9991940b2ac80f31cbbb4da2bb9d4c634a851b049411b01cec",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22947,7 +22947,7 @@ return {
     title = "The Weight of Your Limits",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6578eec01466d65854137b9b988dc3fa9cde81425e389b4c461c3623d6a96c75",
+    progression_revision = "4d1329a6b15200b0e02513bec62aefde47b8c93f7a6d89558e59ae67a60426c7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22967,7 +22967,7 @@ return {
     title = "Shoot First, Ask Questions Later",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "47b3682810b22b89813d018b7f9d7239764e774ee67bcb66b3ba1f2f3fef8cd4",
+    progression_revision = "89a6c5f257132f7a3e026267bc30ad4dc833e562cd373df6afc2853c1296d4df",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -22987,7 +22987,7 @@ return {
     title = "Inheritance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3d3e6fb5e1b6d5f4dde654750c3fa9d3bbc4f91003823b41a24656e48943256b",
+    progression_revision = "1be274d98e016f2ec84231a86c38242508fa8cfee499252b6fa76b98b48789c1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23007,7 +23007,7 @@ return {
     title = "The Walls of Your Mind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a8dfc90d00ae76eb6e77ca6dfe2e7082e1abe6ce4ab1fad1b2bd357cc88d39a2",
+    progression_revision = "fc21c38f67c3059b8b2b67d33e603742fc079d5d3d75444f96c562d3e455489f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23027,7 +23027,7 @@ return {
     title = "The Eleventh's Hour",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "667988950dd1792e7ff46126fa35bd0122726a6450dab051624f329bcf19441c",
+    progression_revision = "65eeff0785636651ac3f797e9c827a25bca8350bb6ab4026e261a7a49845cab8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23047,7 +23047,7 @@ return {
     title = "Escort for Hire (Bastok)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4de864c6f61cb5b9ba68efa99bee67f167176e9881864944b28e6bb23c57b36a",
+    progression_revision = "fe13c7356db523c9ddc02fd86c598d2de1220979d3fc15214e6e9b887b31a50f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23067,7 +23067,7 @@ return {
     title = "A Discerning Eye (Bastok)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dee5df73e933bd072fe0f186b434f91098f550fe3b6ddd055e30544e1cfa0d95",
+    progression_revision = "c4b067120cb215044ca6354b6a8ca77d16a85111b787555cf41f9b99e84d8782",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23087,7 +23087,7 @@ return {
     title = "Trial-Size Trial by Earth",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "578ad6de7220ade3e3644e3ddf2028ed20b6354183304ced99c3f8ebbf7edf60",
+    progression_revision = "51a754e8341eabb45f0b31b462515e91a0c060fa5674c5a7cd95b913129a6864",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23107,7 +23107,7 @@ return {
     title = "Faded Promises",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "359dc106b3f6da1d9575f1d0741332ad4847c75e5350252cc6cdc2f6360749a2",
+    progression_revision = "0af39a2c47b1daa93ece06320cb603aa123ac423cf2b9420e59d4f1c4eaf5090",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23127,7 +23127,7 @@ return {
     title = "Brygid the Stylist Returns",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2b7304b11bdc2336220acbee16c55a71a2c207e5bf5e704d641fd16fad678578",
+    progression_revision = "f02667fd9e5b904b78d6fa814195212f3aa7fa556836aa2337bb62502dc90d71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23147,7 +23147,7 @@ return {
     title = "Out of the Depths",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "10a3fa991a76b5c1cccba46879395384409f3630c1816676d14053ec191c866d",
+    progression_revision = "f5529845e2837fb05b168e123b4da322dd4e0b873f469525f3fa6ab309c0fd0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23167,7 +23167,7 @@ return {
     title = "All by Myself",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ae05653fc6938d4d5a3038824a185b4ad1b833b8322db7fea9435822e177114c",
+    progression_revision = "48b95772ac9b64166c7a0ab8ac71b7e03dec0ed7cd8cbb854b881af2260fbd6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23187,7 +23187,7 @@ return {
     title = "A Question of Faith",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "786307da167db279c0fd418c7ce111d047fa81e7a76ba7726155b23fc0521072",
+    progression_revision = "fa4033783cead681a6083f4ec98170712455b68fff19e548309af08b7f7658ae",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23207,7 +23207,7 @@ return {
     title = "Return to the Depths",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "820408a7be4c19ed42e00eb03dbaecf9034b8851eda805837791b55741399f99",
+    progression_revision = "443acd2d6fbd425743b662b4ac075db3adcdb98913958696c46240439d1c852e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23227,7 +23227,7 @@ return {
     title = "Teak Me to the Stars",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "201763abdbdc908ada3654b9c0f033e568baba0d6dc9acb87228e8bedff1cecf",
+    progression_revision = "e6077b74e0aff677ccadd6dd73445a2e0907a47884cd5de4917ff0f2afa53a78",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23247,7 +23247,7 @@ return {
     title = "Shady Business",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f33db6d6f560106be87ba3492acd7b48b52818dac40b2c4236e3b6dfd75db3be",
+    progression_revision = "af1ea50bd7cf970c3c12cf9306b2dce1801449ac5db562319c4cf213e2417c69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23267,7 +23267,7 @@ return {
     title = "Hyper Active",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3cf706e01c74ea8ce08bfbe470adaa00534fb53cc4585e878c15648392930fa3",
+    progression_revision = "50cba354f3ebe973fe8650c2de5a27fbc3f3b749c96b79fc9140f330ccdb218e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23287,7 +23287,7 @@ return {
     title = "The Naming Game",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3d04d8db0161c38f1e0e3af7822c93df3b4d0be7db6b64029ed204e2efdbbcaf",
+    progression_revision = "619943251f81a9ed4dafa7272adc707d4eb62e0f24179c01ce63a69c25baab72",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23307,7 +23307,7 @@ return {
     title = "Chips",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3297623277ac87788e96db2dd1d4dbbe65321d5765d4d1c57d4718176ac48905",
+    progression_revision = "498306ceecabc82dac8468f0779d83fb845564193cd16812956f1946c65c2c7e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23327,7 +23327,7 @@ return {
     title = "Bait and Switch",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b484c2efe9eb277ec35b2f9d6494ea4b622b1b22140b658e858dda4f3609df07",
+    progression_revision = "68278d62ae3f3a2e1284886a388d6ddf04f705b58e4cebaae52380e79a0a5b18",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23347,7 +23347,7 @@ return {
     title = "Lure of the Wildcat (Bastok)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5c615050a260693cb4b67e38e8e01ddf89985757c2d20bfd35c02923c7a95973",
+    progression_revision = "558e329fd621ef073e94480d3b5e06643b2adcc47e1dfd28a12512f5ea0cb0ed",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23367,7 +23367,7 @@ return {
     title = "Achieving True Power",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "de9d35d7853db091377a6e655687ef44e5ae216ce00cbc194455529cd52370c4",
+    progression_revision = "fd6165b6f7c301850c5537c1d7bd960970d1c48e8906bcdcfedc056b99a7c63a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23387,7 +23387,7 @@ return {
     title = "Too Many Chefs",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "eb0365220a63e2b8f0c91b7b213805db687a7c5ec16d515fa8773dc0a492b035",
+    progression_revision = "0b8d820df4a8f30e221aaf92f666ce8884a5c558f9e1a614aba1d799f9ffdb97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23405,9 +23405,9 @@ return {
     native_id = 87,
     progress_id = 87,
     title = "A Proper Burial",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c142a9536f8754cdc2fb81729fd7254537809a99113cafa6a74a1dcb84f5bea3",
+    progression_revision = "403bc61e92646a3f6304144f752a765cb13c931dfe3526230a247190445b2437",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23427,7 +23427,7 @@ return {
     title = "Fully Mental Alchemist",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e17d93cc0a596705c666a34f31940b48d3dd61389e96847171aaaa8c9e8793a2",
+    progression_revision = "b44f840c3ee37a127749beefc85ba7190bc64c909d37294aaff88df277e66dfe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23447,7 +23447,7 @@ return {
     title = "Synergistic Pursuits",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5bbd09bb7c6c4ceb17b1f9110e053d55f621d007392e8724824828f88fac9645",
+    progression_revision = "955ca0fd52bb430ac48f0b11dcead43821336691f30a1fe45d55f780f76ea205",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23467,7 +23467,7 @@ return {
     title = "A Foreman's Best Friend",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "059ea95ab74f0f6e99553a5dd2974bf5828f4819b8ff094718f9fc6509fb8084",
+    progression_revision = "436f5faf819acd12a90ec890af934bc01fa1ad7c721219c0bdfbc85703c93468",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23487,7 +23487,7 @@ return {
     title = "The Wondrous Whatchamacallit",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "63e8b4bdd3ac3ef39b1cc12f350859bbbb0c5978f2853b1dfb23821306bde84a",
+    progression_revision = "0dd2490dc7e7346fe3f50f97fd7f3d34bc55b5d6491b26aec3f5a94fd0f0274f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23527,7 +23527,7 @@ return {
     title = "Trust: Bastok",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "dd747665fb6ffe4cb65c58abea28eb650701ddfaa69a2f509b4e373632f246cd",
+    progression_revision = "753ea5d087974d1bd9b0eae1a45e932f0454ec6b2de8c4c3c1ece4f1ff748d10",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23547,7 +23547,7 @@ return {
     title = "Procure: Ceizak Battlegrounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5332c788c526318e2197e09b36c363c2381427c81c9270a23ed8dfe486d01fb4",
+    progression_revision = "68682d55936eeeb7cfeb55206f15764c1846317103fb59fad2de8a325e08f12f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23566,7 +23566,7 @@ return {
     title = "Procure: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dc46a4556570a192f87b0939a14e2e7181eab661cde8dbe086e443b7271945c3",
+    progression_revision = "f56704f89b2a54cfe4020c00ac7f2133b224c3ef508a6ad0baf24c021e548693",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23585,7 +23585,7 @@ return {
     title = "Clear: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0b205ccff3e4d2341c05308c051b717f9c7835af54106b705813a532458d8e0a",
+    progression_revision = "1c68cb13709add968b891d79d237865ce10afd9f859dc6ff485e2f5599c3e5ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23604,7 +23604,7 @@ return {
     title = "Clear: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d885bea18e099d725c6a8ae52b03d10e02ccabf39dc1f1081ea42198b3322281",
+    progression_revision = "18ac1b65f34b0082264e6b7aee9e117d7b24a2af3e00b917294dd78c7c68c1fb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23623,7 +23623,7 @@ return {
     title = "Clear: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4d14619e3fcaa62df4ef25556b893908400cb72b810a61fd13441f88694954c6",
+    progression_revision = "de1aa8c68bdb7ec5968515c6ad234da6dbda14fb715c41532eb86bac8801efc1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23642,7 +23642,7 @@ return {
     title = "Clear: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d0d0fae9b50823ee0777a880b49835ad34bd78bc1326b1f00675dec43d0741b8",
+    progression_revision = "c3cff39658a825686fd4c1941964e7573a3cf9262b39281603b349a012d7ed12",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23661,7 +23661,7 @@ return {
     title = "Clear: Cirdas Caverns",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "33f005f2a67bd1f1d083a8c1c41260e1398fffa0fc69c4c4f7b1fc72898ee576",
+    progression_revision = "8c17a4020b638144d1504fe0efa729a1b225a3144a381e546c8d0489739dd51f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23680,7 +23680,7 @@ return {
     title = "Clear: Outer Ra'Kaznar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ed3e2022bb96ef249f2d912828bdf3b411eb316d2f242f2aded323dd40cd7914",
+    progression_revision = "e00d60ae2873bf9c65bd35f0da6a6c68a6be106759754a7b5025ac81bb4a895c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23775,7 +23775,7 @@ return {
     title = "Procure: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "06efb8409410fe8737f60de388ee3bc2d397f5652b8628e99d3718aae0d38615",
+    progression_revision = "9b60495e1adddd858dfa009dc21e03ea45b7f58075706384cfa97f54dfe6dfbf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23813,7 +23813,7 @@ return {
     title = "Deliver: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "36db04df700f980e9d0cbbf448471dc57a35773cf85ddfce796ff00fc731c56c",
+    progression_revision = "9bcbfbd4c0b68264da0b3044cac211726fc8ca47cae89a07c4aa35df52960cc4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23832,7 +23832,7 @@ return {
     title = "Deliver: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "63ce44f24180a7d0ae88241ceaafa57949cfa59764ad91711e6caa3e7c093fe7",
+    progression_revision = "7f6bb2fed9aac9d982498d2533f7689e778e1e25df6c674b7852013f1e715646",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23851,7 +23851,7 @@ return {
     title = "Deliver: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3a81b9c33efe8b69dc1267b8ebd4288fa9c1a9e842680aea9e5c895888911825",
+    progression_revision = "da1372b284348160a76672f6590f5f667cf60c3b0e6e72e354046ade30e1b8fa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23870,7 +23870,7 @@ return {
     title = "Deliver: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "37389db7dc78e1b6ccf3962006792e119f46a87ced542133ef29fd6a34382304",
+    progression_revision = "8f01195afeb5e24ad54371eac6ebc91895feb314cb41564f2649f00459735e5a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23889,7 +23889,7 @@ return {
     title = "Deliver: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dc606b8c09c30eb5018a4ab1852676c3d1bd61108aa09a7c9fbe557679cd39c7",
+    progression_revision = "bbfe17b566f67bf698aaf588c62a2075c6139467dfb15e98d6a3c9675bb5add3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -23984,7 +23984,7 @@ return {
     title = "Procure: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c31cfb475c087921353231ed01bfe465485ae03af7322075c811fd1dd43a38c0",
+    progression_revision = "15b4b7127a362dd5a0e3e64991419d0e496a4c65046c013336c2cf431302ae39",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24060,7 +24060,7 @@ return {
     title = "Gather: Ceizak Battlegrounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1bdad2b7fe80ff78c1e93bcd7ca29d31851d9258ff61300adb787b26eda00f63",
+    progression_revision = "796d9e389c1a2fef469b0cd4a9011248292be63d249454c1c556c7061052780b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24079,7 +24079,7 @@ return {
     title = "Gather: Yahse Hunting Grounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "434d7ac33484731f44d1dfbede90acccd9b7f4154269f98d5aae1fd934a174de",
+    progression_revision = "a9a7f557f02e41200938eb588fd648c0a03c3007cc3f7801aa7845bf675a4b1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24193,7 +24193,7 @@ return {
     title = "Procure: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dfff1edff8fa81cb336122f6ebcf626b38d0f2c9659b6701832e38c5f1c19a88",
+    progression_revision = "3640c31b7b4102f6c1ba7fcb76d123fafe2f41bf9e7c20ad80325a02a963f45c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24382,7 +24382,7 @@ return {
     title = "Survey: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f10903896fce89ed78818cd170694dad9166d9e1680cff874d14b356b09f55f",
+    progression_revision = "dc9c5a6629db9cb3b8459496b1734fac5c9fdeb1cbd122dbef694dd423951214",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24401,7 +24401,7 @@ return {
     title = "Procure: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "93d5beb69a3434a9f2da6c4a12bfc13db80b17cb55a6192a0fb3e839cc1dc6fb",
+    progression_revision = "270c070053bb2c6ab1fcbb12c5405ac0e1a0eb91229735cc55c1b92e7de6d46f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24420,7 +24420,7 @@ return {
     title = "Survey: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "375fb4f6c1fc23619e67da30670c30728da7917d7fbb2563f436b71648ef0a32",
+    progression_revision = "3a868a967f965c88db0eeefaf6842013bc68c1c857facf1298c853d0e645eae2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24439,7 +24439,7 @@ return {
     title = "Survey: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "536b014672f99bebbf9c3110ef0ceae6d41630652a3e8a1cb619d6a2a842a6b7",
+    progression_revision = "8b0940b5238f009bdef7869b0b8ec84f3fb3bd466bf2ee65b347726998d3de62",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24458,7 +24458,7 @@ return {
     title = "Survey: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d0ec97db0cff9e94ae99846060c9bb4d3718cbcd6a900e2f6a8c6ada3644ed6c",
+    progression_revision = "5d5c1e6c44dba87522de77ed6305849df2a4a0ff8ec5c6da831a63b7cae53d30",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24477,7 +24477,7 @@ return {
     title = "Survey: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2686496c7a9ed288a600f0671b270746af40f0919207a072664cdbb6a9575340",
+    progression_revision = "1c7ad9ba578b0ee1b6907ea71c0c7ee63f2e547a16a70553e85ab2965bfb59c5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24496,7 +24496,7 @@ return {
     title = "Survey: Sih Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0732a753b8109c689b1dd72d48d71cb79ed2a6a8cb3f8883afdd2dc24dd33920",
+    progression_revision = "cee813cad753ad56816204a61e6ce92edcf8561fb5078a41c1fd695732edea46",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24515,7 +24515,7 @@ return {
     title = "Survey: Cirdas Caverns",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8c89abefd3c577756bb0fec72edb49fc005415f330e5e8d2a6debf990f2b58ac",
+    progression_revision = "3740dc852c2291a6a8e5633165a0c8418e2ab589fc735674abcae10eb5ff6c43",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24534,7 +24534,7 @@ return {
     title = "Survey: Dho Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9a237ebbce358fa403ad95a7d33e7dbcbe7708b065ba28096ab3f3e4ce5c89f1",
+    progression_revision = "1e04fb71028a110c20ccacf85380b3f3801cb48980f2376ce666b091bf523b5d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24610,7 +24610,7 @@ return {
     title = "Procure: Cirdas Caverns",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "98a4d038f1b23b61a52b0e10c10ee0b52e07b329dc82098da37a23b5c50b64d6",
+    progression_revision = "fa161565d13fc071c159fbf32664b7a9433fd51a89b6111014d53a18d5aa6e01",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24819,7 +24819,7 @@ return {
     title = "Procure: Outer Ra'Kaznar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "46edf4d1490cdf0d6eefdc473380076f005a5766d1d428e93a1eaa9cffa96595",
+    progression_revision = "94fbbda20ad2050e7b31152214c63926ad151f9e06c3454e0c115fee521ab797",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24914,7 +24914,7 @@ return {
     title = "Patrol: Sih Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "54738202251159caa1a043df4e09a87e9ba34252826f4b51c23ddb3fc2d9a1c0",
+    progression_revision = "b09b9bf2ffd4479cffa5208b8ee9c574815aefeb396f72e238fc1bf9e8d16b03",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24933,7 +24933,7 @@ return {
     title = "Patrol: Moh Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "82328820b51f78b54f648b7fde9da7ce9b36b4eb0b058c51f79e8fd828360f24",
+    progression_revision = "5f316d6f7b9388308d7e1e7f98ba3062de8ab0ff243b097168fa39270b6e0d0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24952,7 +24952,7 @@ return {
     title = "Patrol: Cirdas Caverns",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6afa77a02914e44ad94fe498b4482e71fa3a991a443a6692e7dbc0646e99730d",
+    progression_revision = "c3d695d86f02579b5c33d8e1b53f28fe69832228fce487de0783d082f5b975b9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24971,7 +24971,7 @@ return {
     title = "Patrol: Dho Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9985bc1d79d450b04348f2377d83f5873ccb1f1805bf69a137f5d536e33b97b9",
+    progression_revision = "dbb4946af81ee6517b53d1ee7e7fe29024d3a090769157982c227c3603b449c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -24990,7 +24990,7 @@ return {
     title = "Patrol: Woh Gates",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "835b6964bacea305be01b17de210a5641fc46f1f796e19956188960017e368f6",
+    progression_revision = "0a0cea342fb58f4c742d309905f7f15b1d4a3f22a4edbc7031481502f4848c23",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25009,7 +25009,7 @@ return {
     title = "Patrol: Outer Ra'Kaznar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "196a438f829ec220aa9195235384cb96656cd950c92ccf0ea9f3108fdc605c46",
+    progression_revision = "e43aa3c2854e372b4fc3dd962312ccfb67c557a2dbedee213320facf4daff52a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25028,7 +25028,7 @@ return {
     title = "Clear: Ceizak Battlegrounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "48436a8eafc4d5984d444791a124123e537e2f1a81300bc6fbdbb4ddcc044c7a",
+    progression_revision = "577b031fc192ff2a2b380c419feaaafce5c4e1e1da51cc817698aba0b358c895",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25047,7 +25047,7 @@ return {
     title = "Recover: Ceizak Battlegrounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d65564de404ed0833620b46dbfbf7e305b39e7cd764513c956870c8d7d9b715e",
+    progression_revision = "ac899bf3f2e05538b5a1b611b443ec81952e0cb345d87240c30cfd78485511c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25066,7 +25066,7 @@ return {
     title = "Recover: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "342e8c14dedb8c0536c322f26125aa073cefb8824810f1bc5e20464eb2061381",
+    progression_revision = "e8ac17ba57afbddde0db59e18b3ee7a775c2107a629805e781242697a4330615",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25085,7 +25085,7 @@ return {
     title = "Recover: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "376612ff680ab26d16065396d510c64c9fcbe08fb2dc24213666ce8f84d69789",
+    progression_revision = "01351c27c63bbc5e6016be1abdb1910384bb8485dee1d7df0a9816c04b93400b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25104,7 +25104,7 @@ return {
     title = "Recover: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "94f30e2f2ba5e503e592b00dd6d6678cc7e7241840cd9fbf8f787c45bf29784f",
+    progression_revision = "73d2e044379aa480c0d325cae343e0c344a459e4e7ed2589064e253b4d06521d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25123,7 +25123,7 @@ return {
     title = "Recover: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d0b9c69a545a7b20768280ef1a1a8bbdd0365d6b7e4586796d5d0ec8c9ebf588",
+    progression_revision = "07dbd41ae94e7ab3c0d72bd3b37ee644eb51c86193aef58863e62fde15bb7e1b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25142,7 +25142,7 @@ return {
     title = "Recover: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d9d5f90da8e0a8124687e51e4492ea3186453656ccd6e38918a0cd7753b4340f",
+    progression_revision = "2f5e2105df4af5d9811295eb82353ca7186789238bce3a585c1f0c5299167171",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25161,7 +25161,7 @@ return {
     title = "Research: Rala Waterways",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "77886bf3f11387b208de45b5ff25ed76eb32e8944813b33185e363e56c26d216",
+    progression_revision = "ad41d75b19384ed6b9e3dd0229e46fa1c1c381513646d182b22a5a2b3032443a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25180,7 +25180,7 @@ return {
     title = "Research: Ceizak Battlegrounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "08a414ec6432f7061eb93e66f43f5778fa837536c4a09ceeda32b5a55755e984",
+    progression_revision = "f56b62368f01e53ba4e01b3890e36f75469ce73de44295fc07e7d787bf4436f2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25199,7 +25199,7 @@ return {
     title = "Research: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c772da6ec375bd5d0cb404ca5041d20dcb4bd285858d29e2a591919ed2bfa6d4",
+    progression_revision = "1d884f6d3ae8e7ca3ebbdd6b01efbbc0afa8dcf9309c22805dbacc9142a43295",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25218,7 +25218,7 @@ return {
     title = "Research: Morimar Basalt Fields",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "53e7f21942b507e626dd25eb6680dc9f87cf95e5374816b1a83c5d54d7fdff68",
+    progression_revision = "6daaef9f5d8d0f1135de557cc33022def05f9794a62d6443cebca6fcbce3a8b6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25237,7 +25237,7 @@ return {
     title = "Clear: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "07988ab019c6ff43ca12f2182c19fc1843f8595b235ef5d38020d8fc66ab5c42",
+    progression_revision = "59fc4ae921b9ce296d5e8090dc0a505192d2ac1914be7c702d1024e8b3b835a9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25256,7 +25256,7 @@ return {
     title = "Research: Yorcia Weald",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f52a8e2aa9ac007bfa1461f02c0186c1d920ea9c5f41670cc76ac6323b211c45",
+    progression_revision = "1f29cbc112b76e0d03f61b6f5d24e086090e7cde3ff6d22be649bd2c2c103633",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25275,7 +25275,7 @@ return {
     title = "Research: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "aba13d9fc8d5fb34f51b229dd8bf6d498eed8330f4a969551867e9d76d1af6a5",
+    progression_revision = "e70d90e6b65ae4b54410a435db677d98b710321b6bf5bc0951695feb028f22cd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25294,7 +25294,7 @@ return {
     title = "Research: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8ec99c99c45caf4369476fb4f4a9be57e69a107241f8d5b51c90c26ca6a55207",
+    progression_revision = "83fb5c024cfdde523696c8e4a61bc01ed968510c448a016352766453d9decbb0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25313,7 +25313,7 @@ return {
     title = "Boost: Foret de Hennetiel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "78e0db4ba72516f3dc7fa492dd838ad39fe5cd8b27685344529bbd8e3e6d88d6",
+    progression_revision = "a75691dc5be8c84b0f34599d7c841abade0a26285a4fca009fd965ea13ad6882",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25332,7 +25332,7 @@ return {
     title = "Boost: Marjami Ravine",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "14cb471e98e7ce5e48e7385e8a36f04ba241defc70043a28be489fc9097a9274",
+    progression_revision = "d4bede8389d6bd981e5200eea92aa46efb1d0b286e34657b16b5a966417152f2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25351,7 +25351,7 @@ return {
     title = "Boost: Kamihr Drifts",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7ff464d90e206303f1fb2cb310e7047a4907c888ef34de7cf0ae8c327ddf7ceb",
+    progression_revision = "f8786d8c90634e6f0420d240f255aaa10cec2d36e9e40e9c9ee08a10f2c46e31",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25370,7 +25370,7 @@ return {
     title = "Lost in Translocation",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5dac62c22e57f5b45c83bda6a46e08688217ec3c09c071aced3e6b81f8cd8028",
+    progression_revision = "a22b0173a66130d6d2abdac689e09c828b515229fcce4b4a36e1922d5a9865b6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25390,7 +25390,7 @@ return {
     title = "Message on the Wind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "95da11cabed9a512359c7a81d2a82e615bddd03cd213525a3ff9944723413e47",
+    progression_revision = "e10f38f2169b276e071c3cd02974794b9fefe3c5777aac386e3322959c96a5fc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25410,7 +25410,7 @@ return {
     title = "Seeing Spots",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a9350edf70bea480afcdc61abd00bd23f0836695ef1a16d52fe7475a2f265e81",
+    progression_revision = "c816f8da118070da8e4c598dcb7d341f431d76b757b9f8a57ae8d4b9f4cb6d77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25430,7 +25430,7 @@ return {
     title = "The Flipside of Things",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "26e47f6ba608ba3bfb0688446ea18d1f075428c36c95ea87336f20335ba6384c",
+    progression_revision = "0c259adc706354823dd3b5831b1c9551bf71f02c1a7b249619a4fa46810f114e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25450,7 +25450,7 @@ return {
     title = "Better Part of Valor",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a56ef94827eddeed4fcc321284d4ab7b179d0b2b0230f0e54900e02f17d72f0a",
+    progression_revision = "d8e27b3ab9d3a449964072bac1d130bbdc145dbaca3a63dc03e72f16040f4db2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25470,7 +25470,7 @@ return {
     title = "Fires of Discontent",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5a70d3823b35676980dfe805035c98559ccb11b1c5ca000d30650e2f215f149f",
+    progression_revision = "9c81a04aca971731ce10a88f70e9515066cdf6aae42a92d410c5ca9d55c8567c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25490,7 +25490,7 @@ return {
     title = "Hammering Hearts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "677e658bbbfb937bf9cbe358dbce6f41649cc4cbe0f97e4747c2555fd77c2158",
+    progression_revision = "fbc754e98a049a63a8b0a846e7f1f45be6e9f74375e49d165764f964e4bb6e37",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25510,7 +25510,7 @@ return {
     title = "Gifts of the Griffon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "abbd90bbdd4a4aedb48f266020625edb5ca53c59a9ae137767a0d2e209daefcb",
+    progression_revision = "a602a53f67c7d6ee704f604d4d154959c814af594180d7d9e90e8837d211bb2d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25530,7 +25530,7 @@ return {
     title = "Claws of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c6f3e5a6cfd9b5cc55a7a2c1c4fe02e10b996c02f08c549abb8649ab56a48b2f",
+    progression_revision = "11ac8814ac2ef2f0ccee71b7a0b5863a8d1aebb0fc8bbeb8f10c18cc95396d4d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25550,7 +25550,7 @@ return {
     title = "The Tigress Stirs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "718918228bd0ad0d96f1bd46e53bb3f2960d43d8cdb8fcaa39f211ab51310e5c",
+    progression_revision = "936005a8bc18ab4c7b9d6d036212a506908342e2614030d19ce41b73f1e91a0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25570,7 +25570,7 @@ return {
     title = "The Tigress Strikes",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "16601e2b9da590e30827f745bc8f32b9eb3c7c1d86f15fd778c8f81b45b2bfc6",
+    progression_revision = "c8c1bde80ad66b08e76f538c92a5e1281bf7ecaf2b3abe99365f6c35251ce5dd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25590,7 +25590,7 @@ return {
     title = "Light in the Darkness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bac5e07d7cb01132c69475c1003fe2024b1431fdfd7d5cb377cfca4b99e6174e",
+    progression_revision = "d6335fc33e1a826fccc18b66b7fdce7544c738232a1deb0448969015bc74922e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25610,7 +25610,7 @@ return {
     title = "The Weekly Adventurer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f3014aac0c151b7ff9eb1d23a80f071230d1af08020fccb8b613024001310321",
+    progression_revision = "9487100a85c56cd7ee0d7a3870df31c391a23041a5d917c9f012c009023ad9d6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25630,7 +25630,7 @@ return {
     title = "Burden of Suspicion",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f8bbb5e39097e47dbbd2e371d4f86fcfda237bee36cf8da68df1bb42b985cd9e",
+    progression_revision = "cacc3486e96995b0155ebd98af2286145651d40b85467c30954bd25b1074747f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25650,7 +25650,7 @@ return {
     title = "Evil at the Inlet",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ebb891e790e010657158a1f9b8c226caf5e18a06e8492b8c573b71e18ba06d60",
+    progression_revision = "35915fe74870205fe8fc72fb796566b9f3db1e5548f95c50dcb8a53dc440c9fd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25670,7 +25670,7 @@ return {
     title = "The Fumbling Friar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "452fe4c1c7e25a1ff8898599222e32dd65a897766e9b468d8aad752b6fa5d172",
+    progression_revision = "8e716fc2b77cc955d4d1d395c27e4ebeff3f89e81269f84640dfcc338ac10ec8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25690,7 +25690,7 @@ return {
     title = "Requiem for the Departed",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "65346f0f55733867ec75f5cf5d7477d5ffa5458710a1ab565d0a53f2af0939f0",
+    progression_revision = "5b0155ee53a9ad1db5e7aae59f1b49903fb04eb917aa657a731d1463c177b367",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25710,7 +25710,7 @@ return {
     title = "Boy and the Beast",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1f091cd74943ba5131ea9ccce864f02f9d0bb4912ecf352bed9c5221e340261d",
+    progression_revision = "7f889092f0dbc95598aaf203ebc64963efe9dfc07090dd6980ef56c582542d3e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25730,7 +25730,7 @@ return {
     title = "Wrath of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5c3701e8ed0c15740a4d9e03f4b779524926047095b371cd7f3129da812f1fa6",
+    progression_revision = "1a3406ffdf248b2def2950a8f8b0cc019a7fc04dc8bd8497e6e42771580b221a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25750,7 +25750,7 @@ return {
     title = "The Lost Book",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "01495e13f859277640c6424e50a39872277286aba9e8423f585bc91c76d41b5c",
+    progression_revision = "872016b4a5680bbefef8cbccdb969ce2fe5b9792a6823fd03eec83e4c73f7dde",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25770,7 +25770,7 @@ return {
     title = "Knot Quite There",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a7acb0a35f62ac933bd237902c539fbb56e43e01d84f62909c79426600b253c5",
+    progression_revision = "c42d61c5154c73f6d639918f54c263570963d0db7a4bb37259d1a7ce58c713a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25790,7 +25790,7 @@ return {
     title = "A Manifest Problem",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b7e9282ffdbcde6f1934931295fc0aed4a9048d5acb79b4b46c913d6ee37d1c1",
+    progression_revision = "0c76a5e223d0ac4d121f191aaea91c25598323e04b87f44e5f5731c9918e8f88",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25810,7 +25810,7 @@ return {
     title = "Beans Ahoy!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d22876abd19cb49849c9264f65b80fe8bb868d355bb578ebd25fcc15081c0846",
+    progression_revision = "50e84a726f3ee685d5460a71f67f28be6d454c42adf0e1b82764a8b2e9929068",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25830,7 +25830,7 @@ return {
     title = "Healing Herbs",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1790ef031e59447c026bc2dae0d78c838dcf39302392adaa7f34760fb0be34bb",
+    progression_revision = "bce26d5130fa9caa5812397f1da70196152936efcbf46f534787e5b73d9d8511",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25850,7 +25850,7 @@ return {
     title = "Beast from the East",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8d4e9edb268db38c43f9fbb551039711b7e792958ecd0870acf4bf37353bda22",
+    progression_revision = "b8c6417162e080c2babdc04104b46b56bde7930850032c488457637bc2a8cf74",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25870,7 +25870,7 @@ return {
     title = "The Swarm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "39f8d036ed306454d068998f63b2a23c4879c109aa199d33e9f481212ac0ec63",
+    progression_revision = "77eaad7662fddc9515aca604a430d4257bb0a71442c1f64fda2ffec6a9f65cd1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25890,7 +25890,7 @@ return {
     title = "On Sabbatical",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "04b9296e830107225bed3db50bb81017b24b589c9455b081ded90e14738c5f99",
+    progression_revision = "bb745f168296e139d548cb6cccb3db5a579d3386450d112775dd2a5c26f70664",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25910,7 +25910,7 @@ return {
     title = "Downward Helix",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e6eda3513278e2d1d4897913c16dee70f00e7ee1ac68c55149e4116ce5d6b723",
+    progression_revision = "49f8104e335fe1826e4bffafb0c003d4b036c5511bc86479e64979db7005eacf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25930,7 +25930,7 @@ return {
     title = "Seeing Blood-red",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "72166242525ce4b5ae2808eb35ad7f2a49c9a1e47fc8c10661d4bbd47090e39c",
+    progression_revision = "538e712521c8b00b7ee501e835bcb88d1d3ca632d598c90c1bb4fe3f83c57da7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25950,7 +25950,7 @@ return {
     title = "Storm on the Horizon",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9072f72a61e002f9ea65bf75ff06cf2b6369e5d23ee3fc675ebaa6aafffc0384",
+    progression_revision = "339e7b95e43500ab4e0970fc71f6d0d8fc69eedee15011fc76d7b72abf316381",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25970,7 +25970,7 @@ return {
     title = "Fire in the Hole",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4cd5eaf39b315275460f4ea8e20c9d863a33e494d19f60ee4830f41b7814e2ae",
+    progression_revision = "d76d8f26122e0be1e74d42aec92a8410175b5f74e87be5c4e4da53f9b4fa404c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -25990,7 +25990,7 @@ return {
     title = "Perils of the Griffon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "15d2863c5c33642536584aa6faef1280070b67f66c29724b5f8c925aaafbb7f2",
+    progression_revision = "53caf8f7c9e6f752a1d30044228763106c5421a69e8d01c8e86a614c7d5cf35d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26010,7 +26010,7 @@ return {
     title = "In a Haze of Glory",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "589f30ad77ba988641c2881d8f158e765114c8b44c27748ca816a41484ec8cb8",
+    progression_revision = "1d4cdcbc204a0ab4819f4471b06c20b8349a91131f0d5cd63376d594b9861913",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26030,7 +26030,7 @@ return {
     title = "When One Man Is Not Enough",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6690ab4a1bfbef0366eb7eaf8166a2276e171cd354df59afa7f9c6ad0a5b8da5",
+    progression_revision = "2ec8760a6b9cb19f5f34c8d56cef23e36fb467d3c739fca5d3ac8276ba1e54dc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26048,9 +26048,9 @@ return {
     native_id = 4,
     progress_id = 4,
     title = "Redeeming Rocks",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e28b69447c73227d0897a4f7cd00fddcb37aacfc3d95ebc2123c6ac826a58e06",
+    progression_revision = "6adaa3ecfa211bf3c86bdbae488167765713b2474df7f0c7f10d2c5b86e12c59",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26068,9 +26068,9 @@ return {
     native_id = 40,
     progress_id = 40,
     title = "A Feast for Gnats",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b4ec15630cefde2fd990dab05fe67ef42e688b08cd51423ceda22675202f2c56",
+    progression_revision = "1e24504275aea2882e815b13f87bce8100048d8544a4364e76c088d49e554e63",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26090,7 +26090,7 @@ return {
     title = "Say It with a Handbag",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "38f704a42678e4d55ddc6da65e08473223ec74aa7b456bda355322a1faff6c5f",
+    progression_revision = "ea900903b2aee4967ed52f9d24b24c9adea61b6cc564e2279890bb600bf0fa64",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26110,7 +26110,7 @@ return {
     title = "Quelling the Storm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b40b6fc67d5c6b45fc555a075eda5e426ed64f42c2e36a0fa5b241d4858eba18",
+    progression_revision = "c3941c86f13dd1237c3cf0f147be81512ba77754be457771febe99ea2b1fcefb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26130,7 +26130,7 @@ return {
     title = "Honor Under Fire",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5df88cf4ccaec748362412ecc92122b079bfe65596e87cb358bc5038c8e26f18",
+    progression_revision = "bdb191d28ce6915ef9a4caaa92033b702d0373bc5c8c112173ecb1fd65d9f37b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26150,7 +26150,7 @@ return {
     title = "The Price of Valor",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b21f851f3ce5b5fa8ef26010801ee98cee21d6e930623bcee75075a7328c9a8c",
+    progression_revision = "986c39ac711314acdddfa0eea96a86826ee5e154e9e1db9063cd77b376d8a424",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26170,7 +26170,7 @@ return {
     title = "Bonds That Never Die",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b1cc1b0bcaa6da15926513a023e5afbcd23d5cfbaaa7ce90a4d0313e87a3e0bf",
+    progression_revision = "50233dae53651bc3f89c8d5cf9a69080b2971fd18584eb906185b4a146c1279d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26190,7 +26190,7 @@ return {
     title = "The Long March North",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ac7f96c30fe8112d41a0e407f978e78532632678399fbe8ff92c488855f78101",
+    progression_revision = "c76dfa7be8ec62a754f0d946d474e6ba9f1a4ecfab501f3cc13a458679552468",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26210,7 +26210,7 @@ return {
     title = "The Forbidden Path",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cc156e91ea62e920caadca2329438f4d789090babb3d0f3819de5b7d10b205c6",
+    progression_revision = "e8873e4c792f7d812da778a10d36844a74c994f634bdd5c7990c3af7b8435e47",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26230,7 +26230,7 @@ return {
     title = "A Jeweler's Lament",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ddcfacf54e5957ec4fe498980484eb4ed1c9daa2989f9665e1405394d47920fa",
+    progression_revision = "b090008af2b768c97ca8a877b2699ed50d8610cd197ba5db35aa63a36c33dfd8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26250,7 +26250,7 @@ return {
     title = "Beneath the Mask",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9dd56d69b357e2a80837dbb3fb81541cbc79c2f2220b07cc828d656c9f0b5b3a",
+    progression_revision = "0f660a5dfe8e36932243c44e301b751a3af27fb79cd224ece41f4db1014826c0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26270,7 +26270,7 @@ return {
     title = "The Dawn of Delectability",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a7abe23823c5ac0113b5cd4eb7eef9ca13d9564774e426b05875c5032150ac8a",
+    progression_revision = "8d96f8e17bcc3fca59967ad12cd60aa3d9eef0e3b229e22d0760498b42f722c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26290,7 +26290,7 @@ return {
     title = "What Price Loyalty",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ab1571d1084fc557eed7ddcb1c38673e77f14606c57079fdac071f4957b57f6e",
+    progression_revision = "505b986dda95500b833e904fc51bcb0ad27cdf19ec71774e41e5e4cfbec0910b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26310,7 +26310,7 @@ return {
     title = "Songbirds in a Snowstorm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "df3624b88b06ce994334491d951d49a9c47a61dde22ef59ebfdbdfff4ed77ae3",
+    progression_revision = "ff2305a86acb465c9da372a755ba0bf58f60e2c613a85bea75edf13940e51d6c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26330,7 +26330,7 @@ return {
     title = "Blood of Heroes",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ad8041274a79f7e8ef710dcfcdba5fbe882e16bfc07700868448a1f0bad6d978",
+    progression_revision = "ae5f7be46749b0a3fa6644b2d7b07d79fab9db03c379e6fda6771da85459c060",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26350,7 +26350,7 @@ return {
     title = "Sins of the Mothers",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a8c4abf9a6b5efb64be9642aef06b19a1147dbc2b551d6e61a077e80493d6b9b",
+    progression_revision = "40732989aedf5c5fd12c37ad849f19b9cadcabca9475d033be4aaf9425bac5ac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26370,7 +26370,7 @@ return {
     title = "Howl from the Heavens",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "706b28303b64775501bdc69cb769d1abdf1fd4689b876719f248b159bbf16f25",
+    progression_revision = "bd1ed1391f57f2b7b28d021cd73905da3559a4f2e0631d8300f904f21dbd9076",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26390,7 +26390,7 @@ return {
     title = "Succor to the Sidhe",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5b4a74bb4a99f00ecb8e62d36720b9fae71ef81fa89ab2d3ec6a0017fae36eee",
+    progression_revision = "84fbcf3da9a0bd399e15eaefb550965479f11530823251c44e3edd3911af59e0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26410,7 +26410,7 @@ return {
     title = "The Young and the Threadless",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1dddc6afee606a64beb3d239ff7b61e5f443e4928c38c56b5fcad095b13a9f16",
+    progression_revision = "5e33b87610296d1550a177abd06a59cd1b6f8814c61a206570beae81e9489a4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26428,9 +26428,9 @@ return {
     native_id = 57,
     progress_id = 57,
     title = "Son and Father",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e502dc892615a483acc086c4fcd402a3b29406beb24e3569ffd56770a720de7b",
+    progression_revision = "53b785bd484eb79182ece7238b972b58f0bb8cda7c0b0d4a6745339cf00f2cbb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26450,7 +26450,7 @@ return {
     title = "The Truth Lies Hid",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9ab59fa6dac3e0146372ea526ecba57be6503265e56647298f2dc3b2d263886f",
+    progression_revision = "1e859e732670e8e4d59bd5747dc34237584fb8c58d9bb51764f1c49908d9508a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26470,7 +26470,7 @@ return {
     title = "Bonds of Mythril",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "349358b7fd0173ce734f0ea1709a3d986350abb0daeca30d5d154c01d891a41b",
+    progression_revision = "a9bc0710ce25980c5930da0b4d0bcd01982b44846965d0db6dc8219119326a63",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26490,7 +26490,7 @@ return {
     title = "A Little Knowledge",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "04b37a88900a6f9a8914b32f57141d3f11198a41b4fede42b00f2c2e19550145",
+    progression_revision = "665920aa2de73d16ef31b830a86086d2c82bff0975714ebe6ba3404a72cf1960",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26510,7 +26510,7 @@ return {
     title = "Chasing Shadows",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a30808e96d664ecaf66db9e83bc021fb476a06300104198aef6079f1d4475a61",
+    progression_revision = "406fe0c5cb10891c7a53b9a58c4c2fe3bca7c501de6ffc88c4736ddddc7d6463",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26530,7 +26530,7 @@ return {
     title = "Face of the Future",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fec964c7ed3bfd72e5d1944c9ac1be25c34f0e153d49119a113ff5ef5c6b027b",
+    progression_revision = "78f1a2f2d4becf2a9e11c002fa957b8e2e0f0e03974419025c2e3b4d0e6f8b82",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26550,7 +26550,7 @@ return {
     title = "Manifest Destiny",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "168717fdd1c6868f6b7db626056d77781badc0ca35831f70e431a66d2545fde6",
+    progression_revision = "41aae5d572353656d6638e267c43bcda00e9daf7d1a65607c7624bc56229eade",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26570,7 +26570,7 @@ return {
     title = "At Journey's End",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d0a52caae6390d533e20a18d1c17023aca012b1662e3d9e5584d79b3c791c96",
+    progression_revision = "5a7256d9a786c4178978b22071c7d33120f7b71e1cdb1a2a34e4c853985839d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26590,7 +26590,7 @@ return {
     title = "Her Memories: Homecoming Queen",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "74c72a7a40bf7b6cc718f0241ee1020425bf1d85c56deac4d0c88755d6d8e472",
+    progression_revision = "47e215ca587bc59aedc72ec229b6fd71e0111af3e4b3681499680107c443be44",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26610,7 +26610,7 @@ return {
     title = "Her Memories: Old Bean",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f6bf51a29012fa1705e3c49ce004bf03e99d5d39830df5568fdde36c56147cb7",
+    progression_revision = "c348cf0aaa7f9ec74d885fa8c78264bfbec7c666e8cc6ac6079a3c0e60293606",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26630,7 +26630,7 @@ return {
     title = "Her Memories: The Faux Pas",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "84fbb8b5658bfd0edb83a79e1f15f7493273a3da9c78e8836f89298baebd096f",
+    progression_revision = "0c2ba7217466da85593f2b9487f96fc73e5fe012e3b068557e278250f434769e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26650,7 +26650,7 @@ return {
     title = "Her Memories: Grave Resolve",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "cdbcf07b663ce68c5df852410e44a1f49c5ffb16a85965f0302eae5047ec4288",
+    progression_revision = "23f5cb8ae0a8194c54d07f04dc6490c9b151d73679f28d34f3e869e3351feb5b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26670,7 +26670,7 @@ return {
     title = "Her Memories: Operation Cupid",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "83cb0f9b2cd26488080c0fceb605e21327ef30b137d768dd50ab699d8f39084a",
+    progression_revision = "ffed61ca4f00803be5260c3ed427f71c8081d808fd020e7df842840f02236f6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26690,7 +26690,7 @@ return {
     title = "Her Memories: Carnelian Footfalls",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f4dbed13ef8fd992a5e78196f47f8758dc71b5c7f5a1dd83b2e7f54e0ef28941",
+    progression_revision = "0bccbe9f934e1b59ee0d64325fb2568dfb7ceaaf6d478c42b47335e351839a3f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26710,7 +26710,7 @@ return {
     title = "The Fighting Fourth",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b7d1a5c374916041a08f42e29668e62108ecf9d9820cd7d00ff6b1a5601c2e0d",
+    progression_revision = "64f7158e10e91f327d9370466fd56cedd8da1da52bbf34f53b739e7a5177f55e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26730,7 +26730,7 @@ return {
     title = "Her Memories: Azure Footfalls",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4ce92a6b4b73450c54d22a5552876b74780016d59579b773f62f2cc7a32cfeaf",
+    progression_revision = "474c7d33884dc5c33ee9f1d5d3895146e32a75f440a1f18a320ff2cd8090f0c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26750,7 +26750,7 @@ return {
     title = "Her Memories: Verdure Footfalls",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ccae8240a99cf89989dfcb0cdcd8e756f66fb2f808d6b79f5ac55b6169efd35d",
+    progression_revision = "8b6a46e12213bbc8a43d57dde124cad08073b7805a75aee8cabf5dc73075480f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26770,7 +26770,7 @@ return {
     title = "Her Memories: Of Malign Maladies",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2ddb9a0b03d371691cd7cc7735bbf96579ba89ff107856d6d21205b19ddc7a81",
+    progression_revision = "2e53049356ee987682a977f15989ab25eb55c3dcc786e5d13a06ddd4f9fe3687",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26790,7 +26790,7 @@ return {
     title = "Champion of the Dawn",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e42edf65df5fb4ee974040e43db77e119decd2e66ff4ae3516f370083d311107",
+    progression_revision = "80aafc013e7f9ac93ab9e91be06108bd5f7427645b6fe73ea3700fb9c0e9422a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26810,7 +26810,7 @@ return {
     title = "The Dawn Also Rises",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f5cd0799584591e6e23ba2486a2ce32fc3051f1cf6e3cae8c797abc3b987cacf",
+    progression_revision = "dd2d41dd742b19bc2aea4baa51ba5126b015093f5563052c210d7d07324515a9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26829,7 +26829,7 @@ return {
     title = "A Forbidden Reunion",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7e27948c1605f27ae116cfcb67494628d9606e7c8e21c31839946cbd6c74dd75",
+    progression_revision = "7be40299759a370edd0b796864d15cb24b3c62c8016924f5120b47571457bff8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26849,7 +26849,7 @@ return {
     title = "Snake on the Plains",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ed7166f8a09946b4c05786ae04ee51c4d882982437a1a5865684e4ed52c496d1",
+    progression_revision = "3ed444e12a732b47b69f3a0143b35ed19babd9773779a1effc9736507e5840da",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26869,7 +26869,7 @@ return {
     title = "Guardian of the Void",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e9865d4337148735b0a65c45f2af7bbce9a47b104212dddd435de4819e83382a",
+    progression_revision = "b36ed6a0b0dc57d39b7d632fadf1387ba00997d100d57d587277b57ec7628988",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26889,7 +26889,7 @@ return {
     title = "Drafted by the Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e36845b1fe886c99856f505c91286be2a3c2a6bff69526fbd9645a8953965040",
+    progression_revision = "7d7a6a3cda1d06ce8fc561d016f65525724916a4d3f09130312849e9b0072509",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26909,7 +26909,7 @@ return {
     title = "Battle on a New Front",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8085978c710974c5bca9fd7497c5648f81f8bc4a06f4733bcc297221b7df2b3a",
+    progression_revision = "10c28df932a32f26434793533a66f2f87e1b1ab3081b747bc8254ca85bd552af",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26929,7 +26929,7 @@ return {
     title = "VW Op. #126: Qufim Incursion",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3451f1c65811e1ef526c6f58b506773e55c1f5f88658199dd2b26138c9c31d65",
+    progression_revision = "9f2f6a828f86d895344ac3d96b6dfba6e4b08493a60910c8ca939d13f9b32387",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26969,7 +26969,7 @@ return {
     title = "The Truth Is Out There",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1d428bee28f4c0015228e1df17f05cd0e7003f78f2490dee076a26d3b1466897",
+    progression_revision = "e1b5039c5307e96e43a87114dc47ccc294db0975bf2b4ea44f321df81e6d3bce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -26989,7 +26989,7 @@ return {
     title = "Re-Drafted by the Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1152c564e2a6e9aafdddb6ad6e7e2e0949108cc6f214675edd09cad886aec89e",
+    progression_revision = "758fb8b6f9c2561416671530fca5946abac2e63770ce1d989b26cbbe5a48ada0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27009,7 +27009,7 @@ return {
     title = "A New Menace",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f7a5928f7abf71b5d376e66373e6347cae7e620538382dafb061341fea60b661",
+    progression_revision = "60236a9664a2e11bac07ee6808d6b6d7b598bd949297d773550374a0729ed117",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27029,7 +27029,7 @@ return {
     title = "No Rest for the Weary",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6d8a75ea81de267da9c6ade5b08520c7cf19d7254a3d9f59b394fcdcf2a9001a",
+    progression_revision = "27e403ccf877f42d0ee4374c085a76ad97648df2c9938d1a6410d70e60f5e29c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27049,7 +27049,7 @@ return {
     title = "A World in Flux",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "09a8280af5b567f66f7c83b3db92babd3c774b59fe96fc8ebc614445b813196e",
+    progression_revision = "d5e9fb43692c7f6f2b1a91a614088d920323748627f5924b91d447959fd4a544",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27069,7 +27069,7 @@ return {
     title = "Steamed Rams",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ed839793979474de9b83f6527db8e4578eff5742ac8432cc5b86fe17ccd55030",
+    progression_revision = "079acd074c97d211df91c9625533b60c6fa85644517c51be5ecd05a345021d84",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27109,7 +27109,7 @@ return {
     title = "A Farewell to Felines",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4a9164513d97606387897077d36ee9d9a22b08623e653aee1c85373f695f1150",
+    progression_revision = "6b5ae3aecbefa85339bb8aaefd190ac7cd25fa95121798f9d1ee0f9ad6482b82",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27129,7 +27129,7 @@ return {
     title = "Third Tour of Duchy",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "276043f713f820a2afa78de9cc7e98663a60a472fee2d5a7f2b0ae3cf0b86a41",
+    progression_revision = "dfe39742d4de98cf70a0a1259843ae13d482a2c1590982d831bd7632e2621b26",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27149,7 +27149,7 @@ return {
     title = "Glimmer of Hope",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fb672be700bf833ea826d821fd9baef14778f90f4f8607734b6cbf499a1a8db8",
+    progression_revision = "53b1a92d6b11fa3853b8d00782677761bcdcd2807aa41549637b253256bd2ea0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27169,7 +27169,7 @@ return {
     title = "Brace for the Unknown",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b1d913f68e2daa23c3db9870f86e048180504da4e293c14d43c0b7bc7bc3d497",
+    progression_revision = "d401bc7cd203873f306d08ccf8530c5c70509cc8a6e34be7db3d0562e7301b5c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27189,7 +27189,7 @@ return {
     title = "Provenance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "820d0ff1c292cb82c0396db0812426420a4eb7d560a6c0f441ed5d645bcc457d",
+    progression_revision = "a0cf9bad9a69985061b9acf371b35d22394476b3b3c8bb5c180c7720003d22b3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27209,7 +27209,7 @@ return {
     title = "Crystal Guardian",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a6d9d7a323f5c1ad209237bbf4175bfc903ac67fa25fb9c34c6bd0e4d2b73a78",
+    progression_revision = "0c1197d0c759f723640b226e1f34dbd035592188da4243d4fb5fcb2696f8dba5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27269,7 +27269,7 @@ return {
     title = "Crest of Davoi",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "433eca6f1d35401e386bd9c5c49d22221b6b81323af2cddd3617ecf7e5171d40",
+    progression_revision = "bad072cf5c703ad7e509cad9c20620fca7425ffd12926dcddf9e997db1643270",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27289,7 +27289,7 @@ return {
     title = "Save My Sister",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "21894807ffed1360e65697b1fb561a356065ce89855c165fb41a2237651b55e1",
+    progression_revision = "1baee5d0babdbc5f1a2bd991a6e1f8f5c35a67bba8b1d14c3d81fa5e41f38232",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27309,7 +27309,7 @@ return {
     title = "Collect Tarut Cards",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7dbec09de63f4d08f98f807ab08671cbd544e5af415bd43058bd9916bb900ddb",
+    progression_revision = "8ed2ce0969b2de4f0e15aad6c79544a17f31f6b649f6b482b9840a85417bd723",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27329,7 +27329,7 @@ return {
     title = "The Miraculous Dale",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "852b4dcee19f3b6c004f917cf32cc91e6fa22be4a8f1c627c7067549995e616f",
+    progression_revision = "83be91a52d3cf8ed902dc7cb510f7888590e6acec8379650566745fc3f297646",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27349,7 +27349,7 @@ return {
     title = "Clash of the Comrades",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fbe17b928d7b9daed6a70570e60e148367347090d87259d5bca96ee62705e305",
+    progression_revision = "3d64fedffb0dfde92c510ce248f378c5b4bd965efffef38de38862ef759821a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27369,7 +27369,7 @@ return {
     title = "Unlocking a Myth (Warrior)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5ca209f448859e74186847b00aa977ab1ab8720271ac7b3387497c46825b78c9",
+    progression_revision = "8a11d5b3fe144b853af43ba37ff11423f8d8369ab6d59683d8a231e441b7fb02",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27389,7 +27389,7 @@ return {
     title = "Unlocking a Myth (Monk)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "75696713bef6568a4d2e01ac8d0012beb9acf435ab48df527f3430b7f46572e7",
+    progression_revision = "6f7273fd23eb466bb0c8ab2349766a0e807e7e3745e99f8e72b9990ac0bdc5cf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27409,7 +27409,7 @@ return {
     title = "Unlocking a Myth (White Mage)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "de0cb59ff8982664c55682a546bf824afca12d927616735bae6758985b6ac8af",
+    progression_revision = "dc08ab468805097a9678641e1121081dcb917e8fda86181fa5fb03667e52497f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27429,7 +27429,7 @@ return {
     title = "Unlocking a Myth (Black Mage)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "47e89d04ea65c5f7c92279a8c7bbe71891b47eebdb4945592921040ac0b08184",
+    progression_revision = "8975b3c089dfaaf652cc00f71c3d359865be46ad37295217f26ed3fafb41fa55",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27449,7 +27449,7 @@ return {
     title = "Unlocking a Myth (Red Mage)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3bf9ce77ac77d7f36d748556fd21358bd6e647cd5ed8a7fb5d24249935c604c4",
+    progression_revision = "5c16230e3ef374a066b026db28894f0ccd85710c2175dd0b2b0ee814bed32bb5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27469,7 +27469,7 @@ return {
     title = "Unlocking a Myth (Thief)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6582ddaae3d48bffcda843588ca0669760cfadf96f3234c353700a55e4c0c88a",
+    progression_revision = "28013796ce904e47ff4e66ecd54be339f61253958803bac1ab9ed4e9421f9302",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27489,7 +27489,7 @@ return {
     title = "Unlocking a Myth (Paladin)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2c5399f4dbd7d41fe4f07986c48bc74971bc6d5f1a7dbf4488fd3abda3ad128e",
+    progression_revision = "1e63914b292d6ccfa88c27d0966ceebda58f4937160869389d45ee67548a153d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27509,7 +27509,7 @@ return {
     title = "Unlocking a Myth (Dark Knight)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "59859802f1c59332b221949e3b357b03abb37822169cf349ab62158beb36291d",
+    progression_revision = "63000483d013051b82127824b0feb6bf56bc2090ab370d93f29453d7623094e1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27529,7 +27529,7 @@ return {
     title = "The Old Monument",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "729eeab6009d6e84f74c8d9d987ff5735133cac404f1116647bef762b24367c1",
+    progression_revision = "3e965901785cb84db4def2d8e3464f5e677ee433fb16240e3570b77947104311",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27549,7 +27549,7 @@ return {
     title = "Unlocking a Myth (Beastmaster)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "94100f71191f04fea7ba4e1a0276dc02e12934c7669d727eda31349e26eb9d58",
+    progression_revision = "9b86981ede043ea07aa7df16751a7c14b20d19bd93a7a24d0f76e97d8aa0d934",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27569,7 +27569,7 @@ return {
     title = "Unlocking a Myth (Bard)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "919a81be8ef0c7cc5cdbeac68766f0f70ab8bfc165c7c5782777dd57a3a24954",
+    progression_revision = "8bf6e55ffb8f55bf2050a78d9cad7d293b0b74a1c9d0c28a4fb87f2f6dcd6897",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27589,7 +27589,7 @@ return {
     title = "Unlocking a Myth (Ranger)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f314fb7545a1fb178aaa4b6c4d58b124ed12f250acf383eca1e821747e634d05",
+    progression_revision = "6d9e46d856b96445ab94bbe5c65fb2f3e00bceb039fca5dec8f52ab477bf15b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27609,7 +27609,7 @@ return {
     title = "Unlocking a Myth (Samurai)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "700504d8c521d885820b4967dd0e88ab155bc3f2bce7995f9f8019090bc679df",
+    progression_revision = "9e34062f53a97dddf4f5d8e8d28f63dd88237806c4b520ad82f18919c7e709cb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27629,7 +27629,7 @@ return {
     title = "Unlocking a Myth (Ninja)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "10e3edf01920c1abe90d3a65e826ff761b2bccfb8fa92226b04f2199f0040fb9",
+    progression_revision = "61f09729c43200302b85d93bb0e9abf429eaad3278b0b6c27e16b66ca0caddad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27649,7 +27649,7 @@ return {
     title = "Unlocking a Myth (Dragoon)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3b8d165f367b60f2453fa9cff4ef6f88dda0f7fbf710ca4b8783039fa4b8e53c",
+    progression_revision = "603fbc39e5e9d6b3d9007ff1bed16bdc1ede6b55b48cabb56d48c992a7dd4d0c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27669,7 +27669,7 @@ return {
     title = "Unlocking a Myth (Summoner)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ff6addc2838acec4c0f815a52b66c2da43689c721b8634be07978d5041f1bb7b",
+    progression_revision = "9ae6564c221218c772b68c2a59983d8c0de5583770fd30ca870316768b618c4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27689,7 +27689,7 @@ return {
     title = "Unlocking a Myth (Blue Mage)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4b5a0256029500502abd2d2371ebfc80a2f13344621c18b1e04d6853be9a70cd",
+    progression_revision = "e23a938259089426cdfa4d4d02a8550e57230e7b6c72b2f4ebc7fc19c65586ff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27709,7 +27709,7 @@ return {
     title = "Unlocking a Myth (Corsair)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "63a7daf7ee0a48ed893eeefc0d256a16b68a059aaf8982564f5490f5fb2b1871",
+    progression_revision = "cda1478508c018abf1c1e280f0be4e8ebe2371e0feda780220dbe15ae72132bb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27729,7 +27729,7 @@ return {
     title = "Unlocking a Myth (Puppetmaster)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "debc567084a98368b266ae4aa08f52bf2c96ac33082fc3a6f9124373e00d8b87",
+    progression_revision = "678e4877656f17b394d8fee17a45c415000b94366265b75c522a16048e9dc88a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27749,7 +27749,7 @@ return {
     title = "A Minstrel in Despair",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "03ff2cf490be0ce4c60cfda92448c1cc2b127e9eb18836e7127deb3b8179d330",
+    progression_revision = "6d54f02b1ab34e1ba381b4c3452f12e0c85af528a5e3dd5cd0775914acbd1644",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27769,7 +27769,7 @@ return {
     title = "Unlocking a Myth (Dancer)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f16705bdc2e56fcfb6dca91fc2e00b9ba5bf0cea3bfaff15d3fe7052956de307",
+    progression_revision = "dad6fb411ec87e39d5d5d04f14b81b956ad173b595184f4f059b3b9d8ace3cb9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27789,7 +27789,7 @@ return {
     title = "Unlocking a Myth (Scholar)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "db8f1b7722d57eccfbfd7f5f716dc90fe6f086a4ba7ea579694fa5eca0832d04",
+    progression_revision = "c743622808fa0a5077bb65183fca265f50297646b95afa6c02d476599b875080",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27921,7 +27921,7 @@ return {
     title = "In Defiant Challenge",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a91cbb73abba90c20dbdebc3987f880df262b3d0ea2fc1c1406f8bc27c35404c",
+    progression_revision = "06474bea66eb32bc85cae00aeb9ff46ef3e530cb882d70be3bcc9d6679bb196b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27941,7 +27941,7 @@ return {
     title = "Atop the Highest Mountains",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "c06c636766c329f116d03dad843e5da6dba721241fb0b5a763dd3cf51fcd9d93",
+    progression_revision = "ab947c907a5a8191e51512a8221aa802282975aa0f2fa928d2952e21abae9e3a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27959,9 +27959,9 @@ return {
     native_id = 13,
     progress_id = 13,
     title = "Rubbish Day",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e8916fb5da6709a5687e742b445014a28f15155b02f3f0fefccd91f6875e96a2",
+    progression_revision = "3547e225c99e808bef0790959d8ebb32601000aa8e7842b718eb880010f99e31",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -27981,7 +27981,7 @@ return {
     title = "Whence Blows the Wind",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "05d5dc165e0eb0ab7771fb4cb66cf49e0f7324903d34d30ba3554f5fa030a0ca",
+    progression_revision = "5d09d6d88b484463c1f8f2522fce0f8a9082d4359463dda21e08f320c7ca774e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28001,7 +28001,7 @@ return {
     title = "Riding on the Clouds",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bee89fc5a6665c8afb3d3aec9f0e6f86f833d5304408cb86d21552485b8f0b94",
+    progression_revision = "59c7b46da4abee3f527f8831fec67f1c7fe291953a4aa7247d87c4a2ca84010a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28021,7 +28021,7 @@ return {
     title = "Shattering Stars",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a9ca483449aac62dc3ee40269b3c85787a2832dc75a6b08ed97017c535ef3286",
+    progression_revision = "63f3f10dda6ff41f1539d6c1211804c8faede2c205c4fd48a4753e93b5534f6a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28041,7 +28041,7 @@ return {
     title = "New Worlds Await",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3b125fb118aca938007300ed223ef9d48e357c1337c5db3c64132694db534418",
+    progression_revision = "bc0b9d439f240fb758abb49791b9d5a1097e69c19bedf9d7a8331549753c6ae6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28061,7 +28061,7 @@ return {
     title = "Expanding Horizons",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "896491cf532271167ceaa239873952905b12c3f5ada135b4a2f3d212613c38f4",
+    progression_revision = "eb0a5fb00f6751c1fff9039af45fb88b7a3f449b8ba1e417feb6aff7f1dc771e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28081,7 +28081,7 @@ return {
     title = "Beyond the Stars",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "635d6e5d39664584206eafd68dd4dce55de1f1490d11834f5a0d43cd4af9aedf",
+    progression_revision = "13c70dc10c85f7337564cdece6369f7261733557fe0b0a7e483679ffb2364802",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28101,7 +28101,7 @@ return {
     title = "Dormant Powers Dislodged",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c2e34072920f7a2d5efacc09cd49a21f0b21467a958d47ccce85f9164d7b9bd0",
+    progression_revision = "3639a750c9da09d0bc71510b6de7ba301e416935adce39a88f0f96e2f95f4939",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28121,7 +28121,7 @@ return {
     title = "Beyond Infinity",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "305e92a3782ce8a8df93e10f310a7cf6cb874a8af857d57be126944ce2e97ba1",
+    progression_revision = "d2cec39eb48c7ab6c77fc0e2696d4c466b294327dcfbea5fe1fe7c1e9a84bfe3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28141,7 +28141,7 @@ return {
     title = "Never to Return",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "705f94ca5fc64b966c7a45b6ba1c199239ce900c6c3a4dcb37e026ff714d13b0",
+    progression_revision = "fcd20f2fc12e10a68d7488fb7f1ec01c25457e019d82f69a95ee2d486ce69fba",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28161,7 +28161,7 @@ return {
     title = "Community Service",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "309642d7ab524e9542facfef27cc92b82591f0afc9952c734b828a84e07c67cb",
+    progression_revision = "6f8fa9a55288ec43ff5c78bada630f21fd080c9824bb8a4939127fe54b579b79",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28181,7 +28181,7 @@ return {
     title = "Cook's Pride",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a9fdd9088f968f2b0bbb08ec9ff917611e48127bf3459d8e3c4510fdde1f43da",
+    progression_revision = "c2854a36dd8e3858d09d6cf0da3073d0dc45a4e144707c7d2754ae4d70e0e242",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28201,7 +28201,7 @@ return {
     title = "A Trial in Tandem",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "664997f6b5fa994a02d666b6be929be1c97afe1ecbcc344c89871dce06662c74",
+    progression_revision = "84939e4170233d43b8d70d1f83ed5a7f63b45480403809d48de3f5260bf08dfd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28221,7 +28221,7 @@ return {
     title = "A Trial in Tandem, Redux",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "493ecbafccee64c83e7f6f3c0b1fb5e74e3a72e8acac0b9c78002f202bbe767d",
+    progression_revision = "59447c04f94a2ebfddecb31710b6e96e0d0924a84458d0113da104023d1a49be",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28239,9 +28239,9 @@ return {
     native_id = 162,
     progress_id = 162,
     title = "Yet Another Trial in Tandem",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5946e338474a2d58171c94f7ec831e38a0cbe2b90862890f2a8ef274087dafb7",
+    progression_revision = "a5dc1d1b79d751b00ca44fe21d9251915bda5fd552d7292db904b8f4a1ee4d48",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28259,9 +28259,9 @@ return {
     native_id = 163,
     progress_id = 163,
     title = "A Quaternary Trial in Tandem",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e7dd121384f66784ad0ac82872586ced947deaed97c0608b6dbda95b03b9e7c8",
+    progression_revision = "fe117d12128fababd571090d09bcfc5b91c795b87337288f5669cdcba2d1832c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28279,9 +28279,9 @@ return {
     native_id = 164,
     progress_id = 164,
     title = "A Trial in Tandem Revisited",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "84c02884df70f6ac097b411039c2718f2c2c60e0305ed11ea426c8e890bfecd2",
+    progression_revision = "8996837d9cf641be48954abf9eec9fb81c92dc65f6e87cd680a1342ec8802a59",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28301,7 +28301,7 @@ return {
     title = "All in the Cards",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c6014b50af0744b03e01883fdbeaf9be9a9190a555c710dc4345216d443cf2fd",
+    progression_revision = "5d65086196fc0ced640b2f2fe4a906f92da1a879b2bf459ea0f40484fb7278a8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28321,7 +28321,7 @@ return {
     title = "Martial Mastery",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bf28b9d055ad87dd4bf37f10100870f3435860159dbf4908e2d8d3634ea9bdcf",
+    progression_revision = "26b793af3b851008f70df2b0cbe65619ea87a61c10556a74dea03284da01876a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28341,7 +28341,7 @@ return {
     title = "VW Op. #115: Valkurm Duster",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6f48cdb323d0bdf27296a1b27685c701794603c7eef01c11e022601f51aa3427",
+    progression_revision = "afa83dbab0354f5dc9995d51ea6119285e0d63003bdca3e35e76f484d56ba0e3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28361,7 +28361,7 @@ return {
     title = "VW Op. #118: Buburimu Squall",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3c4da36a5229a8c19f8f8024d9935e92c2a1ee6b460d85b0c3f63c1ffd7015af",
+    progression_revision = "f42657d3b351a29acc5fe50a734b771fa8679d9daf7f7085896963a6ecaf80eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28381,7 +28381,7 @@ return {
     title = "Tenshodo Membership",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "72797dac500d817aa4bb8b5a3635b47dab2e3a3b5c52bf7bcc2085549380a922",
+    progression_revision = "8a4b4bd11c20ac804dcfa795a6499cfc3770aab5e66e6ee67ac0bcbf31b4dec5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28401,7 +28401,7 @@ return {
     title = "Prelude to Puissance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f4172427012735c4adbbe435cac5d8ddd740af033f2a713720a13a52e4c77ca3",
+    progression_revision = "0167adfe0f03c504a0c395d9dade6b6f8a5bc4c7e89675d2115d363b83fc9913",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28419,9 +28419,9 @@ return {
     native_id = 171,
     progress_id = 171,
     title = "Researchers from the West",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c648d0104e77389264210e89629575dd119c73bfceebb6d6e8e67ebd0df46a3a",
+    progression_revision = "33f7739d5f7b9a3a40a7d3fb127a7018196bdea7829a32ec4139c728518801d0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28441,7 +28441,7 @@ return {
     title = "Middle Lands Investigation",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "30111c281251287943a19ff49f2d172c8014e1e31efbecf149c703c6dc8068ba",
+    progression_revision = "81e49b2a31994f04156628b20e455263f9340f57ea0ef1b722b5e91a3560ff3a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28461,7 +28461,7 @@ return {
     title = "Further Founts",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "52a8ea11a5520b35bf462a71dff70e41feef935e467aa45a393ae636de1e17b3",
+    progression_revision = "06cf4ef1a1be0883ee26e2d9b31a2966099dc84d47c5b28d71e7566a8a46d1ef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28481,7 +28481,7 @@ return {
     title = "Beam Me Up...No, Not There!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "334c16c0d68ba2db0c9e105ac50e2dc4a70a24298ed7ca0bd55f2e27f5a300f3",
+    progression_revision = "49b44542f9d3dd033b1364838816d64bd97fb685a10487f38b25fb613e21584e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28501,7 +28501,7 @@ return {
     title = "Now Recording...",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dd2625c6204817f971f58245bc2523686b61a01dd5e67215398319f3b1c0e584",
+    progression_revision = "e4868a5f4c935d55774ff8522f8cc9bfa798fff3b7257a8b0bd297bffe2bb351",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28521,7 +28521,7 @@ return {
     title = "Teleports by Twilight",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "758696f15cd7dcee86a2b92007acbc90a1cbef5fac6c792eace32e10712db2d6",
+    progression_revision = "724076cdf76c146d2209900deb057cb1c09bd66ea040ba0c351ed1ff19d27a0e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28541,7 +28541,7 @@ return {
     title = "Shifty Shades of Prey",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b0569b267300ec1b663595a68cb1a687c834c35224929d9e221d68afbdc26113",
+    progression_revision = "3e59894ba92b1fc6dc565022d889d143cde12995ff8fa4152798d25516531abd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28561,7 +28561,7 @@ return {
     title = "To Kill Mocking Birds",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "84b1ea9eaf7fa19a89c16f4f2ee6ef75f97e84f8de536a73de0daabe58b9242e",
+    progression_revision = "eedee658c9deabf39507386302614b62c2f94a0da8368cdedf50dabd1cd75085",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28581,7 +28581,7 @@ return {
     title = "Full Speed Ahead!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f126b1736bcfaf368e3d17b4cab83dd94029be4676d024d448f5f9729617f3de",
+    progression_revision = "c9e55da9ace10dfd586307c0377f3fb76634b2efa79880b236fef43701762315",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28601,7 +28601,7 @@ return {
     title = "The Lost Cardian",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fd410631d2de1241f4e56288080bbed1f7f37a0c070735ba329a732c681303b5",
+    progression_revision = "ab397c53197ed8f47ce80ab27981035c74033e84cfbfd07cc6c835d8694b8bf5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28621,7 +28621,7 @@ return {
     title = "The Flying Machine of Eld",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "baae84543f3642abbd334976f25e5f04200f3f890b8f53f40b7a5a442a9aad4b",
+    progression_revision = "47272291da30015ff6e7d88d7b22910f901657a0056a41c2ebef9b2876771081",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28641,7 +28641,7 @@ return {
     title = "Path of the Beastmaster",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5c2138757179256c8f7faa165a1f006191ffe49e656078d0907cffb3e867580d",
+    progression_revision = "f6b217b81db1639f41641d2cab3f8a48e4362fd207278bd0fba8c7714a0311c4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28679,9 +28679,9 @@ return {
     native_id = 20,
     progress_id = 20,
     title = "Path of the Bard",
-    status = "source-conflict",
+    status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "52cfd5a4d39c50b340a5fa697476b5ae6abe9a748d3d78bf183d3a94eed979bb",
+    progression_revision = "3fed95f6c261adef5bfbbb1e130b3a710c0bdfc85f9d1ebfcd5ca509b66b146f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28701,7 +28701,7 @@ return {
     title = "The Clockmaster",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "bf59e2f5245e74b9fef3dafe1f62d9b111defe31b6c8c1843e14a68e818937f5",
+    progression_revision = "c1ff4b67a6518369591d25b74eb070d887185fe363e50af5943e74f2089d5749",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28721,7 +28721,7 @@ return {
     title = "Candle-making",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dc5f5d1650f86832b83fd7a2d910ad84755e89587e99bcacbdca86f726f5c2b8",
+    progression_revision = "d0024b5b39ebc22e39f49a4c813b642b222dd66aa6f60b453c87a85d17cd88d0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28741,7 +28741,7 @@ return {
     title = "Child's Play",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cfcdeefb52309eb9cc177fc8546741c07d991ad493e3a6d8d70db4395daae1d2",
+    progression_revision = "95dee0cfea90f82fcb60f5bafdd7def7a43c9844b8eafb1aee135fa37f577e6e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28761,7 +28761,7 @@ return {
     title = "Northward",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ec123fef27d464985e7240267baeac0080d356a89527d9fa2d041f56e7a2bf81",
+    progression_revision = "c29dac2ee85f729cf17ebb78a253737aeebbb196f946e5eecf6efbca9a7a591b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28781,7 +28781,7 @@ return {
     title = "The Antique Collector",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6c77da43b37d817fe572f1f4da2d5e444f3cf3a679e52fc7fe94ec9e86eea401",
+    progression_revision = "9bd013ff26bea388eae462c4a9b3ccc55d296acb798859cd9cffdc4b4d52fc2e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28799,9 +28799,9 @@ return {
     native_id = 26,
     progress_id = 26,
     title = "Deal with Tenshodo",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ddad4215dc4ca51fe7f0790c477c618ffe56b82ebb5effd48c3b2f4b76e319dc",
+    progression_revision = "eae846acdaa98502b19ff66b9b15beb435d99940d45d63d31a0053634234effe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28821,7 +28821,7 @@ return {
     title = "The Gobbiebag Part I",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "44d2f143c88e0a765924e2c2b1bf652b5ba85710c4a8d64cfbce2f5246fd10c4",
+    progression_revision = "9cc9d499875ba3365a175b4ac779de8e5f32ab00f34f5d0db9c66221dfe01002",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28881,7 +28881,7 @@ return {
     title = "Save the Clock Tower",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7dde9850d9142127b511e192f5f1e2f8a808b4ab976b8a1c3158de7d30d4957a",
+    progression_revision = "3717183aa5d6f9a4cef5eba074b467130f31be30ef862dedca4cfab1f1fe5077",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28921,7 +28921,7 @@ return {
     title = "Mysteries of Beadeaux I",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a729440d76b9736a748ea495c6b1bf2bb093f3eb9b3577ebca4dae88a6f8454c",
+    progression_revision = "801f3f5ba92b97d103d93532476c44699b42478481a9604120bdaedb9b1a22e3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -28941,7 +28941,7 @@ return {
     title = "Mysteries of Beadeaux II",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ec1b8ba17f66d5fe671cbd80aabf39e04401968266cce778655bb6dbf4276a8b",
+    progression_revision = "c054ce9dd1dd0c5cd060fa3846a83b2a43cff5f8c60f3d115d05b0ce04143187",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29087,7 +29087,7 @@ return {
     title = "Chocobo's Wounds",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f74ae179ab12d39a20e893b8d289c42b2b0ed9758e4d433858b446219acbaf7",
+    progression_revision = "ed9deba6cde12fc121340adc2a7bd7f831383a76c1985968351741da18798a32",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29123,9 +29123,9 @@ return {
     native_id = 41,
     progress_id = 41,
     title = "Fistful of Fury",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "75c1a719fdd9b39fe6f50d9d7ede78244092721b8b5b46fc85fb0e0218736ac3",
+    progression_revision = "f5ac97858a048e3b870d798c92cd4dd453dca91d28d78a5568864eb25f14e057",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29145,7 +29145,7 @@ return {
     title = "The Goblin Tailor",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f649c87c0f6c994970b5a244caba8758e93c4f6e71914a4a91aad4cc8d8de9e0",
+    progression_revision = "136c6e86a4b0f1bff2a09cfb173d2c1e97f9ab61d6e4c5dae0c3b827f3c17222",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29165,7 +29165,7 @@ return {
     title = "Pretty Little Things",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "57b2d28c081c586b10bdf57b0e2ae138d939f69a4e1b68dffed58706a87a42a8",
+    progression_revision = "d8d8d5ea4f20587734ba3214a395a910dc2e427538eb899488d5dbcf6d319f9f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29185,7 +29185,7 @@ return {
     title = "Borghertz's Warring Hands",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "62895270b2c7d4f4864d952b32d6db9dcd9ff8b158e8f2201be40a4cf1a14937",
+    progression_revision = "3ed60260b0fa7c7ffaf5bef387155e4f4a5a6b07adba238ccca797fe6f57d529",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29205,7 +29205,7 @@ return {
     title = "Borghertz's Striking Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0f2f03c1f47c38de07e9913a3503b4911a365f807f65e5f19e60468ceb360e10",
+    progression_revision = "67ba6ead035a0af18d79d379fb15b06552a5aca721d2337bb6e331c4a26423f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29225,7 +29225,7 @@ return {
     title = "Borghertz's Healing Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f7e770781e8e699bcc7b19c835a32862966fd52fbf8d8e9c3578932d7eb658e5",
+    progression_revision = "7fcfd31bf8ab5a43a64ebd8afc7053c596e2fb42eb4cde22822e406e6d7449e0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29245,7 +29245,7 @@ return {
     title = "Borghertz's Sorcerous Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c5fc396a89ff8ff712ad6a7c974c27610d62876c2c93cebff111a8ad05275dae",
+    progression_revision = "d4f9f17a53e71a0381327806e8c687f106524f0789fb5ccada18b75776e97f90",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29265,7 +29265,7 @@ return {
     title = "Borghertz's Vermillion Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3954a3085d6bc7598103000884ff2ebe2558da87a3d0ecb6c18665b8e514215b",
+    progression_revision = "9658fee64f34e2c87bb55d0b375c39400140ba2ac246fab1591b4020fcd1fef6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29285,7 +29285,7 @@ return {
     title = "Borghertz's Sneaky Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "81ab04d822ab9aa8b6548c6ca0af4e94c307b6588a09e35cdaf124138bc3bbe6",
+    progression_revision = "666fb0fc898a6c0ff1cbf964af8e2121de73eca5203f2fdfdbe9bd22907c1084",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29303,9 +29303,9 @@ return {
     native_id = 5,
     progress_id = 5,
     title = "Save My Son",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7dea47d5e5daafd019759ae635fcb52587eab387e57cf22120ed13adb3d64465",
+    progression_revision = "c6b3501f72cf35c6be2481a71c733c2af5a76c80840cb44b495abdb21d78a329",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29325,7 +29325,7 @@ return {
     title = "Borghertz's Stalwart Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f79494292a5c389f257195477f713a663fb9bff02a2ab4ae29d0be22abfa388",
+    progression_revision = "d0f0d2026043226f042d4e9865b843150927c6d52e600405e32b5f9e95318651",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29345,7 +29345,7 @@ return {
     title = "Borghertz's Shadowy Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "84839a55ec13933d484a5a69950265f2546b2364c0ccabfc42e954017afd7a22",
+    progression_revision = "ec09fdd8ce5eb2cb2ab417b6efd21b4b63221228741ee756918a892f3fd441ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29365,7 +29365,7 @@ return {
     title = "Borghertz's Wild Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e3f356b5b7bd350703420491e0d436421e904290524847ad8b8a0306de141501",
+    progression_revision = "4e2825522643d14ca61ede751c99519dbdf119ab567f4a9bcf72750d84fe6923",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29385,7 +29385,7 @@ return {
     title = "Borghertz's Harmonious Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ba2f206df6527db72c0b03788acdac71ef2cd9a541db8c727a19faed5c400bde",
+    progression_revision = "a8c3d59ab757b1c926319c06d52bf7bc0ed997ffeadbea10b0971f6cf2fd689e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29405,7 +29405,7 @@ return {
     title = "Borghertz's Chasing Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "90fbb89b58c0bb8f3f4e3dcae55d63a3d72a3dce7ee885dbeea0db5694eddd59",
+    progression_revision = "28de33401b9c55e719e9a036a0ab1ad279c1908906c76207e798005da7e971ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29425,7 +29425,7 @@ return {
     title = "Borghertz's Loyal Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c4fcd8a4da4854cb6b3828354fadcfb11394f2c15724332cf515c8cf6189d7c9",
+    progression_revision = "b260b610288ad430f2ef5c5baa33a36a09db61717eb9cb10f3f22873ac42fb59",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29445,7 +29445,7 @@ return {
     title = "Borghertz's Lurking Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "612bfd883e40831f18c335f8699b46003a0babb2be4d4e17c2ab3f6d4c533cdd",
+    progression_revision = "4490f706dcd316f82a6812f02c4944baf58cce27e239c9fc2882a63ca275784e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29465,7 +29465,7 @@ return {
     title = "Borghertz's Dragon Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "56ebf5f73ad78dc68a48856664ca9ae5043021b70296bc68d324a52503d67fa1",
+    progression_revision = "e761e00e552d8d23072afdedb32179487b6b90ed30f1587856175fb74157b139",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29485,7 +29485,7 @@ return {
     title = "Borghertz's Calling Hands",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "170c4876ca2fead42ab2972a43aba105f3a6f8edc69ef0a6d56be36ed3bc249c",
+    progression_revision = "1e48293568cbf6077b2adffa6ab86fe82d8d73b363159509d0f05dede0c091b5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29505,7 +29505,7 @@ return {
     title = "Axe the Competition",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d1361f15d596824c73422b6acc118c4f5ce01a98f38f7ff23e7349fde12aef80",
+    progression_revision = "c82ef1e4e63d2491ef5130ac1ce9be18d938fecaaf5dd23dddaae09ee783121e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29525,7 +29525,7 @@ return {
     title = "A Candlelight Vigil",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "68e46f04db0e183943a2775867939db2c1bb329a147caff311794f86608d2218",
+    progression_revision = "31a4d34d7becd06f317a09f75f98424fe47d4e7fb1adcfecb7e665c65ad00e25",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29545,7 +29545,7 @@ return {
     title = "Wings of Gold",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "71c13f94d10321915e3ab8df95db54b8fb5fd6bdfa79772095897fa5f1256d3b",
+    progression_revision = "5cd52e3a1e74deb116581c252e7dabe59aec58bd7913e2da0bc93c6002ee2a69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29565,7 +29565,7 @@ return {
     title = "Scattered Into Shadow",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c0830a4a8b2ede9c316d208892f39aeebc6e6ac4fdaa0b0cf7e6a67c2a3a515e",
+    progression_revision = "324e70dcbeb94c81f096cadc50b8e1ec028011197b73aae1962ea444d7e14951",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29585,7 +29585,7 @@ return {
     title = "A New Dawn",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "fb990c5cdb6b4450ab9720808dc8c0588e183908777373773d166b107d94ee88",
+    progression_revision = "916cf125cbe793b028331851dee23ba68a4d3855156840e8ee1cadf3b623e642",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29605,7 +29605,7 @@ return {
     title = "Painful Memory",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "56f6e790a9dfd5859216e4082f806f2863837f951f36b9b7a54458c863ca8c4b",
+    progression_revision = "fb9c49491b4b76eac49caa55cb1f8ad82fe2f7f76d699bc768fc32d01e0d65df",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29625,7 +29625,7 @@ return {
     title = "The Requiem",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d5b68a49111aa63fcf663eff885edd0fe35edad76ef65c848e2cca3d3181f1f9",
+    progression_revision = "f686d0d2d5ff6d2ad88fba088cbc924bd3eeaddf6df9e93747e5f4d86c6a990f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29645,7 +29645,7 @@ return {
     title = "The Circle of Time",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9e251ba0604081350f4c1257ce49140782d203f24da4bba9e940a01f2e4ec251",
+    progression_revision = "f74fc27549ff24e8ddf797b167ff4b7c15a0e2a14056c5cd5e91b65f9b7601a9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29665,7 +29665,7 @@ return {
     title = "Searching for the Right Words",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "39ac78806cbe8c6fa8d869a6e04aeaf79302fca26477e1ca1e1f008b0de52106",
+    progression_revision = "1e2da04634a3d5b07093bb1463e222647af530102588b3ca37d06bb61ac9ac1f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29685,7 +29685,7 @@ return {
     title = "Beat Around the Bushin",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "950728b279291a669320f755c7c853938fd582a4e4a3507a305e6c4eef1fc2c3",
+    progression_revision = "7f84c353786c035250214ebe2ad4c937354bed94871d509a4c31c2cc52c8693e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29705,7 +29705,7 @@ return {
     title = "Ducal Hospitality",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "415efbaafb95f5368bdbe904219d242f0fb43c7604e75d308bc4c4776dbab552",
+    progression_revision = "c3cc01bae45ec274c573943c0315794fe05059dab35cb42c5d79fb79d72f8398",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29725,7 +29725,7 @@ return {
     title = "In the Mood for Love",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "265236ac27c99341340a6dfe9e989dd44d4259dca8a62fde519ee0631dac93e1",
+    progression_revision = "1c3ea8b5779d8dfcb5192117a64f6df489d82ae1edff80e62630977f30ef3772",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29745,7 +29745,7 @@ return {
     title = "The Wonder Magic Set",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5085329d99c598f491a985b645f43c48d65acc83f82350d336b9f027de8da02f",
+    progression_revision = "fe3d921fe19826e2ad99e8317acfd624e4aa675485c0f7c6a534cc24917cb711",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29765,7 +29765,7 @@ return {
     title = "Empty Memories",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9b66338821103deaaa24a88e3559239dd43eff91a3b72dd4663cde8547e6f77f",
+    progression_revision = "919ab7b4b9b668cc1b7ab79e2d14e179b66387a867c6dd042f3902238d187b4e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29785,7 +29785,7 @@ return {
     title = "Hook, Line, and Sinker",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2c0193d506765cb3693dc1c6d97b82693c24e741177315e3518153e77b1442e3",
+    progression_revision = "911418cc576ae0fed7c4155812ddbf335a08e1f0e7ec7f790a08d0d77c2c5398",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29805,7 +29805,7 @@ return {
     title = "A Chocobo's Tale",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3b84184e8bd66ab5313aaa5e4bb577bf432612f866c5a33febb029fbf6affcfa",
+    progression_revision = "647ca514666c98f6c65c92f9325c125ede85f7c0d63ccd2385665c45d6853ea1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29823,9 +29823,9 @@ return {
     native_id = 73,
     progress_id = 73,
     title = "A Reputation in Ruins",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "61117a02ccc3c1701d4849ae2c493143e1942f67fb81e4cadf5ecb565172470a",
+    progression_revision = "272cbc002bd75321596cf27364982d2611d3bd3599787c09078cf2df7a723b0d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29885,7 +29885,7 @@ return {
     title = "Beyond the Sun",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "eb858b5698607162deebabc42817905c0dcd2c5c48681b83bdead1e130f84f6c",
+    progression_revision = "e88f70f91aac974db53d0b13fddf888a5c85b256caf2c34471921527eff169d0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29905,7 +29905,7 @@ return {
     title = "Unlisted Qualities",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "099e1f1a19324b64cb88d683376693427a27c7f0624f13d1f704811e0201637a",
+    progression_revision = "cbd3e2d1afd6f9d06353ff1168693865bfc844d96c034896af68166c4592b62b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29925,7 +29925,7 @@ return {
     title = "Girl in the Looking Glass",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f5778efb7fca7c68af6f4863237c63a7bd0db6cec17d78e470c597308451cb43",
+    progression_revision = "50cfb90b1f4c3546d20b374f32cc24851f19cf2e14e7f7b5246fa55272d5b1ea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29945,7 +29945,7 @@ return {
     title = "Mirror, Mirror",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e1f90f4facf438d0607b73e585f0a3c4744aa4a99ac360b82c1cd7a9c77150e1",
+    progression_revision = "00b7d4a19ecee68ae3615076d67421898d0d27c3c808706eadf93e1457803765",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29965,7 +29965,7 @@ return {
     title = "The Kind Cardian",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "8b45871bac2e3c6e8d729d6c99fed6086f1dd9a6a00d219da808aad8ead26568",
+    progression_revision = "1223e006985d1884eb5811bd84c3175da7942bb6e1efbe24fba136f32937209b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -29985,7 +29985,7 @@ return {
     title = "Past Reflections",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c30e25a3f588c94158be2e3f157000a632b9d7c5e520addbc11deca53c6ff4bf",
+    progression_revision = "a4a2f6276d388d5d454813f8bb657f8db03dfb0b6a102dd4ed36dd2444a949e8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30005,7 +30005,7 @@ return {
     title = "Blighted Gloom",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c81c27e4c316545f347ab32022d6e81d5477511a4be6a9cad2b4c3ccab65e2c1",
+    progression_revision = "bc30e73b2c12643500f0febe236100006bd513c38912ed9b01cef8282cee253a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30025,7 +30025,7 @@ return {
     title = "Blessed Radiance",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8cc01feff9ac8a8a2752984633963001b3a35b14f920449006c680b7a42242a0",
+    progression_revision = "d6048f10a70ae220ce6ea7c9f14ea195530c2fca227ce4c6e329c78f9eb29553",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30045,7 +30045,7 @@ return {
     title = "Mirror Images",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f961997af60cadbd7c3fb7e0c2519b0430bb00c5c5b68c1d06c947300a1d4e5c",
+    progression_revision = "9c69eecbd9a8fe6776e5cb1e3b339b56e84c147a3ebb273ab0c5d5cd0515e654",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30065,7 +30065,7 @@ return {
     title = "Chameleon Capers",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9a57e10c5937da2e6a7484dfffddead4e2c5cc3c51313d76f669101e183baa14",
+    progression_revision = "187b4cebb52a48b2c473eada06a81f6aed38129a80a4b5b87b5d83b9895dcf67",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30085,7 +30085,7 @@ return {
     title = "Regaining Trust",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "77c2b3026e5cede9d2f7576c73a053c5507bc21d9fb3bd01261791b43d153b6a",
+    progression_revision = "7d5c3f1f5a9da4d80066fb8b7de1c5e90ec76d0e4c0818de5d3aeae28b36b24c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30103,9 +30103,9 @@ return {
     native_id = 86,
     progress_id = 86,
     title = "Storms of Fate",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9d79547a8c8feadb6516ef9b3e2edf00380c43c897f21c703553e67d61133066",
+    progression_revision = "48b28064e726aeddb8bc276b1cfe0ef35e11a7dd065d1ee6aef4528d6797594d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30125,7 +30125,7 @@ return {
     title = "Mixed Signals",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fd5224d51153c1350ec5b29e269e336f3c1e386b8a2831a3c1fe75ac3be901bf",
+    progression_revision = "513fb1faf0612b2745a703af2702b201e5db6f16a65bcc92de61a6476245d4a9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30145,7 +30145,7 @@ return {
     title = "Shadows of the Departed",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b4d8f605d55cf639f20828349f566c7ae6c352358b17234e0a3a8361bc7f6324",
+    progression_revision = "a6c39c26d2316ecec01c5216efbd969f12a3641d727a912bd4ec3b62b9f07500",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30165,7 +30165,7 @@ return {
     title = "Apocalypse Nigh",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f88a41f6815be265514e9da5f569c21c80b9aa57a3740ece9c237206a669e97e",
+    progression_revision = "d5315314e624b28603afb2fb91925473357e97bba8a474db7ca8173802539018",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30185,7 +30185,7 @@ return {
     title = "Your Crystal Ball",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ec6515753f6edb82a11e03113b08ff385a39e754d775f9e97a2d27ff05e7c668",
+    progression_revision = "6a3ac0155be4f18ce6ca9ae777b00ba8e4b87f21bc245097133a2a1448cf4b96",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30205,7 +30205,7 @@ return {
     title = "Lure of the Wildcat (Jeuno)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c56d1c2a6dcb90cc9480424e7e380bb03e7cc67e1b3e2a1710fab5f60b769bd0",
+    progression_revision = "f86376a92c1ffe9d17ac828f25d91c4869671a9afccdf6b38e217409d0445be5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30225,7 +30225,7 @@ return {
     title = "The Road to Aht Urhgan",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1f415459125e4297a2485bd7636e00e4b8275dfab43bce7393da4416c283b67e",
+    progression_revision = "8d81dc57e24a38b9b5d31238ef0d5f36e2f67d4d14ac3c61035b554635fda618",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30245,7 +30245,7 @@ return {
     title = "Chocobo on the Loose!",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "073031a79f24bd2e855a5561c6996cf445118d5d29dae048b88ff0d33d45079b",
+    progression_revision = "dabeb1ac09cc74f88b59b47dc87d22d3602de34f3f41a72adf57770862dc7b1a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30305,7 +30305,7 @@ return {
     title = "Lakeside Minuet",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fad31143f5bdb46d3100dbf4f98de91ecb3e820bf4951fa617fe087df14f5947",
+    progression_revision = "ca856d710557eaf0db5a81c5786fe5f753544a9ee39e9d72f49ac25f7f1c444a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30325,7 +30325,7 @@ return {
     title = "The Unfinished Waltz",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4da6bc33433835f820a231763c8b0bc03683dc7da6485832e80d2a9ba186f642",
+    progression_revision = "184f0cafcd99ab58c4e32d6fcbb6876589ffb74fe282b47103305c99b9b0c278",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30345,7 +30345,7 @@ return {
     title = "The Road to Divadom",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4cd1d4ebabe3f56d79481daa6c875d64a3166b304836c4814f5577926d85a3b0",
+    progression_revision = "5c1292447e104c3f5935fdc92a06fe37bd26686b72875b69510fa67b61da4182",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30365,7 +30365,7 @@ return {
     title = "Comeback Queen",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b44f457c47eea69ac1100985bcfdbd79cfec5e856990e0e0a643f4da6369c029",
+    progression_revision = "294effe14c4133bb2e0a46bc19706a94929766e433251fe22d86f317e095b585",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30383,9 +30383,9 @@ return {
     native_id = 99,
     progress_id = 99,
     title = "A Furious Finale",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7fd4b86fa39d2bf128c3ba98b9c696b09b6b5a687362c240001d4b7dd79621ed",
+    progression_revision = "933658c529364b8df21051aab956728725f34c26032a627f279a19d9a7684915",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30405,7 +30405,7 @@ return {
     title = "Rycharde the Chef",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "891b0f806cdac93453350da2941dafbdf87e0685bf1e78e75076b23b33a8ffd9",
+    progression_revision = "e82ad25753576b75d49ae4f4bdf3da6a5cdc429d8f3fd2d46bfc82fb1e9be5f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30425,7 +30425,7 @@ return {
     title = "Way of the Cook",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a19470b1520543420d26fc88d87c95eaa0a82ffc78ffc5cc148d04b5d030d96a",
+    progression_revision = "a54b57fcaacc0768a6a00c33a248b7219bfa21fcaff39dc3441ca5086c043648",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30445,7 +30445,7 @@ return {
     title = "The Old Lady",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8228be3d0bc67b00ef30cd68387028ed703da12a705678ad5284f490434af741",
+    progression_revision = "6a3cb2c384fb48e50670dd43cc08cb77307460da879d62f35043d308f9f5dd0d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30465,7 +30465,7 @@ return {
     title = "Give a Moogle a Break",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "13f15d7beb653d0f6085627546946f256ad5f2b65f41196b50e624943ede926e",
+    progression_revision = "23b212fb4e7cc5fb916aa9bc1a30e1c06c0cbeff0555df18ba69c8490887a18d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30485,7 +30485,7 @@ return {
     title = "The Moogle's Picnic!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a6e64aa4e533547050da26f50012a5e8d5cfd1284a06fb3844e9643e9e01f6e5",
+    progression_revision = "94bfbf57d46129023163dd68163e23065ac5abd884e99b61346071f627f2ad3e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30505,7 +30505,7 @@ return {
     title = "Moogles in the Wild",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "059dd76e12825be0453f6a38339bdbe912d013c72deff4a556d32ab345d60a0b",
+    progression_revision = "caa256192b47c51dc03bebbb5f793d0ec99017d95a9fc18f5928a30e3ae8c205",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30525,7 +30525,7 @@ return {
     title = "Missionary Moblin",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1a7f68e3e519a4142013c276206c7687def21f046e42da843bf388cf4ffb6290",
+    progression_revision = "72b42dfe112aec8e6d79a18200320a5281533b5fc5c437d0a0d12ad6fb3627f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30545,7 +30545,7 @@ return {
     title = "For the Birds",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "05c4ac5de9212238261ce76ca213b0fd670f23af8f05b03c377ef9dc369e2a5c",
+    progression_revision = "05cec6e18c44ffe816ffb1cf5d1e43073832b5106c982fb298997bc229835920",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30565,7 +30565,7 @@ return {
     title = "Better the Demon You Know",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4540be7f605fd3d505d80113d5f4475e7848fb0e4c401004c232e52720f2b1fe",
+    progression_revision = "f5dad32f5b6b8d7c65c0f435dd2691dc5fb0ffb500dd5050aa9568ea62cf8b13",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30585,7 +30585,7 @@ return {
     title = "An Understanding Overlord?",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "966ffd6f75f9465e037a05e5f9bcc9e7aeef81f175ece9b4e3a5393f3ed8454d",
+    progression_revision = "91c1785437f72f5668ad598e02a06df1304f6de5b30a7c0542f280b5fa23bb7a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30605,7 +30605,7 @@ return {
     title = "An Affable Adamantking?",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "c3d3a2d7b0785cd3baaa28c07690c1b7aefe488da913ddf2e4079dd77e3e3491",
+    progression_revision = "1f9c3640163815db122ccb253bc3ccf908d4780767328fb4434414b7e9338a5a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30625,7 +30625,7 @@ return {
     title = "A Moral Manifest?",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e2bab508ac9c4b4a9e6363d5a89d852ad0a8d1cd9809b50d503deb3dfda6c4ba",
+    progression_revision = "0c4cf1bd434a6c4021e685c4ae6680b63bd91e6d279eaa5eabe2af676502e5d5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30645,7 +30645,7 @@ return {
     title = "A Generous General?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a8eeabae624398fc01c580d6ea89e14732e570397db77be98fb199ae257ecc05",
+    progression_revision = "db1f0b294dc01ec642d103a9838a61d250df3ecef832cfc301df92d46d87180a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30665,7 +30665,7 @@ return {
     title = "Fisherman's Heart",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "56a7c826087ee5ef70192108f3f8150ec894795014a98a077669006d3876dd9d",
+    progression_revision = "4baac9b23b842ec57c8efb14074e62f3f5f21d9fb0197a0dfca3f880501d64f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30685,7 +30685,7 @@ return {
     title = "Records of Eminence",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "01d7973feb6fc3168d4f814bb4eb2bc28570034b9a6398bb51ec91bbb018a7a3",
+    progression_revision = "dd204b66455c75ce9f359fc060d0379fb8083da6bf44f732b9ebcf8804cb96be",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30705,7 +30705,7 @@ return {
     title = "Unity Concord",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a56ed0badb09b026a6491f1095ce5071f63a153caf673e1ec4e7854a2c30e7e1",
+    progression_revision = "dbfd84b6c97153d1922ae09f22f49e7c428bd57e10afe19030824105aa0ab40e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30744,7 +30744,7 @@ return {
     title = "Under the Sea",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "623f4859c1944563b03af6ab0cd9787d5ab440040df39a5084f48681f0341871",
+    progression_revision = "ae14e04ba22c1cca375a68de7b0d1e8dd74847429005e8751ac1c5295e390ec8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30764,7 +30764,7 @@ return {
     title = "Only the Best",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "29da401e942e0c4f59551541fe5c1ac9f4224a61fb507f9a35f1171b737d55b4",
+    progression_revision = "a6db27298246b43467e315092dc0a7f600602e2dcf5508e1544be6a435f328c8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30784,7 +30784,7 @@ return {
     title = "An Explorer's Footsteps",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f3671001841cff6dae1a106c501a811d9aa7ca223cb8edbce3f86462690c2823",
+    progression_revision = "8905b3d2b5dfc29b6cd45d98852657048164a21bbd7b1df85431017fec0f239d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30804,7 +30804,7 @@ return {
     title = "Unending Chase",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "21d45e85f21701d086df3def9ba8ad56b4aff000dc2b97757a04499b75e8fe1b",
+    progression_revision = "767777d6c7e084d0e2c44fb695cc3ade620864a6629f6b7f3d46d6ec0ddc322a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30824,7 +30824,7 @@ return {
     title = "Cargo",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1d789339de4d3bb0eb38af790f17610659673fce65bd690729e88093c4be6b9f",
+    progression_revision = "d2a31e838f35244d6bab53061df5bb2596c895afd6b7556f3e88496808f9e9b2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30844,7 +30844,7 @@ return {
     title = "The Gift",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "75d56df8e31d1213eb3ae0917b19bee77ac17f8b99f23f6afbf4c194096d31d7",
+    progression_revision = "5957b8030cfe5dcbc47b83aa95ed448adeb64e51a2a5e479349548f5387e74a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30864,7 +30864,7 @@ return {
     title = "The Real Gift",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ba577842fa02a0b36fadbd5ef3d80649ec1673740a59ed343983f4f4ad809d3f",
+    progression_revision = "4e884f4de9ca954ffc673b0eed0a6e73ef54e33e1bf12ee7834e9017dbda4d75",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30884,7 +30884,7 @@ return {
     title = "The Rescue",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "429f6f66b20570251bdf546b2a1dd51dba721897c446e48dd814a008aad7d13b",
+    progression_revision = "e132fb7e14dd2c45566f0e361e2afa2a64883dd1a0beaae359e776cebaf9ddad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30904,7 +30904,7 @@ return {
     title = "Elder Memories",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d48c08b39472ea10c6ff085cf23e069e1f33b36719031ad1562d99eb500b9c63",
+    progression_revision = "8d724a6579e58ce19e83c97012cd124bee3a0245b13c38612623e55a45bd217c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30924,7 +30924,7 @@ return {
     title = "Test My Mettle",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ea3f50f5bcd9d74e9c83c3d02b73bb83d0a341087b62efa851d2c2cf0157f0ee",
+    progression_revision = "4f7ea1e0a01f4f4fd524f6dfd7d6fcd2a17e4be83f78b8ef49800e970963f1c2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30944,7 +30944,7 @@ return {
     title = "Inside the Belly",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f216ba2e4ba57b97a9eb0152385bab35accb9a7b958e1ccb61663aa014a941a",
+    progression_revision = "d71190ea7a9ea8e6a322044bca251fe51714b16dffd8c75d7eb89dd983f0e9a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30964,7 +30964,7 @@ return {
     title = "Trial by Lightning",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2229c9b5c5a60af41df9d60419d819b28715d9a0b52cde93d2bb69652760a579",
+    progression_revision = "a39fb83cb09b3e7e09487bdec1766799c8014e7c88acf67c4a30ea23caa312a0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -30984,7 +30984,7 @@ return {
     title = "Trial-Size Trial by Lightning",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "87bf5533d9bca99882e1e43a33d69c7bb7da3f6d1a96071a812d22b3d835a9e9",
+    progression_revision = "fede5c3825e15b9f07aad3467894a22562ff32108b2a9fca77898b89a73f7b7d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31004,7 +31004,7 @@ return {
     title = "It's Raining Mannequins",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2bb526e94b720319f35a874993f850f6f0cfedfa6d5e5d45b6dbe6735f0dad8a",
+    progression_revision = "dfdfc6ed9f4a4cd4b5292e3d044a69ccc3eff48221efa403de18b4f9630a5e1d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31024,7 +31024,7 @@ return {
     title = "His Name Is Valgeir",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2c2d473d7a6e7de8b55e096344c05ced2c0439137abd805f9251cf563f381249",
+    progression_revision = "bb8f9ca6345ce1719821bfa40d93fcb3258e4bac829e1d9e05663ccef32ae25a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31044,7 +31044,7 @@ return {
     title = "Recycling Rods",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5a55ded1e7c832b94b9ad2054b800a3735f07164877ffe894cb3c1d87ce43d31",
+    progression_revision = "81111a6a492437d5693e1d8e8e4fb606d28dfc4ec28001a1a8e7b5c0d5efe752",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31064,7 +31064,7 @@ return {
     title = "Picture Perfect",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9001ada268062292a30bc6e8f1c736bae542c494481ff6b896dd54b68e8d6839",
+    progression_revision = "4e780060237d268446a3bb46afa22dd3929e07db5b4e064a08e78d76574047d4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31084,7 +31084,7 @@ return {
     title = "Waking the Beast",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3cb1dd0175848b5c41c579d56d5d7a4d5ae5e02b19de40fa72b011f90f0b63a6",
+    progression_revision = "ebee99315ab4147d7444883806d40bc39c2cbce8ee2920f0428a2212101e4797",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31104,7 +31104,7 @@ return {
     title = "Survival of the Wisest",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "17770506535088667d091c719c8ce2061458a7e508b4cc8dd5d190d4268e273c",
+    progression_revision = "f53d1d13bf8839f43a7f1d0a3b6ba16cc7dc9098922ec10f6f92d4311cee4dfb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31124,7 +31124,7 @@ return {
     title = "Monstrosity",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "8e1272adb8e50672a0ea978a82242383da7e2ea062c4b93e38d5a95a00ac7f09",
+    progression_revision = "02e1be3fed6f8dea45eb9f109486fc38ca2059065273e5e477d3dcf025b97383",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31144,7 +31144,7 @@ return {
     title = "Kupofried's H2H Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1d5f2c14bff60c0d2d8e3b0d4a2fd7104f0707c919fa54609b85983db17fb26b",
+    progression_revision = "5c7d32ef5c9904e955734a4de102153963957216164bf70f65c88a7cc36adfcf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31164,7 +31164,7 @@ return {
     title = "Kupofried's Dagger Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1b08c0b89495a76f99acea4f3b84cbe58c16f4ed4ad21d56e3e549e82fa3e846",
+    progression_revision = "c8a78030689a030d9c16488ead864f591ff47ecc79d9fc28567d616004ce41bb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31184,7 +31184,7 @@ return {
     title = "Kupofried's Sword Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "02b45168567cc52a06178931bad5b868cde2032069d4e689490f8e3e01a056a6",
+    progression_revision = "3447ad538f081814f5f280886ec90c8d3c2d84f08536bd211004ead23f3db412",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31204,7 +31204,7 @@ return {
     title = "Kupofried's Great Sword Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "132eaeac97049bee9b5962ad3015aad1a9f60352169a26a8d3d3384e80c113db",
+    progression_revision = "c26405e8adccae6cf223773534d1b6ea72cf94e4c6dbecabd6eca174bd98d2ad",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31224,7 +31224,7 @@ return {
     title = "Kupofried's Axe Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a3c875b037fe33efc312eb47e6230c5fc330b8001b548519cd1434bb331ffb50",
+    progression_revision = "d35f9ed0db3050ca12fc372273b7a382cd293f33c288285fc11ff5a2688678a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31244,7 +31244,7 @@ return {
     title = "Expertise",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7c1f93916b1a9d6c9a8d1097950c20f681b77d22d71363c4d39dd9587cf7562f",
+    progression_revision = "ce59892ef4ad38b818f4a55fe0656651c8945377e53230ce92155447015e51a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31264,7 +31264,7 @@ return {
     title = "Kupofried's Great Axe Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "129dfc566e76bcd11bbdd2e30c159201d7363226cf44407397e795c908491a4f",
+    progression_revision = "81f7379075551b18c2518b8327a845e740f5522caee714f5fa5480fabc85cb50",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31284,7 +31284,7 @@ return {
     title = "Kupofried's Scythe Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1949a2759462817f98c481ad30422d994cb8c48659d621b1ff2dbdcca27ce7c7",
+    progression_revision = "c64c2d8d783ea45962061df67770a73093bd14619536482399e9b68dd436744b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31304,7 +31304,7 @@ return {
     title = "Kupofried's Polearm Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c859093bb385be433e8ffb2e0d194a7e72a0c21a76d53566cade289eeb661d67",
+    progression_revision = "14358d244cf23b8521e0f8bad1267345d19f7829571245567fcde66491c20221",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31324,7 +31324,7 @@ return {
     title = "Kupofried's Katana Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "22d73c3e860ada500210f7baf206c268ad68d1c0099ff24029f26ce71898cc7e",
+    progression_revision = "4d490efe77e1309a4ee3cab8c54d4dd83383a45c0b509f3a62c5e69af3cc0baa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31344,7 +31344,7 @@ return {
     title = "Kupofried's Great Katana Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8ac0b08d177696241df9e99e414a807a91dfb4d991f13d528df6ee79f30da5a8",
+    progression_revision = "ed90d6fcaa4060c2e29554b5119ea7c8304f652f415c3588a8b55696cb4e10bd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31364,7 +31364,7 @@ return {
     title = "Kupofried's Club Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "504d2dc387370940d37d75090f3bea0e169ee2c7b42dce2dbd54063813a4e7f6",
+    progression_revision = "b83c2b8f57f29a9b63602e02cc11c41e9fcb2683d06cb3594642e1f0ad45ccbd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31384,7 +31384,7 @@ return {
     title = "Kupofried's Staff Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "31d9d859552cb3dc5cf5943aa818226d0b0e4455fedb8101e0ea32cc4d39cbcc",
+    progression_revision = "3d9360e4a516cf4922bc3e11b867488f06a050808b44a3b072a85a4c924f939f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31404,7 +31404,7 @@ return {
     title = "Kupofried's Archery Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e7ad8a662dc415207f8cf910e3946d49235f46ef319da71a72cc959194da50d8",
+    progression_revision = "3fd34f95bbd105084a97117c49795aaa3cbde9788ff8d4ba70e20bfda147509e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31424,7 +31424,7 @@ return {
     title = "Kupofried's Marksmanship Moogle Magic",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f30bb8a4ff7b6994896f102b32fa69f3896d2b6b50d8daa289cc6646ae5c042b",
+    progression_revision = "089b8a207d43ee2b219e29b7960da070660e4f8153285e3e11dce5cc2dc79cf1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31444,7 +31444,7 @@ return {
     title = "The Clue",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "573179a83d2b70cd3bfdb184f749b83a0b7628aba5e1a0c69c3b7a7aeb9aa0dd",
+    progression_revision = "1d3cb21515711a98bfee30680942d39ddf866fc0e7c9e06b05cfe373a48d39c7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31462,9 +31462,9 @@ return {
     native_id = 6,
     progress_id = 6,
     title = "The Basics",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a51118b91cdd270915bbf0b0a3b7db8e7e58abecb7ffd7c56f3e84b5fb8004fe",
+    progression_revision = "a20abe430bba1df9e7860b2c6e95b2e16481bbde4f9797e6dd53e998b137765f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31484,7 +31484,7 @@ return {
     title = "A Hard Day's Knight",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "8510c03f1202dd1807469fc54786595a2cbf3a1ce15f0cdc5a06e0114ed3c5ac",
+    progression_revision = "f8371f3059a6b983e6a7af8757308e12b4e90bca2f75c9176e646ea30c183da8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31504,7 +31504,7 @@ return {
     title = "X Marks the Spot",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0dd82c84d7698c81b10b93e57fbe5926b9ca0387de9f043674b46b250829e222",
+    progression_revision = "bb403a45eb193d772889a17420522fbf5f74232f9817f4e7ff8230533bc70ed1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31524,7 +31524,7 @@ return {
     title = "A Bitter Past",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "808742ec34dc07f595f7467e5e415b7abcc0e9ce6e4478791fc85f57817d5523",
+    progression_revision = "d5c35e7832b8939f9166b12c73922e8412eb8cf8da8e9a01b50969cd3d89cd77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31544,7 +31544,7 @@ return {
     title = "The Call of the Sea",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f852d808ebad42327c9619c56747a471a619ea9efc1d4ada64876a79b5cb3f72",
+    progression_revision = "9a5cedc8d4ac01d62ac9c4c66d44e4530f70808322e63ae77c4bd92c77add5ff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31562,9 +31562,9 @@ return {
     native_id = 68,
     progress_id = 68,
     title = "Paradise, Salvation, and Maps",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "3ff5a9da74dd7e8c306b04bcf4826c4dfe0fe818b16ccafb47df9f62fc9f43ae",
+    progression_revision = "950845674a7090db25e33d55832f0c719a66f627a1120b74c91769da26d22157",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31584,7 +31584,7 @@ return {
     title = "Go! Go! Gobmuffin!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "56bc4619cf9aed010ea3563c78af8fe2523c27ed1bfe7d880fc2e6756858a951",
+    progression_revision = "f36c7322802507cd110986faeacb269764f54575a1f5b2e7fe98aa6abd054e74",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31604,7 +31604,7 @@ return {
     title = "Orlando's Antiques",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "083760e61e47f15691cb1a6908e9ebb6e29c5b4fbe4ffbe1bbe39883c847c943",
+    progression_revision = "c5993d53cf00f2eb78dfb191acf8c38927fc0f162c1983f8eabbd9ff4d631d6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31624,7 +31624,7 @@ return {
     title = "The Big One",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "eae4cd92522fae2bfdbcde699b504cc9d2f9e5d2a190cfdae56fbd46751f9657",
+    progression_revision = "5984a085b21418bf09e3b936d025f058f50204f18771445f222cb0244091bbac",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31642,9 +31642,9 @@ return {
     native_id = 71,
     progress_id = 71,
     title = "Fly High",
-    status = "guide",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "54434f9c56badf6ef05cd3e591bb9ff27127074efe2032f0f62532c20433c9be",
+    progression_revision = "f49212e893e31c48dbb45013364c2aa35dabfdd8cef55d43e81b0741a573a738",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31664,7 +31664,7 @@ return {
     title = "Unforgiven",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "499a1ae2e50d97336787c1b762bdb0048a134f7f3908be8a2d319cd6a80715a0",
+    progression_revision = "30315e406c4c9fff619d4bbaa5581f17357d7ad45fb7016d6f6f45fa0448d5a1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31684,7 +31684,7 @@ return {
     title = "Secrets of Ovens Lost",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4ac02d696266d5d06f50a5e4c517bf1d10d65de74dfab591e6e5329610dd3643",
+    progression_revision = "75747810df11168689003c8c27742238d448f3c8b9000c0b51fb1e55a103efeb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31704,7 +31704,7 @@ return {
     title = "Petals for Parelbriaux",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5f2590bd63e03bc0220bb37a5cd5652dbdfbe66393dfe4c9f07f07332ffdfaaa",
+    progression_revision = "af4481d0891b2dd88d49ae6fadd06d1a443757ed53d87b11d9d8c2a4ccc0cbbe",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31724,7 +31724,7 @@ return {
     title = "Elderly Pursuits",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "50e9e450b69ffa95582284344a944b0048052b05175627314f2689f3d86eaa44",
+    progression_revision = "60e1310dac8033397cdd99f4be921bf87f8c7d10386a050bdeca0e40d5a870ce",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31744,7 +31744,7 @@ return {
     title = "In the Name of Science",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e8989c2d5217bd70265a09d70a295444b9cbee9607f54329f2530788890b46f5",
+    progression_revision = "01db16579c4b3b7c1b3066639ccd65f18bbb5808890280d44c7026e29ce577a9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31764,7 +31764,7 @@ return {
     title = "Behind the Smile",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a7155ae62798e58bfde4f6dd59ce6e2685e252848d24a96e5b887f42a239fd04",
+    progression_revision = "edb7e8f24ecbe429429169790027a71a50530f9f6684f35cc9ab1444308b5def",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31784,7 +31784,7 @@ return {
     title = "Knocking on Forbidden Doors",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "a1397233c471ee811b96b571deb3e51e77eb51ec6bbeadc7b8878d499b969ae7",
+    progression_revision = "8fdc91d99e31ff08c6d3d9643c37ff466c00fca5203e8a921d9d9f330103e4fd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31804,7 +31804,7 @@ return {
     title = "Confessions of a Bellmaker",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "036f1f10ad5ff34cf1093f100e214dda27ac6e6195901bbd7d93f201ffdab7d3",
+    progression_revision = "bda1423007835ecc319e0015a61b9b27827dbf7e1bd838f49b3b40a6a2036faf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31824,7 +31824,7 @@ return {
     title = "The Sand Charm",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "547dbe594189ed4de4066ebab02a34c5aac47decc4f96b1d596619555f2a3f75",
+    progression_revision = "6eb7d5fe01318c1d587cf37da1ae1ff09159beaca6cb981cde3b0723f714a512",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31844,7 +31844,7 @@ return {
     title = "In Search of the Truth",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2ff48d6c75f28959cd86c4fd38cf8871445d06399e8ee7fae0300b346fe02e2b",
+    progression_revision = "c63f1d55b1b801d7ac8f08a1fad64185776e7ecf88d0fd8238db36f445909e14",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31864,7 +31864,7 @@ return {
     title = "Uninvited Guests",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "130f5eea29d0669434572e306c0dfb160c050a9dd9ac764dcd8375a1da4611f4",
+    progression_revision = "5e6a2c91335fc2a507fc72dad03a3ea001706149eda7cfd8eff46bb007902168",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31884,7 +31884,7 @@ return {
     title = "Tango with a Tracker",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2e5413e893c3af6026b3a79cef40cc2f1e43d95b765c24682f937a7f0287a3bd",
+    progression_revision = "a44178291af98c3ecc8b6b37a4249def06ec92d4cf51deadd579177d54346ac2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31904,7 +31904,7 @@ return {
     title = "Requiem of Sin",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cf81521a8f2a237b59d43840f3a2c5065e3de4cbc2a3027ad394dd6b49dac2d1",
+    progression_revision = "d804322ab617fc88703369430babf1ea850c88d9fdc0c3e1d5b723a36ff20129",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31924,7 +31924,7 @@ return {
     title = "VW Op. #026: Tavnazian Terrors",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0c55e5c56f7177b9bc97cb3348b51aeaa689d84b9a4769ab164b0d99adb324ad",
+    progression_revision = "a22c3ff5a0d3592a75fe71fbc562ee87a2d74166f1bbdb7db15e125f149f46bc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31944,7 +31944,7 @@ return {
     title = "VW Op. #004: Bibiki Bombardment",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "042a9ae76cdedef61835a0bc96bfdb32561996d94870a1bad096b59119e05a7c",
+    progression_revision = "7ff7ae209d7840eb43c97efc9d884381e818ebf94a9f508ee0b5f257868509b4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31964,7 +31964,7 @@ return {
     title = "A Potter's Preference",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e260455b907fbae8a9a80c0c87ccea9ccea70d6bbb501ee7417afef330e75c64",
+    progression_revision = "624a48b5ab99f07f0322659dd0b2b8c364bd580ae6f79b7de40780729014e5ff",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -31984,7 +31984,7 @@ return {
     title = "Bombs Away!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4376ac314e0765bb8467f210b255c51eb1f3f57aab7b6fc717be267eeb188ff3",
+    progression_revision = "6a247026ecee893ad266b13f76c90e7ef923bd7b5b0dfb3f8d9890d43929a61f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32004,7 +32004,7 @@ return {
     title = "Mithran Delicacies",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fdd14abaed8833620d5f418104979104453d4633b0222ed54e20f1b43beaff59",
+    progression_revision = "0e5b83729eab0ff7eaf3c61886ba9c0b7f2ac56bd4b0c56b5e50783bf1b1a977",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32042,7 +32042,7 @@ return {
     title = "The Firebloom Tree",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5b5420633c4fec00c45d39b51efd1f88d040112939cca728a0389da1beaac267",
+    progression_revision = "2f8f60d83f56f34ff9244823f9d30671d62f17116fd81703960b234adb96161b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32062,7 +32062,7 @@ return {
     title = "Personal Hygiene",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "1c639f6c80828e770bb5e20ad36a284826f68ed1af803c4ffdd2a354a8070e5d",
+    progression_revision = "aa2b9c4007f7f87851b82dab3bb0f83b52b92777a8b87ab9565225f0f48e2978",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32082,7 +32082,7 @@ return {
     title = "Voidwatch Ops: Border Crossing",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b3e4d8ea71ed2f6199169d1415269ead53bf056e8ec535ca39771eb9753459ea",
+    progression_revision = "ad272ca7e5c2efde2707be175de292e3079c8279bf77f3b4176cb7692a39cb0b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32100,9 +32100,9 @@ return {
     native_id = 101,
     progress_id = 101,
     title = "VW Op. #054: Elshimo List",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "10270ab831ff36593038147fa3a9f7e06ef5b066300ee8b565f8a195efa8d838",
+    progression_revision = "759e37592127760a58dc40b5b70446d0d35a079748ecb01043147bfd135adf97",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32120,9 +32120,9 @@ return {
     native_id = 102,
     progress_id = 102,
     title = "VW Op. #101: Detour to Zepwell",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ab4d5a23a307d013d8e8f092f5e23f56e8631031cee8be797c4bce5d41bf63be",
+    progression_revision = "e34cd1fabf7411ad76b4ab9f90bd38728a43d6518a24ce32f8acb9ef85df398d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32142,7 +32142,7 @@ return {
     title = "VW Op. #115: Li'Telor Variant",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "af4f5164b80e7a6a1374bdc83a40091bec3d7d1307293146176123d9b884b69e",
+    progression_revision = "547ff6a056b6231c13bae66fb32474dda2094b0086ea10c3481835f9d77f2931",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32162,7 +32162,7 @@ return {
     title = "Skyward Ho, Voidwatcher!",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "43020b6668c873fd7c411e168e237af88aed87bf9d45e23e69cb44ea3543f729",
+    progression_revision = "fae192f520e571f2ea0d218e26e2c01355ed2f4efda398da7ae11267fcf14145",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32182,7 +32182,7 @@ return {
     title = "The Opo-opo and I",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e67879c6f382d295c2159077b218e1b5b85b5c9535ce5885aeadfd3231596c5d",
+    progression_revision = "0d80731e0c6680d93ef84d93f0e447ff84b295f9f7cf280ea5e68bfc9ce478dd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32202,7 +32202,7 @@ return {
     title = "Trial by Fire",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4fdcf22cb0028e8f95f0eef4a6c1c8774f670ee3969dbd5a9ffa2ba0ac60ac6a",
+    progression_revision = "853877d2c209cbcd2a4a2c4525fe066f9e88eb0b847e3e7e88058d45d98d7b81",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32220,9 +32220,9 @@ return {
     native_id = 128,
     progress_id = 128,
     title = "The Sahagin's Key",
-    status = "verified-navigation",
+    status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5d1e4c67d9dd1d4df309278449698ee75b80bd2356492d0c3a9d0acfe431354e",
+    progression_revision = "c9913b2107bdd5b424210eb30b2b6f59e5ae01c2a474daa34a7303d1213065e7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32242,7 +32242,7 @@ return {
     title = "Forge Your Destiny",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "046382bd86a8f96b219a6e1978426fed37eec2afc888efbc29707085b169bf50",
+    progression_revision = "cfff7e63e853b5458e4f4f666e8c04928f08a7d10421a8a05636fe86d3679640",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32262,7 +32262,7 @@ return {
     title = "Cloak and Dagger",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9c2b673f2ba46732d4782f67cc63fafb1e2bcf8ef196f2e4c2c664afebb31593",
+    progression_revision = "662689b83ba9aac6599d23663ebee7fe6116f3e276320d4b9b8d000434f19ae0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32282,7 +32282,7 @@ return {
     title = "Black Market",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "42fb382f16549cdd71d4b4474312df4f0b497e7e60f4a436ec4dec1cf69e7799",
+    progression_revision = "3c84a2548ed0743d7c315b17059000c7000406a1cd0a576eabd94d0eabc0f1eb",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32302,7 +32302,7 @@ return {
     title = "Mama Mia",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "22168cd4e46e905f163b03cc699b71067751d0f0b46e5b86ee8f68073cbe618a",
+    progression_revision = "6e55cce5bd1ccc261ba80f169692947fef57621d9ba97704bffd83f32efd4fa7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32322,7 +32322,7 @@ return {
     title = "Stop Your Whining",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3e018d2ba83e2a8592723a25ed0206b9048aebff9d957322eabfc4f0ffa013bd",
+    progression_revision = "dd7b1dfc908a4214b58cabc9eb6be2954c7301954b6699f3bfe4cf5ab2d5fe49",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32342,7 +32342,7 @@ return {
     title = "Trial by Water",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2f84e523cd01535fa5642e3e6377428afdc63c76bd83db66335cfb7ea8db719e",
+    progression_revision = "a3a7dd8f2f53123bd8f9a8a8d91c2c4e241ee75754d855fccd37ec21539b5b92",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32362,7 +32362,7 @@ return {
     title = "Everyone's Grudge",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ad67994b032a3df6ce7953cce27b6176e51e9275692ec49bb0d76d3622a4cbef",
+    progression_revision = "b8399b02ef2f8e1f9d5b87abe94d701f8af0d315a44c2c96beea0aecf04ddd71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32380,9 +32380,9 @@ return {
     native_id = 135,
     progress_id = 135,
     title = "Secret of the Damp Scroll",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "2aeabf1d5665c1af7235f8935b235e90131f1cae20b72509be33eee542712d82",
+    progression_revision = "ba02a22b3878b13271e85abf7fd50dedb8e221d3a46ea046a75f19da4a7bae7b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32402,7 +32402,7 @@ return {
     title = "The Sahagin's Stash",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7733ab66a87d33a7097c213411b503294f99905f403e85c4396f10ac96e679fc",
+    progression_revision = "16f24477eb372ac4d9bf49196fa4594c220d949a4c0e172833321b512ce5c9ef",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32422,7 +32422,7 @@ return {
     title = "It's Not Your Vault",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "b437ca02247e5accd770a7189ed794b23ffcf0d5e444fc4f850aedcc56269702",
+    progression_revision = "e4950b1eaa04672416758168cb03955461afa8536a690a914079d2c5c3aa2b85",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32442,7 +32442,7 @@ return {
     title = "Like a Shining Subligar",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c2151c0bf4146a48436ed3aa01f30c8bcc24a0dcfeff8e8bbea62e515fe5d1b7",
+    progression_revision = "798dff30bc6e1717fac3b5df8be58bbb955aaeb4c778a668045ac025913b60ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32462,7 +32462,7 @@ return {
     title = "Like Shining Leggings",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "caca226fb73ac96313a7c3a8cab2abad5890e682b30cdee681036c11b5f5a255",
+    progression_revision = "034871b4b4ee89171aad04eebca699a01c854e59aceedea97f20a34f3ae31226",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32482,7 +32482,7 @@ return {
     title = "A Discerning Eye (Kazham)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "543aaa534c2118549b10b15df03ef4b22bfc4d8eb5c98d9ade11f09863ef60a1",
+    progression_revision = "921ac24a70a451664676c613f7acc60988208b5085a3284aff807278becbcce7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32502,7 +32502,7 @@ return {
     title = "The Sacred Katana",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5eef7995260805d414246a87feba1714fcb065bbe53d0db75499857441d39a87",
+    progression_revision = "c8d64fef95829718f9876a538071df745a6119a536ed5ba4e6cd424d5fe37134",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32522,7 +32522,7 @@ return {
     title = "Yomi Okuri",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "12e6cdf2470b2663354f9a0ab5ef793e5bc6e7b420b846ba679e6850e1031c33",
+    progression_revision = "a8999f53708584ec1b0659d49daa5ba046fc7fcf419b4d2b99de8f083db17e15",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32542,7 +32542,7 @@ return {
     title = "A Thief in Norg!?",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "de916ff6a4b333091215be8a3c71853c0f2d815b90f43be1ae7ec1a77ab80dba",
+    progression_revision = "dcbdaa6762ecb4dfd700a7346714ba1258e320f63a6b61c9b92a0f76e55c9ffd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32562,7 +32562,7 @@ return {
     title = "20 in Pirate Years",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fbc7e2d7183be4bd108b039ac4784273be644d48d054ba0fd79e095c2ef9a1bf",
+    progression_revision = "d2f0d2e0fad3c1304d4969dab7da0da2a8e7a2cddd8c6a5178099146ec87e209",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32582,7 +32582,7 @@ return {
     title = "I'll Take the Big Box",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "effcf30b61c961c3e3458b5c350ebcc07054190649cece687a5c0e28b96a8f67",
+    progression_revision = "c5136fe386bf26bd8619d7bba52c9ec7b7aa8d62e12dd357fa6d261fad726412",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32602,7 +32602,7 @@ return {
     title = "True Will",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b562c92bebdfc06902a41114584b180f5d11c61fd77e064f30082e217042b5eb",
+    progression_revision = "fb67080d84768820ac40eca1998b49422e95a9683271a8efa8967c5236b17d04",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32622,7 +32622,7 @@ return {
     title = "The Potential Within",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "25a5c94464371d723df9ee0bf5aabab9b4f9ede24ec78f95b6ee859bff0f6b07",
+    progression_revision = "6fc5853a4799ef18311f0dd65aed472eb69c5b32ea1f4b5e6e362f3be7d6dd9a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32642,7 +32642,7 @@ return {
     title = "Bugi Soden",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0122a896a5d6e9e956780f2ec22b739eed5d83f07727747839f5a563b699bf05",
+    progression_revision = "f009570a00f39273842a13fae97ebff7b8ea29cf6fd0ff179edea764d028b052",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32662,7 +32662,7 @@ return {
     title = "Trial-Size Trial by Water",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "30569240945c97f59db001960b61e38f06b06bc728b1d480f6e08c6ce294e4db",
+    progression_revision = "5d5a535136db4ac4a592e7955ee126332f1e8ed1c698525ce6aeb9c211f2d14b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32682,7 +32682,7 @@ return {
     title = "An Undying Pledge",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5e3b94664caf2efa5b7bc04ce650c336c5ef2f05afd454ab088af950fc28bed6",
+    progression_revision = "944e6fb8bfbe64cc86c3eae9383c8ca60a90151aca8965f04004e066afb2b468",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32702,7 +32702,7 @@ return {
     title = "Trial-Size Trial by Fire",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9f58e93009d23c7734514a4d1ad3363a68029dd11dd62e7d7cc43114fc4c55f7",
+    progression_revision = "4b61382a480f2d5c9d763c4a9800a2b994295a40a384f2d16ff8b4e6a65a5177",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32722,7 +32722,7 @@ return {
     title = "Wrath of the Opo-opos",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ddc91a99d8ecd91a2c7480eccb316bbaa91a1cb128568268e6f5088fa53dc35c",
+    progression_revision = "801e13abc1b6722f8edf821a5311a7c4cf29731bec558b00bca5e677fa013bf0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32742,7 +32742,7 @@ return {
     title = "Wandering Souls",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "78333437949b9b3d87402523815ae52e39fc51c7f1acd874feab71cc45d02c12",
+    progression_revision = "31ff9eea0ed28b54f448bbee450940ca536f1d895cf2ba3616b5e543c98ce8ca",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32762,7 +32762,7 @@ return {
     title = "Soul Searching",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "9d771a2e259c12ae7e7888e0dc611b33890a329b73e1f51a8324d60057a27109",
+    progression_revision = "cf7b57f84136de7db151cd8f6b190bd509de2f589c91fe170ff73229846cde0d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32782,7 +32782,7 @@ return {
     title = "Divine Might",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cefdf2d8eb920ce100b3977f0324ae09d01e0faedae38e163b1cee74a6edfe05",
+    progression_revision = "4713d0e1b61963a9ece53498deb0b556fdaff914a002e2639c559a93cbc46564",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32802,7 +32802,7 @@ return {
     title = "Divine Might",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7a43d6fc590ef3c2322d715da1fe8779b85f6920794338eb5a9a0eb5726be9c7",
+    progression_revision = "9616c4e68fca0db566ca0e18d0a00e6e3d5c9777ec57ae14d2be58154ecce697",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32821,7 +32821,7 @@ return {
     title = "Open Sesame",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7916684a935f7f54fecef359e8d2b6013fb4f33d9c2bdb197ac0ef18159018f7",
+    progression_revision = "9642834a11adda7b7fbfc07c66ead2c81e111051d953c907ad66729fbbc291f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32841,7 +32841,7 @@ return {
     title = "Don't Forget the Antidote",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d1ee94001d0a90596f54275cb9587baa02b0323cda8678c2d01b9f88d343084d",
+    progression_revision = "fd29c30c80bb695fb0caf960443e2872698b7a29db7af78391e5a11c91473f28",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32861,7 +32861,7 @@ return {
     title = "The Missing Piece",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "06b4a9f2e90ee3e3806a9bbd2622896b2647fcc5a1ee43b4f02915f9a796f57c",
+    progression_revision = "cc2ba5e1db4af878b08189c6e70b34433744ce891c20c445f91af27f9a25e190",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32881,7 +32881,7 @@ return {
     title = "Trial by Wind",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ddb62f9630fca9e7e8b0f21b8e3c49035843a316de199ba37381e9fc987661f1",
+    progression_revision = "2486586131a36d9ea2c31cfc90786ff2ab79b79389c1ea422487a18e496d3a7c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32901,7 +32901,7 @@ return {
     title = "The Kuftal Tour",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "03462244e78d7418ed0d351b546e708f8eef63c0e823d01d2bda8b1b8bc31cac",
+    progression_revision = "d4b273c5d2a04428654516e87f0d662b4e299ad42e91d216a8835ba2a94696d7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32921,7 +32921,7 @@ return {
     title = "The Immortal Lu Shang",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5bf4cc7703b5cc7442d4b4b868ea5a68b86ac5a4650d839502b5539ef9049234",
+    progression_revision = "86182aedb9183250981700a01eb65f56e7212501e89c1bd61b89603ac684c870",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32941,7 +32941,7 @@ return {
     title = "Trial-Size Trial by Wind",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "595c0bfad3c79c8b1e04617c252a49e60e66b99940c6a267d055f92afe597875",
+    progression_revision = "74e49e415e25b380023ec8d985548fddd0b7997cac56c5a229e1d2317c193999",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32961,7 +32961,7 @@ return {
     title = "Chasing Dreams",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "140c66d77a39c7307fcec5d21d721a635220fe378b24b29e42cb95dc3c96cd6d",
+    progression_revision = "432d43add64e0f462f32ebd7acbb96d0536652be12efc952e6e0523ff09b18f6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -32979,9 +32979,9 @@ return {
     native_id = 2,
     progress_id = 2,
     title = "Greetings to the Guardian",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "03b7506262d96f2008256a34d26d1305415f2cad5b7df51137a65816f3b9985f",
+    progression_revision = "a7902d1fd515518cf451ff2851ff49f88cea9574ef3697340de72f53ad2b29d2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33001,7 +33001,7 @@ return {
     title = "The Search for Goldmane",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "3a9850041c3ca40f938d2cd7d9bb79274e1c927a7909cb8f4d8d17029130db6f",
+    progression_revision = "5eb84df93ff5a20ed33038bebe331e7d9d96c2528ae465f08496cbb05145cf46",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33021,7 +33021,7 @@ return {
     title = "Indomitable Spirit",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8ffedc5bb0712b758d093fb3ca981949b71be9f21d18eb39e26648338c29aace",
+    progression_revision = "8a380bb30ee4ef4d531c0eb48b5a6c1ac1040c8405599201400b8a4de436a927",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33041,7 +33041,7 @@ return {
     title = "Fish Favors the Bold",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "9bbf5c33c14bacc40a9c7a3ab02d4993a4f5aceec745422175400fc39171e178",
+    progression_revision = "30c8616b945d4263bca08cde02bd676336236e9419fdd7da62957a7cea108aa0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33061,7 +33061,7 @@ return {
     title = "Thanks for All the Fish",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2b7ae5b365565b39db71ec4aab5ff6f828d2f32b79a9a3ef07d2550e144026d7",
+    progression_revision = "abc56c756bc8c11d79cafac2dccefce0b953651187cccb6d61f49d47cc45b7f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33081,7 +33081,7 @@ return {
     title = "A Question of Taste",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "32617fddd6baeb77cf0e65ca6ced311ebee82f7f04e6342f6d0374ce0360aae9",
+    progression_revision = "086d72b6231ad609943b457f1f84f6cb695db3492dae87b342b1d7a2ff6ace67",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33101,7 +33101,7 @@ return {
     title = "Everyone's Grudging",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "39a66b95813708ce3d03b9ed147f0437a7d4f0002ad774efd1cadf01862ba735",
+    progression_revision = "b5f5d31877a6ac1e4a1bd30e79e37ddd0b1909d872d8f50d17cec449bea2d291",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33139,7 +33139,7 @@ return {
     title = "You Call That a Knife?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ed6b34561326d5b0edf91b41502b8d1b4d26af0da24e86f09bb8d725a4e57116",
+    progression_revision = "a7dbeb5e82a87fb1ab0e85af01fa38ff0a7f73a8aee6713f173eb42502118202",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33159,7 +33159,7 @@ return {
     title = "Missionary Man",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6b822fe9c2f6aed2d96c5674f0b6ac4616428f2d4658b60d195191f846e06fd0",
+    progression_revision = "a67a16cd2b2445cdbc0054ff2e508b992ef384a091d5bfaa0527179101e36e8d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33199,7 +33199,7 @@ return {
     title = "Even More Gullible's Travels",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "237cf9e7bd95dcfcab5bba78166d6732c502020a2f13051f9d16f9a94c06b298",
+    progression_revision = "31d777870a32fc23a7b90cfb4c55d2125866c472109f832a322104c271c533c5",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33219,7 +33219,7 @@ return {
     title = "A Sentry's Peril",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7b61d631147a4e1a58370fcb6b4fd6bfb92c04ef7376896df63cd4c67eba7a2c",
+    progression_revision = "7c63dfa6a313c20c93db0e6837193f50d9005ff59ee5b421a90c51a14fe232cf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33239,7 +33239,7 @@ return {
     title = "Waters of the Cheval",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "49574b25e1f09578420c5006b8195aa25ccf21a869b39a97adf05b05fc62be26",
+    progression_revision = "c871ed87dc8d7b8125133760824c61499bad623f81b1d25a750f5437525483cc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33257,9 +33257,9 @@ return {
     native_id = 10,
     progress_id = 10,
     title = "A Squire's Test",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "39b46cffccfc4d6a8d39cdbd6010709b5511e16689765d8bdc57b70f96a3fd7c",
+    progression_revision = "d46cfad12b6437b34c05153fccd1ed7c5d7b1a736ee9ff4d19ebd9fffa66f547",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33279,7 +33279,7 @@ return {
     title = "A Taste for Meat",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a9b74bcb88bb2cb9d35bdea9a7c3c50f5a06b65ef3c02abf40a107e5d9cf3807",
+    progression_revision = "eb5f2e92c3997a0a5e5cccae0caf9cb1e51f9e11dcb36a025c85b2f0797d2d09",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33299,7 +33299,7 @@ return {
     title = "Exit the Gambler",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "58edac51f9f45c3be8f502d9b9eefa9a5c8cb4a8428cabeb8863edf7dbacabee",
+    progression_revision = "21076fbedb7a08524f3f7c0cb350b45f00442a764012a2db85bd28a2adce7143",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33319,7 +33319,7 @@ return {
     title = "Old Wounds",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e6778f9a756113ace40299789835d32b72800cb5c43c36f77cebe252404482bf",
+    progression_revision = "2fe5eef2519655e8fd3a0f0766c366badb4e96dcd91b656e2726ffc2033a45d4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33339,7 +33339,7 @@ return {
     title = "Escort for Hire (San d'Oria)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dc3142199db5c63c72eeec81dac27562fb144f313bb74d58f3fad69331dc8309",
+    progression_revision = "ea1ca73c1522b7debebe7a84259aadd7745f82018bd42efb487b8b127c8efc26",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33359,7 +33359,7 @@ return {
     title = "A Discerning Eye (San d'Oria)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "86b44c5d132e64e4c287e7a3e2b6426eb846dc0724a1f712fe884222c2d22185",
+    progression_revision = "9013405303c98121c83b311f32152b03c2d7c4ebd0a01a677b52721dc33300ab",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33379,7 +33379,7 @@ return {
     title = "A Timely Visit",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "6ac7e2f538efc11b9e0b8d9cbb0d05be3abeade7acfb8973d9963a2bcbe6b2bf",
+    progression_revision = "66c56531d59ebf0a186df528febfa6f1e1fe973e0908bef205b1f95e4b24038c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33399,7 +33399,7 @@ return {
     title = "Fit for a Prince",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2d91e82e11e75ede8029ee16b8e3a9f9fc4d8b234f440f292e73de569cd60e24",
+    progression_revision = "e19f7721a1e491eae33131db0fbaeea97d7241af5cf6e6ed8d0a6b8ddca060dc",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33419,7 +33419,7 @@ return {
     title = "Trial-Size Trial by Ice",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "eb11135dc8a8e2a3429a8fadf22320a7263db1121aea89c6ad3881630d55c59c",
+    progression_revision = "007fba3da44441f306219f3140d40ca8a27bddf04f770994564dbbf5b82b7617",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33439,7 +33439,7 @@ return {
     title = "Signed in Blood",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "832efd886b4614bec0de7e85419f5d2dd81392bd40317e98c163d81631b417de",
+    progression_revision = "abe97aab469be7bc97400485c83d2099360dc29073e0d4576097903f105bac83",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33459,7 +33459,7 @@ return {
     title = "Tea with a Tonberry?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6fe1f5a49378dc7ce7bba6c08ebc3d9b19e28b3cfd2c4c3d58d99a3119627602",
+    progression_revision = "ebca416df90697d7a63967e076a31dfe7da6b2c098d50bd57071562b05151c5e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33477,9 +33477,9 @@ return {
     native_id = 11,
     progress_id = 11,
     title = "Grave Concerns",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "eb5b2f1ab5cbc3ba1cb23b745b060b0d8d906414eca7a0242efabccacc8c4974",
+    progression_revision = "a88bd56ebc4c26b69c5f10a067743e1e441a7f4cee02ae62ba821241fe5877d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33499,7 +33499,7 @@ return {
     title = "Spice Gals",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3e575f4f97e064fd995669f86ff6a09adee5b2427d29c323e487b2772b07dc8b",
+    progression_revision = "1019751442e0167e0850e09cff4a669421167f70160ad31f6ae303a3b74e8c60",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33519,7 +33519,7 @@ return {
     title = "Over the Hills and Far Away",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b9daa51e6b20911f3550ab3e6d43948e3da83c5de1fe03e29165b9d43214cd66",
+    progression_revision = "217765910bd3a82a738adb5f791882d3f6f916b4490c0d855709b7db7f04206e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33539,7 +33539,7 @@ return {
     title = "Lure of the Wildcat (San d'Oria)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b27a09d0a7d8c5c841c61662a21654430d6c948151dc3c7b91288c3e94b29797",
+    progression_revision = "db365c33674a154a0df292f0a838b7b1d8deba49e24770f0878288fa27b7e7df",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33559,7 +33559,7 @@ return {
     title = "Atelloune's Lament",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "0ff1fa41e546eb9d5718dfaf8cc57d5c35a26569ec5924d5ee431a65e1813391",
+    progression_revision = "bedbfa22234fe8454c54b9f196357bd43c734603ecf4237527b896275406e739",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33599,7 +33599,7 @@ return {
     title = "Forest for the Trees",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7f6a816e0cc49e0b35a71e1921f38b61689fc46590d197633acca219d81b03cc",
+    progression_revision = "c39fcbb6516681d61068975814d2499973288fa3932e361e7ad5a761155c1073",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33619,7 +33619,7 @@ return {
     title = "Trust: San d'Oria",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f6f5010ccc76f9a5dba3f7ab759070bd4e4735a4a34ac919fcab3370a066dd12",
+    progression_revision = "23c3e080b6ac34a0382ab59da035d0ea5ec1c2c99d640b5c7a74c003bed77e93",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33639,7 +33639,7 @@ return {
     title = "The Brugaire Consortium",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bfc2102fa01c73977768bb2bb7ddead72062d758f799327a384635fbd2241dfa",
+    progression_revision = "c74b02d392a2f518d30783c6525c7771c0edd97744a28a21cfb7fd280a413ef6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33659,7 +33659,7 @@ return {
     title = "Lizard Skins",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8e82532e255931f0dbc1150944e98475e7782e5a926477f7282224d615ae9d55",
+    progression_revision = "dcb34173503436bac1f1db3463f586d3b20db50d2b5fef7c10221134e991a3d6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33679,7 +33679,7 @@ return {
     title = "Flyers for Regine",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "15f2cc727afe70f5ede77d9a48f936b8211473283fb34be66c589e16a100fa72",
+    progression_revision = "f76eefb2d602ac17c50885fd47f53a6fec6510e93ce01000d3a8427584757bda",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33699,7 +33699,7 @@ return {
     title = "Gates to Paradise",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e0dae389917403369eb9f62b748c5ab1b489ce9fb388a3cb159575ce489e4f46",
+    progression_revision = "45bc22aac8bb2b7cdbfb71e73f36fd61cfacf42082d777b0b5e9f7bac03bd82d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33719,7 +33719,7 @@ return {
     title = "A Squire's Test II",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "65be17dd7b6b680b7e842a0604e852a1259389aeb289b15394e8841b92ff837f",
+    progression_revision = "942449e74607bc4cda6bbaf418b41767653ba393e99063b80660a7ab86a8780b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33739,7 +33739,7 @@ return {
     title = "Rosel the Armorer",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f031eed9a896e74cf0a85ab82ff7b025982c3a5f7d4bb03c1d4ffa527ad8f8f0",
+    progression_revision = "bcbec12bb07d1cc8377dcedd218cd48f37c3b533b051876cf9d801b94a98c298",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33759,7 +33759,7 @@ return {
     title = "To Cure a Cough",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0df6749088da127ff61ee35770a335c8b8b958cb06c06750d2b72b9cbb8f6df6",
+    progression_revision = "585a9331c279e9dd8e15ad5797a67832b2084f9dee694bd550a46d990d22fb99",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33799,7 +33799,7 @@ return {
     title = "Undying Flames",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e2e381ff1186e6735d64e0a1fb10e029e5cd737377a0fc43310eba5aade2bb50",
+    progression_revision = "d6ba993c8d5d936a5ca2611e1b280ee6f53674c0e20c2692af1012075b72846b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33819,7 +33819,7 @@ return {
     title = "A Purchase of Arms",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "de0addaffdd802b4dde2d8bb9c5e9fd16e41e8fcb795494ee3e4693e497c2528",
+    progression_revision = "24d7ae9be960582d72f2c1a15b2c9725f2a9b2d918866b83b2f33c78757a21f3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33839,7 +33839,7 @@ return {
     title = "A Knight's Test",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "96d5995c8c4cfe8fe90d4aed640131b18c6fcef6128c2a4c0c0c0efc3d9317f0",
+    progression_revision = "9b498d5f1c422b941fc4f59c9b9775f75952d59817ac20f6773a0ccb80dd3ce7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33859,7 +33859,7 @@ return {
     title = "The Pickpocket",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f4424022679a828c8be162fbdfd4a60b6bf97c7bbb952256d0f98044feb84fde",
+    progression_revision = "71ee3c18bfcf74d924f4c53361800f0bde459c7840b06da59a15f62e5e4a2a8a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33879,7 +33879,7 @@ return {
     title = "The Medicine Woman",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e7f299021069c651342afbc2dc5a2cdf79809184bbfa9357996ecc21c33ec320",
+    progression_revision = "07c1dfde54bc9d697bafd43e2f5a7048a89ffc64ced94b69548af61c309c3e35",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33899,7 +33899,7 @@ return {
     title = "Black Tiger Skins",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "71d9ae83de57bdc2c2551721570e4453bb10d8b2bd68c386a8eedeb3cf8e8eb4",
+    progression_revision = "810538cb7fbffe50494014d0dca01e431e8fe85a302d0b4493cf1df9917dd718",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33919,7 +33919,7 @@ return {
     title = "Father and Son",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "6ba01d4ccc31c983d679159df6c63ddecfbd4428711a68f60d6f75a40c524875",
+    progression_revision = "9845b46d6241a48284f01267d1227ed9d481e628bbf1c9f5944decf72d621123",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33939,7 +33939,7 @@ return {
     title = "The Seamstress",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "99cc1bc7623b37e6d7321a7d796f0511caaf578e3ed2c4063c47f8c1aa30fd4f",
+    progression_revision = "cb06e4ee64110f0d8a44458783450cf55b7af269019f35371f8c12a1a94b888b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33957,9 +33957,9 @@ return {
     native_id = 58,
     progress_id = 58,
     title = "Growing Flowers",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "e1676c51fe78d86508f3eb01bd87c59bf28316c27e9178b79137c7df3824b9ee",
+    progression_revision = "6090e0ca5823df7347836e25a4ab8ef8967e81751a2c6aa61a9981b37137308b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33979,7 +33979,7 @@ return {
     title = "Trial by Ice",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a62a72d9a1d1e26fa894708f8bb664350080dcf16f3c6afb4cd6b502a9f98f7d",
+    progression_revision = "abe3f1e73fa3807201c9cc30c58def02a8473adcb111ad3aa23b3770fb78b079",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -33999,7 +33999,7 @@ return {
     title = "The Dismayed Customer",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d3d79212fce8735162bca0659edffcbb001e4b274835143230d1f2457e487089",
+    progression_revision = "599ea7d417fddbac3aa06b2b956752ad9a63859c1d45ae4ffb6b15e91420c15d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34019,7 +34019,7 @@ return {
     title = "The General's Secret",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f2d0b12bf6c3018a185468830903aa2f659a006a6c8e448e625836703f19aa39",
+    progression_revision = "bbb29806c7e947113c2c21103669cbf36cfc8b42cd048b1ef149906f68391607",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34039,7 +34039,7 @@ return {
     title = "The Rumor",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "212a612bff4b9a95adf40cabe6231604ff77ae343213d7d6e67422a89a4e9b8b",
+    progression_revision = "d167adc0de2be9d846b0aadb019556e90b92c4fa93b78305e6536cdedb5334ae",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34059,7 +34059,7 @@ return {
     title = "Her Majesty's Garden",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dee5a1c383466e45605a2fc7dd0a1e90d6ab3dcb73b14e609e1afc24a0f9fd5c",
+    progression_revision = "8983ce04685d80c52fbc12b29e3cb3ea2d9d630ee55b6cbb39f1f5469e1ca498",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34079,7 +34079,7 @@ return {
     title = "Introduction to Teamwork",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dccad2d9779a774d0ac59d0a18453e324eb65561dd5f1c0903df25e607d722c4",
+    progression_revision = "0685c4fc77754a60720c61bff522ddfdab6bfdc36e0a10638e6e10b04f3db963",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34099,7 +34099,7 @@ return {
     title = "Intermediate Teamwork",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "70e945112ef96c59971774541d02561b8764c509ac84deb0386e277608c8a6ec",
+    progression_revision = "cf2c881f3c506abe4bb7c26458f1f1fb736272bc5d937b4476819c563fb80b47",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34119,7 +34119,7 @@ return {
     title = "Advanced Teamwork",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "5397d59e9f0559606833c4fe68f50241647c90887d173bfc4e5436d1751efec8",
+    progression_revision = "b91668d8b541f16258d67ed1dbd099409dd513459e4facd5c9fc2031e74acc59",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34159,7 +34159,7 @@ return {
     title = "A Job for the Consortium",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "443c48fa234dcb3150fd3d1a5cde64dcfc055775b704576bb8238e0499789a5f",
+    progression_revision = "4cdf0416a165db389b7a1e21fc57e0fa05f00015ef205bc2f8a8fe3771088635",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34179,7 +34179,7 @@ return {
     title = "Trouble at the Sluice",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "b54d31e610e64839a859772f52e9b8c386fcc99e5a39e727dba552503813ede5",
+    progression_revision = "e3ae819e96c37d97c6a9e0d56b352184ea5b051f6b03ca8ddeae7270527f508b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34199,7 +34199,7 @@ return {
     title = "The Merchant's Bidding",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ef15870f6f4cf9e0579661ae96d9ac14d2f6d1adf662d847f6eaa7fa1fd24c69",
+    progression_revision = "8ad44b3db808b1dd2084c0b5a3581fc4edd589e44ce0c003de25e952b589372e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34219,7 +34219,7 @@ return {
     title = "The Trader in the Forest",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "67a045a98880150254a3351515d92f094534b1e7f8d48980254be862f416a230",
+    progression_revision = "8b8c79f285ff9975b9ace0e334a8688254047b447f1909bfc38a708e7389a733",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34239,7 +34239,7 @@ return {
     title = "Unexpected Treasure",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0b0b4ae8db0e380684fc6e3b9c5cee973f3e78152dd3fac617b7bf81a3531f34",
+    progression_revision = "b5080eec4215efd65fccbb6684c7e81e178ba12fb238716518e0d9a8243923c7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34259,7 +34259,7 @@ return {
     title = "Blackmail",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "af6d72d8a10e0f3aeef20b5086bdde7ad460a5a1ebd3f427d329d72ae8e2e011",
+    progression_revision = "052e51c54f4aa0e0821fbed577f6e3cd22736e2a6e16c022bfae085db7340bb3",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34279,7 +34279,7 @@ return {
     title = "The Setting Sun",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4dbd29e3a4327fbbc7e1f6e19f2802652f5aa31f435da9e0c7dd514d168dff7b",
+    progression_revision = "643cc62a5e8597c834cf9b6aaa370d19f488c9ebf132989ffe3b4b70c67a7049",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34299,7 +34299,7 @@ return {
     title = "Distant Loyalties",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "cee57044957cb0d153269847e4ad45092513cd65bb9f83f48cadc05c05e6af4e",
+    progression_revision = "655c5388d97fa2de3c58fa33a09461a70e85cbf66277901068bcaa49c1601975",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34319,7 +34319,7 @@ return {
     title = "The Rivalry",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "b68dc566cbae163eca764476afc39fba8546995f45bb6ee54e39b96b94ef534f",
+    progression_revision = "e5052843967ba936cb45ddd6a7e80e02b87a8ab50aa3d546df845476750e491b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34339,7 +34339,7 @@ return {
     title = "The Competition",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "bae2751d6c01e06003ea3c7a32def8c51bd4e728e39322b07978ec3be8403a30",
+    progression_revision = "cf50d0a09eda813ee9be703b1cdd9c6bcc095ad443cceefcae311a9f558a2878",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34359,7 +34359,7 @@ return {
     title = "Starting a Flame",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4c9a018d709ef563b90ce7d362278191fa4a52236bb2a9d670c60d72ff682c3f",
+    progression_revision = "d6b26f70d990c49fccfef0b2dea8d6848592ec7043c05ab55a37f48099b9414c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34399,7 +34399,7 @@ return {
     title = "Warding Vampires",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cb1fd1bdd92d5d0d079377902ce8b7c64d3e435a096c612e3550bfa1252eb49a",
+    progression_revision = "53ebba3bd08ed8dcabd6b9515d52a305638216211b62adb4bef8011c94151be7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34419,7 +34419,7 @@ return {
     title = "The Sweetest Things",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "8ffa8589f07335c2703fdb2352833e5a4397d8eb2e9131622ace336e7ab71405",
+    progression_revision = "accc8b7208665ca9f283cb420aa08d784127da1615050a5f54576d402720b4a7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34439,7 +34439,7 @@ return {
     title = "Sleepless Nights",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "555a07ca3795e3ed1bc94fdd30217d9fe7dba4a20cd6cdf975c9dbd0b639eabb",
+    progression_revision = "711e0eac093b70976c2b9a95c745b536994d57239d23d8e994ea74a0ae1cb11b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34459,7 +34459,7 @@ return {
     title = "Lufet's Lake Salt",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "853af51f41ea569b9c293e76a7704cf010fc4c7767920eed8b3ae1f41340c072",
+    progression_revision = "54bc972223f14ae949bbd83df9c9e8936b1f7949845523b40adcf513aae375f0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34479,7 +34479,7 @@ return {
     title = "Healing the Land",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e057fa8f3118743577d13997105f06f0530cb1695c017e1b2caaa4feed635af9",
+    progression_revision = "03796e344c2bd456a9d293216ff5929058a5f3c0f36ed5e13274b8d217fb91de",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34499,7 +34499,7 @@ return {
     title = "Sorcery of the North",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "7031182f9e85b5253917dfdb0091cad56925be56111fac2761a8e1edd5cd15d6",
+    progression_revision = "fe41e8625de1d598cc4f09fe08ab386369e9a2dd24c4bd825d3abd2e16af51b4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34519,7 +34519,7 @@ return {
     title = "The Crimson Trial",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e6acb2ef4be30e2f54c385a55fdd01f76d300bc748ce763d0e06b2393c19bc4f",
+    progression_revision = "73e102a13f6434afb22d4f6d3c7de719b1c29ff9a5e92920c12e9b89ec718669",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34539,7 +34539,7 @@ return {
     title = "Enveloped in Darkness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "764d1811881e730c30df70d4785c49ba416cccfede62ca5eba868104bbc6d587",
+    progression_revision = "ddcd9bfeeb18fef8310782ae0950ce6933f694cfeba074e3c52ab44943ac2803",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34559,7 +34559,7 @@ return {
     title = "Peace for the Spirit",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "31545fa9b7d810d52024b143cdee381c2d49f7852e3dbdaea51bd4149ea5a399",
+    progression_revision = "e964230c1ea04d8f46ad1578c91f15cbcf86f6b8ce689e4742029722e8658b31",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34577,9 +34577,9 @@ return {
     native_id = 87,
     progress_id = 87,
     title = "Messenger from Beyond",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d9990145687fee042853fbdb9f3404afffa882d267fd4ad35c9a5df8fd11c450",
+    progression_revision = "e201c716f9cf62e6bc17c0f9c406654208110447efe7f2aa293b46081ec1129e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34599,7 +34599,7 @@ return {
     title = "Prelude of Black and White",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "590f04f42372c5576f7a8f00dd0426842992e1c7bf3f8992159c6e20324391c8",
+    progression_revision = "dbb5e01ab21785569dc4dd556d9db1db11adfd203a55349f5902b18a71809591",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34619,7 +34619,7 @@ return {
     title = "Pieuje's Decision",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3e52a24ba8249f22e063e4c40361df09ef23f7dd6450f4d90307cf369e501734",
+    progression_revision = "c4c772a22c21fae3169b4c899c0d5d4b64b8a4e4a46a8a6090322179c26ffa71",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34639,7 +34639,7 @@ return {
     title = "The Vicasque's Sermon",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "fc563484f1ffd4284f920e3c82d9d5c8816ba6c640e7e7caf57508b3c344ec30",
+    progression_revision = "9ce1586f88f64569470ce07a7fbaa8832c09f63d927adba6cae8bf79466f9455",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34659,7 +34659,7 @@ return {
     title = "Sharpening the Sword",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7f170270cf67477322515d0382e731bd3267f23a9bbe93502a6d5774273e4c1d",
+    progression_revision = "0fee73cd98c014b562c95e0fa63f163a90297bd12e9af72ca994c19d48c45b64",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34679,7 +34679,7 @@ return {
     title = "A Boy's Dream",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "56fe2e369c738bfe755ce8b1cd5dbbd4ce1ecf93fca279341e3943dbb317cee9",
+    progression_revision = "eda97e37b182c5bed37886c57ca0a4964ce82eb78845f0f2fbf900310be6c51c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34699,7 +34699,7 @@ return {
     title = "Under Oath",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9c4f80e773e2083f98b94e22d72a32fabaa16895573b12a1ca8b4b3b03d6904c",
+    progression_revision = "269c5c56b58096fc02d45a182f7aedb564b0936f703670858877eefe26686ee4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34719,7 +34719,7 @@ return {
     title = "The Holy Crest",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "78af4fb85aefe6052f5b30138974a3cfcf39193a6d52a4a1fb34b9c476414f1d",
+    progression_revision = "aef0a46050f3bd4b4a446d9fde3d6a87f6403fc17a3b7810dbb3b9779834c38c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34739,7 +34739,7 @@ return {
     title = "A Craftsman's Work",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "748fc69c1270ed292ad98db956b6b887006db13cd401f8b8ebee94e4983b4ef3",
+    progression_revision = "376adac2f9ce68a2774f764b8382396aa1673035f700420720e7dcec6787d57d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34759,7 +34759,7 @@ return {
     title = "Chasing Quotas",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "48bafc5755ac0f4838325486ae2c3a84a17d5c3d1670dad78f0a1e437a578120",
+    progression_revision = "89a363742cb559341f51adc222187d62489d1816ce8b1d945890d4a160aa2f4f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34779,7 +34779,7 @@ return {
     title = "Knight Stalker",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "187a082bfbb5cd4b0e8594d0716f81004e0426cdeeee2fb635c53dc3383450d9",
+    progression_revision = "e1aeb4cabeecafb5dfb196d9907b23d4f5ae62bff2512f4ddf1a83189aedd87b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34799,7 +34799,7 @@ return {
     title = "Eco-Warrior",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8fd2936c3185fa627747cacb35b9b92e186482b4ecceb27508c85b6450f17856",
+    progression_revision = "0a9d29fed700e206591c3741413b5226596a75432c8c05282dbe96828f0a8941",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34819,7 +34819,7 @@ return {
     title = "Methods Create Madness",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "402fa81e3c5408f2e31bbcd9aeef246d928879af61e4ab1f465130bd719f3fad",
+    progression_revision = "ba0b972226b2527c25991d0a89b4e7e5f089ea05e0c3b91b60cf501b41115014",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34839,7 +34839,7 @@ return {
     title = "Souls in Shadow",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ff086912eb5110ff6a1cd44067b8a74a85a808e012b258f959ee1e92a42607f0",
+    progression_revision = "e77d48531c80b8cf86d4d103381d4fb47a94cf91ac19deb086c42967d015b81b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34859,7 +34859,7 @@ return {
     title = "Hat in Hand",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "0effdf9cf0e4db6eb5dbfc2ad446b0700933c3ef5954adcc7d38a4cad3a72db1",
+    progression_revision = "cb5113c32bfd605375734f6bef2063007df0c800d157eb6f95bcfbb004abb46c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34879,7 +34879,7 @@ return {
     title = "A Feather in One's Cap",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dbb361238aa02a92ea6cecfed2e24005399a648300c0375bdfa40a0c845c2963",
+    progression_revision = "6a2ed6e953a679b097e29b118f9a24f489ed8e98c1cf6bb5761c9a3c0aeca016",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34899,7 +34899,7 @@ return {
     title = "Star Struck",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ca5b5a1f822c6f34731bf502acf69519f85bcfc1a24fa60422ac2a4befc2005d",
+    progression_revision = "7b3658edd7381fc535f828d7a4cec387759ab809eb7b92d4047d2a483728834f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34919,7 +34919,7 @@ return {
     title = "Blast from the Past",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "3feb1c9e6644ffa6983ed5e519c44f3b6231e37bc0c41103970a4e147c5d4b22",
+    progression_revision = "af4d623e0b834341cbee21cc203e8e60aff499e09b7bfa268c7293b16e12e947",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34939,7 +34939,7 @@ return {
     title = "A Smudge on One's Record",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "9bef872c7f1fdb2dda347df9a168b3f36c1b360aa6f5dc1081ec6d4ab8be2e34",
+    progression_revision = "ac47a8ab16640989bd5399f6355765025e53c8afe8d3c2cb0c264a50babbd4ea",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34959,7 +34959,7 @@ return {
     title = "Chasing Tales",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2aeab7bcf1c2da978b9cc9fb2b5df2e17a20154f15daf85cb065d1bf96c8be49",
+    progression_revision = "577673877912e18d3fa0d361b557660ec98ac3585c937e7bf87c47f7e0000328",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34979,7 +34979,7 @@ return {
     title = "Food for Thought",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "5e655eba88449ab754f3f4fdb71170f8c76dc982366c8f4e38d6c119c0803feb",
+    progression_revision = "378baf2df234a7bde203f0408ce0ece3285cdf1a0f7890f4adc42e20cf51b651",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -34999,7 +34999,7 @@ return {
     title = "Overnight Delivery",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "890ac55062f085c31c405e8d4c3bdf7aeeaaf5c1ecc991dd970ada6b20abedf5",
+    progression_revision = "10f60307e22409829c30e1c50b6a20bb69df6d2bdfed961d9e9f41874a13cc19",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35019,7 +35019,7 @@ return {
     title = "Water Way to Go!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "95f79f11f6c11083aa5c31e284b2bed42156e5b3e1220be78057d87c1816edc2",
+    progression_revision = "2b8f4294cf05c386bfc1ad2d778f534deb382035ce73893a9508eaf31eb8db7d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35039,7 +35039,7 @@ return {
     title = "Blue Ribbon Blues",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "a4a143af766d4d4369d89022e3a7d5625653d298b990e005540ac766001cebc6",
+    progression_revision = "b66d34766d0b2f6fe5c9b32b1e912f45a35ad4454541d15ad0d0dc91216eaa70",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35059,7 +35059,7 @@ return {
     title = "The All-New C-3000",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a081f0050f325615f4df2214d4869fc89ae54b1dc6629167d42425a6c420a425",
+    progression_revision = "d38c94f75d6e15d2999456d1a3c86a47dba96f31fd10bb5fd36ab9e6ddace463",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35079,7 +35079,7 @@ return {
     title = "The Postman Always K.O.'s Twice",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ca5c6079b7234be0d41c68769301194db00a5f6d6f1c7e176da99cabef0d4c3b",
+    progression_revision = "6ba0804b5938bec0d5ee5eac01481524d5b60c63525678ebd6185cee96d37f4d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35099,7 +35099,7 @@ return {
     title = "A Crisis in the Making",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "07c217d20e13ed69140d615506bdf3d0bf2c6517f7e435f9de126abb4ad5356f",
+    progression_revision = "69e070e684d580328ba3551ddb7e16a5094195818ef206db96526e9f40d8dc6c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35119,7 +35119,7 @@ return {
     title = "Early Bird Catches the Bookworm",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "1fb6b61d2a4c902401926a889f8a3ede5582b14a40de12ea101bbb0bea2df0aa",
+    progression_revision = "138d596c95d8a5fb62619022e6b915b96f07048ae8def276ed5f307f48f1047f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35139,7 +35139,7 @@ return {
     title = "Catch It If You Can!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "f832a4e03587b090beee424ac74a07aa27ca749ccf6aba719164c97b425f7e6a",
+    progression_revision = "987083f0bfb773c95d4ebab1a9a0dc71b27ebe66ece4ffe923c67d9ae6192e41",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35159,7 +35159,7 @@ return {
     title = "All at Sea",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dbd0c45b9ae227aa82bac3bb2d68b02a26502585e5fb2f83fb4ea7b7978bb094",
+    progression_revision = "63533e8775fe9f76d21aafc372c19a7cefecf4c1e24148921cb3a238bdce0e8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35179,7 +35179,7 @@ return {
     title = "The All-New C-2000",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "dacb19f633e689f1005d78f3c0dba02dfdabe614f7985c8b901ff5e5a795d387",
+    progression_revision = "c9c34b9703d49136eb9c4ddb282f7e5d6b4e752de231a20a2c3cd4ba1603c2b8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35197,9 +35197,9 @@ return {
     native_id = 25,
     progress_id = 25,
     title = "Mihgo's Amigo",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "7eea72cc30f69b3b5e82c2837eaf01f8290e9f860e2c929212a3719e027b2f6b",
+    progression_revision = "afdb92dc3f78a50859e3efd30f128c6cd164e1323fe33474fad56a543c7d2af9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35219,7 +35219,7 @@ return {
     title = "Rock Racketeer",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4d9eceddfc71b90e62713140251dfd12812891b42fe112c31bb799e3b4a0b670",
+    progression_revision = "826d21b432bdb1308607dfe54f82a23e25f68de8d1dd8feee8ecdae5a288878a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35239,7 +35239,7 @@ return {
     title = "Chocobilious",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7aa586c40c12d72606d01473fc886c9bd3b07eff24e383a9376fa1e8494b471e",
+    progression_revision = "f7888d386fd997be61c7ac2d5fe7b67decd63b78c3cae7ed03260f742a998b3e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35259,7 +35259,7 @@ return {
     title = "Teacher's Pet",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "58c4617ae51a1b7ad5e16cd4ef76b9a2093095d46d5c15969ebb8e4a81342d10",
+    progression_revision = "6809c12dc98481cbe6e2836a3183f30cbeec653475d2660b70a4cb1b949823e0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35279,7 +35279,7 @@ return {
     title = "Reap What You Sow",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "315b95a345dc24e1d1b2bf31f2e45433706a5c628530aa98f8dc7c14d8bef88d",
+    progression_revision = "36652ac7bb2c56bcfe6d9c1b0ac26fe63abd34153dcf3ba57b42eb6ff2863f8f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35299,7 +35299,7 @@ return {
     title = "Making Amends",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d5f2ec681e8f46501c3a12055c8c2412d066d9c321ac98ce518c58fe08ed3c7a",
+    progression_revision = "3016738a33c2d0f4a1beb0ebdfd9c2c5d2a4889490e9742fa05f4b9e56767756",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35319,7 +35319,7 @@ return {
     title = "Glyph Hanger",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "afaf4bd4aed2f74203c84dc442bed96143ee6a0a1252ba0122ff10412f5dd4a7",
+    progression_revision = "18f5b9097cc307c099cd22c42b93ec548474b4082ba88e66d21eb766598cbe57",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35339,7 +35339,7 @@ return {
     title = "The Fanged One",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2bca2f213eefc46079ba08766c361859a1f1e66a4517e60e6719eddd47c3f5ed",
+    progression_revision = "c0f718acc93e68dcd015ea30f1c7b0ea5ccf7a9938c52d82ca5f3fb7a4435f07",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35359,7 +35359,7 @@ return {
     title = "Curses, Foiled Again!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7033e20ce0557743dd969d457e94863eac604e45a5278ad1ce9a51341340ac41",
+    progression_revision = "c52cd744c9299bb4f74e56eca40a946c72438360d276b9ef97c6bd4be1eea55d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35377,9 +35377,9 @@ return {
     native_id = 33,
     progress_id = 33,
     title = "Curses, Foiled...Again!?",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "67dc4bfc082fae8e8fcf638df791194eeae22597fa9528982e22fc244e4c35b9",
+    progression_revision = "c3bcaa5c4fa2f5bae02cc07de84c9f30a17694b5361e3f99476b37acfc02f652",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35419,7 +35419,7 @@ return {
     title = "To Bee or Not to Bee?",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "c94dbd024a1b862b9b37312a12546f52e158797d3699579c971d50b3acb7031f",
+    progression_revision = "b3cc8e7823280acfb775406647a8b68fe0bc41086f04f0fdd3bfd6c37c9e1985",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35439,7 +35439,7 @@ return {
     title = "Truth, Justice, and the Onion Way!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "4e993f30cc244dcdc41683876c427b39dc1f0bbbdc775151d60d0775f3d588a9",
+    progression_revision = "cac9477a165b5b7fb37a9ade0f4509a408b01359e841d4e308781784379940bd",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35459,7 +35459,7 @@ return {
     title = "Making Headlines",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6a262bbef0cec8bec2d9efc277a7d2b648b3535ea6e399c8cf6807f62cb081a7",
+    progression_revision = "0f72e70327ec6175486168eec6131fd23727a09b99364c26602c2cf9fe42de34",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35479,7 +35479,7 @@ return {
     title = "Scooped!",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "356af17cc4e3234cc152c2b5879af6f6aafb0316e3f367502f0f618c05e34a6e",
+    progression_revision = "b196b7e990de1e1ebbc3fffd4e2ca5df89fcb046ad4ad2b235f0f1c738e07639",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35499,7 +35499,7 @@ return {
     title = "Creepy Crawlies",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "53b9b311164b03f09252d495f4555507ca20e4c9377e204da91a1d068ef370d3",
+    progression_revision = "04b00a693dc3c888592b5d3f01d99408611fdf5175cb12e3618624604480284f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35519,7 +35519,7 @@ return {
     title = "Making the Grade",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "41c88cf0a0729b86635a0cdf42f790e5baa2fcc2a43965542dfa14be2dff9432",
+    progression_revision = "5acecd19f16cb226db4d9c1db4d16791ed9bf1d59c34224920adab4bdb7cfa73",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35537,9 +35537,9 @@ return {
     native_id = 40,
     progress_id = 40,
     title = "Know One's Onions",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ddaabf5cbe6e404895324c9f8d899e5b29773d6a17cba53dba0206a528420ad7",
+    progression_revision = "50820f42755a7598c2fd5ff10b1e2d304791d6515ae036617cc0672523f7031f",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35559,7 +35559,7 @@ return {
     title = "Inspector's Gadget!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "7a463bfc53a0c86d943c8b2743ae25b1b8bc2800f19f523ceabafa1fc338eb7e",
+    progression_revision = "b586f5f066b3f34d2a4ff44414dda6521662e39c311058059e52325261b4aea7",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35579,7 +35579,7 @@ return {
     title = "Onion Rings",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "13ae8226879419fc9a3abd2c477fcf6ae57d0acb0e0a1c1e129d89d9b490279c",
+    progression_revision = "5777411a6b4f80d2d02354b667b82e56d38adb1ff7cdca79bf4c73e4895d7aae",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35599,7 +35599,7 @@ return {
     title = "A Greeting Cardian",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4ba1965ace14a13150352d2bf49a0f1cc88de3585a7a29aab436cb50e6e5817e",
+    progression_revision = "38b1932789a2c1bfec87bbe3bff06cb8739a6e1dfde402ff52fccb58711370aa",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35619,7 +35619,7 @@ return {
     title = "Legendary Plan B",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "6ef46cc74423d92c803da33e14aece618f5745f111a067da252b242da651b4fc",
+    progression_revision = "06373bdf198382cf1c4ca9168a3eb5d170773fcf9e86086349491d9a0e088c54",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35639,7 +35639,7 @@ return {
     title = "In a Stew",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "48ecdd57109d6164a0b3368ba25d71e009cdfba4f12dd314e5ea77beeaefac12",
+    progression_revision = "1a091b952536e88ea9a57d3f777ff25bc8e0690a02555f966a31e166fcfd3603",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35659,7 +35659,7 @@ return {
     title = "Let Sleeping Dogs Lie",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "0462802193f280c415b82a0091f6b15f567d40d567d91f5bb527f7f4b5fbfeea",
+    progression_revision = "aeca435cf1107a901c27455ea948c21fad94e74362abe3a574bd60aa81b22e69",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35679,7 +35679,7 @@ return {
     title = "Can Cardians Cry?",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d99cd76551303950d40efe298dbb9fb38bce21d5c5fe7c66638ed9beb1345f5f",
+    progression_revision = "ee603b15ae70b7738a2fff92fa2bf880e248156fa407eb089e9b2f1958a61d13",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35719,7 +35719,7 @@ return {
     title = "Heaven Cent",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "04cab000706f094c7b6f323fc587dc0797a3b4fe90a88ee101e649b861cf9c03",
+    progression_revision = "a71fdfcf912b7a2a9d8d098b0b315f7148e7fe6026583d78e5617eacedbb4464",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35739,7 +35739,7 @@ return {
     title = "In a Pickle",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "881428689b2b505cb86fd01e17612ecdba4b6669ba9c78b3d58bb17a786ba531",
+    progression_revision = "3976177277c80ca3b675c95b71b9cfa61d28ca47159dd9e56cc21f304bc32ec8",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35759,7 +35759,7 @@ return {
     title = "Say It with Flowers",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "ccc7e2dd4f394e9e2424a41000a7259b2f34c50b57f2c33b73ed2047169b16a4",
+    progression_revision = "79d60f1bca4ea50374e3a7203784af82c474644c226ae0be07e81e3b790d580e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35799,7 +35799,7 @@ return {
     title = "Something Fishy",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "810fbb0e47de687c2abb153feebde1e23bfdd5ce3788cdf62f54367fb734b818",
+    progression_revision = "562c89da42e5129cb1d6262b9819ec7993722dd5aaf5be129d0e44b2e1c509f9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35817,9 +35817,9 @@ return {
     native_id = 53,
     progress_id = 53,
     title = "To Catch a Falling Star",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "568815c0e59896166917b5acbebdb87c5aec92551d5f6bdb9087254d53c817fa",
+    progression_revision = "896ad3bd839847d06066dd25bd7af3f81ed549dd3729e6d6dc14b3876ddbcd7e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35839,7 +35839,7 @@ return {
     title = "Wondering Minstrel",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "82eba19b4cbc93e0d9842ed2b76ab64fee5cceee501a52f087a53bbeabebfb31",
+    progression_revision = "72bd139e536527f84198904a438d6af11ac13591ddac71ca4c82482fe1cc2eb0",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35859,7 +35859,7 @@ return {
     title = "Paying Lip Service",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "cc54b2de515f31c25a161c899430f71d8c1e9e0a13101086956d6e9375e41290",
+    progression_revision = "2eb666b3d28324644ee10cdd553e625ebf44086976a540569facffed3632c43c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35879,7 +35879,7 @@ return {
     title = "The Amazin' Scorpio",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "65e499471b1cd689a8b22e95a7c10b50cd5aa5ae2a4fe1e2fb69f747995a70c0",
+    progression_revision = "fd4203f732b62f8c82c01eac53d1c0ee3847c1499064d19c624fa7ed46e94d9b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35899,7 +35899,7 @@ return {
     title = "Twinstone Bonding",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "0de4340c3d44e70e2922390491dd2c74405d5c8f5a2e49cf2742946436b9c0a1",
+    progression_revision = "210bf4f2058a21be87206e0e107942b8073aa703d27062be71627658ddb10600",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35919,7 +35919,7 @@ return {
     title = "Curses, Foiled A-Golem!?",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "623cb8d54b44f15e7ff031aa4e2f9eb143753684b983da565ea7f68998da9575",
+    progression_revision = "8e020676f7fc5db87024ba209fd747e60bae95809ceb0780a4bcc21c509ac641",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35939,7 +35939,7 @@ return {
     title = "Acting in Good Faith",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8d91cae8e6a7555d578d3243fea42950c91eebe90a01e089c631f31a408cffd6",
+    progression_revision = "e0a57a304e4a1e7bffa6e1cd43aa9bb6b281bf391ecc09a2e810458e373475b1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35957,9 +35957,9 @@ return {
     native_id = 65,
     progress_id = 65,
     title = "Flower Child",
-    status = "source-conflict",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "d12ef9c9e958742d39330d315cbad337511b99cbc9164cacfa40d3cba5d88255",
+    progression_revision = "9c467536b0078440de18370f949956fa133df6762c15772af6cccbec41c73ab6",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35979,7 +35979,7 @@ return {
     title = "The Three Magi",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "aff2228c77ddb5a71ecbd41573f68bc1a4e9eb8d3f8397e9fca602ac6071aec5",
+    progression_revision = "c1988e85148ffbaf07fc9214a075a4a96b7519566f6425422a53424fab4a98a2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -35999,7 +35999,7 @@ return {
     title = "Recollections",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "78e626ba2dfa502d4096ec4f8bdd8eb379a3cc069c121ddc9b66fd1fe6e12e41",
+    progression_revision = "ff7e6aa8d0c04641154ee50a6fadc0227c1e6118af10919484bd9fac87393490",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36019,7 +36019,7 @@ return {
     title = "The Root of the Problem",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "56b2505d2235d622249813d43786fdc0a784d411c88d7535835d67d4e6b2d4c9",
+    progression_revision = "0d6d7398c23fdf9346142218212c5bbd9f4f67465e2f804d4822d86c7fb9a147",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36039,7 +36039,7 @@ return {
     title = "The Tenshodo Showdown",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "89bfce653ca91064cd3b15123c31101eea623234c74820e93dbde5d70ac0a86f",
+    progression_revision = "66abc20ad71a840ef5050f441cf771b02e676e89e23073130255e4dd637a0c15",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36059,7 +36059,7 @@ return {
     title = "A Pose by Any Other Name",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "583920f3ef866ea8ea41681fee3acec93895665e76f5a40b05439377874a8b1b",
+    progression_revision = "72e171c3d58399ff18054d087244a0999522d1d8c02d6211b7044a662548312d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36079,7 +36079,7 @@ return {
     title = "As Thick as Thieves",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "37c3be07716b6d9b97f2940030ce59e8d8ebbb6a0f33edcec76905844e2d8774",
+    progression_revision = "5bfc759558634f1fa0942cae9860a941a07a3da6aa23e3d0e8ee3cda28ef9aa1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36099,7 +36099,7 @@ return {
     title = "Hitting the Marquisate",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "ef521377b94128a3c938a14785323d9c579ec587f923aef877014e107f61fb62",
+    progression_revision = "03efa86a451ac164d5578fab30911081b13a65438bf9520ffaeeebbf0415cb54",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36119,7 +36119,7 @@ return {
     title = "Sin Hunting",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "bdf3178cc8f87ad8803397201b6395321cd180d30a70b27a37c813ad6a11f4e6",
+    progression_revision = "e16070e4a8f81fee03cbcc39f4bad47e77ed22d563c09a62b010186d39fddd4a",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36139,7 +36139,7 @@ return {
     title = "Fire and Brimstone",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "22035776da292b406f7bcea215b6176d7e2070b15fe08312ff54bc7630425da4",
+    progression_revision = "cf64fbfafb0d81f68db0a65fccfeab0cd76ef58a7b9c5ba654c5e2b2db8c20bf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36159,7 +36159,7 @@ return {
     title = "Unbridled Passion",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5c9f2ea935ab99a8f0a6dd226fbf4d46c1399dd06682b66910e0052b13a892cb",
+    progression_revision = "603e13033f6970ccc35f7e0f5ef6068bc8acfc26475d36f6642e822c60af6e74",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36179,7 +36179,7 @@ return {
     title = "I Can Hear a Rainbow",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "e63d151557287fc42d9229108adf2655def5aaedc6d1f8146d25574e27749f46",
+    progression_revision = "e6538828805ff9f30b4ef3817e3a0cd1cc2a952da31a8df2dcc1c9915103b473",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36199,7 +36199,7 @@ return {
     title = "Crying Over Onions",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "af8bef7f16eef3de99933891409483595aab30edbdf4d7c29cdbae17dd57a75e",
+    progression_revision = "ade23e9cd2db410c5a73bfaa02bc8b414103f8442080a07b8f0e5f606cd9aa45",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36219,7 +36219,7 @@ return {
     title = "Wild Card",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "4988726a0d240d09950feb2ed1de745efd4819581f9be0cb006c0c7db1b54e90",
+    progression_revision = "74408283a27d5b6b9bf36a219126d3aaa29e7043c11e6aecc724e782d8a8b16d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36239,7 +36239,7 @@ return {
     title = "The Promise",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "f82ca6862aaf54b0e5f95c1716e31d8f5decaf4d090cb38cbaf14f393aad51c0",
+    progression_revision = "3076c3a79304ee4f3b8b10a1ef26cf88f5fb5400b3236fe3ac0c57d88390ba62",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36259,7 +36259,7 @@ return {
     title = "Nothing Matters",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "72e63a2adc4a91ddf21908f9464fd41bd6740f2e5235e96bacef40b79cf5ac4b",
+    progression_revision = "7000025a6e6202269513753b780d8a0afea3ba2eca6c7009f6769c32a01ab8be",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36279,7 +36279,7 @@ return {
     title = "Making Amens!",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d4af1a1d7c3636aa95c03b34e6b736ae23aeadb551e0129a16536684087f64da",
+    progression_revision = "f236948dc3dd9df8cfbd6e7a676c8aa25a275c591e5aa4a1bb3c90e9395e042c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36299,7 +36299,7 @@ return {
     title = "Toraimarai Turmoil",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8c3e597dd718d241e6bbb454effdb788874b7d20c0f76a3f3f2210240d3fe2e8",
+    progression_revision = "d23785849d054538564bc875de3ee8d0632e03637829612155b0366004df36d9",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36317,9 +36317,9 @@ return {
     native_id = 81,
     progress_id = 81,
     title = "The Puppet Master",
-    status = "verified-navigation",
+    status = "guide",
     progression_schema_version = 2,
-    progression_revision = "193ffed5675b6d23153ea4ba4f67fc55223751da84182144a19e96f056b5efd2",
+    progression_revision = "8275263a98b8d92aa058281b0f6ecc432b06339262735055d9ed29e1ad502337",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36339,7 +36339,7 @@ return {
     title = "Class Reunion",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "fdf3a130c7e1e03217d6753d3ba063f2354dae3ff455bb420428b523755a98f9",
+    progression_revision = "b95de741f54a97103c57470c1fc18446b5075514686a97efb42100711dedc61c",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36359,7 +36359,7 @@ return {
     title = "Carbuncle Debacle",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "5ae944182cad1f7d57d3b79c70c70a1a58ac155eb8610ebc51033fd214bc1180",
+    progression_revision = "dc6c433f6c8f9c0da1ed15b972b5467b5b2cdbdbac5a1efa475b8a7b05546acf",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36379,7 +36379,7 @@ return {
     title = "Eco-Warrior",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "dfea5676d2e45cf88f5c047598523133b5aac365d9ab57802622b14c82dc1a1a",
+    progression_revision = "a796ec050b806f0373bc311c886e9178e4d91aa7b4fe59019579c2ed33bf9cc2",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36399,7 +36399,7 @@ return {
     title = "From Saplings Grow",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "937209929d612b55f14e6a98fc33c5e7e1a18568e1440e9edf4e8a5409a2dca2",
+    progression_revision = "c0fc2ced9796a9d524a2b98d777726dc1e2912075b757a174a811ebda8e37b53",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36419,7 +36419,7 @@ return {
     title = "Orastery Woes",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "99c85176b9bdfe1f7a63f03f5f2e11eceea2234463acf9887eccbdc33dbd684a",
+    progression_revision = "dcc0f91b24cdd3f4a1108dc72a0cfff28a94e1b5a6d5a2bc2d341104d47e43d1",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36439,7 +36439,7 @@ return {
     title = "Blood and Glory",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "046e43ccacc96431aa475f72a7a337e03fd5b2295e4a61dcffb8037705e72f95",
+    progression_revision = "216422d07a92ba4bef5e5b9f550dd084d45e9758183c20dc1b7a47f60f5e0f77",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36459,7 +36459,7 @@ return {
     title = "Escort for Hire (Windurst)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "2250c8011341c0eb93e99f9067c707e87d2afacb008381bee5098c2b9b21a403",
+    progression_revision = "2c294abdc014dcf14442892a85d827a254fc933d42405e518af3d9987662d684",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36479,7 +36479,7 @@ return {
     title = "A Discerning Eye (Windurst)",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "a34aac96a046cc5050d7825e897341f6573b15a694b5567b620426bd54893e28",
+    progression_revision = "2fe5ea4a9f0b4607634a4c50873c89b770641611eddadd304f3766d4eafd3d6b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36499,7 +36499,7 @@ return {
     title = "The Moonlit Path",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "670a6be02953459b47112d4bfe0327ca4d90e60c87285214c5d939d695904a71",
+    progression_revision = "d55aa51ed39562f9930048dd0a31c28b207602935fb9c83e2a82e14eaea29d2e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36519,7 +36519,7 @@ return {
     title = "Tuning In",
     status = "guide",
     progression_schema_version = 2,
-    progression_revision = "172900d6eeca44f2a63889ba9a419eed4a79b2dbb2dd5e12570fddc1d3390b78",
+    progression_revision = "6f74c4c73682aededb3dcc33b4f14f9603c89380116ad23454e1d76a7496a6a4",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36539,7 +36539,7 @@ return {
     title = "Tuning Out",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "f1a14712c4351d81cc8fc90eac605b9d988f6b566336df14d384221262b7f0bd",
+    progression_revision = "9ea0ebe75f5d2aee15e879d01cb03523ee56d8f377b052ddbe865556f39f9d7b",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36559,7 +36559,7 @@ return {
     title = "One Good Deed?",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "8a8dd5769ffe90b388c9adecd43f95a6ac3bf0d91a824449cfc173f315bb9e3d",
+    progression_revision = "18efee71dd81082c838ed5fcdf732dc7c03ac5679f35cb65eac882dddab96270",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36579,7 +36579,7 @@ return {
     title = "Waking Dreams",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "2477bbfe8e81e58cd8d5ca820f0aaaf0bf4d2100f4a61b62586bff7d0a8d3fdd",
+    progression_revision = "06fd258e4c6cc0bf5603cbc6e6b52278a797710f4820cf3fa6d73e1f7140876d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36599,7 +36599,7 @@ return {
     title = "Lure of the Wildcat (Windurst)",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "d9448a304804dd507af0fa97d5ac07dfaadd4e6e7e5bba0b53315deee4a9382f",
+    progression_revision = "d1a1b9ffb9fb98388fb4d4bd2cb09f095318aeab2f894aa94384547e2037690e",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36619,7 +36619,7 @@ return {
     title = "Babban Ny Mheillea",
     status = "source-conflict",
     progression_schema_version = 2,
-    progression_revision = "ca9a6bb7e037724c2c18ba3614107b59c7ce259e5ffdd04b258fa48e54ba10f2",
+    progression_revision = "a9ed0465ecaaa94481784bdaf755832780e35859f42cccb0215bfde8b5dfb997",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -36639,7 +36639,7 @@ return {
     title = "Trust: Windurst",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "e0bd040ed9d8ee7c8176bab3a36c5a9e5dffce0813bbd34df098879a6d21887f",
+    progression_revision = "b73547cbdae710df8307d404690ec71cd84d42c407b6725c1fafc3b1edf6731d",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",

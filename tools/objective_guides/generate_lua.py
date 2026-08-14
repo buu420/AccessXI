@@ -373,19 +373,55 @@ def _source_span(step: SourceStep | None, order: int) -> SourceActionSpan | None
     return next((span for span in step.action_spans if span.order == order), None)
 
 
-def _authoritative_value(bg_value: Any, ffxiclopedia_value: Any) -> tuple[Any, str]:
-    def present(value: Any) -> bool:
-        if isinstance(value, str):
-            return bool(value.strip())
-        if isinstance(value, (tuple, list, dict, set)):
-            return bool(value)
-        return value is not None
+def _authoritative_value_present(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (tuple, list, dict, set)):
+        return bool(value)
+    return value is not None
 
-    if present(bg_value):
+
+def _authoritative_value(bg_value: Any, ffxiclopedia_value: Any) -> tuple[Any, str]:
+    if _authoritative_value_present(bg_value):
         return bg_value, "bg"
-    if present(ffxiclopedia_value):
+    if _authoritative_value_present(ffxiclopedia_value):
         return ffxiclopedia_value, "ffxiclopedia"
     return bg_value if bg_value is not None else ffxiclopedia_value, ""
+
+
+def _owned_value(value: Any, site: str) -> tuple[Any, str]:
+    return value, site if _authoritative_value_present(value) else ""
+
+
+def _material_semantic_sources(
+    bg_span: SourceActionSpan | None,
+    ffxiclopedia_span: SourceActionSpan | None,
+) -> tuple[str, SourceActionSpan, SourceActionSpan | None, SourceActionSpan | None]:
+    material_bg = bg_span if bg_span is not None and bg_span.material else None
+    material_ffxi = (
+        ffxiclopedia_span
+        if ffxiclopedia_span is not None and ffxiclopedia_span.material
+        else None
+    )
+    if material_bg is not None:
+        return "bg", material_bg, material_bg, material_ffxi
+    if material_ffxi is not None:
+        return "ffxiclopedia", material_ffxi, None, material_ffxi
+    raise GenerationError("Material progression action has no material source span.")
+
+
+def _compatible_semantic_domain(
+    primary: SourceActionSpan,
+    fallback: SourceActionSpan | None,
+) -> bool:
+    if fallback is None:
+        return False
+    return bool(
+        primary.action == fallback.action
+        and primary.relationship == fallback.relationship
+        and primary.target_kind == fallback.target_kind
+        and normalize_title(primary.target) == normalize_title(fallback.target)
+    )
 
 
 def _authoritative_count_triple(
@@ -503,68 +539,74 @@ def progression_objective_payload(
                     )
             if bg_span is None and ffxi_span is None:
                 raise GenerationError(f"Material action {claim.stable_claim_id!r} has no source span.")
-            source_authority = "bg" if bg_span is not None else "ffxiclopedia"
+            (
+                source_authority,
+                semantic_owner,
+                material_bg,
+                material_ffxi,
+            ) = _material_semantic_sources(bg_span, ffxi_span)
+            semantic_fallback = material_ffxi if source_authority == "bg" else None
+            if not _compatible_semantic_domain(semantic_owner, semantic_fallback):
+                semantic_fallback = None
+            auxiliary_bg = material_bg
+            auxiliary_ffxi = semantic_fallback if source_authority == "bg" else material_ffxi
 
-            bg_key_items = tuple(bg_span.key_item_mentions) if bg_span is not None else ()
-            ffxi_key_items = tuple(ffxi_span.key_item_mentions) if ffxi_span is not None else ()
-            bg_key_set = {value.casefold() for value in bg_key_items}
-            ffxi_key_set = {value.casefold() for value in ffxi_key_items}
+            owner_key_items = tuple(semantic_owner.key_item_mentions)
+            owner_key_set = {value.casefold() for value in owner_key_items}
+            owner_items = tuple(
+                value
+                for value in semantic_owner.item_mentions
+                if value.casefold() not in owner_key_set
+            )
+            owned_values = {
+                "action": semantic_owner.action,
+                "relationship": semantic_owner.relationship,
+                "target": semantic_owner.target,
+                "target_kind": semantic_owner.target_kind,
+                "items": owner_items,
+                "key_items": owner_key_items,
+                "result_items": semantic_owner.result_items,
+                "result_relation": semantic_owner.result_relation,
+                "instruction": semantic_owner.supporting_clause,
+            }
             source_values = {
-                "action": (bg_span.action if bg_span else "", ffxi_span.action if ffxi_span else ""),
-                "relationship": (
-                    bg_span.relationship if bg_span else "",
-                    ffxi_span.relationship if ffxi_span else "",
+                "npcs": (
+                    auxiliary_bg.npc_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.npc_mentions if auxiliary_ffxi else (),
                 ),
-                "target": (bg_span.target if bg_span else "", ffxi_span.target if ffxi_span else ""),
-                "target_kind": (
-                    bg_span.target_kind if bg_span else "",
-                    ffxi_span.target_kind if ffxi_span else "",
-                ),
-                "npcs": (bg_span.npc_mentions if bg_span else (), ffxi_span.npc_mentions if ffxi_span else ()),
                 "objects": (
-                    bg_span.object_mentions if bg_span else (),
-                    ffxi_span.object_mentions if ffxi_span else (),
+                    auxiliary_bg.object_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.object_mentions if auxiliary_ffxi else (),
                 ),
                 "enemies": (
-                    bg_span.enemy_mentions if bg_span else (),
-                    ffxi_span.enemy_mentions if ffxi_span else (),
+                    auxiliary_bg.enemy_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.enemy_mentions if auxiliary_ffxi else (),
                 ),
-                "items": (
-                    tuple(value for value in (bg_span.item_mentions if bg_span else ()) if value.casefold() not in bg_key_set),
-                    tuple(value for value in (ffxi_span.item_mentions if ffxi_span else ()) if value.casefold() not in ffxi_key_set),
-                ),
-                "key_items": (bg_key_items, ffxi_key_items),
                 "transports": (
-                    bg_span.transport_mentions if bg_span else (),
-                    ffxi_span.transport_mentions if ffxi_span else (),
+                    auxiliary_bg.transport_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.transport_mentions if auxiliary_ffxi else (),
                 ),
                 "zones": (
-                    bg_span.zone_mentions if bg_span else (),
-                    ffxi_span.zone_mentions if ffxi_span else (),
+                    auxiliary_bg.zone_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.zone_mentions if auxiliary_ffxi else (),
                 ),
                 "destination_zone_name": (
-                    bg_span.destination_zone_name if bg_span else "",
-                    ffxi_span.destination_zone_name if ffxi_span else "",
+                    auxiliary_bg.destination_zone_name if auxiliary_bg else "",
+                    auxiliary_ffxi.destination_zone_name if auxiliary_ffxi else "",
                 ),
                 "grid_coordinates": (
-                    bg_span.grid_coordinates if bg_span else (),
-                    ffxi_span.grid_coordinates if ffxi_span else (),
-                ),
-                "result_items": (
-                    bg_span.result_items if bg_span else (),
-                    ffxi_span.result_items if ffxi_span else (),
-                ),
-                "result_relation": (
-                    bg_span.result_relation if bg_span else "",
-                    ffxi_span.result_relation if ffxi_span else "",
-                ),
-                "instruction": (
-                    bg_span.supporting_clause if bg_span else "",
-                    ffxi_span.supporting_clause if ffxi_span else "",
+                    auxiliary_bg.grid_coordinates if auxiliary_bg else (),
+                    auxiliary_ffxi.grid_coordinates if auxiliary_ffxi else (),
                 ),
             }
             selected: dict[str, Any] = {}
             field_sources: dict[str, str] = {}
+            for field, value in owned_values.items():
+                value, source = _owned_value(value, source_authority)
+                if isinstance(value, tuple):
+                    value = list(value)
+                selected[field] = value
+                field_sources[field] = source
             for field, (bg_value, ffxi_value) in source_values.items():
                 value, source = _authoritative_value(bg_value, ffxi_value)
                 if isinstance(value, tuple):
@@ -572,8 +614,8 @@ def progression_objective_payload(
                 selected[field] = value
                 field_sources[field] = source
             required_count, count_mode, count_explicit, count_source = _authoritative_count_triple(
-                bg_span,
-                ffxi_span,
+                material_bg,
+                semantic_fallback if source_authority == "bg" else material_ffxi,
             )
             selected["required_count"] = required_count
             selected["count_mode"] = count_mode

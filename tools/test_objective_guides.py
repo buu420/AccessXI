@@ -1534,15 +1534,22 @@ class WikitextParserTests(unittest.TestCase):
             (trade.action_spans[1].relationship, trade.action_spans[1].target),
             ("talk-to", "Task Delegator"),
         )
-        self.assertEqual([span.action for span in fodder.action_spans], ["fight"])
+        self.assertEqual([span.action for span in fodder.action_spans], ["obtain"])
         self.assertEqual(
             (
+                fodder.action_spans[0].relationship,
                 fodder.action_spans[0].target,
                 fodder.action_spans[0].enemy_mentions,
-                fodder.action_spans[0].result_items,
+                fodder.action_spans[0].item_mentions,
                 fodder.action_spans[0].result_relation,
             ),
-            ("Orcish Fodder", ("Orcish Fodder",), ("Orcish Axe",), "obtain-from"),
+            (
+                "obtain-item",
+                "Orcish Axe",
+                ("Orcish Fodder",),
+                ("Orcish Axe",),
+                "obtain-from",
+            ),
         )
         self.assertEqual(
             [span.action for span in badshah.action_spans],
@@ -1769,7 +1776,7 @@ class WikitextParserTests(unittest.TestCase):
                 ("obtain", False),
                 ("select", False),
                 ("fight", False),
-                ("fight", False),
+                ("obtain", False),
                 ("use", False),
                 ("travel", False),
                 ("fight", False),
@@ -1791,7 +1798,7 @@ class WikitextParserTests(unittest.TestCase):
             tuple((span.action, span.material) for span in coordinated),
             (("use", False), ("trade", False)),
         )
-        self.assertEqual((conditional.action, conditional.material), ("travel", True))
+        self.assertEqual((conditional.action, conditional.material), ("travel", False))
         self.assertEqual(
             (positive_after_avoidance.action, positive_after_avoidance.material),
             ("fight", True),
@@ -1803,19 +1810,19 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(
             tuple((span.action, span.material) for span in positive_scope_actions),
             (
+                ("wait", False),
+                ("examine", True),
+                ("examine", False),
                 ("wait", True),
-                ("examine", True),
-                ("examine", True),
-                ("wait", True),
+                ("use", False),
                 ("use", True),
-                ("use", True),
-                ("examine", True),
-                ("talk", True),
-                ("examine", True),
-                ("obtain", True),
-                ("fight", True),
-                ("talk", True),
-                ("fight", True),
+                ("examine", False),
+                ("talk", False),
+                ("examine", False),
+                ("obtain", False),
+                ("fight", False),
+                ("talk", False),
+                ("fight", False),
             ),
         )
 
@@ -1881,6 +1888,950 @@ class WikitextParserTests(unittest.TestCase):
                 ("Copper Ring", ("Copper Ring",), 3, "inventory-gain"),
             )
 
+    def test_adjacent_item_icon_and_matching_plural_link_are_spoken_once(self) -> None:
+        page = PageRevision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            "The Seamstress",
+            512,
+            773232,
+            0,
+            "2026-07-20T02:05:54Z",
+            (
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Obtain 3 {{ItemIcon|Sheepskin|22}} [[Sheepskin]]s."
+            ),
+        )
+
+        (step,) = parse_objective_page(page).steps
+        (obtain,) = step.action_spans
+
+        self.assertEqual(step.spoken_text, "Obtain 3 Sheepskins.")
+        self.assertEqual(obtain.supporting_clause, "Obtain 3 Sheepskins")
+        self.assertEqual(
+            (obtain.target, obtain.item_mentions, obtain.required_count, obtain.count_mode),
+            ("Sheepskin", ("Sheepskin",), 3, "inventory-gain"),
+        )
+
+    def test_npc_give_you_is_informational_and_does_not_precede_real_obtain(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "His Bridge, His Beloved",
+                page_id,
+                764367,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n**" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        passive = step(
+            "He will give you a {{KI}} [[Woodworker's belt]] and x2 "
+            "{{ItemIcon|Viscous Spittle|24}} [[Viscous Spittle]].",
+            58972,
+        )
+        following_obtain = step(
+            "He will give you the {{KI}} [[Woodworker's belt]], but you will "
+            "have to have to obtain your own {{ItemIcon|Viscous Spittle|24}} "
+            "[[Viscous Spittle]] from [[Spitting Spider]]s east of Conflux #05.",
+            58973,
+        )
+
+        self.assertEqual(passive.action, "note")
+        self.assertTrue(passive.action_spans)
+        self.assertTrue(all(not span.material for span in passive.action_spans))
+        self.assertEqual(following_obtain.action, "obtain")
+        self.assertEqual(
+            [
+                (span.action, span.relationship, span.target, span.item_mentions)
+                for span in following_obtain.action_spans
+                if span.material
+            ],
+            [("obtain", "obtain-item", "Viscous Spittle", ("Viscous Spittle",))],
+        )
+
+    def test_descriptive_subjects_and_battle_advice_are_nonmaterial(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "ffxiclopedia",
+                "https://ffxiclopedia.fandom.com/api.php",
+                "Descriptive battle prose",
+                page_id,
+                1795053,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Mission|name=Descriptive battle prose}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        cases = (
+            "The Qiqirn that is the spy will give false information.",
+            "Ouryu will give up at about 30% health, meaning you need to "
+            "inflict approximately 6000 points of damage.",
+            "The time limit for this fight is 30 minutes.",
+            "Can use Invincible at about 75% - 95% HP.",
+            "As with the previous missions, use this time to rest, and go over "
+            "strategies.",
+            "For reference, trade prices vary by server.",
+            "The battlefield is level capped, fight access remains available "
+            "for 30 minutes.",
+            "At 30% HP, Ouryu will give up and return to the center.",
+            "In this battlefield, use restrictions are in effect.",
+            "Board",
+        )
+
+        for page_id, instruction in enumerate(cases, start=58974):
+            with self.subTest(instruction=instruction):
+                parsed_step = step(instruction, page_id)
+                self.assertEqual(parsed_step.action, "note")
+                self.assertTrue(parsed_step.action_spans)
+                self.assertTrue(
+                    all(not span.material for span in parsed_step.action_spans)
+                )
+
+    def test_bounded_player_instructions_remain_material(self) -> None:
+        def spans(text: str, page_id: int) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Player instruction grammar",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        cases = (
+            ("Talk to Cid.", (("talk", "Cid"),)),
+            ("At (H-8), examine the ???.", (("examine", "???"),)),
+            (
+                "When your party is ready, trade the Giant Scale to the "
+                "displacement and pass through.",
+                (("trade", "displacement and pass through"),),
+            ),
+            (
+                "You will need to obtain a Giant Scale, then trade it to the "
+                "Unstable Displacement.",
+                (("obtain", "Giant Scale"), ("trade", "Unstable Displacement")),
+            ),
+            (
+                "Head to (L-8) to begin finding slugs.",
+                (("travel", ""),),
+            ),
+        )
+
+        for page_id, (instruction, expected) in enumerate(cases, start=58980):
+            with self.subTest(instruction=instruction):
+                actual = spans(instruction, page_id)
+                self.assertEqual(
+                    tuple((span.action, span.target) for span in actual),
+                    expected,
+                )
+                self.assertTrue(all(span.material for span in actual))
+
+    def test_comma_coordination_keeps_player_action_but_not_passive_result(self) -> None:
+        page = PageRevision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            "The Crystal Line",
+            59040,
+            773232,
+            0,
+            "2026-08-14T00:00:00Z",
+            "{{Mission Header}}\n==Walkthrough==\n"
+            "*Go to [[Cid]] at (G-8) in [[Metalworks]], talk to him, and receive "
+            "the {{KI}} [[Blue acidity tester]].",
+        )
+
+        spans = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual(
+            tuple((span.action, span.material) for span in spans),
+            (("travel", True), ("talk", True), ("obtain", False)),
+        )
+        self.assertEqual(spans[-1].target, "Blue acidity tester")
+
+    def test_player_and_party_obligation_scaffolds_remain_material(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Required instruction scaffolds",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            spans = parse_objective_page(page).steps[0].action_spans
+            self.assertEqual(len(spans), 1, text)
+            return spans[0]
+
+        cases = (
+            ("All party members must touch the ???.", "examine", "???"),
+            (
+                "Every party member will need to trade a Copper Ring to Cid.",
+                "trade",
+                "Cid",
+            ),
+            ("Each player must obtain a Copper Ring.", "obtain", "Copper Ring"),
+            ("Both players must speak to Cid.", "talk", "Cid"),
+            ("Be sure to examine the ???.", "examine", "???"),
+            ("Make sure to talk to Cid.", "talk", "Cid"),
+            ("Remember to trade a Copper Ring to Cid.", "trade", "Cid"),
+            ("You are to check the ???.", "examine", "???"),
+            ("It is required to obtain a Copper Ring.", "obtain", "Copper Ring"),
+            ("You will fight [[Goblin Digger]] next.", "fight", "Goblin Digger"),
+            ("You will check the ??? next.", "examine", "???"),
+            ("You will hand over a Copper Ring to Cid.", "trade", "Cid"),
+            ("Next, talk to Cid.", "talk", "Cid"),
+            ("After the cutscene, talk to Cid.", "talk", "Cid"),
+            ("In Bastok, talk to Cid.", "talk", "Cid"),
+            ("Objective: obtain a Copper Ring.", "obtain", "Copper Ring"),
+            ("Orders: To talk to Cid.", "talk", "Cid"),
+            (
+                "Defeating [[Goblin Digger]] is required to progress.",
+                "fight",
+                "Goblin Digger",
+            ),
+        )
+
+        for page_id, (instruction, action, target) in enumerate(cases, start=58990):
+            with self.subTest(instruction=instruction):
+                span = first(instruction, page_id)
+                self.assertEqual((span.action, span.target), (action, target))
+                self.assertTrue(span.material)
+
+    def test_named_actor_needs_you_to_is_a_bounded_player_obligation(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "ffxiclopedia",
+                "https://ffxiclopedia.fandom.com/api.php",
+                "Inspector's Gadget!",
+                page_id,
+                1756298,
+                1736074,
+                "2024-09-27T14:13:28Z",
+                "{{Quest}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        required = step(
+            "[[Chamama]] needs you to collect 4 balls of {{Item}} "
+            "[[Saruta Cotton]].",
+            8310,
+        )
+        (collect,) = required.action_spans
+        self.assertEqual(
+            (
+                collect.action,
+                collect.target,
+                collect.required_count,
+                collect.count_mode,
+                collect.count_explicit,
+                collect.material,
+            ),
+            ("obtain", "Saruta Cotton", 4, "inventory-gain", True, True),
+        )
+
+        negatives = (
+            "Chamama needs to collect 4 balls of [[Saruta Cotton]].",
+            "Chamama will collect 4 balls of [[Saruta Cotton]].",
+            "Chamama needs you to receive 500 gil as a reward.",
+            "The quest needs adjustment before you collect 4 balls of "
+            "[[Saruta Cotton]].",
+        )
+        for page_id, instruction in enumerate(negatives, start=59034):
+            with self.subTest(instruction=instruction):
+                parsed = step(instruction, page_id)
+                self.assertTrue(parsed.action_spans)
+                self.assertTrue(all(not span.material for span in parsed.action_spans))
+
+    def test_explicit_player_task_scaffolds_are_bounded_material_obligations(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Explicit player task",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        positives = (
+            ("You are tasked to defeat [[Blanga]].", "fight", "Blanga"),
+            (
+                "Your objective is to obtain a good quality [[Gauger Plate]].",
+                "obtain",
+                "Gauger Plate",
+            ),
+            (
+                "Your task is to now collect four [[Psyche Fragment]]s.",
+                "obtain",
+                "Psyche Fragment",
+            ),
+            (
+                "Your next goal is to obtain two cutscenes in "
+                "[[Alzadaal Undersea Ruins]].",
+                "obtain",
+                "cutscenes",
+            ),
+            ("You are asked to obtain a [[Flint Stone]].", "obtain", "Flint Stone"),
+            (
+                "Shantotto tells you to go to [[Beaucedine Glacier]].",
+                "travel",
+                "Beaucedine Glacier",
+            ),
+            ("The gate guard orders you to speak to [[Kupipi]].", "talk", "Kupipi"),
+        )
+        for page_id, (instruction, action, target) in enumerate(positives, start=59050):
+            with self.subTest(instruction=instruction):
+                spans = step(instruction, page_id).action_spans
+                selected = next(
+                    span
+                    for span in spans
+                    if span.action == action and span.target == target
+                )
+                self.assertTrue(selected.material)
+
+        negatives = (
+            "If you are tasked to defeat [[Blanga]], talk to Cid afterwards.",
+            "Optional: You are asked to obtain a [[Flint Stone]].",
+            "Note: Your objective is to obtain a [[Gauger Plate]].",
+            "You are asked to either talk to [[Cid]] or speak to [[Naji]].",
+            "The gate guard is tasked to speak to [[Kupipi]].",
+            "Blanga will be asked to defeat [[Goblin Digger]].",
+            "Your objective will be to obtain a [[Gauger Plate]].",
+            "You are asked to receive 500 gil as a reward.",
+            "Then you will be asked to use one of the following SP Abilities.",
+            "You are asked to choose one of five hats.",
+            "You may want to begin another quest, as you will be asked to wait.",
+            "You will be asked to go to [[Imperial Whitegate]], where Aphmau "
+            "currently is in your mission progress.",
+            "You are told to choose one of three pickup lines.",
+        )
+        for page_id, instruction in enumerate(negatives, start=59060):
+            with self.subTest(instruction=instruction):
+                spans = step(instruction, page_id).action_spans
+                self.assertTrue(spans)
+                self.assertTrue(all(not span.material for span in spans))
+
+    def test_nonmaterial_guidance_is_reapplied_to_each_supporting_clause(self) -> None:
+        def spans(text: str, page_id: int) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Clause guidance",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        conditional = spans(
+            "Make sure to examine the ???. If you don't have space, "
+            "you'll have to return to watch the cutscene again.",
+            59068,
+        )
+        advice = spans(
+            "Make sure to talk to Tucker. Note: you MUST talk to Erlene "
+            "or Tucker will not help.",
+            59069,
+        )
+
+        self.assertEqual(
+            tuple((span.action, span.material) for span in conditional),
+            (("examine", True), ("talk", False)),
+        )
+        self.assertEqual(
+            tuple((span.action, span.material) for span in advice),
+            (("talk", True), ("talk", False)),
+        )
+
+    def test_light_nouns_stay_context_while_direct_light_imperative_is_material(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Lexical light",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        sap = first("Light Sap Crystal - Map 2, (G-8) big room.", 59070)
+        lantern = first("The light of Ducal Guard's lantern has intensified.", 59071)
+        brazier = first("Light the brazier.", 59072)
+
+        self.assertEqual((sap.action, sap.material), ("use", False))
+        self.assertEqual((lantern.action, lantern.material), ("use", False))
+        self.assertEqual((brazier.action, brazier.target, brazier.material), ("use", "brazier", True))
+
+    def test_direct_imperatives_with_extractor_debris_remain_targetless_barriers(self) -> None:
+        def spans(text: str, page_id: int) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Extractor debris",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        sauce = spans(
+            "Return to the Sauce Barrels with the demanded food item and trade it to them.",
+            59073,
+        )
+        ailbeche = spans("Return to and speak with Ailbeche again.", 59074)
+        miaux = spans("Speak to Miaux again to receive your reward.", 59075)
+        ornate = spans("Select the Ornate Door to enter the battlefield.", 59076)
+        testimony = spans(
+            "Trade the Testimony to the Burning Circle there to enter a battle.",
+            59077,
+        )
+        fallion = spans("Return to Fallion and submit your reports.", 59078)
+
+        self.assertEqual(
+            tuple((span.action, span.material) for span in sauce),
+            (("talk", True), ("trade", True)),
+        )
+        self.assertEqual((sauce[0].target, sauce[0].target_kind), ("", ""))
+        self.assertEqual(
+            tuple((span.action, span.material) for span in ailbeche),
+            (("talk", True), ("talk", True)),
+        )
+        self.assertEqual((ailbeche[0].target, ailbeche[0].target_kind), ("", ""))
+        self.assertEqual(
+            tuple((span.action, span.material) for span in miaux),
+            (("talk", True), ("obtain", False)),
+        )
+        self.assertEqual((miaux[0].target, miaux[0].target_kind), ("", ""))
+        self.assertEqual(
+            tuple((span.action, span.material) for span in ornate),
+            (("select", True), ("travel", True)),
+        )
+        self.assertEqual((ornate[0].target, ornate[0].target_kind), ("", ""))
+        self.assertEqual(
+            tuple((span.action, span.material) for span in testimony),
+            (("trade", True), ("travel", True)),
+        )
+        self.assertEqual((testimony[0].target, testimony[0].target_kind), ("", ""))
+        self.assertEqual(tuple((span.action, span.material) for span in fallion), (("talk", True),))
+
+    def test_later_route_and_reward_alternatives_do_not_demote_canonical_actions(self) -> None:
+        def spans(text: str, page_id: int) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Alternative scope",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        audience = spans(
+            "Click the Audience Chamber for your reward (either an Airship Pass or 20,000 gil).",
+            59079,
+        )
+        nested_audience_reward = spans(
+            "Click the Audience Chamber after obtaining all 3 Magicites for a cutscene "
+            "and your reward (either an Airship Pass, or, if you already have one, "
+            "20,000 gil).",
+            59093,
+        )
+        wild_card = spans(
+            "Go to the House of the Hero. You will meet either Joker or Apururu.",
+            59080,
+        )
+        temple = spans(
+            "Travel to the Temple of Uggalepih, either via a Survival Guide or Yhoator Jungle.",
+            59081,
+        )
+        monarch = spans(
+            "Travel to Monarch Linn through either Riverne - Site A01 or Riverne - Site B01.",
+            59082,
+        )
+        tower = spans(
+            "Enter Middle Delkfutt's Tower by either climbing up from Lower Delkfutt's "
+            "Tower or climbing down from Upper Delkfutt's Tower.",
+            59083,
+        )
+        talisman = spans(
+            "Obtain and trade a Timeworn Talisman to Yoran-Oran. Optional: also trade "
+            "a Water Lily and a Jar of Toad Oil.",
+            59084,
+        )
+        branch = spans("Zone into either Selbina or Mhaura.", 59085)
+        washus_outcome = spans(
+            "Speak with Washu, who will tell you to bring four ingredients if you want "
+            "the key item Washu's Tasty Wurst.",
+            59088,
+        )
+        baldrics_outcome = spans(
+            "Return to Baldric and he will either say the explosion was too large, too "
+            "small, or perfect.",
+            59089,
+        )
+        optional_trade = spans(
+            "Trade the Sutlac back to Hahahda if you prefer an Imperial Bronze Piece.",
+            59090,
+        )
+        status_report = spans(
+            "Talk to the Qiqirn Chief Diver at the end and he will give a message of "
+            "either there being more Qiqirn to escort or if you have brought everyone.",
+            59091,
+        )
+        alternative_trade = spans(
+            "Return to Kupipi and trade her either a White Rolanberry or Ripe White "
+            "Rolanberry for a cutscene.",
+            59092,
+        )
+        conditional_wait = spans(
+            "Wait 1 earth minute if you do not receive the Divination Sphere immediately.",
+            59094,
+        )
+
+        self.assertEqual((audience[0].action, audience[0].target, audience[0].material), ("examine", "Audience Chamber", True))
+        self.assertEqual(
+            (
+                nested_audience_reward[0].action,
+                nested_audience_reward[0].target,
+                nested_audience_reward[0].material,
+            ),
+            ("examine", "Audience Chamber", True),
+        )
+        self.assertEqual((wild_card[0].action, wild_card[0].material), ("travel", True))
+        self.assertEqual((temple[0].action, temple[0].target, temple[0].material), ("travel", "Temple of Uggalepih", True))
+        self.assertEqual((monarch[0].action, monarch[0].material), ("travel", True))
+        self.assertEqual((tower[0].action, tower[0].target, tower[0].material), ("travel", "", True))
+        self.assertTrue(any(span.action == "obtain" and span.material for span in talisman))
+        self.assertTrue(any(span.action == "trade" and span.material for span in talisman))
+        self.assertTrue(all(not span.material for span in branch))
+        self.assertEqual((washus_outcome[0].action, washus_outcome[0].material), ("talk", True))
+        self.assertEqual((baldrics_outcome[0].action, baldrics_outcome[0].material), ("talk", True))
+        self.assertTrue(all(not span.material for span in optional_trade))
+        self.assertTrue(all(not span.material for span in status_report))
+        self.assertTrue(all(not span.material for span in alternative_trade))
+        self.assertTrue(all(not span.material for span in conditional_wait))
+
+    def test_required_item_acquisition_composites_do_not_use_kill_completion(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "ffxiclopedia",
+                "https://ffxiclopedia.fandom.com/api.php",
+                "Acquisition composite",
+                page_id,
+                page_id,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            spans = parse_objective_page(page).steps[0].action_spans
+            self.assertEqual(len(spans), 1, text)
+            return spans[0]
+
+        cases = (
+            (
+                "Obtain a [[Sand Bat Fang]], either by killing the [[Sand Bat]]s "
+                "that drop them in the [[Valkurm Dunes]], or from the Auction House, "
+                "under Bonecraft.",
+                "Sand Bat Fang",
+                "Sand Bat",
+            ),
+            (
+                "Defeat [[Orcish Fodder]] in either [[West Ronfaure]], "
+                "[[Ghelsba Outpost]] or [[La Theine Plateau]] to obtain an "
+                "[[Orcish Axe]].",
+                "Orcish Axe",
+                "Orcish Fodder",
+            ),
+        )
+        for page_id, (instruction, item, enemy) in enumerate(cases, start=59086):
+            with self.subTest(instruction=instruction):
+                span = first(instruction, page_id)
+                self.assertEqual(
+                    (
+                        span.action,
+                        span.relationship,
+                        span.target,
+                        span.target_kind,
+                        span.item_mentions,
+                        span.result_relation,
+                        span.required_count,
+                        span.count_mode,
+                        span.count_explicit,
+                        span.material,
+                    ),
+                    (
+                        "obtain",
+                        "obtain-item",
+                        item,
+                        "item",
+                        (item,),
+                        "obtain-from",
+                        1,
+                        "single",
+                        False,
+                        True,
+                    ),
+                )
+                self.assertIn(enemy, span.enemy_mentions)
+
+        until_item = first(
+            "Kill [[Orcish Fodder]] until you receive an [[Orcish Axe]].",
+            59095,
+        )
+        self.assertEqual(
+            (
+                until_item.action,
+                until_item.relationship,
+                until_item.target,
+                until_item.target_kind,
+                until_item.item_mentions,
+                until_item.enemy_mentions,
+                until_item.result_relation,
+                until_item.material,
+            ),
+            (
+                "obtain",
+                "obtain-item",
+                "Orcish Axe",
+                "item",
+                ("Orcish Axe",),
+                ("Orcish Fodder",),
+                "obtain-from",
+                True,
+            ),
+        )
+
+        optional = first(
+            "Optional: Defeat [[Orcish Fodder]] to obtain an [[Orcish Axe]].",
+            59096,
+        )
+        self.assertFalse(optional.material)
+
+        message_page = PageRevision(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            "Non-item fight result",
+            59097,
+            59097,
+            0,
+            "2026-08-14T00:00:00Z",
+            "{{Quest Header}}\n==Walkthrough==\n*Fight the [[Goblin]] until you receive a message.",
+        )
+        message_spans = parse_objective_page(message_page).steps[0].action_spans
+        self.assertEqual(
+            [(span.action, span.target, span.material) for span in message_spans],
+            [("fight", "Goblin", True), ("obtain", "message", False)],
+        )
+
+    def test_frozen_supplemental_direct_heads_keep_safe_target_shapes(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Supplemental direct head",
+                page_id,
+                page_id,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        cases = (
+            (
+                'Talk to her until she repeats "If you came here seeking the brightest minds, you are in luck!"',
+                ("talk", "", "", True),
+            ),
+            (
+                "Zone into Walk of Echoes from the Grauberg (S) Veridical Conflux or, "
+                "if unlocked, the Pashhow Marshlands (S) Veridical Conflux.",
+                ("travel", "Walk of Echoes", "zone", True),
+            ),
+            (
+                'Next, check the door ("to the left" as if you were exiting the manor) '
+                "to the Hospital.",
+                ("examine", "", "", True),
+            ),
+            (
+                "Check with Magephaud to see if he requests the 3 Gold Beastcoins.",
+                ("talk", "Magephaud", "npc", True),
+            ),
+            (
+                "Return to the Regal Pawprints with all three in possession for one final "
+                "cutscene (there will be three cutscenes if you skipped the earlier scenes).",
+                ("talk", "Regal Pawprints", "npc", True),
+            ),
+            (
+                "Trade the food to the Mischief Marker for a cutscene (and quest completion "
+                "if you chose a winning combination).",
+                ("trade", "Mischief Marker", "npc", True),
+            ),
+            (
+                "Trade the Goobbue Humus to this NPC for a long cutscene (longer if you read "
+                "the dialog).",
+                ("trade", "this NPC", "role", True),
+            ),
+            (
+                "Next, speak to the following NPCs (if you do not speak to them, the spots "
+                "will report nothing).",
+                ("talk", "", "", True),
+            ),
+            (
+                "Obtain a Galkan Sausage either from the Auction House or by following the recipe.",
+                ("obtain", "Galkan Sausage", "item", True),
+            ),
+            (
+                "Defeat it and it will drop the Miner's Pendant (make sure to Cast Lots on "
+                "it if doing it with others).",
+                ("fight", "", "", True),
+            ),
+        )
+        for page_id, (instruction, expected) in enumerate(cases, start=59120):
+            with self.subTest(instruction=instruction):
+                span = first(instruction, page_id)
+                self.assertEqual(
+                    (span.action, span.target, span.target_kind, span.material),
+                    expected,
+                )
+
+        rejects = (
+            "Use the Survival Guide teleport if available.",
+            "Speak to Gimb if this is your first time obtaining the key.",
+            "Kill the guardian if he is up, otherwise the door will be open already.",
+            "Deliver supplies if you have them here.",
+            "Wait 1 earth minute if you do not receive the Divination Sphere immediately.",
+            "(If the bidding closes for the Auria Collection you will need to talk to "
+            "Zemerine before talking to Gama-Shama.)",
+        )
+        for page_id, instruction in enumerate(rejects, start=59140):
+            with self.subTest(instruction=instruction):
+                self.assertFalse(first(instruction, page_id).material)
+
+    def test_post_build_semantic_fragments_fail_closed_without_losing_exact_items(self) -> None:
+        def spans(text: str, page_id: int) -> tuple[SourceActionSpan, ...]:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Post-build semantic fragment",
+                page_id,
+                page_id,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        boards = spans(
+            "Upon entry, your key item Ash Runic board is lost and you receive a "
+            "key item Blank Ash Runic Board.",
+            59160,
+        )
+        self.assertTrue(any(span.verb == "board" for span in boards))
+        self.assertTrue(all(not span.material for span in boards if span.verb == "board"))
+
+        soot = spans(
+            "Obtain three Zeruhn Soot and trade them to Gerbaum to complete the quest.",
+            59161,
+        )
+        self.assertEqual(
+            (soot[0].action, soot[0].target, soot[0].material),
+            ("obtain", "Zeruhn Soot", True),
+        )
+
+        milk = spans("Obtain one and trade it Paouala your reward.", 59162)
+        self.assertEqual(
+            (milk[0].action, milk[0].target, milk[0].material),
+            ("obtain", "", True),
+        )
+        self.assertEqual((milk[1].action, milk[1].material), ("trade", True))
+
+    def test_aggregate_owned_kill_method_remains_nonmaterial(self) -> None:
+        page = PageRevision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            "The Cold Light of Day",
+            25923,
+            63768,
+            0,
+            "2026-08-14T00:00:00Z",
+            (
+                "{{Quest Header}}\n==Walkthrough==\n"
+                "*Obtain a [[Steam Clock]] via the following methods:\n"
+                "**Purchase via the [[Auction House]].\n"
+                "**Defeat [[Bubbly Bernie]]. To spawn [[Bubbly Bernie]], acquire a "
+                "[[Quus]] (fish) either via Auction House or by fishing. Travel to the "
+                "lighthouse in [[South Gustaberg]] (M-10), trade the Quus to the ???, "
+                "and defeat Bubbly Bernie for a Steam Clock.\n"
+            ),
+        )
+
+        parsed = parse_objective_page(page)
+        aggregate = parsed.steps[0].action_spans[0]
+        purchase = parsed.steps[1].action_spans[0]
+        branch = parsed.steps[2].action_spans[0]
+
+        self.assertEqual((aggregate.action, aggregate.target, aggregate.material), ("obtain", "Steam Clock", True))
+        self.assertEqual((purchase.action, purchase.target, purchase.material), ("obtain", "Auction House", False))
+        self.assertEqual((branch.action, branch.target, branch.material), ("fight", "Bubbly Bernie", False))
+
+    def test_optional_branch_and_advice_actions_are_nonmaterial(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Optional guide prose",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        cases = (
+            "(Optional) Talk to Dhea Prandoleh for extra dialogue.",
+            "Alternatively, use the Survival Guide.",
+            "If you want to see extra dialogue, speak to Cid.",
+            "When repeating the quest, talk to Cid for the alternate reward.",
+            "Tip: Use a Prism Powder here.",
+            "Strategy: Fight the Goblin first.",
+            "Either obtain a Nest Coffer Key or pick the lock as a Thief.",
+            "Either use the Home Point to Caedarva Mire, or take the ferry.",
+            "Either repair the rod with a Light Crystal or request a replacement.",
+            "Or talk to Cid for the alternate route.",
+            "If you do not have a Boarding Pass, go to Al Zahbi.",
+            "If you spoke to Joker, return to Joker for the next cutscene.",
+            "If you spoke to Apururu, return to Apururu for the next cutscene.",
+            "Zone into either [[Selbina]] or [[Mhaura]].",
+            "Speak to [[Qutiba]] or [[Ulamaal]].",
+            "Choose either the first response or the second response.",
+        )
+
+        for page_id, instruction in enumerate(cases, start=59010):
+            with self.subTest(instruction=instruction):
+                parsed_step = step(instruction, page_id)
+                self.assertEqual(parsed_step.action, "note")
+                self.assertTrue(parsed_step.action_spans, instruction)
+                self.assertTrue(
+                    all(not span.material for span in parsed_step.action_spans),
+                    instruction,
+                )
+
+        acquisition = step(
+            "Collect 3 [[Zeruhn Soot]] either by killing the monsters in "
+            "[[Zeruhn Mines]], or by buying them from the Auction House.",
+            59049,
+        )
+        self.assertEqual(len(acquisition.action_spans), 1)
+        obtain = acquisition.action_spans[0]
+        self.assertEqual(
+            (
+                obtain.action,
+                obtain.target,
+                obtain.item_mentions,
+                obtain.required_count,
+                obtain.count_mode,
+                obtain.material,
+            ),
+            ("obtain", "Zeruhn Soot", ("Zeruhn Soot",), 3, "inventory-gain", True),
+        )
+
+    def test_causal_gerund_prerequisites_remain_material_without_prior_context(self) -> None:
+        def step(text: str, page_id: int) -> SourceStep:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Causal prerequisite",
+                page_id,
+                773232,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Mission Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0]
+
+        campaign = step(
+            "After defeating [[Madthrasher Zradbodd]], check the ??? again.",
+            59043,
+        )
+        counted = step(
+            "Upon killing 20 [[Copper Quadav]]s, zone out of the area.",
+            59044,
+        )
+        successful = step(
+            "After successfully defeating the [[Young Behemoth]], check the ???.",
+            59048,
+        )
+        prior_context = (
+            step(
+                "After defeating the [[Shadow Lord]] for nation mission 5-2, "
+                "begin this mission.",
+                59045,
+            ),
+            step(
+                "After defeating Balamor in the previous mission, speak to Arciela.",
+                59046,
+            ),
+            step(
+                "Once you have already defeated the NM, return to Cid.",
+                59047,
+            ),
+        )
+
+        self.assertEqual(
+            tuple((span.action, span.target, span.material) for span in campaign.action_spans),
+            (("fight", "Madthrasher Zradbodd", True), ("examine", "???", True)),
+        )
+        self.assertEqual(
+            (
+                counted.action_spans[0].action,
+                counted.action_spans[0].target,
+                counted.action_spans[0].required_count,
+                counted.action_spans[0].count_mode,
+                counted.action_spans[0].material,
+            ),
+            ("fight", "Copper Quadav", 20, "credited-defeat", True),
+        )
+        self.assertEqual(
+            tuple((span.action, span.material) for span in successful.action_spans),
+            (("fight", True), ("examine", True)),
+        )
+        for parsed_step in prior_context:
+            with self.subTest(instruction=parsed_step.spoken_text):
+                self.assertTrue(parsed_step.action_spans)
+                self.assertTrue(
+                    all(
+                        not span.material
+                        for span in parsed_step.action_spans
+                        if span.action == "fight"
+                    )
+                )
+        self.assertEqual(
+            (prior_context[-1].action_spans[-1].action, prior_context[-1].action_spans[-1].material),
+            ("talk", True),
+        )
+
     def test_explicit_one_fight_and_obtain_actions_still_use_single_count_mode(self) -> None:
         def first(text: str) -> SourceActionSpan:
             page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
@@ -1893,7 +2844,7 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual((fight.required_count, fight.count_mode), (1, "single"))
         self.assertEqual((obtain.required_count, obtain.count_mode), (1, "single"))
 
-    def test_composite_fight_obtain_uses_explicit_completion_count_unless_fight_is_counted(self) -> None:
+    def test_composite_fight_obtain_uses_canonical_item_completion(self) -> None:
         def first(text: str) -> SourceActionSpan:
             page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
                 "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
@@ -1905,35 +2856,467 @@ class WikitextParserTests(unittest.TestCase):
             first("Defeat [[Goblin Digger]] to obtain 3 [[Copper Ring]]s."),
             first("Obtain 3 [[Copper Ring]]s by defeating [[Goblin Digger]]."),
         )
-        fight_counted = (
+        method_counted = (
             first("Defeat 5 [[Goblin Digger]]s to obtain 3 [[Copper Ring]]s."),
             first("Obtain 3 [[Copper Ring]]s by defeating 5 [[Goblin Digger]]s."),
         )
 
-        for span in completion_counted:
+        for span in (*completion_counted, *method_counted):
             self.assertEqual(
                 (
                     span.action,
+                    span.relationship,
                     span.target,
+                    span.target_kind,
+                    span.item_mentions,
+                    span.enemy_mentions,
                     span.result_items,
+                    span.result_relation,
                     span.required_count,
                     span.count_mode,
                     span.count_explicit,
                 ),
-                ("fight", "Goblin Digger", ("Copper Ring",), 3, "inventory-gain", True),
-            )
-        for span in fight_counted:
-            self.assertEqual(
                 (
-                    span.action,
+                    "obtain",
+                    "obtain-item",
+                    "Copper Ring",
+                    "item",
+                    ("Copper Ring",),
+                    ("Goblin Digger",),
+                    (),
+                    "obtain-from",
+                    3,
+                    "inventory-gain",
+                    True,
+                ),
+            )
+
+    def test_examine_with_multiple_key_item_outcomes_is_single_interaction(self) -> None:
+        page = PageRevision(
+            "bg",
+            "https://www.bg-wiki.com/api.php",
+            "Promathia Mission 3-3",
+            11599,
+            771983,
+            0,
+            "2026-08-14T00:00:00Z",
+            "{{Mission Header}}\n==Walkthrough==\n"
+            "*Once you reach the top with your [[Mimeo Jewel|Jewel]] (and sanity!) "
+            "intact, check the '''Cradle of Rebirth''' to obtain 3 Key Items: "
+            "{{KI}} [[Mimeo Feather]], {{KI}} [[Second Mimeo Feather]], and {{KI}} "
+            "[[Third Mimeo Feather]].",
+        )
+
+        spans = parse_objective_page(page).steps[0].action_spans
+
+        self.assertEqual(len(spans), 1)
+        span = spans[0]
+        self.assertEqual(
+            (
+                span.action,
+                span.relationship,
+                span.target,
+                span.target_kind,
+                span.required_count,
+                span.count_mode,
+                span.count_explicit,
+                span.material,
+            ),
+            (
+                "examine",
+                "examine-to-obtain",
+                "Cradle of Rebirth",
+                "object",
+                1,
+                "single",
+                False,
+                True,
+            ),
+        )
+        self.assertEqual(
+            span.key_item_mentions,
+            ("Mimeo Feather", "Second Mimeo Feather", "Third Mimeo Feather"),
+        )
+        self.assertEqual(span.result_items, span.key_item_mentions)
+
+    def test_word_counts_and_multiple_item_counts_have_exact_inventory_targets(self) -> None:
+        def spans(text: str, *, site: str = "bg") -> tuple[SourceActionSpan, ...]:
+            api_url = (
+                "https://www.bg-wiki.com/api.php"
+                if site == "bg"
+                else "https://ffxiclopedia.fandom.com/api.php"
+            )
+            page = PageRevision(
+                site,
+                api_url,
+                "Counted acquisition",
+                59041,
+                773595,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans
+
+        rockberry_bg = spans(
+            "Obtain three [[Rockberry|rockberries]] by harvesting."
+        )[0]
+        rockberry_ffxi = spans(
+            "Return to [[Pagnelle]] who asks you to collect 3 {{KeyItem}} "
+            "[[Rockberry|Rockberries]] by harvesting.",
+            site="ffxiclopedia",
+        )[1]
+        darksteel = spans(
+            "Obtain 2 [[Darksteel Ore]]s via the [[Auction House]], [[Mog Garden]], "
+            "[[Mining]], etc."
+        )[0]
+        bone_and_ash = spans(
+            "You will have to obtain 2 {{ItemIcon|Bone Chip|22}} [[Bone Chip]]s "
+            "and 1 {{ItemIcon|Bomb Ash|22}} [[Bomb Ash]]."
+        )
+
+        self.assertEqual(
+            (
+                rockberry_bg.target,
+                rockberry_bg.target_kind,
+                rockberry_bg.item_mentions,
+                rockberry_bg.key_item_mentions,
+                rockberry_bg.required_count,
+                rockberry_bg.count_mode,
+            ),
+            ("Rockberry", "item", ("Rockberry",), (), 3, "inventory-gain"),
+        )
+        self.assertEqual(
+            (
+                rockberry_ffxi.target,
+                rockberry_ffxi.target_kind,
+                rockberry_ffxi.key_item_mentions,
+                rockberry_ffxi.required_count,
+                rockberry_ffxi.count_mode,
+            ),
+            ("Rockberry", "key-item", ("Rockberry",), 1, "single"),
+        )
+        self.assertEqual(
+            (
+                darksteel.target,
+                darksteel.item_mentions,
+                darksteel.required_count,
+                darksteel.count_mode,
+            ),
+            ("Darksteel Ore", ("Darksteel Ore",), 2, "inventory-gain"),
+        )
+        self.assertEqual(
+            tuple(
+                (
                     span.target,
-                    span.result_items,
+                    span.item_mentions,
                     span.required_count,
                     span.count_mode,
                     span.count_explicit,
-                ),
-                ("fight", "Goblin Digger", ("Copper Ring",), 5, "credited-defeat", True),
+                )
+                for span in bone_and_ash
+            ),
+            (
+                ("Bone Chip", ("Bone Chip",), 2, "inventory-gain", True),
+                ("Bomb Ash", ("Bomb Ash",), 1, "single", True),
+            ),
+        )
+
+    def test_counted_enemy_target_stops_before_descriptive_outcome(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision(
+                "ffxiclopedia",
+                "https://ffxiclopedia.fandom.com/api.php",
+                "Counted enemy",
+                59042,
+                1788842,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Mission|name=Counted enemy}}\n==Walkthrough==\n*" + text,
             )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        chigoe = first(
+            "You have to kill 35 [[Augmented Chigoe]] - when you do so - "
+            "[[Rune of Release]] will spawn at (H-8)."
+        )
+        bird = first(
+            "You must defeat 25 Bird-type creatures that give XP to your "
+            "Adventuring Fellow."
+        )
+        heterogeneous = first(
+            "In this BC you must fight 2 [[Bloodwing Deathrainer]]s, 4 "
+            "[[Bloodwing Maimer]]s, a [[Gherrmoga]], and [[Kingslayer Doggvdegg]]."
+        )
+
+        self.assertEqual(
+            (
+                chigoe.target,
+                chigoe.enemy_mentions,
+                chigoe.required_count,
+                chigoe.count_mode,
+            ),
+            ("Augmented Chigoe", ("Augmented Chigoe",), 35, "credited-defeat"),
+        )
+        self.assertEqual(
+            (bird.target, bird.required_count, bird.count_mode),
+            ("Bird-type creatures", 25, "credited-defeat"),
+        )
+        self.assertEqual(
+            (
+                heterogeneous.target,
+                heterogeneous.required_count,
+                heterogeneous.count_mode,
+                heterogeneous.count_explicit,
+            ),
+            ("", 1, "single", False),
+        )
+
+    def test_count_binds_only_to_its_exact_target_across_item_key_item_conjunctions(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Count ownership",
+                59053,
+                771983,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Mission Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        passive = first(
+            "Receive 500 gil and the {{KI}} [[Pso'Xja pass]]."
+        )
+        item_first = first(
+            "Obtain 2 {{ItemIcon|Copper Ring|22}} [[Copper Ring]]s and the "
+            "{{KI}} [[Pso'Xja pass]]."
+        )
+        key_item_first = first(
+            "Obtain the {{KI}} [[Pso'Xja pass]] and 2 "
+            "{{ItemIcon|Copper Ring|22}} [[Copper Ring]]s."
+        )
+
+        self.assertEqual(
+            (
+                passive.target,
+                passive.target_kind,
+                passive.key_item_mentions,
+                passive.required_count,
+                passive.count_mode,
+                passive.material,
+            ),
+            ("Pso'Xja pass", "key-item", ("Pso'Xja pass",), 1, "single", False),
+        )
+        for span in (item_first, key_item_first):
+            with self.subTest(instruction=span.supporting_clause):
+                self.assertEqual(
+                    (
+                        span.target,
+                        span.target_kind,
+                        span.item_mentions,
+                        span.key_item_mentions,
+                        span.required_count,
+                        span.count_mode,
+                        span.material,
+                    ),
+                    ("Copper Ring", "item", ("Copper Ring",), (), 2, "inventory-gain", True),
+                )
+
+    def test_collective_inventory_count_requires_exact_distinct_typed_enumeration(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Typed collection",
+                59054,
+                754820,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Mission Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        exact = first(
+            "You will have to obtain 4 Fetich pieces ("
+            "{{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Torso|22}} [[Fetich Torso]], "
+            "{{ItemIcon|Fetich Arms|22}} [[Fetich Arms]], and "
+            "{{ItemIcon|Fetich Legs|22}} [[Fetich Legs]])."
+        )
+        mismatch = first(
+            "Obtain 4 Fetich pieces ({{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Torso|22}} [[Fetich Torso]], and "
+            "{{ItemIcon|Fetich Arms|22}} [[Fetich Arms]])."
+        )
+        duplicate = first(
+            "Obtain 4 Fetich pieces ({{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Head|22}} [[Fetich Head]], and "
+            "{{ItemIcon|Fetich Head|22}} [[Fetich Head]])."
+        )
+        mixed = first(
+            "Obtain 4 Fetich pieces ({{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Torso|22}} [[Fetich Torso]], "
+            "{{ItemIcon|Fetich Arms|22}} [[Fetich Arms]], and "
+            "{{KI}} [[Fetich Legs]])."
+        )
+        decimal = first(
+            "Obtain 1.4 Fetich pieces ({{ItemIcon|Fetich Head|22}} [[Fetich Head]], "
+            "{{ItemIcon|Fetich Torso|22}} [[Fetich Torso]], "
+            "{{ItemIcon|Fetich Arms|22}} [[Fetich Arms]], and "
+            "{{ItemIcon|Fetich Legs|22}} [[Fetich Legs]])."
+        )
+
+        self.assertEqual(
+            (
+                exact.target,
+                exact.item_mentions,
+                exact.key_item_mentions,
+                exact.required_count,
+                exact.count_mode,
+                exact.count_explicit,
+            ),
+            (
+                "Fetich Head",
+                ("Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs"),
+                (),
+                4,
+                "inventory-gain",
+                True,
+            ),
+        )
+        for invalid in (mismatch, duplicate, mixed, decimal):
+            with self.subTest(instruction=invalid.supporting_clause):
+                self.assertEqual(
+                    (invalid.required_count, invalid.count_mode, invalid.count_explicit),
+                    (1, "single", False),
+                )
+
+    def test_bounded_count_ownership_forms_preserve_canonical_acquisitions(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Bounded quantity grammar",
+                page_id,
+                773595,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        cases = (
+            ("Obtain 3x [[Acuex Ore]].", "Acuex Ore", 3),
+            ("Collect 3 more slabs of [[Plumbago]].", "Plumbago", 3),
+            (
+                "Obtain the 5 [[Copper A.M.A.N. Voucher|Copper A.M.A.N Vouchers]].",
+                "Copper A.M.A.N. Voucher",
+                5,
+            ),
+            ("Obtain 5 slices of [[Hare Meat]].", "Hare Meat", 5),
+            ("Obtain 5 pots of [[Honey]].", "Honey", 5),
+            ("Collect 4 balls of [[Saruta Cotton]].", "Saruta Cotton", 4),
+        )
+
+        for page_id, (instruction, target, count) in enumerate(cases, start=59060):
+            with self.subTest(instruction=instruction):
+                span = first(instruction, page_id)
+                self.assertEqual(
+                    (
+                        span.action,
+                        span.target,
+                        span.target_kind,
+                        span.item_mentions,
+                        span.key_item_mentions,
+                        span.required_count,
+                        span.count_mode,
+                        span.count_explicit,
+                        span.material,
+                    ),
+                    (
+                        "obtain",
+                        target,
+                        "item",
+                        (target,),
+                        (),
+                        count,
+                        "inventory-gain",
+                        True,
+                        True,
+                    ),
+                )
+
+    def test_count_ownership_rejects_decimal_and_grouped_number_fragments(self) -> None:
+        def first(text: str, page_id: int) -> SourceActionSpan:
+            page = PageRevision(
+                "bg",
+                "https://www.bg-wiki.com/api.php",
+                "Invalid quantity grammar",
+                page_id,
+                773595,
+                0,
+                "2026-08-14T00:00:00Z",
+                "{{Quest Header}}\n==Walkthrough==\n*" + text,
+            )
+            return parse_objective_page(page).steps[0].action_spans[0]
+
+        for page_id, instruction in enumerate(
+            (
+                "Obtain 1.5 [[Copper Ring]]s.",
+                "Obtain 1,000 [[Copper Ring]]s.",
+            ),
+            start=59070,
+        ):
+            with self.subTest(instruction=instruction):
+                span = first(instruction, page_id)
+                self.assertEqual(span.action, "obtain")
+                self.assertEqual(
+                    (span.required_count, span.count_mode, span.count_explicit),
+                    (1, "single", False),
+                )
+
+    def test_only_one_required_overrides_a_larger_source_quantity(self) -> None:
+        page = PageRevision(
+            "ffxiclopedia",
+            "https://ffxiclopedia.fandom.com/api.php",
+            "Dark Legacy",
+            12894,
+            1775532,
+            1668724,
+            "2026-08-14T00:00:00Z",
+            "{{Quest}}\n==Walkthrough==\n"
+            "*Obtain 2 [[Yagudo Cherry]] (only 1 is required).",
+        )
+
+        span = parse_objective_page(page).steps[0].action_spans[0]
+
+        self.assertEqual(
+            (
+                span.action,
+                span.target,
+                span.target_kind,
+                span.item_mentions,
+                span.key_item_mentions,
+                span.required_count,
+                span.count_mode,
+                span.count_explicit,
+                span.material,
+            ),
+            (
+                "obtain",
+                "Yagudo Cherry",
+                "item",
+                ("Yagudo Cherry",),
+                (),
+                1,
+                "single",
+                True,
+                True,
+            ),
+        )
 
     def test_typed_evidence_is_local_to_each_action_clause(self) -> None:
         page = PageRevision(
@@ -2014,9 +3397,10 @@ class WikitextParserTests(unittest.TestCase):
 
         self.assertEqual(
             [(span.action, span.target) for span in spans],
-            [("talk", "Cid"), ("fight", "Orcish Fodder"), ("examine", "???")],
+            [("talk", "Cid"), ("obtain", "Orcish Axe"), ("examine", "???")],
         )
-        self.assertEqual(spans[1].result_items, ("Orcish Axe",))
+        self.assertEqual(spans[1].item_mentions, ("Orcish Axe",))
+        self.assertEqual(spans[1].enemy_mentions, ("Orcish Fodder",))
         self.assertEqual(spans[1].result_relation, "obtain-from")
 
     def test_leading_location_evidence_belongs_to_the_first_action_clause(self) -> None:
@@ -3276,7 +4660,7 @@ class WikitextParserTests(unittest.TestCase):
             ],
         )
 
-    def test_material_protect_touch_and_key_item_warning_are_typed_actions(self) -> None:
+    def test_protect_touch_and_key_item_warning_keep_typed_materiality(self) -> None:
         page = PageRevision(
             site="bg",
             api_url="https://www.bg-wiki.com/api.php",
@@ -3301,7 +4685,9 @@ class WikitextParserTests(unittest.TestCase):
         self.assertEqual(parsed.steps[1].action_spans[0].target, "6 Pips")
         self.assertEqual([span.action for span in parsed.steps[2].action_spans], ["warning"])
         self.assertEqual(parsed.steps[2].action_spans[0].item_mentions, ("Dawn Talisman",))
-        self.assertTrue(all(step.action_spans[0].material for step in parsed.steps))
+        self.assertTrue(parsed.steps[0].action_spans[0].material)
+        self.assertTrue(parsed.steps[1].action_spans[0].material)
+        self.assertFalse(parsed.steps[2].action_spans[0].material)
 
 
 class MatchingTests(unittest.TestCase):
@@ -3422,7 +4808,27 @@ class MatchingTests(unittest.TestCase):
             set(overrides["automatic_stage_links"]["mission:Bastok:2"]),
             {"obtain-blue-tester", "charge-blue-tester", "return-red-tester"},
         )
+        self.assertEqual(
+            overrides["automatic_stage_links"]["mission:Bastok:2"]
+            ["charge-blue-tester"]["step_selector"],
+            {"action": "wait", "grid": "I-8", "entity": "geyser"},
+        )
         targets = overrides["target_overrides"]
+        self.assertNotIn("quest:outlands:143:step-020", targets)
+        self.assertEqual(
+            targets["quest:outlands:143:step-021"],
+            {
+                "source_revisions": {"bg": 748842, "ffxiclopedia": 1780114},
+                "reference": {
+                    "zone": 252,
+                    "zone_name": "Norg",
+                    "name": "Ryoma",
+                    "kind": "npc",
+                },
+                "arrival_instruction": "Talk to Ryoma.",
+                "review_basis": "dual-source exact named NPC and unique current navigation point",
+            },
+        )
         makarim = targets["mission:Bastok:1:step-007"]
         self.assertEqual(
             makarim["reference"],
@@ -3803,7 +5209,7 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(unpaired.alignment_reason, "unpaired-bg")
         self.assertEqual(unpaired.unpaired_reason, "no-compatible-ffxiclopedia-step")
 
-    def test_paired_claim_materiality_uses_bg_primary_ffxiclopedia_fallback(self) -> None:
+    def test_paired_claim_materiality_uses_the_first_material_source(self) -> None:
         def page(site: str, page_id: int, material: bool) -> ParsedObjective:
             span = SourceActionSpan(
                 source_step_order=1,
@@ -3842,7 +5248,7 @@ class ReconciliationTests(unittest.TestCase):
 
         for bg_material, ffxi_material, expected in (
             (True, False, True),
-            (False, True, False),
+            (False, True, True),
         ):
             reconciled = reconcile_objectives(
                 "quest:bastok:199",
@@ -3881,9 +5287,70 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(len(reconciled.steps), 1)
         self.assertEqual(len(reconciled.steps[0].claims), 1)
         claim = reconciled.steps[0].claims[0]
-        self.assertEqual((claim.action, claim.relationship), ("fight", "defeat-to-obtain"))
+        self.assertEqual((claim.action, claim.relationship), ("obtain", "obtain-item"))
+        self.assertEqual((claim.target, claim.target_kind), ("Orcish Axe", "item"))
         self.assertEqual(claim.comparison, "corroborated")
         self.assertNotIn("action", reconciled.steps[0].conflicting_fields)
+
+    def test_reconcile_deduplicates_only_exact_prior_causal_fights(self) -> None:
+        def parsed(page_id: int, first: str, second: str) -> ParsedObjective:
+            return parse_objective_page(
+                PageRevision(
+                    site="bg",
+                    api_url="https://www.bg-wiki.com/api.php",
+                    canonical_title="Causal fight dedupe",
+                    page_id=page_id,
+                    revision_id=page_id,
+                    parent_revision_id=page_id - 1,
+                    revision_timestamp="2026-08-14T00:00:00Z",
+                    content=(
+                        "{{Quest Header}}\n==Walkthrough==\n"
+                        f"*{first}\n"
+                        f"*{second}\n"
+                    ),
+                )
+            )
+
+        exact = reconcile_objectives(
+            "quest:other_areas:180",
+            parsed(
+                59050,
+                "Defeat 20 [[Copper Quadav]]s.",
+                "After defeating 20 [[Copper Quadav]]s, check the ???.",
+            ),
+            None,
+        )
+        count_mismatch = reconcile_objectives(
+            "quest:other_areas:181",
+            parsed(
+                59051,
+                "Defeat 10 [[Copper Quadav]]s.",
+                "After defeating 20 [[Copper Quadav]]s, check the ???.",
+            ),
+            None,
+        )
+        generic = reconcile_objectives(
+            "quest:other_areas:182",
+            parsed(
+                59052,
+                "Defeat the NM.",
+                "After defeating the NM, check the ???.",
+            ),
+            None,
+        )
+
+        self.assertEqual(
+            tuple(claim.material for step in exact.steps for claim in step.claims),
+            (True, False, True),
+        )
+        self.assertEqual(
+            tuple(claim.material for step in count_mismatch.steps for claim in step.claims),
+            (True, True, True),
+        )
+        self.assertEqual(
+            tuple(claim.material for step in generic.steps for claim in step.claims),
+            (True, True, True),
+        )
 
     def test_reconciliation_conflicts_only_compare_aligned_action_claims(self) -> None:
         def page(site: str, page_id: int, second_target: str) -> ParsedObjective:
@@ -6702,7 +8169,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         )
         self.assertTrue(all(candidate.route_ready is False for candidate in resolution.candidates))
 
-    def test_catalogue_resolution_applies_source_authority_per_matcher_field(self) -> None:
+    def test_catalogue_resolution_does_not_mix_progression_semantic_domains(self) -> None:
         native = NativeObjective(
             "mission",
             "Bastok",
@@ -6778,7 +8245,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
                 action["relationship"],
                 action["zones"],
             ),
-            ("Alpha", "npc", "talk-to", ["East Ronfaure"]),
+            ("Alpha", "", "talk-to", []),
         )
         self.assertEqual(
             {
@@ -6787,9 +8254,9 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             },
             {
                 "target": "bg",
-                "target_kind": "ffxiclopedia",
+                "target_kind": "",
                 "relationship": "bg",
-                "zones": "ffxiclopedia",
+                "zones": "",
             },
         )
         self.assertEqual(
@@ -6872,25 +8339,42 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             ],
         )
 
-    def test_pinned_ffxi_plural_causal_zone_list_stays_on_fight_span(self) -> None:
+    def test_pinned_ffxi_plural_causal_zone_list_stays_on_obtain_span(self) -> None:
         bg, ffxi = self._pinned_orcish_pages()
 
         self.assertEqual(bg.steps[5].spoken_text, "Orcish Fodder can be found in East Ronfaure and West Ronfaure.")
         self.assertEqual(bg.steps[5].zone_candidates, ("East Ronfaure", "West Ronfaure"))
         self.assertEqual(bg.steps[5].action_spans, ())
-        (fight,) = ffxi.steps[1].action_spans
-        self.assertEqual(fight.action, "fight")
-        self.assertEqual(fight.target, "Orcish Fodder")
-        self.assertEqual(fight.result_relation, "obtain-from")
+        (acquisition,) = ffxi.steps[1].action_spans
         self.assertEqual(
-            fight.zone_mentions,
+            (
+                acquisition.action,
+                acquisition.relationship,
+                acquisition.target,
+                acquisition.target_kind,
+                acquisition.item_mentions,
+                acquisition.enemy_mentions,
+                acquisition.result_relation,
+            ),
+            (
+                "obtain",
+                "obtain-item",
+                "Orcish Axe",
+                "item",
+                ("Orcish Axe",),
+                ("Orcish Fodder",),
+                "obtain-from",
+            ),
+        )
+        self.assertEqual(
+            acquisition.zone_mentions,
             ("West Ronfaure", "Ghelsba Outpost", "La Theine Plateau"),
         )
 
     def test_pinned_orcish_pages_resolve_only_reviewed_gate_guards_and_east_west_camps(self) -> None:
         native = NativeObjective("mission", "San d'Oria", 1, "Smash the Orcish Scouts", "missions.dat", 0)
         bg, ffxi = self._pinned_orcish_pages()
-        fight_action_id = "mission:San d'Oria:1:step-005:claim-01"
+        acquisition_action_id = "mission:San d'Oria:1:step-005:claim-01"
         role_action_id = "mission:San d'Oria:1:step-001:claim-01"
         points = (
             self._point(230, "Southern San d'Oria", "Ambrotien", "npc", 17719394),
@@ -6938,10 +8422,10 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
                 }
             },
             "single_source_zone_overrides": {
-                fight_action_id: {
+                acquisition_action_id: {
                     "source_revisions": {"bg": 766630, "ffxiclopedia": 1720865},
-                    "action": "fight",
-                    "target": "Orcish Fodder",
+                    "action": "obtain",
+                    "target": "Orcish Axe",
                     "allowed_zones": ["East Ronfaure"],
                     "location_facts": [
                         {
@@ -7001,25 +8485,43 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             }.isdisjoint({row.action_id for row in resolution.ledger})
         )
         self.assertEqual(
-            [group.zone_name for group in resolution.groups if group.action_id == fight_action_id],
+            [group.zone_name for group in resolution.groups if group.action_id == acquisition_action_id],
             ["East Ronfaure", "West Ronfaure"],
         )
         location_fact_id = "mission:San d'Oria:1:bg:step-006:location-fact-01"
-        fight_ledger = next(row for row in resolution.ledger if row.action_id == fight_action_id)
-        self.assertIn(location_fact_id, fight_ledger.source_action_span_ids)
+        acquisition_ledger = next(
+            row for row in resolution.ledger if row.action_id == acquisition_action_id
+        )
+        self.assertEqual(acquisition_ledger.action, "obtain")
+        self.assertIn(location_fact_id, acquisition_ledger.source_action_span_ids)
         self.assertTrue(
             all(
                 location_fact_id in candidate.source_action_span_ids
                 for candidate in resolution.candidates
-                if candidate.action_id == fight_action_id
+                if candidate.action_id == acquisition_action_id
             )
         )
+        acquisition_candidates = [
+            candidate
+            for candidate in resolution.candidates
+            if candidate.action_id == acquisition_action_id
+        ]
+        self.assertEqual({candidate.action for candidate in acquisition_candidates}, {"obtain"})
+        self.assertEqual({candidate.items for candidate in acquisition_candidates}, {("Orcish Axe",)})
+        self.assertTrue(
+            all("Orcish Fodder" in candidate.enemies for candidate in acquisition_candidates)
+        )
+        self.assertTrue(all(candidate.result_relation == "obtain-from" for candidate in acquisition_candidates))
         self.assertNotIn(
             "mission:San d'Oria:1:step-006:context-01",
             {row.action_id for row in resolution.ledger},
         )
         self.assertEqual(
-            [(item.zone_name, item.reason) for item in resolution.review_items if item.action_id == fight_action_id],
+            [
+                (item.zone_name, item.reason)
+                for item in resolution.review_items
+                if item.action_id == acquisition_action_id
+            ],
             [
                 ("Ghelsba Outpost", "single-source-needs-independent-corroboration"),
                 ("La Theine Plateau", "single-source-needs-independent-corroboration"),
@@ -8370,7 +9872,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
     def _fetichism_action_migration() -> dict:
         return {
             "mission:Bastok:3": {
-                "action_id": "mission:Bastok:3:step-006:claim-01",
+                "action_id": "mission:Bastok:3:step-003:claim-01",
                 "source_revisions": {"bg": 754820, "ffxiclopedia": 1748519},
                 "zone": 143,
                 "zone_name": "Palborough Mines",
@@ -8590,7 +10092,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 (root / "data" / "target-review.json").read_text(encoding="utf-8")
             )
 
-        action_id = "mission:Bastok:3:step-006:claim-01"
+        action_id = "mission:Bastok:3:step-003:claim-01"
         groups = [
             row
             for row in review["objective_destination_groups"]
@@ -8623,7 +10125,22 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         self.assertTrue(all(set(row["items"]) == expected_items for row in candidates))
         self.assertTrue(all(row["enemies"] == [row["target_name"]] for row in candidates))
         self.assertTrue(all(row["result_relation"] == "obtain-from" for row in candidates))
+        self.assertTrue(all(row["action"] == "obtain" for row in candidates))
         self.assertTrue(all(row["route_ready"] is False for row in candidates + groups))
+        optional_farming = next(
+            row
+            for row in review["action_resolution_ledger"]
+            if row["action_id"] == "mission:Bastok:3:step-006:claim-01"
+        )
+        self.assertEqual(
+            (
+                optional_farming["status"],
+                optional_farming["reason"],
+                optional_farming["material"],
+                optional_farming["candidate_ids"],
+            ),
+            ("context-only", "non-material-source-action-span", False, []),
+        )
         ledger = next(
             row
             for row in review["action_resolution_ledger"]
@@ -8706,7 +10223,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 (root / "data" / "target-review.json").read_text(encoding="utf-8")
             )
 
-        action_id = "mission:Bastok:3:step-006:claim-01"
+        action_id = "mission:Bastok:3:step-003:claim-01"
         candidates = [
             row
             for row in review["objective_destination_candidates"]
@@ -8738,6 +10255,60 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         self.assertEqual(len(candidates), 27)
         self.assertEqual(len({row["candidate_id"] for row in candidates}), 27)
         self.assertEqual(len({row["destination_id"] for row in candidates}), 27)
+        expected_items = ["Fetich Head", "Fetich Torso", "Fetich Arms", "Fetich Legs"]
+        self.assertTrue(
+            all(
+                row["action_id"] == action_id
+                and row["action"] == "obtain"
+                and row["items"] == expected_items
+                and row["enemies"] == [row["target_name"]]
+                and row["result_relation"] == "obtain-from"
+                and row["source_revisions"]
+                == {"bg": 754820, "ffxiclopedia": 1748519}
+                and row["route_ready"] is False
+                for row in candidates
+            )
+        )
+        owner = next(
+            row for row in review["action_resolution_ledger"] if row["action_id"] == action_id
+        )
+        self.assertEqual(
+            (owner["action"], owner["material"], owner["candidate_count"]),
+            ("obtain", True, 27),
+        )
+        self.assertEqual(set(owner["candidate_ids"]), set(candidate_by_id))
+        optional_fight = next(
+            row
+            for row in review["action_resolution_ledger"]
+            if row["action_id"] == "mission:Bastok:3:step-006:claim-01"
+        )
+        self.assertEqual(
+            (
+                optional_fight["action"],
+                optional_fight["status"],
+                optional_fight["material"],
+                optional_fight["candidate_ids"],
+            ),
+            ("fight", "context-only", False, []),
+        )
+        reconciled = reconcile_objectives(native.key, bg, ffxi)
+        obtain_claim = next(
+            claim
+            for step in reconciled.steps
+            for claim in step.claims
+            if claim.stable_claim_id == action_id
+        )
+        self.assertEqual(
+            (
+                obtain_claim.action,
+                obtain_claim.relationship,
+                obtain_claim.required_count,
+                obtain_claim.count_mode,
+                obtain_claim.count_explicit,
+                obtain_claim.material,
+            ),
+            ("obtain", "obtain-item", 4, "inventory-gain", True, True),
+        )
         canonical = "".join(
             f'{row["target_name"]}\t{row["destination_id"]}\n'
             for row in sorted(
@@ -9387,6 +10958,11 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         overrides["target_overrides"] = {}
         overrides["mission_destination_overrides"] = {}
         overrides["legacy_action_migrations"] = {}
+        # The compact generator fixture says "Use the geyser" while the pinned
+        # live sources classify the charging step as wait.  Preserve the fixture's
+        # exact action without weakening the repository selector under test.
+        fixture_selector = overrides["automatic_stage_links"]["mission:Bastok:2"]
+        fixture_selector["charge-blue-tester"]["step_selector"]["action"] = "use"
         return overrides
 
     def _native_rows(self) -> tuple[NativeObjective, ...]:
@@ -10352,6 +11928,241 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 "count_mode": ("single", "bg"),
                 "count_explicit": (True, "bg"),
             },
+        )
+
+    def test_progression_core_semantics_use_one_material_source_domain(self) -> None:
+        module_name = "mission_quest_progression_mission_bastok"
+
+        targetless_native = NativeObjective(
+            "mission",
+            "Bastok",
+            196,
+            "Material source boundary",
+            "missions.dat",
+            0,
+        )
+        targetless_bg_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=31,
+            supporting_clause="Return to Fondactiont to continue.",
+            action="talk",
+            verb="return to",
+            relationship="talk-to",
+            target="",
+            target_kind="",
+            material=True,
+        )
+        malformed_nonmaterial_span = replace(
+            targetless_bg_span,
+            supporting_clause="If needed, return to Fondactiont to continue.",
+            target="Fondactiont to",
+            target_kind="npc",
+            npc_mentions=("Fondactiont",),
+            material=False,
+        )
+        targetless_bg = self._single_step_progression_page(
+            "bg",
+            19601,
+            targetless_native.title,
+            (targetless_bg_span,),
+            targetless_bg_span.supporting_clause,
+        )
+        targetless_ffxi = self._single_step_progression_page(
+            "ffxiclopedia",
+            19602,
+            targetless_native.title,
+            (malformed_nonmaterial_span,),
+            malformed_nonmaterial_span.supporting_clause,
+        )
+        targetless_payload = guide_generator.progression_objective_payload(
+            targetless_native,
+            self._resolved_progression(targetless_native, targetless_bg, targetless_ffxi),
+            {"bg": targetless_bg, "ffxiclopedia": targetless_ffxi},
+            module_name,
+        )
+        (targetless_action,) = targetless_payload["progression_actions"]
+        self.assertEqual(
+            (
+                targetless_action["instruction"],
+                targetless_action["target"],
+                targetless_action["target_key"],
+                targetless_action["npcs"],
+                targetless_action["source_authority"],
+                targetless_action["field_sources"]["target"],
+            ),
+            (targetless_bg_span.supporting_clause, "", "", [], "bg", ""),
+        )
+
+        rockberry_native = replace(
+            targetless_native,
+            native_id=197,
+            title="Rockberry source domain",
+        )
+        rockberry_bg_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=45,
+            supporting_clause="Obtain three Rockberries by harvesting.",
+            action="obtain",
+            verb="obtain",
+            relationship="obtain-item",
+            target="Rockberry",
+            target_kind="item",
+            item_mentions=("Rockberry",),
+            required_count=3,
+            count_mode="inventory-gain",
+            count_explicit=True,
+            material=True,
+        )
+        rockberry_ffxi_span = replace(
+            rockberry_bg_span,
+            supporting_clause="You are asked to obtain three key item Rockberries.",
+            target_kind="key-item",
+            item_mentions=("Rockberry",),
+            key_item_mentions=("Rockberry",),
+            required_count=1,
+            count_mode="single",
+            count_explicit=False,
+        )
+        rockberry_bg = self._single_step_progression_page(
+            "bg",
+            19701,
+            rockberry_native.title,
+            (rockberry_bg_span,),
+            rockberry_bg_span.supporting_clause,
+        )
+        rockberry_ffxi = self._single_step_progression_page(
+            "ffxiclopedia",
+            19702,
+            rockberry_native.title,
+            (rockberry_ffxi_span,),
+            rockberry_ffxi_span.supporting_clause,
+        )
+        rockberry_payload = guide_generator.progression_objective_payload(
+            rockberry_native,
+            self._resolved_progression(rockberry_native, rockberry_bg, rockberry_ffxi),
+            {"bg": rockberry_bg, "ffxiclopedia": rockberry_ffxi},
+            module_name,
+        )
+        (rockberry_action,) = rockberry_payload["progression_actions"]
+        self.assertEqual(
+            {
+                field: rockberry_action[field]
+                for field in (
+                    "action",
+                    "relationship",
+                    "target",
+                    "target_kind",
+                    "items",
+                    "key_items",
+                    "required_count",
+                    "count_mode",
+                    "count_explicit",
+                    "instruction",
+                )
+            },
+            {
+                "action": "obtain",
+                "relationship": "obtain-item",
+                "target": "Rockberry",
+                "target_kind": "item",
+                "items": ["Rockberry"],
+                "key_items": [],
+                "required_count": 3,
+                "count_mode": "inventory-gain",
+                "count_explicit": True,
+                "instruction": rockberry_bg_span.supporting_clause,
+            },
+        )
+        self.assertEqual(
+            {
+                field: rockberry_action["field_sources"][field]
+                for field in (
+                    "action",
+                    "relationship",
+                    "target",
+                    "target_kind",
+                    "items",
+                    "key_items",
+                    "required_count",
+                    "count_mode",
+                    "count_explicit",
+                    "instruction",
+                )
+            },
+            {
+                "action": "bg",
+                "relationship": "bg",
+                "target": "bg",
+                "target_kind": "bg",
+                "items": "bg",
+                "key_items": "",
+                "required_count": "bg",
+                "count_mode": "bg",
+                "count_explicit": "bg",
+                "instruction": "bg",
+            },
+        )
+
+        fallback_native = replace(
+            targetless_native,
+            native_id=198,
+            title="Material fallback source",
+        )
+        stale_bg_span = SourceActionSpan(
+            source_step_order=1,
+            order=1,
+            text_start=0,
+            text_end=36,
+            supporting_clause="If needed, speak to Cid for advice.",
+            action="talk",
+            verb="speak",
+            relationship="talk-to",
+            target="Cid to",
+            target_kind="npc",
+            npc_mentions=("Cid",),
+            material=False,
+        )
+        direct_ffxi_span = replace(
+            stale_bg_span,
+            supporting_clause="Speak to Cid to continue.",
+            target="Cid",
+            material=True,
+        )
+        stale_bg = self._single_step_progression_page(
+            "bg",
+            19801,
+            fallback_native.title,
+            (stale_bg_span,),
+            stale_bg_span.supporting_clause,
+        )
+        direct_ffxi = self._single_step_progression_page(
+            "ffxiclopedia",
+            19802,
+            fallback_native.title,
+            (direct_ffxi_span,),
+            direct_ffxi_span.supporting_clause,
+        )
+        reconciled = self._resolved_progression(fallback_native, stale_bg, direct_ffxi)
+        (claim,) = reconciled.steps[0].claims
+        self.assertEqual((claim.material, claim.target), (True, "Cid"))
+        fallback_payload = guide_generator.progression_objective_payload(
+            fallback_native,
+            reconciled,
+            {"bg": stale_bg, "ffxiclopedia": direct_ffxi},
+            module_name,
+        )
+        (fallback_action,) = fallback_payload["progression_actions"]
+        self.assertEqual(
+            (
+                fallback_action["instruction"],
+                fallback_action["target"],
+                fallback_action["source_authority"],
+            ),
+            (direct_ffxi_span.supporting_clause, "Cid", "ffxiclopedia"),
         )
 
     def test_progression_transport_destination_uses_field_authority_and_exact_zone_id(self) -> None:

@@ -290,9 +290,10 @@ def _set_link_role(roles: dict[int, str], link: Wikilink, role: str) -> None:
 def _structural_entity_roles(
     code: object,
     site_policy: SiteLinkPolicy | None,
-) -> tuple[dict[int, str], dict[int, tuple[str, str, str]]]:
+) -> tuple[dict[int, str], dict[int, tuple[str, str, str]], frozenset[int]]:
     roles: dict[int, str] = {}
     template_entities: dict[int, tuple[str, str, str]] = {}
+    visual_only_templates: set[int] = set()
     for template in code.filter_templates(recursive=True):
         role = _template_entity_role(template)
         if not role:
@@ -331,10 +332,12 @@ def _structural_entity_roles(
                 }:
                     _set_link_role(roles, node, role)
                     template_entities.pop(id(template), None)
+                    if _name_key(template.name) == "itemicon":
+                        visual_only_templates.add(id(template))
             pending = None
 
     mark_adjacent(code)
-    return roles, template_entities
+    return roles, template_entities, frozenset(visual_only_templates)
 
 
 def _render_fragment(
@@ -350,7 +353,10 @@ def _render_fragment(
 ]:
     code = mwparserfromhell.parse(fragment)
     warnings: list[str] = []
-    structural_roles, template_entities = _structural_entity_roles(code, site_policy)
+    structural_roles, template_entities, visual_only_templates = _structural_entity_roles(
+        code,
+        site_policy,
+    )
     entities: list[tuple[str, str, str, bool, bool]] = []
     for link in list(code.filter_wikilinks(recursive=True)):
         canonical, display, target_identity = _wikilink_identity_details(link, site_policy)
@@ -379,7 +385,10 @@ def _render_fragment(
                 locations.append(zone)
             if map_label:
                 map_labels.append(map_label)
-        replacement = _render_template(template, warnings)
+        replacement = (
+            "" if id(template) in visual_only_templates
+            else _render_template(template, warnings)
+        )
         template_entity = template_entities.get(id(template))
         if template_entity is not None:
             canonical, display, role = template_entity
@@ -673,6 +682,848 @@ def _action_for_verb(verb: str) -> tuple[str, str]:
     return "use", "use-object"
 
 
+_REQUIRED_ACTION_PREFIX = re.compile(
+    r"(?:"
+    r"\byou\s+(?:must|need\s+to|will\s+need\s+to|"
+    r"(?:will\s+)?have\s+to(?:\s+have\s+to)*|"
+    r"are\s+required\s+to|are\s+to)|"
+    r"\b(?:all|every|each|both)\s+(?:(?:party|alliance)\s+)?(?:members?|players?)\s+"
+    r"(?:must|need\s+to|will\s+need\s+to|"
+    r"(?:will\s+)?have\s+to(?:\s+have\s+to)*|"
+    r"are\s+required\s+to|are\s+to)|"
+    r"\b(?:be\s+sure|make\s+sure|remember)\s+to|"
+    r"\bit\s+is\s+(?:necessary|required)\s+to|"
+    r"\b(?:asks?|asked|instructs?|instructed|requires?|requested)\s+you\s+to"
+    r")\s*$",
+    re.IGNORECASE,
+)
+_NAMED_ACTOR_PLAYER_OBLIGATION = re.compile(
+    r"(?:"
+    r"[A-Z][A-Za-z0-9'’.-]*(?:\s+[A-Z][A-Za-z0-9'’.-]*){0,4}|"
+    r"(?:the|your|all|every|each|both)\s+"
+    r"(?:(?:party|alliance)\s+)?(?:members?|players?|party|alliance|group|team)"
+    r")\s+needs?\s+you\s+to"
+)
+_EXPLICIT_PLAYER_TASK_PREFIX = re.compile(
+    r"(?:"
+    r"\byou\s+(?:are|were|have\s+been|will\s+be)\s+"
+    r"(?:asked|instructed|required|requested|told|ordered|tasked|expected)\s+to"
+    r"(?:\s+now)?|"
+    r"\b(?:your|the)\s+(?:task|objective|goal|aim|next\s+step|next\s+goal|orders?)\s+"
+    r"(?:is|are)\s+to"
+    r"(?:\s+now)?|"
+    r"\b(?:tells?|tasks?|orders?|instructs?|asks?)\s+you\s+to(?:\s+now)?"
+    r")\s*$",
+    re.IGNORECASE,
+)
+_NONMATERIAL_GUIDANCE = re.compile(
+    r"^\s*[\[(]?\s*if\b|"
+    r"(?:^\s*[\[(]?\s*optional(?:ly)?\s*[\])]?\s*:?|"
+    r"\b(?:this\s+)?step\s+is\s+optional\b)|"
+    r"^\s*(?:[\[(]?\s*)?(?:alternatively\b|alternative\s*:|or\b|either\b|"
+    r"another\s+(?:option|method|way)\b)|"
+    r"\bif\s+you\s+(?:want|wish|prefer|choose|decide|would\s+like|"
+    r"do\s+not\s+want|don['’]t\s+want)\b|"
+    r"\byou\s+may\s+want\s+to\b|"
+    r"\b(?:use|choose|select)\s+(?:only\s+)?one\s+of\b|"
+    r"\bin\s+your\s+mission\s+progress\b|"
+    r"(?:^|\b)(?:(?:when|while)\s+repeating\b|(?:for|on)\s+(?:a\s+)?repeat\b|"
+    r"if\s+(?:repeating|redoing)\b|repeat(?:ing)?\s+(?:the\s+)?(?:quest|mission)\b)|"
+    r"^\s*(?:[\[(]?\s*)?(?:(?:strategy|tip|note|warning|recommendation|recommended)\s*:|"
+    r"best\s+to\b|be\s+careful\b)",
+    re.IGNORECASE,
+)
+_DIRECT_IMPERATIVE_PREFIX = re.compile(
+    r"(?:"
+    r"\s*|"
+    r"\s*(?:first|next|then|finally|afterwards|now)\s*[,;:]\s*|"
+    r"\s*(?:at|in|on|inside|outside|near|from|after|before|once|when|while|upon)\b"
+    r"[^.;:]{0,240}[,;:]\s*(?:then\s+)?|"
+    r"\s*to\s+(?:continue|proceed|progress|advance|finish|complete)\b"
+    r"[^.;:]{0,160}[,;:]\s*(?:then\s+)?|"
+    r"\s*(?:objective|orders?)\s*:\s*(?:to(?:\s+|$))?"
+    r")",
+    re.IGNORECASE,
+)
+_INHERITED_COORDINATION = re.compile(
+    r"(?:[,;]|and|then|to|by)(?:\s+(?:also|then|next|immediately))?",
+    re.IGNORECASE,
+)
+_UNPARSED_IMPERATIVE_SCAFFOLD = re.compile(
+    r"(?:go|head|make|take|follow|run|walk|proceed|continue|travel|move|climb|"
+    r"descend|ascend|sneak|pull|drop|free|equip|rezone|spawn|avoid|prevent|find)\b"
+    r"[^.;:]{0,240}(?:[,;]|\b(?:and|then|to|by))\s*",
+    re.IGNORECASE,
+)
+_MODAL_BEFORE_ACTION = re.compile(
+    r"\b(?:will|would|can|could|may|might|must|should)\b",
+    re.IGNORECASE,
+)
+_MALFORMED_TARGET_PREFIX = re.compile(
+    r"^(?:is|are|was|were|will|would|can|could|may|might|must|should|"
+    r"has|have|had|be|been|being)\b",
+    re.IGNORECASE,
+)
+_MALFORMED_TARGET_SUFFIX = re.compile(
+    r"\b(?:and|or|to|with|at|in|on|from|for|by|of|"
+    r"is|are|was|were|will|would|can|could|may|might|must|should|has|have|had)$",
+    re.IGNORECASE,
+)
+_COUNT_WORD_VALUES = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+}
+_COUNT_TOKEN = r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)"
+
+
+def _count_value(token: str) -> int:
+    return int(token) if token.isdigit() else _COUNT_WORD_VALUES.get(token.casefold(), 0)
+
+
+def _target_count_forms(target: str) -> tuple[str, ...]:
+    forms: list[str] = []
+    for base in _unique(
+        (
+            target,
+            re.sub(r"\s+\((?:key\s+)?item\)$", "", target, flags=re.IGNORECASE),
+        )
+    ):
+        forms.append(base)
+        if base.casefold().endswith("y") and len(base) > 1:
+            forms.append(base[:-1] + "ies")
+        else:
+            forms.extend((base + "s", base + "es"))
+    return _unique(forms)
+
+
+def _explicit_count_for_target(instruction: str, target: str) -> int:
+    if not target:
+        return 0
+    forms = "|".join(
+        re.escape(form).replace(r"\.", r"\.?")
+        for form in _target_count_forms(target)
+    )
+    match = re.search(
+        rf"(?<![A-Za-z0-9.,])({_COUNT_TOKEN})(?:\s*[x×]\s*|\s+"
+        r"(?:more\s+)?(?:(?:slabs?|slices?|pots?|balls?|pieces?|sheets?)\s+of\s+)?"
+        rf")(?:(?:the|an?)\s+)?(?:key\s+item\s+)?(?:{forms})(?![A-Za-z0-9])",
+        instruction,
+        re.IGNORECASE,
+    )
+    return _count_value(match.group(1)) if match is not None else 0
+
+
+def _explicit_collective_count(instruction: str) -> int:
+    match = re.search(
+        rf"(?<![A-Za-z0-9.,])({_COUNT_TOKEN})\s+"
+        r"[A-Za-z][A-Za-z0-9 '\-]{0,80}\b(?:pieces|parts|items)\s*[:(]",
+        instruction,
+        re.IGNORECASE,
+    )
+    return _count_value(match.group(1)) if match is not None else 0
+
+
+def _explicit_only_one_required(instruction: str) -> bool:
+    return bool(
+        re.search(
+            r"\bonly\s+(?:1|one)\s+(?:of\s+(?:them|these)\s+)?(?:is\s+)?required\b",
+            instruction,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _entities_separated_by_or(instruction: str, entities: tuple[str, ...]) -> bool:
+    positions: list[tuple[int, int]] = []
+    for entity in _unique(entities):
+        match = re.search(
+            rf"(?<![A-Za-z0-9]){re.escape(entity)}(?![A-Za-z0-9])",
+            instruction,
+            re.IGNORECASE,
+        )
+        if match is not None:
+            positions.append((match.start(), match.end()))
+    positions.sort()
+    for left, right in zip(positions, positions[1:]):
+        if re.fullmatch(
+            r"\s*(?:,\s*)?or\s*",
+            instruction[left[1] : right[0]],
+            re.IGNORECASE,
+        ):
+            return True
+    return False
+
+
+def _target_has_extractor_debris(target: str) -> bool:
+    key = target.casefold().strip()
+    return bool(
+        key in {"a", "an", "the"}
+        or _MALFORMED_TARGET_PREFIX.search(key)
+        or _MALFORMED_TARGET_SUFFIX.search(key)
+    )
+
+
+def _target_precedes_marker(text: str, target: str, marker_start: int) -> bool:
+    if not target:
+        return False
+    return any(
+        match.end() <= marker_start
+        for match in re.finditer(
+            rf"(?<![A-Za-z0-9]){re.escape(target)}(?![A-Za-z0-9])",
+            text,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _route_method_has_canonical_head(
+    clause: str,
+    before_alternative: str,
+    after_alternative: str,
+    verb: str,
+) -> bool:
+    before_method = re.search(
+        r"\b(?:by|via|through|from|in|at)\s*$",
+        before_alternative,
+        re.IGNORECASE,
+    )
+    after_method = re.match(
+        r"\s*(?:by|via|through|from|in|at)\b",
+        after_alternative,
+        re.IGNORECASE,
+    )
+    if before_method is not None:
+        head = before_alternative[: before_method.start()]
+    elif after_method is not None:
+        head = before_alternative
+    else:
+        return False
+    head = re.sub(
+        rf"^\s*{re.escape(verb)}\b",
+        "",
+        head,
+        count=1,
+        flags=re.IGNORECASE,
+    ).strip(" ,;:()")
+    return re.search(r"[A-Za-z0-9?]", head) is not None
+
+
+def _later_outcome_owns_qualifier(
+    clause: str,
+    marker_start: int,
+    *,
+    action: str,
+    target: str,
+) -> bool:
+    if not _target_precedes_marker(clause, target, marker_start):
+        return False
+    before = clause[:marker_start]
+    return bool(
+        re.search(
+            r"\b(?:reward|result)\s*\(?\s*$|"
+            r"\bfor\s+(?:an?\s+cutscene\s+and\s+)?"
+            r"(?:your\s+|the\s+)?reward\b[^.;]{0,240}$|"
+            r"\b(?:who|which|that)\s+will\s+tell\s+you\b[^.;]{0,240}$",
+            before,
+            re.IGNORECASE,
+        )
+        and action in {"examine", "talk"}
+    )
+
+
+def _marker_is_quoted_or_parenthetical(text: str, marker_start: int) -> bool:
+    """Return whether a qualifier belongs to quoted or parenthetical detail."""
+
+    before = text[:marker_start]
+    straight_quoted = before.count('"') % 2 == 1
+    curly_quoted = before.rfind("“") > before.rfind("”")
+    parenthetical = before.rfind("(") > before.rfind(")")
+    return straight_quoted or curly_quoted or parenthetical
+
+
+def _conditional_is_later_detail(
+    clause: str,
+    marker_start: int,
+    *,
+    instruction: str,
+    action: str,
+    verb: str,
+    target: str,
+) -> bool:
+    """Keep a required head when ``if`` only qualifies later detail.
+
+    This is deliberately syntax-bounded. It does not make a leading or direct
+    conditional action material; it only prevents quoted speech, parenthetical
+    counts/results, route-method details, and an independently observable item
+    goal from poisoning an already-established imperative head.
+    """
+
+    before = clause[:marker_start]
+    after = clause[marker_start:]
+    target_before = _target_precedes_marker(clause, target, marker_start)
+
+    if re.search(
+        r"\b(?:reminder\s+text|can\s+be\s+skipped)\b",
+        clause,
+        re.IGNORECASE,
+    ):
+        return False
+    if re.match(
+        r"if\s+you\s+(?:want|wish|prefer|choose|decide|would\s+like|"
+        r"do\s+not\s+want|don['’]t\s+want)\b",
+        after,
+        re.IGNORECASE,
+    ):
+        return False
+    if _marker_is_quoted_or_parenthetical(clause, marker_start):
+        return True
+    if re.search(r"\bas\s*$", before, re.IGNORECASE):
+        return True
+    if action in {"talk", "examine"} and target_before and (
+        re.search(r"\bto\s+see\s*$", before, re.IGNORECASE)
+        or re.search(
+            r"\bwho\b[^.;]{0,240}\b(?:say|says|ask|asks|offer|offers|"
+            r"tell|tells|will\s+(?:say|ask|offer|tell))\b[^.;]{0,200}$",
+            before,
+            re.IGNORECASE,
+        )
+        or re.search(r"\b(?:closest|nearest)\s*$", before, re.IGNORECASE)
+    ):
+        return True
+    if (
+        action == "fight"
+        and re.search(
+            r"\buntil\s+(?:everyone|all\s+players?)\s+or\s*$",
+            before,
+            re.IGNORECASE,
+        )
+        and re.match(r"if\s+solo\b", after, re.IGNORECASE)
+    ):
+        return True
+    if (
+        action == "obtain"
+        and target_before
+        and re.match(r"^\s*(?:obtain|collect|purchase)\b", instruction, re.IGNORECASE)
+        and (
+            re.match(
+                r"if\s+you\s+(?:have\s+not|haven['’]t|do\s+not|don['’]t)\s+"
+                r"(?:already\s+)?(?:have|obtain|own)?\b",
+                after,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"\botherwise\s+(?:obtain|collect|purchase)\s+(?:it|the\s+same\b)",
+                instruction,
+                re.IGNORECASE,
+            )
+            or (
+                re.search(r"\b(?:from|by|via|through|in|at)\b", before, re.IGNORECASE)
+                and re.search(
+                    r"\b(?:obtain|collect|purchase|buy|find)\s+(?:it|the\s+same\b)",
+                    instruction,
+                    re.IGNORECASE,
+                )
+            )
+        )
+    ):
+        return True
+    if action == "travel" and target_before and (
+        (
+            re.search(
+                r"\b(?:from|by|via|through)\b[^.;]{0,200}\bor\s*,?\s*$",
+                before,
+                re.IGNORECASE,
+            )
+            and re.match(r"if\b", after, re.IGNORECASE)
+        )
+        or re.search(
+            r"\b(?:click|obtain|collect|use|activate)\b",
+            after,
+            re.IGNORECASE,
+        )
+        or (
+            re.search(r"\band\s*$", before, re.IGNORECASE)
+            and re.search(
+                r"\b(?:click|obtain|collect|use|activate)\b",
+                instruction[marker_start:],
+                re.IGNORECASE,
+            )
+        )
+    ):
+        return True
+    return False
+
+
+def _internal_alternative_is_later_detail(
+    clause: str,
+    alternative: re.Match[str],
+    *,
+    instruction: str,
+    action: str,
+    verb: str,
+    target: str,
+    npc_mentions: tuple[str, ...],
+) -> bool:
+    before = clause[: alternative.start()]
+    # ``alternative`` proves that an ``either ... or`` phrase exists, but the
+    # method/outcome introducer belongs immediately after ``either`` rather
+    # than after the first ``or``.  Keep the marker action-local so a later
+    # route or reward choice cannot poison the already-exact head action.
+    after = re.sub(
+        r"^\s*either\b",
+        "",
+        clause[alternative.start() :],
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    target_before = _target_precedes_marker(clause, target, alternative.start())
+    if (
+        action == "travel"
+        and (
+            target_before
+            or re.search(r"\b(?:any\s+)?one\s+of\b", before, re.IGNORECASE) is None
+        )
+        and _route_method_has_canonical_head(clause, before, after, verb)
+    ):
+        return True
+    if (
+        action == "talk"
+        and target_before
+        and len(_unique(npc_mentions)) == 1
+        and re.match(r"\s*\([A-P]-\d{1,2}\)\b", after, re.IGNORECASE)
+    ):
+        return True
+    if (
+        action == "obtain"
+        and target_before
+        and _route_method_has_canonical_head(clause, before, after, verb)
+    ):
+        return True
+    if (
+        action == "fight"
+        and target_before
+        and (
+            re.search(
+                r"\bto\s+(?:obtain|receive|collect)\b",
+                after,
+                re.IGNORECASE,
+            )
+            or (
+                re.search(r"\bto\s*$", clause, re.IGNORECASE)
+                and re.search(
+                    r"\bto\s+(?:obtain|receive|collect)\b",
+                    instruction,
+                    re.IGNORECASE,
+                )
+            )
+        )
+    ):
+        return True
+    if target_before and (
+        re.search(r"\b(?:reward|result)\s*\(?\s*$", before, re.IGNORECASE)
+        or re.search(r"\b(?:begins?|ends?)\s*$", before, re.IGNORECASE)
+        or (
+            re.search(r"\b(?:he|she|they|it)\s+will\s*$", before, re.IGNORECASE)
+            and re.match(r"\s*say\b", after, re.IGNORECASE)
+        )
+    ):
+        return True
+    return False
+
+
+def _target_is_alternative_route_detail(
+    clause: str,
+    target: str,
+    *,
+    action: str,
+    verb: str,
+) -> bool:
+    if action != "travel" or not target:
+        return False
+    alternative = re.search(r"\beither\b.{0,400}\bor\b", clause, re.IGNORECASE)
+    if alternative is None or _target_precedes_marker(clause, target, alternative.start()):
+        return False
+    return _route_method_has_canonical_head(
+        clause,
+        clause[: alternative.start()],
+        re.sub(
+            r"^\s*either\b",
+            "",
+            clause[alternative.start() :],
+            count=1,
+            flags=re.IGNORECASE,
+        ),
+        verb,
+    )
+
+
+def _material_action_is_player_instruction(
+    *,
+    instruction: str,
+    instruction_prefix: str,
+    clause: str,
+    prefix: str,
+    remainder: str,
+    bridge: str,
+    coordination: str,
+    independent_clause: bool,
+    action: str,
+    verb: str,
+    target: str,
+    npc_mentions: tuple[str, ...],
+    previous_material: bool,
+) -> bool:
+    """Conservatively keep only claims that can direct or observe player progress.
+
+    Source prose remains available even when a lexical action mention is demoted.  This
+    predicate only decides whether the span may become the reducer's ordered blocker.
+    """
+
+    normalized_instruction = _clean(instruction)
+    normalized_instruction_prefix = _clean(instruction_prefix)
+    normalized_clause = _clean(clause)
+    normalized_prefix = _clean(prefix)
+    normalized_bridge = _clean(bridge)
+    normalized_coordination = _clean(coordination)
+    normalized_remainder = _clean(remainder)
+    key = verb.casefold()
+    target_key = target.casefold().strip()
+
+    if action == "warning":
+        return False
+    if (
+        _NONMATERIAL_GUIDANCE.match(normalized_instruction)
+        or re.search(
+            r"\b(?:this\s+)?step\s+is\s+optional\b",
+            normalized_instruction,
+            re.IGNORECASE,
+        )
+    ):
+        return False
+    guidance = _NONMATERIAL_GUIDANCE.search(normalized_clause)
+    if guidance is not None:
+        guidance_is_later_detail = _later_outcome_owns_qualifier(
+            normalized_clause,
+            guidance.start(),
+            action=action,
+            target=target,
+        ) or (
+            re.match(r"if\b", guidance.group(0), re.IGNORECASE) is not None
+            and _conditional_is_later_detail(
+                normalized_clause,
+                guidance.start(),
+                instruction=normalized_instruction,
+                action=action,
+                verb=verb,
+                target=target,
+            )
+        )
+        if not guidance_is_later_detail:
+            return False
+    conditional = re.search(r"\bif\b", normalized_clause, re.IGNORECASE)
+    if conditional is not None:
+        conditional_is_later_detail = _later_outcome_owns_qualifier(
+            normalized_clause,
+            conditional.start(),
+            action=action,
+            target=target,
+        ) or _conditional_is_later_detail(
+            normalized_clause,
+            conditional.start(),
+            instruction=normalized_instruction,
+            action=action,
+            verb=verb,
+            target=target,
+        )
+        if not conditional_is_later_detail:
+            return False
+    internal_either = re.search(
+        r"\beither\b.{0,400}\bor\b",
+        normalized_clause,
+        re.IGNORECASE,
+    )
+    if internal_either and not _internal_alternative_is_later_detail(
+        normalized_clause,
+        internal_either,
+        instruction=normalized_instruction,
+        action=action,
+        verb=verb,
+        target=target,
+        npc_mentions=npc_mentions,
+    ):
+        return False
+    if (
+        action == "talk"
+        and key == "return to"
+        and re.search(r"\band\s*$", normalized_clause, re.IGNORECASE)
+        and re.search(
+            r"\b(?:trade|give|hand\s+over)\b[^.;]{0,240}\beither\b"
+            r"[^.;]{0,240}\bor\b",
+            normalized_instruction,
+            re.IGNORECASE,
+        )
+    ):
+        return False
+    if (
+        action == "examine"
+        and re.search(r"\band\s*$", normalized_clause, re.IGNORECASE)
+        and re.search(
+            r"\b(?:choose|select)\s+(?:only\s+)?one\s+of\b",
+            normalized_instruction,
+            re.IGNORECASE,
+        )
+    ):
+        return False
+    if (
+        action == "talk"
+        and not re.search(r"\beither\b", normalized_instruction, re.IGNORECASE)
+        and re.match(r"^\s*(?:talk|speak)\b", normalized_instruction, re.IGNORECASE)
+        and len(_unique(npc_mentions)) >= 2
+        and _entities_separated_by_or(normalized_instruction, npc_mentions)
+    ):
+        return False
+    if (
+        action == "talk"
+        and re.search(
+            r"\b(?:he|she|they|it)\s+will\s+give\s+(?:you\s+)?(?:an?\s+)?"
+            r"(?:status\s+)?message\b[^.;]{0,300}\beither\b[^.;]{0,300}\bor\b",
+            normalized_instruction,
+            re.IGNORECASE,
+        )
+    ):
+        # This interaction only reports which branch/status remains; it does
+        # not itself advance the objective and must not block the cursor.
+        return False
+    contexts = (normalized_prefix, normalized_bridge)
+    explicitly_required = any(
+        _REQUIRED_ACTION_PREFIX.search(context) is not None
+        for context in contexts
+    )
+    named_actor_player_obligation = bool(
+        key != "receive"
+        and any(
+            _NAMED_ACTOR_PLAYER_OBLIGATION.fullmatch(context) is not None
+            for context in contexts
+        )
+    )
+    explicit_player_task = bool(
+        key != "receive"
+        and not re.search(r"\bin\s+any\s+order\b", normalized_clause, re.IGNORECASE)
+        and any(
+            _EXPLICIT_PLAYER_TASK_PREFIX.search(context) is not None
+            for context in contexts
+        )
+    )
+    future_player_action = bool(
+        target
+        and any(
+            re.search(r"\byou\s+will\s*$", context, re.IGNORECASE)
+            for context in contexts
+        )
+        and (
+            action == "fight"
+            or key == "hand over"
+            or (action == "examine" and key == "check")
+        )
+    )
+    required_gerund_completion = bool(
+        target
+        and key in {"defeating", "killing", "slaying"}
+        and (
+            re.search(
+                r"\b(?:is\s+required|must\b|ends?\b|completes?\b|grants?\b|"
+                r"triggers?\b|allows?\b|opens?\b|finishes?\b|wins?\b|causes?\b)",
+                normalized_remainder,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"\b(?:cannot|can['’]t|unable\s+to|will\s+not\s+be\s+able\s+to)\b"
+                r"[^.;]{0,200}\bbefore\s*$",
+                normalized_instruction_prefix,
+                re.IGNORECASE,
+            )
+        )
+    )
+    causal_gerund = bool(
+        target
+        and key in {"defeating", "killing", "slaying"}
+        and re.fullmatch(
+            r"(?:after|upon|once)(?:\s+successfully)?",
+            normalized_prefix,
+            re.IGNORECASE,
+        )
+        and not re.search(
+            r"\b(?:(?:previous|prior|preceding)\s+(?:mission|quest)|"
+            r"nation\s+mission\s+5-2|already\s+defeated)\b",
+            normalized_instruction,
+            re.IGNORECASE,
+        )
+    )
+    direct_imperative = bool(
+        (
+            (
+                independent_clause
+                and (
+                    (
+                        key not in {"defeating", "killing", "slaying"}
+                        and _DIRECT_IMPERATIVE_PREFIX.fullmatch(normalized_prefix)
+                    )
+                    or _UNPARSED_IMPERATIVE_SCAFFOLD.fullmatch(normalized_prefix)
+                    or re.fullmatch(
+                        r"(?:no\s+need|not\s+(?:necessary|required))\b"
+                        r"[^.;]{0,180}[,;]\s*(?:just|instead)",
+                        normalized_prefix,
+                        re.IGNORECASE,
+                    )
+                )
+            )
+            or (
+                not independent_clause
+                and key not in {"defeating", "killing", "slaying"}
+                and (
+                    re.match(
+                        r"^\s*(?:after|once|when|upon)\b",
+                        normalized_instruction_prefix,
+                        re.IGNORECASE,
+                    )
+                    or re.search(
+                        r"[,;]\s*(?:just|instead)\s+[^.;]{0,180}"
+                        r"(?:and|then|to|by)\s*$",
+                        normalized_instruction_prefix,
+                        re.IGNORECASE,
+                    )
+                )
+            )
+            or (
+                key not in {"defeating", "killing", "slaying"}
+                and normalized_prefix.casefold() == "to"
+                and re.match(r"^\s*orders?\s*:\s*to\b", normalized_instruction, re.IGNORECASE)
+            )
+        )
+    )
+
+    if key == "give" and re.match(r"\s*up\b", remainder, re.IGNORECASE):
+        return False
+    if action == "fight" and key == "fight":
+        noun_prefix = re.search(
+            r"(?:\b(?:a|an|the|this|that|each|every|next|previous|first|second|"
+            r"third|following|upcoming|boss|solo)\s+|"
+            r"\b(?:for|during|in|of|after|before|from|upon|throughout)\s+(?:the\s+)?)$",
+            normalized_prefix,
+            re.IGNORECASE,
+        )
+        copular_remainder = re.match(
+            r"\s+(?:is|was|will|can|could|may|might|has|had|lasts|takes|begins|"
+            r"ends|starts|consists|occurs)\b",
+            remainder,
+            re.IGNORECASE,
+        )
+        if noun_prefix or copular_remainder:
+            return False
+    if action == "use":
+        if target_key.startswith(("this time", "this opportunity", "the time to")):
+            return False
+        if re.search(
+            r"\b(?:in|for|of|with)\s+(?:the\s+)?use\b|\buse\s+of\b",
+            normalized_clause,
+            re.IGNORECASE,
+        ):
+            return False
+        if key == "use" and re.match(
+            r"\s+(?:restrictions?|limitations?|requirements?)\s+"
+            r"(?:is|are|was|were|will|would|can|could|may|might|has|have|had)\b",
+            remainder,
+            re.IGNORECASE,
+        ):
+            return False
+        if key == "light" and (
+            re.match(
+                r"(?:\s+|-)(?:of|damage|armor|resistance|element|elemental|magic|"
+                r"weather|shot|arts?|spirit|skillchain|day|ore|crystal|cluster|"
+                r"geode|sap|attack|attacks|based|maneuver)\b",
+                remainder,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"\b(?:a|an|the|of|in|for|with|item|fire|dark|wind|earth|water|"
+                r"ice|lightning)$",
+                normalized_prefix,
+                re.IGNORECASE,
+            )
+        ):
+            return False
+        if key == "open" and re.match(
+            r"\s+(?:area|space|room|world|floor|field|path|spot|section|zone)\b",
+            remainder,
+            re.IGNORECASE,
+        ):
+            return False
+    if action == "protect" and re.match(
+        r"^(?:spell|effect|status|i{1,3}|iv|v)\b",
+        target_key,
+        re.IGNORECASE,
+    ):
+        return False
+    if key == "board" and (
+        normalized_instruction.casefold() == "board"
+        or normalized_clause.casefold() == "board"
+        or
+        re.search(r"\b(?:a|an|the|of|on|for)\s+$", normalized_prefix, re.IGNORECASE)
+        or re.match(r"\s+(?:members?|meeting|room|game)\b", remainder, re.IGNORECASE)
+    ):
+        return False
+    if key == "return to" and re.search(
+        r"\b(?:upon|on|your|their|his|her|its)\s*$",
+        normalized_prefix,
+        re.IGNORECASE,
+    ):
+        return False
+    if key == "check" and normalized_clause.lstrip().startswith("/check"):
+        return False
+    if key == "select" and re.match(r"^(?:few|pool|group)\b", target_key):
+        return False
+    if action == "obtain" and key == "receive" and re.search(
+        r"\b(?:message|cutscene|option|credit|reward|title|exp|experience|points?)\b",
+        target_key,
+        re.IGNORECASE,
+    ):
+        return False
+    if action == "obtain" and re.search(
+        r"\bfrom\s+(?:the\s+)?following\b[^.;]{0,120}\bsub-?quests?\b",
+        normalized_instruction,
+        re.IGNORECASE,
+    ):
+        return False
+    if key == "receive" and not explicitly_required:
+        return False
+
+    if (
+        explicitly_required
+        or named_actor_player_obligation
+        or explicit_player_task
+        or future_player_action
+        or required_gerund_completion
+        or causal_gerund
+    ):
+        return True
+
+    if any(_MODAL_BEFORE_ACTION.search(context) for context in contexts):
+        return False
+    if direct_imperative:
+        return True
+    if previous_material and _INHERITED_COORDINATION.fullmatch(normalized_coordination):
+        return True
+    return False
+
+
 def _values_in_clause(values: Iterable[str], clause: str) -> tuple[str, ...]:
     return _unique(
         value
@@ -946,6 +1797,7 @@ def _extract_action_spans(
     clause_starts = [match.start() for match in matches]
     clause_ends = [matches[index + 1].start() if index + 1 < len(matches) else len(text) for index in range(len(matches))]
     suppressed_location_evidence: set[int] = set()
+    independent_clause_actions: set[int] = {0} if matches else set()
     if matches:
         clause_starts[0] = 0
         leading = text[: matches[0].start()]
@@ -977,6 +1829,7 @@ def _extract_action_spans(
             offset = matches[index - 1].end()
             clause_ends[index - 1] = offset + first_boundary[0]
             clause_starts[index] = offset + last_boundary[1]
+            independent_clause_actions.add(index)
             continue
         connectors = list(re.finditer(r"\bthen\b", between, re.IGNORECASE))
         if connectors:
@@ -1030,6 +1883,12 @@ def _extract_action_spans(
     for index, match in enumerate(matches):
         verb = match.group("verb") if "verb" in match.groupdict() else match.group(0)
         action, relationship = _action_for_verb(verb)
+        if verb.casefold() == "check" and re.match(
+            r"\s+with\b",
+            text[match.end() : clause_ends[index]],
+            re.IGNORECASE,
+        ):
+            action, relationship = "talk", "talk-to"
         if warning_match and warning_match.start() <= match.start() < warning_match.end() and verb.casefold() in {
             "lose",
             "loses",
@@ -1041,6 +1900,23 @@ def _extract_action_spans(
         end = clause_ends[index]
         raw_clause = text[start:end]
         clause = _clean(raw_clause).strip(" ,")
+        action_prefix = text[start : match.start()]
+        action_bridge = (
+            text[matches[index - 1].end() : match.start()]
+            if index > 0
+            else ""
+        )
+        coordination_match = re.search(
+            r"\b(?:and|then|to|by)(?:\s+(?:also|then|next|immediately))?\s*$",
+            action_bridge,
+            re.IGNORECASE,
+        )
+        if coordination_match:
+            action_coordination = coordination_match.group(0).strip()
+        elif re.search(r"[,;]\s*$", action_bridge):
+            action_coordination = action_bridge.rstrip()[-1]
+        else:
+            action_coordination = ""
         material = not _action_is_prohibited(text[start : match.start()])
         if material and _shares_direct_prohibition(text, matches, clause_starts, index):
             material = False
@@ -1080,11 +1956,11 @@ def _extract_action_spans(
         transport_mentions: tuple[str, ...] = ()
         destination_zone_name = ""
         count_match = re.match(
-            r"\s*(?:(?:at\s+least|a\s+total\s+of|all)\s+)?(\d+)\s+",
+            rf"\s*(?:(?:at\s+least|a\s+total\s+of|all)\s+)?({_COUNT_TOKEN})\s+",
             remainder,
             re.IGNORECASE,
         )
-        parsed_count = int(count_match.group(1)) if count_match else 0
+        parsed_count = _count_value(count_match.group(1)) if count_match else 0
         count_explicit = count_match is not None and parsed_count > 0
         required_count = parsed_count if count_explicit else 1
         count_mode = (
@@ -1101,7 +1977,8 @@ def _extract_action_spans(
         if action == "trade":
             trade = re.match(
                 r"\s*(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?"
-                r"(.+?)(?=\s+(?:in|at)\b|\s+on\s+map\b|\s*\([A-P]-\d{1,2}\)|[;,]|$)",
+                r"(.+?)(?=\s+(?:in|at|for)\b|\s+on\s+map\b|"
+                r"\s*\([A-P]-\d{1,2}\)|[;,]|$)",
                 counted_remainder,
                 re.IGNORECASE,
             )
@@ -1120,13 +1997,15 @@ def _extract_action_spans(
         elif action == "talk":
             if verb.casefold() in {"return to", "report to", "visit"}:
                 talked = re.match(
-                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
+                    r"\s+(?:the\s+)?(.+?)(?=\s+and\s+(?:he|she|they|it)\s+will\b|"
+                    r"\s+with\s+all\b|\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
                     remainder,
                     re.IGNORECASE,
                 )
             else:
                 talked = re.match(
-                    r"\s+(?:to|with)\s+(?:the\s+)?(.+?)(?=\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
+                    r"\s+(?:to|with)\s+(?:the\s+)?(.+?)(?=\s+to\s+see\s+if\b|"
+                    r"\s+until\b|\s+(?:at|in|for)\b|\s*\(|[;,]|$)",
                     remainder,
                     re.IGNORECASE,
                 )
@@ -1155,6 +2034,9 @@ def _extract_action_spans(
                 fought = re.match(
                     r"\s*(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|"
                     r"\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
+                    r"\s+and\s+(?:it|he|she|they)\s+will\b|"
+                    r"\s+(?:that|which)\s+(?:give|gives|yield|yields|award|awards|"
+                    r"grant|grants|provide|provides)\b|\s+[-–—]\s+|"
                     r"\s+and\s+(?:re-examine|examine|touch|click)\b|[;,]|$)",
                     counted_remainder,
                     re.IGNORECASE,
@@ -1172,10 +2054,15 @@ def _extract_action_spans(
                 if re.search(r"\[\[[^\]]+\]\]s\.?$", fought.group(1), re.IGNORECASE) and target.endswith("s"):
                     target = target[:-1]
                     enemy_mentions = (target,) if target else ()
+                target = re.sub(r"\s+(?:that|which)$", "", target, flags=re.IGNORECASE)
+                if target:
+                    enemy_mentions = (target,)
             target_kind = "enemy" if target or enemy_mentions else ""
         elif action == "examine":
             examined = re.match(
                 r"\s+(?:the\s+)?(.+?)(?=\s+to\s+(?:obtain|receive|collect|enter)\b|"
+                r"\s+for\s+(?:your\s+|the\s+)?reward\b|"
+                r"\s+(?:after|before|once|when)\b|"
                 r"\s+again\b|\s+(?:in|at)\b|[;,]|$)",
                 remainder,
                 re.IGNORECASE,
@@ -1204,9 +2091,13 @@ def _extract_action_spans(
                 if target:
                     object_mentions = (target,)
                 target_kind = "object" if target or object_mentions else ""
+            if target:
+                target = re.sub(r"\s+to$", "", target, flags=re.IGNORECASE)
+                object_mentions = (target,)
         elif action == "obtain":
             obtained = re.match(
-                r"\s*(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[,;]|$)",
+                r"\s*(?!and\b)(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|"
+                r"\s+via\b|\s+either\b|\s*and\s*$|[,;]|$)",
                 counted_remainder,
                 re.IGNORECASE,
             )
@@ -1241,6 +2132,17 @@ def _extract_action_spans(
         elif action == "travel":
             target = clause_zones[0] if clause_zones else ""
             target_kind = "zone" if target else ("transport" if relationship == "board-transport" else "")
+            if verb.casefold() == "zone into":
+                zoned = re.match(
+                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:from|by|via|through)\b|"
+                    r"\s*\([A-P]-\d{1,2}\)|[,;]|$)",
+                    remainder,
+                    re.IGNORECASE,
+                )
+                direct_zone = _trim_target(zoned.group(1)) if zoned else ""
+                if direct_zone and not re.match(r"^either\b", direct_zone, re.IGNORECASE):
+                    target = direct_zone
+                    target_kind = "zone"
             if relationship == "board-transport":
                 boarded = re.match(
                     r"\s+(?:the\s+)?(.+?)(?=\s+(?:in|at|from|to|bound\s+for|headed\s+for)\b|[;,]|$)",
@@ -1288,7 +2190,68 @@ def _extract_action_spans(
             if action == "select":
                 object_mentions = ()
 
+        if (
+            action == "talk"
+            and target.casefold() in {"him", "her", "them", "it"}
+            and re.search(r"\buntil\b[^.;]{0,120}\brepeats?\b", clause, re.IGNORECASE)
+        ):
+            target = ""
+            target_kind = ""
+            npc_mentions = ()
+        if action == "talk" and re.fullmatch(
+            r"(?:the\s+)?following\s+npcs?",
+            target,
+            re.IGNORECASE,
+        ):
+            target = ""
+            target_kind = ""
+            npc_mentions = ()
+        if action == "examine" and re.search(r"\bas\s+if\b", target, re.IGNORECASE):
+            target = ""
+            target_kind = ""
+            object_mentions = ()
+        if (
+            action == "fight"
+            and target.casefold() in {"it", "him", "her", "them"}
+            and re.search(r"\band\s+(?:it|he|she|they)\s+will\s+drop\b", clause, re.IGNORECASE)
+        ):
+            target = ""
+            target_kind = ""
+            enemy_mentions = ()
+        if action == "trade" and target.casefold() in {"this npc", "the npc", "that npc"}:
+            target_kind = "role"
+
         item_mentions = _unique((*item_mentions, *clause_marked_items, *clause_key_items))
+        if material:
+            material = _material_action_is_player_instruction(
+                instruction=text,
+                instruction_prefix=text[: match.start()],
+                clause=clause,
+                prefix=action_prefix,
+                remainder=remainder,
+                bridge=action_bridge,
+                coordination=action_coordination,
+                independent_clause=index in independent_clause_actions,
+                action=action,
+                verb=verb,
+                target=target,
+                npc_mentions=npc_mentions,
+                previous_material=bool(spans and spans[-1].material),
+            )
+        if material and target and (
+            _target_has_extractor_debris(target)
+            or _target_is_alternative_route_detail(
+                clause,
+                target,
+                action=action,
+                verb=verb,
+            )
+        ):
+            # Grammar establishes whether this is a required player action.
+            # Extractor debris must not erase that barrier, but it also must
+            # not become a fabricated typed identity for runtime matching.
+            target = ""
+            target_kind = ""
         if action == "travel" and material:
             destination_zone_name = _directional_destination_zone(clause, clause_zones)
             if not destination_zone_name and relationship == "enter-through":
@@ -1332,40 +2295,118 @@ def _extract_action_spans(
     while index < len(spans):
         span = spans[index]
         next_span = spans[index + 1] if index + 1 < len(spans) else None
+        next_is_normal_item = bool(
+            next_span is not None
+            and next_span.target
+            and next_span.target_kind == "item"
+            and next_span.target.casefold()
+            not in {value.casefold() for value in next_span.key_item_mentions}
+            and re.search(
+                r"\b(?:message|cutscene|option|credit|reward|title|exp|"
+                r"experience|points?)\b",
+                next_span.target,
+                re.IGNORECASE,
+            )
+            is None
+        )
         forward_relation = bool(
             next_span is not None
             and next_span.verb in {"obtain", "receive", "collect"}
-            and re.search(r"\bto\s*$", text[span.text_start : span.text_end], re.IGNORECASE)
+            and re.search(
+                r"\b(?:to|until\s+you)\s*$",
+                text[span.text_start : span.text_end],
+                re.IGNORECASE,
+            )
         )
         if (
             span.action in {"fight", "examine"}
             and next_span is not None
             and next_span.action == "obtain"
             and forward_relation
+            and (span.action == "examine" or next_is_normal_item)
             and not (
                 span.action == "examine"
                 and collapsed
                 and collapsed[-1].action == "fight"
             )
         ):
-            collapsed.append(
-                replace(
-                    span,
-                    text_end=next_span.text_end,
-                    supporting_clause=_clean(text[span.text_start : next_span.text_end]).strip(" ,"),
-                    relationship="defeat-to-obtain" if span.action == "fight" else "examine-to-obtain",
-                    item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
-                    key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
-                    result_items=(next_span.target,) if next_span.target else (),
-                    result_relation="obtain-from",
-                    required_count=(
-                        span.required_count if span.count_explicit else next_span.required_count
-                    ),
-                    count_mode=(span.count_mode if span.count_explicit else next_span.count_mode),
-                    count_explicit=span.count_explicit or next_span.count_explicit,
-                    material=span.material and next_span.material,
+            supporting_clause = _clean(
+                text[span.text_start : next_span.text_end]
+            ).strip(" ,")
+            if span.action == "examine":
+                result_items = _unique(
+                    (
+                        *next_span.item_mentions,
+                        *next_span.key_item_mentions,
+                        *((next_span.target,) if next_span.target else ()),
+                    )
                 )
-            )
+                collapsed.append(
+                    replace(
+                        span,
+                        text_end=next_span.text_end,
+                        supporting_clause=supporting_clause,
+                        relationship="examine-to-obtain",
+                        item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
+                        key_item_mentions=_unique(
+                            (*span.key_item_mentions, *next_span.key_item_mentions)
+                        ),
+                        result_items=result_items,
+                        result_relation="obtain-from",
+                        required_count=1,
+                        count_mode="single",
+                        count_explicit=False,
+                        material=span.material,
+                    )
+                )
+            elif next_is_normal_item:
+                collapsed.append(
+                    replace(
+                        next_span,
+                        text_start=span.text_start,
+                        supporting_clause=supporting_clause,
+                        relationship="obtain-item",
+                        enemy_mentions=_unique(
+                            (*span.enemy_mentions, *next_span.enemy_mentions)
+                        ),
+                        zone_mentions=_unique(
+                            (*span.zone_mentions, *next_span.zone_mentions)
+                        ),
+                        map_numbers=_unique((*span.map_numbers, *next_span.map_numbers)),
+                        grid_coordinates=_unique(
+                            (*span.grid_coordinates, *next_span.grid_coordinates)
+                        ),
+                        target_kind="item",
+                        target_role="item",
+                        item_mentions=(next_span.target,),
+                        key_item_mentions=(),
+                        result_items=(),
+                        result_relation="obtain-from",
+                        material=span.material or next_span.material,
+                    )
+                )
+            else:
+                collapsed.append(
+                    replace(
+                        span,
+                        text_end=next_span.text_end,
+                        supporting_clause=supporting_clause,
+                        relationship="defeat-to-obtain",
+                        item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
+                        key_item_mentions=_unique(
+                            (*span.key_item_mentions, *next_span.key_item_mentions)
+                        ),
+                        result_items=_unique(
+                            (
+                                *next_span.item_mentions,
+                                *next_span.key_item_mentions,
+                                *((next_span.target,) if next_span.target else ()),
+                            )
+                        ),
+                        result_relation="obtain-from",
+                        material=span.material,
+                    )
+                )
             index += 2
             continue
         reversed_relation = bool(
@@ -1378,30 +2419,195 @@ def _extract_action_spans(
             and next_span is not None
             and next_span.action == "fight"
             and reversed_relation
-        ):
-            collapsed.append(
-                replace(
-                    next_span,
-                    text_start=span.text_start,
-                    supporting_clause=_clean(text[span.text_start : next_span.text_end]).strip(" ,"),
-                    relationship="defeat-to-obtain",
-                    item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
-                    key_item_mentions=_unique((*span.key_item_mentions, *next_span.key_item_mentions)),
-                    result_items=(span.target,) if span.target else (),
-                    result_relation="obtain-from",
-                    required_count=(
-                        next_span.required_count if next_span.count_explicit else span.required_count
-                    ),
-                    count_mode=(next_span.count_mode if next_span.count_explicit else span.count_mode),
-                    count_explicit=next_span.count_explicit or span.count_explicit,
-                    material=span.material and next_span.material,
-                )
+            and span.target
+            and span.target_kind == "item"
+            and span.target.casefold()
+            not in {value.casefold() for value in span.key_item_mentions}
+            and re.search(
+                r"\b(?:message|cutscene|option|credit|reward|title|exp|"
+                r"experience|points?)\b",
+                span.target,
+                re.IGNORECASE,
             )
+            is None
+        ):
+            supporting_clause = _clean(
+                text[span.text_start : next_span.text_end]
+            ).strip(" ,")
+            if span.target:
+                collapsed.append(
+                    replace(
+                        span,
+                        text_end=next_span.text_end,
+                        supporting_clause=supporting_clause,
+                        relationship="obtain-item",
+                        target_kind="item",
+                        target_role="item",
+                        enemy_mentions=_unique(
+                            (*span.enemy_mentions, *next_span.enemy_mentions)
+                        ),
+                        zone_mentions=_unique(
+                            (*span.zone_mentions, *next_span.zone_mentions)
+                        ),
+                        map_numbers=_unique((*span.map_numbers, *next_span.map_numbers)),
+                        grid_coordinates=_unique(
+                            (*span.grid_coordinates, *next_span.grid_coordinates)
+                        ),
+                        item_mentions=(span.target,),
+                        key_item_mentions=(),
+                        result_items=(),
+                        result_relation="obtain-from",
+                        material=span.material or next_span.material,
+                    )
+                )
+            else:
+                collapsed.append(
+                    replace(
+                        next_span,
+                        text_start=span.text_start,
+                        supporting_clause=supporting_clause,
+                        relationship="defeat-to-obtain",
+                        item_mentions=_unique((*span.item_mentions, *next_span.item_mentions)),
+                        key_item_mentions=_unique(
+                            (*span.key_item_mentions, *next_span.key_item_mentions)
+                        ),
+                        result_items=_unique(
+                            (
+                                *span.item_mentions,
+                                *span.key_item_mentions,
+                                *((span.target,) if span.target else ()),
+                            )
+                        ),
+                        result_relation="obtain-from",
+                        material=span.material and next_span.material,
+                    )
+                )
             index += 2
             continue
         collapsed.append(span)
         index += 1
-    spans = collapsed
+
+    normalized: list[SourceActionSpan] = []
+    for span in collapsed:
+        normal_items = tuple(
+            item
+            for item in span.item_mentions
+            if item.casefold()
+            not in {key_item.casefold() for key_item in span.key_item_mentions}
+        )
+        collective_count = _explicit_collective_count(span.supporting_clause)
+        collective_inventory = bool(
+            span.action == "obtain"
+            and span.material
+            and span.target
+            and not span.key_item_mentions
+            and collective_count > 1
+            and collective_count == len(normal_items)
+            and span.target.casefold() in {item.casefold() for item in normal_items}
+        )
+        if collective_inventory:
+            span = replace(
+                span,
+                target_kind="item",
+                target_role="item",
+                item_mentions=normal_items,
+                key_item_mentions=(),
+                required_count=collective_count,
+                count_mode="inventory-gain",
+                count_explicit=True,
+            )
+        split_items: list[tuple[str, int]] = []
+        if span.action == "obtain" and not span.target and normal_items:
+            for item in normal_items:
+                count = _explicit_count_for_target(
+                    span.supporting_clause,
+                    item,
+                )
+                if count > 0:
+                    split_items.append((item, count))
+        if split_items and all(count > 0 for _item, count in split_items):
+            for item, count in split_items:
+                normalized.append(
+                    replace(
+                        span,
+                        target=item,
+                        target_kind="item",
+                        target_role="item",
+                        item_mentions=(item,),
+                        key_item_mentions=(),
+                        required_count=count,
+                        count_mode="inventory-gain" if count > 1 else "single",
+                        count_explicit=True,
+                    )
+                )
+            continue
+
+        heterogeneous_counted_fight = bool(
+            span.action == "fight"
+            and span.count_explicit
+            and re.search(
+                rf"[,;]\s*(?:and\s+)?(?:{_COUNT_TOKEN}|an?)\s+",
+                span.supporting_clause,
+                re.IGNORECASE,
+            )
+        )
+        if heterogeneous_counted_fight:
+            span = replace(
+                span,
+                target="",
+                target_kind="enemy" if span.enemy_mentions else "",
+                target_role="enemy" if span.enemy_mentions else "",
+                required_count=1,
+                count_mode="single",
+                count_explicit=False,
+            )
+        elif span.count_mode != "single" and not span.target:
+            span = replace(
+                span,
+                required_count=1,
+                count_mode="single",
+                count_explicit=False,
+            )
+
+        if span.action == "obtain" and span.target and not collective_inventory:
+            target_is_key_item = span.target_kind == "key-item" or span.target.casefold() in {
+                key_item.casefold() for key_item in span.key_item_mentions
+            }
+            bound_count = (
+                1
+                if _explicit_only_one_required(span.supporting_clause)
+                else _explicit_count_for_target(
+                    span.supporting_clause,
+                    span.target,
+                )
+            )
+            if bound_count > 0 and not target_is_key_item:
+                span = replace(
+                    span,
+                    target_kind="item",
+                    target_role="item",
+                    item_mentions=(span.target,),
+                    key_item_mentions=(),
+                    required_count=bound_count,
+                    count_mode="inventory-gain" if bound_count > 1 else "single",
+                    count_explicit=True,
+                )
+            elif span.count_explicit:
+                span = replace(
+                    span,
+                    required_count=1,
+                    count_mode="single",
+                    count_explicit=False,
+                )
+        elif span.action != "obtain" and span.count_mode == "inventory-gain":
+            span = replace(
+                span,
+                required_count=1,
+                count_mode="single",
+                count_explicit=False,
+            )
+        normalized.append(span)
+    spans = normalized
     return tuple(replace(span, order=order) for order, span in enumerate(spans, start=1))
 
 
@@ -1423,7 +2629,7 @@ class _OffsetMatch:
         return self._match.groupdict()
 
 
-def _classify_action(text: str) -> str:
+def _lexical_action(text: str) -> str:
     lower = text.casefold()
     if re.search(r"\b(?:talk|speak|deliver .* to|return to)\b", lower):
         return "talk"
@@ -1442,6 +2648,19 @@ def _classify_action(text: str) -> str:
     if re.search(r"\b(?:obtain|receive|collect|bring|purchase)\b", lower):
         return "obtain"
     return "note"
+
+
+def _classify_action(
+    text: str,
+    action_spans: tuple[SourceActionSpan, ...] = (),
+) -> str:
+    if not action_spans:
+        return _lexical_action(text)
+    material_actions = tuple(span.action for span in action_spans if span.material)
+    if not material_actions:
+        return "note"
+    lexical = _lexical_action(text)
+    return lexical if lexical in material_actions else material_actions[0]
 
 
 def _spoken_step(
@@ -1764,7 +2983,7 @@ def parse_objective_page(
             maps=maps,
             coordinates=coordinates,
         )
-        action = _classify_action(rendered)
+        action = _classify_action(rendered, action_spans)
         spoken = _spoken_step(
             rendered,
             action,
@@ -1790,6 +3009,37 @@ def parse_objective_page(
                 action_spans=action_spans,
             )
         )
+
+    # A source-authored aggregate acquisition owns the completion signal for
+    # each indented method beneath it.  Keep every method in speech/context,
+    # but do not turn purchase/kill alternatives into extra ordered barriers.
+    for parent_index, parent in enumerate(steps):
+        if not (
+            any(
+                span.material and span.action == "obtain" and span.target
+                for span in parent.action_spans
+            )
+            and re.search(
+                r"\b(?:obtain|collect|purchase)\b[^.;]{0,240}"
+                r"\bvia\s+(?:the\s+)?following\s+(?:methods|ways)\b",
+                parent.source_text,
+                re.IGNORECASE,
+            )
+        ):
+            continue
+        for child_index in range(parent_index + 1, len(steps)):
+            child = steps[child_index]
+            if child.depth <= parent.depth:
+                break
+            child_spans = tuple(
+                replace(span, material=False)
+                for span in child.action_spans
+            )
+            steps[child_index] = replace(
+                child,
+                action=_classify_action(child.source_text, child_spans),
+                action_spans=child_spans,
+            )
 
     if not steps:
         page_warnings.append("missing-walkthrough-steps")

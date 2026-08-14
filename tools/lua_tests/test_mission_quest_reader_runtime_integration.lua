@@ -100,19 +100,20 @@ else
             [2] = { name = 'Gamma', world = 3003 },
         }
         local world_id_calls = 0
-        local function slot_index(first, second)
-            return tonumber(second) or tonumber(first) or -1
-        end
         local account = {
             get_selected_character_index = function() return selected_index end,
             get_character_count = function() return 3 end,
-            get_login_character_name = function(first, second)
-                local slot = slots[slot_index(first, second)]
+            get_login_character_name = function(index)
+                assert(type(index) == 'number',
+                    'ffxi.account indexed callbacks are plain functions')
+                local slot = slots[index]
                 return slot ~= nil and slot.name or ''
             end,
-            get_login_world_id = function(first, second)
+            get_login_world_id = function(index)
+                assert(type(index) == 'number',
+                    'ffxi.account indexed callbacks are plain functions')
                 world_id_calls = world_id_calls + 1
-                local slot = slots[slot_index(first, second)]
+                local slot = slots[index]
                 return slot ~= nil and slot.world or 0
             end,
             get_login_world_name = function()
@@ -680,8 +681,15 @@ put_le(0x24, 0xFFFF, 2)
 local mission_data = string.char(unpack(mission_bytes))
 local mission_queue_calls = 0
 local mission_native_signals = T{}
-local decoder_accessxi = {
+local mission_current_name = 'Alpha'
+local mission_current_identity = 'alpha:1001'
+local mission_current_world = 1001
+local mission_current_session = 77
+local decoder_accessxi
+decoder_accessxi = {
     mission_packet_main = { nation = 0, nation_mission = 0, port = 0xFFFF },
+    mission_packet_identity = 'alpha:1001',
+    mission_packet_session_epoch = 77,
     packet_event_string = function(e) return e.data or '' end,
     packet_u16 = function(data, index)
         local a, b = data:byte(index, index + 1)
@@ -692,11 +700,18 @@ local decoder_accessxi = {
         return (a or 0) + ((b or 0) * 256) + ((c or 0) * 65536) + ((d or 0) * 16777216)
     end,
     packet_hex_limit = function() return 'fixture' end,
-    nav_mission_quest_sync_character = function() end,
-    current_player_name = function() return 'Alpha' end,
-    current_player_identity = function() return 'alpha:1001' end,
-    current_player_world_id = function() return 1001 end,
-    current_objective_session_epoch = function() return 77 end,
+    nav_mission_quest_sync_character = function()
+        if tostring(decoder_accessxi.mission_packet_identity or '') ~= ''
+            and decoder_accessxi.mission_packet_identity ~= mission_current_identity then
+            decoder_accessxi.mission_packet_main = {}
+            decoder_accessxi.mission_packet_identity = ''
+            decoder_accessxi.mission_packet_session_epoch = 0
+        end
+    end,
+    current_player_name = function() return mission_current_name end,
+    current_player_identity = function() return mission_current_identity end,
+    current_player_world_id = function() return mission_current_world end,
+    current_objective_session_epoch = function() return mission_current_session end,
     nav_mission_quest_reduce_signal = function(signal)
         mission_native_signals:append(signal)
         return false
@@ -742,6 +757,27 @@ task2_reader_expect(type(mission_native_signal) == 'table'
         and mission_native_signal.world_id == 1001
         and mission_native_signal.session_epoch == 77,
     'coherent raw 0x056 mission replacement did not emit one exact native-objective signal')
+
+-- A packet received after a character switch must not bind the prior
+-- character's mission snapshot to the new owner/session.  The real sync seam
+-- clears the old snapshot before the packet is published.
+decoder_accessxi.mission_packet_main = {
+    nation = 1, nation_mission = 5, port = 0xFFFF,
+}
+decoder_accessxi.mission_packet_identity = 'alpha:1001'
+decoder_accessxi.mission_packet_session_epoch = 77
+mission_current_name = 'Beta'
+mission_current_identity = 'beta:2002'
+mission_current_world = 2002
+mission_current_session = 88
+local mission_signal_count_before_switch = #mission_native_signals
+decoder_accessxi.capture_mission_packet({
+    id = 0x056, data = mission_data, size = #mission_data,
+})
+task2_reader_expect(#mission_native_signals == mission_signal_count_before_switch
+        and decoder_accessxi.mission_packet_identity == 'beta:2002'
+        and decoder_accessxi.mission_packet_session_epoch == 88,
+    'identity-switch 0x056 rebound the previous character mission under the new owner/session')
 
 -- A complete zone-load packet burst must publish at most one refresh per
 -- affected category, and no expensive active-objective scan may run while the

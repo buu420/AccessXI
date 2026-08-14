@@ -4462,7 +4462,6 @@ function accessxi.capture_mission_packet(e)
         return;
     end
 
-    local previous_main = accessxi.mission_packet_main;
     local base = 0x04;
     local packet_port = accessxi.packet_u16(data, 0x24 + 1);
     local info = {
@@ -4484,6 +4483,11 @@ function accessxi.capture_mission_packet(e)
     if (mission_state_packet and type(accessxi.nav_mission_quest_sync_character) == 'function') then
         accessxi.nav_mission_quest_sync_character('mission-packet');
     end
+    local previous_main = mission_state_packet and accessxi.mission_packet_main or nil;
+    local previous_identity = mission_state_packet
+        and tostring(accessxi.mission_packet_identity or ''):lower() or '';
+    local previous_session_epoch = mission_state_packet
+        and tonumber(accessxi.mission_packet_session_epoch) or 0;
     local mission_player = accessxi.current_player_name();
     local mission_identity = accessxi.current_player_identity();
     local mission_session_epoch = accessxi.current_objective_session_epoch();
@@ -4516,6 +4520,8 @@ function accessxi.capture_mission_packet(e)
             and (previous_nation ~= current_nation
                 or previous_mission ~= current_mission)
             and mission_identity ~= '' and mission_session_epoch > 0
+            and previous_identity == tostring(mission_identity):lower()
+            and previous_session_epoch == mission_session_epoch
             and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
             local world_id = tonumber(accessxi.current_player_world_id()) or 0;
             if (world_id > 0) then
@@ -7166,8 +7172,8 @@ function accessxi.current_player_world_id()
         local callback = account[name];
         if (type(callback) ~= 'function') then return fallback; end
         return safe_call(function ()
-            if (index == nil) then return callback(account); end
-            return callback(account, index);
+            if (index == nil) then return callback(); end
+            return callback(index);
         end, fallback);
     end
     local count = math.max(0, math.floor(tonumber(

@@ -95,7 +95,6 @@ local function validate_progression_action(row)
         or clean(row.action_id) == '' or not positive_integer(row.action_order)
         or not positive_integer(row.order)
         or clean(row.action) == '' or clean(row.relationship) == ''
-        or clean(row.target_key) == ''
         or type(row.field_sources) ~= 'table'
         or type(row.source_revisions) ~= 'table'
         or type(row.source_action_span_ids) ~= 'table'
@@ -104,8 +103,21 @@ local function validate_progression_action(row)
         or (clean(row.source_authority) ~= 'bg'
             and clean(row.source_authority) ~= 'ffxiclopedia')) then
         return nil, clean(row.relationship) == '' and 'relationship is unavailable'
-            or clean(row.target_key) == '' and 'target key is unavailable'
             or 'action schema is invalid';
+    end
+
+    local target = clean(row.target);
+    local target_key = clean(row.target_key);
+    local instruction = clean(row.instruction);
+    local instruction_source = clean(row.field_sources.instruction);
+    local target_has_key_material = target:match('[%w]') ~= nil;
+    if (target == '' and target_key ~= '')
+        or (target_key == '' and target_has_key_material) then
+        return nil, 'target key is unavailable';
+    end
+    if (target_key == '' and (instruction == ''
+        or (instruction_source ~= 'bg' and instruction_source ~= 'ffxiclopedia'))) then
+        return nil, 'target and authoritative instruction are unavailable';
     end
 
     local required_count = tonumber(row.required_count);
@@ -502,15 +514,50 @@ function GuideState:load_module(name)
     return data;
 end
 
+local function trim_lru(cache, limit, protected_key)
+    local entries = {};
+    for key, value in pairs(cache) do
+        entries[#entries + 1] = {
+            key = key,
+            last_used = tonumber(type(value) == 'table' and value.last_used or 0) or 0,
+        };
+    end
+    table.sort(entries, function(left, right)
+        if (left.last_used ~= right.last_used) then
+            return left.last_used < right.last_used;
+        end
+        return tostring(left.key) < tostring(right.key);
+    end);
+    local remove_count = math.max(0, #entries - math.max(0, tonumber(limit) or 0));
+    for _, entry in ipairs(entries) do
+        if (remove_count <= 0) then break; end
+        if (entry.key ~= protected_key) then
+            cache[entry.key] = nil;
+            remove_count = remove_count - 1;
+        end
+    end
+end
+
+function GuideState:touch_progression_module(module_name, envelope)
+    self.progression_module_use_counter = self.progression_module_use_counter + 1;
+    self.progression_module_cache[module_name] = envelope;
+    self.progression_module_use[module_name] = {
+        last_used = self.progression_module_use_counter,
+    };
+    trim_lru(self.progression_module_use, self.progression_module_cache_limit, module_name);
+    local retained = {};
+    for name in pairs(self.progression_module_use) do retained[name] = true; end
+    for name in pairs(self.progression_module_cache) do
+        if (not retained[name]) then self.progression_module_cache[name] = nil; end
+    end
+end
+
+function GuideState:trim_progression_objectives(protected_key)
+    trim_lru(self.progression_objective_cache, self.progression_cache_limit, protected_key);
+end
+
 function GuideState:progression_actions(native_key)
     native_key = clean(native_key);
-    local cached = self.progression_objective_cache[native_key];
-    if (type(cached) == 'table') then
-        self.progression_use_counter = self.progression_use_counter + 1;
-        cached.last_used = self.progression_use_counter;
-        return deep_copy(cached.actions);
-    end
-
     local entry = self:index_entry(native_key);
     if (entry == nil) then
         return nil, 'progression objective is absent from the native guide index';
@@ -528,6 +575,23 @@ function GuideState:progression_actions(native_key)
             or 'progression revision is unavailable';
     end
 
+    local cached = self.progression_objective_cache[native_key];
+    if (type(cached) == 'table'
+        and (clean(cached.module_name) ~= module_name
+            or clean(cached.revision) ~= revision)) then
+        self.progression_objective_cache[native_key] = nil;
+        cached = nil;
+    end
+    if (type(cached) == 'table') then
+        self.progression_use_counter = self.progression_use_counter + 1;
+        cached.last_used = self.progression_use_counter;
+        local cached_envelope = self.progression_module_cache[cached.module_name];
+        if (type(cached_envelope) == 'table') then
+            self:touch_progression_module(cached.module_name, cached_envelope);
+        end
+        return deep_copy(cached.actions);
+    end
+
     local envelope = self.progression_module_cache[module_name];
     if (envelope == nil) then
         local ok, loaded = pcall(self.module_loader, module_name);
@@ -536,8 +600,8 @@ function GuideState:progression_actions(native_key)
                 clean(ok and 'module returned no table' or loaded));
         end
         envelope = loaded;
-        self.progression_module_cache[module_name] = envelope;
     end
+    self:touch_progression_module(module_name, envelope);
     if (not exact_progression_schema(envelope.schema_version)) then
         return nil, 'progression shard schema is unsupported';
     end
@@ -596,8 +660,10 @@ function GuideState:progression_actions(native_key)
     self.progression_objective_cache[native_key] = {
         actions = actions,
         module_name = module_name,
+        revision = revision,
         last_used = self.progression_use_counter,
     };
+    self:trim_progression_objectives(native_key);
     return deep_copy(actions);
 end
 
@@ -648,6 +714,7 @@ function GuideState:retain_progression_keys(active_keys)
     -- them here keeps the large module retention bounded independently of the
     -- small per-objective action cache.
     self.progression_module_cache = {};
+    self.progression_module_use = {};
     return count;
 end
 
@@ -1201,6 +1268,9 @@ function module.new(options)
         module_cache = {},
         module_errors = {},
         progression_module_cache = {},
+        progression_module_use = {},
+        progression_module_use_counter = 0,
+        progression_module_cache_limit = 64,
         progression_objective_cache = {},
         progression_use_counter = 0,
         progression_cache_limit = 64,

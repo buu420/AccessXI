@@ -219,3 +219,16 @@ routing only after the player's explicit `I` action. The focused reader
 contract moved from exactly 27 REDs to zero; reader integrity, runtime pin, and
 Lua 5.1 syntax are GREEN. Deployment remains held for scoped review and the
 user's release gate.
+
+Task 3 critical-review follow-up completed. Compact loading now accepts
+authoritative instruction-only actions, including punctuation-only display
+targets whose normalized key is intentionally empty, while preserving strict
+alphanumeric action keys and catalogue destination keys. Objective and shard
+caches are bounded to 64 with revision revalidation and active-key retention;
+compact schema v2 is self-contained. The reducer enforces canonical,
+globally-unique acquisition evidence, distinct multi-item set counts,
+zero-action native transitions, immutable revalidated event arms, and
+monotonic interaction/transport causality without starting movement. The
+stable 1,806-objective real-index wrapper and all focused and adjacent Lua 5.1
+gates are GREEN. Deployment remains held for independent review and the user
+release gate.

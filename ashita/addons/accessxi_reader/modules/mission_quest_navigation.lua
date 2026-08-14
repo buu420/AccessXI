@@ -1399,9 +1399,10 @@ local function progression_actions(native_key)
         accessxi.objective_guides.progression_actions,
         accessxi.objective_guides,
         native_key);
-    if (not ok or type(rows) ~= 'table' or #rows == 0) then
+    if (not ok or type(rows) ~= 'table') then
         return nil, revision;
     end
+    if (#rows == 0) then return T{}, revision; end
     local actions = T{};
     for _, row in ipairs(rows) do
         if (type(row) ~= 'table' or clean(row.step_id) == ''
@@ -3422,6 +3423,23 @@ local function stamp_active_items(category_key, items)
     return items;
 end
 
+local function retain_active_progression_keys(items)
+    if (type(accessxi.objective_guides) ~= 'table'
+        or type(accessxi.objective_guides.retain_progression_keys) ~= 'function') then
+        return false;
+    end
+    local keys = {};
+    for _, item in ipairs(type(items) == 'table' and items or T{}) do
+        local native_key = clean(item.objective_native_key);
+        if (native_key ~= '') then keys[native_key] = true; end
+    end
+    local ok = pcall(
+        accessxi.objective_guides.retain_progression_keys,
+        accessxi.objective_guides,
+        keys);
+    return ok;
+end
+
 function accessxi.nav_mission_quest_active_items(category_key)
     category_key = clean(category_key):lower();
     if (category_key ~= 'mission' and category_key ~= 'quest') then return T{}; end
@@ -3443,6 +3461,7 @@ function accessxi.nav_mission_quest_active_items(category_key)
     local signature = active_state_signature(category_key);
     local cached = active_row_cache[category_key];
     if (type(cached) == 'table' and cached.signature == signature) then
+        retain_active_progression_keys(cached.rows);
         return cached.rows;
     end
 
@@ -3458,6 +3477,7 @@ function accessxi.nav_mission_quest_active_items(category_key)
     end
     signature = active_state_signature(category_key);
     rows = stamp_active_items(category_key, rows);
+    retain_active_progression_keys(rows);
     if (active_build_guide_failed) then
         active_row_cache[category_key] = nil;
     else
@@ -3514,38 +3534,9 @@ local function action_catalogue(native_key, action)
             points:append(deep_copy(point));
         end
     end
-    if (type(accessxi.objective_guides) == 'table'
-        and type(accessxi.objective_guides.objective_destinations) == 'function') then
-        local ok, destinations = pcall(
-            accessxi.objective_guides.objective_destinations,
-            accessxi.objective_guides,
-            native_key);
-        if (ok and type(destinations) == 'table') then
-            for _, row in ipairs(destinations) do
-                if (clean(row.action_id) == clean(action.action_id)
-                    and clean(row.destination_id) ~= ''
-                    and not seen[clean(row.destination_id)]) then
-                    seen[clean(row.destination_id)] = true;
-                    points:append(T{
-                        destination_id = clean(row.destination_id),
-                        zone_id = tonumber(row.zone) or 0,
-                        zone_name = clean(row.zone_name),
-                        target_name = clean(row.target_name),
-                        target_kind = clean(row.target_kind),
-                        target_key = clean(row.target_key),
-                        target_point = deep_copy(row.target_point),
-                        raw_identity = clean(row.raw_identity),
-                        raw_spawn_ids = deep_copy(row.raw_spawn_ids),
-                        cluster_policy_version = clean(row.cluster_policy_version),
-                        transport_id = clean(row.transport_id),
-                        battlefield_id = clean(row.battlefield_id),
-                        metadata_class = clean(row.metadata_class),
-                        group_id = clean(row.group_id),
-                    });
-                end
-            end
-        end
-    end
+    -- Compact-v2 actions carry their complete catalogue snapshot.  An empty
+    -- table is authoritative instruction-only state; never repopulate it from
+    -- the independently cached legacy objective-destination graph.
     return points;
 end
 
@@ -3652,6 +3643,60 @@ local function reducer_active_objectives()
     return result;
 end
 
+local function objective_current_count(objective)
+    local action = type(objective) == 'table'
+        and type(objective.actions) == 'table'
+        and objective.actions[tonumber(objective.index) or 0] or nil;
+    if (type(action) == 'table' and type(objective.record) == 'table'
+        and clean(objective.record.action_id) == clean(action.action_id)) then
+        return tonumber(objective.record.progress_count) or 0;
+    end
+    return 0;
+end
+
+local function objective_match_snapshot(match)
+    local objective = type(match) == 'table' and match.objective or nil;
+    local current = type(objective) == 'table'
+        and objective.actions[tonumber(objective.index) or 0] or nil;
+    local matched = type(objective) == 'table'
+        and objective.actions[tonumber(match.index) or 0] or nil;
+    if (type(current) ~= 'table' or type(matched) ~= 'table') then return nil; end
+    return {
+        category = clean(objective.category):lower(),
+        native_key = clean(objective.native_key),
+        revision = clean(objective.revision),
+        current_index = tonumber(objective.index),
+        current_step_id = clean(current.step_id),
+        current_action_id = clean(current.action_id),
+        current_count = objective_current_count(objective),
+        match_index = tonumber(match.index),
+        match_step_id = clean(matched.step_id),
+        match_action_id = clean(matched.action_id),
+    };
+end
+
+local function revalidated_objective_match(snapshot, objectives)
+    if (type(snapshot) ~= 'table') then return nil; end
+    for _, objective in ipairs(type(objectives) == 'table' and objectives or T{}) do
+        local current = objective.actions[objective.index];
+        local matched = objective.actions[tonumber(snapshot.match_index) or 0];
+        if (clean(objective.category):lower() == clean(snapshot.category):lower()
+            and clean(objective.native_key) == clean(snapshot.native_key)
+            and clean(objective.revision) == clean(snapshot.revision)
+            and tonumber(objective.index) == tonumber(snapshot.current_index)
+            and type(current) == 'table'
+            and clean(current.step_id) == clean(snapshot.current_step_id)
+            and clean(current.action_id) == clean(snapshot.current_action_id)
+            and objective_current_count(objective) == tonumber(snapshot.current_count)
+            and type(matched) == 'table'
+            and clean(matched.step_id) == clean(snapshot.match_step_id)
+            and clean(matched.action_id) == clean(snapshot.match_action_id)) then
+            return { objective = objective, index = tonumber(snapshot.match_index) };
+        end
+    end
+    return nil;
+end
+
 local function objective_signal_revision_matches(signal, objective)
     local supplied = clean(signal.progression_revision);
     return supplied == '' or supplied == clean(objective.revision);
@@ -3711,6 +3756,27 @@ local function remove_pending_objective_event(arm_key)
     end
 end
 
+local function purge_objective_arms(native_key)
+    native_key = clean(native_key);
+    if (native_key == '') then return; end
+    local remove_keys = T{};
+    for arm_key, arm in pairs(pending_objective_events) do
+        for _, snapshot in ipairs(type(arm) == 'table'
+            and type(arm.matches) == 'table' and arm.matches or T{}) do
+            if (clean(snapshot.native_key) == native_key) then
+                remove_keys:append(arm_key);
+                break;
+            end
+        end
+    end
+    for _, arm_key in ipairs(remove_keys) do remove_pending_objective_event(arm_key); end
+    if (type(pending_objective_transport) == 'table'
+        and type(pending_objective_transport.match) == 'table'
+        and clean(pending_objective_transport.match.native_key) == native_key) then
+        pending_objective_transport = nil;
+    end
+end
+
 local function cancel_completed_objective_route(objective, through_index)
     local point = type(accessxi.nav_destination) == 'table' and accessxi.nav_destination
         or (type(accessxi.nav_zone_search_target) == 'table'
@@ -3755,6 +3821,7 @@ advance_objective_match = function(objective, match_index, causal_units)
         saved = save_cursor_action(objective.native_key, action, count, objective.revision);
     end
     if (not saved) then return false; end
+    purge_objective_arms(objective.native_key);
     cancel_completed_objective_route(objective, match_index);
     return true;
 end;
@@ -3803,36 +3870,85 @@ local function interaction_matches(objectives, signal)
     return T{ match };
 end
 
+local function acquisition_action_matches(action, wanted, key_item)
+    if (type(action) ~= 'table'
+        or clean(action.action):lower() ~= 'obtain'
+        or clean(action.relationship):lower() ~= 'obtain-item') then
+        return false;
+    end
+    local kind = clean(action.target_kind):lower();
+    local values = key_item and action.key_items or action.items;
+    if (action_name_matches(values, wanted)) then return true; end
+    if (not key_item and action_name_matches(action.result_items, wanted)
+        and clean(action.result_relation):lower():find('obtain', 1, true) ~= nil) then
+        return true;
+    end
+    return clean(action.target):lower() == wanted
+        and kind == (key_item and 'key-item' or 'item');
+end
+
+-- A counted action whose required count exactly equals its distinct item list
+-- represents a collective set (for example the four Fetich pieces), not four
+-- interchangeable copies.  The append-only cursor can safely persist the
+-- number of distinct members proven by a complete native Inventory snapshot;
+-- it must never derive that number from repeated positive deltas alone.
+local function distinct_inventory_set_count(action)
+    if (type(action) ~= 'table'
+        or clean(action.count_mode):lower() ~= 'inventory-gain') then
+        return nil, false;
+    end
+    local requirements, order = {}, T{};
+    for _, entry in ipairs(type(action.items) == 'table' and action.items or T{}) do
+        local name, count = objective_required_item(entry);
+        local key = name:lower();
+        if (key == '') then return nil, true; end
+        if (requirements[key] == nil) then order:append(key); end
+        requirements[key] = math.max(tonumber(requirements[key]) or 0, count);
+    end
+    if (#order <= 1) then return nil, false; end
+    if ((tonumber(action.required_count) or 0) ~= #order
+        or not objective_inventory_state_ready()
+        or type(accessxi.objective_inventory_count_by_name) ~= 'function') then
+        return nil, true;
+    end
+    local owned = 0;
+    for _, key in ipairs(order) do
+        local ok, count, item_id = pcall(accessxi.objective_inventory_count_by_name, key);
+        if (not ok or tonumber(item_id) == nil or tonumber(count) == nil) then
+            return nil, true;
+        end
+        if tonumber(count) >= requirements[key] then owned = owned + 1; end
+    end
+    return owned, true;
+end
+
 local function inventory_matches(objectives, signal, key_item)
-    local result = T{};
+    local all = T{};
     local wanted = clean(key_item and signal.key_item_name or signal.item_name):lower();
+    if (wanted == '') then return T{}; end
     for _, objective in ipairs(objectives) do
         if (objective_signal_revision_matches(signal, objective)) then
-            local selected = nil;
             for index = objective.index, #objective.actions do
-                local action = objective.actions[index];
-                local values = key_item and action.key_items or action.items;
-                local matched = action_name_matches(values, wanted)
-                    or clean(action.target):lower() == wanted
-                        and clean(action.target_kind):lower()
-                            == (key_item and 'key-item' or 'item');
-                if (matched) then
-                    if (selected == nil
-                        or clean(action.step_id)
-                            == clean(objective.actions[selected.index].step_id)) then
-                        selected = { objective = objective, index = index };
-                    else
-                        break;
-                    end
-                elseif (selected ~= nil or action_future_boundary(
-                    objective.native_key, action)) then
-                    break;
+                if (acquisition_action_matches(objective.actions[index], wanted, key_item)) then
+                    local candidate = { objective = objective, index = index };
+                    all:append(candidate);
                 end
             end
-            if (selected ~= nil) then result:append(selected); end
         end
     end
-    return result;
+    -- Inventory and key-item evidence has no objective identity of its own.
+    -- Even an exact current action is unsafe when the same canonical evidence
+    -- also names a future action in this or another active objective.
+    if (#all ~= 1) then return T{}; end
+    local match = all[1];
+    if (match.index == match.objective.index) then return T{ match }; end
+    for index = match.objective.index, match.index - 1 do
+        if (action_future_boundary(match.objective.native_key,
+            match.objective.actions[index])) then
+            return T{};
+        end
+    end
+    return T{ match };
 end
 
 function accessxi.nav_mission_quest_reduce_signal(signal)
@@ -3870,25 +3986,28 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         end
         local supplied = clean(signal.progression_revision);
         if (supplied ~= '' and supplied ~= previous_revision) then return false; end
-        local previous_record = resolved_progress_record(
-            previous_key, previous_actions, previous_revision);
-        local previous_index = tonumber(type(previous_record) == 'table'
-            and previous_record.index or nil) or 1;
+        local previous_record = #previous_actions > 0 and resolved_progress_record(
+            previous_key, previous_actions, previous_revision) or nil;
+        local previous_index = #previous_actions > 0 and (tonumber(
+            type(previous_record) == 'table' and previous_record.index or nil) or 1) or 0;
         local previous = {
             category = clean(signal.category):lower(), native_key = previous_key,
             actions = previous_actions, revision = previous_revision,
             record = previous_record, index = previous_index,
         };
-        local terminal = previous_actions[#previous_actions];
-        if (not save_cursor_action(previous_key, terminal,
-            tonumber(terminal.required_count) or 1, previous_revision)) then
-            return false;
+        if (#previous_actions > 0) then
+            local terminal = previous_actions[#previous_actions];
+            if (not save_cursor_action(previous_key, terminal,
+                tonumber(terminal.required_count) or 1, previous_revision)) then
+                return false;
+            end
         end
-        if (type(current_actions) == 'table') then
+        if (type(current_actions) == 'table' and #current_actions > 0) then
             if (not save_cursor_action(current_key, current_actions[1], 0, current_revision)) then
                 return false;
             end
         end
+        purge_objective_arms(previous_key);
         remember_objective_cause(cause);
         cancel_completed_objective_route(previous, #previous_actions);
         notify_objective_progress(T{ previous });
@@ -3909,13 +4028,19 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         local arm_key = table.concat({ tostring(tonumber(signal.target_server_id)),
             tostring(tonumber(signal.zone_id)), tostring(tonumber(signal.event_id)),
             tostring(tonumber(signal.menu_id)) }, ':');
+        local snapshots = T{};
+        for _, match in ipairs(matches) do
+            local snapshot = objective_match_snapshot(match);
+            if (snapshot == nil) then return false; end
+            snapshots:append(snapshot);
+        end
         if (not remember_pending_objective_event(arm_key, {
             identity = clean(signal.character_identity):lower(),
             world_id = tonumber(signal.world_id), session_epoch = tonumber(signal.session_epoch),
             target_server_id = tonumber(signal.target_server_id),
             zone_id = tonumber(signal.zone_id), event_id = tonumber(signal.event_id),
             menu_id = tonumber(signal.menu_id), progression_revision = clean(signal.progression_revision),
-            matches = matches, sequence = tonumber(signal.sequence), tick = tonumber(signal.tick),
+            matches = snapshots, sequence = tonumber(signal.sequence), tick = tonumber(signal.tick),
         })) then return false; end
         remember_objective_cause(cause);
         return true;
@@ -3928,19 +4053,23 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
             or arm.identity ~= clean(signal.character_identity):lower()
             or arm.world_id ~= tonumber(signal.world_id)
             or arm.session_epoch ~= tonumber(signal.session_epoch)
+            or (tonumber(signal.sequence) or 0) <= (tonumber(arm.sequence) or 0)
             or (tonumber(signal.tick) or 0) < (tonumber(arm.tick) or 0)
             or clean(signal.progression_revision) ~= clean(arm.progression_revision)) then
             return false;
         end
+        remove_pending_objective_event(arm_key);
+        local fresh_objectives = reducer_active_objectives();
         local changed = T{};
-        for _, match in ipairs(arm.matches) do
-            if (objective_signal_revision_matches(signal, match.objective)
+        for _, snapshot in ipairs(arm.matches) do
+            local match = revalidated_objective_match(snapshot, fresh_objectives);
+            if (type(match) == 'table'
+                and objective_signal_revision_matches(signal, match.objective)
                 and advance_objective_match(match.objective, match.index, 1)) then
                 changed:append(match.objective);
             end
         end
         if (#changed == 0) then return false; end
-        remove_pending_objective_event(arm_key);
         remember_objective_cause(cause);
         notify_objective_progress(changed);
         return true;
@@ -3953,8 +4082,21 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         local changed = T{};
         for _, match in ipairs(matches) do
             local action = match.objective.actions[match.index];
-            local units = clean(action.count_mode):lower() == 'inventory-gain'
-                and (after - before) or 1;
+            local units = 1;
+            if (clean(action.count_mode):lower() == 'inventory-gain') then
+                local distinct_count, is_distinct_set = distinct_inventory_set_count(action);
+                if (is_distinct_set) then
+                    local current_count = 0;
+                    if (match.index == match.objective.index
+                        and type(match.objective.record) == 'table'
+                        and clean(match.objective.record.action_id) == clean(action.action_id)) then
+                        current_count = tonumber(match.objective.record.progress_count) or 0;
+                    end
+                    units = distinct_count ~= nil and (distinct_count - current_count) or 0;
+                else
+                    units = after - before;
+                end
+            end
             if (advance_objective_match(match.objective, match.index, units)) then
                 changed:append(match.objective);
             end
@@ -4025,12 +4167,34 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
                 match = { objective = objective, index = objective.index };
             end
         end
-        if (match == nil or pending_objective_transport ~= nil) then return false; end
+        if (match == nil) then return false; end
+        local snapshot = objective_match_snapshot(match);
+        local action = match.objective.actions[match.index];
+        local destination_zone_id = tonumber(action.destination_zone_id) or 0;
+        if (snapshot == nil or destination_zone_id <= 0) then return false; end
+        local previous = pending_objective_transport;
+        if (type(previous) == 'table') then
+            local previous_match = previous.match;
+            local exact_replacement = type(previous_match) == 'table'
+                and previous.identity == clean(signal.character_identity):lower()
+                and previous.world_id == tonumber(signal.world_id)
+                and previous.session_epoch == tonumber(signal.session_epoch)
+                and previous.target_server_id == tonumber(signal.target_server_id)
+                and previous.zone_id == tonumber(signal.zone_id)
+                and previous.menu_id == tonumber(signal.menu_id)
+                and clean(previous.progression_revision) == clean(signal.progression_revision)
+                and clean(previous_match.native_key) == clean(snapshot.native_key)
+                and clean(previous_match.match_action_id) == clean(snapshot.match_action_id)
+                and (tonumber(signal.tick) or 0) > (tonumber(previous.tick) or 0)
+                and (tonumber(signal.sequence) or 0) > (tonumber(previous.sequence) or 0);
+            if (not exact_replacement) then return false; end
+        end
         pending_objective_transport = {
-            match = match, identity = clean(signal.character_identity):lower(),
+            match = snapshot, identity = clean(signal.character_identity):lower(),
             world_id = tonumber(signal.world_id), session_epoch = tonumber(signal.session_epoch),
             target_server_id = tonumber(signal.target_server_id), zone_id = tonumber(signal.zone_id),
             menu_id = tonumber(signal.menu_id), sequence = tonumber(signal.sequence),
+            tick = tonumber(signal.tick), destination_zone_id = destination_zone_id,
             progression_revision = clean(signal.progression_revision),
         };
         remember_objective_cause(cause);
@@ -4040,20 +4204,27 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         local destination = tonumber(signal.zone_id) or 0;
         local arm = pending_objective_transport;
         if (type(arm) == 'table') then
-            local match = arm.match;
-            local action = type(match) == 'table'
-                and match.objective.actions[match.index] or nil;
+            if (destination > 0 and destination ~= tonumber(arm.destination_zone_id)) then
+                pending_objective_transport = nil;
+                return false;
+            end
             if (arm.identity == clean(signal.character_identity):lower()
                 and arm.world_id == tonumber(signal.world_id)
                 and arm.session_epoch == tonumber(signal.session_epoch)
                 and arm.target_server_id == tonumber(signal.target_server_id)
                 and arm.menu_id == tonumber(signal.menu_id)
                 and arm.sequence == tonumber(signal.transport_sequence)
+                and (tonumber(signal.sequence) or 0) > (tonumber(arm.sequence) or 0)
+                and (tonumber(signal.tick) or 0) >= (tonumber(arm.tick) or 0)
                 and clean(arm.progression_revision) == clean(signal.progression_revision)
-                and destination > 0 and destination == tonumber(action.destination_zone_id)
-                and advance_objective_match(match.objective, match.index, 1)) then
-                changed:append(match.objective);
+                and destination > 0) then
+                local match = revalidated_objective_match(arm.match, objectives);
                 pending_objective_transport = nil;
+                if (type(match) == 'table'
+                    and objective_signal_revision_matches(signal, match.objective)
+                    and advance_objective_match(match.objective, match.index, 1)) then
+                    changed:append(match.objective);
+                end
             end
         else
             for _, objective in ipairs(objectives) do

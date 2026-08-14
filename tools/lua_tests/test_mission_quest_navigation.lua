@@ -2723,6 +2723,21 @@ do
     end
 
     task2_reset_reducer_scenario('current-interaction')
+    local task3_sequence_arm = task2_signal('interaction-start', interaction_values)
+    task2_reducer_expect(task2_reduce(task3_sequence_arm,
+            'interaction sequence arm start'),
+        'interaction sequence fixture did not arm')
+    local task3_stale_sequence_finish = task2_signal(
+        'interaction-finish', interaction_values)
+    task3_stale_sequence_finish.sequence = task3_sequence_arm.sequence
+    task3_stale_sequence_finish.tick = task3_sequence_arm.tick + 1
+    task2_reducer_expect(not task2_reduce(task3_stale_sequence_finish,
+            'stale-sequence interaction finish'),
+        'interaction finish at the armed start sequence was accepted')
+    task2_reducer_expect(task2_progress_bytes() == '',
+        'stale-sequence interaction finish wrote objective progress')
+
+    task2_reset_reducer_scenario('current-interaction')
     for _, mismatch in ipairs(T{
         { character_identity = '', label = 'missing character' },
         { character_identity = 'beta:1001', label = 'character' },
@@ -3704,6 +3719,29 @@ do
         'wrong committed zone did not invalidate the pending transport arm')
 
     task2_reset_reducer_scenario('transport-current')
+    local task3_sequence_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47002,
+    })
+    task2_reducer_expect(task2_reduce(task3_sequence_request,
+            'transport replacement sequence arm'),
+        'transport replacement sequence fixture did not arm')
+    local task3_stale_sequence_request = task2_signal('transport-request', {
+        target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
+        menu_id = 47002,
+    })
+    task3_stale_sequence_request.sequence = task3_sequence_request.sequence - 1
+    task3_stale_sequence_request.tick = task3_sequence_request.tick + 100
+    task2_reducer_expect(not task2_reduce(task3_stale_sequence_request,
+            'newer-tick stale-sequence transport replacement'),
+        'newer tick replaced a transport arm with an older causal sequence')
+    task2_reducer_expect(task2_reduce(task2_signal('committed-zone', {
+            zone_id = 140, target_server_id = 17723406, menu_id = 47002,
+            transport_sequence = task3_sequence_request.sequence,
+        }), 'commit for preserved transport sequence arm'),
+        'rejected stale-sequence request displaced the valid transport arm')
+
+    task2_reset_reducer_scenario('transport-current')
     local task3_old_request = task2_signal('transport-request', {
         target_server_id = 17723406, target_name = 'Airship Door', zone_id = 231,
         menu_id = 47002,
@@ -3734,6 +3772,14 @@ do
     })
     task2_reducer_expect(task2_reduce(task3_tick_request, 'transport tick arm'),
         'transport tick request did not arm')
+    local task3_stale_sequence_commit = task2_signal('committed-zone', {
+        zone_id = 140, target_server_id = 17723406, menu_id = 47003,
+        transport_sequence = task3_tick_request.sequence, tick = 50001,
+    })
+    task3_stale_sequence_commit.sequence = task3_tick_request.sequence
+    task2_reducer_expect(not task2_reduce(task3_stale_sequence_commit,
+            'commit at stale transport causal sequence'),
+        'committed zone at the armed request sequence was accepted')
     task2_reducer_expect(not task2_reduce(task2_signal('committed-zone', {
             zone_id = 140, target_server_id = 17723406, menu_id = 47003,
             transport_sequence = task3_tick_request.sequence, tick = 49999,

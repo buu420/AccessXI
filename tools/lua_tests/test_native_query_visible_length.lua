@@ -58,6 +58,12 @@ local visible_source = required_extract(
 local phrase_source = extract(
     'function accessxi.native_query_phrase_from_ptr(ptr, context)',
     'function accessxi.home_point_query_normalize_phrase(phrase)')
+local home_point_normalizer_source = extract(
+    'function accessxi.home_point_query_normalize_phrase(phrase)',
+    'function accessxi.native_query_normalize_phrase(phrase, context)')
+local plain_label_source = extract(
+    'function accessxi.plain_native_menu_label(label)',
+    'function accessxi.plain_native_menu_help(text)')
 local candidate_ptr_source = extract(
     'function accessxi.native_query_candidate_label_from_ptr(ptr, context)',
     'function accessxi.native_query_candidate_label_from_node(node, context, expected_count, selected)')
@@ -154,6 +160,7 @@ end
 
 local chunk = assert(loadstring(
     cleaner_source .. '\n' .. pollution_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
+        .. home_point_normalizer_source .. '\n' .. plain_label_source .. '\n'
         .. candidate_ptr_source .. '\n' .. candidate_node_source,
     '@native-query-visible-length'))
 setfenv(chunk, setmetatable({
@@ -352,6 +359,15 @@ assert(accessxi.native_query_phrase_from_ptr(base, '') == 'Claimed. Themis orb: 
 assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind.')
 assert(decode('NOWHERE' .. string.char(0x0E), 8, 'SLES') == 'Nowhere.')
 assert(decode_visible('TRAVEL TO ANOTHER HOME POINT' .. string.char(0x0E), 29, 1) == 'TRAVEL TO ANOTHER HOME POINT.')
+for _, label in ipairs({
+    'Windurst Waters',
+    'Windurst Walls',
+    'Port Windurst',
+    'Windurst Woods',
+}) do
+    local normalized = accessxi.home_point_query_normalize_phrase(label .. '.')
+    assert(normalized == label, ('sentence-final Home Point label truncated: %s -> %s'):format(label, normalized))
+end
 assert(decode('ON SECOND THOUGHT' .. string.char(0x0C) .. ' NONE' .. string.char(0x0E), 24) == 'On second thought, none.')
 assert(decode_captured({ 0x0011, 0x0015, 0x0010, 0x000D, 'PT', 0x000E, ' ITEMS', 0x000E }, nil, 3) == '150-PT. ITEMS.')
 assert(accessxi.native_query_phrase_from_ptr(base, '') == '150-pt. Items.')

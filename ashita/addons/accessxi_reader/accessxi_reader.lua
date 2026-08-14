@@ -10343,7 +10343,9 @@ function accessxi.home_point_query_normalize_phrase(phrase)
         T{ 'Adoulin Isles', 'Adoulin Isles' },
     }) do
         local raw = tostring(row[1] or '');
-        if (phrase:eq(raw, true) or phrase:match('^' .. raw:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1") .. '%s') ~= nil) then
+        if (phrase:eq(raw, true)
+            or phrase:eq(raw .. '.', true)
+            or phrase:match('^' .. raw:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1") .. '%s') ~= nil) then
             return tostring(row[2] or '');
         end
     end

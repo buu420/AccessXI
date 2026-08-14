@@ -65,7 +65,7 @@ local index = {
 
 for _, row in pairs(index) do
     row.source_authority = { primary = 'bg', fallback = 'ffxiclopedia' }
-    row.progression_schema_version = 1
+    row.progression_schema_version = 2
     row.progression_revision = 'fixture-progression-revision'
 end
 
@@ -653,7 +653,7 @@ do
         local progression_module = 'fixture_compact_progression_' .. tostring(module_number)
         if compact_modules[progression_module] == nil then
             compact_modules[progression_module] = {
-                schema_version = 1,
+                schema_version = 2,
                 module_name = progression_module,
                 source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
                 objectives = {},
@@ -672,13 +672,13 @@ do
             },
             reconcile_module = 'fixture_full_reconcile',
             progression_module = progression_module,
-            progression_schema_version = 1,
+            progression_schema_version = 2,
             progression_revision = revision,
         }
         local compact_objective = {
             native_key = native_key,
             progression_module = progression_module,
-            progression_schema_version = 1,
+            progression_schema_version = 2,
             source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
             progression_revision = revision,
             progression_actions = {
@@ -703,6 +703,8 @@ do
                     grid_coordinates = {},
                     result_items = {},
                     result_relation = '',
+                    destination_zone_name = '',
+                    destination_zone_id = 0,
                     field_sources = {
                         action = 'bg',
                         relationship = 'bg',
@@ -719,6 +721,8 @@ do
                         grid_coordinates = 'bg',
                         result_items = 'bg',
                         result_relation = 'bg',
+                        destination_zone_name = '',
+                        destination_zone_id = '',
                         instruction = 'bg',
                         count_mode = 'default',
                         required_count = 'default',
@@ -781,6 +785,8 @@ do
         grid_coordinates = {},
         result_items = {},
         result_relation = '',
+        destination_zone_name = '',
+        destination_zone_id = 0,
         field_sources = {
             action = 'bg',
             relationship = 'bg',
@@ -791,6 +797,7 @@ do
             zones = 'bg',
             items = 'bg', key_items = 'bg', transports = 'bg',
             grid_coordinates = 'bg', result_items = 'bg', result_relation = 'bg',
+            destination_zone_name = '', destination_zone_id = '',
             instruction = 'bg',
             count_mode = 'bg',
             required_count = 'bg',
@@ -843,6 +850,8 @@ do
         grid_coordinates = {},
         result_items = { 'Test Crystal' },
         result_relation = 'obtain',
+        destination_zone_name = '',
+        destination_zone_id = 0,
         field_sources = {
             action = 'bg',
             relationship = 'bg',
@@ -853,6 +862,7 @@ do
             items = 'bg',
             key_items = 'bg', transports = 'bg', zones = 'bg',
             grid_coordinates = 'bg', result_items = 'bg', result_relation = 'bg',
+            destination_zone_name = '', destination_zone_id = '',
             instruction = 'bg',
             count_mode = 'bg',
             required_count = 'bg',
@@ -884,13 +894,13 @@ do
         source_modules = { bg = 'fixture_full_bg', ffxiclopedia = 'fixture_full_ffxiclopedia' },
         reconcile_module = 'fixture_full_reconcile',
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         progression_revision = revision,
     }
     compact_objectives[mixed_authority_key] = {
         native_key = mixed_authority_key,
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_revision = revision,
         progression_actions = {
@@ -904,6 +914,7 @@ do
                 zones = { 'Dangruf Wadi' }, grid_coordinates = { 'H-4' },
                 items = { 'Blue Tester' }, key_items = { 'Geyser Key' }, transports = {},
                 result_items = {}, result_relation = '',
+                destination_zone_name = 'Dangruf Wadi',
                 destination_zone_id = 191,
                 instruction = 'Examine the North Geyser at H-4 with the Blue Tester.',
                 field_sources = {
@@ -914,7 +925,8 @@ do
                     zones = 'bg', grid_coordinates = 'ffxiclopedia',
                     items = 'bg', key_items = 'ffxiclopedia', transports = 'bg',
                     result_items = 'bg', result_relation = 'bg',
-                    destination_zone_id = 'bg',
+                    destination_zone_name = 'ffxiclopedia',
+                    destination_zone_id = 'ffxiclopedia',
                     instruction = 'ffxiclopedia', count_mode = 'default',
                     required_count = 'default', count_explicit = 'default',
                     catalogue = 'catalogue',
@@ -954,13 +966,13 @@ do
         status = 'guide',
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         progression_revision = revision,
     }
     compact_objectives[duplicate_key] = {
         native_key = duplicate_key,
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_revision = revision,
         progression_actions = {
@@ -973,11 +985,13 @@ do
                 npcs = { 'Duplicate NPC' }, objects = {}, enemies = {}, zones = {},
                 items = {}, key_items = {}, transports = {}, grid_coordinates = {},
                 result_items = {}, result_relation = '',
+                destination_zone_name = '', destination_zone_id = 0,
                 field_sources = { action = 'bg', relationship = 'bg', target = 'bg',
                     target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                     enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                     transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                    result_relation = 'bg', instruction = 'bg', count_mode = 'default',
+                    result_relation = 'bg', destination_zone_name = '',
+                    destination_zone_id = '', instruction = 'bg', count_mode = 'default',
                     required_count = 'default', count_explicit = 'default', catalogue = '' },
                 source_revisions = { bg = 4001, ffxiclopedia = 4002 },
                 source_action_span_ids = { duplicate_key .. ':bg:step-001:action-01' },
@@ -994,11 +1008,13 @@ do
                 npcs = { 'Duplicate NPC' }, objects = {}, enemies = {}, zones = {},
                 items = {}, key_items = {}, transports = {}, grid_coordinates = {},
                 result_items = {}, result_relation = '',
+                destination_zone_name = '', destination_zone_id = 0,
                 field_sources = { action = 'bg', relationship = 'bg', target = 'bg',
                     target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                     enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                     transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                    result_relation = 'bg', instruction = 'bg', count_mode = 'default',
+                    result_relation = 'bg', destination_zone_name = '',
+                    destination_zone_id = '', instruction = 'bg', count_mode = 'default',
                     required_count = 'default', count_explicit = 'default', catalogue = '' },
                 source_revisions = { bg = 4001, ffxiclopedia = 4002 },
                 source_action_span_ids = { duplicate_key .. ':bg:step-001:action-01' },
@@ -1017,7 +1033,7 @@ do
         title = 'Missing compact shard fixture', status = 'guide',
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_module = 'fixture_missing_compact_progression',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         progression_revision = revision,
     }
     local missing_objective_key = 'mission:Bastok:1097'
@@ -1026,7 +1042,7 @@ do
         title = 'Missing compact objective fixture', status = 'guide',
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         progression_revision = revision,
     }
     local mismatched_revision_key = 'mission:Bastok:1098'
@@ -1035,13 +1051,13 @@ do
         title = 'Mismatched compact revision fixture', status = 'guide',
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         progression_revision = revision,
     }
     compact_objectives[mismatched_revision_key] = {
         native_key = mismatched_revision_key,
         progression_module = 'fixture_compact_progression_1',
-        progression_schema_version = 1,
+        progression_schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
         progression_revision = string.rep('b', 64),
         progression_actions = {
@@ -1054,11 +1070,13 @@ do
                 npcs = { 'Revision NPC' }, objects = {}, enemies = {}, zones = {},
                 items = {}, key_items = {}, transports = {}, grid_coordinates = {},
                 result_items = {}, result_relation = '',
+                destination_zone_name = '', destination_zone_id = 0,
                 field_sources = { action = 'bg', relationship = 'bg', target = 'bg',
                     target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                     enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                     transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                    result_relation = 'bg', instruction = 'bg', count_mode = 'default',
+                    result_relation = 'bg', destination_zone_name = '',
+                    destination_zone_id = '', instruction = 'bg', count_mode = 'default',
                     required_count = 'default', count_explicit = 'default', catalogue = '' },
                 source_revisions = { bg = 4001, ffxiclopedia = 4002 },
                 source_action_span_ids = { mismatched_revision_key .. ':bg:step-001:action-01' },
@@ -1094,11 +1112,15 @@ do
             grid_coordinates = values.grid_coordinates or {},
             result_items = values.result_items or {},
             result_relation = values.result_relation or '',
+            destination_zone_name = values.destination_zone_name or '',
+            destination_zone_id = tonumber(values.destination_zone_id) or 0,
             field_sources = {
                 action = 'bg', relationship = 'bg', target = 'bg', target_key = 'bg',
                 target_kind = 'bg', npcs = 'bg', objects = 'bg', enemies = 'bg',
                 zones = 'bg', items = 'bg', key_items = 'bg', transports = 'bg',
                 grid_coordinates = 'bg', result_items = 'bg', result_relation = 'bg',
+                destination_zone_name = values.destination_zone_name ~= nil and 'bg' or '',
+                destination_zone_id = values.destination_zone_id ~= nil and 'bg' or '',
                 instruction = 'bg', count_mode = 'bg', required_count = 'bg',
                 count_explicit = 'bg', catalogue = '',
             },
@@ -1125,7 +1147,7 @@ do
             title = 'Invalid compact ' .. suffix, status = 'guide',
             source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
             progression_module = module_name,
-            progression_schema_version = 1,
+            progression_schema_version = 2,
             progression_revision = revision,
         }
         if envelope.module_name == nil then envelope.module_name = module_name end
@@ -1133,7 +1155,7 @@ do
         envelope.objectives[native_key] = {
             native_key = native_key,
             progression_module = module_name,
-            progression_schema_version = 1,
+            progression_schema_version = 2,
             source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
             progression_revision = revision,
             progression_actions = { invalid_action(native_key, action_values) },
@@ -1146,68 +1168,77 @@ do
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     })
     local invalid_schema_mismatch_key = add_invalid_shard(1101, 'schema-mismatch', {
-        schema_version = 2,
+        schema_version = 3,
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+    })
+    local invalid_schema_v1_key = add_invalid_shard(1117, 'schema-v1', {
+        schema_version = 1,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     })
     local invalid_authority_missing_key = add_invalid_shard(1102, 'authority-missing', {
-        schema_version = 1,
+        schema_version = 2,
     })
     local invalid_authority_mismatch_key = add_invalid_shard(1103, 'authority-mismatch', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'ffxiclopedia', fallback = 'bg' },
     })
     local invalid_count_zero_key = add_invalid_shard(1104, 'count-zero', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { required_count = 0, count_explicit = true })
     local invalid_count_fraction_key = add_invalid_shard(1105, 'count-fraction', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { required_count = 1.5, count_explicit = true })
     local invalid_count_mode_key = add_invalid_shard(1106, 'count-mode', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { action = 'talk', relationship = 'talk-to', count_mode = 'credited-defeat',
         required_count = 5, count_explicit = true })
     local invalid_inventory_mode_key = add_invalid_shard(1107, 'inventory-mode', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { action = 'fight', relationship = 'defeat-enemy', target_kind = 'enemy',
         count_mode = 'inventory-gain', required_count = 3, count_explicit = true })
     local invalid_key_item_mode_key = add_invalid_shard(1108, 'key-item-mode', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { action = 'obtain', relationship = 'obtain-key-item', target_kind = 'key-item',
         key_items = { 'Invalid Fixture Key Item' }, count_mode = 'inventory-gain',
         required_count = 3, count_explicit = true })
     local invalid_single_count_key = add_invalid_shard(1109, 'single-count', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { count_mode = 'single', required_count = 2, count_explicit = true })
     local invalid_unknown_mode_key = add_invalid_shard(1110, 'unknown-mode', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { count_mode = 'observation-count', required_count = 2, count_explicit = true })
     local invalid_relationship_key = add_invalid_shard(1111, 'relationship-missing', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { omit_relationship = true })
     local invalid_target_key = add_invalid_shard(1112, 'target-key-missing', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     }, { omit_target_key = true })
     local invalid_module_name_key = add_invalid_shard(1113, 'module-name', {
-        schema_version = 1,
+        schema_version = 2,
         module_name = 'fixture_wrong_progression_module',
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     })
     local invalid_index_schema_key = add_invalid_shard(1114, 'index-schema', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     })
-    compact_index[invalid_index_schema_key].progression_schema_version = 2
+    compact_index[invalid_index_schema_key].progression_schema_version = 3
+    local invalid_index_v1_key = add_invalid_shard(1118, 'index-schema-v1', {
+        schema_version = 2,
+        source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
+    })
+    compact_index[invalid_index_v1_key].progression_schema_version = 1
     local invalid_native_pin_key = add_invalid_shard(1115, 'native-pin', {
-        schema_version = 1,
+        schema_version = 2,
         source_authority = { primary = 'bg', fallback = 'ffxiclopedia' },
     })
     compact_modules[compact_index[invalid_native_pin_key].progression_module]
@@ -1331,6 +1362,7 @@ do
                 and mixed_action.grid_coordinates[1] == 'H-4'
                 and mixed_action.items[1] == 'Blue Tester'
                 and mixed_action.key_items[1] == 'Geyser Key'
+                and mixed_action.destination_zone_name == 'Dangruf Wadi'
                 and mixed_action.destination_zone_id == 191
                 and mixed_action.instruction
                     == 'Examine the North Geyser at H-4 with the Blue Tester.'
@@ -1342,7 +1374,8 @@ do
                 and mixed_action.field_sources.grid_coordinates == 'ffxiclopedia'
                 and mixed_action.field_sources.items == 'bg'
                 and mixed_action.field_sources.key_items == 'ffxiclopedia'
-                and mixed_action.field_sources.destination_zone_id == 'bg'
+                and mixed_action.field_sources.destination_zone_name == 'ffxiclopedia'
+                and mixed_action.field_sources.destination_zone_id == 'ffxiclopedia'
                 and mixed_action.field_sources.instruction == 'ffxiclopedia'
                 and mixed_action.source_revisions.bg == 5001
                 and mixed_action.source_revisions.ffxiclopedia == 5002,
@@ -1377,6 +1410,7 @@ do
             { key = mismatched_revision_key, token = 'revision', label = 'compact revision self-pin mismatch' },
             { key = invalid_schema_missing_key, token = 'schema', label = 'missing compact schema self-pin' },
             { key = invalid_schema_mismatch_key, token = 'schema', label = 'mismatched compact schema self-pin' },
+            { key = invalid_schema_v1_key, token = 'schema', label = 'obsolete v1 compact shard' },
             { key = invalid_authority_missing_key, token = 'authority', label = 'missing shard authority self-pin' },
             { key = invalid_authority_mismatch_key, token = 'authority', label = 'mismatched shard authority self-pin' },
             { key = invalid_count_zero_key, token = 'count', label = 'zero required_count' },
@@ -1390,6 +1424,7 @@ do
             { key = invalid_target_key, token = 'target', label = 'missing normalized target key' },
             { key = invalid_module_name_key, token = 'module', label = 'mismatched shard module self-pin' },
             { key = invalid_index_schema_key, token = 'schema', label = 'index schema mismatch' },
+            { key = invalid_index_v1_key, token = 'schema', label = 'obsolete v1 compact index' },
             { key = invalid_native_pin_key, token = 'native', label = 'objective native-key self-pin mismatch' },
         }) do
             local invalid_actions, invalid_reason

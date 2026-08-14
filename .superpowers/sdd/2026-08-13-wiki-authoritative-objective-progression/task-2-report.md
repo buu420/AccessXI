@@ -22,13 +22,16 @@ canonical `step_id` and `action_id`, step/action/global ordering, top-level
 action/relationship/target facts, normalized `target_key`, canonical-name
 matcher arrays, result facts, count facts, `source_authority`,
 `field_sources`, `source_revisions`, `source_action_span_ids`, and exact inline
-`catalogue` rows. No nested matcher or runtime join table is accepted.
+`catalogue` rows. Directional travel facts include the authoritative top-level
+`destination_zone_name` and `destination_zone_id` pair plus provenance for
+both fields. No nested matcher or runtime join table is accepted.
 
 `GuideState:progression_actions(native_key)` must validate the index, shard,
 objective, schema/module/native/revision/authority self-pins, action IDs and
 orders, relationship/target keys, and count-mode compatibility; sort by
-`step_order` then `action_order`; and return a deep copy. The only count modes
-are:
+`step_order` then `action_order`; and return a deep copy. Compact schema
+version 2 is the only accepted version. Missing, future/mismatched, and
+obsolete v1 index/shard pins fail closed. The count modes are:
 
 - `single`, default `required_count=1`
 - `credited-defeat`, for explicit repeated fight/defeat actions
@@ -72,7 +75,8 @@ The reducer matrix covers:
 - cursor-entered item count increase and key-item absent-to-present only;
   pre-existing stock, loss, negative delta, and replay never complete or rewind
 - outgoing `0x05C` as transport intent only, followed by exact committed-zone
-  completion or an exact owned route arrival
+  completion or an exact owned route arrival, using only the flat action's
+  destination name/ID pair
 - coherent native `0x056` completion/replacement, ordinary terminal v2 rows,
   independent new-key initialization, reload non-resurrection, and fail-closed
   behavior when the compact graph is unavailable
@@ -235,9 +239,9 @@ The strengthened compact-shard fixture is self-contained and has no matcher or
 runtime join. It requires BG-primary and field-level FFXIclopedia fallback
 across action/relationship, target/entity, zone, grid, item/key item, and
 instruction, including mixed `field_sources`, both source revisions, an exact
-finite catalogue point, and top-level `destination_zone_id`. It also executes
-all invalid shard/schema/authority/revision/action/count cases and all 70
-objective-cache loads even when the production APIs are absent.
+finite catalogue point, and the top-level destination name/ID pair. It also
+executes all invalid shard/schema/authority/revision/action/count cases and all
+70 objective-cache loads even when the production APIs are absent.
 
 The reducer matrix now additionally executes:
 
@@ -248,7 +252,7 @@ The reducer matrix now additionally executes:
   native revision boundary
 - exact transport target/menu/session/sequence correlation, request replay,
   request-alone noncompletion, and committed destination-zone completion using
-  only the flat action's `destination_zone_id`
+  only the flat action's destination name/ID pair
 - incomplete and foreign-owner/World/session Inventory snapshots, replay,
   loss, and a coherent positive delta of two units
 - 9- and 11-field v2 rows, wrong durable owner/World, step/action ID-order
@@ -397,3 +401,90 @@ syntax ok: C:\Users\buu42\AppData\Local\Temp\accessxi-task2-fix1-clean-20260814-
 Scoped `git diff --check` over the three harnesses and this report returned
 exit `0`. The final commit SHA is reported in the handoff because a Git commit
 cannot contain its own resulting SHA.
+
+## Independent-review fix round 2/5
+
+Review of `ab2d6c2` found that the reducer-facing compact fixtures still used
+the obsolete schema-v1 self-pin and that travel rows exposed only the numeric
+destination. Every valid compact index entry, shard envelope, and objective
+pin now uses schema version 2. Missing schema, unsupported version 3, obsolete
+v1 shard, obsolete v1 index, and index/shard mismatch remain separate
+executable fail-closed cases; v1 is never accepted as a valid fixture.
+
+Every flat action fixture now contains `destination_zone_name` and
+`destination_zone_id` together with both `field_sources`. The mixed-authority
+guide row selects BG-primary action/relationship, zone, and item facts while
+using FFXIclopedia fallback for target/entity, grid, key item, instruction, and
+both destination fields. It has no matcher or runtime join and retains one
+exact finite catalogue point.
+
+Navigation travel, transport, and mission-replacement rows copy the explicit
+destination pair from the flat action only. Their parallel legacy
+`source_route_steps` action, relationship, target, zones, instruction, and
+destination pair are deliberately poisoned. Matching committed-zone REDs can
+therefore become green only through the flat compact row, not source-route
+prose or a runtime destination heuristic. The generator-only
+negative/prohibited destination boundary remains outside the runtime reducer.
+
+### Direct working-tree REDs
+
+The three direct commands documented above all reached their final aggregate:
+
+```text
+navigation exit=1 failures=119 line=4645
+first=- a fresh exact wiki candidate without a rooted contract must expose a wiki-ready route
+last=- route-less quest cursor was not persisted across navigation-module reload
+
+guides exit=1 failures=34 line=1900
+first=- GuideState:progression_actions production seam is missing
+last=- authoritative conflicted wiki target was not exposed as an exact finite wiki-ready route
+
+reader exit=1 failures=27 line=2109
+first=- production current_player_world_id provider is missing
+last=- coherent native Inventory count increase did not emit one exact typed delta
+```
+
+The working-tree guide count reflects concurrent uncommitted production work;
+none of those production/generated files is included in Task 2.
+
+### Clean-archive reproduction
+
+A temporary index over committed parent `ab2d6c223a97be38d30a8c3fed514f9596570b6e`
+added only the three owned harness paths, then `git write-tree`, `git
+commit-tree`, and `git archive` produced:
+
+```text
+snapshot: 50e9e30382eb4de815207789439083a7cc846213
+tree:     4d11176ab82cc9b108a35033de759944b9a02f3b
+root:     C:\Users\buu42\AppData\Local\Temp\accessxi-task2-fix2-clean-20260814-023439
+```
+
+Running the exact direct commands from that archive produced:
+
+```text
+navigation exit=1 failures=119 line=4645
+first=- a fresh exact wiki candidate without a rooted contract must expose a wiki-ready route
+last=- route-less quest cursor was not persisted across navigation-module reload
+
+guides exit=1 failures=37 line=1900
+first=- a guide without explicit BG-primary/FFXIclopedia-fallback authority did not fail closed
+last=- authoritative conflicted wiki target was not exposed as an exact finite wiki-ready route
+
+reader exit=1 failures=27 line=2109
+first=- production current_player_world_id provider is missing
+last=- coherent native Inventory count increase did not emit one exact typed delta
+```
+
+The clean guide aggregate includes these new schema-v2 contract failures:
+
+```text
+- missing compact schema self-pin did not fail closed
+- mismatched compact schema self-pin did not fail closed
+- obsolete v1 compact shard did not fail closed
+- index schema mismatch did not fail closed
+- obsolete v1 compact index did not fail closed
+```
+
+All three clean-archive harnesses passed the verified 32-bit Lua 5.1 syntax
+checker. The scoped `git diff --check` result is recorded immediately before
+the fix-round commit.

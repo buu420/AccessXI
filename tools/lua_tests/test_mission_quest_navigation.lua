@@ -943,7 +943,7 @@ assert(#accessxi.nav_points == 42366, 'hotkey scale fixture did not match the pr
 
 for _, entry in pairs(accessxi.mission_quest_guide_index) do
     entry.progression_revision = 'task2-progression-revision'
-    entry.progression_schema_version = 1
+    entry.progression_schema_version = 2
 end
 
 local function task2_flat_target_key(value)
@@ -993,6 +993,10 @@ accessxi.objective_guides.progression_actions = function(self, native_key)
                 grid_coordinates = T{},
                 result_items = T{},
                 result_relation = '',
+                destination_zone_name = tostring(
+                    claim.destination_zone_name or step.destination_zone_name or ''),
+                destination_zone_id = tonumber(
+                    claim.destination_zone_id or step.destination_zone_id) or 0,
                 instruction = step.primary_instruction,
                 count_mode = claim.count_mode or 'single',
                 required_count = tonumber(claim.required_count) or 1,
@@ -1003,7 +1007,14 @@ accessxi.objective_guides.progression_actions = function(self, native_key)
                     target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                     enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                     transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                    result_relation = 'bg', instruction = 'bg', count_mode = 'default',
+                    result_relation = 'bg',
+                    destination_zone_name = tostring(claim.destination_zone_name
+                        or step.destination_zone_name or '') ~= '' and 'bg' or '',
+                    destination_zone_id = tonumber(claim.destination_zone_id
+                        or step.destination_zone_id) ~= nil
+                        and tonumber(claim.destination_zone_id or step.destination_zone_id) > 0
+                        and 'bg' or '',
+                    instruction = 'bg', count_mode = 'default',
                     required_count = 'default', count_explicit = 'default', catalogue = '' },
                 source_revisions = T{ bg = 4001, ffxiclopedia = 4002 },
                 source_action_span_ids = T{
@@ -1570,6 +1581,7 @@ local function task2_typed_step(native_key, order, action, relationship, target,
         material = true,
         observable = values.observable ~= false,
         boundary = values.boundary or '',
+        destination_zone_name = values.destination_zone_name or '',
         destination_zone_id = values.destination_zone_id,
         route_ready = values.route_ready == true,
         count_mode = values.count_mode or 'single',
@@ -1587,6 +1599,7 @@ local function task2_typed_step(native_key, order, action, relationship, target,
                 items = values.items or T{},
                 key_items = values.key_items or T{},
                 zones = values.zone_name ~= nil and T{ values.zone_name } or T{},
+                destination_zone_name = values.destination_zone_name or '',
                 destination_zone_id = values.destination_zone_id,
                 material = true,
                 observable = values.observable ~= false,
@@ -1822,7 +1835,8 @@ local function task2_scenario_steps(native_key)
         return T{
             task2_typed_step(native_key, 1, 'travel', 'travel-to',
                 'Ghelsba Outpost', 'zone', {
-                    zone_name = 'Ghelsba Outpost', destination_zone_id = 140,
+                    zone_name = 'Ghelsba Outpost',
+                    destination_zone_name = 'Ghelsba Outpost', destination_zone_id = 140,
                     instruction = 'Travel to Ghelsba Outpost.',
                 }),
             task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
@@ -1835,7 +1849,8 @@ local function task2_scenario_steps(native_key)
         return T{
             task2_typed_step(native_key, 1, 'travel', 'use-transport',
                 'Airship Door', 'transport', {
-                    zone_name = "Port San d'Oria", destination_zone_id = 140,
+                    zone_name = "Port San d'Oria",
+                    destination_zone_name = 'Ghelsba Outpost', destination_zone_id = 140,
                     instruction = 'Use the Airship Door to travel to Ghelsba Outpost.',
                 }),
             task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
@@ -1953,7 +1968,8 @@ local function task2_scenario_steps(native_key)
         return T{
             task2_typed_step(native_key, 1, 'travel', 'travel-to',
                 'Ghelsba Outpost', 'zone', {
-                    zone_name = 'Ghelsba Outpost', destination_zone_id = 140,
+                    zone_name = 'Ghelsba Outpost',
+                    destination_zone_name = 'Ghelsba Outpost', destination_zone_id = 140,
                     instruction = 'Travel to Ghelsba Outpost.',
                 }),
             task2_typed_step(native_key, 2, 'wait', 'wait-for', '', '', {
@@ -2026,7 +2042,8 @@ local function task2_scenario_progression_actions(native_key)
                 result_items = claim.relationship == 'obtain-item'
                     and deep_copy(claim.items or T{}) or T{},
                 result_relation = claim.relationship == 'obtain-item' and 'obtain' or '',
-                destination_zone_id = tonumber(claim.destination_zone_id),
+                destination_zone_name = tostring(claim.destination_zone_name or ''),
+                destination_zone_id = tonumber(claim.destination_zone_id) or 0,
                 instruction = step.primary_instruction,
                 count_mode = claim.count_mode or 'single',
                 required_count = tonumber(claim.required_count) or 1,
@@ -2038,7 +2055,11 @@ local function task2_scenario_progression_actions(native_key)
                     target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                     enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                     transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                    result_relation = 'bg', destination_zone_id = 'bg',
+                    result_relation = 'bg',
+                    destination_zone_name = tostring(claim.destination_zone_name or '') ~= ''
+                        and 'bg' or '',
+                    destination_zone_id = tonumber(claim.destination_zone_id) ~= nil
+                        and tonumber(claim.destination_zone_id) > 0 and 'bg' or '',
                     instruction = 'bg', count_mode = 'bg',
                     required_count = 'bg', count_explicit = 'bg',
                     catalogue = #catalogue > 0 and 'catalogue' or '',
@@ -2068,9 +2089,24 @@ accessxi.objective_guides.source_route_steps = function(self, native_key)
     local rows = task2_scenario_steps(native_key)
     if rows ~= nil then
         rows = deep_copy(rows)
-        if task2_reducer_scenario == 'transport-current' and rows[1] ~= nil then
+        if (task2_reducer_scenario == 'travel'
+                or task2_reducer_scenario == 'transport-current'
+                or task2_reducer_scenario == 'mission-replacement')
+            and rows[1] ~= nil then
+            rows[1].action = 'poisoned-legacy-action'
+            rows[1].entities = T{ 'Poisoned Legacy Target' }
+            rows[1].zones = T{ 'Poisoned Legacy Source Zone' }
+            rows[1].primary_instruction = 'Poisoned legacy route prose.'
+            rows[1].destination_zone_name = 'Poisoned Legacy Destination'
             rows[1].destination_zone_id = 999
             if type(rows[1].typed_claims) == 'table' and rows[1].typed_claims[1] ~= nil then
+                rows[1].typed_claims[1].action = 'poisoned-legacy-action'
+                rows[1].typed_claims[1].relationship = 'poisoned-legacy-relationship'
+                rows[1].typed_claims[1].target = 'Poisoned Legacy Target'
+                rows[1].typed_claims[1].target_kind = 'object'
+                rows[1].typed_claims[1].zones = T{ 'Poisoned Legacy Source Zone' }
+                rows[1].typed_claims[1].destination_zone_name
+                    = 'Poisoned Legacy Destination'
                 rows[1].typed_claims[1].destination_zone_id = 999
             end
         end
@@ -2515,7 +2551,39 @@ do
     task2_reducer_expect(task2_progress_bytes() == key_progress_bytes,
         'key-item loss rewound or rewrote the durable cursor')
 
+    local function task2_expect_flat_destination_pair(native_key, expected_name,
+            expected_id, label)
+        local flat_actions = accessxi.objective_guides:progression_actions(native_key)
+        local flat = type(flat_actions) == 'table' and flat_actions[1] or nil
+        task2_reducer_expect(type(flat) == 'table'
+                and flat.destination_zone_name == expected_name
+                and flat.destination_zone_id == expected_id
+                and type(flat.field_sources) == 'table'
+                and flat.field_sources.destination_zone_name == 'bg'
+                and flat.field_sources.destination_zone_id == 'bg',
+            label .. ' flat action omitted the authoritative destination name/ID pair')
+        local legacy_steps = accessxi.objective_guides:source_route_steps(native_key)
+        local legacy = type(legacy_steps) == 'table' and legacy_steps[1] or nil
+        local legacy_claim = type(legacy) == 'table'
+            and type(legacy.typed_claims) == 'table' and legacy.typed_claims[1] or nil
+        task2_reducer_expect(type(legacy) == 'table'
+                and legacy.action == 'poisoned-legacy-action'
+                and legacy.entities[1] == 'Poisoned Legacy Target'
+                and legacy.zones[1] == 'Poisoned Legacy Source Zone'
+                and legacy.destination_zone_name == 'Poisoned Legacy Destination'
+                and legacy.destination_zone_id == 999
+                and type(legacy_claim) == 'table'
+                and legacy_claim.action == 'poisoned-legacy-action'
+                and legacy_claim.target == 'Poisoned Legacy Target'
+                and legacy_claim.zones[1] == 'Poisoned Legacy Source Zone'
+                and legacy_claim.destination_zone_name == 'Poisoned Legacy Destination'
+                and legacy_claim.destination_zone_id == 999,
+            label .. ' did not poison legacy destination fields for seam isolation')
+    end
+
     task2_reset_reducer_scenario('travel')
+    task2_expect_flat_destination_pair(
+        'quest:sandoria:2', 'Ghelsba Outpost', 140, 'travel')
     local transport_request = task2_signal('transport-request', {
         target_server_id = 17350951,
         zone_id = 140,
@@ -2545,6 +2613,8 @@ do
     -- menu, owner, World, and login generation.  Neither the request nor a
     -- replay completes the action; the matching committed zone does.
     task2_reset_reducer_scenario('transport-current')
+    task2_expect_flat_destination_pair(
+        'quest:sandoria:2', 'Ghelsba Outpost', 140, 'transport')
     local exact_transport = task2_signal('transport-request', {
         target_server_id = 17723406,
         target_name = 'Airship Door',
@@ -2653,6 +2723,8 @@ do
         'reloading a terminal quest cursor resurrected an active material action')
 
     task2_reset_reducer_scenario('mission-replacement')
+    task2_expect_flat_destination_pair(
+        "mission:San d'Oria:1", 'Ghelsba Outpost', 140, 'mission replacement')
     task2_reducer_expect(task2_reduce(task2_signal('committed-zone', {
             from_zone_id = 231, zone_id = 140,
         }), 'mission setup committed zone'),
@@ -4365,6 +4437,7 @@ accessxi.objective_guides.progression_actions = function(self, native_key)
             zones = zone ~= nil and T{ zone } or T{},
             items = T{}, key_items = T{}, transports = T{}, grid_coordinates = T{},
             result_items = T{}, result_relation = '',
+            destination_zone_name = '', destination_zone_id = 0,
             instruction = action .. ' ' .. target,
             count_mode = 'single',
             required_count = 1,
@@ -4375,7 +4448,8 @@ accessxi.objective_guides.progression_actions = function(self, native_key)
                 target_key = 'bg', target_kind = 'bg', npcs = 'bg', objects = 'bg',
                 enemies = 'bg', zones = 'bg', items = 'bg', key_items = 'bg',
                 transports = 'bg', grid_coordinates = 'bg', result_items = 'bg',
-                result_relation = 'bg', instruction = 'bg', count_mode = 'default',
+                result_relation = 'bg', destination_zone_name = '',
+                destination_zone_id = '', instruction = 'bg', count_mode = 'default',
                 required_count = 'default', count_explicit = 'default',
                 catalogue = #catalogue > 0 and 'catalogue' or '' },
             source_revisions = T{ bg = 4001, ffxiclopedia = 4002 },

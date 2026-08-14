@@ -10196,6 +10196,10 @@ function accessxi.native_query_phrase_from_ptr(ptr, context)
     if (phrase:eq('On second thought, none', true) and accessxi.native_query_label_looks_real(phrase)) then
         return phrase;
     end
+    if ((phrase:eq('No.', true) or phrase:eq('No', true))
+        and accessxi.native_query_label_looks_real(phrase)) then
+        return phrase;
+    end
 
     if (phrase ~= '' and accessxi.native_query_label_looks_real(phrase) and not accessxi.survival_guide_native_label_is_polluted(phrase)) then
         return phrase;

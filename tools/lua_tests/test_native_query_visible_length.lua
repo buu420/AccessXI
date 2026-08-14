@@ -44,6 +44,14 @@ function string:contains(needle, insensitive)
     return self:find(needle, 1, true) ~= nil
 end
 
+function string:len()
+    return #self
+end
+
+function string:fmt(...)
+    return string.format(self, ...)
+end
+
 local visible_source = required_extract(
     'function accessxi.native_query_visible_text_from_ptr(ptr)',
     'function accessxi.native_query_phrase_from_ptr(ptr, context)')
@@ -59,6 +67,9 @@ local candidate_node_source = extract(
 local cleaner_source = extract(
     'function accessxi.survival_guide_text(text)',
     "accessxi.home_point_data = accessxi.load_menu_module_table('home_points', T{ points = T{} })")
+local pollution_source = extract(
+    'function accessxi.survival_guide_native_label_is_polluted(label)',
+    'function accessxi.survival_guide_native_label_for_speech(label, context)')
 
 local bytes = {}
 local base = 0x01001000
@@ -79,9 +90,6 @@ local accessxi = {
     end,
     native_query_label_looks_real = function(value)
         return tostring(value or '') ~= ''
-    end,
-    survival_guide_native_label_is_polluted = function()
-        return false
     end,
     native_query_normalize_phrase = function(value)
         return tostring(value or '')
@@ -141,7 +149,7 @@ local function read_probe_string(address)
 end
 
 local chunk = assert(loadstring(
-    cleaner_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
+    cleaner_source .. '\n' .. pollution_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
         .. candidate_ptr_source .. '\n' .. candidate_node_source,
     '@native-query-visible-length'))
 setfenv(chunk, setmetatable({
@@ -269,6 +277,18 @@ local function decode_unsupported(visible, visible_count, bad_index, bad_lo, bad
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
+fallback_reads = 0
+fallback_collects = 0
+dwords = {}
+assert(decode_captured({ 0x002E, 'O', 0x000E }, { 'STALE' }, 2) == 'NO.')
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == 'No.')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+dwords[node + 0x10] = base
+assert(accessxi.native_query_candidate_label_from_node(node, '', 1, 1) == 'No.')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+
 local copper_claimed = {
     0x0008, 0x009C, 0x0009, ' ',
     0xFEFE, 0x0023, 'OPPER ',
@@ -314,9 +334,9 @@ assert(accessxi.native_query_phrase_from_ptr(base, '') == '150-pt. Items.')
 assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
 assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
 assert(decode_captured({ 'BRING IT ON', 0x0001 }, { 'STALE' }) == 'BRING IT ON!')
-assert(decode('HE' .. string.char(0x07), 3, 'S') == "He'")
-assert(decode('HE' .. string.char(0x0F), 3, 'STALE') == 'He/')
-assert(decode('HE ', 3, 'STALE') == 'He')
+assert(decode_visible('HE' .. string.char(0x07), 3, 1, 'S') == "HE'")
+assert(decode_visible('HE' .. string.char(0x0F), 3, 1, 'STALE') == 'HE/')
+assert(decode_visible('HE ', 3, 1, 'STALE') == 'HE')
 assert(decode_visible(' ', 1, 1) == '')
 for _, bad in ipairs({ 0, 64, 255 }) do
     assert(decode('VALID', bad) == '')

@@ -191,3 +191,7 @@ Task 2 arm-lifecycle audit added a shared mission/quest interaction arm and
 proves native completion and replacement consume it before a foreign objective
 can advance. Clean snapshot `31a2eb2` reaches one 54-RED aggregate; current
 Task 3 production is GREEN on the strengthened harness.
+
+Task 2 cache audit now proves a cached compact action cannot bypass a changed
+index progression revision. Current Task 3 guide production has one focused
+RED until cache hits revalidate that live self-pin.

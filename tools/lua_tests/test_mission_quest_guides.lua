@@ -1426,6 +1426,19 @@ do
                 'progression_actions returned a mutable cache-owned action row')
         end
 
+        local counted_revision = compact_index[counted_key].progression_revision
+        compact_index[counted_key].progression_revision = 'revision-changed-after-cache'
+        local stale_cached_actions, stale_cached_reason =
+            compact_progression_actions(counted_key)
+        task2_guide_expect(stale_cached_actions == nil
+                and tostring(stale_cached_reason):lower():find('revision', 1, true) ~= nil,
+            'cached compact actions bypassed a changed index progression revision')
+        compact_index[counted_key].progression_revision = counted_revision
+        local restored_cached_actions = compact_progression_actions(counted_key)
+        task2_guide_expect(type(restored_cached_actions) == 'table'
+                and #restored_cached_actions == 3,
+            'restoring the exact index revision did not recover compact actions')
+
         local mixed_ok, mixed_actions = pcall(function()
             return compact_progression_actions(mixed_authority_key)
         end)

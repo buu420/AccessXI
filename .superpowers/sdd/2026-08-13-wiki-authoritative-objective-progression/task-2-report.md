@@ -610,3 +610,9 @@ advance the still-active quest.  Clean snapshot
 5385 with 54 REDs; the four new terminal messages prove both completion and
 replacement otherwise leave the shared arm live and write foreign quest
 progress.  The in-progress Task 3 runtime passes the strengthened harness.
+
+The cache audit also changes one loaded index entry's progression revision
+without rebuilding `GuideState`.  Returning the old cached actions is a single
+focused RED at line 2101; the loader must re-read the index self-pin on every
+access, fail closed while it disagrees with the cached shard objective, and
+recover after the exact revision is restored.

@@ -71,6 +71,33 @@ local function extract(first_literal, after_literal)
     return source:sub(first, after - 1)
 end
 
+-- Task 2 RED: a login generation is not an addon-lifetime number.  The same
+-- character can leave the world and return with the same stable identity, so
+-- stale objective snapshots and event starts must no longer share its prior
+-- session generation.
+local objective_session_source = extract(
+    'function accessxi.current_objective_session_epoch()',
+    'function accessxi.current_nation_mission_rank_state()')
+local task2_reader_identity = 'alpha:1001'
+local task2_reader_accessxi = {
+    objective_session_epoch = 0,
+    current_player_identity = function() return task2_reader_identity end,
+}
+local task2_reader_epoch_chunk = assert(loadstring(
+    objective_session_source, '@reader-task2-objective-session'))
+setfenv(task2_reader_epoch_chunk, setmetatable({
+    accessxi = task2_reader_accessxi,
+    os = { time = function() return 900 end },
+}, { __index = _G }))
+task2_reader_epoch_chunk()
+local task2_first_login_epoch = task2_reader_accessxi.current_objective_session_epoch()
+task2_reader_identity = ''
+task2_reader_accessxi.current_objective_session_epoch()
+task2_reader_identity = 'alpha:1001'
+local task2_second_login_epoch = task2_reader_accessxi.current_objective_session_epoch()
+assert(task2_first_login_epoch > 0 and task2_second_login_epoch > task2_first_login_epoch,
+    'same-identity relogin reused the prior objective session generation')
+
 -- Main 0x056 uses two packed uint16 fields before the final SoA/RoV uint32s.
 -- RoV must never alias the uint16 packet port at absolute offset 0x24.
 local mission_bytes = {}

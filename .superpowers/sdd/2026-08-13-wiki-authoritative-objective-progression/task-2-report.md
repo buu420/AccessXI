@@ -15,12 +15,18 @@ mission and quest reader runtime pin test passed
 ## Changed files
 
 - `tools/lua_tests/test_mission_quest_navigation.lua`
+- `tools/lua_tests/test_mission_quest_reader_runtime_integration.lua`
 - `.superpowers/sdd/2026-08-13-wiki-authoritative-objective-progression/task-2-report.md`
 
 The navigation harness now establishes coherent local mission and quest state,
 then sends exact start/finish lifecycle evidence for Arnau and Cid without
 calling `nav_mission_quest_remember_arrival`.  It requires one advancement
 notification per accepted lifecycle and rejects a replayed finish.
+
+The reader extraction harness also executes the real
+`current_objective_session_epoch` function across identity loss and a
+same-identity relogin.  It requires a new positive generation for the second
+login.
 
 ## Confirmed RED
 
@@ -42,16 +48,20 @@ it is not a Lua load or fixture error.  The replay expectations already stay
 green under current production because no pending route-owned interaction was
 created.
 
+The reader runtime harness independently reports this intended RED:
+
+```text
+same-identity relogin reused the prior objective session generation
+```
+
 ## Harness verification
 
-- Before the Task 2 edit, the reader runtime integration wrapper was green.
-- A final post-commit reader run reached its two integration successes, then
-  failed its manifest-byte pin because the concurrently refreshed unowned
-  `mission-quest-route-manifest.tsv` changed during this task.  No Task 2 file
-  contributes to that pin failure.
-- `git diff --check -- tools/lua_tests/test_mission_quest_navigation.lua` is clean.
-- The navigation wrapper is intentionally RED only at the aggregate Task 2
-  assertion above.
+- Before the Task 2 edit, both focused wrappers were green.
+- Lua 5.1 loads the changed navigation harness successfully.
+- The navigation and reader wrappers are now intentionally RED only at the
+  Task 2 assertions above; the reader RED occurs before the concurrent
+  manifest-byte pin can run.
+- `git diff --check` is clean for every Task 2 file.
 
 ## APIs/behavior required from Task 3
 
@@ -60,6 +70,10 @@ step from coherent local identity, World, session, objective key, exact target
 server ID, and zone when no route arrival is pending.  It must arm only a
 matching start, complete only its matching finish, persist/advance once, emit
 one progression notification, and reject replayed finishes.
+
+`current_objective_session_epoch` must observe identity loss and issue a new
+positive generation when the local character subsequently logs in, including
+when their stable name/server identity is unchanged.
 
 ## Commit
 

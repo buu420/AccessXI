@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -51,6 +52,13 @@ _SITE_LABELS = {
     "ffxiclopedia": "FFXIclopedia",
 }
 
+_SOURCE_AUTHORITY = {
+    "primary": "bg",
+    "fallback": "ffxiclopedia",
+}
+
+_PROGRESSION_REVISION_SCHEMA = 2
+
 _OBJECT_LIKE_TARGET_NAME = re.compile(
     r"\b(?:door|gate|snow|mark|point|switch|lever|device|stone|rock|crystal|altar|"
     r"book|wall|floor|chest|coffer|brazier|ornament|stair|trail|sign|target|machine|"
@@ -65,6 +73,28 @@ _COVERAGE_STATUSES = (
     "source-missing",
     "ambiguous-match",
     "source-conflict",
+)
+
+_SOURCE_MISSING_CLASSIFICATIONS = (
+    "native-sentinel",
+    "chapter-index",
+    "native-placeholder",
+    "source-absent",
+)
+
+_NATIVE_PLACEHOLDER_TITLE = re.compile(r"[A-Z]{2}\s*Quest(?:\s+\d+)?")
+_CHAPTER_INDEX_PHRASE = re.compile(
+    r"\bcontains\s+the\s+following\s+missions\s*:",
+    re.IGNORECASE,
+)
+_CATEGORY_LINK = re.compile(r"\[\[\s*Category\s*:\s*([^\]|#]+)", re.IGNORECASE)
+_CHAPTER_CONTEXT_CATEGORY = re.compile(
+    r"^(.+?)\s+(?:Missions|Chapters)\s*$",
+    re.IGNORECASE,
+)
+_CHAPTER_ORDINAL_PREFIX = re.compile(
+    r"^\s*Chapter\s+(?:Three|3)\s*:",
+    re.IGNORECASE,
 )
 
 
@@ -108,6 +138,14 @@ def _reconcile_module_name(kind: str, context: str) -> str:
     if not kind_token or not context_token:
         raise GenerationError("A reconciliation module name requires kind and context.")
     return f"mission_quest_reconcile_{kind_token}_{context_token}"
+
+
+def _progression_module_name(kind: str, context: str) -> str:
+    kind_token = _module_token(kind)
+    context_token = _module_token(context)
+    if not kind_token or not context_token:
+        raise GenerationError("A progression module name requires kind and context.")
+    return f"mission_quest_progression_{kind_token}_{context_token}"
 
 
 def _lua_array(values: Iterable[object]) -> str:
@@ -173,6 +211,7 @@ def _source_action_span_lua(span: SourceActionSpan, indent: str) -> list[str]:
         f"{inner}key_item_mentions = {_lua_array(span.key_item_mentions)},",
         f"{inner}transport_mentions = {_lua_array(span.transport_mentions)},",
         f"{inner}zone_mentions = {_lua_array(span.zone_mentions)},",
+        f"{inner}destination_zone_name = {lua_quote(span.destination_zone_name)},",
         f"{inner}temporal_zone_variant = {lua_quote(span.temporal_zone_variant)},",
         f"{inner}map_numbers = {_lua_array(span.map_numbers)},",
         f"{inner}grid_coordinates = {_lua_array(span.grid_coordinates)},",
@@ -199,11 +238,8 @@ def _step_lua(step: SourceStep, indent: str = "      ") -> list[str]:
         f"{inner}items = {_lua_array(step.items)},",
         f"{inner}key_items = {_lua_array(step.key_items)},",
         f"{inner}warnings = {_lua_array(step.warnings)},",
-        f"{inner}action_spans = {{",
     ]
-    for span in step.action_spans:
-        lines.extend(_source_action_span_lua(span, inner + "  "))
-    lines.extend([f"{inner}}},", indent + "},"])
+    lines.append(indent + "},")
     return lines
 
 
@@ -280,27 +316,6 @@ def _reconcile_module_text(
         for stage_key, step_id in sorted(automatic_stages.items()):
             lines.append(f"      [{lua_quote(stage_key)}] = {lua_quote(step_id)},")
         lines.append("    },")
-        if objective.objective_destinations:
-            lines.append("    objective_destinations = {")
-            for destination in objective.objective_destinations:
-                lines.extend(_objective_destination_lua(destination))
-            lines.append("    },")
-        lines.append("    action_resolution_ledger = {")
-        for row in objective.action_resolution_ledger:
-            lines.extend(_objective_action_ledger_lua(row))
-        lines.append("    },")
-        lines.append("    objective_destination_candidates = {")
-        for candidate in objective.objective_destination_candidates:
-            lines.extend(_objective_candidate_lua(candidate))
-        lines.append("    },")
-        lines.append("    objective_destination_groups = {")
-        for group in objective.objective_destination_groups:
-            lines.extend(_objective_group_lua(group))
-        lines.append("    },")
-        lines.append("    objective_resolution_review_items = {")
-        for item in objective.objective_resolution_review_items:
-            lines.extend(_objective_review_item_lua(item))
-        lines.append("    },")
         lines.append("    steps = {")
         for step in objective.steps:
             step_lines = [
@@ -313,19 +328,13 @@ def _reconcile_module_text(
                     f"        conflicting_fields = {_lua_array(step.conflicting_fields)},",
                     f"        action = {lua_quote(step.action)},",
                     f"        entities = {_lua_array(step.entities)},",
-                    f"        items = {_lua_array(step.items)},",
                     f"        zones = {_lua_array(step.zones)},",
                     f"        grid_coordinates = {_lua_array(step.grid_coordinates)},",
-                    f"        alignment_score = {step.alignment_score},",
-                    f"        alignment_reason = {lua_quote(step.alignment_reason)},",
-                    f"        unpaired_reason = {lua_quote(step.unpaired_reason)},",
-                    "        typed_claims = {",
+                    f"        bg_instruction = {lua_quote(step.bg_instruction)},",
+                    f"        ffxiclopedia_instruction = {lua_quote(step.ffxiclopedia_instruction)},",
             ]
-            for claim in step.claims:
-                step_lines.extend(_reconciled_claim_lua(claim))
             step_lines.extend(
                 [
-                    "        },",
                     f"        route_ready = {'true' if step.stable_step_id in route_steps else 'false'},",
                 ]
             )
@@ -352,36 +361,465 @@ def _reconcile_module_text(
     return "\n".join(lines) + "\n"
 
 
-def _reconciled_claim_lua(claim: ReconciledActionClaim) -> list[str]:
+def _source_step(page: ParsedObjective | None, order: int) -> SourceStep | None:
+    if page is None or order <= 0:
+        return None
+    return next((step for step in page.steps if step.order == order), None)
+
+
+def _source_span(step: SourceStep | None, order: int) -> SourceActionSpan | None:
+    if step is None or order <= 0:
+        return None
+    return next((span for span in step.action_spans if span.order == order), None)
+
+
+def _authoritative_value_present(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (tuple, list, dict, set)):
+        return bool(value)
+    return value is not None
+
+
+def _authoritative_value(bg_value: Any, ffxiclopedia_value: Any) -> tuple[Any, str]:
+    if _authoritative_value_present(bg_value):
+        return bg_value, "bg"
+    if _authoritative_value_present(ffxiclopedia_value):
+        return ffxiclopedia_value, "ffxiclopedia"
+    return bg_value if bg_value is not None else ffxiclopedia_value, ""
+
+
+def _owned_value(value: Any, site: str) -> tuple[Any, str]:
+    return value, site if _authoritative_value_present(value) else ""
+
+
+def _material_semantic_sources(
+    bg_span: SourceActionSpan | None,
+    ffxiclopedia_span: SourceActionSpan | None,
+) -> tuple[str, SourceActionSpan, SourceActionSpan | None, SourceActionSpan | None]:
+    material_bg = bg_span if bg_span is not None and bg_span.material else None
+    material_ffxi = (
+        ffxiclopedia_span
+        if ffxiclopedia_span is not None and ffxiclopedia_span.material
+        else None
+    )
+    if material_bg is not None:
+        return "bg", material_bg, material_bg, material_ffxi
+    if material_ffxi is not None:
+        return "ffxiclopedia", material_ffxi, None, material_ffxi
+    raise GenerationError("Material progression action has no material source span.")
+
+
+def _compatible_semantic_domain(
+    primary: SourceActionSpan,
+    fallback: SourceActionSpan | None,
+) -> bool:
+    if fallback is None:
+        return False
+    return bool(
+        primary.action == fallback.action
+        and primary.relationship == fallback.relationship
+        and primary.target_kind == fallback.target_kind
+        and normalize_title(primary.target) == normalize_title(fallback.target)
+    )
+
+
+def _authoritative_count_triple(
+    bg_span: SourceActionSpan | None,
+    ffxiclopedia_span: SourceActionSpan | None,
+) -> tuple[int, str, bool, str]:
+    selected: SourceActionSpan | None
+    source: str
+    if bg_span is not None and bg_span.count_explicit:
+        selected, source = bg_span, "bg"
+    elif ffxiclopedia_span is not None and ffxiclopedia_span.count_explicit:
+        selected, source = ffxiclopedia_span, "ffxiclopedia"
+    elif bg_span is not None:
+        selected, source = bg_span, "bg"
+    elif ffxiclopedia_span is not None:
+        selected, source = ffxiclopedia_span, "ffxiclopedia"
+    else:
+        return 1, "single", False, ""
+    if selected.required_count <= 0:
+        raise GenerationError("Progression action has a non-positive required count.")
+    return selected.required_count, selected.count_mode, selected.count_explicit, source
+
+
+def _unique_zone_id(
+    zone_name: str,
+    navigation_zone_names: Mapping[int, str],
+) -> int:
+    key = zone_name.strip().casefold()
+    if not key:
+        return 0
+    matches = {
+        int(zone)
+        for zone, name in navigation_zone_names.items()
+        if int(zone) > 0 and str(name).strip().casefold() == key
+    }
+    return next(iter(matches)) if len(matches) == 1 else 0
+
+
+def _progression_catalogue_row(candidate: ObjectiveDestinationCandidate) -> dict[str, Any]:
+    return {
+        "destination_id": candidate.destination_id,
+        "zone_id": candidate.zone,
+        "zone_name": candidate.zone_name,
+        "target_name": candidate.target_name,
+        "target_kind": candidate.target_kind,
+        "target_key": normalize_title(candidate.target_name),
+        "target_point": list(candidate.target_point),
+        "raw_identity": candidate.raw_identity,
+        "raw_spawn_ids": list(candidate.raw_spawn_ids),
+        "cluster_policy_version": candidate.cluster_policy_version,
+        "transport_id": candidate.transport_id,
+        "battlefield_id": candidate.battlefield_id,
+        "metadata_class": candidate.metadata_class,
+        "group_id": candidate.group_id,
+        "arrival_instruction": candidate.arrival_instruction,
+    }
+
+
+def progression_objective_payload(
+    native: NativeObjective,
+    reconciled: ReconciledObjective | None,
+    source_pages: Mapping[str, ParsedObjective],
+    module_name: str,
+    *,
+    navigation_zone_names: Mapping[int, str] | None = None,
+) -> dict[str, Any]:
+    """Build the one canonical payload used for both revision hashing and Lua emission."""
+
+    expected_module = _progression_module_name(native.kind, native.context) if reconciled else ""
+    if module_name != expected_module:
+        raise GenerationError(
+            f"Progression shard mismatch for {native.key!r}: {module_name!r} != {expected_module!r}."
+        )
+    if reconciled is not None and reconciled.native_key != native.key:
+        raise GenerationError(f"Progression native-key mismatch for {native.key!r}.")
+    unknown_sites = set(source_pages).difference(_SOURCE_AUTHORITY.values())
+    if unknown_sites:
+        raise GenerationError(f"Progression sources contain unsupported sites: {sorted(unknown_sites)!r}.")
+
+    revisions = {
+        site: page.revision_id
+        for site, page in sorted(source_pages.items())
+    }
+    for site, revision_id in revisions.items():
+        if revision_id <= 0:
+            raise GenerationError(f"Progression source {site!r} has no revision pin.")
+
+    ledger_by_id = {
+        row.action_id: row
+        for row in (reconciled.action_resolution_ledger if reconciled is not None else ())
+        if row.material
+    }
+    candidates_by_action: dict[str, list[ObjectiveDestinationCandidate]] = defaultdict(list)
+    for candidate in (
+        reconciled.objective_destination_candidates if reconciled is not None else ()
+    ):
+        candidates_by_action[candidate.action_id].append(candidate)
+
+    actions: list[dict[str, Any]] = []
+    for step in reconciled.steps if reconciled is not None else ():
+        bg_step = _source_step(source_pages.get("bg"), step.source_orders[0])
+        ffxi_step = _source_step(source_pages.get("ffxiclopedia"), step.source_orders[1])
+        for claim in step.claims:
+            if not claim.material:
+                continue
+            bg_span = _source_span(bg_step, claim.bg_span_order)
+            ffxi_span = _source_span(ffxi_step, claim.ffxiclopedia_span_order)
+            for site, declared_order, span in (
+                ("bg", claim.bg_span_order, bg_span),
+                ("ffxiclopedia", claim.ffxiclopedia_span_order, ffxi_span),
+            ):
+                if declared_order > 0 and span is None:
+                    raise GenerationError(
+                        f"Material action {claim.stable_claim_id!r} declares missing {site} source span."
+                    )
+            if bg_span is None and ffxi_span is None:
+                raise GenerationError(f"Material action {claim.stable_claim_id!r} has no source span.")
+            (
+                source_authority,
+                semantic_owner,
+                material_bg,
+                material_ffxi,
+            ) = _material_semantic_sources(bg_span, ffxi_span)
+            semantic_fallback = material_ffxi if source_authority == "bg" else None
+            if not _compatible_semantic_domain(semantic_owner, semantic_fallback):
+                semantic_fallback = None
+            auxiliary_bg = material_bg
+            auxiliary_ffxi = semantic_fallback if source_authority == "bg" else material_ffxi
+
+            owner_key_items = tuple(semantic_owner.key_item_mentions)
+            owner_key_set = {value.casefold() for value in owner_key_items}
+            owner_items = tuple(
+                value
+                for value in semantic_owner.item_mentions
+                if value.casefold() not in owner_key_set
+            )
+            owned_values = {
+                "action": semantic_owner.action,
+                "relationship": semantic_owner.relationship,
+                "target": semantic_owner.target,
+                "target_kind": semantic_owner.target_kind,
+                "items": owner_items,
+                "key_items": owner_key_items,
+                "result_items": semantic_owner.result_items,
+                "result_relation": semantic_owner.result_relation,
+                "instruction": semantic_owner.supporting_clause,
+            }
+            source_values = {
+                "npcs": (
+                    auxiliary_bg.npc_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.npc_mentions if auxiliary_ffxi else (),
+                ),
+                "objects": (
+                    auxiliary_bg.object_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.object_mentions if auxiliary_ffxi else (),
+                ),
+                "enemies": (
+                    auxiliary_bg.enemy_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.enemy_mentions if auxiliary_ffxi else (),
+                ),
+                "transports": (
+                    auxiliary_bg.transport_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.transport_mentions if auxiliary_ffxi else (),
+                ),
+                "zones": (
+                    auxiliary_bg.zone_mentions if auxiliary_bg else (),
+                    auxiliary_ffxi.zone_mentions if auxiliary_ffxi else (),
+                ),
+                "destination_zone_name": (
+                    auxiliary_bg.destination_zone_name if auxiliary_bg else "",
+                    auxiliary_ffxi.destination_zone_name if auxiliary_ffxi else "",
+                ),
+                "grid_coordinates": (
+                    auxiliary_bg.grid_coordinates if auxiliary_bg else (),
+                    auxiliary_ffxi.grid_coordinates if auxiliary_ffxi else (),
+                ),
+            }
+            selected: dict[str, Any] = {}
+            field_sources: dict[str, str] = {}
+            for field, value in owned_values.items():
+                value, source = _owned_value(value, source_authority)
+                if isinstance(value, tuple):
+                    value = list(value)
+                selected[field] = value
+                field_sources[field] = source
+            for field, (bg_value, ffxi_value) in source_values.items():
+                value, source = _authoritative_value(bg_value, ffxi_value)
+                if isinstance(value, tuple):
+                    value = list(value)
+                selected[field] = value
+                field_sources[field] = source
+            required_count, count_mode, count_explicit, count_source = _authoritative_count_triple(
+                material_bg,
+                semantic_fallback if source_authority == "bg" else material_ffxi,
+            )
+            selected["required_count"] = required_count
+            selected["count_mode"] = count_mode
+            selected["count_explicit"] = count_explicit
+            field_sources["required_count"] = count_source
+            field_sources["count_mode"] = count_source
+            field_sources["count_explicit"] = count_source
+            selected["target_key"] = normalize_title(selected["target"])
+            field_sources["target_key"] = field_sources["target"]
+            selected["destination_zone_id"] = _unique_zone_id(
+                selected["destination_zone_name"],
+                navigation_zone_names or {},
+            )
+            field_sources["destination_zone_id"] = (
+                field_sources["destination_zone_name"]
+                if selected["destination_zone_id"] > 0
+                else ""
+            )
+
+            ledger = ledger_by_id.get(claim.stable_claim_id)
+            if ledger is None:
+                raise GenerationError(
+                    f"Material action {claim.stable_claim_id!r} has no material ledger row."
+                )
+            expected_span_ids = {
+                f"{native.key}:{site}:step-{source_order:03d}:span-{span.order:02d}"
+                for site, source_order, span in (
+                    ("bg", step.source_orders[0], bg_span),
+                    ("ffxiclopedia", step.source_orders[1], ffxi_span),
+                )
+                if span is not None
+            }
+            missing_span_ids = expected_span_ids.difference(ledger.source_action_span_ids)
+            if missing_span_ids:
+                raise GenerationError(
+                    f"Material action {claim.stable_claim_id!r} ledger is missing source span pins: "
+                    f"{sorted(missing_span_ids)!r}."
+                )
+            source_span_ids = list(ledger.source_action_span_ids)
+            catalogue = [
+                _progression_catalogue_row(candidate)
+                for candidate in sorted(
+                    candidates_by_action.get(claim.stable_claim_id, ()),
+                    key=lambda row: row.candidate_id,
+                )
+            ]
+            field_sources["catalogue"] = "catalogue" if catalogue else ""
+            actions.append(
+                {
+                    "step_id": step.stable_step_id,
+                    "step_order": step.order,
+                    "action_id": claim.stable_claim_id,
+                    "action_order": claim.order,
+                    "order": len(actions) + 1,
+                    "action": selected["action"],
+                    "relationship": selected["relationship"],
+                    "target": selected["target"],
+                    "target_key": selected["target_key"],
+                    "target_kind": selected["target_kind"],
+                    "npcs": selected["npcs"],
+                    "objects": selected["objects"],
+                    "enemies": selected["enemies"],
+                    "items": selected["items"],
+                    "key_items": selected["key_items"],
+                    "transports": selected["transports"],
+                    "zones": selected["zones"],
+                    "destination_zone_name": selected["destination_zone_name"],
+                    "destination_zone_id": selected["destination_zone_id"],
+                    "grid_coordinates": selected["grid_coordinates"],
+                    "result_items": selected["result_items"],
+                    "result_relation": selected["result_relation"],
+                    "instruction": selected["instruction"],
+                    "required_count": selected["required_count"],
+                    "count_mode": selected["count_mode"],
+                    "count_explicit": selected["count_explicit"],
+                    "material": True,
+                    "source_authority": source_authority,
+                    "field_sources": field_sources,
+                    "source_revisions": dict(revisions),
+                    "source_action_span_ids": source_span_ids,
+                    "catalogue": catalogue,
+                }
+            )
+
+    action_ids = [row["action_id"] for row in actions]
+    if len(action_ids) != len(set(action_ids)):
+        raise GenerationError(f"Progression actions for {native.key!r} contain duplicate IDs.")
+    if [row["order"] for row in actions] != list(range(1, len(actions) + 1)):
+        raise GenerationError(f"Progression actions for {native.key!r} are not contiguous.")
+
+    revision_payload = {
+        "progression_schema_version": _PROGRESSION_REVISION_SCHEMA,
+        "progression_module": module_name,
+        "native_key": native.key,
+        "source_authority": dict(_SOURCE_AUTHORITY),
+        "progression_actions": actions,
+    }
+    progression_revision = hashlib.sha256(
+        json.dumps(
+            revision_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "native_key": native.key,
+        "progression_schema_version": _PROGRESSION_REVISION_SCHEMA,
+        "progression_module": module_name,
+        "source_authority": dict(_SOURCE_AUTHORITY),
+        "progression_revision": progression_revision,
+        "progression_actions": actions,
+    }
+
+
+def _lua_value(value: Any, indent: str = "") -> str:
+    if value is None:
+        return "nil"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return lua_quote(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return format(value, ".17g")
+    if isinstance(value, Mapping):
+        if not value:
+            return "{}"
+        rows = ["{"]
+        for key, item in value.items():
+            key_text = str(key)
+            lua_key = key_text if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key_text) else f"[{lua_quote(key_text)}]"
+            rows.append(f"{indent}  {lua_key} = {_lua_value(item, indent + '  ')},")
+        rows.append(indent + "}")
+        return "\n".join(rows)
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return "{}"
+        rows = ["{"]
+        rows.extend(f"{indent}  {_lua_value(item, indent + '  ')}," for item in value)
+        rows.append(indent + "}")
+        return "\n".join(rows)
+    raise GenerationError(f"Unsupported progression Lua value: {type(value).__name__}.")
+
+
+def _progression_module_text(module_name: str, payloads: Iterable[Mapping[str, Any]]) -> str:
     lines = [
-        "          {",
-        f"            stable_claim_id = {lua_quote(claim.stable_claim_id)},",
-        f"            order = {claim.order},",
-        f"            action = {lua_quote(claim.action)},",
-        f"            relationship = {lua_quote(claim.relationship)},",
-        f"            target = {lua_quote(claim.target)},",
-        f"            target_kind = {lua_quote(claim.target_kind)},",
-        f"            comparison = {lua_quote(claim.comparison)},",
-        f"            alignment_score = {claim.alignment_score},",
-        f"            alignment_reason = {lua_quote(claim.alignment_reason)},",
-        f"            unpaired_reason = {lua_quote(claim.unpaired_reason)},",
-        f"            bg_span_order = {claim.bg_span_order},",
-        f"            ffxiclopedia_span_order = {claim.ffxiclopedia_span_order},",
-        "            candidates = {",
+        "-- Generated AccessXI compact progression facts. Do not edit by hand.",
+        "-- Full source spans and review evidence remain in data/mission-quest-guides JSON.",
+        "return {",
+        f"  schema_version = {_PROGRESSION_REVISION_SCHEMA},",
+        f"  module_name = {lua_quote(module_name)},",
+        f"  source_authority = {_lua_compact_value(dict(_SOURCE_AUTHORITY))},",
+        "  objectives = {",
     ]
-    for candidate in claim.candidates:
+    for payload in sorted(payloads, key=lambda row: str(row["native_key"])):
+        native_key = str(payload["native_key"])
         lines.extend(
             [
-                "              {",
-                f"                field = {lua_quote(candidate.field)},",
-                f"                value = {lua_quote(candidate.value)},",
-                f"                comparison = {lua_quote(candidate.comparison)},",
-                f"                sources = {_lua_array(candidate.sources)},",
-                "              },",
+                f"    [{lua_quote(native_key)}] = {{",
+                f"      native_key = {lua_quote(native_key)},",
+                f"      progression_schema_version = {int(payload['progression_schema_version'])},",
+                f"      progression_module = {lua_quote(str(payload['progression_module']))},",
+                f"      source_authority = {_lua_compact_value(payload['source_authority'])},",
+                f"      progression_revision = {lua_quote(str(payload['progression_revision']))},",
+                "      progression_actions = {",
             ]
         )
-    lines.extend(["            },", "          },"])
-    return lines
+        lines.extend(
+            f"        {_lua_compact_value(action)},"
+            for action in payload["progression_actions"]
+        )
+        lines.extend(["      },", "    },"])
+    lines.extend(["  },", "}", ""])
+    return "\n".join(lines)
+
+
+def _lua_compact_value(value: Any) -> str:
+    if value is None:
+        return "nil"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return lua_quote(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return format(value, ".17g")
+    if isinstance(value, Mapping):
+        rows: list[str] = []
+        for key, item in value.items():
+            key_text = str(key)
+            lua_key = (
+                key_text
+                if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key_text)
+                else f"[{lua_quote(key_text)}]"
+            )
+            rows.append(f"{lua_key} = {_lua_compact_value(item)}")
+        return "{ " + ", ".join(rows) + " }" if rows else "{}"
+    if isinstance(value, (list, tuple)):
+        rows = [_lua_compact_value(item) for item in value]
+        return "{ " + ", ".join(rows) + " }" if rows else "{}"
+    raise GenerationError(f"Unsupported progression Lua value: {type(value).__name__}.")
 
 
 def _objective_action_ledger_lua(row: ObjectiveActionLedgerRow) -> list[str]:
@@ -1358,6 +1796,12 @@ def _index_text(
                 f"    progress_id = {native.progress_id if native.progress_id is not None else 'nil'},",
                 f"    title = {lua_quote(native.title)},",
                 f"    status = {lua_quote(record['status'])},",
+                f"    progression_schema_version = {record['progression_schema_version']},",
+                f"    progression_revision = {lua_quote(record['progression_revision'])},",
+                "    source_authority = {",
+                f"      primary = {lua_quote(record['source_authority']['primary'])},",
+                f"      fallback = {lua_quote(record['source_authority']['fallback'])},",
+                "    },",
                 "    source_modules = {",
             ]
         )
@@ -1367,6 +1811,7 @@ def _index_text(
             [
                 "    },",
                 f"    reconcile_module = {lua_quote(record['reconcile_module']) if record['reconcile_module'] else 'nil'},",
+                f"    progression_module = {lua_quote(record['progression_module']) if record['progression_module'] else 'nil'},",
                 "  },",
             ]
         )
@@ -1386,6 +1831,12 @@ def _coverage_markdown(counts: Mapping[str, Any], pages: tuple[ParsedObjective, 
     ]
     for status in _COVERAGE_STATUSES:
         lines.append(f"- {status}: {counts['by_status'].get(status, 0)}")
+    for classification in _SOURCE_MISSING_CLASSIFICATIONS:
+        lines.append(
+            "- source-missing/"
+            f"{classification}: "
+            f"{counts['by_source_missing_classification'].get(classification, 0)}"
+        )
     lines.extend(
         [
             f"- Dual-source matches: {counts['dual_source']}",
@@ -1396,6 +1847,107 @@ def _coverage_markdown(counts: Mapping[str, Any], pages: tuple[ParsedObjective, 
         ]
     )
     return "\n".join(lines)
+
+
+def _native_placeholder(native: NativeObjective) -> bool:
+    if native.kind != "quest":
+        return False
+    if _NATIVE_PLACEHOLDER_TITLE.fullmatch(native.title) and len(native.details) == 1:
+        label = native.details[0].replace("\x81F", ":").strip()
+        if label == "Client:":
+            return True
+    return bool(
+        native.title.endswith(":")
+        and native.details
+        and native.details[0].lstrip("+").strip() == native.title
+        and any(re.search(r"\bX\b", detail) for detail in native.details)
+    )
+
+
+def _chapter_identity_method(native_title: str, page_title: str) -> str:
+    if normalize_title(native_title) == normalize_title(page_title):
+        return "exact-title"
+    if _CHAPTER_ORDINAL_PREFIX.match(native_title) and _CHAPTER_ORDINAL_PREFIX.match(page_title):
+        native_ordinal = normalize_title(
+            _CHAPTER_ORDINAL_PREFIX.sub("Chapter 3:", native_title, count=1)
+        )
+        page_ordinal = normalize_title(
+            _CHAPTER_ORDINAL_PREFIX.sub("Chapter 3:", page_title, count=1)
+        )
+        if native_ordinal == page_ordinal:
+            return "chapter-ordinal-normalized"
+    without_disambiguator = re.sub(
+        r"\s*\(Chapter\)\s*$",
+        "",
+        page_title,
+        flags=re.IGNORECASE,
+    )
+    if without_disambiguator != page_title and normalize_title(
+        without_disambiguator
+    ) == normalize_title(native_title):
+        return "chapter-disambiguator"
+    return ""
+
+
+def _chapter_index_contexts(content: str) -> tuple[str, ...]:
+    if _CHAPTER_INDEX_PHRASE.search(content) is None:
+        return ()
+    result: list[str] = []
+    seen: set[str] = set()
+    for category in _CATEGORY_LINK.findall(content):
+        match = _CHAPTER_CONTEXT_CATEGORY.fullmatch(category.strip())
+        if match is None:
+            continue
+        context = match.group(1).strip()
+        key = normalize_title(context)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(context)
+    return tuple(result)
+
+
+def _chapter_index_identities(
+    natives: tuple[NativeObjective, ...],
+    revisions: tuple[PageRevision, ...],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    mission_contexts: dict[str, list[NativeObjective]] = defaultdict(list)
+    for native in natives:
+        if native.kind == "mission":
+            mission_contexts[normalize_title(native.context)].append(native)
+
+    candidates: dict[str, list[tuple[PageRevision, str]]] = defaultdict(list)
+    for revision in revisions:
+        contexts = _chapter_index_contexts(revision.content)
+        if len(contexts) != 1:
+            continue
+        context_natives = mission_contexts.get(normalize_title(contexts[0]), ())
+        matches = tuple(
+            (native, _chapter_identity_method(native.title, revision.canonical_title))
+            for native in context_natives
+        )
+        matches = tuple((native, method) for native, method in matches if method)
+        if len(matches) == 1:
+            native, method = matches[0]
+            candidates[native.key].append((revision, method))
+
+    identities: dict[str, dict[str, dict[str, Any]]] = {}
+    for native_key, rows in candidates.items():
+        by_site: dict[str, list[tuple[PageRevision, str]]] = defaultdict(list)
+        for revision, method in rows:
+            by_site[revision.site].append((revision, method))
+        if any(len(site_rows) != 1 for site_rows in by_site.values()):
+            continue
+        identities[native_key] = {
+            site: {
+                "page_id": site_rows[0][0].page_id,
+                "revision_id": site_rows[0][0].revision_id,
+                "title": site_rows[0][0].canonical_title,
+                "source_url": site_rows[0][0].source_url,
+                "match_method": site_rows[0][1],
+            }
+            for site, site_rows in sorted(by_site.items())
+        }
+    return identities
 
 
 def build_guide_artifacts(
@@ -1415,12 +1967,13 @@ def build_guide_artifacts(
 
     natives = tuple(sorted(native_objectives, key=lambda row: row.key))
     pages = tuple(sorted(parsed_pages, key=lambda page: (page.site, page.page_id, page.revision_id)))
-    revisions = tuple(
+    source_revision_rows = tuple(
         sorted(
             source_revisions or (),
             key=lambda page: (page.site, page.page_id, page.revision_id),
         )
     )
+    revisions: tuple[ParsedObjective | PageRevision, ...] = source_revision_rows
     if not revisions:
         revisions = pages
     nav_points = tuple(navigation_points)
@@ -1533,7 +2086,9 @@ def build_guide_artifacts(
         tuple[str, str],
         list[tuple[NativeObjective, ReconciledObjective, Mapping[str, str], str, set[str]]],
     ] = defaultdict(list)
+    progression_groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     coverage_objectives: dict[str, dict[str, Any]] = {}
+    chapter_index_identities = _chapter_index_identities(natives, source_revision_rows)
     target_review_steps: list[dict[str, Any]] = []
     target_review_target_failures: list[dict[str, Any]] = []
     target_review_objective_destinations: list[dict[str, Any]] = []
@@ -1797,16 +2352,42 @@ def build_guide_artifacts(
         else:
             status = "source-missing"
 
+        source_missing_classification = ""
+        source_identity_pages: dict[str, dict[str, Any]] = {}
+        if status == "source-missing":
+            if native.kind == "mission" and native.progress_id in {999, 1000}:
+                source_missing_classification = "native-sentinel"
+            elif _native_placeholder(native):
+                source_missing_classification = "native-placeholder"
+            elif native.key in chapter_index_identities:
+                source_missing_classification = "chapter-index"
+                source_identity_pages = chapter_index_identities[native.key]
+            else:
+                source_missing_classification = "source-absent"
+
         source_modules = {
             site: source_module_name(site, native.kind, native.context)
             for site in sorted(matched)
         }
         reconcile_module = _reconcile_module_name(native.kind, native.context) if reconciled else ""
+        progression_module = _progression_module_name(native.kind, native.context) if reconciled else ""
+        progression_payload = progression_objective_payload(
+            native,
+            reconciled,
+            matched,
+            progression_module,
+            navigation_zone_names=nav_zone_names,
+        )
+        if reconciled is not None:
+            progression_groups[(native.kind, native.context)].append(progression_payload)
         coverage_objectives[native.key] = {
             "status": status,
             "title": native.title,
             "kind": native.kind,
             "context": native.context,
+            "source_authority": dict(_SOURCE_AUTHORITY),
+            "progression_schema_version": _PROGRESSION_REVISION_SCHEMA,
+            "progression_revision": progression_payload["progression_revision"],
             "source_pages": {
                 site: {
                     "page_id": page.page_id,
@@ -1816,8 +2397,11 @@ def build_guide_artifacts(
                 }
                 for site, page in sorted(matched.items())
             },
+            "source_missing_classification": source_missing_classification,
+            "source_identity_pages": source_identity_pages,
             "source_modules": source_modules,
             "reconcile_module": reconcile_module,
+            "progression_module": progression_module,
             "ambiguous_sites": ambiguous_sites,
             "dynamic_candidate_comparison": (
                 reconciled.dynamic_candidate_comparison if reconciled else "none"
@@ -1872,6 +2456,14 @@ def build_guide_artifacts(
         path = module_root / f"{_reconcile_module_name(kind, context)}.lua"
         _write_text(path, _reconcile_module_text(entries))
         generated_module_paths.add(path)
+    for (kind, context), payloads in sorted(progression_groups.items()):
+        progression_module_name = _progression_module_name(kind, context)
+        progression_path = module_root / f"{progression_module_name}.lua"
+        _write_text(
+            progression_path,
+            _progression_module_text(progression_module_name, payloads),
+        )
+        generated_module_paths.add(progression_path)
 
     index_path = module_root / "mission_quest_guide_index.lua"
     _write_text(index_path, _index_text(natives, coverage_objectives))
@@ -1881,6 +2473,7 @@ def build_guide_artifacts(
         "mission_quest_bg_*.lua",
         "mission_quest_ffxiclopedia_*.lua",
         "mission_quest_reconcile_*.lua",
+        "mission_quest_progression_*.lua",
     )
     for pattern in generated_patterns:
         for stale_path in module_root.glob(pattern):
@@ -1889,9 +2482,18 @@ def build_guide_artifacts(
 
     status_counts = Counter(record["status"] for record in coverage_objectives.values())
     by_status = {status: status_counts.get(status, 0) for status in _COVERAGE_STATUSES}
+    source_missing_counts = Counter(
+        record["source_missing_classification"]
+        for record in coverage_objectives.values()
+        if record["source_missing_classification"]
+    )
     counts = {
         "valid_native": len(natives),
         "by_status": by_status,
+        "by_source_missing_classification": {
+            classification: source_missing_counts.get(classification, 0)
+            for classification in _SOURCE_MISSING_CLASSIFICATIONS
+        },
         "dual_source": sum(1 for record in coverage_objectives.values() if len(record["source_pages"]) == 2),
         "guide_only": sum(1 for record in coverage_objectives.values() if record["status"] == "guide"),
         "verified_navigation": sum(

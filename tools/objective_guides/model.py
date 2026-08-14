@@ -43,12 +43,16 @@ class SourceActionSpan:
     key_item_mentions: tuple[str, ...] = ()
     transport_mentions: tuple[str, ...] = ()
     zone_mentions: tuple[str, ...] = ()
+    destination_zone_name: str = ""
     temporal_zone_variant: str = ""
     map_numbers: tuple[str, ...] = ()
     grid_coordinates: tuple[str, ...] = ()
     result_items: tuple[str, ...] = ()
     result_relation: str = ""
     material: bool = True
+    required_count: int = 1
+    count_mode: str = "single"
+    count_explicit: bool = False
 
 
 @dataclass(frozen=True, slots=True)

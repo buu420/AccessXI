@@ -301,9 +301,14 @@ def _source_pages(
     return tuple(all_pages), discovery
 
 
-def _capture_source_site_config(cache_root: Path) -> dict[str, Any]:
+def _capture_source_site_config(
+    cache_root: Path,
+    *,
+    sites: tuple[str, ...] = tuple(SITE_CONFIG),
+) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
-    for site, config in SITE_CONFIG.items():
+    for site in sites:
+        config = SITE_CONFIG[site]
         api_url = str(config["api_url"])
         client = MediaWikiClient(
             site,
@@ -570,9 +575,18 @@ def run(argv: list[str] | None = None) -> int:
             raise MediaWikiError(
                 "--offline refuses network access and cannot be combined with --refresh."
             )
+        try:
+            current_site_config = json.loads(site_config_path.read_text(encoding="utf-8"))
+            current_entries = dict(current_site_config["sites"])
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise SiteConfigError(
+                "A selected-site refresh requires the current complete source site config."
+            ) from error
+        refreshed_config = _capture_source_site_config(cache_root, sites=selected_sites)
+        current_entries.update(refreshed_config["sites"])
         write_site_config_artifact(
             site_config_path,
-            _capture_source_site_config(cache_root),
+            build_site_config_artifact(current_entries.values()),
         )
     site_policies = load_site_link_policies(site_config_path)
     source_pages, discovery = _source_pages(
@@ -619,16 +633,29 @@ def run(argv: list[str] | None = None) -> int:
     print(f"Parsed {len(parsed_pages)} objective pages; {len(parse_failures)} pages were excluded safely.")
     print(json.dumps(summary["counts"], sort_keys=True))
     if args.command in {"build", "routes", "all"}:
+        full_runtime_publish = args.command in {"build", "all"}
+        runtime_ready = args.runtime_ready or full_runtime_publish
+        update_runtime_pin_path = (
+            args.update_runtime_pin.resolve()
+            if args.update_runtime_pin
+            else (
+                repo_root
+                / "ashita"
+                / "addons"
+                / "accessxi_reader"
+                / "accessxi_reader.lua"
+                if full_runtime_publish
+                else None
+            )
+        )
         route_summary = _build_route_artifacts(
             repo_root=repo_root,
             data_root=data_root,
             route_inputs=summary["route_inputs"],
             third_party_root=_route_dependency_root(repo_root, args.third_party_root),
             refresh=route_refresh,
-            runtime_ready=args.runtime_ready,
-            update_runtime_pin_path=(
-                args.update_runtime_pin.resolve() if args.update_runtime_pin else None
-            ),
+            runtime_ready=runtime_ready,
+            update_runtime_pin_path=update_runtime_pin_path,
         )
         print(
             "Objective route artifacts: "

@@ -42,6 +42,124 @@ local function deep_copy(value, seen)
     return result;
 end
 
+local function finite_number(value)
+    value = tonumber(value);
+    return value ~= nil and value == value and value ~= math.huge and value ~= -math.huge;
+end
+
+local function positive_integer(value)
+    value = tonumber(value);
+    return value ~= nil and value >= 1 and value == math.floor(value);
+end
+
+local function exact_source_authority(value)
+    return type(value) == 'table'
+        and clean(value.primary) == 'bg'
+        and clean(value.fallback) == 'ffxiclopedia';
+end
+
+local function exact_progression_schema(value)
+    return tonumber(value) == 2 and tonumber(value) == math.floor(tonumber(value));
+end
+
+local function progression_action_less(left, right)
+    local left_step = tonumber(left.step_order) or 0;
+    local right_step = tonumber(right.step_order) or 0;
+    if (left_step ~= right_step) then return left_step < right_step; end
+    local left_action = tonumber(left.action_order) or 0;
+    local right_action = tonumber(right.action_order) or 0;
+    if (left_action ~= right_action) then return left_action < right_action; end
+    return clean(left.action_id) < clean(right.action_id);
+end
+
+local function valid_catalogue_point(point)
+    if (type(point) ~= 'table') then return false; end
+    local coordinates = point.target_point;
+    return clean(point.destination_id) ~= ''
+        and positive_integer(point.zone_id)
+        and clean(point.zone_name) ~= ''
+        and clean(point.target_name) ~= ''
+        and clean(point.target_kind) ~= ''
+        and clean(point.target_key) ~= ''
+        and clean(point.raw_identity) ~= ''
+        and type(coordinates) == 'table'
+        and #coordinates == 3
+        and finite_number(coordinates[1])
+        and finite_number(coordinates[2])
+        and finite_number(coordinates[3]);
+end
+
+local function validate_progression_action(row)
+    if (type(row) ~= 'table' or row.material ~= true
+        or clean(row.step_id) == '' or not positive_integer(row.step_order)
+        or clean(row.action_id) == '' or not positive_integer(row.action_order)
+        or not positive_integer(row.order)
+        or clean(row.action) == '' or clean(row.relationship) == ''
+        or type(row.field_sources) ~= 'table'
+        or type(row.source_revisions) ~= 'table'
+        or type(row.source_action_span_ids) ~= 'table'
+        or #row.source_action_span_ids == 0
+        or type(row.catalogue) ~= 'table'
+        or (clean(row.source_authority) ~= 'bg'
+            and clean(row.source_authority) ~= 'ffxiclopedia')) then
+        return nil, clean(row.relationship) == '' and 'relationship is unavailable'
+            or 'action schema is invalid';
+    end
+
+    local target = clean(row.target);
+    local target_key = clean(row.target_key);
+    local instruction = clean(row.instruction);
+    local instruction_source = clean(row.field_sources.instruction);
+    local target_has_key_material = target:match('[%w]') ~= nil;
+    if (target == '' and target_key ~= '')
+        or (target_key == '' and target_has_key_material) then
+        return nil, 'target key is unavailable';
+    end
+    if (target_key == '' and (instruction == ''
+        or (instruction_source ~= 'bg' and instruction_source ~= 'ffxiclopedia'))) then
+        return nil, 'target and authoritative instruction are unavailable';
+    end
+
+    local required_count = tonumber(row.required_count);
+    if (required_count == nil or required_count < 1
+        or required_count ~= math.floor(required_count)) then
+        return nil, 'action count is invalid';
+    end
+    local count_mode = clean(row.count_mode);
+    local action = clean(row.action):lower();
+    local relationship = clean(row.relationship):lower();
+    if (count_mode == 'single') then
+        if (required_count ~= 1) then return nil, 'single action count is invalid'; end
+    elseif (count_mode == 'credited-defeat') then
+        if (action ~= 'fight' or relationship:find('defeat', 1, true) == nil
+            or row.count_explicit ~= true or required_count <= 1) then
+            return nil, 'credited-defeat count is incompatible with the action';
+        end
+    elseif (count_mode == 'inventory-gain') then
+        if (action ~= 'obtain' or relationship:find('item', 1, true) == nil
+            or relationship:find('key%-item') ~= nil
+            or type(row.items) ~= 'table' or #row.items == 0
+            or type(row.key_items) == 'table' and #row.key_items > 0
+            or row.count_explicit ~= true or required_count <= 1) then
+            return nil, 'inventory-gain count is incompatible with the action';
+        end
+    else
+        return nil, 'action count mode is invalid';
+    end
+
+    local destination_name = clean(row.destination_zone_name);
+    local destination_id = tonumber(row.destination_zone_id) or 0;
+    if ((destination_name == '') ~= (destination_id <= 0)) then
+        return nil, 'destination zone pair is invalid';
+    end
+    for _, point in ipairs(row.catalogue) do
+        if (not valid_catalogue_point(point)) then
+            return nil, 'catalogue destination is invalid';
+        end
+    end
+    return true;
+end
+
 local function step_policy_text(step)
     local parts = {
         clean(type(step) == 'table' and step.primary_instruction or ''),
@@ -190,10 +308,12 @@ local function unique_nonempty_values(values)
     return true;
 end
 
-local function exact_claim_step(reconciliation, action_id, action)
+local function exact_claim_step(progression, action_id, action)
     local owner_step = nil;
     local owner_count = 0;
-    for _, step in ipairs(type(reconciliation.steps) == 'table' and reconciliation.steps or {}) do
+    local claim_steps = type(progression.claims) == 'table' and progression.claims
+        or (type(progression.steps) == 'table' and progression.steps or {});
+    for _, step in ipairs(claim_steps) do
         for _, claim in ipairs(type(step.typed_claims) == 'table' and step.typed_claims or {}) do
             if (clean(claim.stable_claim_id) == action_id) then
                 owner_count = owner_count + 1;
@@ -211,7 +331,7 @@ local function exact_claim_step(reconciliation, action_id, action)
     return owner_step;
 end
 
-local function reviewed_candidate_copy(reconciliation, candidate)
+local function reviewed_candidate_copy(progression, candidate)
     if (type(candidate) ~= 'table') then
         return nil;
     end
@@ -225,8 +345,8 @@ local function reviewed_candidate_copy(reconciliation, candidate)
 
     local owner = nil;
     local owner_count = 0;
-    for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
-        and reconciliation.action_resolution_ledger or {}) do
+    for _, ledger in ipairs(type(progression.action_resolution_ledger) == 'table'
+        and progression.action_resolution_ledger or {}) do
         local occurrences = array_value_count(ledger.candidate_ids, candidate_id);
         if (occurrences > 0) then
             owner_count = owner_count + occurrences;
@@ -238,7 +358,7 @@ local function reviewed_candidate_copy(reconciliation, candidate)
         return nil;
     end
 
-    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    local guide_step = exact_claim_step(progression, action_id, action);
     if (guide_step == nil) then
         return nil;
     end
@@ -253,7 +373,7 @@ local function reviewed_candidate_copy(reconciliation, candidate)
     return result;
 end
 
-local function reviewed_instruction_copy(reconciliation, ledger)
+local function reviewed_instruction_copy(progression, ledger)
     if (type(ledger) ~= 'table'
         or clean(ledger.status) ~= 'instruction-only'
         or clean(ledger.reason) ~= 'complete-instruction'
@@ -270,7 +390,7 @@ local function reviewed_instruction_copy(reconciliation, ledger)
     if (action_id == '' or action == '' or instruction == '') then
         return nil;
     end
-    local guide_step = exact_claim_step(reconciliation, action_id, action);
+    local guide_step = exact_claim_step(progression, action_id, action);
     if (guide_step == nil or clean(guide_step.comparison):lower() == 'conflict') then
         return nil;
     end
@@ -394,6 +514,210 @@ function GuideState:load_module(name)
     return data;
 end
 
+local function trim_lru(cache, limit, protected_key)
+    local entries = {};
+    for key, value in pairs(cache) do
+        entries[#entries + 1] = {
+            key = key,
+            last_used = tonumber(type(value) == 'table' and value.last_used or 0) or 0,
+        };
+    end
+    table.sort(entries, function(left, right)
+        if (left.last_used ~= right.last_used) then
+            return left.last_used < right.last_used;
+        end
+        return tostring(left.key) < tostring(right.key);
+    end);
+    local remove_count = math.max(0, #entries - math.max(0, tonumber(limit) or 0));
+    for _, entry in ipairs(entries) do
+        if (remove_count <= 0) then break; end
+        if (entry.key ~= protected_key) then
+            cache[entry.key] = nil;
+            remove_count = remove_count - 1;
+        end
+    end
+end
+
+function GuideState:touch_progression_module(module_name, envelope)
+    self.progression_module_use_counter = self.progression_module_use_counter + 1;
+    self.progression_module_cache[module_name] = envelope;
+    self.progression_module_use[module_name] = {
+        last_used = self.progression_module_use_counter,
+    };
+    trim_lru(self.progression_module_use, self.progression_module_cache_limit, module_name);
+    local retained = {};
+    for name in pairs(self.progression_module_use) do retained[name] = true; end
+    for name in pairs(self.progression_module_cache) do
+        if (not retained[name]) then self.progression_module_cache[name] = nil; end
+    end
+end
+
+function GuideState:trim_progression_objectives(protected_key)
+    trim_lru(self.progression_objective_cache, self.progression_cache_limit, protected_key);
+end
+
+function GuideState:progression_actions(native_key)
+    native_key = clean(native_key);
+    local entry = self:index_entry(native_key);
+    if (entry == nil) then
+        return nil, 'progression objective is absent from the native guide index';
+    end
+    if (not exact_source_authority(entry.source_authority)) then
+        return nil, 'progression source authority is unavailable';
+    end
+    if (not exact_progression_schema(entry.progression_schema_version)) then
+        return nil, 'progression index schema is unsupported';
+    end
+    local module_name = clean(entry.progression_module);
+    local revision = clean(entry.progression_revision);
+    if (module_name == '' or revision == '') then
+        return nil, module_name == '' and 'progression module is unavailable'
+            or 'progression revision is unavailable';
+    end
+
+    local cached = self.progression_objective_cache[native_key];
+    if (type(cached) == 'table'
+        and (clean(cached.module_name) ~= module_name
+            or clean(cached.revision) ~= revision)) then
+        self.progression_objective_cache[native_key] = nil;
+        cached = nil;
+    end
+    if (type(cached) == 'table') then
+        self.progression_use_counter = self.progression_use_counter + 1;
+        cached.last_used = self.progression_use_counter;
+        local cached_envelope = self.progression_module_cache[cached.module_name];
+        if (type(cached_envelope) == 'table') then
+            self:touch_progression_module(cached.module_name, cached_envelope);
+        end
+        return deep_copy(cached.actions);
+    end
+
+    local envelope = self.progression_module_cache[module_name];
+    if (envelope == nil) then
+        local ok, loaded = pcall(self.module_loader, module_name);
+        if (not ok or type(loaded) ~= 'table') then
+            return nil, ('progression module is unavailable: %s'):format(
+                clean(ok and 'module returned no table' or loaded));
+        end
+        envelope = loaded;
+    end
+    self:touch_progression_module(module_name, envelope);
+    if (not exact_progression_schema(envelope.schema_version)) then
+        return nil, 'progression shard schema is unsupported';
+    end
+    if (clean(envelope.module_name) ~= module_name) then
+        return nil, 'progression shard module self-pin is invalid';
+    end
+    if (not exact_source_authority(envelope.source_authority)) then
+        return nil, 'progression shard source authority is invalid';
+    end
+    local objective = type(envelope.objectives) == 'table'
+        and envelope.objectives[native_key] or nil;
+    if (type(objective) ~= 'table') then
+        return nil, 'progression objective is unavailable from the shard';
+    end
+    if (clean(objective.native_key) ~= native_key) then
+        return nil, 'progression objective native self-pin is invalid';
+    end
+    if (clean(objective.progression_module) ~= module_name) then
+        return nil, 'progression objective module self-pin is invalid';
+    end
+    if (not exact_progression_schema(objective.progression_schema_version)) then
+        return nil, 'progression objective schema self-pin is invalid';
+    end
+    if (not exact_source_authority(objective.source_authority)) then
+        return nil, 'progression objective source authority is invalid';
+    end
+    if (clean(objective.progression_revision) ~= revision) then
+        return nil, 'progression objective revision self-pin is invalid';
+    end
+
+    local actions = {};
+    local ids, global_orders, step_orders = {}, {}, {};
+    for _, row in ipairs(type(objective.progression_actions) == 'table'
+        and objective.progression_actions or {}) do
+        local valid, reason = validate_progression_action(row);
+        if (not valid) then return nil, reason; end
+        local action_id = clean(row.action_id);
+        local global_order = tonumber(row.order);
+        local step_key = clean(row.step_id) .. '\t' .. tostring(tonumber(row.action_order));
+        if (ids[action_id] or global_orders[global_order] or step_orders[step_key]) then
+            return nil, 'duplicate progression action ID or order';
+        end
+        ids[action_id] = true;
+        global_orders[global_order] = true;
+        step_orders[step_key] = true;
+        actions[#actions + 1] = deep_copy(row);
+    end
+    table.sort(actions, progression_action_less);
+    for index, row in ipairs(actions) do
+        if (tonumber(row.order) ~= index) then
+            return nil, 'progression action order is not contiguous';
+        end
+    end
+
+    self.progression_use_counter = self.progression_use_counter + 1;
+    self.progression_objective_cache[native_key] = {
+        actions = actions,
+        module_name = module_name,
+        revision = revision,
+        last_used = self.progression_use_counter,
+    };
+    self:trim_progression_objectives(native_key);
+    return deep_copy(actions);
+end
+
+function GuideState:retain_progression_keys(active_keys)
+    active_keys = type(active_keys) == 'table' and active_keys or {};
+    local retained, count = {}, 0;
+    local active = {};
+    for key, value in pairs(active_keys) do
+        local native_key = type(key) == 'number' and clean(value) or clean(key);
+        if (native_key ~= '' and type(self.progression_objective_cache[native_key]) == 'table') then
+            active[#active + 1] = native_key;
+        end
+    end
+    table.sort(active);
+    for _, native_key in ipairs(active) do
+        if (not retained[native_key] and count < self.progression_cache_limit) then
+            retained[native_key] = true;
+            count = count + 1;
+        end
+    end
+
+    local extras = {};
+    for native_key, cached in pairs(self.progression_objective_cache) do
+        if (not retained[native_key]) then
+            extras[#extras + 1] = {
+                native_key = native_key,
+                last_used = tonumber(cached.last_used) or 0,
+            };
+        end
+    end
+    table.sort(extras, function(left, right)
+        if (left.last_used ~= right.last_used) then
+            return left.last_used > right.last_used;
+        end
+        return left.native_key < right.native_key;
+    end);
+    for _, extra in ipairs(extras) do
+        if (count >= self.progression_cache_limit) then break; end
+        retained[extra.native_key] = true;
+        count = count + 1;
+    end
+    for native_key in pairs(self.progression_objective_cache) do
+        if (not retained[native_key]) then
+            self.progression_objective_cache[native_key] = nil;
+        end
+    end
+    -- Compact shards are extraction inputs, not live reducer state.  Dropping
+    -- them here keeps the large module retention bounded independently of the
+    -- small per-objective action cache.
+    self.progression_module_cache = {};
+    self.progression_module_use = {};
+    return count;
+end
+
 function GuideState:resolve(native_key)
     native_key = clean(native_key);
     local cached = self.resolution_cache[native_key];
@@ -408,32 +732,12 @@ function GuideState:resolve(native_key)
     if (entry == nil) then
         return nil, 'objective is absent from the native guide index';
     end
-    local source_modules = type(entry.source_modules) == 'table' and entry.source_modules or {};
-    local sources = {};
-    local source_count = 0;
-    for _, site in ipairs({ 'bg', 'ffxiclopedia' }) do
-        local source_module_name = clean(source_modules[site]);
-        if (source_module_name ~= '') then
-            local source_module, source_error = self:load_module(source_module_name);
-            local source = type(source_module) == 'table' and source_module[native_key] or nil;
-            if (type(source) ~= 'table') then
-                local reason = ('%s source chunk unavailable for %s: %s'):format(
-                    site,
-                    native_key,
-                    clean(source_error));
-                self.resolution_cache[native_key] = { available = false, reason = reason };
-                return nil, reason;
-            end
-            sources[site] = source;
-            source_count = source_count + 1;
-        end
-    end
-    if (source_count == 0) then
-        local reason = ('No source-backed guide is available for %s.'):format(native_key);
+    local authority = type(entry.source_authority) == 'table' and entry.source_authority or {};
+    if (clean(authority.primary) ~= 'bg' or clean(authority.fallback) ~= 'ffxiclopedia') then
+        local reason = ('Objective source authority is unavailable for %s.'):format(native_key);
         self.resolution_cache[native_key] = { available = false, reason = reason };
         return nil, reason;
     end
-
     local reconciliation_name = clean(entry.reconcile_module);
     local reconciliation_module, reconciliation_error = self:load_module(reconciliation_name);
     local reconciliation = type(reconciliation_module) == 'table'
@@ -446,13 +750,45 @@ function GuideState:resolve(native_key)
         return nil, reason;
     end
 
+    -- Compact generated guide shards carry source speech directly.  Keep this
+    -- compatibility path only for legacy/custom indexes that predate them.
+    local sources = {};
+    local need_legacy_sources = false;
+    for _, pair in ipairs(reconciliation.steps) do
+        if (clean(pair.bg_instruction) == '' and clean(pair.ffxiclopedia_instruction) == '') then
+            need_legacy_sources = true;
+            break;
+        end
+    end
+    if (need_legacy_sources) then
+        local source_modules = type(entry.source_modules) == 'table' and entry.source_modules or {};
+        for _, site in ipairs({ 'bg', 'ffxiclopedia' }) do
+            local source_module_name = clean(source_modules[site]);
+            if (source_module_name ~= '') then
+                local source_module, source_error = self:load_module(source_module_name);
+                local source = type(source_module) == 'table' and source_module[native_key] or nil;
+                if (type(source) ~= 'table') then
+                    local reason = ('%s source chunk unavailable for %s: %s'):format(
+                        site, native_key, clean(source_error));
+                    self.resolution_cache[native_key] = { available = false, reason = reason };
+                    return nil, reason;
+                end
+                sources[site] = source;
+            end
+        end
+    end
+
     local steps = {};
     local source_steps = {};
     local route_recommendations = {};
     for _, pair in ipairs(reconciliation.steps) do
         local orders = type(pair.source_orders) == 'table' and pair.source_orders or {};
-        local bg_instruction = source_instruction(sources.bg, orders[1]);
-        local ffxiclopedia_instruction = source_instruction(sources.ffxiclopedia, orders[2]);
+        local bg_instruction = clean(pair.bg_instruction);
+        local ffxiclopedia_instruction = clean(pair.ffxiclopedia_instruction);
+        if (bg_instruction == '' and ffxiclopedia_instruction == '') then
+            bg_instruction = source_instruction(sources.bg, orders[1]);
+            ffxiclopedia_instruction = source_instruction(sources.ffxiclopedia, orders[2]);
+        end
         if (bg_instruction == '' and ffxiclopedia_instruction == '') then
             local reason = ('Reconciled step %s has no source instruction.'):format(
                 clean(pair.stable_step_id));
@@ -470,8 +806,12 @@ function GuideState:resolve(native_key)
             zones = type(pair.zones) == 'table' and deep_copy(pair.zones) or {},
             grid_coordinates = type(pair.grid_coordinates) == 'table'
                 and deep_copy(pair.grid_coordinates) or {},
-            items = preferred_source_step_values(sources, orders, 'items'),
-            key_items = preferred_source_step_values(sources, orders, 'key_items'),
+            items = type(pair.items) == 'table' and deep_copy(pair.items)
+                or preferred_source_step_values(sources, orders, 'items'),
+            key_items = type(pair.key_items) == 'table' and deep_copy(pair.key_items)
+                or preferred_source_step_values(sources, orders, 'key_items'),
+            field_sources = type(pair.field_sources) == 'table'
+                and deep_copy(pair.field_sources) or {},
             route_ready = pair.route_ready == true,
             navigation_target = deep_copy(pair.navigation_target),
             bg_instruction = bg_instruction,
@@ -521,33 +861,6 @@ function GuideState:resolve(native_key)
         return nil, reason;
     end
 
-    local typed_destinations = type(reconciliation.objective_destination_candidates) == 'table';
-    local destination_source = typed_destinations
-        and reconciliation.objective_destination_candidates
-        or (reconciliation.mission_destinations or {});
-    local objective_destinations = {};
-    for _, destination in ipairs(destination_source) do
-        local copied = nil;
-        if (typed_destinations) then
-            copied = reviewed_candidate_copy(reconciliation, destination);
-        elseif (type(destination) == 'table') then
-            copied = deep_copy(destination);
-        end
-        if (copied ~= nil) then
-            objective_destinations[#objective_destinations + 1] = copied;
-        end
-    end
-    if (typed_destinations) then
-        for _, ledger in ipairs(type(reconciliation.action_resolution_ledger) == 'table'
-            and reconciliation.action_resolution_ledger or {}) do
-            local copied = reviewed_instruction_copy(reconciliation, ledger);
-            if (copied ~= nil) then
-                objective_destinations[#objective_destinations + 1] = copied;
-            end
-        end
-        table.sort(objective_destinations, objective_destination_less);
-    end
-
     local resolved = {
         available = true,
         native_key = native_key,
@@ -558,7 +871,9 @@ function GuideState:resolve(native_key)
         steps = steps,
         source_steps = source_steps,
         route_recommendations = route_recommendations,
-        objective_destinations = objective_destinations,
+        progression_module = clean(entry.progression_module),
+        source_authority = deep_copy(authority),
+        progression_revision = clean(entry.progression_revision),
     };
     self.resolution_cache[native_key] = resolved;
     return resolved;
@@ -713,14 +1028,109 @@ function GuideState:objective_destinations(native_key)
     self:sync_identity();
     local objective = self:resolve(native_key);
     local result = {};
-    if (objective == nil or type(objective.objective_destinations) ~= 'table') then
+    if (objective == nil) then
         return result;
     end
-    for _, destination in ipairs(objective.objective_destinations) do
-        if (type(destination) == 'table') then
-            result[#result + 1] = deep_copy(destination);
+    local progression_name = clean(objective.progression_module);
+    if (progression_name ~= '') then
+        local actions = self:progression_actions(native_key);
+        for _, action in ipairs(type(actions) == 'table' and actions or {}) do
+            local catalogue = type(action.catalogue) == 'table' and action.catalogue or {};
+            if (#catalogue == 0) then
+                result[#result + 1] = {
+                    candidate_id = '',
+                    action_id = clean(action.action_id),
+                    group_id = '', destination_id = '',
+                    guide_step_id = clean(action.step_id),
+                    guide_step_order = tonumber(action.step_order) or 0,
+                    action_order = tonumber(action.action_order) or 0,
+                    action = clean(action.action),
+                    relationship = clean(action.relationship),
+                    action_instruction = clean(action.instruction),
+                    instruction_only = true,
+                    classification = 'instruction-only',
+                    status = 'instruction-only', reason = 'complete-instruction',
+                    material = true, route_ready = false,
+                    progression_revision = clean(objective.progression_revision),
+                    source_authority = clean(action.source_authority),
+                    field_sources = deep_copy(action.field_sources),
+                };
+            else
+                for _, point in ipairs(catalogue) do
+                    local destination_id = clean(point.destination_id);
+                    result[#result + 1] = {
+                        candidate_id = clean(point.candidate_id) ~= ''
+                            and clean(point.candidate_id)
+                            or clean(action.action_id) .. ':candidate:' .. destination_id,
+                        action_id = clean(action.action_id),
+                        group_id = clean(point.group_id),
+                        destination_id = destination_id,
+                        guide_step_id = clean(action.step_id),
+                        guide_step_order = tonumber(action.step_order) or 0,
+                        action_order = tonumber(action.action_order) or 0,
+                        action = clean(action.action),
+                        relationship = clean(action.relationship),
+                        action_instruction = clean(point.arrival_instruction) ~= ''
+                            and clean(point.arrival_instruction) or clean(action.instruction),
+                        arrival_instruction = clean(point.arrival_instruction) ~= ''
+                            and clean(point.arrival_instruction) or clean(action.instruction),
+                        classification = 'catalogue-candidate',
+                        material = true, route_ready = false,
+                        zone = tonumber(point.zone_id) or 0,
+                        zone_name = clean(point.zone_name),
+                        target_name = clean(point.target_name),
+                        target_kind = clean(point.target_kind),
+                        target_key = clean(point.target_key),
+                        target_point = deep_copy(point.target_point),
+                        raw_identity = clean(point.raw_identity),
+                        raw_spawn_ids = deep_copy(point.raw_spawn_ids),
+                        cluster_policy_version = clean(point.cluster_policy_version),
+                        transport_id = clean(point.transport_id),
+                        battlefield_id = clean(point.battlefield_id),
+                        metadata_class = clean(point.metadata_class),
+                        items = deep_copy(action.items),
+                        key_items = deep_copy(action.key_items),
+                        enemies = deep_copy(action.enemies),
+                        destination_zone_name = clean(action.destination_zone_name),
+                        destination_zone_id = tonumber(action.destination_zone_id) or 0,
+                        progression_revision = clean(objective.progression_revision),
+                        source_authority = clean(action.source_authority),
+                        field_sources = deep_copy(action.field_sources),
+                    };
+                end
+            end
+        end
+        table.sort(result, objective_destination_less);
+        return result;
+    end
+    local progression = objective.reconciliation;
+    if (type(progression) ~= 'table') then
+        return result;
+    end
+    if (type(progression.objective_destination_candidates) ~= 'table'
+        and type(progression.mission_destinations) == 'table') then
+        for _, destination in ipairs(progression.mission_destinations) do
+            if (type(destination) == 'table') then
+                result[#result + 1] = deep_copy(destination);
+            end
+        end
+        return result;
+    end
+    for _, candidate in ipairs(type(progression.objective_destination_candidates) == 'table'
+        and progression.objective_destination_candidates or {}) do
+        local copied = reviewed_candidate_copy(progression, candidate);
+        if (copied ~= nil) then
+            result[#result + 1] = copied;
         end
     end
+    for _, ledger in ipairs(type(progression.action_resolution_ledger) == 'table'
+        and progression.action_resolution_ledger or {}) do
+        local copied = reviewed_instruction_copy(progression, ledger);
+        if (copied ~= nil) then
+            result[#result + 1] = copied;
+        end
+    end
+    table.sort(result, objective_destination_less);
     return result;
 end
 
@@ -775,8 +1185,7 @@ end
 
 function GuideState:route_descriptor()
     local step = self:current_step();
-    if (step == nil or (step.comparison == 'conflict' and step.route_ready ~= true)
-        or type(self.route_resolver) ~= 'function') then
+    if (step == nil or type(self.route_resolver) ~= 'function') then
         return nil;
     end
     local ok, descriptor = pcall(
@@ -784,7 +1193,17 @@ function GuideState:route_descriptor()
         self.selected_native_key,
         step.stable_step_id,
         step);
-    if (not ok or type(descriptor) ~= 'table' or descriptor.verified ~= true) then
+    local wiki_ready = type(descriptor) == 'table'
+        and clean(descriptor.mode) == 'wiki-ready'
+        and descriptor.objective_wiki_route == true
+        and descriptor.wiki_authoritative == true
+        and descriptor.verified ~= true
+        and tonumber(descriptor.zone) ~= nil and tonumber(descriptor.zone) > 0
+        and clean(descriptor.name) ~= '' and clean(descriptor.kind) ~= ''
+        and finite_number(descriptor.x) and finite_number(descriptor.z)
+        and clean(descriptor.objective_route_contract_id) == '';
+    if (not ok or type(descriptor) ~= 'table'
+        or (descriptor.verified ~= true and not wiki_ready)) then
         return nil;
     end
     local result = copy_table(descriptor);
@@ -802,13 +1221,7 @@ function GuideState:step_speech()
     local evidence = '';
     local instruction = step.primary_instruction;
     if (step.comparison == 'conflict') then
-        instruction = 'Sources disagree.';
-        if (step.bg_instruction ~= '') then
-            instruction = instruction .. ' BG Wiki: ' .. step.bg_instruction;
-        end
-        if (step.ffxiclopedia_instruction ~= '') then
-            instruction = instruction .. ' FFXIclopedia: ' .. step.ffxiclopedia_instruction;
-        end
+        instruction = step.bg_instruction ~= '' and step.bg_instruction or step.ffxiclopedia_instruction;
         evidence = ' Source facts conflict.';
     elseif (step.comparison == 'corroborated') then
         evidence = ' Both guides corroborate this step.';
@@ -854,6 +1267,13 @@ function module.new(options)
         manual_path = clean(options.manual_path),
         module_cache = {},
         module_errors = {},
+        progression_module_cache = {},
+        progression_module_use = {},
+        progression_module_use_counter = 0,
+        progression_module_cache_limit = 64,
+        progression_objective_cache = {},
+        progression_use_counter = 0,
+        progression_cache_limit = 64,
         resolution_cache = {},
         manual_steps = {},
         manual_loaded = false,

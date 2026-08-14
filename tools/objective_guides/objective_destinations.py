@@ -263,10 +263,11 @@ def _claim_source_spans(
     return result
 
 
-def _span_supports_destination(
-    span: SourceActionSpan,
+def _source_spans_support_destination(
+    source_spans: Mapping[str, tuple[SourceActionSpan, ...]],
     *,
     action: str,
+    relationship: str,
     target_name: str,
     target_kind: str,
     zone_name: str,
@@ -276,12 +277,24 @@ def _span_supports_destination(
     map_numbers: tuple[str, ...],
     grid_coordinates: tuple[str, ...],
 ) -> bool:
-    if not _claims_action(span, action):
+    span_rows = tuple(
+        (site, span, "", 0)
+        for site in ("bg", "ffxiclopedia")
+        for span in source_spans.get(site, ())
+    )
+
+    def authoritative(field_value: Any) -> tuple[SourceActionSpan, ...]:
+        return tuple(row[1] for row in _authoritative_span_rows(span_rows, field_value))
+
+    if not any(_claims_action(span, action) for span in authoritative(lambda span: span.action)):
         return False
     compatible_kinds = {target_kind}
     if target_kind == "area":
         compatible_kinds.add("object")
-    if span.target_kind not in compatible_kinds:
+    if not any(
+        span.target_kind in compatible_kinds
+        for span in authoritative(lambda span: span.target_kind)
+    ):
         return False
     kind_field = {
         "npc": "npc_mentions",
@@ -291,29 +304,79 @@ def _span_supports_destination(
         "transport": "transport_mentions",
         "question-mark": "object_mentions",
     }.get(target_kind, "")
-    typed_mentions = tuple(getattr(span, kind_field)) if kind_field else ()
-    if not span.target and len({value.casefold() for value in typed_mentions}) > 1:
-        return False
-    targets = {span.target.casefold()} if span.target else set()
-    if kind_field:
-        targets.update(value.casefold() for value in typed_mentions)
+    target_spans = authoritative(
+        lambda span: tuple(
+            value
+            for value in (
+                span.target,
+                *(tuple(getattr(span, kind_field)) if kind_field else ()),
+            )
+            if value
+        )
+    )
+    for span in target_spans:
+        typed_targets = tuple(getattr(span, kind_field)) if kind_field else ()
+        if not span.target and len({value.casefold() for value in typed_targets}) > 1:
+            return False
+    targets = {
+        value.casefold()
+        for span in target_spans
+        for value in (
+            span.target,
+            *(tuple(getattr(span, kind_field)) if kind_field else ()),
+        )
+        if value
+    }
     if target_name.casefold() not in targets:
         return False
-    if zone_name.casefold() not in {value.casefold() for value in span.zone_mentions}:
+    zones = {
+        value.casefold()
+        for span in authoritative(lambda span: span.zone_mentions)
+        for value in span.zone_mentions
+    }
+    if zone_name.casefold() not in zones:
         return False
+    if relationship:
+        relationships = {
+            _normalized_relationship(span.relationship)
+            for span in authoritative(lambda span: span.relationship)
+            if _normalized_relationship(span.relationship)
+        }
+        if relationships and _normalized_relationship(relationship) not in relationships:
+            return False
     item_claims = {
         value.casefold()
+        for span in authoritative(
+            lambda span: (*span.item_mentions, *span.key_item_mentions, *span.result_items)
+        )
         for value in (*span.item_mentions, *span.key_item_mentions, *span.result_items)
     }
-    enemy_claims = {value.casefold() for value in span.enemy_mentions}
+    enemy_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.enemy_mentions)
+        for value in span.enemy_mentions
+    }
     if any(value.casefold() not in item_claims for value in items):
         return False
     if any(value.casefold() not in enemy_claims for value in enemies):
         return False
-    if result_relation and span.result_relation.casefold() != result_relation.casefold():
+    result_relations = {
+        span.result_relation.casefold()
+        for span in authoritative(lambda span: span.result_relation)
+        if span.result_relation
+    }
+    if result_relation and result_relation.casefold() not in result_relations:
         return False
-    map_claims = {value.casefold() for value in span.map_numbers}
-    grid_claims = {value.casefold() for value in span.grid_coordinates}
+    map_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.map_numbers)
+        for value in span.map_numbers
+    }
+    grid_claims = {
+        value.casefold()
+        for span in authoritative(lambda span: span.grid_coordinates)
+        for value in span.grid_coordinates
+    }
     if any(value.casefold() not in map_claims for value in map_numbers):
         return False
     if any(value.casefold() not in grid_claims for value in grid_coordinates):
@@ -354,24 +417,19 @@ def _select_source_claim(
         tuple[ReconciledStep, ReconciledActionClaim, dict[str, tuple[SourceActionSpan, ...]]]
     ] = []
     for step, claim in selected:
-        if claim.comparison == "conflict":
-            continue
         source_spans = _claim_source_spans(step, claim, bg, ffxiclopedia)
-        if any(
-            _span_supports_destination(
-                span,
-                action=action,
-                target_name=target_name,
-                target_kind=target_kind,
-                zone_name=zone_name,
-                items=items,
-                enemies=enemies,
-                result_relation=result_relation,
-                map_numbers=map_numbers,
-                grid_coordinates=grid_coordinates,
-            )
-            for spans in source_spans.values()
-            for span in spans
+        if _source_spans_support_destination(
+            source_spans,
+            action=action,
+            relationship=claim.relationship,
+            target_name=target_name,
+            target_kind=target_kind,
+            zone_name=zone_name,
+            items=items,
+            enemies=enemies,
+            result_relation=result_relation,
+            map_numbers=map_numbers,
+            grid_coordinates=grid_coordinates,
         ):
             matches.append((step, claim, source_spans))
     if len(matches) != 1:
@@ -1015,6 +1073,28 @@ def _role_candidates(
     return tuple(result)
 
 
+def _authoritative_span_rows(
+    span_rows: tuple[tuple[str, SourceActionSpan, str, int], ...],
+    field_value: Any,
+) -> tuple[tuple[str, SourceActionSpan, str, int], ...]:
+    def present(value: object) -> bool:
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (tuple, list, set, dict)):
+            return bool(value)
+        return value is not None
+
+    for site in ("bg", "ffxiclopedia"):
+        rows = tuple(
+            row
+            for row in span_rows
+            if row[0] == site and present(field_value(row[1]))
+        )
+        if rows:
+            return rows
+    return ()
+
+
 def _claim_resolution(
     *,
     native: NativeObjective,
@@ -1034,8 +1114,24 @@ def _claim_resolution(
     instruction = _instruction(step)
     coordinate_support, coordinate_comparison = _coordinate_evidence(span_rows)
     pages = _source_pages(bg, ffxiclopedia)
+    if not claim.material:
+        return (
+            ObjectiveActionLedgerRow(
+                action_id,
+                span_ids,
+                action,
+                "context-only",
+                "non-material-source-action-span",
+                (),
+                "",
+                False,
+            ),
+            (),
+            (),
+            (),
+        )
     role_override = _mapping_row(reviewed_overrides, "role_overrides", action_id)
-    if (claim.comparison == "conflict" and role_override is None) or coordinate_comparison == "conflict":
+    if coordinate_comparison == "conflict" and not any(site == "bg" for site, *_rest in span_rows):
         return (
             ObjectiveActionLedgerRow(
                 action_id, span_ids, action, "conflict", "source-conflict", (), "", True
@@ -1063,19 +1159,26 @@ def _claim_resolution(
 
     instruction = ""
 
-    target_kinds = _unique_values(span.target_kind for _site, span, _span_id, _revision in span_rows)
-    targets = _unique_values(span.target for _site, span, _span_id, _revision in span_rows)
-    if len(targets) > 1 and role_override is None:
-        return (
-            ObjectiveActionLedgerRow(
-                action_id, span_ids, action, "conflict", "source-conflict", (), instruction, True
-            ),
-            (),
-            (),
-            (),
-        )
-    target = targets[0] if targets else ""
-    target_kind = target_kinds[0] if len(target_kinds) == 1 else ""
+    target_rows = _authoritative_span_rows(span_rows, lambda span: span.target)
+    kind_rows = _authoritative_span_rows(span_rows, lambda span: span.target_kind)
+    relationship_rows = _authoritative_span_rows(span_rows, lambda span: span.relationship)
+    zone_rows = _authoritative_span_rows(span_rows, lambda span: span.zone_mentions)
+    target = target_rows[0][1].target if target_rows else ""
+    target_kind = kind_rows[0][1].target_kind if kind_rows else ""
+    claim_target = target
+    acquisition_enemies = _claim_enemies(span_rows)
+    acquisition_navigation = bool(
+        action == "obtain"
+        and target_kind == "item"
+        and _claim_result_relation(span_rows) == "obtain-from"
+        and len(acquisition_enemies) == 1
+    )
+    if acquisition_navigation:
+        # Reducer ownership remains the exact inventory item; route catalogue
+        # ownership points at the one exact enemy method preserved by the same
+        # typed source claim.  Kill credit never completes this obtain action.
+        target = acquisition_enemies[0]
+        target_kind = "enemy"
 
     if target_kind == "role" or role_override is not None:
         if role_override is None:
@@ -1224,33 +1327,27 @@ def _claim_resolution(
             (),
         )
 
-    expected_relationship = _normalized_relationship(claim.relationship)
-    if not expected_relationship:
-        relationships = {
-            _normalized_relationship(span.relationship)
-            for _site, span, _span_id, _revision in span_rows
-            if _normalized_action(span.action) == action
-            and span.target.casefold() == target.casefold()
-            and _source_kind_supports_claim(span.target_kind, target_kind, action)
-            and _normalized_relationship(span.relationship)
-        }
-        expected_relationship = next(iter(relationships)) if len(relationships) == 1 else ""
+    expected_relationship = (
+        _normalized_relationship(relationship_rows[0][1].relationship)
+        if relationship_rows
+        else ""
+    )
+    field_support_rows = tuple(
+        {
+            row[2]: row
+            for rows in (target_rows, kind_rows, relationship_rows)
+            for row in rows
+        }.values()
+    )
 
     zone_support: dict[str, list[str]] = {}
     zone_support_ids: dict[str, list[str]] = {}
     zone_support_revisions: dict[str, dict[str, int]] = {}
     typed_span_ids_by_site: dict[str, list[str]] = {}
     zone_display: dict[str, str] = {}
-    for site, span, source_span_id, revision in span_rows:
-        if (
-            not span.target
-            or span.target.casefold() != target.casefold()
-            or _normalized_action(span.action) != action
-            or not _source_kind_supports_claim(span.target_kind, target_kind, action)
-            or not expected_relationship
-            or _normalized_relationship(span.relationship) != expected_relationship
-        ):
-            continue
+    matching_span_rows = list(span_rows) if target and target_kind and expected_relationship else []
+    authoritative_site = zone_rows[0][0] if zone_rows else ""
+    for site, span, source_span_id, revision in matching_span_rows:
         typed_span_ids_by_site.setdefault(site, []).append(source_span_id)
         for zone_name in span.zone_mentions:
             key = zone_name.casefold()
@@ -1270,7 +1367,8 @@ def _claim_resolution(
         _validate_action_override_revisions(action_id, single_source_override, pages)
         if (
             _clean(single_source_override.get("action", "")).casefold() != action
-            or _clean(single_source_override.get("target", "")).casefold() != target.casefold()
+            or _clean(single_source_override.get("target", "")).casefold()
+            != claim_target.casefold()
         ):
             raise ObjectiveDestinationError(f"Single-source zone override {action_id!r} is stale.")
         reviewed_single_zones = {
@@ -1306,6 +1404,8 @@ def _claim_resolution(
 
     if fact_ids:
         span_ids = tuple((*span_ids, *fact_ids))
+    if any("bg" in sites for sites in zone_support.values()):
+        authoritative_site = "bg"
     if not zone_support:
         return (
             ObjectiveActionLedgerRow(
@@ -1337,11 +1437,9 @@ def _claim_resolution(
     for zone_key in sorted(zone_support):
         support_sites = tuple(zone_support[zone_key])
         dual_zone = len(support_sites) == 2
-        single_page_claim = len(source_sites_present) == 1
         reviewed_zone = zone_key in reviewed_single_zones
-        if not dual_zone and not single_page_claim and not reviewed_zone:
+        if authoritative_site not in support_sites and not reviewed_zone:
             skipped_single_source = True
-            rejected_span_ids = tuple(zone_support_ids.get(zone_key, ()))
             review_items.append(
                 ObjectiveResolutionReviewItem(
                     review_id=_review_item_id(
@@ -1353,7 +1451,7 @@ def _claim_resolution(
                     target_name=target,
                     zone_name=zone_display.get(zone_key, zone_key),
                     source_sites=support_sites,
-                    source_action_span_ids=rejected_span_ids,
+                    source_action_span_ids=tuple(zone_support_ids.get(zone_key, ())),
                     reason="single-source-needs-independent-corroboration",
                     route_ready=False,
                 )
@@ -1363,13 +1461,16 @@ def _claim_resolution(
         if canonical is None:
             continue
         zone, zone_name = canonical
-        eligible_kinds = ACTION_KINDS[action]
         matches = [
             point
             for point in points
             if int(point.get("zone", 0) or 0) == zone
             and _clean(point.get("name", "")).casefold() == target.casefold()
-            and _clean(point.get("kind", "")).casefold() in eligible_kinds
+            and _source_kind_supports_claim(
+                _clean(point.get("kind", "")).casefold(),
+                target_kind,
+                action,
+            )
         ]
         if matches:
             exact_match_seen = True
@@ -1388,7 +1489,31 @@ def _claim_resolution(
         if not immutable:
             continue
         evidence_level = "dual-source" if dual_zone else "single-source+game-data"
-        reason_support_sites = support_sites
+        zone_span_ids = set(zone_support_ids.get(zone_key, ()))
+        candidate_support_rows = tuple(
+            row
+            for row in span_rows
+            if row in field_support_rows or row[2] in zone_span_ids
+        )
+        candidate_support_sites = tuple(
+            dict.fromkeys((*[row[0] for row in candidate_support_rows], *support_sites))
+        )
+        candidate_support_ids = tuple(
+            dict.fromkeys(
+                (*[row[2] for row in candidate_support_rows], *zone_support_ids.get(zone_key, ()))
+            )
+        )
+        candidate_support_revisions = tuple(
+            dict.fromkeys(
+                (
+                    *((row[0], row[3]) for row in candidate_support_rows),
+                    *(
+                        (site, zone_support_revisions[zone_key][site])
+                        for site in support_sites
+                    ),
+                )
+            )
+        )
         group_id = f"{action_id}:zone:{zone}" if action in {"fight", "obtain"} else ""
         zone_candidates = tuple(
             _point_candidate(
@@ -1397,12 +1522,9 @@ def _claim_resolution(
                 point=point,
                 zone_name=zone_name,
                 span_rows=span_rows,
-                support_sites=reason_support_sites,
-                support_span_ids=tuple(zone_support_ids.get(zone_key, ())),
-                support_revisions=tuple(
-                    (site, zone_support_revisions[zone_key][site])
-                    for site in reason_support_sites
-                ),
+                support_sites=candidate_support_sites,
+                support_span_ids=candidate_support_ids,
+                support_revisions=candidate_support_revisions,
                 evidence_level=evidence_level,
                 group_id=group_id,
             )
@@ -1621,7 +1743,7 @@ def _legacy_migration_candidate(
         source_revisions=source_revisions,
         coordinate_support=coordinate_support,
         coordinate_comparison=coordinate_comparison,
-        action="fight",
+        action="obtain",
         items=items,
         enemies=(enemy,),
         result_relation="obtain-from",
@@ -1744,16 +1866,23 @@ def _apply_legacy_action_migrations(
             f"Legacy action migration for {native.key!r} references stale action {action_id!r}."
         )
     parent = ledger[parent_index]
+    parent_step, parent_claim_row = parent_claim
     if (
-        _normalized_action(parent.action) != "fight"
+        _normalized_action(parent.action) != "obtain"
         or parent.status != "unresolved"
-        or parent.reason != "missing-action-target"
+        or parent.reason != "missing-zone"
         or parent.candidate_ids
+        or not parent.material
+        or not parent_claim_row.material
+        or _normalized_action(parent_claim_row.action) != "obtain"
+        or parent_claim_row.relationship != "obtain-item"
+        or parent_claim_row.required_count != 4
+        or parent_claim_row.count_mode != "inventory-gain"
+        or not parent_claim_row.count_explicit
     ):
         raise ObjectiveDestinationError(
-            f"Legacy action migration for {native.key!r} no longer matches one targetless fight claim."
+            f"Legacy action migration for {native.key!r} no longer matches one exact four-item obtain claim."
         )
-    parent_step, parent_claim_row = parent_claim
     span_rows = _span_rows(native, parent_step, parent_claim_row, bg, ffxiclopedia)
 
     zone = int(raw_migration.get("zone", 0) or 0)
@@ -1763,6 +1892,16 @@ def _apply_legacy_action_migrations(
             f"Legacy action migration for {native.key!r} has stale navigation zone metadata."
         )
     items = _strings(raw_migration.get("items"), "items", required=True)
+    parent_item_keys = {_clean(value).casefold() for value in parent_step.items}
+    if (
+        len(items) != 4
+        or len(parent_item_keys) != 4
+        or {_clean(value).casefold() for value in items} != parent_item_keys
+        or _clean(parent_claim_row.target).casefold() not in parent_item_keys
+    ):
+        raise ObjectiveDestinationError(
+            f"Legacy action migration for {native.key!r} no longer owns the exact four-item objective."
+        )
     legacy_source_step_ids = _strings(
         raw_migration.get("legacy_source_step_ids"),
         "legacy_source_step_ids",
@@ -1899,8 +2038,13 @@ def _apply_legacy_action_migrations(
         )
     bg_farming_step = fact_rows[("bg", "farming_step_id")][0]
     bg_entities = {_clean(value).casefold() for value in bg_farming_step.linked_entities}
+    bg_farming_spans = tuple(
+        span for span in bg_farming_step.action_spans if span.action == "fight"
+    )
     if (
-        bg_farming_step.action != "fight"
+        bg_farming_step.action != "note"
+        or len(bg_farming_spans) != 1
+        or bg_farming_spans[0].material
         or tuple(value.casefold() for value in bg_farming_step.zone_candidates)
         != (zone_name.casefold(),)
         or not {enemy.casefold() for enemy in all_enemies}.issubset(bg_entities)
@@ -2192,10 +2336,10 @@ def resolve_objective_actions(
             action = "context"
             material = False
         else:
-            status = "unresolved"
-            reason = "missing-action-target"
-            action = step.action if step.action != "note" else "context"
-            material = True
+            status = "context-only"
+            reason = "no-material-action-span"
+            action = "context"
+            material = False
         ledger.append(
             ObjectiveActionLedgerRow(
                 action_id=action_id,
@@ -2204,7 +2348,7 @@ def resolve_objective_actions(
                 status=status,
                 reason=reason,
                 candidate_ids=(),
-                instruction=_instruction(step) if status == "context-only" else "",
+                instruction=_instruction(step) if context_override is not None else "",
                 material=material,
                 route_ready=False,
             )

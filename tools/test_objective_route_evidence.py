@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -1650,6 +1651,64 @@ class CliRouteWorkflowTests(RouteEvidenceTestCase):
         runtime = cli._parser().parse_args(["build", "--offline", "--runtime-ready"])
         self.assertTrue(runtime.offline)
         self.assertTrue(runtime.runtime_ready)
+
+    def test_full_build_always_publishes_runtime_manifest_child_and_reader_pin(self) -> None:
+        cli = importlib.import_module("tools.objective_guides.cli")
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            repo.mkdir()
+            summary = {
+                "counts": {
+                    "valid_native": 0,
+                    "by_status": {},
+                },
+                "route_inputs": {"ledger": (), "candidates": (), "groups": ()},
+            }
+            route_summary = {
+                "manifest_sha256": "a" * 64,
+                "runtime_ready": True,
+                "contract_count": 0,
+                "transition_count": 0,
+                "accepted_evidence_count": 0,
+                "review_count": 0,
+                "unresolved_count": 0,
+                "referenced_meshes": (),
+            }
+            with (
+                mock.patch.object(cli, "build_native_manifest", return_value=()),
+                mock.patch.object(cli, "load_site_link_policies", return_value={}),
+                mock.patch.object(cli, "_source_pages", return_value=((), {})),
+                mock.patch.object(cli, "_parse_pages", return_value=((), ())),
+                mock.patch.object(cli, "_load_overrides", return_value={}),
+                mock.patch.object(cli, "_overrides_for_sites", return_value={}),
+                mock.patch.object(cli, "_load_navigation_catalog", return_value=((), {}, ())),
+                mock.patch.object(cli, "build_guide_artifacts", return_value=summary),
+                mock.patch.object(cli, "_route_dependency_root", return_value=repo / "third_party"),
+                mock.patch.object(
+                    cli,
+                    "_build_route_artifacts",
+                    return_value=route_summary,
+                ) as build_routes,
+                mock.patch.object(cli, "_print_report"),
+            ):
+                result = cli.run(
+                    [
+                        "all",
+                        "--repo-root",
+                        str(repo),
+                        "--ffxi-root",
+                        str(repo),
+                        "--offline",
+                    ]
+                )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(build_routes.call_count, 1)
+        self.assertTrue(build_routes.call_args.kwargs["runtime_ready"])
+        self.assertEqual(
+            build_routes.call_args.kwargs["update_runtime_pin_path"],
+            repo / "ashita" / "addons" / "accessxi_reader" / "accessxi_reader.lua",
+        )
 
     def test_routes_refresh_reuses_pinned_sources_and_never_opens_mediawiki(self) -> None:
         cli = importlib.import_module("tools.objective_guides.cli")

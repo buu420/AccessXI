@@ -4462,6 +4462,7 @@ function accessxi.capture_mission_packet(e)
         return;
     end
 
+    local previous_main = accessxi.mission_packet_main;
     local base = 0x04;
     local packet_port = accessxi.packet_u16(data, 0x24 + 1);
     local info = {
@@ -4500,6 +4501,46 @@ function accessxi.capture_mission_packet(e)
         accessxi.mission_packet_hex = key;
         accessxi.mission_packet_cache_loaded = true;
         accessxi.save_mission_packet_cache();
+        local nations = { [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
+        local previous_nation = tonumber(type(previous_main) == 'table'
+            and previous_main.nation or nil);
+        local previous_mission = tonumber(type(previous_main) == 'table'
+            and previous_main.nation_mission or nil);
+        local current_nation = tonumber(info.nation);
+        local current_mission = tonumber(info.nation_mission);
+        local previous_context = nations[previous_nation];
+        local current_context = nations[current_nation];
+        if (previous_context ~= nil and current_context ~= nil
+            and previous_mission ~= nil and previous_mission >= 0
+            and current_mission ~= nil and current_mission >= 0
+            and (previous_nation ~= current_nation
+                or previous_mission ~= current_mission)
+            and mission_identity ~= '' and mission_session_epoch > 0
+            and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+            local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+            if (world_id > 0) then
+                if (tonumber(accessxi.objective_signal_session_epoch)
+                    ~= mission_session_epoch) then
+                    accessxi.objective_signal_session_epoch = mission_session_epoch;
+                    accessxi.objective_signal_sequence = 0;
+                end
+                local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+                accessxi.objective_signal_sequence = sequence;
+                pcall(accessxi.nav_mission_quest_reduce_signal, {
+                    kind = 'native-objective-state', category = 'mission',
+                    previous_native_key = ('mission:%s:%d'):fmt(
+                        previous_context, previous_mission + 1),
+                    current_native_key = ('mission:%s:%d'):fmt(
+                        current_context, current_mission + 1),
+                    previous_state = 'active', current_state = 'replaced',
+                    scope_complete = true,
+                    character_identity = mission_identity, world_id = world_id,
+                    session_epoch = mission_session_epoch, sequence = sequence,
+                    tick = tick(),
+                    corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+                });
+            end
+        end
     elseif (packet_port == 0x0080) then
         accessxi.mission_packet_ahturghan = {
             assault = accessxi.packet_u32(data, base + 0x10 + 1),
@@ -7115,20 +7156,96 @@ function accessxi.current_player_server_id()
     return server_id > 0 and server_id or 0;
 end
 
+function accessxi.current_player_world_id()
+    local player_name = clean_probe_text(accessxi.current_player_name()):lower();
+    if (player_name == '') then return 0; end
+
+    local account = safe_call(function () return require('ffxi.account'); end, nil);
+    if (type(account) ~= 'table') then return 0; end
+    local function account_call(name, index, fallback)
+        local callback = account[name];
+        if (type(callback) ~= 'function') then return fallback; end
+        return safe_call(function ()
+            if (index == nil) then return callback(account); end
+            return callback(account, index);
+        end, fallback);
+    end
+    local count = math.max(0, math.floor(tonumber(
+        account_call('get_character_count', nil, 0)) or 0));
+    local selected = math.floor(tonumber(
+        account_call('get_selected_character_index', nil, -1)) or -1);
+    local function slot_identity(index)
+        if (index < 0 or index >= count) then return '', 0; end
+        local name = clean_probe_text(
+            account_call('get_login_character_name', index, '')):lower();
+        local world_id = tonumber(
+            account_call('get_login_world_id', index, 0)) or 0;
+        return name, world_id > 0 and math.floor(world_id) or 0;
+    end
+
+    local selected_name, selected_world = slot_identity(selected);
+    if (selected_name == player_name and selected_world > 0) then
+        return selected_world;
+    end
+    local unique_world, matches = 0, 0;
+    for index = 0, count - 1 do
+        local name, world_id = slot_identity(index);
+        if (name == player_name) then
+            matches = matches + 1;
+            unique_world = world_id;
+        end
+    end
+    return matches == 1 and unique_world > 0 and unique_world or 0;
+end
+
 function accessxi.current_player_identity()
     local player_name = accessxi.current_player_name();
-    local server_id = accessxi.current_player_server_id();
-    if (player_name == '' or server_id <= 0) then
+    local world_id = accessxi.current_player_world_id();
+    if (player_name == '' or world_id <= 0) then
         return '';
     end
-    return ('%s:%d'):fmt(player_name:lower(), server_id);
+    return ('%s:%d'):fmt(player_name:lower(), world_id);
 end
 
 function accessxi.current_objective_session_epoch()
+    local identity = tostring(accessxi.current_player_identity() or ''):lower();
+    local tracked_identity = tostring(accessxi.objective_session_identity or ''):lower();
     local epoch = tonumber(accessxi.objective_session_epoch) or 0;
-    if (epoch <= 0) then
-        epoch = math.max(1, math.floor(tonumber(os.time()) or 1));
-        accessxi.objective_session_epoch = epoch;
+    local generation = math.max(0,
+        tonumber(accessxi.objective_session_generation) or epoch);
+    local identity_lost = identity == '' and (tracked_identity ~= '' or epoch > 0);
+    local identity_changed = identity ~= '' and tracked_identity ~= ''
+        and identity ~= tracked_identity;
+    if (identity_lost or identity_changed) then
+        accessxi.mission_packet_main = {};
+        accessxi.mission_packet_source = '';
+        accessxi.mission_packet_session_epoch = 0;
+        accessxi.quest_packet_logs = {};
+        accessxi.quest_packet_source = '';
+        accessxi.quest_packet_session_epoch = 0;
+        accessxi.key_items_packet_tables = {};
+        accessxi.key_items_packet_source = '';
+        accessxi.key_items_packet_session_epoch = 0;
+        accessxi.objective_inventory_counts = {};
+        accessxi.inventory_packet_source = '';
+        accessxi.inventory_packet_session_epoch = 0;
+        accessxi.inventory_packet_key = '';
+        if (type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+            pcall(accessxi.nav_mission_quest_reduce_signal, { kind = 'identity-loss' });
+        end
+    end
+    if (identity == '') then
+        accessxi.objective_session_identity = '';
+        accessxi.objective_session_epoch = 0;
+        return 0;
+    end
+    if (tracked_identity ~= identity or epoch <= 0) then
+        generation = math.max(generation + 1,
+            math.floor(tonumber(os.time()) or 1), 1);
+        accessxi.objective_session_generation = generation;
+        accessxi.objective_session_identity = identity;
+        accessxi.objective_session_epoch = generation;
+        epoch = generation;
     end
     return epoch;
 end
@@ -7362,6 +7479,19 @@ function accessxi.capture_key_items_packet(e)
     local player_name = accessxi.current_player_name();
     local player_identity = accessxi.current_player_identity();
     local key_item_session_epoch = accessxi.current_objective_session_epoch();
+    local previous_entry = type(accessxi.key_items_packet_tables) == 'table'
+        and accessxi.key_items_packet_tables[table_index] or nil;
+    local previous_flags = type(previous_entry) == 'table'
+        and tostring(previous_entry.flags or '') or '';
+    local previous_complete = #previous_flags == 64
+        and tostring(accessxi.key_items_packet_source or '') == 'packet_in_055'
+        and tostring(accessxi.key_items_packet_identity or ''):lower()
+            == tostring(player_identity or ''):lower()
+        and tonumber(accessxi.key_items_packet_session_epoch) == key_item_session_epoch
+        and tostring(previous_entry.source or '') == 'packet_in_055'
+        and tostring(previous_entry.identity or ''):lower()
+            == tostring(player_identity or ''):lower()
+        and tonumber(previous_entry.session_epoch) == key_item_session_epoch;
     if (player_identity ~= '' and tostring(accessxi.key_items_packet_identity or '') ~= ''
         and player_identity ~= tostring(accessxi.key_items_packet_identity or '')) then
         accessxi.key_items_packet_tables = {};
@@ -7408,6 +7538,43 @@ function accessxi.capture_key_items_packet(e)
         and type(accessxi.queue_mission_quest_state_change) == 'function') then
         accessxi.queue_mission_quest_state_change(
             'objective', ('packet-0x055-%d'):fmt(table_index));
+    end
+    if (previous_complete and player_identity ~= '' and key_item_session_epoch > 0
+        and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+        local current_flags = tostring(
+            accessxi.key_items_packet_tables[table_index].flags or '');
+        local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+        if (world_id > 0) then
+            for bit_index = 0, 511 do
+                local before_owned = accessxi.packet_has_bit(previous_flags, bit_index) == true;
+                local after_owned = accessxi.packet_has_bit(current_flags, bit_index) == true;
+                if (not before_owned and after_owned) then
+                    local key_item_id = (table_index * 512) + bit_index;
+                    local key_item_name = type(accessxi.objective_key_item_name_for_id)
+                        == 'function' and tostring(
+                            accessxi.objective_key_item_name_for_id(key_item_id) or '') or '';
+                    if (key_item_name ~= '') then
+                        if (tonumber(accessxi.objective_signal_session_epoch)
+                            ~= key_item_session_epoch) then
+                            accessxi.objective_signal_session_epoch = key_item_session_epoch;
+                            accessxi.objective_signal_sequence = 0;
+                        end
+                        local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+                        accessxi.objective_signal_sequence = sequence;
+                        pcall(accessxi.nav_mission_quest_reduce_signal, {
+                            kind = 'key-item-delta', key_item_id = key_item_id,
+                            key_item_name = key_item_name,
+                            before_owned = false, after_owned = true,
+                            snapshot_complete = true,
+                            character_identity = player_identity, world_id = world_id,
+                            session_epoch = key_item_session_epoch,
+                            sequence = sequence, tick = tick(),
+                            corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+                        });
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -21830,6 +21997,14 @@ function accessxi.objective_key_item_name_index()
     end
     accessxi.objective_key_item_name_index_cache = index;
     return index;
+end
+
+function accessxi.objective_key_item_name_for_id(id)
+    id = tonumber(id) or -1;
+    if (id < 0) then return ''; end
+    local resource = accessxi.load_key_items_resource();
+    local entry = type(resource) == 'table' and resource[id] or nil;
+    return accessxi.key_items_resource_label(entry);
 end
 
 function accessxi.objective_key_item_current_session_has_id(id)
@@ -61087,9 +61262,79 @@ function accessxi.log_combat_action_diag(action, data, reason)
 end
 
 function accessxi.capture_combat_action_packet(e)
-    if (e == nil or tonumber(e.id) ~= 0x028) then
+    if (e == nil) then
         return;
     end
+
+    local packet_id = tonumber(e.id) or -1;
+    if (packet_id == 0x029) then
+        local data = e.data_modified or e.data
+            or accessxi.packet_event_string(e, 'data_modified', 'size')
+            or accessxi.packet_event_string(e, 'data', 'size') or '';
+        if (#data < 0x1A) then return; end
+        local actor_server_id = accessxi.packet_u32(data, 0x04 + 1);
+        local target_server_id = accessxi.packet_u32(data, 0x08 + 1);
+        local actor_index = accessxi.packet_u16(data, 0x14 + 1);
+        local target_index = accessxi.packet_u16(data, 0x16 + 1);
+        local message_id = accessxi.packet_u16(data, 0x18 + 1) % 0x8000;
+        if ((message_id ~= 6 and message_id ~= 97)
+            or actor_server_id <= 0 or target_server_id <= 0) then
+            return;
+        end
+        local actor_ok, actor_kind = false, '';
+        if (type(accessxi.combat_actor_is_local_or_party) == 'function') then
+            actor_ok, actor_kind = accessxi.combat_actor_is_local_or_party(
+                actor_server_id);
+        end
+        if (actor_ok ~= true) then return; end
+        local target_name = '';
+        if (type(accessxi.combat_entity_hp_summary_for_server) == 'function') then
+            local _, _, name = accessxi.combat_entity_hp_summary_for_server(
+                target_server_id);
+            target_name = tostring(name or '');
+        end
+        if (target_name == '' or target_name:lower() == 'unknown') then return; end
+        local identity = tostring(accessxi.current_player_identity() or ''):lower();
+        local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+        local session_epoch = tonumber(accessxi.current_objective_session_epoch()) or 0;
+        if (identity == '' or world_id <= 0 or session_epoch <= 0) then return; end
+        local now = tick();
+        local replay_key = table.concat({ tostring(session_epoch),
+            tostring(actor_server_id), tostring(target_server_id),
+            tostring(actor_index), tostring(target_index), tostring(message_id) }, ':');
+        if (replay_key == tostring(accessxi.objective_kill_replay_key or '')
+            and (now - (tonumber(accessxi.objective_kill_replay_tick) or 0)) < 2000) then
+            return;
+        end
+        if (tonumber(accessxi.objective_signal_session_epoch) ~= session_epoch) then
+            accessxi.objective_signal_session_epoch = session_epoch;
+            accessxi.objective_signal_sequence = 0;
+        end
+        local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+        accessxi.objective_signal_sequence = sequence;
+        local zone_id = type(accessxi.current_zone_id) == 'function'
+            and (tonumber(accessxi.current_zone_id()) or 0)
+            or (tonumber(nav_zone_id()) or 0);
+        local signal = {
+            kind = 'kill-credit', packet_id = 0x029, message_id = message_id,
+            actor_server_id = actor_server_id, actor_index = actor_index,
+            actor_is_local = actor_kind == 'local', actor_is_party = actor_kind == 'party',
+            target_server_id = target_server_id, target_index = target_index,
+            target_name = target_name, zone_id = zone_id,
+            character_identity = identity, world_id = world_id,
+            session_epoch = session_epoch, sequence = sequence,
+            battle_sequence = sequence, tick = now,
+            corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+            causal_id = ('0x029:%d:%s'):fmt(sequence, replay_key),
+        };
+        accessxi.objective_kill_replay_key = replay_key;
+        accessxi.objective_kill_replay_tick = now;
+        if (type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+            pcall(accessxi.nav_mission_quest_reduce_signal, signal);
+        end
+        return;
+    end
+    if (packet_id ~= 0x028) then return; end
 
     local data = e.data_modified or e.data or accessxi.packet_event_string(e, 'data_modified', 'size') or accessxi.packet_event_string(e, 'data', 'size') or '';
     local action, err = accessxi.combat_action_parse(data);
@@ -69050,6 +69295,36 @@ function accessxi.nav_zone_load_settle_active(now)
 end
 
 function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
+    local from_zone_id = tonumber(old_zone) or 0;
+    local zone_id = tonumber(new_zone) or 0;
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local world_id = type(accessxi.current_player_world_id) == 'function'
+        and (tonumber(accessxi.current_player_world_id()) or 0) or 0;
+    local session_epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    if (from_zone_id > 0 and zone_id > 0 and from_zone_id ~= zone_id
+        and identity ~= '' and world_id > 0 and session_epoch > 0
+        and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+        if (tonumber(accessxi.objective_signal_session_epoch) ~= session_epoch) then
+            accessxi.objective_signal_session_epoch = session_epoch;
+            accessxi.objective_signal_sequence = 0;
+        end
+        local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+        accessxi.objective_signal_sequence = sequence;
+        pcall(accessxi.nav_mission_quest_reduce_signal, {
+            kind = 'committed-zone', from_zone_id = from_zone_id, zone_id = zone_id,
+            target_server_id = tonumber(accessxi.objective_transport_target_server_id) or 0,
+            menu_id = tonumber(accessxi.objective_transport_menu_id) or 0,
+            transport_sequence = tonumber(accessxi.objective_transport_request_sequence),
+            character_identity = identity, world_id = world_id,
+            session_epoch = session_epoch, sequence = sequence, tick = tick(),
+            corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+        });
+    end
+    accessxi.objective_transport_target_server_id = nil;
+    accessxi.objective_transport_menu_id = nil;
+    accessxi.objective_transport_request_sequence = nil;
     if ((tonumber(new_zone) or 0) > 0) then
         accessxi.nav_last_seen_zone = tonumber(new_zone);
     end
@@ -74198,6 +74473,13 @@ function accessxi.on_mission_quest_state_changed(kind, reason)
         return false, false;
     end
     accessxi.nav_menu_poll_key = 0;
+    accessxi.nav_menu_dirty_categories = accessxi.nav_menu_dirty_categories or {};
+    if (kind == 'objective') then
+        accessxi.nav_menu_dirty_categories.mission = true;
+        accessxi.nav_menu_dirty_categories.quest = true;
+    else
+        accessxi.nav_menu_dirty_categories[kind] = true;
+    end
 
     local route_point = nil;
     if (type(accessxi.nav_is_mission_quest_point) == 'function'
@@ -74360,6 +74642,51 @@ local function nav_menu_start_route()
             end
             speak(text);
             log_line('nav objective instruction ' .. text);
+            return;
+        end
+        if (objective_mode == 'wiki-ready') then
+            local wiki_complete = type(target) == 'table'
+                and target.objective_wiki_route == true
+                and target.wiki_authoritative == true
+                and target.verified ~= true
+                and nav_clean_field(target.objective_kind) ~= ''
+                and nav_clean_field(target.objective_native_key) ~= ''
+                and nav_clean_field(target.objective_guide_step_id) ~= ''
+                and nav_clean_field(target.objective_character_identity) ~= ''
+                and tonumber(target.objective_world_id) ~= nil
+                and tonumber(target.objective_session_epoch) ~= nil
+                and nav_clean_field(target.objective_candidate_id) ~= ''
+                and nav_clean_field(target.objective_action_id) ~= ''
+                and type(target.objective_group_id) == 'string'
+                and nav_clean_field(target.objective_destination_id) ~= ''
+                and nav_clean_field(target.objective_classification) == 'catalogue-candidate'
+                and nav_clean_field(target.objective_action_instruction) ~= '';
+            if (not wiki_complete
+                or type(accessxi.nav_start_wiki_objective_route) ~= 'function') then
+                local text = 'Source-verified objective route execution is unavailable.';
+                speak(text);
+                log_line('nav objective source route blocked ' .. text);
+                return;
+            end
+            local start_ok, text, started = pcall(
+                accessxi.nav_start_wiki_objective_route,
+                target,
+                objective_player);
+            if (not start_ok) then
+                text = 'Source-verified objective route execution failed safely.';
+                started = false;
+            else
+                text = nav_clean_field(text);
+                if (text == '') then
+                    text = started == true
+                        and 'Source-verified objective route started.'
+                        or 'Source-verified objective route could not start.';
+                end
+            end
+            speak(text);
+            log_line((started == true
+                and 'nav objective source route start '
+                or 'nav objective source route blocked ') .. text);
             return;
         end
         if (objective_mode == 'test-ready') then
@@ -74793,6 +75120,9 @@ function accessxi.nav_copy_point(point)
         objective_route_contract_id = nav_clean_field(point.objective_route_contract_id or ''),
         objective_contract_snapshot = copy_nested(point.objective_contract_snapshot),
         objective_test_route = point.objective_test_route == true,
+        objective_wiki_route = point.objective_wiki_route == true,
+        wiki_authoritative = point.wiki_authoritative == true,
+        verified = point.verified == true,
         objective_active_state_signature = nav_clean_field(point.objective_active_state_signature or ''),
         objective_active_owner_key = nav_clean_field(point.objective_active_owner_key or ''),
         objective_action = nav_clean_field(point.objective_action or ''),
@@ -74960,6 +75290,49 @@ function accessxi.nav_start_test_objective_route(target, player)
         or 'Source-verified mission objective.';
     return marker
         .. (route_text ~= '' and (' ' .. route_text) or ''), true;
+end
+
+function accessxi.nav_start_wiki_objective_route(target, player)
+    if (type(target) ~= 'table' or target.objective_wiki_route ~= true
+        or target.wiki_authoritative ~= true or target.verified == true
+        or type(player) ~= 'table') then
+        return 'Source-verified objective route information is incomplete.', false;
+    end
+    local target_zone = tonumber(target.zone) or 0;
+    local player_zone = tonumber(player.zone) or 0;
+    if (target_zone <= 0 or player_zone <= 0) then
+        return 'Source-verified objective route position is unavailable.', false;
+    end
+
+    accessxi.nav_clear_zone_search();
+    accessxi.nav_objective_route_state = nil;
+    local route_text = '';
+    if (target_zone == player_zone) then
+        route_text = accessxi.nav_start_route_to_point(
+            accessxi.nav_copy_point(target),
+            'objective-wiki-route');
+    else
+        accessxi.nav_zone_search_target = accessxi.nav_copy_point(target);
+        accessxi.nav_zone_search_query = nav_clean_field(
+            target.name or 'objective destination');
+        accessxi.nav_zone_search_waiting_zone = 0;
+        accessxi.nav_zone_search_waiting_from_zone = 0;
+        accessxi.nav_zone_search_last_replan_tick = 0;
+        route_text = accessxi.nav_zone_search_start_next_leg('objective-wiki-route');
+    end
+    route_text = nav_clean_field(route_text);
+    if (accessxi.nav_active ~= true) then
+        return 'Source-verified objective route could not start.'
+            .. (route_text ~= '' and (' ' .. route_text) or ''), false;
+    end
+    accessxi.nav_menu_open = false;
+    accessxi.nav_menu_poll_key = 0;
+    accessxi.nav_menu_poll_tick = 0;
+    accessxi.nav_menu_open_tick = 0;
+    local marker = nav_clean_field(target.objective_kind):lower() == 'quest'
+        and 'Source-verified quest objective.'
+        or 'Source-verified mission objective.';
+    return marker .. (route_text ~= '' and (' ' .. route_text) or ''), true;
 end
 
 function accessxi.nav_start_authorized_objective_route(target, player)
@@ -88318,6 +88691,13 @@ local function inventory_item_info_speech(info, suppress_count)
     return join_speech_parts(parts);
 end
 
+function accessxi.objective_item_name_for_id(item_id)
+    item_id = tonumber(item_id) or 0;
+    if (item_id <= 0) then return ''; end
+    local info = resource_item_info(item_id);
+    return type(info) == 'table' and nav_clean_field(info.name or '') or '';
+end
+
 function accessxi.refresh_objective_inventory_state(reason)
     local player = type(accessxi.current_player_name) == 'function'
         and tostring(accessxi.current_player_name() or '') or '';
@@ -88328,6 +88708,12 @@ function accessxi.refresh_objective_inventory_state(reason)
     if (player == '' or identity == '') then
         return false, false;
     end
+    local previous_counts = type(accessxi.objective_inventory_counts) == 'table'
+        and accessxi.objective_inventory_counts or {};
+    local previous_complete = tostring(accessxi.inventory_packet_source or '')
+            == 'native-inventory'
+        and tostring(accessxi.inventory_packet_identity or ''):lower() == identity
+        and tonumber(accessxi.inventory_packet_session_epoch) == epoch;
 
     local manager_ok, manager = pcall(function () return AshitaCore:GetMemoryManager(); end);
     local inventory_ok, inventory = false, nil;
@@ -88383,7 +88769,39 @@ function accessxi.refresh_objective_inventory_state(reason)
     accessxi.inventory_packet_session_epoch = epoch;
     accessxi.inventory_packet_source = 'native-inventory';
     accessxi.inventory_packet_key = key;
-    accessxi.inventory_packet_tick = tick();
+    local now = tick();
+    accessxi.inventory_packet_tick = now;
+    if (previous_complete and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+        local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+        if (world_id > 0) then
+            for _, item_id in ipairs(ids) do
+                local before_count = math.max(0,
+                    tonumber(previous_counts[item_id]) or 0);
+                local after_count = math.max(0, tonumber(counts[item_id]) or 0);
+                if (after_count > before_count) then
+                    local item_name = type(accessxi.objective_item_name_for_id) == 'function'
+                        and tostring(accessxi.objective_item_name_for_id(item_id) or '') or '';
+                    if (item_name ~= '') then
+                        if (tonumber(accessxi.objective_signal_session_epoch) ~= epoch) then
+                            accessxi.objective_signal_session_epoch = epoch;
+                            accessxi.objective_signal_sequence = 0;
+                        end
+                        local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+                        accessxi.objective_signal_sequence = sequence;
+                        pcall(accessxi.nav_mission_quest_reduce_signal, {
+                            kind = 'inventory-delta', item_id = item_id,
+                            item_name = item_name, before_count = before_count,
+                            after_count = after_count, snapshot_complete = true,
+                            character_identity = identity, world_id = world_id,
+                            session_epoch = epoch, sequence = sequence,
+                            inventory_sequence = sequence, tick = now,
+                            corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+                        });
+                    end
+                end
+            end
+        end
+    end
     if (changed) then
         log_line(('objective inventory changed reason="%s" items=%d key="%s"'):fmt(
             accessxi.escape_probe_log_text(reason or 'refresh'),
@@ -88457,45 +88875,104 @@ function accessxi.capture_objective_inventory_packet(e)
     end
 end
 
+function accessxi.objective_entity_name_for_server_id(server_id)
+    if (type(accessxi.combat_entity_hp_summary_for_server) ~= 'function') then
+        return '';
+    end
+    local _, _, name = accessxi.combat_entity_hp_summary_for_server(server_id);
+    return clean_probe_text(name);
+end
+
+-- Raw packets are translated directly into one typed reducer signal.  They do
+-- not also call accessxi.nav_mission_quest_observe_event_packet, because that
+-- legacy compatibility bridge feeds the same reducer and would double count.
 function accessxi.capture_mission_quest_event_packet(e, direction)
-    if (e == nil or type(accessxi.nav_mission_quest_observe_event_packet) ~= 'function') then
+    if (e == nil or type(accessxi.nav_mission_quest_reduce_signal) ~= 'function') then
         return false;
     end
     local packet_id = tonumber(e.id) or -1;
     local data = e.data_modified or e.data or '';
     direction = tostring(direction or ''):lower();
-    local phase = '';
+    local kind = '';
     local target_server_id = 0;
+    local target_index = 0;
     local zone_id = 0;
     local event_id = 0;
+    local menu_id = 0;
+    local destination_x, destination_z, destination_y = nil, nil, nil;
+    local function packet_float32(index)
+        local bits = accessxi.packet_u32(data, index);
+        local sign = bits >= 0x80000000 and -1 or 1;
+        if (bits >= 0x80000000) then bits = bits - 0x80000000; end
+        local exponent = math.floor(bits / 0x800000);
+        local mantissa = bits % 0x800000;
+        if (exponent == 0) then
+            return sign * (mantissa / 0x800000) * (2 ^ -126);
+        end
+        if (exponent >= 255) then return nil; end
+        return sign * (1 + (mantissa / 0x800000)) * (2 ^ (exponent - 127));
+    end
     if (direction == 'in' and packet_id == 0x0034) then
-        phase = 'start';
+        kind = 'interaction-start';
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
         zone_id = accessxi.packet_u16(data, 0x2A + 1);
         event_id = accessxi.packet_u16(data, 0x2C + 1);
     elseif (direction == 'in' and packet_id == 0x0032) then
-        phase = 'start';
+        kind = 'interaction-start';
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
         zone_id = accessxi.packet_u16(data, 0x0A + 1);
         event_id = accessxi.packet_u16(data, 0x0C + 1);
     elseif (direction == 'out' and packet_id == 0x005B) then
-        phase = 'finish';
+        kind = 'interaction-finish';
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
         zone_id = accessxi.packet_u16(data, 0x10 + 1);
         event_id = accessxi.packet_u16(data, 0x12 + 1);
+    elseif (direction == 'out' and packet_id == 0x005C) then
+        kind = 'transport-request';
+        target_server_id = accessxi.packet_u32(data, 0x10 + 1);
+        zone_id = accessxi.packet_u16(data, 0x18 + 1);
+        menu_id = accessxi.packet_u16(data, 0x1A + 1);
+        target_index = accessxi.packet_u16(data, 0x1C + 1);
+        destination_x = packet_float32(0x04 + 1);
+        destination_z = packet_float32(0x08 + 1);
+        destination_y = packet_float32(0x0C + 1);
     else
         return false;
     end
-    if (target_server_id <= 0 or zone_id <= 0 or event_id <= 0) then
+    if (menu_id <= 0) then menu_id = event_id; end
+    if (target_server_id <= 0 or zone_id <= 0 or menu_id <= 0) then
         return false;
     end
-    local ok, result = pcall(
-        accessxi.nav_mission_quest_observe_event_packet,
-        phase,
-        target_server_id,
-        zone_id,
-        event_id,
-        tick());
+    local identity = tostring(accessxi.current_player_identity() or ''):lower();
+    local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+    local session_epoch = tonumber(accessxi.current_objective_session_epoch()) or 0;
+    if (identity == '' or world_id <= 0 or session_epoch <= 0) then return false; end
+    if (tonumber(accessxi.objective_signal_session_epoch) ~= session_epoch) then
+        accessxi.objective_signal_session_epoch = session_epoch;
+        accessxi.objective_signal_sequence = 0;
+    end
+    local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+    accessxi.objective_signal_sequence = sequence;
+    local now = tick();
+    local target_name = type(accessxi.objective_entity_name_for_server_id) == 'function'
+        and tostring(accessxi.objective_entity_name_for_server_id(target_server_id) or '') or '';
+    local signal = {
+        kind = kind, packet_id = packet_id, direction = direction,
+        target_server_id = target_server_id, target_index = target_index,
+        target_name = target_name, zone_id = zone_id,
+        event_id = event_id, menu_id = menu_id,
+        destination_x = destination_x, destination_z = destination_z,
+        destination_y = destination_y,
+        character_identity = identity, world_id = world_id,
+        session_epoch = session_epoch, sequence = sequence, tick = now,
+        corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+    };
+    local ok, result = pcall(accessxi.nav_mission_quest_reduce_signal, signal);
+    if (ok and result == true and kind == 'transport-request') then
+        accessxi.objective_transport_target_server_id = target_server_id;
+        accessxi.objective_transport_menu_id = menu_id;
+        accessxi.objective_transport_request_sequence = sequence;
+    end
     if (not ok) then
         log_line(('objective event correlation failed packet=0x%03X reason="%s"'):fmt(
             packet_id,

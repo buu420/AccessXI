@@ -208,3 +208,14 @@ the sorted hash-map digest is
 the manifest remains `0b596566...1315`, and 104/104 generated Lua tables load
 under Lua 5.1. Eight exact renderer-only speech duplications are pinned as a
 nonblocking follow-up; completion semantics are canonical and unchanged.
+
+Task 4 native reader adapters completed locally. Durable objective ownership
+now uses the exact account World ID and a login-local monotonic session
+generation; identity loss clears transient native snapshots and reducer arms.
+Raw interaction, transport, kill, mission replacement, committed-zone,
+key-item, and carried-Inventory evidence feeds one owner-qualified typed
+signal per causal transition. Wiki-ready objectives reuse ordinary collision
+routing only after the player's explicit `I` action. The focused reader
+contract moved from exactly 27 REDs to zero; reader integrity, runtime pin, and
+Lua 5.1 syntax are GREEN. Deployment remains held for scoped review and the
+user's release gate.

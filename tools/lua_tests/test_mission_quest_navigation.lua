@@ -2379,5 +2379,134 @@ assert(accessxi.nav_mission_quest_sync_character('test-pending-switch') == true)
 assert(cancelled_objective_routes == 2)
 assert(accessxi.nav_zone_search_target == nil)
 
+-- Task 2 RED: exact live event packets must advance the ordered wiki cursor
+-- even when the player reached the NPC without an AccessXI-owned route.  A
+-- route is optional player guidance, not the authority for local activity.
+-- These expectations fail on the old pending-arrival-only reducer, while the
+-- final replay assertion protects the intended one-causal-signal boundary.
+;(function()
+local task2_progress_notifications = 0
+accessxi.on_objective_interaction_progress_changed = function()
+    task2_progress_notifications = task2_progress_notifications + 1
+end
+
+local function task2_restore_live_objective_fixture()
+    current_player = 'Alpha'
+    current_identity = 'alpha:1001'
+    current_world_id = 1001
+    current_session_epoch = 77
+    current_nation = 0
+    mission_values["San d'Oria"] = 2
+    accessxi.mission_quest_nav_player = current_player
+    accessxi.mission_quest_nav_identity = current_identity
+    accessxi.mission_packet_player = current_player
+    accessxi.mission_packet_identity = current_identity
+    accessxi.mission_packet_source = 'packet_in_056'
+    accessxi.mission_packet_session_epoch = current_session_epoch
+    accessxi.mission_packet_main = { nation = 0, nation_mission = 2, port = 0xFFFF }
+    accessxi.mission_packet_nations_complete = words_with()
+    accessxi.mission_packet_nations_complete_player = current_player
+    accessxi.mission_packet_nations_complete_identity = current_identity
+    accessxi.mission_packet_nations_complete_source = 'packet_in_056'
+    accessxi.quest_packet_player = current_player
+    accessxi.quest_packet_identity = current_identity
+    accessxi.quest_packet_source = 'packet_in_056'
+    accessxi.quest_packet_session_epoch = current_session_epoch
+    for _, entry in pairs(quest_entries) do
+        entry.identity = current_identity
+        entry.session_epoch = current_session_epoch
+        entry.source = 'packet_in_056'
+    end
+    quest_entries['sandoria:current'].words = words_with(2, 200)
+    quest_entries['sandoria:completed'].words = words_with()
+    accessxi.quest_packet_logs = quest_entries
+    accessxi.key_items_packet_player = current_player
+    accessxi.key_items_packet_identity = current_identity
+    accessxi.key_items_packet_tables = {
+        [0] = {
+            flags = string.rep('\0', 64),
+            source = 'packet_in_055',
+            identity = current_identity,
+            session_epoch = current_session_epoch,
+        },
+    }
+    accessxi.inventory_packet_source = 'packet_in_inventory'
+    accessxi.inventory_packet_identity = current_identity
+    accessxi.inventory_packet_session_epoch = current_session_epoch
+    accessxi.nav_active = false
+    accessxi.nav_destination = nil
+    accessxi.nav_zone_search_target = nil
+    accessxi.nav_points = T{
+        T{
+            zone = 231, name = 'Arnau', x = 149.892, z = 141.873, y = -0.601,
+            kind = 'npc', destination_id = 'npc:v1:231:17723406',
+            raw_identity = 'lsb:npc_list:17723406', raw_spawn_ids = T{ 17723406 },
+        },
+        T{
+            zone = 237, name = 'Cid', x = -12.598, z = 2.430, y = -10.988,
+            kind = 'npc', destination_id = 'npc:v1:237:17772593',
+            raw_identity = 'lsb:npc_list:17772593', raw_spawn_ids = T{ 17772593 },
+        },
+    }
+    accessxi.nav_catalog_revision = (tonumber(accessxi.nav_catalog_revision) or 0) + 1
+    accessxi.objective_progress_revision = 1
+    os.remove(objective_progress_path)
+    assert(load_with_env(module_path, {
+        accessxi = accessxi,
+        T = T,
+        bit = bit,
+        log_line = function(text) logs:append(text) end,
+    }), 'Task 2 fixture could not reload the real navigation module')
+end
+
+local task2_red_failures = T{}
+local function task2_expect(value, message)
+    if (value ~= true) then task2_red_failures:append(message) end
+end
+
+task2_restore_live_objective_fixture()
+local task2_mission = assert(find(accessxi.nav_mission_quest_active_items('mission'), 'Save the Children'))
+task2_expect(task2_mission.objective_guide_step_id == "mission:San d'Oria:3:step-002",
+    'Task 2 mission fixture did not establish Arnau as the current wiki step')
+local task2_mission_start = accessxi.nav_mission_quest_observe_event_packet(
+    'start', 17723406, 231, 42001, 10000)
+local task2_mission_finish = accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17723406, 231, 42001, 10100)
+local task2_mission_replay = accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17723406, 231, 42001, 10200)
+task2_expect(task2_mission_start,
+    'route-less mission 0x032/0x034 start was not accepted for the current exact Arnau step')
+task2_expect(task2_mission_finish,
+    'route-less mission matching 0x05B finish did not advance the current wiki cursor')
+task2_expect(not task2_mission_replay,
+    'replayed mission 0x05B finish advanced the same wiki step again')
+task2_expect(task2_progress_notifications == 1,
+    'route-less mission interaction did not emit exactly one progression notification')
+
+task2_restore_live_objective_fixture()
+task2_progress_notifications = 0
+local task2_quest = assert(find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket'))
+task2_expect(task2_quest.objective_guide_step_id == 'quest:sandoria:2:step-002',
+    'Task 2 quest fixture did not establish Cid as the current wiki step')
+local task2_quest_start = accessxi.nav_mission_quest_observe_event_packet(
+    'start', 17772593, 237, 42002, 11000)
+local task2_quest_finish = accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17772593, 237, 42002, 11100)
+local task2_quest_replay = accessxi.nav_mission_quest_observe_event_packet(
+    'finish', 17772593, 237, 42002, 11200)
+task2_expect(task2_quest_start,
+    'route-less quest 0x032/0x034 start was not accepted for the current exact Cid step')
+task2_expect(task2_quest_finish,
+    'route-less quest matching 0x05B finish did not advance the current wiki cursor')
+task2_expect(not task2_quest_replay,
+    'replayed quest 0x05B finish advanced the same wiki step again')
+task2_expect(task2_progress_notifications == 1,
+    'route-less quest interaction did not emit exactly one progression notification')
+
+assert(#task2_red_failures == 0,
+    'Task 2 wiki-authoritative route-less progression REDs:\n- '
+        .. table.concat(task2_red_failures, '\n- '))
+end)()
+
 os.remove(objective_progress_path)
 return true

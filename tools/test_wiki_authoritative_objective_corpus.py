@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import json
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import unicodedata
@@ -1648,6 +1650,35 @@ class WikiAuthoritativeObjectiveCorpusTests(unittest.TestCase):
         self.assertTrue(review["action_resolution_ledger"])
         self.assertTrue(review["objective_destination_candidates"])
         self.assertTrue(any(step["typed_claims"] for step in review["steps"]))
+
+    def test_git_archive_preserves_deterministic_jsonl_bytes(self) -> None:
+        relative_path = "data/mission-quest-guides/route-evidence-v2.jsonl"
+        result = subprocess.run(
+            [
+                "git",
+                "-c",
+                f"safe.directory={REPO_ROOT.as_posix()}",
+                "archive",
+                "--worktree-attributes",
+                "--format=tar",
+                "HEAD",
+                "--",
+                relative_path,
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+        with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+            member = archive.extractfile(relative_path)
+            self.assertIsNotNone(member)
+            archived_bytes = member.read()
+        self.assertEqual(
+            archived_bytes,
+            (REPO_ROOT / relative_path).read_bytes(),
+            "Git archive changed the byte-pinned JSONL corpus artifact",
+        )
 
     def test_second_offline_build_is_byte_identical_for_checked_in_generated_artifacts(self) -> None:
         command = [

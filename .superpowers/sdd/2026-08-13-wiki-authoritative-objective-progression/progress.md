@@ -136,3 +136,9 @@ Fresh recovery gates pass 197 objective-guide tests, 73 route-evidence tests,
 104 Lua 5.1 generated-table loads, the SHA-256 harness, reader integrity, reader
 and route-module syntax, and all seven manifest source-child hashes. Task 1 is
 ready for explicit-path staging and independent review.
+
+Task 1 clean-export fix: a real Git archive reproduced one Windows-only byte
+drift in `route-evidence-v2.jsonl` because JSONL lacked the explicit LF policy
+already applied to JSON, TSV, and Lua artifacts. A focused archive-byte test was
+RED with exactly 35 inserted CR bytes. Adding `*.jsonl text eol=lf` made it GREEN
+without changing any approved artifact byte or the `5920b407...53c5` digest.

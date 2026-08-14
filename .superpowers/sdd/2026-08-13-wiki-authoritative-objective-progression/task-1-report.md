@@ -469,3 +469,19 @@ manifest source-child verification       7/7 hashes plus exact reader pin
 Only the single generated manifest-pin line in `accessxi_reader.lua` belongs to
 Task 1. The uncommitted production `mission_quest_guides.lua`, Task 2 harnesses,
 navigation work, and `build-collision-mhaura-repro/` remain outside this commit.
+
+### Clean-export line-ending regression
+
+A post-commit clean `git archive` comparison found that the byte-pinned
+`route-evidence-v2.jsonl` was the only one of the 118 artifacts exported with
+different bytes: Git converted its 35 LF line endings to CRLF because JSONL had
+no explicit repository EOL policy. The working generator output and staged blob
+were both the approved LF bytes, but a clean Windows export would begin the next
+offline determinism test from different bytes.
+
+The focused regression executes a real `git archive --worktree-attributes` and
+compares the archived JSONL member byte-for-byte with the generated artifact.
+Before the fix it failed with the archived file 35 bytes larger. The minimal
+repository fix adds `*.jsonl text eol=lf`, matching the existing JSON, TSV, and
+Lua deterministic-artifact rules. The same focused test then passed. The corpus
+artifact digest remains exactly `5920b4073c1fb86c7f96f6bca90e92fb83bc106ea71338a5a12c4f38b5f153c5`.

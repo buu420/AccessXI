@@ -229,6 +229,18 @@ for _, malformed_count in ipairs({ 0, 64 }) do
     assert(fallback_collects == 0)
 end
 
+for _, framed in ipairs({ { style = 27, count = 0 }, { style = 14, count = 64 } }) do
+    candidate_fixture(framed.style, framed.count, 'VALIDSTALE')
+    assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
+    assert(fallback_reads == 0)
+    assert(fallback_collects == 0)
+end
+
+candidate_fixture(27, 5, 'VALIDSTALE', 'VAL')
+assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
+assert(fallback_reads == 0)
+assert(fallback_collects == 0)
+
 candidate_fixture(3, 5, 'VALIDSTALE', 'VAL')
 assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
 assert(fallback_reads == 0)
@@ -249,6 +261,15 @@ bytes[legacy + 0x105] = 0x42
 bytes[legacy + 0x106] = 0
 bytes[legacy + 0x107] = 0
 assert(accessxi.native_query_candidate_label_from_ptr(legacy, '') == 'LEGACY LABEL')
+assert(fallback_reads == 1)
+
+bytes = {}
+dwords = {}
+fallback_reads = 0
+fallback_collects = 0
+write_text(legacy, 'LEGACY UNFRAMED')
+bytes[legacy + 0x104] = 27
+assert(accessxi.native_query_candidate_label_from_ptr(legacy, '') == 'LEGACY UNFRAMED')
 assert(fallback_reads == 1)
 
 print('native query visible-length decoder behavior ok')

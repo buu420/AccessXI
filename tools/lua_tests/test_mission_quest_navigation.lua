@@ -2657,6 +2657,37 @@ do
         menu_id = 45001,
     }
 
+    -- The compact-v2 action is a complete immutable snapshot.  An
+    -- intentionally empty embedded catalogue must not be repopulated from a
+    -- separately cached legacy objective_destinations row with the same
+    -- action ID.
+    task2_reset_reducer_scenario('current-interaction')
+    local task3_catalogue_progression_actions =
+        accessxi.objective_guides.progression_actions
+    accessxi.objective_guides.progression_actions = function(self, native_key)
+        local rows = task3_catalogue_progression_actions(self, native_key)
+        rows = deep_copy(rows)
+        if native_key == 'quest:sandoria:2' and type(rows[1]) == 'table' then
+            rows[1].catalogue = T{}
+            if type(rows[1].field_sources) == 'table' then
+                rows[1].field_sources.catalogue = ''
+            end
+        end
+        return rows
+    end
+    task2_reducer_expect(not task2_reduce(task2_signal(
+            'interaction-start', interaction_values),
+            'empty compact catalogue with poisoned legacy destination'),
+        'legacy objective destination repopulated an empty compact-v2 catalogue')
+    task2_reducer_expect(not task2_reduce(task2_signal(
+            'interaction-finish', interaction_values),
+            'finish after empty compact catalogue'),
+        'legacy destination armed an interaction for an empty compact-v2 catalogue')
+    task2_reducer_expect(task2_progress_bytes() == '',
+        'poisoned legacy destination wrote compact-v2 objective progress')
+    accessxi.objective_guides.progression_actions =
+        task3_catalogue_progression_actions
+
     task2_reset_reducer_scenario('later-unique')
     task2_reducer_expect(task2_reduce(task2_signal('interaction-start', interaction_values),
         'globally unique later interaction start'),

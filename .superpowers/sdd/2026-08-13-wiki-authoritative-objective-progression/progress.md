@@ -202,9 +202,9 @@ rebuild emits 22,951 typed claims (12,069 material and 10,882 nonmaterial),
 1,844 native objectives. The deep authority gate pins 467 material-
 FFXIclopedia fallbacks across 350 objectives/445 steps, while all independent
 high/strict semantic suspect sets are zero. Final runtime size is 57,517,214
-bytes. A final offline generation reproduced all 118 artifact bytes exactly;
-the sorted hash-map digest is
-`644d5d4e40fcaf8fe1156c0abc490dd9f5f8d5495d4b428223eb4b48a8603592`,
+bytes. A final offline generation reproduced the frozen artifact bytes exactly.
+The clean 118-path archive map for Task 1 commit `cf3067d` has sorted hash-map
+digest `6006f5c8c46d56c66285a91d10f6b28c656b006b257ab3ecccaaa48499eae95c`;
 the manifest remains `0b596566...1315`, and 104/104 generated Lua tables load
 under Lua 5.1. Eight exact renderer-only speech duplications are pinned as a
 nonblocking follow-up; completion semantics are canonical and unchanged.

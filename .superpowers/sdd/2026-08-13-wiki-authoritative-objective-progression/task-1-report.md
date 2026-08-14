@@ -518,11 +518,16 @@ generated Lua 5.1 execution                       104/104 tables loaded — OK
 git diff --check                                  clean
 ```
 
-The final canonical artifact hash-map digests are
-`644d5d4e40fcaf8fe1156c0abc490dd9f5f8d5495d4b428223eb4b48a8603592`
+The final clean-archive artifact map for Task 1 commit `cf3067d` contains all
+118 expected paths, including the unchanged reader pin. Its canonical digests
+are `6006f5c8c46d56c66285a91d10f6b28c656b006b257ab3ecccaaa48499eae95c`
 for sorted tab-separated path/hash rows and
-`cc297d49301108430516ad25f4d016f4b9a758ad4caa0fa98c21fdc3ac56c475`
-for canonical JSON. Eight exact obtain instructions still contain a redundant
+`bb8354962192c95398dc4d843312600a9fc236c5d65e9dd61729c8b44e050f1f`
+for canonical JSON. These were recomputed directly from `git archive
+--worktree-attributes cf3067d`. The byte-identical rebuild's earlier combined-
+worktree digest included the concurrent Task 4 reader hunk, which Task 1
+correctly excluded from its commit; that combined-tree value is not the Task 1
+release digest. Eight exact obtain instructions still contain a redundant
 spoken item name produced by renderer composition; their typed completion
 semantics are correct and their stable IDs are pinned as a documented speech-
 only follow-up so no ninth row can regress silently. No additional parser

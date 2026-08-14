@@ -185,3 +185,8 @@ round.
 Task 2 round-4 audit correction: current plus foreign-future item/key-item
 duplicates now reject globally instead of preferring the current objective.
 The corrected test reaches one aggregate with four focused runtime REDs.
+
+Task 2 arm-lifecycle audit added a shared mission/quest interaction arm and
+proves native completion and replacement consume it before a foreign objective
+can advance. Clean snapshot `31a2eb2` reaches one 54-RED aggregate; current
+Task 3 production is GREEN on the strengthened harness.

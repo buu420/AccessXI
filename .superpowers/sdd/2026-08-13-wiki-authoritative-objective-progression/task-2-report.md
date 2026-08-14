@@ -599,3 +599,13 @@ corrected harness reaches the same final aggregate with exactly four focused
 RED messages against the in-progress runtime (acceptance and cursor-write
 failures for ordinary item and key-item evidence).  This correction changes no
 production code and does not weaken current-action identity checks.
+
+A final arm-lifecycle audit added a shared-arm construction: one exact Cid
+start matches a live mission and quest, then native completion or replacement
+of the mission must consume the entire immutable arm before its finish can
+advance the still-active quest.  Clean snapshot
+`31a2eb2ed9ef55942d8b1d67366c10b50ce530f8` (tree
+`e093ff8c50a6b339cbc01790694f6d5c53d88eda`) reaches one aggregate at line
+5385 with 54 REDs; the four new terminal messages prove both completion and
+replacement otherwise leave the shared arm live and write foreign quest
+progress.  The in-progress Task 3 runtime passes the strengthened harness.

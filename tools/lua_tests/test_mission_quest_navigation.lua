@@ -1870,7 +1870,11 @@ local function task2_scenario_steps(native_key)
         and task2_reducer_scenario == 'later-cross-objective' then
         return T{ prerequisite_one, cid_two, wait_three }
     end
-    if native_key == 'quest:sandoria:2' and task2_reducer_scenario == 'current-interaction' then
+    if ((native_key == 'quest:sandoria:2'
+                and task2_reducer_scenario == 'current-interaction')
+            or ((native_key == 'quest:sandoria:2'
+                    or native_key == "mission:San d'Oria:1")
+                and task2_reducer_scenario == 'current-interaction-cross-objective')) then
         return T{
             task2_typed_step(native_key, 1, 'talk', 'talk-to', 'Cid', 'npc', {
                 zone_name = 'Metalworks', instruction = 'Talk to Cid.',
@@ -3638,6 +3642,38 @@ do
         'native completion left its old interaction arm live')
     quest_entries['sandoria:current'].words = words_with(2)
     quest_entries['sandoria:completed'].words = words_with()
+
+    -- An arm can match two live objectives. Completing or replacing either
+    -- owner must consume the whole immutable arm so its later finish cannot
+    -- advance the still-active foreign match.
+    for _, native_transition in ipairs(T{
+        { state = 'completed', current_key = '', label = 'completion' },
+        { state = 'replaced', current_key = "mission:San d'Oria:2",
+            label = 'replacement' },
+    }) do
+        task2_reset_reducer_scenario('current-interaction-cross-objective')
+        local task3_cross_arm = deep_copy(interaction_values)
+        task3_cross_arm.event_id = native_transition.state == 'completed' and 46106 or 46107
+        task3_cross_arm.menu_id = task3_cross_arm.event_id
+        task2_reducer_expect(task2_reduce(task2_signal('interaction-start', task3_cross_arm),
+                native_transition.label .. ' cross-objective arm start'),
+            native_transition.label .. ' cross-objective interaction did not arm')
+        task2_reducer_expect(task2_reduce(task2_signal('native-objective-state', {
+                category = 'mission', previous_native_key = "mission:San d'Oria:1",
+                current_native_key = native_transition.current_key,
+                previous_state = 'active', current_state = native_transition.state,
+                scope_complete = true,
+            }), 'native ' .. native_transition.label .. ' with shared arm'),
+            'native ' .. native_transition.label .. ' did not accept with a shared arm')
+        task2_reducer_expect(not task2_reduce(task2_signal(
+                'interaction-finish', task3_cross_arm),
+                'shared-arm finish after native ' .. native_transition.label),
+            'native ' .. native_transition.label
+                .. ' left a shared interaction arm live for a foreign objective')
+        task2_reducer_expect(task2_last_progress_line_for('quest:sandoria:2') == '',
+            'stale shared arm wrote quest progress after native '
+                .. native_transition.label)
+    end
 
     -- Transport correlation is replaceable only by a newer exact request.
     -- Commit evidence must not predate the arm, and a wrong committed zone

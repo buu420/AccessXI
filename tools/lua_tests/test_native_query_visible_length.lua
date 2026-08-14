@@ -2,6 +2,10 @@ local reader_path = assert(arg[1], 'expected accessxi_reader.lua path')
 local handle = assert(io.open(reader_path, 'rb'))
 local source = handle:read('*a')
 handle:close()
+local reader_dir = assert(reader_path:match('^(.*[\\/])'), 'reader path has no directory')
+local debug_handle = assert(io.open(reader_dir .. 'modules/debug_probes.lua', 'rb'))
+local debug_source = debug_handle:read('*a')
+debug_handle:close()
 
 local function extract(first_marker, next_marker)
     local first = assert(source:find(first_marker, 1, true), 'missing source marker: ' .. first_marker)
@@ -13,6 +17,12 @@ local function required_extract(first_marker, next_marker)
     local first = source:find(first_marker, 1, true)
     assert(first ~= nil, 'missing bounded native query decoder: ' .. first_marker)
     return extract(first_marker, next_marker)
+end
+
+local function extract_debug(first_marker, next_marker)
+    local first = assert(debug_source:find(first_marker, 1, true), 'missing debug source marker: ' .. first_marker)
+    local last = assert(debug_source:find(next_marker, first + #first_marker, true), 'missing debug end marker: ' .. next_marker)
+    return debug_source:sub(first, last - 1)
 end
 
 local list_methods = {}
@@ -56,13 +66,18 @@ local candidate_ptr_source = extract(
 local candidate_node_source = extract(
     'function accessxi.native_query_candidate_label_from_node(node, context, expected_count, selected)',
     'function accessxi.native_query_collect_items_with_next(first, expected_count, next_off, context)')
+local clean_source = extract(
+    'local function clean_probe_text(text)',
+    'local function read_probe_string(ptr, length)')
+local decoder_source = extract_debug(
+    'function accessxi.decode_ffxi_menu_text_fragment(text)',
+    'function accessxi.collect_probe_ffxi_utf16_runs(ptr, length, min_len, limit)')
 
 local bytes = {}
 local base = 0x01001000
 local node = 0x01002000
 local legacy = 0x01003000
 local dwords = {}
-local decoded_override = nil
 local fallback_reads = 0
 local fallback_collects = 0
 local forbidden_reads = {}
@@ -74,12 +89,6 @@ local accessxi = {
     probe_printable_ascii = function(value)
         value = tonumber(value) or 0
         return value >= 0x20 and value <= 0x7E
-    end,
-    decode_ffxi_menu_text_fragment = function(value)
-        if (decoded_override ~= nil) then
-            return decoded_override
-        end
-        return tostring(value or '')
     end,
     survival_guide_text = function(value)
         return tostring(value or ''):gsub('[\t\r\n]', ' '):gsub('%s+', ' '):trim()
@@ -108,6 +117,22 @@ local accessxi = {
     end,
 }
 
+local function bxor(left, right)
+    local result = 0
+    local place = 1
+    while left > 0 or right > 0 do
+        local left_bit = left % 2
+        local right_bit = right % 2
+        if (left_bit ~= right_bit) then
+            result = result + place
+        end
+        left = math.floor(left / 2)
+        right = math.floor(right / 2)
+        place = place * 2
+    end
+    return result
+end
+
 local function read_u8(address)
     assert(forbidden_reads[tonumber(address)] ~= true, string.format('read beyond declared native text at 0x%X', address))
     return bytes[tonumber(address)]
@@ -132,7 +157,8 @@ local function read_probe_string(address)
 end
 
 local chunk = assert(loadstring(
-    visible_source .. '\n' .. phrase_source .. '\n' .. candidate_ptr_source .. '\n' .. candidate_node_source,
+    clean_source .. '\n' .. decoder_source .. '\n' .. visible_source .. '\n' .. phrase_source .. '\n'
+        .. candidate_ptr_source .. '\n' .. candidate_node_source,
     '@native-query-visible-length'))
 setfenv(chunk, setmetatable({
     accessxi = accessxi,
@@ -140,6 +166,7 @@ setfenv(chunk, setmetatable({
     read_u8 = read_u8,
     read_u32 = read_u32,
     read_probe_string = read_probe_string,
+    bit = { bxor = bxor },
 }, { __index = _G }))
 chunk()
 
@@ -183,11 +210,15 @@ local function decode(visible, visible_count, stale, style)
     return accessxi.native_query_phrase_from_ptr(base, '')
 end
 
-local function decode_visible(visible, visible_count, style)
+local function decode_visible(visible, visible_count, style, stale)
     bytes = {}
     forbidden_reads = {}
-    write_text(base, visible)
+    write_text(base, visible .. (stale or ''))
     set_native_metadata(base, style or 1, visible_count)
+    if (visible_count >= 1 and visible_count <= 63 and stale ~= nil and stale ~= '') then
+        forbidden_reads[base + 0x04 + (visible_count * 2)] = true
+        forbidden_reads[base + 0x05 + (visible_count * 2)] = true
+    end
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
@@ -204,15 +235,14 @@ local function decode_truncated(visible, visible_count, available_pairs)
     return accessxi.native_query_visible_text_from_ptr(base)
 end
 
-local function decode_with_short_fragment(visible, visible_count, decoded)
+local function decode_unsupported(visible, visible_count, bad_index, bad_lo, bad_hi)
     bytes = {}
     forbidden_reads = {}
     write_text(base, visible)
     set_native_metadata(base, 1, visible_count)
-    decoded_override = decoded
-    local result = accessxi.native_query_visible_text_from_ptr(base)
-    decoded_override = nil
-    return result
+    bytes[base + 0x04 + (bad_index * 2)] = bad_lo
+    bytes[base + 0x05 + (bad_index * 2)] = bad_hi
+    return accessxi.native_query_visible_text_from_ptr(base)
 end
 
 assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind.')
@@ -223,19 +253,22 @@ assert(decode('150' .. string.char(0x0D) .. 'PT' .. string.char(0x0E) .. ' ITEMS
 assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
 assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
 assert(decode('HE' .. string.char(0x07), 3, 'S') == 'He')
+assert(decode('HE' .. string.char(0x0F), 3, 'STALE') == 'He')
+assert(decode('HE ', 3, 'STALE') == 'He')
+assert(decode_visible(' ', 1, 1) == '')
 for _, bad in ipairs({ 0, 64, 255 }) do
     assert(decode('VALID', bad) == '')
 end
 assert(decode_truncated('VALID', 5, 4) == '')
-assert(decode_with_short_fragment('VALID', 5, 'VAL') == '')
+assert(decode_unsupported('VALID', 5, 2, 0x1A, 0) == '')
+assert(decode_unsupported('VALID', 5, 2, string.byte('L'), 1) == '')
 
-local function candidate_fixture(kind, visible_count, text, decoded)
+local function candidate_fixture(kind, visible_count, text)
     bytes = {}
     dwords = {}
     forbidden_reads = {}
     fallback_reads = 0
     fallback_collects = 0
-    decoded_override = decoded
     write_text(base, text)
     set_native_metadata(base, kind, visible_count)
 end
@@ -268,12 +301,14 @@ for _, framed in ipairs({ { style = 27, count = 0 }, { style = 14, count = 64 } 
     assert(fallback_collects == 0)
 end
 
-candidate_fixture(27, 5, 'VALIDSTALE', 'VAL')
+candidate_fixture(27, 5, 'VALID')
+bytes[base + 0x08] = 0x1A
 assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)
 
-candidate_fixture(3, 5, 'VALIDSTALE', 'VAL')
+candidate_fixture(3, 5, 'VALID')
+bytes[base + 0x08] = 0x1A
 assert(accessxi.native_query_candidate_label_from_ptr(base, '') == '')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)
@@ -281,8 +316,6 @@ dwords[node + 0x10] = base
 assert(accessxi.native_query_candidate_label_from_node(node, '', 1, 1) == '')
 assert(fallback_reads == 0)
 assert(fallback_collects == 0)
-decoded_override = nil
-
 bytes = {}
 dwords = {}
 forbidden_reads = {}

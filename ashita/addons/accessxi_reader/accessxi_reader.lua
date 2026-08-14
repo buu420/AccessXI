@@ -10129,8 +10129,12 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
         end
     end
 
-    local text = accessxi.decode_ffxi_menu_text_fragment(raw:concat(''));
-    if (text == '' or #text ~= count) then
+    if (raw:len() ~= count) then
+        return '';
+    end
+
+    local text = accessxi.decode_ffxi_menu_text_fragment(raw:concat('')) or '';
+    if (text == '') then
         return '';
     end
     return text;

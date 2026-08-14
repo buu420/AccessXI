@@ -275,6 +275,12 @@ local copper_claimed = {
     0x0021, 0x000E, 0x002D, 0x000E, 0x0021, 0x000E, 0x002E, 0x000E,
     ' VOUCHER', 0xFEFF, ' X', 0x0017, 0x001A, ' ', 0x0011, 0x0010, 0x000E,
 }
+local cirdas_visage = {
+    0xFEFE, 0x0023, 'IRDAS VISAGE ', 0x0029, 0x0036,
+    0xFEFF, 0x000E, ' ', 0x0008, 0x0011, 0x0009,
+}
+assert(#captured_words(cirdas_visage) == 23)
+assert(decode_captured(cirdas_visage, { 'STALE' }, 10) == 'CIRDAS VISAGE IV. (1)')
 assert(decode_captured({ 0x0029, ' FORGOT WHY I', 0x0007, 'M HERE', 0x000E }) == "I FORGOT WHY I'M HERE.")
 assert(decode_captured({ 'HOW DO ', 0x0029, ' PARTICIPATE', 0x001F }) == 'HOW DO I PARTICIPATE?')
 assert(decode_captured({ 0x0029 }) == 'I')
@@ -294,7 +300,8 @@ assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind
 assert(decode('NOWHERE' .. string.char(0x0E), 8, 'SLES') == 'Nowhere.')
 assert(decode_visible('TRAVEL TO ANOTHER HOME POINT' .. string.char(0x0E), 29, 1) == 'TRAVEL TO ANOTHER HOME POINT.')
 assert(decode('ON SECOND THOUGHT' .. string.char(0x0C) .. ' NONE' .. string.char(0x0E), 24) == 'On second thought, none.')
-assert(decode('150' .. string.char(0x0D) .. 'PT' .. string.char(0x0E) .. ' ITEMS' .. string.char(0x0E), 14, nil, 3) == '150-pt. Items.')
+assert(decode_captured({ 0x0011, 0x0015, 0x0010, 0x000D, 'PT', 0x000E, ' ITEMS', 0x000E }, nil, 3) == '150-PT. ITEMS.')
+assert(accessxi.native_query_phrase_from_ptr(base, '') == '150-pt. Items.')
 assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
 assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
 assert(decode_captured({ 'BRING IT ON', 0x0001 }, { 'STALE' }) == 'BRING IT ON!')

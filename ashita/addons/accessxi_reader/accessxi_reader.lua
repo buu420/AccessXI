@@ -10098,35 +10098,19 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
 
     local raw = T{};
     local consumed_units = 0;
-    local previous_word = false;
-    for index, unit in ipairs(units) do
+    for _, unit in ipairs(units) do
         local lo = unit.lo;
         local hi = unit.hi;
         local decoded = nil;
         consumed_units = consumed_units + 1;
         if (hi == 0 and lo == 0x9C) then
             raw:append('claimed');
-            previous_word = true;
         elseif (hi == 0 and lo >= 0 and lo <= 0x1F) then
             decoded = lo + 0x20;
+        elseif (hi == 0 and lo >= 0x21 and lo <= 0x3A) then
+            decoded = bit.bxor(lo, 0x60);
         elseif (hi == 0 and lo >= 0x20 and lo <= 0x7E) then
             decoded = lo;
-            if (not previous_word and lo >= 0x21 and lo <= 0x3F) then
-                local next_unit = units[index + 1];
-                local next_word = next_unit == nil
-                    or (next_unit.hi == 0
-                    and ((next_unit.lo >= 0x41 and next_unit.lo <= 0x5A)
-                        or next_unit.lo == 0x07
-                        or next_unit.lo == 0x0E
-                        or next_unit.lo == 0
-                        or next_unit.lo == 0x20));
-                if (next_word) then
-                    local candidate = bit.bxor(lo, 0x60);
-                    if (candidate >= 0x41 and candidate <= 0x5A) then
-                        decoded = candidate;
-                    end
-                end
-            end
         elseif (hi == 0xFE and (lo == 0xFD or lo == 0xFE or lo == 0xFF)) then
             -- Native framing/style unit: counted, but not visible.
         else
@@ -10135,9 +10119,6 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
 
         if (decoded ~= nil) then
             raw:append(string.char(decoded));
-            previous_word = (decoded >= 0x30 and decoded <= 0x39)
-                or (decoded >= 0x41 and decoded <= 0x5A)
-                or (decoded >= 0x61 and decoded <= 0x7A);
         end
     end
 

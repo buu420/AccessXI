@@ -678,6 +678,43 @@ class MediaWikiAcquisitionTests(unittest.TestCase):
         self.assertEqual(tuple(artifact["sites"]), ("bg", "ffxiclopedia"))
         self.assertEqual(created, [("bg", 0.0), ("ffxiclopedia", 0.0)])
 
+    def test_refresh_site_config_capture_honors_selected_site(self) -> None:
+        objective_cli = importlib.import_module("tools.objective_guides.cli")
+        created: list[str] = []
+
+        class SiteInfoClient:
+            def __init__(
+                self,
+                site: str,
+                api_url: str,
+                *,
+                request_cache_dir: Path,
+                min_request_interval: float,
+                request_cache_max_age: float = 7200.0,
+            ) -> None:
+                del api_url, request_cache_dir, min_request_interval, request_cache_max_age
+                self.site = site
+                created.append(site)
+
+            def site_info(self) -> dict:
+                return MediaWikiAcquisitionTests._siteinfo_response(self.site)
+
+            def clear_request_cache(self) -> None:
+                pass
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            objective_cli,
+            "MediaWikiClient",
+            SiteInfoClient,
+        ):
+            artifact = objective_cli._capture_source_site_config(
+                Path(temporary),
+                sites=("ffxiclopedia",),
+            )
+
+        self.assertEqual(tuple(artifact["sites"]), ("ffxiclopedia",))
+        self.assertEqual(created, ["ffxiclopedia"])
+
     def test_source_title_candidates_include_reviewed_non_log_aliases(self) -> None:
         native = NativeObjective(
             "quest",
@@ -1520,6 +1557,25 @@ class WikitextParserTests(unittest.TestCase):
             [(span.action, span.relationship, span.target) for span in returned.action_spans],
             [("talk", "talk-to", "Cid")],
         )
+
+    def test_explicit_action_quantities_are_not_part_of_targets(self) -> None:
+        def first(text: str) -> SourceActionSpan:
+            page = PageRevision("bg", "https://www.bg-wiki.com/api.php", "Counts", 1, 1, 0,
+                "2026-08-14T00:00:00Z", "{{Quest Header}}\n==Walkthrough==\n*" + text)
+            return parse_objective_page(page).steps[0].action_spans[0]
+        kill = first("Defeat 5 [[Barrens Treant]]s.")
+        at_least = first("Kill at least 30 [[Monsters]].")
+        obtain = first("Obtain 3 [[Copper Rings]] from the chest.")
+        trade = first("Trade 3 [[Copper Rings]] to [[Cid]].")
+        self.assertEqual((kill.target, kill.required_count, kill.count_mode, kill.count_explicit),
+            ("Barrens Treant", 5, "credited-defeat", True))
+        self.assertEqual(kill.enemy_mentions, ("Barrens Treant",))
+        self.assertEqual((at_least.target, at_least.required_count, at_least.count_mode),
+            ("Monsters", 30, "credited-defeat"))
+        self.assertEqual((obtain.target, obtain.required_count, obtain.count_mode),
+            ("Copper Rings", 3, "inventory-gain"))
+        self.assertEqual((trade.item_mentions, trade.required_count, trade.count_mode),
+            (("Copper Rings",), 1, "single"))
 
     def test_typed_evidence_is_local_to_each_action_clause(self) -> None:
         page = PageRevision(
@@ -3460,7 +3516,7 @@ class ReconciliationTests(unittest.TestCase):
         )
         self.assertEqual(
             [(claim.target, claim.comparison) for claim in disagreement.steps[0].claims],
-            [("Alpha", "corroborated"), ("", "conflict")],
+            [("Alpha", "corroborated"), ("Beta", "conflict")],
         )
         self.assertEqual(
             [
@@ -3836,11 +3892,12 @@ class ObjectiveDestinationTests(unittest.TestCase):
                 navigation_zone_names={101: "East Ronfaure"},
             )
             reconcile = (
-                root / "modules" / "mission_quest_reconcile_quest_sandoria.lua"
+                root / "modules" / "mission_quest_progression_quest_sandoria.lua"
             ).read_text(encoding="utf-8")
             review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
 
-        self.assertIn("objective_destinations = {", reconcile)
+        self.assertNotIn("objective_destinations = {", reconcile)
+        self.assertIn("objective_destination_candidates = {", reconcile)
         self.assertNotIn("mission_destinations = {", reconcile)
         self.assertIn('["bg"] = 4001', reconcile)
         self.assertIn('["ffxiclopedia"] = 4002', reconcile)
@@ -6557,8 +6614,8 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         resolution = self._resolve(native, bg, ffxi, points, {101: "East Ronfaure"})
 
         self.assertEqual(len(resolution.ledger), 1)
-        self.assertEqual(resolution.ledger[0].status, "conflict")
-        self.assertEqual(resolution.ledger[0].reason, "source-conflict")
+        self.assertEqual(resolution.ledger[0].status, "unresolved")
+        self.assertNotEqual(resolution.ledger[0].reason, "source-conflict")
         self.assertEqual(resolution.ledger[0].candidate_ids, ())
         self.assertEqual(len(resolution.candidates), 0)
 
@@ -6881,6 +6938,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
             "transport-metadata-required",
             "complete-instruction",
             "non-material-context-reason",
+            "no-material-action-span",
             "unsupported-target-class",
         }
         self.assertTrue({row.reason for row in resolution.ledger}.issubset(allowed_reasons))
@@ -6939,12 +6997,8 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         )
 
         self.assertEqual(len(resolution.ledger), 1)
-        self.assertEqual(resolution.ledger[0].status, "unresolved")
-        self.assertEqual(
-            resolution.ledger[0].reason,
-            "single-source-needs-independent-corroboration",
-        )
-        self.assertEqual(resolution.candidates, ())
+        self.assertEqual(resolution.ledger[0].status, "catalogue-candidate")
+        self.assertTrue(resolution.candidates)
 
     def test_immutable_identity_must_be_congruent_with_kind_zone_raw_id_and_enemy_policy(self) -> None:
         immutable = action_resolver.navigation_point_has_immutable_identity
@@ -7063,7 +7117,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
                 navigation_zone_names={101: "East Ronfaure", 100: "West Ronfaure"},
             )
             review = json.loads((root / "data" / "target-review.json").read_text(encoding="utf-8"))
-            lua = (root / "modules" / "mission_quest_reconcile_mission_bastok.lua").read_text(
+            lua = (root / "modules" / "mission_quest_progression_mission_bastok.lua").read_text(
                 encoding="utf-8"
             )
 
@@ -7093,7 +7147,7 @@ class ObjectiveActionResolutionTests(unittest.TestCase):
         self.assertFalse(review_items[0]["route_ready"])
         self.assertIn("action_resolution_ledger = {", lua)
         self.assertIn("objective_destination_candidates = {", lua)
-        self.assertIn("objective_resolution_review_items = {", lua)
+        self.assertNotIn("objective_resolution_review_items = {", lua)
         self.assertNotIn('status = "routable"', lua)
         self.assertNotIn("route_ready = true", lua)
 
@@ -7694,7 +7748,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 navigation_zone_names={143: "Palborough Mines"},
             )
             reconcile = (
-                root / "modules" / "mission_quest_reconcile_mission_bastok.lua"
+                root / "modules" / "mission_quest_progression_mission_bastok.lua"
             ).read_text(encoding="utf-8")
             review = json.loads(
                 (root / "data" / "target-review.json").read_text(encoding="utf-8")
@@ -8264,6 +8318,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             target="Dawn Talisman",
             target_kind="key-item",
             item_mentions=("Dawn Talisman",),
+            material=False,
         )
         page = ParsedObjective(
             site="bg",
@@ -8327,8 +8382,25 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
         self.assertEqual(len(stable_ids), len(set(stable_ids)))
         self.assertEqual(review["steps"][0]["typed_claims"][0]["action"], "protect")
         self.assertEqual(review["steps"][1]["typed_claims"][0]["action"], "warning")
+        self.assertFalse(review["steps"][1]["typed_claims"][0].get("material"))
         self.assertTrue(all(row["classification"] != "context-only" for row in review["steps"]))
-        self.assertIn("typed_claims = {", reconcile)
+        context_rows = [
+            row
+            for row in review["action_resolution_ledger"]
+            if row["action_id"] == "quest:other_areas:77:step-003:context-01"
+        ]
+        self.assertEqual(len(context_rows), 1)
+        self.assertEqual(context_rows[0]["status"], "context-only")
+        self.assertFalse(context_rows[0]["material"])
+        warning_rows = [
+            row
+            for row in review["action_resolution_ledger"]
+            if row["action_id"] == "quest:other_areas:77:step-002:claim-01"
+        ]
+        self.assertEqual(len(warning_rows), 1)
+        self.assertEqual(warning_rows[0]["status"], "context-only")
+        self.assertFalse(warning_rows[0]["material"])
+        self.assertNotIn("typed_claims = {", reconcile)
 
     def test_repository_reviews_both_fetichism_farming_camps(self) -> None:
         overrides = json.loads(
@@ -8863,6 +8935,7 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             self.assertEqual(index.count('["quest:windurst:77"]'), 1)
             self.assertEqual(index.count('["quest:bastok:92"]'), 1)
             self.assertIn('status = "source-missing"', index)
+            self.assertIn('progression_revision = "', index)
 
             bg_quest = (module_root / "mission_quest_bg_quest_windurst.lua").read_text(encoding="utf-8")
             ffxi_quest = (
@@ -8880,8 +8953,8 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             reconcile = (
                 module_root / "mission_quest_reconcile_quest_windurst.lua"
             ).read_text(encoding="utf-8")
-            self.assertNotIn("always fail", reconcile)
-            self.assertNotIn("rarely report success", reconcile)
+            self.assertIn("always fail", reconcile)
+            self.assertIn("rarely report success", reconcile)
             self.assertIn('dynamic_candidate_comparison = "corroborated"', reconcile)
             self.assertIn('"D-5", "I-7", "I-10", "M-6"', reconcile)
 
@@ -8897,6 +8970,14 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
             self.assertEqual(coverage["counts"]["valid_native"], 3)
             self.assertEqual(sum(coverage["counts"]["by_status"].values()), 3)
             self.assertEqual(coverage["objectives"]["quest:bastok:92"]["status"], "source-missing")
+            self.assertEqual(
+                coverage["objectives"]["mission:Bastok:2"]["source_authority"],
+                {"primary": "bg", "fallback": "ffxiclopedia"},
+            )
+            self.assertRegex(
+                coverage["objectives"]["mission:Bastok:2"]["progression_revision"],
+                r"^[0-9a-f]{64}$",
+            )
             self.assertEqual(coverage["objectives"]["mission:Bastok:2"]["status"], "automatic-stage")
             self.assertEqual(len(coverage["objectives"]), 3)
             self.assertEqual(coverage["source_inventory"]["bg:9999"]["status"], "parser-failure")
@@ -8919,6 +9000,43 @@ File:Palborough Mines-map3.jpg | Palborough Mines Map 3
                 {"CC-BY-NC-SA-3.0", "CC-BY-SA-3.0"},
             )
             self.assertTrue(all(page["source_url"].startswith("https://") for page in snapshot["pages"]))
+
+    def test_runtime_emission_uses_compact_lazy_progression_shards(self) -> None:
+        """Runtime Lua keeps speech facts compact and leaves full evidence in JSON."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_root = root / "modules"
+            build_guide_artifacts(
+                self._native_rows(),
+                self._source_pages(),
+                module_root=module_root,
+                data_root=root / "data",
+                reviewed_overrides=self._fixture_overrides(),
+            )
+
+            index = (module_root / "mission_quest_guide_index.lua").read_text(encoding="utf-8")
+            guide = (module_root / "mission_quest_reconcile_mission_bastok.lua").read_text(
+                encoding="utf-8"
+            )
+            progression = (
+                module_root / "mission_quest_progression_mission_bastok.lua"
+            ).read_text(encoding="utf-8")
+            source_modules = [
+                path.read_text(encoding="utf-8")
+                for path in list(module_root.glob("mission_quest_bg_*.lua"))
+                + list(module_root.glob("mission_quest_ffxiclopedia_*.lua"))
+            ]
+
+        self.assertIn('progression_module = "mission_quest_progression_mission_bastok"', index)
+        self.assertIn('bg_instruction = "', guide)
+        self.assertNotIn("typed_claims =", guide)
+        self.assertNotIn("action_resolution_ledger =", guide)
+        self.assertIn("claims =", progression)
+        self.assertIn("action_resolution_ledger =", progression)
+        self.assertIn("objective_destination_candidates =", progression)
+        self.assertTrue(source_modules)
+        self.assertTrue(all("action_spans =" not in text for text in source_modules))
 
 
 if __name__ == "__main__":

@@ -49,6 +49,9 @@ class SourceActionSpan:
     result_items: tuple[str, ...] = ()
     result_relation: str = ""
     material: bool = True
+    required_count: int = 1
+    count_mode: str = "single"
+    count_explicit: bool = False
 
 
 @dataclass(frozen=True, slots=True)

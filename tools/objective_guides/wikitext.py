@@ -964,12 +964,29 @@ def _extract_action_spans(
         object_mentions: tuple[str, ...] = ()
         enemy_mentions: tuple[str, ...] = ()
         transport_mentions: tuple[str, ...] = ()
+        count_match = re.match(
+            r"\s*(?:(?:at\s+least|a\s+total\s+of|all)\s+)?(\d+)\s+",
+            remainder,
+            re.IGNORECASE,
+        )
+        required_count = int(count_match.group(1)) if count_match else 1
+        count_explicit = count_match is not None
+        count_mode = (
+            "credited-defeat" if action == "fight"
+            else "inventory-gain" if action == "obtain"
+            else "single"
+        )
+        if action not in {"fight", "obtain"}:
+            required_count = 1
+            count_explicit = False
+        counted_remainder = remainder[count_match.end():] if count_match else remainder
+        counted_base = match.end() + (count_match.end() if count_match else 0)
 
         if action == "trade":
             trade = re.match(
-                r"\s+(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?"
+                r"\s*(?:the\s+|an?\s+)?(.+?)\s+to\s+(?:the\s+)?"
                 r"(.+?)(?=\s+(?:in|at)\b|\s+on\s+map\b|\s*\([A-P]-\d{1,2}\)|[;,]|$)",
-                remainder,
+                counted_remainder,
                 re.IGNORECASE,
             )
             if trade:
@@ -977,7 +994,7 @@ def _extract_action_spans(
                 target, npc_mentions = _refine_match_target(
                     trade.group(2),
                     link_occurrences,
-                    match.end(),
+                    counted_base,
                     trade,
                     2,
                     excluded_target_links,
@@ -1013,28 +1030,32 @@ def _extract_action_spans(
                 target_kind = "npc" if target or npc_mentions else ""
         elif action == "fight":
             fought = re.match(
-                r"\s+(?:an?\s+)?enemy\s*,\s*(?:e\.g\.|i\.e\.)\s+(.+?)"
+                r"\s*(?:an?\s+)?enemy\s*,\s*(?:e\.g\.|i\.e\.)\s+(.+?)"
                 r"(?=\s+(?:in|at|for)\b|[;,]|$)",
-                remainder,
+                counted_remainder,
                 re.IGNORECASE,
             )
             if fought is None:
                 fought = re.match(
-                    r"\s+(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|"
+                    r"\s*(?:the\s+)?(.+?)(?=\s+(?:to|and)\s*$|"
                     r"\s+to\s+(?:obtain|receive|collect)\b|\s+(?:in|at|for)\b|"
                     r"\s+and\s+(?:re-examine|examine|touch|click)\b|[;,]|$)",
-                    remainder,
+                    counted_remainder,
                     re.IGNORECASE,
                 )
             if fought:
+                fought_target = re.sub(r"(\]\])s$", r"\1", fought.group(1), flags=re.IGNORECASE)
                 target, enemy_mentions = _refine_match_target(
-                    fought.group(1),
+                    fought_target,
                     link_occurrences,
-                    match.end(),
+                    counted_base,
                     fought,
                     1,
                     excluded_target_links,
                 )
+                if re.search(r"\[\[[^\]]+\]\]s\.?$", fought.group(1), re.IGNORECASE) and target.endswith("s"):
+                    target = target[:-1]
+                    enemy_mentions = (target,) if target else ()
             target_kind = "enemy" if target or enemy_mentions else ""
         elif action == "examine":
             examined = re.match(
@@ -1069,8 +1090,8 @@ def _extract_action_spans(
                 target_kind = "object" if target or object_mentions else ""
         elif action == "obtain":
             obtained = re.match(
-                r"\s+(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[,;]|$)",
-                remainder,
+                r"\s*(?:the\s+|an?\s+)?(.+?)(?=\s+by\b|\s+from\b|\s+in\b|[,;]|$)",
+                counted_remainder,
                 re.IGNORECASE,
             )
             target = _trim_target(obtained.group(1)) if obtained else ""
@@ -1135,6 +1156,9 @@ def _extract_action_spans(
                 temporal_zone_variant="past" if any(zone.endswith(" [S]") for zone in clause_zones) else "",
                 map_numbers=clause_maps,
                 grid_coordinates=clause_coordinates,
+                required_count=required_count,
+                count_mode=count_mode,
+                count_explicit=count_explicit,
             )
         )
 

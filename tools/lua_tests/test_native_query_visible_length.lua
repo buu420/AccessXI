@@ -65,6 +65,7 @@ local dwords = {}
 local decoded_override = nil
 local fallback_reads = 0
 local fallback_collects = 0
+local forbidden_reads = {}
 local accessxi = {
     is_probe_pointer = function(ptr)
         ptr = tonumber(ptr)
@@ -108,6 +109,7 @@ local accessxi = {
 }
 
 local function read_u8(address)
+    assert(forbidden_reads[tonumber(address)] ~= true, string.format('read beyond declared native text at 0x%X', address))
     return bytes[tonumber(address)]
 end
 
@@ -142,11 +144,21 @@ setfenv(chunk, setmetatable({
 chunk()
 
 local function set_pair(ptr, offset, value)
-    bytes[ptr + offset] = value:byte(1)
+    bytes[ptr + offset] = type(value) == 'number' and value or value:byte(1)
     bytes[ptr + offset + 1] = 0
 end
 
 local function write_text(ptr, value)
+    for offset = 0, 3 do
+        bytes[ptr + offset] = 0
+    end
+    for index = 1, #value do
+        local glyph = value:sub(index, index)
+        set_pair(ptr, 0x04 + ((index - 1) * 2), glyph == ' ' and 0 or glyph)
+    end
+end
+
+local function write_legacy_text(ptr, value)
     for index = 1, #value do
         set_pair(ptr, (index - 1) * 2, value:sub(index, index))
     end
@@ -159,17 +171,34 @@ local function set_native_metadata(ptr, kind, count)
     bytes[ptr + 0x107] = 1
 end
 
-local function decode(visible, visible_count, stale)
+local function decode(visible, visible_count, stale, style)
     bytes = {}
+    forbidden_reads = {}
     write_text(base, visible .. (stale or ''))
-    set_native_metadata(base, 1, visible_count)
+    set_native_metadata(base, style or 1, visible_count)
+    if (visible_count >= 1 and visible_count <= 63 and stale ~= nil and stale ~= '') then
+        forbidden_reads[base + 0x04 + (visible_count * 2)] = true
+        forbidden_reads[base + 0x05 + (visible_count * 2)] = true
+    end
     return accessxi.native_query_phrase_from_ptr(base, '')
+end
+
+local function decode_visible(visible, visible_count, style)
+    bytes = {}
+    forbidden_reads = {}
+    write_text(base, visible)
+    set_native_metadata(base, style or 1, visible_count)
+    return accessxi.native_query_visible_text_from_ptr(base)
 end
 
 local function decode_truncated(visible, visible_count, available_pairs)
     bytes = {}
+    forbidden_reads = {}
+    for offset = 0, 3 do
+        bytes[base + offset] = 0
+    end
     for index = 1, math.min(#visible, available_pairs) do
-        set_pair(base, (index - 1) * 2, visible:sub(index, index))
+        set_pair(base, 0x04 + ((index - 1) * 2), visible:sub(index, index))
     end
     set_native_metadata(base, 1, visible_count)
     return accessxi.native_query_visible_text_from_ptr(base)
@@ -177,6 +206,7 @@ end
 
 local function decode_with_short_fragment(visible, visible_count, decoded)
     bytes = {}
+    forbidden_reads = {}
     write_text(base, visible)
     set_native_metadata(base, 1, visible_count)
     decoded_override = decoded
@@ -187,8 +217,9 @@ end
 
 assert(decode('NEVER MIND' .. string.char(0x0E), 11, 'FAVORITES') == 'Never mind.')
 assert(decode('NOWHERE' .. string.char(0x0E), 8, 'SLES') == 'Nowhere.')
+assert(decode_visible('TRAVEL TO ANOTHER HOME POINT' .. string.char(0x0E), 29, 1) == 'TRAVEL TO ANOTHER HOME POINT.')
 assert(decode('ON SECOND THOUGHT' .. string.char(0x0C) .. ' NONE' .. string.char(0x0E), 24) == 'On second thought, none.')
-assert(decode('150-PT' .. string.char(0x0E) .. ' ITEMS' .. string.char(0x0E), 14) == '150-pt. Items.')
+assert(decode('150' .. string.char(0x0D) .. 'PT' .. string.char(0x0E) .. ' ITEMS' .. string.char(0x0E), 14, nil, 3) == '150-pt. Items.')
 assert(decode('HE' .. string.char(0x07) .. 'S' .. string.char(0x0E), 5) == "He's.")
 assert(decode('I' .. string.char(0x07) .. 'd' .. string.char(0x0E), 4) == "I'd.")
 assert(decode('HE' .. string.char(0x07), 3, 'S') == 'He')
@@ -201,6 +232,7 @@ assert(decode_with_short_fragment('VALID', 5, 'VAL') == '')
 local function candidate_fixture(kind, visible_count, text, decoded)
     bytes = {}
     dwords = {}
+    forbidden_reads = {}
     fallback_reads = 0
     fallback_collects = 0
     decoded_override = decoded
@@ -253,9 +285,10 @@ decoded_override = nil
 
 bytes = {}
 dwords = {}
+forbidden_reads = {}
 fallback_reads = 0
 fallback_collects = 0
-write_text(legacy, 'LEGACY LABEL')
+write_legacy_text(legacy, 'LEGACY LABEL')
 bytes[legacy + 0x104] = 0x42
 bytes[legacy + 0x105] = 0x42
 bytes[legacy + 0x106] = 0
@@ -265,9 +298,10 @@ assert(fallback_reads == 1)
 
 bytes = {}
 dwords = {}
+forbidden_reads = {}
 fallback_reads = 0
 fallback_collects = 0
-write_text(legacy, 'LEGACY UNFRAMED')
+write_legacy_text(legacy, 'LEGACY UNFRAMED')
 bytes[legacy + 0x104] = 27
 assert(accessxi.native_query_candidate_label_from_ptr(legacy, '') == 'LEGACY UNFRAMED')
 assert(fallback_reads == 1)

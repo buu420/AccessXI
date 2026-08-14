@@ -10088,20 +10088,22 @@ function accessxi.native_query_visible_text_from_ptr(ptr)
 
     local raw = T{};
     for index = 0, count - 1 do
-        local lo = read_u8(ptr + (index * 2));
-        local hi = read_u8(ptr + (index * 2) + 1);
+        local lo = read_u8(ptr + 0x04 + (index * 2));
+        local hi = read_u8(ptr + 0x04 + (index * 2) + 1);
         if (lo == nil or hi == nil or hi ~= 0) then
             return '';
         end
 
-        if (accessxi.probe_printable_ascii(lo)) then
+        if (lo == 0) then
+            raw:append(' ');
+        elseif (accessxi.probe_printable_ascii(lo)) then
             raw:append(string.char(lo));
         elseif (lo == 0x07) then
             local next_lo = nil;
             local next_hi = nil;
             if ((index + 1) < count) then
-                next_lo = read_u8(ptr + ((index + 1) * 2));
-                next_hi = read_u8(ptr + ((index + 1) * 2) + 1);
+                next_lo = read_u8(ptr + 0x04 + ((index + 1) * 2));
+                next_hi = read_u8(ptr + 0x04 + ((index + 1) * 2) + 1);
             end
 
             local apostrophe = next_hi == 0 and next_lo == 0x53;

@@ -44,7 +44,11 @@ created.
 
 ## Harness verification
 
-- The reader runtime integration wrapper remains green.
+- Before the Task 2 edit, the reader runtime integration wrapper was green.
+- A final post-commit reader run reached its two integration successes, then
+  failed its manifest-byte pin because the concurrently refreshed unowned
+  `mission-quest-route-manifest.tsv` changed during this task.  No Task 2 file
+  contributes to that pin failure.
 - `git diff --check -- tools/lua_tests/test_mission_quest_navigation.lua` is clean.
 - The navigation wrapper is intentionally RED only at the aggregate Task 2
   assertion above.

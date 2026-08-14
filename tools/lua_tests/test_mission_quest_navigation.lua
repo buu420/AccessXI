@@ -3566,13 +3566,12 @@ do
         end
 
         task2_reset_reducer_scenario(prefix .. '-future-current-foreign')
-        task2_reducer_expect(task2_reduce(task3_evidence_delta(evidence_kind),
-                evidence_kind .. ' current plus foreign future'),
-            'exact current ' .. evidence_kind .. ' acquisition was lost to a foreign future match')
-        task2_reducer_expect(task2_last_progress_line_for('quest:sandoria:2')
-                == task2_v2_progress_row('quest:sandoria:2', 2, 1, 0)
-                and task2_last_progress_line_for("mission:San d'Oria:1") == '',
-            'current ' .. evidence_kind .. ' evidence also advanced a foreign future objective')
+        task2_reducer_expect(not task2_reduce(task3_evidence_delta(evidence_kind),
+                evidence_kind .. ' current plus foreign future duplicate'),
+            'current plus foreign future duplicate advanced an arbitrary '
+                .. evidence_kind .. ' objective')
+        task2_reducer_expect(task2_progress_bytes() == '',
+            'current plus foreign future ' .. evidence_kind .. ' duplicate wrote progress')
     end
 
     -- Two immutable arms can coexist, but once one finish moves the cursor the

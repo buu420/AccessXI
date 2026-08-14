@@ -181,3 +181,7 @@ ordering. Clean snapshot `9616090` reaches one navigation aggregate with 48
 REDs and one guide aggregate with three top-level REDs; both harnesses are Lua
 5.1 syntax GREEN. No production or Task 1 corpus file is in this test-only
 round.
+
+Task 2 round-4 audit correction: current plus foreign-future item/key-item
+duplicates now reject globally instead of preferring the current objective.
+The corrected test reaches one aggregate with four focused runtime REDs.

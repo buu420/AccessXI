@@ -591,3 +591,11 @@ Against the concurrent Task 3 follow-up production, navigation narrowed to
 exactly five REDs, all in the new distinct-Fetich set semantics.  No production,
 generated corpus, reader, Task 1 Python, or corpus file is part of this test-
 only round.
+
+Post-commit contract audit found one inverted expectation in the new global-
+uniqueness matrix: a current acquisition plus a matching foreign future action
+must reject the evidence globally, not prefer the current objective.  The
+corrected harness reaches the same final aggregate with exactly four focused
+RED messages against the in-progress runtime (acceptance and cursor-write
+failures for ordinary item and key-item evidence).  This correction changes no
+production code and does not weaken current-action identity checks.

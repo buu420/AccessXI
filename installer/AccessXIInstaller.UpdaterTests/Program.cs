@@ -18,6 +18,39 @@ if (args.Length == 2 && string.Equals(args[0], "--live-current", StringCompariso
     return await RunLiveCurrentReleaseProbeAsync(args[1]);
 }
 
+// Support probe: report what PlayOnline detection sees on this machine.
+if (args.Length == 1 && string.Equals(args[0], "--detect-pol", StringComparison.Ordinal))
+{
+    Console.WriteLine("Steam install roots:");
+    foreach (var steamRoot in PlayOnlineLocator.GetSteamInstallRoots())
+    {
+        Console.WriteLine("  " + steamRoot);
+    }
+
+    Console.WriteLine("Steam library roots:");
+    foreach (var libraryRoot in PlayOnlineLocator.GetSteamLibraryRoots(PlayOnlineLocator.GetSteamInstallRoots()))
+    {
+        Console.WriteLine("  " + libraryRoot);
+    }
+
+    Console.WriteLine("Registry PlayOnline Viewer roots:");
+    foreach (var viewerRoot in PlayOnlineLocator.ReadPlayOnlineViewerRootsFromRegistry())
+    {
+        Console.WriteLine("  " + viewerRoot);
+    }
+
+    var detectedPolExe = PlayOnlineLocator.FindDefaultPolExe();
+    if (detectedPolExe.Length == 0)
+    {
+        Console.Error.WriteLine("No pol.exe detected.");
+        return 1;
+    }
+
+    Console.WriteLine("Detected pol.exe: " + detectedPolExe);
+    Console.WriteLine("FFXI install root: " + PlayOnlineLocator.GetFfxiInstallRootFromPolExe(detectedPolExe));
+    return 0;
+}
+
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("matching embedded digest avoids download", MatchingEmbeddedDigestAvoidsDownloadAsync),
@@ -28,6 +61,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("traversal ZIP is rejected", TraversalZipIsRejectedAsync),
     ("point-of-use verification rejects changed payload", PointOfUseVerificationRejectsChangedPayloadAsync),
     ("incomplete critical payload is rejected", IncompleteCriticalPayloadIsRejectedAsync),
+    ("steam library install is a pol.exe candidate", SteamLibraryInstallIsPolExeCandidateAsync),
+    ("registry viewer root is the first pol.exe candidate", RegistryViewerRootIsFirstPolExeCandidateAsync),
+    ("steam libraryfolders.vdf paths are parsed", SteamLibraryFolderPathsAreParsedAsync),
+    ("steam pol.exe resolves the steam FFXI root", SteamPolExeResolvesSteamFfxiRootAsync),
 };
 
 var failures = new List<string>();
@@ -425,6 +462,72 @@ static HttpResponseMessage BytesResponse(byte[] bytes)
     {
         Content = new ByteArrayContent(bytes),
     };
+}
+
+static Task SteamLibraryInstallIsPolExeCandidateAsync()
+{
+    var candidates = PlayOnlineLocator.GetPolExeCandidates(
+        registryViewerRoots: null,
+        steamLibraryRoots: new[] { @"D:\SteamLibrary" },
+        programFilesRoots: new[] { @"C:\Program Files (x86)" }).ToList();
+
+    var expected = Path.Combine(@"D:\SteamLibrary", "steamapps", "common", "FFXINA", "SquareEnix", "PlayOnlineViewer", "pol.exe");
+    True(
+        candidates.Contains(expected, StringComparer.OrdinalIgnoreCase),
+        "The Steam FFXI layout must be probed for pol.exe. Candidates: " + string.Join("; ", candidates));
+    return Task.CompletedTask;
+}
+
+static Task RegistryViewerRootIsFirstPolExeCandidateAsync()
+{
+    const string viewerRoot = @"C:\Program Files (x86)\Steam\steamapps\common\FFXINA\SquareEnix\PlayOnlineViewer";
+    var candidates = PlayOnlineLocator.GetPolExeCandidates(
+        registryViewerRoots: new[] { viewerRoot },
+        steamLibraryRoots: new[] { @"D:\SteamLibrary" },
+        programFilesRoots: new[] { @"C:\Program Files (x86)" }).ToList();
+
+    True(candidates.Count > 0, "Expected at least one pol.exe candidate.");
+    Equal(
+        Path.Combine(viewerRoot, "pol.exe"),
+        candidates[0],
+        "The PlayOnline Viewer folder reported by the registry must be probed before the guessed defaults.");
+    return Task.CompletedTask;
+}
+
+static Task SteamLibraryFolderPathsAreParsedAsync()
+{
+    const string libraryFoldersVdf = """
+        "libraryfolders"
+        {
+            "0"
+            {
+                "path"		"C:\\Program Files (x86)\\Steam"
+                "label"		""
+            }
+            "1"
+            {
+                "path"		"D:\\SteamLibrary"
+            }
+        }
+        """;
+
+    var roots = PlayOnlineLocator.ParseSteamLibraryRoots(libraryFoldersVdf);
+
+    Equal(2, roots.Count, "Every Steam library folder must be discovered.");
+    True(roots.Contains(@"C:\Program Files (x86)\Steam", StringComparer.OrdinalIgnoreCase), "The default Steam library must be parsed with unescaped separators.");
+    True(roots.Contains(@"D:\SteamLibrary", StringComparer.OrdinalIgnoreCase), "Secondary Steam libraries on other drives must be parsed.");
+    return Task.CompletedTask;
+}
+
+static Task SteamPolExeResolvesSteamFfxiRootAsync()
+{
+    const string polExe = @"C:\Program Files (x86)\Steam\steamapps\common\FFXINA\SquareEnix\PlayOnlineViewer\pol.exe";
+
+    Equal(
+        @"C:\Program Files (x86)\Steam\steamapps\common\FFXINA\SquareEnix\FINAL FANTASY XI",
+        PlayOnlineLocator.GetFfxiInstallRootFromPolExe(polExe),
+        "A Steam pol.exe must resolve to the Steam copy of the FFXI install root.");
+    return Task.CompletedTask;
 }
 
 static string NewTempRoot()

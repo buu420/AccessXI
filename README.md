@@ -38,6 +38,8 @@ If you use a Square Enix security token or software token, keep it available for
 4. Open the extracted `FFXIFullSetup_US` folder and run `FFXISetup.exe`.
 5. For a first installation, select all available applications, including PlayOnline Viewer and Final Fantasy XI, and finish the official installers.
 
+If you own Final Fantasy XI on Steam, skip this section. Install the game through Steam as usual; the AccessXI installer detects the Steam copy of PlayOnline Viewer, including libraries on a second drive.
+
 Do not run the AccessXI installer yet.
 
 ### 3. Update PlayOnline before installing AccessXI

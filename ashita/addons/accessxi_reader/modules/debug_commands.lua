@@ -25,7 +25,22 @@ function debug_commands.handle(args, ctx)
         return ok and result or default;
     end;
 
-    if (has_command(args, 'inputstate', 'movementstate', 'inputdiag', 'stuck')) then
+    if (has_command(args, 'report', 'supportreport')) then
+        local writer = accessxi.support_log;
+        if (type(writer) ~= 'table' or type(writer.export) ~= 'function') then
+            speak('Support logging is unavailable. Reload AccessXI and try again.');
+            return true;
+        end
+        local ok, written, err = pcall(writer.export, writer, accessxi.support_report_path);
+        if (ok and written) then
+            speak('Support report saved. Send AccessXI support report dot log from the addon logs folder.');
+            log_line('support report saved path="' .. tostring(accessxi.support_report_path) .. '"');
+        else
+            log_line('support report failed error="' .. tostring(ok and err or written) .. '"');
+            speak('The support report could not be saved. Check that the addon logs folder is writable.');
+        end
+        return true;
+    elseif (has_command(args, 'inputstate', 'movementstate', 'inputdiag', 'stuck')) then
         if (type(accessxi.input_state_text) == 'function') then
             speak(accessxi.input_state_text());
         else

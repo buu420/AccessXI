@@ -62,7 +62,8 @@ local objective_progress_loaded = false;
 local objective_progress = {};
 local objective_progress_history = {};
 local objective_progress_legacy = {};
-local objective_progress_migrated = {};
+local objective_progress_marks = {};
+local objective_progress_undone = {};
 local pending_objective_interaction = nil;
 local pending_objective_events = {};
 local pending_objective_event_order = {};
@@ -103,6 +104,30 @@ local function increment_objective_progress_revision()
     accessxi.objective_progress_revision = (tonumber(accessxi.objective_progress_revision) or 0) + 1;
 end
 
+-- A ROW'S REVISION AND ITS STEP ID MUST AGREE ABOUT WHICH DATASET THEY CAME FROM.
+--
+-- The progress file is append-only and outlives any change to the guide data.
+-- On 2026-08-25 a cursor saved against the collapsed wiki page migrated onto a
+-- reviewed override that happened to use the same step-id namespace, and the
+-- player was walked past Pius, Grohm and the Mythril Seam to the Refiner Lid.
+-- Override ids are namespaced now and the migration refuses to cross an
+-- override boundary, but the poisoned row is still sitting in the file --
+-- revision "override:lsb:2_3_1_Journey_to_Bastok" against the scraped id
+-- "mission:San d'Oria:7:step-004" -- and rows are never rewritten, so it will
+-- sit there forever. Drop such rows on the way in rather than trusting every
+-- downstream matcher to keep rejecting them.
+--
+-- The test is cheap and purely structural: an 'override:' revision must name an
+-- id carrying ':reviewed:', and a scraped revision must not.
+local function progress_row_crosses_datasets(native_key, revision, step_id)
+    if (clean(native_key) == '' or clean(revision) == '' or clean(step_id) == '') then
+        return false;
+    end
+    local revision_is_override = clean(revision):sub(1, 9) == 'override:';
+    local step_is_override = clean(step_id):find(':reviewed:', 1, true) ~= nil;
+    return revision_is_override ~= step_is_override;
+end
+
 local function load_objective_progress()
     if (objective_progress_loaded) then return; end
     objective_progress_loaded = true;
@@ -116,7 +141,8 @@ local function load_objective_progress()
         for field in value:gmatch('([^\t]*)\t') do
             fields[#fields + 1] = field;
         end
-        if (#fields == 10 and fields[1] == 'v2') then
+        if (#fields == 10 and fields[1] == 'v2'
+            and not progress_row_crosses_datasets(clean(fields[4]), clean(fields[5]), clean(fields[6]))) then
             local identity = clean(fields[2]):lower();
             local world_id = tonumber(fields[3]) or 0;
             local native_key = clean(fields[4]);
@@ -137,23 +163,73 @@ local function load_objective_progress()
                 raw_action_order = fields[9],
                 raw_progress_count = fields[10],
             };
+        elseif (#fields == 9 and fields[1] == 'v3-mark') then
+            -- A cursor move the PLAYER made, with the state it moved from.
+            objective_progress_marks[#objective_progress_marks + 1] = {
+                identity = clean(fields[2]):lower(),
+                world_id = tonumber(fields[3]) or 0,
+                native_key = clean(fields[4]),
+                event_id = clean(fields[5]),
+                after_step_id = clean(fields[6]),
+                after_action_id = clean(fields[7]),
+                before_step_id = clean(fields[8]),
+                before_action_id = clean(fields[9]),
+            };
+        elseif (#fields == 5 and fields[1] == 'v3-undo') then
+            objective_progress_undone[clean(fields[5])] = true;
         elseif (#fields == 4) then
             local identity = clean(fields[1]):lower();
             local native_key = clean(fields[2]);
             local step_id = clean(fields[3]);
             local order = tonumber(fields[4]) or 0;
-            if (identity ~= '' and native_key ~= '' and step_id ~= '' and order > 0
-                and fields[4] == tostring(order)) then
-                objective_progress_legacy[identity .. '\t' .. native_key] = {
-                    identity = identity,
-                    native_key = native_key,
-                    step_id = step_id,
-                    order = order,
-                };
+            if (identity ~= '' and native_key ~= '') then
+                local key = identity .. '\t' .. native_key;
+                if (step_id == '-' and fields[4] == '0') then
+                    objective_progress_legacy[key] = {
+                        identity = identity,
+                        native_key = native_key,
+                        tombstoned = true,
+                    };
+                elseif (step_id ~= '' and step_id ~= '-' and order > 0
+                    and fields[4] == tostring(order)) then
+                    objective_progress_legacy[key] = {
+                        identity = identity,
+                        native_key = native_key,
+                        step_id = step_id,
+                        order = order,
+                        tombstoned = false,
+                    };
+                end
             end
         end
     end
     file:close();
+
+    -- An undone mark's cursor row must not survive, or "farthest wins" keeps it
+    -- forever. Applied after the whole file is read because an undo row is
+    -- always appended AFTER the row it reverses.
+    for _, mark in ipairs(objective_progress_marks) do
+        if (objective_progress_undone[mark.event_id] == true) then
+            local key = objective_progress_key(mark.identity, mark.world_id, mark.native_key);
+            local before = #(objective_progress_history[key] or {});
+            local kept = {};
+            for _, candidate in ipairs(objective_progress_history[key] or {}) do
+                if (clean(candidate.step_id) ~= mark.after_step_id
+                    or clean(candidate.action_id) ~= mark.after_action_id) then
+                    kept[#kept + 1] = candidate;
+                end
+            end
+            objective_progress_history[key] = kept;
+            -- A repair nobody can see is a repair nobody can confirm. The
+            -- player could not tell whether their cursor had been put back,
+            -- and neither could the log.
+            if (type(log_line) == 'function' and #kept < before) then
+                log_line(('objective cursor REVERSED native="%s" event="%s" dropped=%d back-to step="%s" action="%s"'):fmt(
+                    clean(mark.native_key), clean(mark.event_id), before - #kept,
+                    clean(mark.before_step_id), clean(mark.before_action_id)));
+            end
+        end
+    end
 end
 
 local function append_objective_progress(record)
@@ -179,6 +255,24 @@ local function append_objective_progress(record)
         tostring(tonumber(record.progress_count) or 0),
     }, '\t');
     file:write(encoded, '\n');
+    file:close();
+    return true;
+end
+
+-- Append one raw row to the progress file. The file is strictly append-only
+-- (io.open 'ab'), which is what makes an undo durable: nothing is ever
+-- rewritten, so a reversal is recorded rather than a record erased.
+function accessxi.objective_progress_append_row(fields)
+    local path = clean(accessxi.objective_interaction_progress_path);
+    if (path == '' or type(fields) ~= 'table') then return false; end
+    local file = io.open(path, 'ab');
+    if (file == nil) then
+        if (type(log_line) == 'function') then
+            log_line(('objective interaction progress write failed path="%s"'):fmt(path));
+        end
+        return false;
+    end
+    file:write(table.concat(fields, '\t'), '\n');
     file:close();
     return true;
 end
@@ -290,6 +384,7 @@ local function point_copy(point)
         objective_native_key = clean(point.objective_native_key),
         guide_step_id = clean(point.guide_step_id or point.objective_guide_step_id),
         objective_guide_step_id = clean(point.objective_guide_step_id or point.guide_step_id),
+        objective_via_zones = point.objective_via_zones,
         objective_candidate_id = clean(point.objective_candidate_id),
         objective_action_id = clean(point.objective_action_id),
         objective_cursor_action_id = clean(point.objective_cursor_action_id),
@@ -799,6 +894,13 @@ local function exact_objective_guide_row(row)
         completion_key_items = deep_copy(row.completion_key_items),
         enemies = deep_copy(row.enemies),
         transport_id = clean(row.transport_id),
+        canonical_edge_id = tonumber(row.canonical_edge_id),
+        canonical_from_zone = tonumber(row.canonical_from_zone),
+        -- The road the guide named for this step. Dropping it here is what
+        -- silently reverted every route to "any shortest chain": the resolver
+        -- computed the right road and the target that actually got routed to
+        -- had never heard of it (live 2026-08-22, `NO GUIDE ROAD given=nil`).
+        via_zones = row.objective_via_zones,
     };
 end
 
@@ -844,6 +946,7 @@ local function expanded_objective_row(item, row)
     result.objective_instruction = reviewed.instruction;
     result.objective_action_instruction = reviewed.instruction;
     result.objective_guide_step_id = reviewed.guide_step_id;
+    result.objective_via_zones = deep_copy(reviewed.via_zones);
     result.objective_guide_step_order = reviewed.guide_step_order;
     result.objective_source_route_entry_distance2 = reviewed.source_route_entry_distance2;
     result.objective_action_id = reviewed.action_id;
@@ -886,6 +989,9 @@ local function expanded_objective_row(item, row)
             raw_spawn_ids = deep_copy(reviewed.raw_spawn_ids),
             cluster_policy_version = reviewed.cluster_policy_version,
             arrival_radius = reviewed.arrival_radius,
+            objective_canonical_edge_id = reviewed.canonical_edge_id,
+            objective_canonical_from_zone = reviewed.canonical_from_zone,
+            objective_via_zones = deep_copy(reviewed.via_zones),
             objective_completion_items = deep_copy(reviewed.completion_items),
             objective_completion_key_items = deep_copy(reviewed.completion_key_items),
             objective_route_recommendation = result.objective_route_recommendation,
@@ -921,8 +1027,24 @@ local function objective_row_less(left, right)
     return false;
 end
 
+-- THE GUIDE AND THE CATALOGUE SPELL THE SAME DOOR DIFFERENTLY.
+--
+-- Live 2026-08-24, The Davoi Report step-016. The guide names
+-- "Door: Papal Chambers" and the catalogue row is "Door:Papal Chambers" --
+-- one space after the colon. The keys were compared exactly, so the lookup
+-- returned 0 rows instead of 3 and the step refused with "you are already in
+-- Northern San d'Oria" while the door stood at (130.3, 122.3).
+--
+-- The catalogue is not even consistent with itself: of 155 names carrying a
+-- colon, 21 use colon-space. Two names that differ ONLY by spacing around
+-- punctuation are the same name written twice, so collapsing that is safe --
+-- and because the catalogue INDEX is built through this same function, both
+-- sides of every comparison normalise together.
 local function source_name_key(value)
-    return clean(value):lower();
+    local key = clean(value):lower();
+    key = key:gsub('%s*([:,])%s*', '%1');
+    key = key:gsub('%s+', ' ');
+    return key;
 end
 
 local source_zone_names = {};
@@ -932,12 +1054,40 @@ local function current_nav_catalog_revision()
     return tostring(tonumber(accessxi.nav_catalog_revision) or 0);
 end
 
+-- A HOLDING CHANGES WHERE YOU STILL HAVE TO GO.
+--
+-- The rollup decides which children a barren parent inherits, and it now skips
+-- the ones whose item is already in the bag -- so "Collect the following 3
+-- items" stops offering Jugner Forest the moment the Seedspall Lux from Jugner
+-- Forest is picked up. That decision is baked into the cached step list, so
+-- without this the list would keep naming a place the player has finished with
+-- until the addon was reloaded. Clearing it on an inventory change costs one
+-- rebuild and keeps the destination honest.
+function accessxi.nav_mission_quest_forget_source_steps(reason)
+    if (type(source_derivation_cache) ~= 'table') then
+        return false;
+    end
+    local had = false;
+    if (type(source_derivation_cache.source_steps) == 'table'
+        and next(source_derivation_cache.source_steps) ~= nil) then
+        had = true;
+    end
+    source_derivation_cache.source_steps = {};
+    source_derivation_cache.source_routes = {};
+    if (had and type(log_line) == 'function') then
+        log_line(('objective source steps rebuilt reason="%s"'):fmt(tostring(reason or '')));
+    end
+    return had;
+end
+
 local function reset_source_derivation_cache_if_needed()
     local revision = current_nav_catalog_revision();
     if (source_derivation_cache.revision ~= revision) then
         source_derivation_cache.revision = revision;
         source_derivation_cache.source_steps = {};
         source_derivation_cache.source_routes = {};
+        source_derivation_cache.source_route_refusals = {};
+        source_derivation_cache.prerequisite_refusals = {};
     end
     return revision;
 end
@@ -961,6 +1111,27 @@ local function source_point_zone_name(point)
     return value;
 end
 
+-- Roles the guide names instead of people, with the members it named for them.
+local objective_role_members = nil;
+local function role_members_for(key)
+    if (objective_role_members == nil) then
+        objective_role_members = accessxi.load_module_table ~= nil
+            and accessxi.load_module_table('objective_role_members', T{}) or T{};
+    end
+    return objective_role_members[clean(key):lower()];
+end
+
+local function point_for_destination_id(destination_id)
+    destination_id = clean(destination_id);
+    if (destination_id == '') then return nil; end
+    for _, point in ipairs(accessxi.nav_points or T{}) do
+        if (clean(point.destination_id) == destination_id) then
+            return point_copy(point);
+        end
+    end
+    return nil;
+end
+
 ensure_catalog_index = function()
     local revision = current_nav_catalog_revision();
     if (objective_catalog_index.revision == revision) then
@@ -972,6 +1143,9 @@ ensure_catalog_index = function()
         revision = revision,
         zone_ids_by_name = {},
         points_by_zone_entity = {},
+        points_by_entity = {},
+        points_by_zone_base = {},
+        points_by_base = {},
         referenced_targets = {},
         zone_lines = {},
     };
@@ -992,6 +1166,19 @@ ensure_catalog_index = function()
                 local entity_key = ('%d\t%s'):fmt(zone, name_key);
                 index.points_by_zone_entity[entity_key] = index.points_by_zone_entity[entity_key] or T{};
                 index.points_by_zone_entity[entity_key]:append(point);
+                index.points_by_entity[name_key] = index.points_by_entity[name_key] or T{};
+                index.points_by_entity[name_key]:append(point);
+                local base_key = name_key:match('^(.-)%s*#%d+$');
+                if (base_key ~= nil and base_key ~= '') then
+                    local base_entity_key = ('%d	%s'):fmt(zone, base_key);
+                    index.points_by_zone_base[base_entity_key] = index.points_by_zone_base[base_entity_key] or T{};
+                    index.points_by_zone_base[base_entity_key]:append(point);
+                    -- ...and without a zone, so a step that says only "a Home
+                    -- Point" has candidates to offer instead of being called
+                    -- absent because every real one is numbered.
+                    index.points_by_base[base_key] = index.points_by_base[base_key] or T{};
+                    index.points_by_base[base_key]:append(point);
+                end
                 local reference_key = table.concat({
                     tostring(zone), name_key, effective_kind(point), clean(point.destination_id),
                 }, '\t');
@@ -1019,7 +1206,20 @@ local function source_route_kind_allowed(action, kind)
     kind = clean(kind):lower();
     if (action == 'fight') then
         return kind == 'enemy' or kind == 'nm' or kind == 'live-nm';
-    elseif (action == 'talk' or action == 'trade') then
+    elseif (action == 'talk') then
+        -- YOU TALK TO DOORS IN THIS GAME. The guide says "Talk to the Oaken
+        -- Door at (K-8) in Norg to Gilgamesh's room", and FFXI catalogues doors
+        -- as objects, so requiring npc filtered both Oaken Doors out and the
+        -- step fell through to "you are already in Norg" -- live 2026-08-23,
+        -- with the player standing in Norg and no route to the thing the guide
+        -- named. 16 entity references across 1,195 talk/trade steps are
+        -- catalogued only as objects: Oaken Door, Inconspicuous Door,
+        -- ??? Warmachine.
+        --
+        -- TRADE is deliberately NOT widened: "trade to ???" would admit 1,267
+        -- object rows, and a marker that matches everything names nothing.
+        return kind == 'npc' or kind == 'object';
+    elseif (action == 'trade') then
         return kind == 'npc';
     elseif (action == 'examine' or action == 'use') then
         return kind == 'npc' or kind == 'object' or kind == 'area';
@@ -1140,9 +1340,599 @@ local function source_route_entry_distance2(point, zone_entries)
     return best;
 end
 
+local function point_copy_with_identity(point)
+    local copy = T{};
+    for key, value in pairs(point) do
+        copy[key] = value;
+    end
+    return copy;
+end
+
+-- A PARENT WITH NOTHING OF ITS OWN INHERITS ITS CHILDREN'S PLACES.
+--
+-- "Collect the following 3 items:" carries entities = {} and zones = {}, so it
+-- refuses with "this step has no destination in the guide" -- while the three
+-- rows beneath it name Jugner Forest, Pashhow Marshlands and Meriphataud
+-- Mountains. Speaking those lines was only half the job: the player asked the
+-- obvious next question, "when people try to make a path to these, are they
+-- going to be able to", and the answer was no. The cursor sits on the parent,
+-- the parent has no target, and pressing I does nothing.
+--
+-- The children are `note` steps, which the router will never walk to on their
+-- own -- a note is read, not walked. So give the parent their places. It then
+-- resolves like any other multi-target step: one destination becomes a route,
+-- several become the choice the player already gets for a duplicated name,
+-- which is exactly what a sighted player does with a three-item list.
+--
+-- Only barren parents inherit. A step that named its own target keeps it, so
+-- this can never pull a route away from somewhere the guide was specific about.
+function accessxi.objective_roll_up_child_targets(steps)
+    if (type(steps) ~= 'table') then
+        return 0;
+    end
+    local changed = 0;
+    for index, step in ipairs(steps) do
+        local own_entities = type(step.entities) == 'table' and #step.entities or 0;
+        local own_zones = type(step.zones) == 'table' and #step.zones or 0;
+        if (own_entities == 0 and own_zones == 0
+            and clean(step.action):lower() ~= 'note'
+            and clean(step.stable_step_id) ~= '') then
+            -- INHERIT WHAT IS STILL TO BE DONE, NOT EVERY PLACE MENTIONED.
+            --
+            -- The first version took every child's entities, which put three
+            -- kinds of noise into the destination list. Live 2026-08-27:
+            --
+            --   * the zone of an item the player was already carrying, so
+            --     "Collect the following 3 items" offered Jugner Forest as the
+            --     destination when the Seedspall Lux from Jugner Forest was in
+            --     their bag;
+            --   * "Closest Survival Guide is Davoi", a convenience note, which
+            --     outranked the place the item actually drops;
+            --   * "It's close to the Qufim Home Point" under At the Heavens'
+            --     Door, which made a Home Point look like a second copy of the
+            --     objective -- the player reported it as the mission being
+            --     "listed twice".
+            --
+            -- A child that names an ITEM is where you go to get that item, and
+            -- that is a destination. A child that names only a landmark is a
+            -- hint about a destination someone else already gave. So when any
+            -- child names an item, inherit from those children alone; when none
+            -- does, fall back to inheriting everything, because then the hints
+            -- are all there is.
+            --
+            -- And a child whose item is CONFIRMED held contributes nothing --
+            -- there is nowhere left to go for it. Confirmed only: an item we
+            -- could not check keeps its place in the list, because dropping a
+            -- destination on a guess is how a player ends up stranded.
+            local function child_item(child)
+                if (type(accessxi.objective_inventory_named_state) ~= 'function') then
+                    return nil, 'unknown';
+                end
+                for _, value in ipairs(type(child.entities) == 'table' and child.entities or {}) do
+                    local name = clean(value);
+                    if (name ~= '') then
+                        local ok, _, item_id, state = pcall(
+                            accessxi.objective_inventory_named_state, name);
+                        if (ok and tonumber(item_id) ~= nil and (tonumber(item_id) or 0) > 0) then
+                            return name, state;
+                        end
+                    end
+                end
+                return nil, 'unknown';
+            end
+
+            local children, any_item = {}, false;
+            for next_index = index + 1, #steps do
+                local child = steps[next_index];
+                if (type(child) ~= 'table'
+                    or clean(child.action):lower() ~= 'note') then
+                    break;
+                end
+                local item_name, item_state = child_item(child);
+                children[#children + 1] = {
+                    step = child, item = item_name, state = item_state };
+                if (item_name ~= nil) then any_item = true; end
+            end
+
+            local entities, zones, items, seen = {}, {}, {}, {};
+            for _, entry in ipairs(children) do
+                local child = entry.step;
+                local usable = true;
+                if (any_item and entry.item == nil) then
+                    usable = false;          -- a hint beside real destinations
+                elseif (entry.item ~= nil and entry.state == 'held') then
+                    usable = false;          -- already in the bag
+                end
+                if (usable) then
+                for _, value in ipairs(type(child.entities) == 'table' and child.entities or {}) do
+                    local key = 'e:' .. tostring(value):lower();
+                    if (clean(value) ~= '' and not seen[key]) then
+                        seen[key] = true;
+                        entities[#entities + 1] = value;
+                    end
+                end
+                for _, value in ipairs(type(child.zones) == 'table' and child.zones or {}) do
+                    local key = 'z:' .. tostring(value):lower();
+                    if (clean(value) ~= '' and not seen[key]) then
+                        seen[key] = true;
+                        zones[#zones + 1] = value;
+                    end
+                end
+                for _, value in ipairs(type(child.items) == 'table' and child.items or {}) do
+                    local key = 'i:' .. tostring(value):lower();
+                    if (clean(value) ~= '' and not seen[key]) then
+                        seen[key] = true;
+                        items[#items + 1] = value;
+                    end
+                end
+                end
+            end
+            if (#entities > 0 or #zones > 0) then
+                step.entities = entities;
+                step.zones = zones;
+                if (#items > 0 and (type(step.items) ~= 'table' or #step.items == 0)) then
+                    step.items = items;
+                end
+                step.inherited_from_children = true;
+                changed = changed + 1;
+            end
+        end
+    end
+    return changed;
+end
+
+-- DO NOT SEND SOMEONE SOMEWHERE THEY NO LONGER NEED TO GO.
+--
+-- "Collect the following 3 items" reads out where each one drops. Once the
+-- player is carrying one, its directions are not information any more, they are
+-- three zones and a grid reference of noise between them and the two they still
+-- need. The player asked for exactly this: "I figured they would get removed
+-- when they showed in my inventory."
+--
+-- The guide's rows are a tree we store flat, so a line naming one of the
+-- required things OPENS that thing's group and every following line that names
+-- none of them belongs to it -- which is how "Closest Survival Guide is Davoi"
+-- leaves with the Seedspall Lux line it was written under, instead of being
+-- left behind as an orphan pointing at a zone nobody is going to.
+--
+-- ONLY A CONFIRMED HOLDING REMOVES ANYTHING. An item we could not check stays
+-- on screen with its directions intact: withholding a location because we were
+-- unsure is the failure this addon exists to prevent, and it is much worse than
+-- a line the player does not need.
+function accessxi.objective_detail_lines_without_held(lines, progress)
+    lines = type(lines) == 'table' and lines or {};
+    -- This used to bail when nothing was held, back when dropping held items
+    -- was its only job. It also collapses a repeated telling now, which has to
+    -- happen whether the player is carrying anything or not.
+    if (type(progress) ~= 'table') then
+        return lines, 0;
+    end
+
+    local held = {};
+    for _, name in ipairs(progress.held) do
+        local key = clean(name):lower();
+        if (key ~= '') then held[key] = true; end
+    end
+    local required = {};
+    for _, bucket in ipairs({ progress.held, progress.needed, progress.unknown }) do
+        for _, name in ipairs(type(bucket) == 'table' and bucket or {}) do
+            local key = clean(name):lower();
+            if (key ~= '') then required[#required + 1] = key; end
+        end
+    end
+    if (#required == 0) then
+        return lines, 0;
+    end
+
+    local kept, dropped, dropping = {}, 0, false;
+    local seen = {};
+    for _, line in ipairs(lines) do
+        local lowered = clean(line):lower();
+        local opened = nil;
+        for _, key in ipairs(required) do
+            if (lowered:find(key, 1, true) ~= nil) then
+                opened = key;
+                break;
+            end
+        end
+        if (opened ~= nil) then
+            -- ONE LINE PER THING. The reconciled list interleaves BOTH wikis,
+            -- so the same item is described twice in different words --
+            -- "Seedspall Luna from Quadavs in Pashhow Marshlands around (K-10)"
+            -- and then "Seedspall Luna is dropped by Quadav in Pashhow
+            -- Marshlands". Reading both says everything twice and pushes the
+            -- third item past any sensible length. The first telling wins,
+            -- because the sources are gathered in guide order.
+            dropping = (held[opened] == true) or (seen[opened] == true);
+            seen[opened] = true;
+        end
+        if (dropping) then
+            dropped = dropped + 1;
+        else
+            kept[#kept + 1] = line;
+        end
+    end
+    return kept, dropped;
+end
+
+-- EVERYTHING A STEP CAN TELL THE PLAYER BEYOND ITS OWN SENTENCE.
+--
+-- The rows written underneath it, and what of them the player already carries.
+-- This exists as ONE function because the objective speech has SEVERAL return
+-- paths -- an instruction-only branch, a candidate-choice branch, and a plain
+-- one -- and wiring a feature into a single branch reaches only the players
+-- whose current step happens to take it. Live 2026-08-27 the item progress went
+-- into the instruction-only branch alone; every objective the player was
+-- actually looking at came out of the candidate-choice branch, and the line
+-- never once appeared in the log.
+-- A VERIFIED INSTRUCTION THE GUIDE PROSE LEFT OUT.
+--
+-- Keyed by native key and guide step id. Additive speech only -- it never
+-- touches the cursor, which is what makes it safe to add to a mission somebody
+-- is already halfway through. An override would re-namespace the step ids and
+-- the cursor cannot cross that boundary.
+function accessxi.objective_step_note(native_key, step_id)
+    native_key, step_id = clean(native_key), clean(step_id);
+    if (native_key == '' or step_id == ''
+        or type(accessxi.mission_quest_step_notes) ~= 'table') then
+        return '';
+    end
+    local record = accessxi.mission_quest_step_notes[native_key];
+    if (type(record) ~= 'table') then
+        return '';
+    end
+    return clean(record[step_id]);
+end
+
+function accessxi.objective_step_supplement(item)
+    if (type(item) ~= 'table') then
+        return '';
+    end
+    local native_key = clean(item.objective_native_key);
+    local step_id = clean(item.objective_guide_step_id);
+    if (native_key == '' or step_id == '') then
+        return '';
+    end
+    local step = accessxi.objective_step_for_guide_id(native_key, step_id);
+    local ok, progress = pcall(accessxi.objective_item_progress, step);
+    progress = ok and progress or nil;
+
+    -- The rows under this step, minus the ones the player has finished with.
+    local lines = accessxi.objective_step_detail_lines(native_key, step_id);
+    local dropped = 0;
+    lines, dropped = accessxi.objective_detail_lines_without_held(lines, progress);
+
+    local parts = {};
+    local detail = accessxi.objective_detail_text_from_lines(lines);
+    if (clean(detail) ~= '') then
+        parts[#parts + 1] = detail;
+    end
+    if (type(progress) == 'table' and clean(progress.speech) ~= '') then
+        parts[#parts + 1] = progress.speech;
+    end
+    if (dropped > 0) then
+        log_line(('objective detail dropped %d line(s) for held items step="%s"'):fmt(
+            dropped, accessxi.escape_probe_log_text(step_id)));
+    end
+    -- Last, so it reads as the addition it is rather than displacing the
+    -- guide's own words.
+    local note = accessxi.objective_step_note(native_key, step_id);
+    if (note ~= '') then
+        parts[#parts + 1] = note;
+    end
+    return table.concat(parts, ' ');
+end
+
+-- The source step behind a guide step id, so the speech can ask what the step
+-- requires without the caller having to carry the whole step around.
+function accessxi.objective_step_for_guide_id(native_key, step_id)
+    step_id = clean(step_id);
+    if (step_id == '' or type(objective_source_steps) ~= 'function') then
+        return nil;
+    end
+    local ok, steps = pcall(objective_source_steps, native_key);
+    if (not ok or type(steps) ~= 'table') then
+        return nil;
+    end
+    for _, step in ipairs(steps) do
+        if (clean(step.stable_step_id) == step_id) then
+            return step;
+        end
+    end
+    return nil;
+end
+
+-- WHAT THE PLAYER ALREADY HAS.
+--
+-- Written with sol. The requirement model, the per-store deduplication, the
+-- max-of-duplicate-quantities rule and the shape of the speech are its design;
+-- I changed three things and the reasons matter.
+--
+--  1. It reached for objective_inventory_state_ready(), which accepts a source
+--     string 'packet_in_inventory' that is assigned NOWHERE in the tree. This
+--     uses accessxi.objective_inventory_state_available(), which additionally
+--     requires the snapshot to have actually seen a container -- 199 of 601
+--     snapshots in the live log recorded zero items while still being stamped
+--     'native-inventory'.
+--  2. It hedged ordinary items as "Not in your inventory", because at the time
+--     the scan read container 0 only and an item in a satchel or Mog Storage
+--     was invisible. That is fixed: the scan now walks every loaded container,
+--     so absence is now a real finding and says so.
+--  3. Ownership goes through accessxi.objective_inventory_named_state, which
+--     returns the three states directly rather than reconstructing them from a
+--     count and an id.
+--
+-- THE RULE THROUGHOUT: a thing we cannot check is 'unknown', never 'needed'.
+-- Telling a player to go and farm a Seedspall they are carrying is worse than
+-- telling them nothing, and this addon has already lost twelve days to a false
+-- that meant both "no" and "no data".
+function accessxi.objective_item_progress(step)
+    local result = {
+        total = 0, held = {}, needed = {}, unknown = {},
+        kind = 'item', speech = '',
+    };
+    if (type(step) ~= 'table') then
+        return result;
+    end
+
+    local requirements, order = {}, {};
+    local has_items, has_key_items = false, false;
+
+    local function add_requirement(requirement_kind, entry)
+        local name, required = '', 1;
+        if (type(entry) == 'table') then
+            if (requirement_kind == 'key-item') then
+                name = clean(entry.name or entry.key_item or '');
+            else
+                name = clean(entry.name or entry.item or '');
+                required = math.max(1, tonumber(entry.count or entry.quantity) or 1);
+            end
+        else
+            name = clean(entry);
+        end
+        if (name == '') then
+            return;
+        end
+        -- Keyed by STORE as well as name: an item and a key item may share a
+        -- label and are two different ownership questions.
+        local key = requirement_kind .. '\t' .. name:lower();
+        if (requirements[key] == nil) then
+            requirements[key] = { kind = requirement_kind, name = name, required = required };
+            order[#order + 1] = key;
+        else
+            requirements[key].required = math.max(
+                tonumber(requirements[key].required) or 1, required);
+        end
+        if (requirement_kind == 'key-item') then has_key_items = true;
+        else has_items = true; end
+    end
+
+    for _, entry in ipairs(type(step.items) == 'table' and step.items or {}) do
+        add_requirement('item', entry);
+    end
+    for _, entry in ipairs(type(step.key_items) == 'table' and step.key_items or {}) do
+        add_requirement('key-item', entry);
+    end
+
+    -- THE ITEM NAMES ARE IN ENTITIES, NOT ITEMS.
+    --
+    -- The reconciled corpus carries no `items` field on these steps at all --
+    -- "Collect the following 3 items:" and each Seedspall row beneath it list
+    -- their names in `entities` beside the zone they drop in. So this asked for
+    -- zero requirements and stayed silent, and live 2026-08-27 the player saw
+    -- the Jugner Forest directions for a Seedspall they were already carrying.
+    --
+    -- An entity IS an item when the game's own resources resolve it to an item
+    -- id. That is the same test the ownership reader applies, so a name we
+    -- cannot resolve simply never becomes a requirement -- a zone, an NPC or a
+    -- mob family resolves to nothing and is skipped. Only used when the step
+    -- named no items of its own, so declared data always wins.
+    if (not has_items and type(accessxi.objective_inventory_named_state) == 'function') then
+        for _, entry in ipairs(type(step.entities) == 'table' and step.entities or {}) do
+            local name = clean(type(entry) == 'table' and (entry.name or entry.item) or entry);
+            if (name ~= '') then
+                local ok, _, item_id = pcall(accessxi.objective_inventory_named_state, name);
+                if (ok and tonumber(item_id) ~= nil and (tonumber(item_id) or 0) > 0) then
+                    add_requirement('item', name);
+                end
+            end
+        end
+    end
+
+    result.total = #order;
+    if (has_items and has_key_items) then result.kind = 'mixed';
+    elseif (has_key_items) then result.kind = 'key-item'; end
+    if (result.total == 0) then
+        return result;
+    end
+
+    local ordinary_needed, key_item_needed = {}, {};
+    for _, key in ipairs(order) do
+        local requirement = requirements[key];
+        local state = 'unknown';
+        if (requirement.kind == 'item') then
+            if (type(accessxi.objective_inventory_named_state) == 'function') then
+                local ok, count, _, named_state = pcall(
+                    accessxi.objective_inventory_named_state, requirement.name);
+                if (ok and named_state == 'held') then
+                    state = ((tonumber(count) or 0) >= requirement.required)
+                        and 'held' or 'needed';
+                elseif (ok and named_state == 'absent') then
+                    state = 'needed';
+                end
+            end
+        elseif (type(accessxi.objective_key_item_owned_by_name) == 'function'
+            and type(accessxi.mission_quest_key_item_state) == 'function') then
+            local id_ok, _, key_item_id = pcall(
+                accessxi.objective_key_item_owned_by_name, requirement.name);
+            if (id_ok and tonumber(key_item_id) ~= nil) then
+                local state_ok, key_item_state = pcall(
+                    accessxi.mission_quest_key_item_state, key_item_id);
+                if (state_ok and key_item_state == 'held') then state = 'held';
+                elseif (state_ok and key_item_state == 'absent') then state = 'needed'; end
+            end
+        end
+        result[state][#result[state] + 1] = requirement.name;
+        if (state == 'needed') then
+            if (requirement.kind == 'key-item') then
+                key_item_needed[#key_item_needed + 1] = requirement.name;
+            else
+                ordinary_needed[#ordinary_needed + 1] = requirement.name;
+            end
+        end
+    end
+
+    -- Nothing checkable means nothing worth saying. A row of "could not check"
+    -- is noise, and the player still has the guide's own words.
+    if (#result.unknown == result.total) then
+        return result;
+    end
+
+    local parts = {};
+    if (#result.unknown > 0) then
+        parts[#parts + 1] = ('Confirmed held: %d of %d.'):fmt(#result.held, result.total);
+    else
+        parts[#parts + 1] = ('You have %d of %d.'):fmt(#result.held, result.total);
+    end
+    if (#result.held > 0) then
+        parts[#parts + 1] = ('Held: %s.'):fmt(table.concat(result.held, ', '));
+    end
+    if (#ordinary_needed > 0) then
+        parts[#parts + 1] = ('Still needed: %s.'):fmt(table.concat(ordinary_needed, ', '));
+    end
+    if (#key_item_needed > 0) then
+        local label = result.kind == 'key-item' and 'Still needed' or 'Key items still needed';
+        parts[#parts + 1] = ('%s: %s.'):fmt(label, table.concat(key_item_needed, ', '));
+    end
+    if (#result.unknown > 0) then
+        parts[#parts + 1] = ('Could not check: %s.'):fmt(table.concat(result.unknown, ', '));
+    end
+    result.speech = table.concat(parts, ' ');
+    return result;
+end
+
+-- THE LINES UNDER THE LINE.
+--
+-- The guides are written as a TREE and we store them as a flat list. A step
+-- like "Collect the following 3 items:" carries no target of its own, because
+-- everything that answers the question is in the rows beneath it:
+--
+--     Collect the following 3 items:                        <- what we spoke
+--       Seedspall Lux    from Orcs    in Jugner Forest (G-11)
+--         Closest Survival Guide is Davoi.
+--       Seedspall Luna   from Quadavs in Pashhow Marshlands (K-10)
+--         Closest Survival Guide is Beadeaux.
+--       Seedspall Astrum from Yagudos in Meriphataud Mountains (K-8)
+--         Closest Survival Guide is Castle Oztroja.
+--
+-- Live 2026-08-27 the player heard "Current instruction: Collect the following
+-- 3 items:" and then the mission's flavour text. Three items, three zones,
+-- three mob families and three nearby Survival Guides -- every word of it
+-- already in our data, none of it spoken. They said it plainly: "it doesn't
+-- track the mission, or the items. Where do I go, who do I talk to what do I
+-- get." A sighted player reads the next three lines off the page. Ending on a
+-- colon and saying nothing is the exact failure this addon exists to prevent.
+--
+-- The reconciled list drops the depth field but keeps the rows in order, and a
+-- child is always an `action = "note"` step following its parent. So the
+-- subtree is simply the run of notes up to the next real step. No tree needed.
+function accessxi.objective_step_detail_lines(native_key, step_id)
+    local lines = {};
+    if (type(objective_source_steps) ~= 'function') then
+        return lines;
+    end
+    step_id = clean(step_id);
+    if (step_id == '') then
+        return lines;
+    end
+    local ok, steps = pcall(objective_source_steps, native_key);
+    if (not ok or type(steps) ~= 'table') then
+        return lines;
+    end
+    -- ONE AUTHOR, NOT TWO.
+    --
+    -- The reconciled list interleaves both sources: rows 002-007 are BG Wiki's
+    -- three items with their zones and grid references, and rows 008-011 are
+    -- FFXIclopedia describing the SAME three items in different words. Reading
+    -- straight through says every item twice -- "Seedspall Lux from Orcs in
+    -- Jugner Forest around (G-11)" and then "Seedspall Lux is dropped by Orc in
+    -- Jugner Forest" -- and, with any cap on length, risks spending the budget
+    -- on the repeat and never reaching the third item. So gather the subtree
+    -- once per source and speak whichever is more complete.
+    local subtree = {};
+    local found = false;
+    for _, step in ipairs(steps) do
+        if (found) then
+            if (clean(step.action):lower() ~= 'note') then
+                break;      -- the next real step ends the subtree
+            end
+            subtree[#subtree + 1] = step;
+        elseif (clean(step.stable_step_id) == step_id) then
+            found = true;
+        end
+    end
+
+    local function gather(field)
+        local out = {};
+        for _, step in ipairs(subtree) do
+            local text = clean(step[field]);
+            -- "Section: Repeats." and friends are the scraper's structural
+            -- markers, not anything the player does.
+            if (text ~= '' and text:sub(1, 8):lower() ~= 'section:') then
+                out[#out + 1] = text;
+                if (#out >= 8) then
+                    break;  -- a wall of speech helps nobody
+                end
+            end
+        end
+        return out;
+    end
+
+    -- THE PRIMARY SOURCE, NOT THE LONGEST ONE.
+    --
+    -- Choosing whichever source had more lines picked verbosity over relevance:
+    -- for the Seedspall trade it dropped BG Wiki's "Mid-east section of (G-6),
+    -- near 2 rock columns" in favour of four FFXIclopedia lines that wandered
+    -- into a repeatable key-item aside. The guide index already declares which
+    -- source is authoritative for each objective -- primary "bg", fallback
+    -- "ffxiclopedia" -- so follow that and fall back only when the primary
+    -- wrote nothing at all.
+    lines = gather('primary_instruction');
+    if (#lines == 0) then lines = gather('bg_instruction'); end
+    if (#lines == 0) then lines = gather('ffxiclopedia_instruction'); end
+    return lines;
+end
+
+function accessxi.objective_step_detail_text(native_key, step_id)
+    return accessxi.objective_detail_text_from_lines(
+        accessxi.objective_step_detail_lines(native_key, step_id));
+end
+
+function accessxi.objective_detail_text_from_lines(lines)
+    lines = type(lines) == 'table' and lines or {};
+    if (#lines == 0) then
+        return '';
+    end
+    local out = {};
+    for _, line in ipairs(lines) do
+        -- Each detail is its own sentence so a screen reader pauses between
+        -- them; without that, three item lines run together into one breath.
+        if (line:sub(-1) ~= '.' and line:sub(-1) ~= '!' and line:sub(-1) ~= '?') then
+            line = line .. '.';
+        end
+        out[#out + 1] = line;
+    end
+    return table.concat(out, ' ');
+end
+
 local function source_route_candidate(native_key, step, point)
     local step_id = clean(step.stable_step_id);
+    -- A step with no primary_instruction still has the sentence one of the two
+    -- sources wrote, and source_route_candidate refuses to build a row without
+    -- one -- so the guide's own words decide whether the player gets a target.
     local instruction = clean(step.primary_instruction);
+    if (instruction == '') then instruction = clean(step.bg_instruction); end
+    if (instruction == '') then instruction = clean(step.ffxiclopedia_instruction); end
     local action = clean(step.action);
     local zone = tonumber(point.zone) or 0;
     local name = clean(point.name);
@@ -1164,6 +1954,14 @@ local function source_route_candidate(native_key, step, point)
     end
     local action_id = step_id .. ':source-route';
     local zone_name = source_point_zone_name(point);
+    -- The guide's own words stay in speech ("Prince Trion"); the catalogue
+    -- name stays the routing identity. A choice note (an unbound map square)
+    -- rides on the instruction so the limitation is spoken with the choice.
+    local spoken = clean(point.spoken_name) ~= '' and clean(point.spoken_name) or name;
+    local choice_note = clean(point.choice_note);
+    if (choice_note ~= '') then
+        instruction = instruction .. ' ' .. choice_note;
+    end
     local enemies = T{};
     if (kind == 'enemy' or kind == 'nm' or kind == 'live-nm') then
         enemies:append(name);
@@ -1189,19 +1987,37 @@ local function source_route_candidate(native_key, step, point)
         raw_spawn_ids = deep_copy(point.raw_spawn_ids),
         cluster_policy_version = clean(point.cluster_policy_version),
         arrival_radius = tonumber(point.arrival_radius),
+        canonical_edge_id = tonumber(point.canonical_edge_id),
+        canonical_from_zone = tonumber(point.canonical_from_zone),
         source_route_entry_distance2 = tonumber(point._source_route_entry_distance2),
-        label = ('%s in %s'):fmt(name, zone_name ~= '' and zone_name or ('zone %d'):fmt(zone)),
+        label = ('%s in %s'):fmt(spoken, zone_name ~= '' and zone_name or ('zone %d'):fmt(zone)),
         items = type(step.items) == 'table' and deep_copy(step.items) or T{},
         key_items = type(step.key_items) == 'table' and deep_copy(step.key_items) or T{},
         enemies = enemies,
     };
 end
 
+-- FORWARD DECLARED, because two callers below need it and it is defined 500
+-- lines further down. In Lua 5.1 a local's scope starts AFTER its declaration,
+-- so `local function progression_actions` at its definition site was invisible
+-- here and both callers compiled to a GLOBAL read -- nil at runtime, raising
+-- rather than silently returning nothing. Verified in the bytecode: two GGET
+-- "progression_actions" instructions, now none. Same trap that made
+-- nav_objective_travel_destination_zones reach a nil progression_revision.
+local progression_actions;
+local progression_revision;
+
 local function source_route_rows(native_key)
     reset_source_derivation_cache_if_needed();
     native_key = clean(native_key);
-    if (source_derivation_cache.source_routes[native_key] ~= nil) then
-        return source_derivation_cache.source_routes[native_key];
+    -- Zone-travel rows depend on where the player stands (which zone-line
+    -- chain reaches the destination), so a cached answer is only good while
+    -- the player is still in the zone it was computed for.
+    local player_zone = tonumber(type(accessxi.current_zone_id) == 'function'
+        and accessxi.current_zone_id() or 0) or 0;
+    local cached_rows = source_derivation_cache.source_routes[native_key];
+    if (cached_rows ~= nil and (cached_rows.player_zone == nil or cached_rows.player_zone == player_zone)) then
+        return cached_rows;
     end
     local explicit = type(objectives.source_verified_candidates) == 'table'
         and objectives.source_verified_candidates[native_key] or nil;
@@ -1222,12 +2038,309 @@ local function source_route_rows(native_key)
 
     local rows = T{};
     local seen = {};
-    for _, step in ipairs(steps) do
-        if (type(step) == 'table' and clean(step.comparison):lower() ~= 'conflict'
+    local resolver = accessxi.mission_step_resolver;
+    local refusals = {};
+    -- What a step resolved TO, so an announcement can say whether pressing I
+    -- will actually take the player somewhere. sol's guard: never promise a key
+    -- that cannot deliver -- the same false instruction as "Press G for the
+    -- source guide" while nothing read G.
+    local resolutions = {};
+    -- THIS OBJECTIVE'S COMPACT ACTIONS, keyed by the id the reconciled rows
+    -- call stable_step_id and the compact rows call step_id. Built from the
+    -- VALIDATED helper rather than the raw guide call, so the same field
+    -- checks, deep copy and ordering apply -- and built once, because both the
+    -- declared-result join and the primary-target lookup read it per step.
+    local resolver_actions_by_step = {};
+    for _, compact in ipairs(progression_actions(native_key) or T{}) do
+        local compact_step_id = clean(compact.step_id);
+        if (compact_step_id ~= '') then
+            resolver_actions_by_step[compact_step_id] =
+                resolver_actions_by_step[compact_step_id] or T{};
+            resolver_actions_by_step[compact_step_id]:append(compact);
+        end
+    end
+    local resolver_ctx = nil;
+    if (type(resolver) == 'table') then
+        local zone_name_cache = {};
+        local incoming_by_zone = nil;
+        local entry_edge_workspace = nil;
+        local entry_edge_trees = {};
+
+        local function load_resolver_zoneline_index()
+            if (incoming_by_zone ~= nil) then
+                return true;
+            end
+
+            if (type(accessxi.nav_load_zoneline_graph)
+                == 'function') then
+                local ok = pcall(
+                    accessxi.nav_load_zoneline_graph);
+
+                if (not ok) then return false; end
+            end
+
+            if (type(accessxi.nav_zoneline_edges)
+                ~= 'table') then
+                return false;
+            end
+
+            incoming_by_zone = {};
+
+            for _, edge in ipairs(
+                accessxi.nav_zoneline_edges) do
+                local to_zone =
+                    tonumber(edge.to_zone) or 0;
+
+                incoming_by_zone[to_zone] =
+                    incoming_by_zone[to_zone] or T{};
+                incoming_by_zone[to_zone]:append(edge);
+            end
+
+            return true;
+        end
+
+        local function resolver_incoming_edges(zone)
+            zone = tonumber(zone) or 0;
+
+            if (not load_resolver_zoneline_index()) then
+                return T{};
+            end
+
+            return incoming_by_zone[zone] or T{};
+        end
+
+        local function resolver_entry_edge_candidates(
+            from_zone,
+            destination_zones,
+            preferred_zones)
+
+            if (type(preferred_zones) == 'table'
+                and next(preferred_zones) ~= nil) then
+                return nil;
+            end
+
+            if (not load_resolver_zoneline_index()
+                or type(accessxi.nav_zoneline_entry_edge_workspace)
+                    ~= 'function'
+                or type(accessxi.nav_zoneline_entry_edge_shortest_tree)
+                    ~= 'function'
+                or type(accessxi.nav_zoneline_entry_edge_candidates)
+                    ~= 'function'
+                or type(accessxi.nav_transport_edge_available)
+                    ~= 'function') then
+                return nil;
+            end
+
+            if (entry_edge_workspace == nil) then
+                entry_edge_workspace =
+                    accessxi.nav_zoneline_entry_edge_workspace(
+                        accessxi.nav_zoneline_edges,
+                        function(edge)
+                            return accessxi
+                                .nav_transport_edge_available(edge);
+                        end,
+                        function(edge)
+                            if (type(accessxi.nav_zoneline_edge_rank)
+                                ~= 'function') then
+                                return 50;
+                            end
+
+                            return accessxi.nav_zoneline_edge_rank(
+                                edge,
+                                nil);
+                        end);
+            end
+
+            from_zone = tonumber(from_zone) or 0;
+            local tree = entry_edge_trees[from_zone];
+
+            if (tree == nil) then
+                tree =
+                    accessxi.nav_zoneline_entry_edge_shortest_tree(
+                        entry_edge_workspace,
+                        from_zone);
+                entry_edge_trees[from_zone] = tree;
+            end
+
+            return accessxi.nav_zoneline_entry_edge_candidates(
+                entry_edge_workspace,
+                tree,
+                destination_zones,
+                resolver_incoming_edges);
+        end
+        resolver_ctx = {
+            player_zone = player_zone,
+            name_key = source_name_key,
+            zone_ids_for_name = function (value)
+                return known_zones[source_name_key(value)];
+            end,
+            points_for_zone_entity = function (zone, key)
+                return catalog.points_by_zone_entity[('%d\t%s'):fmt(tonumber(zone) or 0, key)];
+            end,
+            points_for_entity = function (key)
+                return catalog.points_by_entity[key];
+            end,
+            points_for_zone_base = function (zone, key)
+                return catalog.points_by_zone_base[('%d	%s'):fmt(tonumber(zone) or 0, key)];
+            end,
+            points_for_entity_base = function (key)
+                return catalog.points_by_base[key];
+            end,
+            -- Authoritative city groups: ordinary districts only. Chateau
+            -- d'Oraguille, Metalworks and Heavens Tower appear only when named.
+            nation_zones = function (value)
+                return accessxi.nav_nation_district_zones(value);
+            end,
+            nation_of_zone = function (zone)
+                return accessxi.nav_nation_of_zone(zone);
+            end,
+            step_target_binding = function (step_id)
+                return accessxi.nav_step_target_binding(step_id);
+            end,
+            default_zone_group = accessxi.nav_nation_zone_group(native_key),
+            effective_kind = effective_kind,
+            kind_allowed = source_route_kind_allowed,
+            -- What the guide DECLARES this step yields, so a reward is never
+            -- mistaken for a destination. Read from the compact progression
+            -- action, which is where these fields are populated -- the
+            -- reconciled step's own are empty throughout.
+            declared_result_names = function (step_id)
+                local names = {};
+                step_id = clean(step_id);
+                if (step_id == '') then return names; end
+                for _, action in ipairs(
+                    resolver_actions_by_step[step_id] or T{}) do
+                    if (clean(action.step_id) == step_id) then
+                        for _, field in ipairs({ 'items', 'key_items', 'result_items' }) do
+                            for _, entry in ipairs(type(action[field]) == 'table' and action[field] or T{}) do
+                                local name = clean(type(entry) == 'table'
+                                    and (entry.name or entry.item or entry.key_item) or entry);
+                                if (name ~= '') then names[name:lower()] = true; end
+                            end
+                        end
+                    end
+                end
+                return names;
+            end,
+            -- EACH PAGE'S OWN READING of a step the sources word differently.
+            -- The merged entities-by-zones list can name a place neither page
+            -- stated, so a conflicted step is resolved from the two readings
+            -- separately and never from the union (sol).
+            source_readings = function (step_id)
+                if (type(accessxi.objective_guides) ~= 'table'
+                    or type(accessxi.objective_guides.source_step_readings) ~= 'function') then
+                    return {};
+                end
+                local ok, value = pcall(
+                    accessxi.objective_guides.source_step_readings,
+                    accessxi.objective_guides, native_key, clean(step_id));
+                return (ok and type(value) == 'table') and value or {};
+            end,
+            -- WHAT THIS STEP PROVES IT IS ABOUT. The compact action's
+            -- relationship and exact target, joined on the step id -- the
+            -- guide naming one target for this step, which an inherited zone
+            -- was never evidence about.
+            primary_actions_for_step = function (step_id)
+                return resolver_actions_by_step[clean(step_id)] or T{};
+            end,
+            -- Who fills a role the guide names instead of a person.
+            role_members = role_members_for,
+            point_for_destination_id = point_for_destination_id,
+            zone_name = function (zone)
+                zone = tonumber(zone) or 0;
+                if (zone_name_cache[zone] == nil) then
+                    zone_name_cache[zone] = source_point_zone_name({ zone = zone });
+                end
+                return zone_name_cache[zone];
+            end,
+            -- Indexed once per pass, and answered for every destination at
+            -- once when no road is named. A named road is scored per
+            -- destination, so it keeps the per-entrance search (sol).
+            incoming_edges = resolver_incoming_edges,
+            entry_edge_candidates = resolver_entry_edge_candidates,
+            zone_path = function (from_zone, to_zone, edge_id, preferred_zones)
+                if (type(accessxi.nav_zoneline_path) ~= 'function') then
+                    return T{};
+                end
+                local ok, path = pcall(accessxi.nav_zoneline_path,
+                    from_zone, to_zone, edge_id, preferred_zones);
+                return ok and path or T{};
+            end,
+            zone_id_for_name = function (name)
+                if (type(accessxi.nav_zone_id_for_name) ~= 'function') then
+                    return 0;
+                end
+                local ok, zone = pcall(accessxi.nav_zone_id_for_name, name);
+                return ok and (tonumber(zone) or 0) or 0;
+            end,
+            edge_rank = function (edge)
+                if (type(accessxi.nav_zoneline_edge_rank) ~= 'function') then
+                    return 50;
+                end
+                local ok, rank = pcall(accessxi.nav_zoneline_edge_rank, edge, nil);
+                return ok and tonumber(rank) or 50;
+            end,
+            destination_zone_for_step = function (step_id)
+                if (type(accessxi.objective_guides) ~= 'table'
+                    or type(accessxi.objective_guides.progression_actions) ~= 'function') then
+                    return 0;
+                end
+                local ok, actions = pcall(accessxi.objective_guides.progression_actions,
+                    accessxi.objective_guides, native_key);
+                if (not ok or type(actions) ~= 'table') then
+                    return 0;
+                end
+                for _, action in ipairs(actions) do
+                    if (clean(action.step_id) == step_id
+                        and (tonumber(action.destination_zone_id) or 0) > 0) then
+                        return tonumber(action.destination_zone_id);
+                    end
+                end
+                return 0;
+            end,
+        };
+    end
+    -- Advice the guide wrote as its own note but that belongs to another
+    -- step: spoken WITH that step rather than routed to on its own.
+    local attached_notes = type(resolver) == 'table'
+        and type(resolver.note_attachments) == 'function'
+        and resolver.note_attachments(steps) or {};
+    for step_index, step in ipairs(steps) do
+        -- A CONFLICT IS NO LONGER SKIPPED. It used to be dropped here AND
+        -- refused by the resolver, so a step both pages describe -- in
+        -- different words -- produced no row at all and the player was told no
+        -- route existed. The resolver now reads each page separately and
+        -- offers what they name; if it still cannot, it says so like any other
+        -- refusal, with the guide's sentence attached.
+        if (type(step) == 'table'
             and step.optional_nonessential ~= true
             and step.route_recommendation ~= true) then
             local targets = {};
-            local navigation_target = step.navigation_target;
+            -- WHAT MAY ANSWER FOR THIS STEP. A note is information unless the
+            -- guide carries an explicit route binding for it; the flattened
+            -- entities-by-zones cross-product is never one, however few
+            -- candidates it happens to yield (sol).
+            local action = clean(step.action):lower();
+            local source_mode = 'ordinary';
+            if (type(resolver) == 'table'
+                and type(resolver.note_source_mode) == 'function') then
+                source_mode = resolver.note_source_mode(step);
+            elseif (action == 'note') then
+                if (clean(step.note_attach_to_step_id) ~= '') then
+                    source_mode = 'attachment';
+                elseif (step.navigation_target ~= nil) then
+                    source_mode = 'verified';
+                else
+                    source_mode = 'information';
+                end
+            end
+            local allow_verified_target = source_mode == 'ordinary'
+                or source_mode == 'verified';
+            local allow_resolver = source_mode == 'ordinary'
+                or source_mode == 'explicit'
+                or source_mode == 'information';
+            local navigation_target = allow_verified_target
+                and step.navigation_target or nil;
             if (type(navigation_target) == 'table') then
                 local target = nil;
                 if (type(navigation_target.reference) == 'table') then
@@ -1238,7 +2351,14 @@ local function source_route_rows(native_key)
                 if (target ~= nil) then targets[#targets + 1] = target; end
             end
 
-            if (#targets == 0) then
+            -- LEGACY ONLY. This zone-and-entity lookup answers before the
+            -- resolver can, and it neither deduplicates nor records what it
+            -- chose -- so a same-zone Qufim ??? or a numbered Home Point took
+            -- this path and never reached the shared candidate finalizer
+            -- (sol). It stays as the fallback for a context the resolver
+            -- cannot be given.
+            if (#targets == 0 and resolver_ctx == nil
+                and source_mode == 'ordinary') then
                 local allowed_zones = {};
                 local entity_names = {};
                 for _, value in ipairs(type(step.zones) == 'table' and step.zones or T{}) do
@@ -1268,7 +2388,119 @@ local function source_route_rows(native_key)
                 end
             end
 
-            local action = clean(step.action):lower();
+            -- The old rule above needs zone AND entity on the same step. What
+            -- it leaves empty goes to the resolver: inherited zone context,
+            -- unique-catalogue fallback, zone-travel through the zone-line
+            -- graph -- or a named refusal recorded for this step.
+            if (#targets == 0 and resolver_ctx ~= nil and allow_resolver) then
+                local resolved, info = resolver.resolve_step(steps, step_index, resolver_ctx);
+                if (type(resolved) == 'table' and #resolved > 0) then
+                    for _, point in ipairs(resolved) do
+                        targets[#targets + 1] = point_copy_with_identity(point);
+                    end
+                    resolutions[clean(step.stable_step_id)] = {
+                        kind = clean(info.kind),
+                        partial = clean(info.partial),
+                        ambiguity = clean(info.ambiguity),
+                        choice_stage = clean(info.choice_stage),
+                        choice_count = tonumber(info.choice_count) or #resolved,
+                        equivalent_choices = info.equivalent_choices,
+                        choice_origin = clean(info.choice_origin),
+                        narrowed_by = clean(info.narrowed_by),
+                        unbound_square = clean(info.unbound_square),
+                        unreachable_choices = type(info.unreachable_choices) == 'table'
+                            and deep_copy(info.unreachable_choices) or T{},
+                        inherited_context_conflict =
+                            info.inherited_context_conflict == true,
+                        overridden_inherited_zone =
+                            tonumber(info.overridden_inherited_zone),
+                        inherited_from = clean(info.inherited_from),
+                        review_basis = clean(info.review_basis),
+                        primary_target_source = clean(info.primary_target_source),
+                        zone_name = clean(type(resolved[1]) == 'table' and resolved[1].zone_name or ''),
+                    };
+                    -- AND KEEP THE DESTINATION ZONES SOMEWHERE A ZONE CHANGE
+                    -- CANNOT WIPE. source_derivation_cache is invalidated the
+                    -- moment the player moves zone -- which is precisely when a
+                    -- travel step completes -- so the answer has to be recorded
+                    -- while they are still on their way. Written per step id,
+                    -- carrying the revision it was computed against.
+                    if (resolver.is_zone_changing_action(clean(step.action))) then
+                        local zones = {};
+                        for _, point in ipairs(resolved) do
+                            local zone = tonumber(point.zone) or 0;
+                            if (zone > 0) then zones[zone] = true; end
+                        end
+                        if (next(zones) ~= nil) then
+                            accessxi.nav_objective_travel_zones =
+                                accessxi.nav_objective_travel_zones or {};
+                            accessxi.nav_objective_travel_zones[native_key] =
+                                accessxi.nav_objective_travel_zones[native_key] or {};
+                            accessxi.nav_objective_travel_zones[native_key][clean(step.stable_step_id)] = {
+                                zones = zones,
+                                revision = clean(progression_revision(native_key)),
+                            };
+                        end
+                    end
+                    log_line(('objective step resolved native="%s" step="%s" kind=%s zone=%s count=%d'):fmt(
+                        native_key, clean(step.stable_step_id), tostring(info.kind),
+                        tostring(info.inherited_zone or info.destination_zone or ''), #resolved));
+                elseif (type(info) == 'table' and info.reason ~= nil) then
+                    -- THE GUIDE'S OWN SENTENCE TRAVELS WITH THE REFUSAL.
+                    -- Not being able to route somewhere is no reason to
+                    -- withhold what the page says to do there. A sighted
+                    -- player reading the same wiki line still knows the
+                    -- objective; today ours heard "No route" and nothing else,
+                    -- 547 times in one session (sol: information may be
+                    -- guide-backed, movement must be evidence-backed, and a
+                    -- routing failure must never suppress the instruction).
+                    if (clean(info.instruction) == '') then
+                        info.instruction = clean(step.primary_instruction);
+                        if (info.instruction == '') then
+                            info.instruction = clean(step.bg_instruction);
+                        end
+                        if (info.instruction == '') then
+                            info.instruction = clean(step.ffxiclopedia_instruction);
+                        end
+                    end
+                    refusals[clean(step.stable_step_id)] = info;
+                    log_line(('objective step refused native="%s" step="%s" reason=%s detail="%s" instruction="%s"'):fmt(
+                        native_key, clean(step.stable_step_id), tostring(info.reason),
+                        tostring(info.detail or ''), clean(step.primary_instruction)));
+                end
+            end
+
+            -- THE ROAD THE GUIDE NAMED TRAVELS WITH THE TARGET. Threading it
+            -- through the resolver alone was not enough: the zone SEARCH path
+            -- builds its own chain, and that is what routed a level-14 player
+            -- into King Ranperre's Tomb on 2026-08-22 while step-009 said
+            -- "zone into Jugner Forest from La Theine Plateau". Carrying it on
+            -- the target means every builder sees the same preference.
+            if (resolver_ctx ~= nil and type(resolver.named_via_zones) == 'function') then
+                local via = resolver.named_via_zones(step, resolver_ctx);
+                if (via ~= nil) then
+                    for _, point in ipairs(targets) do
+                        point.objective_via_zones = via;
+                    end
+                    -- AND PUBLISH IT AGAINST THE STEP ID. Carrying the road on
+                    -- the point failed three times: the object that actually
+                    -- gets routed to is rebuilt from explicit field lists in
+                    -- several places, and every one of them silently dropped a
+                    -- key it had never heard of -- `NO GUIDE ROAD given=nil` at
+                    -- the moment of route start, while the correct road had
+                    -- been computed eight seconds earlier. The step id is
+                    -- carried by every one of those lists (the spoken
+                    -- instruction depends on it), so a registry keyed on it
+                    -- cannot be dropped by a copy that does not know about it.
+                    local roads = accessxi.nav_guide_road_by_step;
+                    if (type(roads) ~= 'table') then
+                        roads = {};
+                        accessxi.nav_guide_road_by_step = roads;
+                    end
+                    roads[clean(step.stable_step_id)] = via;
+                end
+            end
+
             if (action == 'fight' or action == 'obtain') then
                 for _, point in ipairs(targets) do
                     local kind = effective_kind(point);
@@ -1278,25 +2510,245 @@ local function source_route_rows(native_key)
                 end
             end
             table.sort(targets, source_route_point_less);
-            local per_name_zone = {};
+            -- EVERY CHOICE IS OFFERED. A cap of four per name and zone
+            -- silently dropped the fifth Home Point and the fifth ??? -- which
+            -- made "nothing is chosen for the player" false in exactly the
+            -- cases the resolver works hardest to keep open, and did it without
+            -- saying so. The list cursor already scrolls, so there is nothing
+            -- to page (sol).
             for _, point in ipairs(targets) do
-                local bucket = ('%d\t%s'):fmt(tonumber(point.zone) or 0, source_name_key(point.name));
-                per_name_zone[bucket] = (per_name_zone[bucket] or 0) + 1;
-                if (per_name_zone[bucket] <= 4) then
-                    local row = source_route_candidate(native_key, step, point);
-                    local key = row ~= nil and clean(row.destination_id) or '';
-                    if (row ~= nil and key ~= '' and seen[key] ~= true) then
-                        seen[key] = true;
-                        rows:append(row);
-                    end
+                local emitted_point = point;
+                if (type(resolver) == 'table'
+                    and type(resolver.point_with_attached_notes) == 'function') then
+                    emitted_point = resolver.point_with_attached_notes(
+                        point, attached_notes[clean(step.stable_step_id)]);
+                end
+                local row = source_route_candidate(native_key, step, emitted_point);
+                local key = row ~= nil and clean(row.destination_id) or '';
+                if (row ~= nil and key ~= '' and seen[key] ~= true) then
+                    seen[key] = true;
+                    rows:append(row);
                 end
             end
         end
     end
+    rows.player_zone = player_zone;
     source_derivation_cache.source_routes[native_key] = rows;
+    source_derivation_cache.source_route_refusals = source_derivation_cache.source_route_refusals or {};
+    source_derivation_cache.source_route_refusals[native_key] = refusals;
+    source_derivation_cache.source_route_resolutions = source_derivation_cache.source_route_resolutions or {};
+    source_derivation_cache.source_route_resolutions[native_key] = resolutions;
     accessxi.nav_objective_source_route_compute_count =
         (tonumber(accessxi.nav_objective_source_route_compute_count) or 0) + 1;
     return rows;
+end
+
+-- The recorded refusal for one guide step, or nil when the step resolved
+-- (or was never examined). A prerequisite block (ruling 4) outranks the
+-- resolver's own reason: "obtain the oil first" is the answer, not "Silent
+-- Oil is not in the catalogue".
+-- The step a mission opens on, for the sentence that announces it. Nothing here
+-- moves a cursor or claims progress -- it reads the guide's first action.
+function accessxi.nav_mission_quest_first_objective(native_key)
+    local actions = progression_actions(clean(native_key));
+    local first = type(actions) == 'table' and actions[1] or nil;
+    if (type(first) ~= 'table') then return '', ''; end
+    return clean(first.instruction), clean(first.step_id);
+end
+
+-- Can the player actually be taken to this step, and how far? Three answers
+-- only: the endpoint, the zone the guide named, or nowhere.
+-- The resolver kinds that mean "the player still has to pick".
+local CHOICE_RESOLUTION_KINDS = {
+    ['entity-choice'] = true,
+    ['entity-zone-choice'] = true,
+    ['return-to-prior-choice'] = true,
+    ['note-route-choice'] = true,
+};
+
+function accessxi.nav_mission_quest_step_route_capability(native_key, step_id)
+    local announcer = accessxi.objective_announcer;
+    if (type(announcer) ~= 'table') then return 'unavailable', ''; end
+    native_key = clean(native_key);
+    step_id = clean(step_id);
+    if (step_id == '') then return announcer.ROUTE.UNAVAILABLE, ''; end
+    -- NOT YET COMPUTED IS NOT THE SAME AS NO ROUTE.
+    --
+    -- This reads a cache that source_route_rows fills, and a mission that has
+    -- only just become active has nothing in it. Live 2026-08-23, arriving in
+    -- Mhaura finished Rhapsodies 3 and accepted "Emissary from the Seas"; the
+    -- announcement asked for the route at 17:21:31 and was told there was
+    -- none, and the routes for that mission were computed five seconds later
+    -- at 17:21:36 -- kind=zone-travel, zone 249. The player heard "No route is
+    -- available for this objective" about a step that had one all along, and
+    -- the same race silenced the previous mission's "Mhaura or Selbina" step.
+    --
+    -- So compute them. It is cached per mission and per player zone, so this
+    -- costs nothing when the answer is already known and only moves the work
+    -- earlier when it is not.
+    pcall(source_route_rows, native_key);
+    if (accessxi.nav_mission_quest_step_refusal(native_key, step_id) ~= nil) then
+        return announcer.ROUTE.UNAVAILABLE, '';
+    end
+    local per_key = type(source_derivation_cache.source_route_resolutions) == 'table'
+        and source_derivation_cache.source_route_resolutions[native_key] or nil;
+    local resolution = type(per_key) == 'table' and per_key[step_id] or nil;
+    if (type(resolution) ~= 'table') then
+        -- Nothing recorded either way: the step was never resolved this pass,
+        -- so we cannot claim a route for it.
+        return announcer.ROUTE.UNAVAILABLE, '';
+    end
+    -- A CHOICE IS NOT A ROUTE, AND NOT A REFUSAL EITHER. The three answers
+    -- full / zone-only / unavailable had nowhere to put "several places fit
+    -- this and the guide does not say which", so a two-stage choice would have
+    -- been announced as "Press I to start navigation" -- a promise that one of
+    -- them had been picked. It has not been, and it never will be by us.
+    local kind = clean(resolution.kind);
+    local unreachable = 0;
+    for _, entry in ipairs(type(resolution.unreachable_choices) == 'table'
+        and resolution.unreachable_choices or T{}) do
+        unreachable = unreachable + (tonumber(entry.count) or 1);
+    end
+    if (CHOICE_RESOLUTION_KINDS[kind] == true or unreachable > 0) then
+        return announcer.ROUTE.CHOICE, clean(resolution.zone_name), {
+            count = tonumber(resolution.choice_count) or 0,
+            stage = clean(resolution.choice_stage),
+            unbound_square = clean(resolution.unbound_square),
+            unreachable = unreachable,
+        };
+    end
+    if (clean(resolution.partial) ~= '') then
+        return announcer.ROUTE.ZONE_ONLY, clean(resolution.zone_name);
+    end
+    return announcer.ROUTE.FULL, clean(resolution.zone_name);
+end
+
+function accessxi.nav_mission_quest_step_refusal(native_key, step_id)
+    native_key = clean(native_key);
+    step_id = clean(step_id);
+    local blocks = source_derivation_cache.prerequisite_refusals;
+    if (type(blocks) == 'table' and type(blocks[native_key]) == 'table'
+        and blocks[native_key][step_id] ~= nil
+        and blocks[native_key][step_id].advisory ~= true) then
+        -- An advisory carries the same sentence but is NOT a refusal: reporting
+        -- it here would block the route through the back door.
+        return blocks[native_key][step_id];
+    end
+    local refusals = source_derivation_cache.source_route_refusals;
+    if (type(refusals) ~= 'table') then
+        return nil;
+    end
+    local per_key = refusals[native_key];
+    if (type(per_key) ~= 'table') then
+        return nil;
+    end
+    return per_key[step_id];
+end
+
+local NATION_DISTRICT_ZONES = {
+    ["san d'oria"] = { 230, 231, 232 },
+    ["sandoria"] = { 230, 231, 232 },
+    ["san d'oria (s)"] = { 80 },
+    ["bastok"] = { 234, 235, 236 },
+    ["bastok (s)"] = { 87 },
+    ["windurst"] = { 238, 239, 240, 241 },
+    ["windurst (s)"] = { 94 },
+};
+
+-- The zones a nation mission may assume without being told: the ordinary
+-- districts plus the palace. Keyed by the native key's nation ("mission:San
+-- d'Oria:5"); anything else gets no group.
+local NATION_ZONE_GROUPS = {
+    ["san d'oria"] = { 230, 231, 232, 233 },
+    ["bastok"] = { 234, 235, 236, 237 },
+    ["windurst"] = { 238, 239, 240, 241, 242 },
+};
+
+function accessxi.nav_nation_zone_group(native_key)
+    local context = clean(native_key):match('^[a-z]+:([^:]+):');
+    local group = context ~= nil and NATION_ZONE_GROUPS[source_name_key(context)] or nil;
+    if (group == nil) then
+        return nil;
+    end
+    return deep_copy(group);
+end
+
+-- Which nation a zone belongs to, or '' for anywhere that is not a city
+-- district. Built once from NATION_DISTRICT_ZONES, which is already the
+-- authoritative grouping.
+local NATION_BY_ZONE = nil;
+
+-- THE GUIDE DOES NOT ALWAYS NAME THE TARGET.
+--
+-- "Journey Abroad" says "visit your nation's embassies" and never names anyone.
+-- The step could therefore only degrade to "go to this nation", which is how the
+-- player ended up cycling city entrances in Bastok saying "I still haven't even
+-- talked to the npc I need to talk to here."
+--
+-- A binding says which CATALOGUED place the guide meant. It never invents a
+-- place: the name must already exist in ffxi-nav-destinations.tsv, and every row
+-- carries its evidence.
+local STEP_TARGET_BINDINGS = nil;
+
+function accessxi.nav_step_target_binding(step_id)
+    step_id = clean(step_id);
+    if (step_id == '') then return nil; end
+    if (STEP_TARGET_BINDINGS == nil) then
+        STEP_TARGET_BINDINGS = {};
+        local path = accessxi_paths.addon_path('data', 'ffxi-objective-step-targets.tsv');
+        local handle = io.open(path, 'r');
+        if (handle ~= nil) then
+            for line in handle:lines() do
+                if (line ~= nil and line ~= '' and line:sub(1, 1) ~= '#') then
+                    local fields = {};
+                    for field in (line .. '\t'):gmatch('([^\t]*)\t') do
+                        fields[#fields + 1] = field;
+                    end
+                    local id = clean(fields[1] or '');
+                    local zone = tonumber(fields[2]) or 0;
+                    local target = clean(fields[3] or '');
+                    if (id ~= '' and zone > 0 and target ~= '') then
+                        STEP_TARGET_BINDINGS[id] = {
+                            zone = zone,
+                            target = target,
+                            source = clean(fields[4] or ''),
+                            note = clean(fields[5] or ''),
+                        };
+                    end
+                end
+            end
+            handle:close();
+        end
+    end
+    local row = STEP_TARGET_BINDINGS[step_id];
+    if (row == nil) then return nil; end
+    return { zone = row.zone, target = row.target, source = row.source, note = row.note };
+end
+
+function accessxi.nav_nation_of_zone(zone)
+    zone = tonumber(zone) or 0;
+    if (zone <= 0) then return ''; end
+    if (NATION_BY_ZONE == nil) then
+        NATION_BY_ZONE = {};
+        for name, ids in pairs(NATION_DISTRICT_ZONES) do
+            -- Skip the past-era aliases: "san d'oria (s)" is a different place
+            -- from "san d'oria" and must never merge with it.
+            if (name:find('(s)', 1, true) == nil) then
+                for _, id in ipairs(ids) do
+                    NATION_BY_ZONE[id] = NATION_BY_ZONE[id] or name;
+                end
+            end
+        end
+    end
+    return NATION_BY_ZONE[zone] or '';
+end
+
+function accessxi.nav_nation_district_zones(value)
+    local ids = NATION_DISTRICT_ZONES[source_name_key(value)];
+    if (ids == nil) then
+        return nil;
+    end
+    return deep_copy(ids);
 end
 
 local function objective_required_item(entry)
@@ -1356,6 +2808,25 @@ objective_source_steps = function(native_key)
         active_build_guide_failed = true;
         return T{}, false;
     end
+    -- A REVIEWED OVERRIDE REPLACES A COLLAPSED PAGE.
+    --
+    -- Eight pages in the scraped corpus collapse two or more genuinely
+    -- different missions through wiki redirects -- "Journey Abroad" carries
+    -- "Journey to Bastok" and "Journey to Windurst" as aliases, so five native
+    -- ids share one set of fifteen steps. Where that has been reviewed and the
+    -- real sequence written down, it wins outright: binding correct targets onto
+    -- the collapsed text would route the player to Pius while reading them
+    -- "Halver will instruct you to visit two other Nations".
+    local override_steps = accessxi.mission_quest_override_steps(clean(native_key));
+    if (type(override_steps) == 'table' and #override_steps > 0) then
+        local overridden = T{};
+        for _, entry in ipairs(override_steps) do
+            if (type(entry) == 'table') then overridden:append(deep_copy(entry)); end
+        end
+        source_derivation_cache.source_steps[native_key] = overridden;
+        return overridden, true;
+    end
+
     local ok, steps = pcall(
         accessxi.objective_guides.source_route_steps,
         accessxi.objective_guides,
@@ -1374,6 +2845,7 @@ objective_source_steps = function(native_key)
         if (left_order ~= right_order) then return left_order < right_order; end
         return clean(left.stable_step_id) < clean(right.stable_step_id);
     end);
+    accessxi.objective_roll_up_child_targets(result);
     source_derivation_cache.source_steps[native_key] = result;
     return result, true;
 end;
@@ -1381,18 +2853,158 @@ end;
 local current_objective_progress;
 local nation_mission_acceptance_step;
 
-local function progression_revision(native_key)
+function progression_revision(native_key)
     local entry = type(accessxi.mission_quest_guide_index) == 'table'
         and accessxi.mission_quest_guide_index[clean(native_key)] or nil;
     return clean(type(entry) == 'table' and entry.progression_revision or '');
 end
 
-local function progression_actions(native_key)
+function progression_actions(native_key)
     native_key = clean(native_key);
     if (native_key == '' or type(accessxi.objective_guides) ~= 'table'
         or type(accessxi.objective_guides.progression_actions) ~= 'function') then
         return nil, '';
     end
+
+    -- THE CURSOR RUNS ON ACTIONS, NOT ON STEPS.
+    --
+    -- Overriding the reconciled STEPS for a collapsed mission is only half the
+    -- job: the progression cursor walks the compact ACTIONS, and those were
+    -- still the ones cloned from "Journey Abroad" -- step-003 Halver, step-004,
+    -- step-007, step-008. Live 2026-08-25 the cursor sat on "step-004", which in
+    -- the OVERRIDE happens to be "trade the gravel to the Refiner Lid", so the
+    -- player was sent straight there and never taken to Grohm for the pickaxes.
+    -- A step id that means two different things in two different tables is worse
+    -- than no override at all.
+    --
+    -- So an overridden mission derives its actions from its OWN steps, one per
+    -- step, in order. The revision is namespaced so a cursor saved against the
+    -- cloned data cannot be mistaken for one saved against these.
+    local override_steps, override_source = accessxi.mission_quest_override_steps(native_key);
+    if (type(override_steps) == 'table' and #override_steps > 0) then
+        local built = T{};
+        for index, entry in ipairs(override_steps) do
+            local step_id = clean(entry.stable_step_id);
+            local entities = type(entry.entities) == 'table' and entry.entities or {};
+
+            -- SPEAK THE CORPUS'S OWN VOCABULARY, NOT AN INVENTED ONE.
+            --
+            -- This builder used to emit relationship = action .. '-target', so
+            -- 'fight-target', 'talk-target', 'obtain-target'. None of those
+            -- strings exists anywhere in the shipped corpus, where all 633 fight
+            -- actions say 'defeat-enemy' and all 652 obtain actions say
+            -- 'obtain-item'. Two completion paths test that field exactly --
+            -- the kill-credit reducer wants a relationship containing 'defeat'
+            -- and the inventory reducer wants exactly 'obtain-item' -- so every
+            -- overridden fight and obtain step was structurally unable to
+            -- complete. Live 2026-08-26 the player killed the Black Dragon and
+            -- the Searcher and had to press N.
+            --
+            -- The typed lists matter for the same reason: enemy matching tests
+            -- action.enemies, and an empty list means a second named target --
+            -- the Searcher beside the Black Dragon -- can never be recognised.
+            -- The entity list also carries the step's ZONE as its last element,
+            -- which is a place and not a target, so it is filtered out here.
+            local action_name = clean(entry.action):lower();
+            local RELATIONSHIP = {
+                talk = 'talk-to', trade = 'trade-to', examine = 'examine-object',
+                fight = 'defeat-enemy', obtain = 'obtain-item', travel = 'travel-to',
+                use = 'use-object', select = 'menu-choice', wait = 'wait-for',
+                protect = 'protect-role',
+            };
+            local TARGET_KIND = {
+                talk = 'npc', trade = 'npc', examine = 'object', fight = 'enemy',
+                obtain = 'item', travel = 'zone', use = 'object',
+            };
+            local relationship = clean(entry.relationship) ~= ''
+                and clean(entry.relationship) or (RELATIONSHIP[action_name] or action_name);
+            local target_kind = clean(entry.target_kind) ~= ''
+                and clean(entry.target_kind) or (TARGET_KIND[action_name] or '');
+
+            local zone_keys = {};
+            for _, zone in ipairs(type(entry.zones) == 'table' and entry.zones or {}) do
+                zone_keys[source_name_key(zone)] = true;
+            end
+            local targets = {};
+            for _, name in ipairs(entities) do
+                if (clean(name) ~= '' and zone_keys[source_name_key(name)] ~= true) then
+                    targets[#targets + 1] = clean(name);
+                end
+            end
+            if (#targets == 0 and clean(entities[1] or '') ~= '') then
+                targets[1] = clean(entities[1]);
+            end
+
+            local typed = { npcs = {}, objects = {}, enemies = {}, items = {} };
+            local bucket = (target_kind == 'npc' and typed.npcs)
+                or (target_kind == 'object' and typed.objects)
+                or (target_kind == 'enemy' and typed.enemies)
+                or (target_kind == 'item' and typed.items) or nil;
+            if (bucket ~= nil) then
+                for _, name in ipairs(targets) do bucket[#bucket + 1] = name; end
+            end
+
+            -- 'credited-defeat' IS ONLY LEGAL ABOVE A COUNT OF ONE.
+            --
+            -- mission_quest_guides.lua:133-137 rejects the pair outright:
+            -- credited-defeat demands count_explicit and required_count > 1.
+            -- A single-enemy fight is 'single' with a count of one, which is
+            -- what 551 of the corpus's 633 fight actions use.
+            --
+            -- For two enemies this asks for two credited defeats, which is
+            -- schema-legal but weaker than it looks: the count cannot tell one
+            -- enemy from another, so two deaths of the SAME name would satisfy
+            -- it, and a kill before a wipe could combine with a kill in a later
+            -- attempt. The honest model is a set of distinct required targets --
+            -- exactly what distinct_inventory_set_count already does for items,
+            -- where "a counted action whose required count equals its distinct
+            -- item list represents a collective set, not interchangeable
+            -- copies". Defeats have no equivalent yet, and the journal stores a
+            -- scalar rather than which members are proven, so this is not
+            -- something to bolt on here. What makes the gap safe meanwhile is
+            -- the step that follows: the battlefield's reward key item cannot
+            -- arrive unless every essential mob really died, so a fight step
+            -- that advances early is caught before the player is told to leave.
+            local required_count, count_mode = 1, 'single';
+            if (action_name == 'fight' and #typed.enemies > 1) then
+                required_count = #typed.enemies;
+                count_mode = 'credited-defeat';
+            end
+            built:append(T{
+                step_id = step_id,
+                step_order = index,
+                action_id = step_id .. ':claim-01',
+                action_order = 1,
+                order = index,
+                action = action_name,
+                relationship = relationship,
+                target = clean(targets[1] or ''),
+                target_key = source_name_key(targets[1] or ''),
+                target_kind = target_kind,
+                npcs = typed.npcs, objects = typed.objects,
+                enemies = typed.enemies, items = typed.items,
+                key_items = {}, transports = {},
+                zones = type(entry.zones) == 'table' and entry.zones or {},
+                destination_zone_name = '',
+                destination_zone_id = 0,
+                grid_coordinates = {},
+                result_items = {}, result_relation = '',
+                instruction = clean(entry.bg_instruction),
+                required_count = required_count,
+                count_mode = count_mode,
+                count_explicit = required_count > 1,
+                completion_evidence = clean(entry.completion_evidence),
+                material = true,
+                source_authority = 'reviewed-override',
+                field_sources = {},
+                source_revisions = {},
+                source_action_span_ids = {},
+                catalogue = {},
+            });
+        end
+        return built, 'override:' .. clean(override_source);
+    end
+
     local revision = progression_revision(native_key);
     if (revision == '') then return nil, ''; end
     local ok, rows = pcall(
@@ -1438,6 +3050,25 @@ local function action_index_by_identity(actions, step_id, step_order, action_id,
     return nil;
 end
 
+local function action_index_by_stable_identity(actions, step_id, action_id)
+    local result = nil;
+    for index, action in ipairs(type(actions) == 'table' and actions or T{}) do
+        if (clean(action.step_id) == clean(step_id)
+            and clean(action.action_id) == clean(action_id)) then
+            if (result ~= nil) then return nil; end
+            result = index;
+        end
+    end
+    return result;
+end
+
+local function progress_count_is_valid(record, action, index, action_count)
+    local count = tonumber(type(record) == 'table' and record.progress_count or nil);
+    local required = tonumber(type(action) == 'table' and action.required_count or nil) or 0;
+    return count ~= nil and count >= 0 and count == math.floor(count)
+        and count <= required and not (count == required and index < action_count);
+end
+
 local function valid_progress_record(record, actions, revision)
     if (type(record) ~= 'table' or record.version ~= 'v2'
         or clean(record.identity) == '' or (tonumber(record.world_id) or 0) <= 0
@@ -1457,15 +3088,165 @@ local function valid_progress_record(record, actions, revision)
     local index = action_index_by_identity(
         actions, record.step_id, record.step_order, record.action_id, record.action_order);
     local action = index ~= nil and actions[index] or nil;
-    local count = tonumber(record.progress_count);
-    local required = tonumber(type(action) == 'table' and action.required_count or nil) or 0;
-    if (index == nil or count < 0 or count ~= math.floor(count) or count > required
-        or (count == required and index < #actions)) then
+    if (index == nil or not progress_count_is_valid(record, action, index, #actions)) then
         return nil;
     end
     local result = deep_copy(record);
     result.index = index;
     return result;
+end
+
+-- A CURSOR MUST NOT CROSS AN OVERRIDE BOUNDARY.
+--
+-- This function carries a saved cursor onto a NEW revision by matching step_id
+-- and action_id as strings (see action_index_by_stable_identity below). That is
+-- right when a guide page is merely re-scraped and the steps keep their
+-- meaning. It is catastrophic when the step LIST was replaced: live 2026-08-25
+-- the player's cursor sat on the collapsed "Journey Abroad" page's step-004,
+-- "Halver will instruct you to visit two other Nations". The reviewed override
+-- for Journey to Bastok happened to name its own fourth step step-004 as well,
+-- so the cursor migrated onto "trade the gravel to the Refiner Lid" and the
+-- addon skipped Pius, Grohm and the Mythril Seam. The player found Pius by
+-- typing /axi zonesearch themselves.
+--
+-- Reviewed override ids are namespaced now, so the strings can no longer
+-- collide. This is the second lock: an override revision names a DIFFERENT
+-- SEQUENCE, not a newer rendering of the same one, so no position in one is a
+-- position in the other. Reset to the start and let progress detection catch
+-- up -- a cursor that is merely behind speaks a step you have already done,
+-- while one that is ahead silently swallows the steps in between.
+local function progression_revision_is_override(revision)
+    return clean(revision):sub(1, 9) == 'override:';
+end
+
+local function mapped_previous_progress_record(
+    record, actions, revision, identity, world_id, native_key)
+    local step_order = tonumber(type(record) == 'table' and record.step_order or nil);
+    local action_order = tonumber(type(record) == 'table' and record.action_order or nil);
+    if (progression_revision_is_override(revision)
+        or progression_revision_is_override(
+            type(record) == 'table' and record.progression_revision or '')) then
+        return nil;
+    end
+    if (type(record) ~= 'table' or record.version ~= 'v2'
+        or clean(record.identity) == '' or (tonumber(record.world_id) or 0) <= 0
+        or clean(record.native_key) == '' or clean(record.progression_revision) == ''
+        or clean(record.identity):lower() ~= clean(identity):lower()
+        or tonumber(record.world_id) ~= tonumber(world_id)
+        or clean(record.native_key) ~= clean(native_key)
+        or clean(record.progression_revision) == clean(revision)
+        or clean(record.step_id) == '' or clean(record.action_id) == ''
+        or step_order == nil or step_order < 1 or step_order ~= math.floor(step_order)
+        or action_order == nil or action_order < 1 or action_order ~= math.floor(action_order)
+        or tonumber(record.progress_count) == nil
+        or record.raw_step_order ~= nil
+            and record.raw_step_order ~= tostring(step_order)
+        or record.raw_action_order ~= nil
+            and record.raw_action_order ~= tostring(action_order)
+        or record.raw_progress_count ~= nil
+            and record.raw_progress_count ~= tostring(tonumber(record.progress_count))) then
+        return nil;
+    end
+    local index = action_index_by_stable_identity(actions, record.step_id, record.action_id);
+    local action = index ~= nil and actions[index] or nil;
+    if (index == nil or not progress_count_is_valid(record, action, index, #actions)) then
+        return nil;
+    end
+    return {
+        version = 'v2',
+        identity = clean(record.identity):lower(),
+        world_id = tonumber(record.world_id),
+        native_key = clean(record.native_key),
+        progression_revision = clean(revision),
+        -- Where it came FROM, so the log line can name both ends. Not written
+        -- to the file; save_cursor_action only reads the fields above.
+        source_revision = clean(record.progression_revision),
+        step_id = clean(action.step_id),
+        step_order = tonumber(action.step_order),
+        action_id = clean(action.action_id),
+        action_order = tonumber(action.action_order),
+        progress_count = tonumber(record.progress_count),
+        index = index,
+    };
+end
+
+-- WHICH ZONES SATISFY THIS TRAVEL STEP.
+--
+-- Every zone the guide named for it, not merely the one that survived
+-- extraction into a single field. Live 2026-08-22 the player was stuck on
+-- "mission:Rhapsodies of Vana'diel:3:step-001", "Zone into any area connecting
+-- to a Mog House in San d'Oria, Windurst, or Bastok", which carries
+-- `zones = {}` and `destination_zone_id = 0` -- so the completion test compared
+-- the zone they entered against 0 and never matched, however many times they
+-- zoned. 1,563 of the 2,940 travel-shaped actions in the shipped modules --
+-- 53.2% -- have no single destination id and could never complete this way.
+--
+-- The next step is the same bug wearing a different hat: step-002 says "zone
+-- into Mhaura or Selbina" and carries `destination_zone_id = 249`, Mhaura. Walk
+-- into Selbina, as the guide expressly permits, and nothing happens.
+--
+-- Three sources, all of them the guide's own words for THIS step: the single
+-- extracted id, every zone name written on the step, and the destinations the
+-- router resolved for it while the player was still travelling.
+function accessxi.nav_objective_travel_destination_zones(native_key, action)
+    local zones = {};
+    if (type(action) ~= 'table') then return zones; end
+    local single = tonumber(action.destination_zone_id) or 0;
+    if (single > 0) then zones[single] = true; end
+    local index = ensure_catalog_index ~= nil and ensure_catalog_index() or nil;
+    if (type(index) == 'table' and type(index.zone_ids_by_name) == 'table') then
+        for _, name in ipairs(type(action.zones) == 'table' and action.zones or T{}) do
+            local set = index.zone_ids_by_name[source_name_key(name)];
+            if (type(set) == 'table') then
+                for zone in pairs(set) do
+                    if ((tonumber(zone) or 0) > 0) then zones[tonumber(zone)] = true; end
+                end
+            end
+        end
+    end
+    -- AN ENTRANCE NAMES ITS ZONE IN target, AND NOWHERE ELSE.
+    --
+    -- This merged three sources -- destination_zone_id, zones, and the recorded
+    -- per-step table -- and never looked at action.target. For an enter-through
+    -- action the target IS the place:
+    --
+    --   mission:Chains of Promathia:3:step-009
+    --     action=travel relationship=enter-through target_kind=entrance
+    --     target="Hall of Transference"
+    --     destination_zone_id=0  destination_zone_name=""  zones={}
+    --
+    -- so it accepted NO zone and could never complete however many times the
+    -- player walked in. Live 2026-08-29 they entered the Hall, went on into
+    -- Promyvion, and the mission did not move: "the mission didn't update".
+    --
+    -- Eleven actions in the whole corpus are in this state, ten after excluding
+    -- the transport below -- 0.4% of travel actions. Small, but it is the only
+    -- thing standing between this step and completing, and the same two words
+    -- block Chains of Promathia 4 next.
+    --
+    -- Transport relationships are excluded deliberately. quest:outlands:200
+    -- step-007 is board-transport target="Manaclipper", and Manaclipper happens
+    -- to collide with a zone name -- boarding a boat is not arriving anywhere,
+    -- and completing that step on a zone change would be wrong.
+    local relationship = clean(action.relationship):lower();
+    if (relationship ~= 'use-transport' and relationship ~= 'board-transport'
+        and clean(action.target) ~= ''
+        and type(accessxi.nav_zone_id_for_name) == 'function') then
+        local ok_target, id = pcall(accessxi.nav_zone_id_for_name, clean(action.target));
+        id = ok_target and (tonumber(id) or 0) or 0;
+        if (id > 0) then zones[id] = true; end
+    end
+
+    local per_key = type(accessxi.nav_objective_travel_zones) == 'table'
+        and accessxi.nav_objective_travel_zones[clean(native_key)] or nil;
+    local recorded = type(per_key) == 'table' and per_key[clean(action.step_id)] or nil;
+    if (type(recorded) == 'table' and type(recorded.zones) == 'table'
+        and clean(recorded.revision) == clean(progression_revision(native_key))) then
+        for zone in pairs(recorded.zones) do
+            if ((tonumber(zone) or 0) > 0) then zones[tonumber(zone)] = true; end
+        end
+    end
+    return zones;
 end
 
 local function save_cursor_action(native_key, action, progress_count, revision)
@@ -1483,40 +3264,80 @@ local function save_cursor_action(native_key, action, progress_count, revision)
     });
 end
 
-local function migrate_legacy_progress(native_key, actions, revision)
+local function legacy_owner_name(identity)
+    local name, suffix = clean(identity):lower():match('^([^:]+):([1-9]%d*)$');
+    if (name == nil or tonumber(suffix) == nil) then return ''; end
+    return clean(name):lower();
+end
+
+local function resolved_legacy_progress(native_key)
     local identity = character_identity();
-    local world_id = player_world_id();
-    local migration_key = objective_progress_key(identity, world_id, native_key);
-    if (identity == '' or world_id <= 0 or objective_progress_migrated[migration_key]) then
-        return nil;
+    native_key = clean(native_key);
+    local exact = objective_progress_legacy[identity .. '\t' .. native_key];
+    if (type(exact) == 'table') then
+        if (exact.tombstoned == true) then return nil; end
+        return exact;
     end
-    objective_progress_migrated[migration_key] = true;
-    local legacy = objective_progress_legacy[identity .. '\t' .. clean(native_key)];
-    if (type(legacy) ~= 'table') then return nil; end
-    local first, last, count = nil, nil, 0;
+
+    local owner_name = legacy_owner_name(identity);
+    if (owner_name == '') then return nil; end
+    local result = nil;
+    for _, candidate in pairs(objective_progress_legacy) do
+        if (type(candidate) == 'table' and candidate.tombstoned ~= true
+            and clean(candidate.native_key) == native_key
+            and legacy_owner_name(candidate.identity) == owner_name) then
+            if (result ~= nil) then return nil; end
+            result = candidate;
+        end
+    end
+    return result;
+end
+
+local function mapped_legacy_progress_record(native_key, actions, revision)
+    local legacy = resolved_legacy_progress(native_key);
+    if (type(legacy) ~= 'table' or #actions == 0) then return nil; end
+    local first, last, matches = nil, nil, 0;
     for index, action in ipairs(actions) do
         if (clean(action.step_id) == clean(legacy.step_id)
             and tonumber(action.step_order) == tonumber(legacy.order)) then
             first = first or index;
             last = index;
-            count = count + 1;
+            matches = matches + 1;
         end
     end
-    if (first == nil) then return nil; end
-    local target_index = count == 1 and (last + 1) or first;
+    if (last == nil) then return nil; end
+    -- A legacy step flag cannot prove completion of multiple material actions.
+    -- Resume an ambiguous step at its first action instead of skipping them all.
+    local target_index = matches > 1 and first or (last + 1);
     local progress_count = 0;
     if (target_index > #actions) then
         target_index = #actions;
         progress_count = tonumber(actions[target_index].required_count) or 1;
     end
-    if (not save_cursor_action(
-        native_key, actions[target_index], progress_count, revision)) then
-        return nil;
-    end
-    local key = objective_progress_key(identity, world_id, native_key);
-    local record = objective_progress[key];
-    if (type(record) == 'table') then record.index = target_index; end
-    return record;
+    local action = actions[target_index];
+    return {
+        version = 'v2',
+        identity = character_identity(),
+        world_id = player_world_id(),
+        native_key = clean(native_key),
+        progression_revision = clean(revision),
+        step_id = clean(action.step_id),
+        step_order = tonumber(action.step_order),
+        action_id = clean(action.action_id),
+        action_order = tonumber(action.action_order),
+        progress_count = progress_count,
+        index = target_index,
+    };
+end
+
+local function progress_record_is_farther(candidate, current)
+    if (type(candidate) ~= 'table') then return false; end
+    if (type(current) ~= 'table') then return true; end
+    local candidate_index = tonumber(candidate.index) or 0;
+    local current_index = tonumber(current.index) or 0;
+    if (candidate_index ~= current_index) then return candidate_index > current_index; end
+    return (tonumber(candidate.progress_count) or 0)
+        > (tonumber(current.progress_count) or 0);
 end
 
 local function resolved_progress_record(native_key, actions, revision)
@@ -1525,16 +3346,49 @@ local function resolved_progress_record(native_key, actions, revision)
     local world_id = player_world_id();
     if (identity == '' or world_id <= 0) then return nil; end
     local key = objective_progress_key(identity, world_id, native_key);
-    local latest = nil;
+    local current = nil;
+    local migration = nil;
     for _, candidate in ipairs(objective_progress_history[key] or {}) do
         local valid = valid_progress_record(candidate, actions, revision);
-        if (valid ~= nil) then latest = valid; end
+        if (progress_record_is_farther(valid, current)) then current = valid; end
+        local previous = mapped_previous_progress_record(
+            candidate, actions, revision, identity, world_id, native_key);
+        if (progress_record_is_farther(previous, migration)) then migration = previous; end
     end
-    if (latest == nil) then
-        latest = migrate_legacy_progress(native_key, actions, revision);
+    local legacy = mapped_legacy_progress_record(native_key, actions, revision);
+    if (progress_record_is_farther(legacy, migration)) then migration = legacy; end
+
+    objective_progress[key] = current;
+    if (progress_record_is_farther(migration, current)) then
+        local index = tonumber(migration.index) or 0;
+        if (index > 0 and type(actions[index]) == 'table'
+            and save_cursor_action(
+                native_key, actions[index], migration.progress_count, revision)) then
+            -- SAY WHEN A CURSOR MOVES ON ITS OWN.
+            --
+            -- Of every writer that can put a row in the progress file this is
+            -- the only one that fires without the player doing anything, and
+            -- until now it was also the only one that said nothing. Live
+            -- 2026-08-25 it silently advanced Journey to Bastok to step-004 and
+            -- the player was sent to Palborough Mines having never met Pius;
+            -- the log recorded two progression events for that mission, both
+            -- under the old revision, and a third row that no event explains.
+            -- A move nobody can see is a move nobody can debug.
+            if (type(log_line) == 'function') then
+                log_line(('objective cursor MIGRATED native="%s" step="%s" index=%d count=%d from-revision="%s" to-revision="%s"'):fmt(
+                    clean(native_key),
+                    clean(actions[index].step_id),
+                    index,
+                    tonumber(migration.progress_count) or 0,
+                    clean(migration.source_revision),
+                    clean(revision)));
+            end
+            local saved = objective_progress[key];
+            if (type(saved) == 'table') then saved.index = index; end
+            return saved;
+        end
     end
-    objective_progress[key] = latest;
-    return latest;
+    return current;
 end
 
 local function initial_progression_index(native_key, actions, item)
@@ -1557,14 +3411,23 @@ local function initial_progression_index(native_key, actions, item)
     if (type(item) == 'table' and clean(item.objective_kind or item.kind):lower() == 'mission'
         and clean(item.mission_availability) == 'active') then
         local acceptance = nation_mission_acceptance_step(native_key);
-        local acceptance_id = clean(type(acceptance) == 'table'
-            and acceptance.stable_step_id or '');
-        if (acceptance_id ~= '') then
-            local passed_acceptance = false;
+        local acceptance_order = tonumber(type(acceptance) == 'table'
+            and acceptance.order or nil) or 0;
+        if (acceptance_order > 0) then
+            -- BY ORDER, NOT BY ID.
+            --
+            -- Matching the acceptance step's id among the ACTIONS assumes that
+            -- step owns one, and the whole reason this branch was unreachable is
+            -- that it usually does not. Worse, in 32 of the 34 affected missions
+            -- BG fuses the precondition and the acceptance into ONE step, so an
+            -- id match cannot separate "unlock it" from "accept it" even when
+            -- there is an action to match.
+            --
+            -- The order can. Anything ordered at or before acceptance happened
+            -- before the mission existed, and the game saying the mission is
+            -- active is proof it is done.
             for index, action in ipairs(actions) do
-                if (clean(action.step_id) == acceptance_id) then
-                    passed_acceptance = true;
-                elseif (passed_acceptance) then
+                if ((tonumber(action.step_order) or 0) > acceptance_order) then
                     return index;
                 end
             end
@@ -1573,10 +3436,106 @@ local function initial_progression_index(native_key, actions, item)
     return 1;
 end
 
+-- ADVANCE ONE STEP ON THE GAME'S OWN SAY-SO.
+--
+-- Called when a storyline's progress counter rises while the mission stays the
+-- same. The server does not move that counter for nothing, so the step the
+-- cursor is sitting on is finished, whether or not we managed to observe the
+-- thing that finished it. Cutscenes are the common case: they complete steps
+-- and emit no signal this addon can see.
+--
+-- Exactly one step per rise. The counter reports that something happened, not
+-- how much, and a cursor that overshoots silently swallows steps the player
+-- still has to do -- strictly worse than one that lags, since a lagging cursor
+-- only repeats an instruction they have already followed.
+function accessxi.nav_mission_quest_advance_within_mission(native_key, reason)
+    native_key = clean(native_key);
+    if (native_key == '') then
+        return false;
+    end
+    local actions, revision = progression_actions(native_key);
+    if (type(actions) ~= 'table' or #actions == 0) then
+        return false;
+    end
+    local record = resolved_progress_record(native_key, actions, revision);
+    local index = tonumber(type(record) == 'table' and record.index or nil) or 1;
+    if (index >= #actions) then
+        log_line(('objective progress advance declined native="%s" reason="%s" -- already at the last step'):fmt(
+            native_key, tostring(reason or '')));
+        return false;
+    end
+    local next_action = actions[index + 1];
+    if (type(next_action) ~= 'table') then
+        return false;
+    end
+    if (not save_cursor_action(native_key, next_action, 0, revision)) then
+        return false;
+    end
+    log_line(('objective progress ADVANCED native="%s" %d -> %d step="%s" reason="%s"'):fmt(
+        native_key, index, index + 1, clean(next_action.step_id), tostring(reason or '')));
+
+    -- CATCH UP ON EVIDENCE ALREADY SEEN.
+    --
+    -- One step per counter rise is the right default -- the counter says
+    -- something finished, not how much -- but it under-shoots when the player
+    -- did two things between two samples. Live 2026-08-29 the counter went
+    -- 118 -> 120 across examining the Shattered Telepoint AND entering the Hall
+    -- of Transference, and the cursor landed one behind.
+    --
+    -- Where the step the cursor NOW sits on is a travel into somewhere the
+    -- player has already been this session, that is not a guess: the arrival
+    -- was observed, it was simply tested against the wrong action at the time.
+    -- Only travel steps, only zones actually visited, and bounded -- an
+    -- unbounded catch-up is how a cursor runs away and swallows steps.
+    local caught = 0;
+    while (caught < 4) do
+        local record_now = resolved_progress_record(native_key, actions, revision);
+        local at = tonumber(type(record_now) == 'table' and record_now.index or nil) or 1;
+        local current = actions[at];
+        if (type(current) ~= 'table' or at >= #actions) then break; end
+        if (clean(current.action):lower() ~= 'travel'
+            or clean(current.relationship):lower() == 'use-transport'
+            or clean(current.relationship):lower() == 'board-transport') then
+            break;
+        end
+        local visited = type(accessxi.objective_zones_visited) == 'table'
+            and accessxi.objective_zones_visited or {};
+        local accepted = accessxi.nav_objective_travel_destination_zones(native_key, current);
+        local satisfied = false;
+        for zone in pairs(type(accepted) == 'table' and accepted or {}) do
+            if (visited[tonumber(zone) or 0] ~= nil) then satisfied = true; end
+        end
+        if (not satisfied) then break; end
+        local follow = actions[at + 1];
+        if (type(follow) ~= 'table' or not save_cursor_action(native_key, follow, 0, revision)) then
+            break;
+        end
+        caught = caught + 1;
+        log_line(('objective progress CAUGHT UP native="%s" %d -> %d step="%s" -- already arrived'):fmt(
+            native_key, at, at + 1, clean(follow.step_id)));
+    end
+    return true;
+end
+
+-- FOUR STATES, AND THREE OF THEM USED TO LOOK IDENTICAL.
+--
+-- This returned a nil action for two completely different reasons -- the cursor
+-- finished, or the saved index does not name an action in this list -- and the
+-- caller could not tell either from "there is no progression data at all". All
+-- three fell into the whole-mission fallback, which recites finished steps.
+--
+--   unavailable  no compact actions exist. The only view is the whole guide,
+--                and the legacy fallback is right.
+--   exhausted    the last action is complete on its own terminal proof. The
+--                guide may still have plenty to say; a postlude says it.
+--   invalid      an action list exists but the index does not name a row in it.
+--                Neither a dump nor a postlude: both would walk the player past
+--                whatever they are actually on (sol).
+--   active       the ordinary case.
 local function progression_cursor(native_key, item)
     local actions, revision = progression_actions(native_key);
     if (type(actions) ~= 'table' or #actions == 0) then
-        return nil, nil, revision, nil;
+        return nil, nil, revision, nil, 'unavailable';
     end
     local record = resolved_progress_record(native_key, actions, revision);
     local index = tonumber(type(record) == 'table' and record.index or nil)
@@ -1585,9 +3544,20 @@ local function progression_cursor(native_key, item)
     if (type(action) == 'table' and index == #actions
         and type(record) == 'table'
         and tonumber(record.progress_count) == tonumber(action.required_count)) then
-        return nil, actions, revision, record;
+        return nil, actions, revision, record, 'exhausted';
     end
-    return action, actions, revision, record;
+    if (type(action) ~= 'table') then
+        if (type(log_line) == 'function') then
+            log_line(('objective cursor INVALID native="%s" index=%s actions=%d saved-step="%s" saved-action="%s" saved-revision="%s" guide-revision="%s"'):fmt(
+                clean(native_key), tostring(index), #actions,
+                clean(type(record) == 'table' and record.step_id or ''),
+                clean(type(record) == 'table' and record.action_id or ''),
+                clean(type(record) == 'table' and record.progression_revision or ''),
+                clean(revision)));
+        end
+        return nil, actions, revision, record, 'invalid';
+    end
+    return action, actions, revision, record, 'active';
 end
 
 local function inventory_selected_next_step(native_key, destinations)
@@ -1671,15 +3641,43 @@ local function mission_acceptance_instruction(step)
         and instruction:find('mission', 1, true) ~= nil;
 end
 
+-- THE ACCEPTANCE STEP IS USUALLY PROSE, NOT A TALK.
+--
+-- This required action == 'talk', and nation-mission acceptance steps are
+-- written as prose -- "Accept the mission Infiltrate Davoi from the Gate Guard."
+-- carries action = 'note'. So it returned nil for 55 of 72 nation missions, and
+-- initial_progression_index, which uses this to start an active mission AFTER
+-- acceptance, fell back to index 1 instead: the step that UNLOCKS the mission.
+-- Live 2026-08-29 that parked Infiltrate Davoi on "Trade enough Crystals to the
+-- Conquest NPC" -- a precondition the game had already proved satisfied -- and
+-- it sat there for two days refusing, because no catalogue has a Conquest NPC.
+--
+-- Strict first, so nothing that resolves today changes. The relaxed pass takes
+-- the LAST match rather than the first: mission:Windurst:17 has an earlier
+-- 'travel' step reading "Go to any Windurst Gate Guard to start the mission",
+-- which is acceptance-shaped wording on a step that is not the acceptance, and
+-- taking the first would have moved that cursor onto the rank trade -- the same
+-- defect wearing a different face.
 nation_mission_acceptance_step = function(native_key)
-    for _, step in ipairs(objective_source_steps(native_key)) do
+    local steps = objective_source_steps(native_key);
+    for _, step in ipairs(steps) do
         local action = clean(step.action):lower();
         if (action == 'talk' and exact_gate_guard_role(step)
             and mission_acceptance_instruction(step)) then
             return step;
         end
     end
-    return nil;
+    local relaxed = nil;
+    for _, step in ipairs(steps) do
+        local action = clean(step.action):lower();
+        -- 'travel' excluded: "go to a Gate Guard to start the mission" is the
+        -- journey to acceptance, not the acceptance.
+        if (action ~= 'travel' and exact_gate_guard_role(step)
+            and mission_acceptance_instruction(step)) then
+            relaxed = step;
+        end
+    end
+    return relaxed;
 end;
 
 current_objective_progress = function(native_key)
@@ -1702,6 +3700,7 @@ local function ensure_active_nation_mission_acceptance(native_key)
     return step_id ~= '' and order > 0;
 end
 
+local objective_step_by_id;
 local function next_routable_progress_step(native_key, destinations)
     local completed = current_objective_progress(native_key);
     local completed_order = tonumber(type(completed) == 'table' and completed.order or nil) or 0;
@@ -1715,6 +3714,10 @@ local function next_routable_progress_step(native_key, destinations)
         local step_id = clean(row.guide_step_id);
         if (step_id ~= '') then routable[step_id] = true; end
     end
+    local resolver = accessxi.mission_step_resolver;
+    source_derivation_cache.prerequisite_refusals = source_derivation_cache.prerequisite_refusals or {};
+    source_derivation_cache.prerequisite_refusals[native_key] = {};
+    local actions = nil;
     for _, step in ipairs(objective_source_steps(native_key)) do
         local step_id = clean(step.stable_step_id);
         local action = clean(step.action):lower();
@@ -1728,6 +3731,38 @@ local function next_routable_progress_step(native_key, destinations)
             if (routable[step_id] == true
                 or reviewed_inventory_followup_target(step) ~= nil
                 or exact_gate_guard_role(step)) then
+                -- A PREREQUISITE IS SOMETHING TO SAY, NOT A WALL.
+                --
+                -- This used to `return nil`: an acquisition the player had not
+                -- made selected NO step at all, so the objective went dark and
+                -- nothing could be routed. The user's rule, 2026-08-22: "The
+                -- only thing that should ever block you is if you don't meet
+                -- the requirements to see the mission, which means it doesn't
+                -- even show up on your list."
+                --
+                -- The detection was never the problem -- "the guide says to
+                -- obtain X before travelling to Y" is exactly the sentence a
+                -- sighted player reads off the page. So it is carried on the
+                -- step and spoken, and the route proceeds. Getting there
+                -- without the item wastes a walk; being told nothing and going
+                -- nowhere wastes the evening (sol's contract: a routing
+                -- concern downgrades neither the information nor the route).
+                if (type(resolver) == 'table' and resolver.is_zone_changing_action(action)) then
+                    if (actions == nil) then
+                        actions = progression_actions(native_key) or T{};
+                    end
+                    local blocking = resolver.blocking_prerequisite(
+                        actions, completed_order, step_id, acquisition_row_items_owned);
+                    if (blocking ~= nil) then
+                        local advisory = resolver.prerequisite_refusal(blocking, step);
+                        advisory.reason = nil;
+                        advisory.advisory = true;
+                        local held = source_derivation_cache.prerequisite_refusals[native_key];
+                        held[step_id] = advisory;
+                        log_line(('objective prerequisite noted native="%s" travel="%s" prerequisite="%s" detail="%s"'):fmt(
+                            native_key, step_id, clean(blocking.step_id), tostring(advisory.detail)));
+                    end
+                end
                 return step;
             end
         end
@@ -1735,7 +3770,7 @@ local function next_routable_progress_step(native_key, destinations)
     return first_material;
 end
 
-local function objective_step_by_id(native_key, step_id)
+objective_step_by_id = function(native_key, step_id)
     step_id = clean(step_id);
     if (step_id == '') then return nil; end
     for _, step in ipairs(objective_source_steps(native_key)) do
@@ -2240,6 +4275,333 @@ local function compact_action_destination_row(action, point)
     };
 end
 
+-- WHAT A GUIDE PAGE STILL SAYS AFTER THE LAST STEP IT CAN ROUTE.
+--
+-- A wiki page does not stop where the compact actions stop. Below the Arks has
+-- five compact actions, ending at "enter the Hall of Transference"; BG Wiki's
+-- page then says "You must now complete each of the three Promyvions, which can
+-- be done in any order" and "The walkthrough for completing each Promyvion is
+-- located in the next mission, The Mothercrystals". Those are the answer to the
+-- question the player asked, and until now nothing could reach them.
+--
+-- A line is one of four things. A TERMINATOR ends the useful part of a page --
+-- everything under "See Also" is navigation, and the entry beneath it
+-- ("Promyvion Guide") is a link, not guidance. A HEADING is a structural marker
+-- with nothing under it yet; skip the line and keep reading. Anything else is
+-- PROSE and the player gets it verbatim.
+--
+-- Deliberately NOT filtered: "(Optional)". The guide says optional in its own
+-- words, and a sighted reader sees both that the line exists and that it is
+-- optional. Dropping it because it might already be done is guessing on the
+-- player's behalf.
+function accessxi.objective_guide_line_role(text)
+    text = clean(text);
+    if (text == '') then return 'empty'; end
+    local key = text:lower():gsub('[%s%.:;]+$', '');
+    if (key == 'see also' or key == 'references' or key == 'external links'
+        or key == 'external link' or key == 'sources' or key == 'see') then
+        return 'terminator';
+    end
+    if (key == 'notes' or key == 'note' or key == 'walkthrough'
+        or key == 'rewards' or key == 'reward' or key == 'objectives'
+        or key == 'other information' or key == 'game description') then
+        return 'heading';
+    end
+    if (text:sub(1, 8):lower() == 'section:') then return 'heading'; end
+    return 'prose';
+end
+
+-- WHICH STEP OF EACH PAGE THE CURSOR ACTUALLY REACHED.
+--
+-- Not the merged order. The reconciled list interleaves the two pages BY
+-- ORDINAL POSITION, so a short page's remainder sorts EARLIER than a long
+-- page's cursor: BG has 5 steps and FFXIclopedia 13, and BG's answer lands at
+-- merged row 4 while the last actioned step is merged row 9. Anything keyed on
+-- merged order reads the wrong half of the page.
+--
+-- Not "the merged step owns an action" either, because a merged step can carry
+-- both pages while its compact action came from only one of them (sol). The
+-- action itself records the provenance: source_action_span_ids reads
+-- "mission:Chains of Promathia:3:ffxiclopedia:step-007:span-02" -- the page,
+-- and that page's OWN step number. Take the greatest number each page proves.
+--
+-- A page that proves nothing is omitted rather than guessed at. Across the
+-- 1739 shipped objectives that have compact actions, none is in that state
+-- today; the branch exists because generated data changes.
+function accessxi.objective_guide_page_boundaries(actions, native_key)
+    local boundaries = {};
+    for _, action in ipairs(type(actions) == 'table' and actions or T{}) do
+        local spans = type(action) == 'table' and action.source_action_span_ids or nil;
+        for _, span in ipairs(type(spans) == 'table' and spans or T{}) do
+            local page, number = tostring(span):match(':(%a[%a_]*):step%-(%d+):');
+            number = tonumber(number);
+            if (page ~= nil and number ~= nil
+                and (boundaries[page] == nil or number > boundaries[page])) then
+                boundaries[page] = number;
+            end
+        end
+    end
+    if (next(boundaries) == nil and type(log_line) == 'function'
+        and clean(native_key) ~= '') then
+        log_line(('objective postlude boundary unproven native="%s" actions=%d'):fmt(
+            clean(native_key), type(actions) == 'table' and #actions or 0));
+    end
+    return boundaries;
+end
+
+-- ONE READING PER PAGE, IN THE ORDER THAT PAGE WROTE IT.
+--
+-- Never combined. Two short attributable readings are safer than one synthetic
+-- reading neither page wrote (sol), and this project's standing rule on a
+-- disagreement is to read each page alone rather than the merge.
+-- Second return value: what the reading LEFT OUT, which the player is owed.
+--   material_tail  distinct steps after a page's boundary whose action is not
+--                  'note' -- travel, talk, examine, trade, fight, obtain, use,
+--                  select, wait, protect. Those are the ten verbs the compact
+--                  builder itself turns into actions, so a page with any of
+--                  them left has not run out of steps: THIS ADDON has run out
+--                  of tracking for them. Different fact, different sentence.
+--   truncated      a page had more prose than the six-line cap. 295 pages hit
+--                  that cap across the shipped corpus
+--                  (tools/measure_postlude_output.lua), so staying quiet about
+--                  it would drop real guidance on the floor without a word.
+function accessxi.objective_guide_postlude_pages(native_key, actions)
+    local pages = T{};
+    local summary = { material_tail = 0, truncated = false };
+    native_key = clean(native_key);
+    if (native_key == '' or type(objective_source_steps) ~= 'function') then
+        return pages, summary;
+    end
+    local ok, steps = pcall(objective_source_steps, native_key);
+    if (not ok or type(steps) ~= 'table' or #steps == 0) then return pages, summary; end
+
+    local boundaries = accessxi.objective_guide_page_boundaries(actions, native_key);
+    local entry = type(accessxi.mission_quest_guide_index) == 'table'
+        and accessxi.mission_quest_guide_index[native_key] or nil;
+    local authority = type(entry) == 'table' and type(entry.source_authority) == 'table'
+        and entry.source_authority or {};
+    local primary = clean(authority.primary);
+
+    -- source_orders slot 1 is BG Wiki and slot 2 is FFXIclopedia. That is
+    -- generated data, so it is checked rather than assumed:
+    -- tools/measure_exhausted_cursor_reach.lua finds 40549 rows where a slot
+    -- carries an order and 0 where the matching instruction field is empty.
+    local readings = T{
+        T{ key = 'bg', slot = 1, field = 'bg_instruction', name = 'BG Wiki' },
+        T{ key = 'ffxiclopedia', slot = 2, field = 'ffxiclopedia_instruction',
+           name = 'FFXIclopedia' },
+    };
+    -- The declared primary source is read first; the player hears the page the
+    -- guide index says is authoritative before the one it says is a fallback.
+    if (primary == 'ffxiclopedia') then
+        readings = T{ readings[2], readings[1] };
+    end
+
+    local said, material = {}, {};
+    for _, reading in ipairs(readings) do
+        local boundary = tonumber(boundaries[reading.key]) or 0;
+        if (boundary > 0) then
+            local ordered = T{};
+            for _, step in ipairs(steps) do
+                local orders = type(step.source_orders) == 'table' and step.source_orders or {};
+                local order = tonumber(orders[reading.slot]) or 0;
+                if (order > boundary) then
+                    ordered:append(T{ order = order, step = step });
+                    -- Counted on THIS page's boundary, in THIS page's order.
+                    -- The first version of this counted from the merged list
+                    -- after the last actioned step, which is precisely the
+                    -- ordering this whole function exists to avoid (sol).
+                    local verb = clean(step.action):lower();
+                    if (verb ~= '' and verb ~= 'note') then
+                        material[clean(step.stable_step_id)] = true;
+                    end
+                end
+            end
+            table.sort(ordered, function (left, right) return left.order < right.order; end);
+            local lines = T{};
+            for _, row in ipairs(ordered) do
+                local text = clean(row.step[reading.field]);
+                local role = accessxi.objective_guide_line_role(text);
+                if (role == 'terminator') then break; end
+                if (role == 'prose' and said[text:lower()] ~= true) then
+                    if (#lines < 6) then
+                        said[text:lower()] = true;
+                        lines:append(text);
+                    else
+                        summary.truncated = true;
+                    end
+                end
+            end
+            if (#lines > 0) then
+                pages:append(T{ key = reading.key, name = reading.name, lines = lines });
+            end
+        end
+    end
+    for _ in pairs(material) do summary.material_tail = summary.material_tail + 1; end
+    return pages, summary;
+end
+
+-- THE PLACES A FINISHED STEP STILL POINTS AT.
+--
+-- The reconciled step carries the zones its own sentence names -- for Below the
+-- Arks' last tracked step that is Tahrongi Canyon, Konschtat Highlands and La
+-- Theine Plateau, the three crags. Once the cursor is exhausted nothing else
+-- will ever say them, because a postlude row is instruction-only and has no
+-- destination of its own.
+--
+-- Only when there is MORE THAN ONE. A single zone is either already where the
+-- player is or was the thing they just did, and naming it reads as an
+-- instruction to go back. Two or more is a genuine open choice, which is the
+-- case the player asked about and the case 95 objectives are in.
+--
+-- This states where, never how many are done. The mod cannot observe which
+-- crags have been used, and a count it cannot see is a count it must not claim.
+function accessxi.objective_step_open_places(native_key, step_id)
+    native_key = clean(native_key);
+    step_id = clean(step_id);
+    if (native_key == '' or step_id == '' or type(objective_step_by_id) ~= 'function') then
+        return '';
+    end
+    local ok, step = pcall(objective_step_by_id, native_key, step_id);
+    if (not ok or type(step) ~= 'table') then return ''; end
+    local seen, names = {}, T{};
+    for _, zone in ipairs(type(step.zones) == 'table' and step.zones or T{}) do
+        local name = clean(zone);
+        if (name ~= '' and seen[name:lower()] ~= true) then
+            seen[name:lower()] = true;
+            names:append(name);
+        end
+    end
+    if (#names < 2) then return ''; end
+    return spoken_list(names);
+end
+
+-- The same thing as one sentence, for the places that speak rather than list:
+-- the announcement when the last step completes, and N's own confirmation.
+function accessxi.objective_guide_postlude_text(native_key, actions)
+    local parts = T{};
+    local pages, summary = accessxi.objective_guide_postlude_pages(native_key, actions);
+    summary = type(summary) == 'table' and summary or { material_tail = 0, truncated = false };
+    if ((tonumber(summary.material_tail) or 0) > 0) then
+        parts:append('Automatic tracking ends here, and the guide still has steps it does not track.');
+    end
+    for _, page in ipairs(pages) do
+        parts:append(('%s continues: %s'):fmt(clean(page.name),
+            accessxi.objective_detail_text_from_lines(page.lines)));
+    end
+    if (summary.truncated == true and #pages > 0) then
+        parts:append('More guide text follows. Press G to read it.');
+    end
+    return table.concat(parts, ' '), summary;
+end
+
+-- THE ROW THE BROWSE READS WHEN THERE IS NOTHING LEFT TO ROUTE.
+--
+-- Always at least one row. An objective that vanishes from the list, or that
+-- occupies a row saying nothing, leaves the player unable to tell whether the
+-- addon has lost track of them -- and in this project being told nothing is
+-- worse than being told something wrong, because nothing cannot be argued with.
+function accessxi.objective_append_guide_postlude_rows(item, replacements, actions, state)
+    if (type(item) ~= 'table' or type(replacements) ~= 'table') then return 0; end
+    local native_key = clean(item.objective_native_key);
+    local last = type(actions) == 'table' and actions[#actions] or nil;
+    local last_step = clean(type(last) == 'table' and last.step_id or '');
+    local last_order = tonumber(type(last) == 'table' and last.step_order or nil) or 0;
+    if (last_step == '') then return 0; end
+    state = clean(state) ~= '' and clean(state) or 'exhausted';
+
+    -- A CURSOR THAT LOST ITS PLACE IS NOT A CURSOR THAT FINISHED.
+    --
+    -- Reading the end of the guide to somebody whose saved position no longer
+    -- matches the guide walks them past the step they are actually on. Say what
+    -- happened instead, and hand them the guide.
+    if (state == 'invalid') then
+        local row = T{
+            candidate_id = '', action_id = last_step .. ':progress-mismatch',
+            group_id = '', destination_id = '',
+            guide_step_id = last_step, guide_step_order = last_order,
+            action = 'note',
+            action_instruction = 'Saved progress for this objective does not match the guide '
+                .. 'this addon has, so no step was chosen. Press G to read the guide yourself.',
+            instruction_only = true, classification = 'instruction-only',
+            status = 'instruction-only', reason = 'complete-instruction',
+            material = true, route_ready = false,
+        };
+        local replacement = expanded_objective_row(item, row);
+        if (replacement ~= nil) then
+            replacement.objective_guide_postlude = true;
+            replacement.objective_guide_postlude_kind = 'invalid';
+            replacement.objective_guide_postlude_source = '';
+            replacements:append(replacement);
+        end
+        return replacement ~= nil and 1 or 0;
+    end
+
+    local pages, summary = accessxi.objective_guide_postlude_pages(native_key, actions);
+    summary = type(summary) == 'table' and summary or { material_tail = 0, truncated = false };
+    -- WHERE THE WORK STILL IS.
+    --
+    -- A postlude row is instruction-only, so an exhausted objective loses every
+    -- destination it had -- and for a last tracked step that names more than one
+    -- place, that is the whole answer walking out of the door. Below the Arks'
+    -- last tracked step names three crags; the player asked for exactly this:
+    -- "at least mention you need to zone to the 3 destinations where the
+    -- shattered telepoints are".
+    --
+    -- The ZONES, not the instruction. Re-offering "Examine the Shattered
+    -- Telepoint" as a choice is the completed-step recital this postlude was
+    -- built to stop, and tools/test_exhausted_cursor_row.lua forbids it by name.
+    local places = accessxi.objective_step_open_places(native_key, last_step);
+    local added = 0;
+    for index = 1, math.max(1, #pages) do
+        local page = pages[index];
+        local instruction = page ~= nil
+            and accessxi.objective_detail_text_from_lines(page.lines)
+            or 'The guide records nothing further for this objective.';
+        local row = T{
+            candidate_id = '',
+            -- Ordered so the declared primary page sorts first: objective_row_less
+            -- falls through to a lexical compare on the action id.
+            action_id = ('%s:postlude-%d'):fmt(last_step, index),
+            group_id = '', destination_id = '',
+            guide_step_id = last_step,
+            guide_step_order = last_order,
+            action = 'note',
+            action_instruction = instruction,
+            instruction_only = true,
+            classification = 'instruction-only',
+            status = 'instruction-only',
+            reason = 'complete-instruction',
+            material = true,
+            route_ready = false,
+        };
+        local replacement = expanded_objective_row(item, row);
+        if (replacement ~= nil) then
+            replacement.objective_guide_postlude = true;
+            replacement.objective_guide_postlude_kind = 'exhausted';
+            replacement.objective_guide_postlude_source = page ~= nil and clean(page.name) or '';
+            replacement.objective_guide_postlude_material_tail =
+                tonumber(summary.material_tail) or 0;
+            replacement.objective_guide_postlude_truncated = summary.truncated == true;
+            replacement.objective_guide_postlude_places = places;
+            replacements:append(replacement);
+            added = added + 1;
+        end
+    end
+    if (type(log_line) == 'function') then
+        -- MATERIAL STEPS AFTER THE LAST ACTION ARE A TRACKING GAP, NOT A
+        -- FINISHED PAGE. The count comes from the pages themselves, on their
+        -- own boundaries -- an earlier version of this line recomputed it from
+        -- the merged list, which is the exact ordering mistake this whole
+        -- function exists to avoid.
+        log_line(('objective progression exhausted native="%s" last-step="%s" pages=%d rows=%d tail-material=%d truncated=%s places="%s"'):fmt(
+            native_key, last_step, #pages, added,
+            tonumber(summary.material_tail) or 0, tostring(summary.truncated == true),
+            clean(places)));
+    end
+    return added;
+end
+
 local function instruction_row_for_action(action)
     return T{
         candidate_id = '', action_id = clean(action.action_id), group_id = '',
@@ -2301,17 +4663,34 @@ end
 
 local function append_current_progression_rows(item, replacements)
     local native_key = clean(item.objective_native_key);
-    local action, actions, revision, record = progression_cursor(native_key, item);
-    if (type(actions) ~= 'table') then return false, nil; end
-    if (type(action) ~= 'table') then return true, nil; end
+    local action, actions, revision, record, state = progression_cursor(native_key, item);
+    -- EXHAUSTED IS NOT THE SAME AS NEVER HAVING HAD A CURSOR.
+    --
+    -- Both used to answer (handled, nil), and the caller read that as "nothing
+    -- to add" and dumped every route row the mission owns. For an objective
+    -- with no compact actions at all that is the only view there is; for one
+    -- whose cursor has reached the end it is a recital of finished work. Live
+    -- 2026-08-29 Below the Arks read back three completed steps and nothing
+    -- else -- "I don't even know what I'm supposed to do".
+    if (type(actions) ~= 'table') then return false, nil, 'unavailable', nil; end
+    if (type(action) ~= 'table') then
+        return true, nil, clean(state) ~= '' and clean(state) or 'exhausted', actions;
+    end
 
     local cursor_action = action;
     local cursor_index = action_index_by_identity(actions, action.step_id,
         action.step_order, action.action_id, action.action_order) or 1;
     local guide_destinations = objective_guide_destinations(native_key);
     local rows, seen = T{}, {};
+    local action_name = clean(action.action):lower();
+    local instruction_barrier = action_name == 'wait' or action_name == 'select';
     for _, row in ipairs(guide_destinations) do
-        if (clean(row.action_id) == clean(action.action_id)) then
+        -- Empty compact catalogues are still useful K-key instructions, but
+        -- they are not destinations. Do not let their synthetic instruction
+        -- rows preempt source-route and later-action lookup. Explicit waits
+        -- and menu selections remain barriers and cannot be routed around.
+        if (clean(row.action_id) == clean(action.action_id)
+            and (row.instruction_only ~= true or instruction_barrier)) then
             local destination_id = clean(row.destination_id);
             local key = destination_id ~= '' and destination_id
                 or clean(row.candidate_id) .. '\t' .. clean(row.action_id);
@@ -2327,6 +4706,47 @@ local function append_current_progression_rows(item, replacements)
         if (row ~= nil and key ~= '' and not seen[key]) then
             seen[key] = true;
             rows:append(row);
+        end
+    end
+
+    -- Wiki steps commonly split "travel to zone and talk to NPC" into two
+    -- compact actions. The travel action has no finite point, while the
+    -- immediately following action owns the exact NPC catalogue. Route to
+    -- that point only when it is the next action in the same step and its
+    -- exact zone matches the travel destination; keep the durable cursor on
+    -- the travel prerequisite until native evidence advances it.
+    if (#rows == 0 and action_name == 'travel') then
+        local expected_zone = tonumber(action.destination_zone_id) or 0;
+        local next_action = actions[cursor_index + 1];
+        if (expected_zone > 0 and type(next_action) == 'table'
+            and clean(next_action.step_id) == clean(action.step_id)
+            and (tonumber(next_action.order) or 0) > (tonumber(action.order) or 0)) then
+            local projected_rows, projected_seen = T{}, {};
+            for _, row in ipairs(guide_destinations) do
+                local destination_id = clean(row.destination_id);
+                if (row.instruction_only ~= true
+                    and clean(row.action_id) == clean(next_action.action_id)
+                    and (tonumber(row.zone) or 0) == expected_zone
+                    and destination_id ~= '' and not projected_seen[destination_id]) then
+                    projected_seen[destination_id] = true;
+                    projected_rows:append(deep_copy(row));
+                end
+            end
+            for _, point in ipairs(type(next_action.catalogue) == 'table'
+                and next_action.catalogue or T{}) do
+                local row = compact_action_destination_row(next_action, point);
+                local destination_id = row ~= nil and clean(row.destination_id) or '';
+                if (row ~= nil and (tonumber(row.zone) or 0) == expected_zone
+                    and destination_id ~= '' and not projected_seen[destination_id]) then
+                    projected_seen[destination_id] = true;
+                    projected_rows:append(row);
+                end
+            end
+            if (#projected_rows > 0) then
+                rows = projected_rows;
+                seen = projected_seen;
+                action = next_action;
+            end
         end
     end
 
@@ -2455,7 +4875,40 @@ local function append_current_progression_rows(item, replacements)
             replacements:append(replacement);
         end
     end
-    return true, action;
+    return true, action, 'active', actions;
+end
+
+-- THE LIST MUST OPEN ON THE MISSION THEY ARE ACTUALLY DOING.
+--
+-- Live 2026-08-24 the player had NINE active mission destinations across San
+-- d'Oria, Rhapsodies, Zilart, CoP, Aht Urhgan, WotG, Adoulin, Moogle Kupo
+-- d'Etat and Shantotto. active_missions() appends the nation mission first and
+-- always has, so the Missions category opened on "The Davoi Report" every time.
+-- They were working Rhapsodies 8, pressed route on the first entry, and were
+-- sent toward Davoi -- whose road out of East Ronfaure runs through King
+-- Ranperre's Tomb, which is where they were standing when they said "it's
+-- trying to lead me the wrong way on this mission again".
+--
+-- A sighted player sees nine rows and picks. This player hears ONE row and has
+-- to arrow past eight to reach the one they want, every single time. So the
+-- mission they last routed comes first from then on. This is remembered rather
+-- than guessed: it is their own choice played back, which is the only ordering
+-- signal that cannot be wrong about what they are working on.
+local function mission_order_recent_key()
+    return clean(accessxi.nav_objective_recent_mission_key or '');
+end
+
+function accessxi.nav_objective_remember_mission(native_key)
+    native_key = clean(native_key);
+    if (native_key == '') then return false; end
+    if (clean(accessxi.nav_objective_recent_mission_key or '') == native_key) then
+        return false;
+    end
+    accessxi.nav_objective_recent_mission_key = native_key;
+    if (type(log_line) == 'function') then
+        log_line(('objective recent mission set native="%s"'):fmt(native_key));
+    end
+    return true;
 end
 
 local function expand_active_mission_destinations(items)
@@ -2463,6 +4916,9 @@ local function expand_active_mission_destinations(items)
     for _, item in ipairs(items or T{}) do
         local replacements = T{};
         local selected_step = nil;
+        -- An exhausted cursor forfeits the whole-mission fallback below,
+        -- whether or not the postlude found anything to say.
+        local cursor_exhausted = false;
         local availability = clean(item.mission_availability);
         if (availability == 'available-to-start') then
             local start_step_id = clean(item.objective_start_step_id);
@@ -2479,12 +4935,19 @@ local function expand_active_mission_destinations(items)
                 end
             end
         elseif (availability == 'active') then
-            local handled, progression_action = append_current_progression_rows(
-                item, replacements);
+            local handled, progression_action, progression_state, progression_list =
+                append_current_progression_rows(item, replacements);
             if (handled) then
                 selected_step = progression_action ~= nil
                     and objective_step_by_id(clean(item.objective_native_key),
                         clean(progression_action.step_id)) or nil;
+                -- The cursor finished. Say what the guide still says rather
+                -- than falling through to the whole-mission fallback below.
+                if (progression_state == 'exhausted' or progression_state == 'invalid') then
+                    cursor_exhausted = true;
+                    accessxi.objective_append_guide_postlude_rows(
+                        item, replacements, progression_list, progression_state);
+                end
             else
             local destinations = objective_guide_destinations(clean(item.objective_native_key));
             if (type(destinations) == 'table') then
@@ -2548,7 +5011,7 @@ local function expand_active_mission_destinations(items)
             end
             end
         end
-        if (#replacements == 0) then
+        if (#replacements == 0 and not cursor_exhausted) then
             append_source_route_replacements(item, replacements, selected_step);
         end
         if (#replacements > 0) then
@@ -2569,12 +5032,18 @@ local function expand_active_quest_destinations(items)
     for _, item in ipairs(items or T{}) do
         local replacements = T{};
         local selected_step = nil;
-        local handled, progression_action = append_current_progression_rows(
-            item, replacements);
+        local cursor_exhausted = false;
+        local handled, progression_action, progression_state, progression_list =
+            append_current_progression_rows(item, replacements);
         if (handled) then
             selected_step = progression_action ~= nil
                 and objective_step_by_id(clean(item.objective_native_key),
                     clean(progression_action.step_id)) or nil;
+            if (progression_state == 'exhausted' or progression_state == 'invalid') then
+                cursor_exhausted = true;
+                accessxi.objective_append_guide_postlude_rows(
+                    item, replacements, progression_list, progression_state);
+            end
         else
             local destinations = objective_guide_destinations(clean(item.objective_native_key));
             if (type(destinations) == 'table') then
@@ -2625,7 +5094,7 @@ local function expand_active_quest_destinations(items)
                 end
             end
         end
-        if (#replacements == 0) then
+        if (#replacements == 0 and not cursor_exhausted) then
             append_source_route_replacements(item, replacements, selected_step);
         end
         if (#replacements > 0) then
@@ -3204,6 +5673,26 @@ local function active_missions()
     end
     prune_objective_progress('mission', items);
     local expanded = expand_active_mission_destinations(items);
+    -- Stable: only the remembered mission is lifted, and rows inside it keep
+    -- the order expand_active_mission_destinations gave them. Nothing else
+    -- moves, so the list a player has learned stays learned.
+    local recent = mission_order_recent_key();
+    if (recent ~= '' and type(expanded) == 'table' and #expanded > 1) then
+        local first, rest = T{}, T{};
+        for _, row in ipairs(expanded) do
+            if (clean(type(row) == 'table' and row.objective_native_key or '') == recent) then
+                first:append(row);
+            else
+                rest:append(row);
+            end
+        end
+        if (#first > 0 and #rest > 0) then
+            local merged = T{};
+            for _, row in ipairs(first) do merged:append(row); end
+            for _, row in ipairs(rest) do merged:append(row); end
+            expanded = merged;
+        end
+    end
     if (type(log_line) == 'function') then
         log_line(('mission active context complete attempts=%d results=%d'):fmt(attempted_contexts, #expanded));
     end
@@ -3540,6 +6029,54 @@ local function action_catalogue(native_key, action)
     return points;
 end
 
+-- WHERE THE ROUTER'S OWN KNOWLEDGE LIVES.
+--
+-- A compact action carries a catalogue snapshot only when the builder could
+-- resolve the target from that step alone. Usually it could not: 5,965 of the
+-- 7,230 talk/trade/deliver/examine/use actions in the shipped progression
+-- modules -- 82.5% -- carry `catalogue = {}`. Among them is
+-- "mission:San d'Oria:5:step-011", Talk to Zantaviat, whose zone is implied by
+-- the step before it rather than written on it. Identity matching consulted
+-- only that snapshot, so for five of every six interaction steps in the game
+-- the addon could not recognise the player interacting with the very target it
+-- had just walked them to, and the step could never complete on its own.
+--
+-- The runtime has no such gap. It resolved Zantaviat to npc:v1:149:17388006
+-- and routed the player to him; live 2026-08-22 `nav arrived name="Zantaviat"
+-- zone=149`. This reads that same answer out of the same index the router
+-- used. It never leaves the zone the signal came from, never accepts a name
+-- the guide did not write on the step, and the caller still demands the exact
+-- server id -- so it widens where identity is looked up, never what counts as
+-- identity.
+local function action_identity_points(action, zone_id)
+    zone_id = tonumber(zone_id) or 0;
+    if (type(action) ~= 'table' or zone_id <= 0) then return T{}; end
+    local index = ensure_catalog_index ~= nil and ensure_catalog_index() or nil;
+    if (type(index) ~= 'table' or type(index.points_by_zone_entity) ~= 'table') then
+        return T{};
+    end
+    local names, seen, points = T{}, {}, T{};
+    local function consider(value)
+        local key = source_name_key(type(value) == 'table' and (value.name or value.target) or value);
+        if (key ~= '' and seen[key] ~= true) then
+            seen[key] = true;
+            names:append(key);
+        end
+    end
+    consider(action.target);
+    for _, entry in ipairs(type(action.npcs) == 'table' and action.npcs or T{}) do consider(entry); end
+    for _, entry in ipairs(type(action.objects) == 'table' and action.objects or T{}) do consider(entry); end
+    -- Enemies too. Only fight actions carry any, so this is inert elsewhere,
+    -- and it is what lets a step naming two enemies recognise the second one.
+    for _, entry in ipairs(type(action.enemies) == 'table' and action.enemies or T{}) do consider(entry); end
+    for _, name_key in ipairs(names) do
+        for _, point in ipairs(index.points_by_zone_entity[('%d	%s'):fmt(zone_id, name_key)] or T{}) do
+            points:append(point);
+        end
+    end
+    return points;
+end
+
 local function point_matches_signal(point, signal, require_server_id)
     local expected_zone = tonumber(point.zone_id or point.zone) or 0;
     local actual_zone = tonumber(signal.zone_id) or 0;
@@ -3562,9 +6099,21 @@ local function point_matches_signal(point, signal, require_server_id)
 end
 
 local function action_target_matches(native_key, action, signal, require_server_id)
-    for _, point in ipairs(action_catalogue(native_key, action)) do
+    local catalogue = action_catalogue(native_key, action);
+    for _, point in ipairs(catalogue) do
         if (point_matches_signal(point, signal, require_server_id)) then
             return true, point;
+        end
+    end
+    -- A populated snapshot stays authoritative: if it lists points and none of
+    -- them is what the player touched, that is a real mismatch and the answer
+    -- is no. Only the empty case -- the overwhelming majority -- falls through
+    -- to the router's index.
+    if (#catalogue == 0) then
+        for _, point in ipairs(action_identity_points(action, signal.zone_id)) do
+            if (point_matches_signal(point, signal, require_server_id)) then
+                return true, point;
+            end
         end
     end
     return false, nil;
@@ -3583,10 +6132,29 @@ local function enemy_action_matches(native_key, action, signal)
     -- credit therefore proves the current enemy by exact name plus an exact
     -- catalogue zone, while NPC/object interactions still require a listed
     -- server ID.
-    for _, point in ipairs(action_catalogue(native_key, action)) do
+    local catalogue = action_catalogue(native_key, action);
+    for _, point in ipairs(catalogue) do
         if ((tonumber(point.zone_id or point.zone) or 0) == actual_zone
             and clean(point.target_name or point.name):lower() == actual_name) then
             return true;
+        end
+    end
+    -- AN EMPTY SNAPSHOT IS NOT A DENIAL.
+    --
+    -- action_target_matches has fallen through to the router's index since the
+    -- Zantaviat fix; this did not, and a fight action almost never carries a
+    -- catalogue -- the shipped Assault kill steps ship catalogue = {} exactly as
+    -- the reviewed overrides do. So enemy matching answered "no" for every kill
+    -- objective it was ever asked about. The safety here is stronger than for
+    -- interactions, not weaker: the caller has already required the signal's
+    -- name to be one the guide wrote on this step, and the point must still
+    -- carry the signal's exact zone and exact name.
+    if (#catalogue == 0) then
+        for _, point in ipairs(action_identity_points(action, actual_zone)) do
+            if ((tonumber(point.zone_id or point.zone) or 0) == actual_zone
+                and clean(point.target_name or point.name):lower() == actual_name) then
+                return true;
+            end
         end
     end
     return false;
@@ -3800,6 +6368,532 @@ local function cancel_completed_objective_route(objective, through_index)
     return ok and cancelled == true;
 end
 
+-- THE PLAYER IS THE AUTHORITY ON WHAT THEY HAVE DONE.
+--
+-- Automatic completion is evidence-based and will sometimes miss: live
+-- 2026-08-22 the player talked to Zantaviat -- catalogue id and live server id
+-- both 17388006 -- and nothing fired, so two minutes later the objective still
+-- read "Talk to the NPC Zantaviat just inside the zone" for a step already
+-- finished. With no way to say "I did that", the mission was simply stuck:
+-- every route led back to an NPC with nothing left to say.
+--
+-- A miss in the detector must never become a dead end. This marks the current
+-- step done on the player's word and moves to the next one, which is the same
+-- advance the detector performs -- no shortcut, no state the game does not
+-- already have, and nothing walked for them.
+-- WHICH OBJECTIVE DOES THE PLAYER MEAN.
+--
+-- Live 2026-08-28: the player scrolled the mission list to "The Rites of Life"
+-- (Chains of Promathia), pressed N, and the addon advanced "Smash the Orcish
+-- Scouts" instead. Twice. Their words: "I press n but I don't know if it
+-- updated the right mission or not."
+--
+-- The old code read the selected row, kept only its objective_kind -- the
+-- string "mission" -- and handed THAT to mark_step_done, which then walked the
+-- active list and took the first entry of that kind. The identity was in hand
+-- one line before it was needed and was thrown away, so a player on row 13
+-- moved row 1. Because the reducer lists missions before quests, an empty kind
+-- could only ever hit a mission; a quest was unreachable by that path.
+--
+-- One resolver, so this decision is made in exactly one place and can be tested
+-- on its own (sol). Order is most-explicit-first:
+--   guide   -- the guide is open on a specific objective; that is unambiguous
+--   browser -- the highlighted row, which is what the player is listening to
+--   sole    -- only one objective is active, so there is nothing to confuse
+-- and otherwise a refusal that says what to do, never a guess. A wrong guess is
+-- unrecoverable in a way a refusal is not: the cursor only moves forward.
+--
+-- NOTE the browse list has no close. accessxi.nav_menu_open is never assigned
+-- true anywhere in the tree and nav_close_menu has no callers, so the row the
+-- player last moved to persists until they zone. That makes the browser tier
+-- reliable rather than stale -- it is the real UI state, not a memory of one.
+function accessxi.nav_objective_intent(operation)
+    operation = clean(operation);
+    local guides = accessxi.objective_guides;
+    if (type(guides) == 'table' and type(guides.current_native_key) == 'function') then
+        local ok, key = pcall(guides.current_native_key, guides);
+        if (ok and clean(key) ~= '') then
+            return clean(key), 'guide', '';
+        end
+    end
+
+    local items = accessxi.nav_menu_items;
+    local index = tonumber(accessxi.nav_menu_index) or 0;
+    if (type(items) == 'table' and index >= 1) then
+        local selected = items[index];
+        if (type(selected) == 'table') then
+            local kind = clean(selected.objective_kind or selected.kind):lower();
+            local key = clean(selected.objective_native_key);
+            if (kind == 'mission' or kind == 'quest') then
+                if (key ~= '') then
+                    return key, 'browser', '';
+                end
+            else
+                -- A destination or camp row is highlighted. Refusing is right:
+                -- falling through to "the only active objective" would move a
+                -- mission the player is demonstrably not looking at.
+                return '', '', 'The selected row is not a mission or quest. Open Missions or Quests, select one, then try again.';
+            end
+        end
+    end
+
+    local objectives = reducer_active_objectives();
+    if (#objectives == 1) then
+        return clean(objectives[1].native_key), 'sole-active', '';
+    end
+    if (#objectives == 0) then
+        return '', '', 'No active mission or quest step to mark.';
+    end
+    return '', '', 'I cannot tell which objective you mean. Open Missions or Quests, select it, then try again.';
+end
+
+-- How an objective should be named out loud. A sighted player sees the
+-- highlighted row; this is that row rendered in speech.
+function accessxi.nav_objective_spoken_title(objective)
+    if (type(objective) ~= 'table') then return ''; end
+    local item = type(objective.item) == 'table' and objective.item or {};
+    local title = clean(item.name);
+    if (title == '') then
+        title = clean(accessxi.objective_title_for_native_key ~= nil
+            and accessxi.objective_title_for_native_key(objective.native_key) or '');
+    end
+    local context = clean(item.mission_context);
+    if (context == '') then context = clean(item.quest_area); end
+    if (context ~= '' and title ~= '' and context ~= title) then
+        return ('%s. %s'):fmt(context, title);
+    end
+    return title ~= '' and title or clean(objective.native_key);
+end
+
+function accessxi.nav_mission_quest_mark_step_done(category, native_key)
+    category = clean(category):lower();
+    native_key = clean(native_key);
+
+    -- The caller is expected to say WHICH objective. When it does not, resolve
+    -- the player's intent here rather than taking the head of the list.
+    local source = 'caller';
+    if (native_key == '') then
+        local explanation;
+        native_key, source, explanation = accessxi.nav_objective_intent('mark-step-done');
+        native_key = clean(native_key);
+        if (native_key == '') then
+            log_line(('objective mark refused reason="%s"'):fmt(clean(explanation)));
+            return false, clean(explanation) ~= '' and clean(explanation)
+                or 'I cannot tell which objective you mean.';
+        end
+    end
+
+    local objectives = reducer_active_objectives();
+    if (#objectives == 0) then
+        return false, 'No active mission or quest step to mark.';
+    end
+
+    -- Re-resolve the key against the live list; never act on a remembered
+    -- objective table, which may have advanced since it was captured (sol).
+    local chosen = nil;
+    for _, objective in ipairs(objectives) do
+        if (clean(objective.native_key) == native_key) then
+            chosen = objective;
+            break;
+        end
+    end
+    if (chosen == nil) then
+        log_line(('objective mark refused native="%s" source="%s" reason=not-active'):fmt(
+            native_key, source));
+        return false, 'That objective has no step to mark right now.';
+    end
+
+    -- A MISSION YOU HAVE NOT ACCEPTED HAS NO STEP TO MARK.
+    --
+    -- The active list carries missions that are merely AVAILABLE TO START as
+    -- well as the one the player is on -- that is right for browsing, because
+    -- finding a mission to begin is the reason to open the list. It is wrong
+    -- for marking progress: there is no progress on a mission the game does not
+    -- think you have started.
+    --
+    -- Live 2026-08-28 this is what made the damage invisible. N advanced
+    -- "Smash the Orcish Scouts" twice; the player had never accepted it, and an
+    -- available mission's row always speaks its acceptance step -- "Speak to any
+    -- San d'Orian Gate Guard to begin this Mission" -- whatever the saved cursor
+    -- says. So the store moved to step-007 and the row never changed a word.
+    -- The player: "I never started the mission so I noticed it didn't actually
+    -- update the steps even when I pressed n."
+    --
+    -- A cursor written here would have surfaced later, the moment they accepted
+    -- the mission, as a jump into the middle of it.
+    if (clean(type(chosen.item) == 'table'
+        and chosen.item.mission_availability or '') == 'available-to-start') then
+        local unstarted = accessxi.nav_objective_spoken_title(chosen);
+        log_line(('objective mark refused native="%s" source="%s" reason=not-accepted'):fmt(
+            native_key, source));
+        -- Named first, the same shape as a successful mark, so the two are
+        -- heard the same way round.
+        return false, unstarted ~= ''
+            and ('%s. You have not started this yet, so there is no step to mark.'):fmt(unstarted)
+            or 'You have not started that mission yet, so there is no step to mark.';
+    end
+    local action = chosen.actions[chosen.index];
+    if (type(action) ~= 'table') then
+        return false, 'That objective has no current step.';
+    end
+    local finished = clean(action.instruction);
+    if (not advance_objective_match(chosen, chosen.index, 1)) then
+        return false, 'That step could not be marked done.';
+    end
+    if (type(notify_objective_progress) == 'function') then
+        notify_objective_progress(T{ chosen });
+    end
+    local following = chosen.actions[chosen.index + 1];
+
+    -- RECORD THE MOVE SO IT CAN BE TAKEN BACK.
+    --
+    -- This is the only cursor write a player makes by hand, and the only one
+    -- that can be wrong about WHICH objective it moved. Everything else is
+    -- driven by evidence from the game. The journal row carries the state
+    -- before and after, because the cursor is monotonic -- resolved_progress_record
+    -- keeps the FARTHEST record it can find, so a reversal has to remove the
+    -- history entry rather than write an earlier one.
+    accessxi.objective_progress_mark_serial =
+        (tonumber(accessxi.objective_progress_mark_serial) or 0) + 1;
+    local event_id = ('%d-%d'):fmt(os.time(), accessxi.objective_progress_mark_serial);
+    if (type(following) == 'table') then
+        objective_progress_marks[#objective_progress_marks + 1] = {
+            identity = character_identity(),
+            world_id = player_world_id(),
+            native_key = clean(chosen.native_key),
+            event_id = event_id,
+            after_step_id = clean(following.step_id),
+            after_action_id = clean(following.action_id),
+            before_step_id = clean(action.step_id),
+            before_action_id = clean(action.action_id),
+        };
+        accessxi.objective_progress_append_row({
+            'v3-mark', character_identity(), tostring(player_world_id()),
+            clean(chosen.native_key), event_id,
+            clean(following.step_id), clean(following.action_id),
+            clean(action.step_id), clean(action.action_id),
+        });
+    end
+
+    log_line(('objective step marked done by player native="%s" source="%s" step="%s" action="%s" event="%s"'):fmt(
+        clean(chosen.native_key), source, clean(action.step_id),
+        clean(action.action_id), event_id));
+
+    local next_text = type(following) == 'table' and clean(following.instruction) or '';
+
+    -- NAME THE OBJECTIVE, ALWAYS.
+    --
+    -- The player pressed N on the Chains of Promathia row, the addon moved
+    -- Smash the Orcish Scouts, and said only "Marked done: <step>." -- a
+    -- sentence with no owner. They could not tell it had gone to the wrong
+    -- mission, and said so: "I don't know if it updated the right mission or
+    -- not." A sighted player sees which row is highlighted; naming it is that
+    -- row rendered in speech. Unconditional, even when unambiguous: N is a
+    -- rare, state-changing recovery action and being able to audit it matters
+    -- more than the words it costs (sol).
+    local title = accessxi.nav_objective_spoken_title(chosen);
+    local spoken = finished ~= '' and ('Marked done: %s.'):fmt(finished) or 'Step marked done.';
+    if (title ~= '') then
+        spoken = ('%s. %s'):fmt(title, spoken);
+    end
+    if (next_text ~= '') then
+        spoken = spoken .. (' Next: %s. Press I when ready.'):fmt(next_text);
+    else
+        spoken = spoken .. ' That was the last step recorded for this objective.';
+        -- And what the guide says past that point, which is where the answer
+        -- lives for any mission whose compact actions stop early. Below the
+        -- Arks stops at the Hall of Transference; BG Wiki goes on to say the
+        -- three Promyvions still have to be cleared.
+        local continuation = accessxi.objective_guide_postlude_text(
+            clean(chosen.native_key), chosen.actions);
+        if (clean(continuation) ~= '') then
+            spoken = ('%s %s'):fmt(spoken, clean(continuation));
+        end
+    end
+    spoken = spoken .. ' Say slash axi undo to take that back.';
+    return true, spoken;
+end
+
+-- TAKE BACK THE LAST STEP THE PLAYER MARKED DONE.
+--
+-- Necessary because the cursor is monotonic and nothing else can move one
+-- backwards. resolved_progress_record scans the whole saved history and keeps
+-- the farthest valid record; save_objective_progress has no ordering guard but
+-- writing an earlier row changes nothing, because the later row is still in the
+-- history and still wins. advance_objective_match(-1) is worse than useless --
+-- for a single-count step it discards the delta and advances FORWARD.
+--
+-- So the reversal is recorded, not erased: an undo row names the mark it
+-- reverses, and the loader drops that mark's cursor row from the history it
+-- builds. "Farthest wins" then falls back to the truth on its own, and it
+-- survives a reload because the progress file is append-only.
+--
+-- Global rather than per-objective, deliberately. The failure this exists for
+-- moved an objective the player was NOT looking at, so "undo on the selected
+-- objective" could not have repaired it (sol).
+function accessxi.nav_objective_undo_last_mark()
+    load_objective_progress();
+    local identity = character_identity();
+    local world_id = player_world_id();
+    if (identity == '' or world_id <= 0) then
+        return false, 'I cannot tell which character this is yet.';
+    end
+    local mark = nil;
+    for index = #objective_progress_marks, 1, -1 do
+        local candidate = objective_progress_marks[index];
+        if (type(candidate) == 'table'
+            and clean(candidate.identity):lower() == clean(identity):lower()
+            and (tonumber(candidate.world_id) or 0) == world_id
+            and objective_progress_undone[candidate.event_id] ~= true) then
+            mark = candidate;
+            break;
+        end
+    end
+    if (mark == nil) then
+        return false, 'There is nothing to undo. No step has been marked done by hand.';
+    end
+
+    if (not accessxi.objective_progress_append_row({
+        'v3-undo', clean(mark.identity), tostring(mark.world_id),
+        clean(mark.native_key), clean(mark.event_id),
+    })) then
+        return false, 'That could not be undone; the progress file could not be written.';
+    end
+    objective_progress_undone[mark.event_id] = true;
+
+    -- Drop the row the mark wrote, in memory as well as on disk, or the
+    -- farthest-wins scan keeps returning it until the next reload.
+    local key = objective_progress_key(clean(mark.identity):lower(),
+        mark.world_id, clean(mark.native_key));
+    local kept = {};
+    for _, candidate in ipairs(objective_progress_history[key] or {}) do
+        if (clean(candidate.step_id) ~= clean(mark.after_step_id)
+            or clean(candidate.action_id) ~= clean(mark.after_action_id)) then
+            kept[#kept + 1] = candidate;
+        end
+    end
+    objective_progress_history[key] = kept;
+    objective_progress[key] = nil;
+    increment_objective_progress_revision();
+
+    local title = clean(accessxi.objective_title_for_native_key ~= nil
+        and accessxi.objective_title_for_native_key(mark.native_key) or '');
+    if (title == '') then title = clean(mark.native_key); end
+    log_line(('objective mark UNDONE native="%s" event="%s" back-to step="%s" action="%s"'):fmt(
+        clean(mark.native_key), clean(mark.event_id),
+        clean(mark.before_step_id), clean(mark.before_action_id)));
+    return true, ('Undone. %s is back on the step before it.'):fmt(title);
+end
+
+-- TALKING TO AN NPC THAT HAS NO MENU.
+--
+-- Live 2026-08-22: the player talked to Zantaviat -- catalogue id and live
+-- server id both 17388006, an exact match -- and nothing completed, so two
+-- minutes later the objective still read "Talk to the NPC Zantaviat just
+-- inside the zone" for a step already finished and every route led back to an
+-- NPC with nothing left to say. The existing completion path keys on an event
+-- menu closing; a one-line dialogue never opens one.
+--
+-- sol's ruling for this case, and the bar these two functions meet: require an
+-- OUTGOING interaction aimed at the exact server id, then an attributable NPC
+-- response shortly after. Never complete from rendered chat text, or from an
+-- NPC's name, alone -- either by itself would fire on someone else's
+-- conversation or on ambient dialogue the player walked past.
+
+-- The player pressed enter on something. If the step they are on is a talk at
+-- exactly that creature, remember it; nothing completes yet.
+function accessxi.nav_mission_quest_note_talk_intent(target_server_id, zone_id, now)
+    target_server_id = tonumber(target_server_id) or 0;
+    zone_id = tonumber(zone_id) or 0;
+    -- An identity signal missing its zone matches NOTHING, silently, forever --
+    -- and that is observationally identical in the log to the packet never
+    -- arriving. Live 2026-08-22 those two readings cost a whole iteration, so
+    -- say which one it is (sol).
+    if (target_server_id > 0 and zone_id <= 0) then
+        log_line(('objective talk arm rejected reason=missing-zone target=%d'):fmt(
+            target_server_id));
+        return false;
+    end
+    if (target_server_id <= 0 or zone_id <= 0) then
+        return false;
+    end
+    now = tonumber(now) or 0;
+    for _, objective in ipairs(reducer_active_objectives()) do
+        local action = objective.actions[objective.index];
+        -- The interaction test is inlined: `interaction_action` is a local
+        -- declared further down this file, so referencing it from here would
+        -- silently resolve to a nil global and throw on the first NPC talk.
+        local verb = type(action) == 'table' and clean(action.action):lower() or '';
+        local is_interaction = verb == 'talk' or verb == 'trade' or verb == 'deliver'
+            or verb == 'examine' or verb == 'use';
+        if (is_interaction) then
+            local matched, point = action_target_matches(objective.native_key, action,
+                { target_server_id = target_server_id, zone_id = zone_id }, true);
+            if (matched) then
+                -- `target_name` on a snapshot point, `name` on a catalogue
+                -- point -- the same field under two names, and the matcher
+                -- already reads both. Reading only the first left the armed
+                -- name blank, and completion compares the speaker against it,
+                -- so the reply could never be attributed and the step could
+                -- never close.
+                local name = clean(type(point) == 'table'
+                    and (point.target_name or point.name) or '');
+                if (name == '') then name = clean(action.target); end
+                -- Count how many indexed places carry the names this
+                -- action gives, so an unanswered attempt can say whether
+                -- there is anywhere else to try.
+                local siblings = 0;
+                for _ in ipairs(action_identity_points(action, zone_id)) do
+                    siblings = siblings + 1;
+                end
+                local previous = accessxi.nav_objective_talk_intent;
+                local attempts = 1;
+                if (type(previous) == 'table'
+                    and tonumber(previous.target_server_id) == target_server_id
+                    and previous.answered ~= true) then
+                    attempts = (tonumber(previous.attempts) or 1) + 1;
+                end
+                accessxi.nav_objective_talk_intent = {
+                    target_server_id = target_server_id,
+                    name = name,
+                    native_key = objective.native_key,
+                    action_id = clean(action.action_id),
+                    tick = now,
+                    attempts = attempts,
+                    siblings = siblings,
+                    answered = false,
+                    spoken_attempt = 0,
+                };
+                log_line(('objective talk armed target=%d zone=%d name="%s" step="%s"'):fmt(
+                    target_server_id, zone_id, name, clean(action.step_id)));
+                return true;
+            end
+        end
+    end
+    return false;
+end
+
+-- A TARGET THAT DOES NOT ANSWER MUST BE REPORTED.
+--
+-- Live 2026-08-23 in Norg the player pressed enter on an Oaken Door three
+-- times over eleven seconds. Three 0x001A triggers went out; no 0x0032 or
+-- 0x0034 ever came back, so the door did nothing at all. A sighted player sees
+-- that plainly -- no cutscene, no dialogue, nothing. We said NOTHING, and went
+-- on repeating "examine the Oaken Door", which is why the player concluded the
+-- step had not updated. Not receiving the information is the failure here.
+--
+-- Response is NOT completion (sol): 0x0032/0x0034 open an event, menu or
+-- cutscene, and shops, repeatable dialogue and cancelled events all produce
+-- them. So this reports silence and nothing else -- it never advances a step,
+-- and it never switches target on the player's behalf.
+function accessxi.nav_mission_quest_note_interaction_response(target_server_id, now)
+    local armed = accessxi.nav_objective_talk_intent;
+    if (type(armed) ~= 'table'
+        or tonumber(armed.target_server_id) ~= (tonumber(target_server_id) or 0)) then
+        return false;
+    end
+    armed.answered = true;
+    return true;
+end
+
+-- Returns the text to speak once a triggered target has stayed silent, or nil.
+-- Four seconds: a working reply lands in about one (measured against Pacomart,
+-- Naillina and Zantaviat, all of whom answered within 1-3 seconds).
+function accessxi.nav_mission_quest_unanswered_talk(now)
+    local armed = accessxi.nav_objective_talk_intent;
+    now = tonumber(now) or 0;
+    if (type(armed) ~= 'table' or armed.answered == true) then return nil; end
+    local attempts = tonumber(armed.attempts) or 1;
+    if ((now - (tonumber(armed.tick) or 0)) < 4000
+        or (tonumber(armed.spoken_attempt) or 0) >= attempts) then
+        return nil;
+    end
+    armed.spoken_attempt = attempts;
+    local name = clean(armed.name);
+    if (name == '') then name = 'That target'; end
+    local siblings = tonumber(armed.siblings) or 0;
+    if (attempts <= 1) then
+        return ('%s did not respond.'):fmt(name);
+    end
+    if (siblings > 1) then
+        -- OFFER, NEVER SWITCH (sol). Choosing for them is how they spent the
+        -- last three minutes on a door that was never going to answer.
+        return ('%s still has not responded. %d places with that name are indexed here. Press I to choose another.')
+            :fmt(name, siblings);
+    end
+    return ('%s still has not responded.'):fmt(name);
+end
+
+-- NPC DIALOGUE ARRIVES ON MORE THAN ONE CHANNEL, AND WE ONLY WATCHED ONE.
+--
+-- Live 2026-08-23, The Davoi Report: the player routed to Zantaviat, pressed
+-- enter, the talk armed against step-011, and one second later he answered --
+--
+--   chat text mode=144 "Zantaviat : According to our man, the page lies
+--   somewhere near the platform on the small pond up ahead."
+--
+-- The step did not advance. They talked to him five more times; the same line
+-- arrived five more times. The completion path is only ever reached for modes
+-- 150 and 151, so an attributable reply on 144 was discarded before it got
+-- there. The day before, the same NPC's FIRST conversation came through on 150
+-- and completed normally -- event dialogue and ordinary NPC speech are
+-- different channels, and a step can be answered on either.
+--
+-- 144 and 150 are the speaker-attributed NPC channels: every 144 line in the
+-- log is an NPC ("Ju Kamja : We can deliver goods...", "Moogle : Is my
+-- assistance reaching you, Master?"), never a player. 148 and 151 carry system
+-- text with no speaker and are deliberately absent, as are the player channels
+-- -- say, shout, tell -- where a person could be named after an NPC.
+--
+-- The rule lives here rather than in the reader so it can be tested at all.
+local NPC_DIALOGUE_MODES = { [144] = true, [150] = true };
+
+function accessxi.nav_mission_quest_dialogue_mode(mode)
+    return NPC_DIALOGUE_MODES[tonumber(mode) or -1] == true;
+end
+
+-- An NPC said something. Only the creature the player just pressed enter on,
+-- only within a few seconds, and only while that step is still the current one.
+function accessxi.nav_mission_quest_note_talk_response(speaker, now)
+    local armed = accessxi.nav_objective_talk_intent;
+    if (type(armed) ~= 'table') then
+        return false;
+    end
+    now = tonumber(now) or 0;
+    if ((now - (tonumber(armed.tick) or 0)) > 10000) then
+        accessxi.nav_objective_talk_intent = nil;
+        return false;
+    end
+    speaker = clean(speaker);
+    if (speaker == '' or clean(armed.name) == ''
+        or speaker:lower() ~= clean(armed.name):lower()) then
+        return false;
+    end
+    for _, objective in ipairs(reducer_active_objectives()) do
+        if (objective.native_key == armed.native_key) then
+            local action = objective.actions[objective.index];
+            if (type(action) == 'table' and clean(action.action_id) == armed.action_id) then
+                -- Consume the evidence only once it has actually been spent.
+                -- Clearing first threw the arm away whenever the advance could
+                -- not be saved, so a talk that failed to record was gone for
+                -- good and the player had no second chance at it.
+                if (not advance_objective_match(objective, objective.index, 1)) then
+                    return false;
+                end
+                accessxi.nav_objective_talk_intent = nil;
+                if (type(notify_objective_progress) == 'function') then
+                    notify_objective_progress(T{ objective });
+                end
+                log_line(('objective interaction completed kind=%s native="%s" step="%s" action="%s" reason="%s"'):fmt(
+                    clean(objective.category), clean(objective.native_key),
+                    clean(action.step_id), clean(action.action_id), 'talk-response'));
+                return true;
+            end
+        end
+    end
+    return false;
+end
+
 advance_objective_match = function(objective, match_index, causal_units)
     local action = objective.actions[match_index];
     if (type(action) ~= 'table' or match_index < objective.index) then return false; end
@@ -3822,14 +6916,60 @@ advance_objective_match = function(objective, match_index, causal_units)
     end
     if (not saved) then return false; end
     purge_objective_arms(objective.native_key);
-    cancel_completed_objective_route(objective, match_index);
+    -- Remember whether the route we stopped was THIS objective's, so the
+    -- announcement can say "Navigation stopped" only when it truly was --
+    -- cancel_completed_objective_route already refuses to touch an unrelated
+    -- route, and its answer is the one the sentence needs.
+    accessxi.nav_objective_route_stopped =
+        cancel_completed_objective_route(objective, match_index);
     return true;
 end;
 
+-- A STEP THAT COMPLETES IS AN EVENT, AND EVENTS ARE SPOKEN.
+--
+-- This function used to mark the menu dirty and stop. The whole mission chain
+-- moved in silence: the row changed underneath the player and the only way to
+-- learn anything was to open the menu and arrow to it.
 notify_objective_progress = function(objectives)
     local first = objectives[1];
-    if (type(first) == 'table'
-        and type(accessxi.on_objective_interaction_progress_changed) == 'function') then
+    if (type(first) ~= 'table') then return; end
+    if (type(accessxi.objective_announce) == 'function'
+        and type(accessxi.objective_announcer) == 'table') then
+        pcall(function ()
+            local announcer = accessxi.objective_announcer;
+            local completed = first.actions[first.index];
+            local following = first.actions[first.index + 1];
+            local final = type(following) ~= 'table';
+            local step_id = clean(type(following) == 'table' and following.step_id or '');
+            local capability, zone_name, route_choice = accessxi.nav_mission_quest_step_route_capability(
+                first.native_key, step_id);
+            accessxi.objective_announce({
+                type = final and announcer.TRANSITIONS.FINAL_OBJECTIVE
+                    or announcer.TRANSITIONS.OBJECTIVE,
+                -- What the guide still says once the compact actions run out.
+                -- Empty for every other transition, and empty for an objective
+                -- whose page really does end where its actions do.
+                continuation = final and (accessxi.objective_guide_postlude_text(
+                    clean(first.native_key), first.actions)) or '',
+                category = clean(first.category),
+                identity = character_identity(),
+                mission_epoch = objective_session_epoch(),
+                mission = clean(first.native_key),
+                previous_mission = clean(first.native_key),
+                step_id = step_id,
+                previous_step_id = clean(type(completed) == 'table' and completed.step_id or ''),
+                instruction = clean(type(following) == 'table' and following.instruction or ''),
+                route = capability,
+                zone_name = zone_name,
+                route_choice = route_choice,
+                -- Only a route that belonged to the step that just completed is
+                -- stopped; an unrelated manual route survives untouched (sol).
+                route_stopped = accessxi.nav_objective_route_stopped == true,
+            });
+        end);
+    end
+    accessxi.nav_objective_route_stopped = nil;
+    if (type(accessxi.on_objective_interaction_progress_changed) == 'function') then
         pcall(accessxi.on_objective_interaction_progress_changed, first.category, false);
     end
 end;
@@ -3871,8 +7011,20 @@ local function interaction_matches(objectives, signal)
 end
 
 local function acquisition_action_matches(action, wanted, key_item)
-    if (type(action) ~= 'table'
-        or clean(action.action):lower() ~= 'obtain'
+    if (type(action) ~= 'table') then
+        return false;
+    end
+    -- A step may name the acquisition that proves it, whatever its own action
+    -- is. A battlefield fight is proved by the crest the battlefield grants,
+    -- and that is the only evidence that cannot be satisfied by killing the
+    -- wrong thing twice or by combining two separate attempts.
+    local evidence = clean(action.completion_evidence):lower();
+    if (evidence ~= '') then
+        local prefix = key_item and 'key-item:' or 'item:';
+        return evidence:sub(1, #prefix) == prefix
+            and evidence:sub(#prefix + 1) == clean(wanted):lower();
+    end
+    if (clean(action.action):lower() ~= 'obtain'
         or clean(action.relationship):lower() ~= 'obtain-item') then
         return false;
     end
@@ -4133,7 +7285,11 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         for _, objective in ipairs(objectives) do
             if (objective_signal_revision_matches(signal, objective)) then
                 local action = objective.action;
+                -- A step that names its own proof is not completed by kills.
+                -- Counting defeats cannot tell two enemies apart, so it would
+                -- announce the battlefield finished while the second one lived.
                 if (clean(action.action):lower() == 'fight'
+                    and clean(action.completion_evidence) == ''
                     and clean(action.relationship):lower():find('defeat', 1, true) ~= nil
                     and enemy_action_matches(objective.native_key, action, signal)) then
                     matches:append({ objective = objective, index = objective.index });
@@ -4202,6 +7358,21 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
     elseif (kind == 'committed-zone') then
         local changed = T{};
         local destination = tonumber(signal.zone_id) or 0;
+        -- REMEMBER WHERE THE PLAYER HAS BEEN.
+        --
+        -- An arrival is tested against the action the cursor happens to be on
+        -- AT THAT MOMENT, and if the cursor is behind, the evidence is thrown
+        -- away. Live 2026-08-29 the player zoned into the Hall of Transference
+        -- while the cursor still sat two actions back on a talk, so
+        -- "enter the Hall of Transference" -- which is literally that arrival --
+        -- was tested against a talk step and rejected. Keeping the arrival lets
+        -- the cursor catch up when it does move.
+        if (destination > 0) then
+            if (type(accessxi.objective_zones_visited) ~= 'table') then
+                accessxi.objective_zones_visited = {};
+            end
+            accessxi.objective_zones_visited[destination] = tonumber(signal.tick) or 0;
+        end
         local arm = pending_objective_transport;
         if (type(arm) == 'table') then
             if (destination > 0 and destination ~= tonumber(arm.destination_zone_id)) then
@@ -4227,14 +7398,88 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
                 end
             end
         else
+            -- WHY A TRAVEL STEP DID NOT COMPLETE ON ARRIVAL.
+            --
+            -- Live 2026-08-27, Chains of Promathia mission 2: the player
+            -- entered Lower Delkfutt's Tower (zone 184) and later Upper Jeuno
+            -- (244); both are travel steps naming exactly those zones with
+            -- matching destination ids, and neither completed. Nine other
+            -- travel arrivals across five missions worked in the same log, so
+            -- the mechanism is sound and something about these two was not --
+            -- and nothing recorded which gate turned them away.
+            --
+            -- One line per zone change naming every candidate and the first
+            -- test it failed. A silent refusal is a bug that has to be guessed
+            -- at; this one can be read.
+            local diag = T{};
+            for _, objective in ipairs(objectives) do
+                local action = objective.action;
+                local why = '';
+                if (not objective_signal_revision_matches(signal, objective)) then
+                    why = 'revision';
+                elseif (clean(action.action):lower() ~= 'travel') then
+                    why = 'action=' .. clean(action.action);
+                elseif (clean(action.relationship):lower() == 'use-transport') then
+                    why = 'transport';
+                elseif (destination <= 0) then
+                    why = 'no-destination';
+                end
+                if (why ~= '') then
+                    diag:append(('%s/%s:%s'):fmt(
+                        clean(objective.native_key), clean(action.step_id), why));
+                end
+            end
+            if (diag:len() > 0) then
+                log_line(('objective travel arrival zone=%d rejected %s'):fmt(
+                    destination, accessxi.escape_probe_log_text(diag:concat(' '))));
+            elseif (#objectives == 0) then
+                log_line(('objective travel arrival zone=%d has NO active objectives to match'):fmt(
+                    destination));
+            end
             for _, objective in ipairs(objectives) do
                 local action = objective.action;
                 if (objective_signal_revision_matches(signal, objective)
                     and clean(action.action):lower() == 'travel'
                     and clean(action.relationship):lower() ~= 'use-transport'
-                    and destination > 0 and destination == tonumber(action.destination_zone_id)
-                    and advance_objective_match(objective, objective.index, 1)) then
-                    changed:append(objective);
+                    and destination > 0) then
+                    local accepted = accessxi.nav_objective_travel_destination_zones(
+                        objective.native_key, action);
+                    -- A BOUND STEP IS NOT FINISHED BY ARRIVING.
+                    --
+                    -- Live 2026-08-25, "Journey Abroad" step-007 "Go to Bastok
+                    -- first and then to Windurst". The player zoned into the
+                    -- Metalworks and this completed the step on the spot --
+                    -- "objective travel arrived ... zone=237" -- and the cursor
+                    -- moved to step-008, which is the WINDURST branch. They had
+                    -- not spoken to anyone: "it got me to metal works but then
+                    -- tried to update to windurst right away."
+                    --
+                    -- A step with a reviewed binding names someone to TALK TO.
+                    -- Reaching their zone is how you get to them, not the doing
+                    -- of it, so arrival must not advance the cursor past them.
+                    local bound = nil;
+                    if (type(accessxi.nav_step_target_binding) == 'function') then
+                        local ok_bound, row = pcall(accessxi.nav_step_target_binding,
+                            clean(action.step_id));
+                        if (ok_bound and type(row) == 'table') then bound = row; end
+                    end
+                    if (bound ~= nil) then
+                        log_line(('objective travel arrived but step is bound native="%s" step="%s" zone=%d target="%s"'):fmt(
+                            clean(objective.native_key), clean(action.step_id),
+                            destination, clean(bound.target)));
+                    elseif (accepted[destination] ~= true) then
+                        local names = T{};
+                        for zone_id in pairs(accepted) do names:append(tostring(zone_id)); end
+                        log_line(('objective travel arrival zone=%d not accepted by native="%s" step="%s" accepts={%s}'):fmt(
+                            destination, clean(objective.native_key),
+                            clean(action.step_id), names:concat(',')));
+                    elseif (accepted[destination] == true) then
+                        log_line(('objective travel arrived native="%s" step="%s" zone=%d'):fmt(
+                            clean(objective.native_key), clean(action.step_id), destination));
+                        if (advance_objective_match(objective, objective.index, 1)) then
+                            changed:append(objective);
+                        end
+                    end
                 end
             end
         end
@@ -4279,18 +7524,88 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
     local location = kind == 'quest' and clean(item.quest_area) or clean(item.mission_context);
     local status = kind == 'quest' and 'Active quest.'
         or (clean(item.mission_availability) == 'available-to-start' and 'Available mission.' or 'Active mission.');
+    if (item.objective_guide_postlude == true) then
+        -- NOTHING LEFT TO ROUTE IS A THING TO SAY, NOT A THING TO GO QUIET ON.
+        --
+        -- "No further recorded step" was the wrong words even so: what ran out
+        -- is what this addon TRACKS, and the guide frequently has not run out at
+        -- all. Where it still has material steps -- travel, talk, examine,
+        -- fight -- say that plainly rather than implying the objective is done
+        -- being described.
+        local speech = ('%s. %s'):fmt(title ~= '' and title or 'Objective', status);
+        if (location ~= '') then
+            speech = speech .. ' ' .. location .. '.';
+        end
+        local continuation = clean(item.objective_instruction);
+        if (clean(item.objective_guide_postlude_kind) == 'invalid') then
+            return ('%s %s'):fmt(speech, continuation)
+                .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
+        end
+        if ((tonumber(item.objective_guide_postlude_material_tail) or 0) > 0) then
+            speech = speech .. ' Automatic tracking ends here, and the guide still has'
+                .. ' steps it does not track.';
+        else
+            speech = speech .. ' No further automatically tracked step.';
+        end
+        local source = clean(item.objective_guide_postlude_source);
+        if (source ~= '' and continuation ~= '') then
+            speech = ('%s %s continues: %s'):fmt(speech, source, continuation);
+        elseif (continuation ~= '') then
+            speech = speech .. ' ' .. continuation;
+        end
+        if (item.objective_guide_postlude_truncated == true) then
+            speech = speech .. ' More guide text follows. Press G to read it.';
+        end
+        -- WHERE, WITHOUT CLAIMING HOW MANY.
+        local places = clean(item.objective_guide_postlude_places);
+        if (places ~= '') then
+            speech = ('%s Places for this step: %s.'):fmt(speech, places);
+        end
+        -- AND THE NOTE WE WROTE FOR THIS EXACT STEP.
+        --
+        -- modules/mission_quest_step_notes.lua holds hand-written, source-checked
+        -- instructions the guide omits -- today, that the Large Apparatus to
+        -- examine is the one on the LEFT, because the one on the right goes to
+        -- Ru'Aun Gardens and costs a Clear Chip to find out. Nothing spoke it
+        -- once a cursor exhausted, which is exactly when the player is standing
+        -- in front of both.
+        --
+        -- The NOTE alone, not objective_step_supplement. The supplement also
+        -- reads the lines written UNDER the step, and in a postlude those are
+        -- the same lines the page continuation just read -- it doubled this row
+        -- to eighteen hundred characters of the same paragraph twice.
+        local postlude_note = accessxi.objective_step_note(
+            clean(item.objective_native_key), clean(item.objective_guide_step_id));
+        if (postlude_note ~= '') then
+            speech = speech .. ' ' .. postlude_note;
+        end
+        local postlude_details = meaningful_native_details(item.objective_native_details);
+        if (postlude_details ~= '') then
+            speech = speech .. (kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ')
+                .. postlude_details;
+        end
+        return speech .. ' Press K to repeat instructions.'
+            .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
+    end
     if (item.objective_instruction_only == true) then
         local speech = ('%s. %s'):fmt(title ~= '' and title or 'Objective', status);
         if (location ~= '') then
             speech = speech .. ' ' .. location .. '.';
         end
         speech = speech .. ' Current instruction: ' .. clean(item.objective_instruction);
+        -- Everything written UNDER this instruction. For a step that ends on a
+        -- colon this is the whole answer, and without it the player is told a
+        -- list is coming and then never told what is in it.
+        local supplement = accessxi.objective_step_supplement(item);
+        if (supplement ~= '') then
+            speech = speech .. ' ' .. supplement;
+        end
         local native_details = meaningful_native_details(item.objective_native_details);
         if (native_details ~= '') then
             speech = speech .. (kind == 'quest' and ' Native quest details: ' or ' Native mission orders: ')
                 .. native_details;
         end
-        return speech .. ' Press I to repeat instructions.'
+        return speech .. ' Press K to repeat instructions.'
             .. (' %d of %d.'):fmt(tonumber(index) or 1, tonumber(total) or 1);
     end
     if (clean(item.objective_candidate_id) ~= '') then
@@ -4303,6 +7618,12 @@ function accessxi.nav_mission_quest_item_speech(item, index, total)
         local destination_label = clean(item.objective_destination_label);
         if (destination_location ~= '' or destination_label ~= '') then
             speech = speech .. ' Destination: ' .. clean(destination_location .. ' ' .. destination_label) .. '.';
+        end
+        -- The same supplement as every other branch: the rows written under
+        -- this step, and what of them the player is already carrying.
+        local supplement = accessxi.objective_step_supplement(item);
+        if (supplement ~= '') then
+            speech = speech .. ' ' .. supplement;
         end
         local native_details = meaningful_native_details(item.objective_native_details);
         if (native_details ~= '') then
@@ -4514,6 +7835,8 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     end
 
     local title = clean(item ~= nil and item.name or 'objective');
+    local instruction_route_message =
+        ('No exact source-backed route is available for %s. Press K for instructions.'):fmt(title);
     local selected_identity = clean(item ~= nil and item.objective_character_identity or ''):lower();
     local current_identity = character_identity();
     if (selected_identity == '' or current_identity == '' or selected_identity ~= current_identity) then
@@ -4534,6 +7857,29 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     if (fresh == nil) then
         return nil, ('%s is no longer present in the current character\'s active %s list.'):fmt(title, kind == 'quest' and 'quest' or 'mission'), 'blocked';
     end
+    -- A refusal names its failure class. "No exact source-backed route" told
+    -- the player nothing they could act on; "the guide does not say which
+    -- zone Zantaviat is in" tells them, and tells us what to fix.
+    local step_refusal = accessxi.nav_mission_quest_step_refusal(
+        clean(fresh.objective_native_key), clean(fresh.objective_guide_step_id));
+    -- Whatever answer this function ends up giving, the guide's sentence goes
+    -- with it. Every "no route" branch below used to end the player's evening.
+    local guide_instruction = clean(fresh.objective_action_instruction);
+    if (guide_instruction == '' and type(step_refusal) == 'table') then
+        guide_instruction = clean(step_refusal.instruction);
+    end
+    local function with_guide(message)
+        local guide = type(accessxi.mission_step_resolver) == 'table'
+            and accessxi.mission_step_resolver.guide_sentence(guide_instruction) or '';
+        if (guide == '') then return message; end
+        return ('%s %s'):fmt(message, guide);
+    end
+    if (step_refusal ~= nil and type(accessxi.mission_step_resolver) == 'table') then
+        instruction_route_message = accessxi.mission_step_resolver.refusal_speech(
+            title, step_refusal, guide_instruction);
+    else
+        instruction_route_message = with_guide(instruction_route_message);
+    end
     local test_payload = source_route_payload(fresh);
     local route_state_ready = false;
     if (kind == 'mission') then
@@ -4544,33 +7890,48 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     if (not route_state_ready) then
         if (fresh.objective_instruction_only == true
             and clean(fresh.objective_action_instruction) ~= '') then
-            return clean(fresh.objective_action_instruction), '', 'instruction';
+            return nil, instruction_route_message, 'blocked';
         end
         if (test_payload ~= nil) then
             return test_payload, '', 'wiki-ready';
         end
-        return nil, ('No exact source-backed destination is available for %s. Press G for the source guide.'):fmt(title), 'blocked';
+        -- The named refusal was built above and then thrown away here: it was
+        -- only ever RETURNED on the instruction-only branches, and these are
+        -- the branches a routed objective actually reaches. What the player
+        -- heard live was "No exact source-backed route is available for The
+        -- Davoi Report" -- the addon's own vocabulary, with the reason and the
+        -- guide's sentence both discarded.
+        return nil, (step_refusal ~= nil and instruction_route_message or with_guide(
+            ('No exact source-backed destination is available for %s. Press G for the source guide.'):fmt(title))), 'blocked';
     end
     if (fresh.objective_instruction_only ~= true and not objective_auxiliary_state_ready()) then
         if (test_payload ~= nil) then
             return test_payload, '', 'wiki-ready';
         end
-        return nil, ('No exact source-backed destination is available for %s. Press G for the source guide.'):fmt(title), 'blocked';
+        -- The named refusal was built above and then thrown away here: it was
+        -- only ever RETURNED on the instruction-only branches, and these are
+        -- the branches a routed objective actually reaches. What the player
+        -- heard live was "No exact source-backed route is available for The
+        -- Davoi Report" -- the addon's own vocabulary, with the reason and the
+        -- guide's sentence both discarded.
+        return nil, (step_refusal ~= nil and instruction_route_message or with_guide(
+            ('No exact source-backed destination is available for %s. Press G for the source guide.'):fmt(title))), 'blocked';
     end
     local runtime = accessxi.objective_route_runtime;
     if (type(runtime) ~= 'table' or type(runtime.authorize_start) ~= 'function') then
         if (fresh.objective_instruction_only == true
             and clean(fresh.objective_action_instruction) ~= '') then
-            return clean(fresh.objective_action_instruction), '', 'instruction';
+            return nil, instruction_route_message, 'blocked';
         end
         if (test_payload ~= nil) then return test_payload, '', 'wiki-ready'; end
-        return nil, 'Objective route verification is unavailable.', 'blocked';
+        return nil, (step_refusal ~= nil and instruction_route_message
+            or with_guide('Objective route verification is unavailable.')), 'blocked';
     end
     local ok, payload, message, mode = pcall(runtime.authorize_start, runtime, item, fresh, player);
     if (not ok) then
         if (fresh.objective_instruction_only == true
             and clean(fresh.objective_action_instruction) ~= '') then
-            return clean(fresh.objective_action_instruction), '', 'instruction';
+            return nil, instruction_route_message, 'blocked';
         end
         if (test_payload ~= nil) then return test_payload, '', 'wiki-ready'; end
         return nil, 'Objective route verification failed safely.', 'blocked';
@@ -4580,7 +7941,7 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
     if (mode == 'blocked') then
         if (fresh.objective_instruction_only == true
             and clean(fresh.objective_action_instruction) ~= '') then
-            return clean(fresh.objective_action_instruction), '', 'instruction';
+            return nil, instruction_route_message, 'blocked';
         end
         if (test_payload ~= nil) then return test_payload, '', 'wiki-ready'; end
         return nil, message ~= '' and message or 'No rooted route contract is available for this objective.', 'blocked';
@@ -4589,7 +7950,7 @@ function accessxi.nav_mission_quest_prepare_route(item, player)
             or clean(payload) == '' or clean(payload) ~= clean(fresh.objective_action_instruction)) then
             return nil, 'Objective route verification returned an invalid instruction.', 'blocked';
         end
-        return clean(payload), message, 'instruction';
+        return nil, instruction_route_message, 'blocked';
     elseif (mode == 'ready') then
         if (fresh.objective_instruction_only == true or not exact_ready_payload(payload, fresh)) then
             return nil, 'Objective route verification returned an invalid destination.', 'blocked';
@@ -4665,12 +8026,31 @@ function accessxi.nav_mission_quest_guide_selection_present()
     return false;
 end
 
+-- What the guide says you should have before going. Advice, spoken when the
+-- route starts, never a reason not to start it -- the player decides whether
+-- to fetch the thing first or walk it now and come back.
+function accessxi.nav_mission_quest_step_advisory(native_key, step_id)
+    local blocks = source_derivation_cache.prerequisite_refusals;
+    local per_key = type(blocks) == 'table' and blocks[clean(native_key)] or nil;
+    local record = type(per_key) == 'table' and per_key[clean(step_id)] or nil;
+    if (type(record) ~= 'table' or record.advisory ~= true) then
+        return '';
+    end
+    return clean(record.detail);
+end
+
 function accessxi.nav_mission_quest_start_suffix(point)
     local instruction = clean(point ~= nil and point.objective_instruction or '');
     local recommendation = clean(point ~= nil and point.objective_route_recommendation or '');
     local suffix = instruction ~= '' and (' Objective: ' .. instruction) or '';
     if (recommendation ~= '') then
         suffix = suffix .. ' ' .. recommendation;
+    end
+    local advisory = accessxi.nav_mission_quest_step_advisory(
+        type(point) == 'table' and point.objective_native_key or '',
+        type(point) == 'table' and (point.objective_guide_step_id or point.guide_step_id) or '');
+    if (advisory ~= '') then
+        suffix = suffix .. (' Note: %s.'):fmt(advisory:gsub('%.$', ''));
     end
     return suffix;
 end
@@ -4798,6 +8178,181 @@ function accessxi.nav_mission_quest_route_owner_mismatch()
     local current_epoch = objective_session_epoch();
     return route_point_owner_mismatch(accessxi.nav_destination, current_identity, current_world, current_epoch)
         or route_point_owner_mismatch(accessxi.nav_zone_search_target, current_identity, current_world, current_epoch);
+end
+
+-- WHICH "JOURNEY ABROAD" IS THIS?
+--
+-- Retail's 0x056 carries NO mission status for nation missions -- only `nation`
+-- and `nation_mission`. Verified live 2026-08-25 against this player's own
+-- history: the field walks 4 -> 5 -> 6 (The Davoi Report -> Journey Abroad ->
+-- Journey to Bastok), so committing to a BRANCH is directly observable. A
+-- RETURN to Journey Abroad is not: the field reads 5 whether you have chosen no
+-- nation, finished one half, or finished both.
+--
+-- Key items settle it with no saved history, and history is exactly what the
+-- release case lacks -- a player installing this mod halfway through the
+-- mission has none for us to read. From the mission scripts: Halver grants
+-- Letter to the Consuls (5) and committing to a nation deletes it; finishing
+-- the second half grants Kindred Report (29), which Halver then takes back.
+--
+--     Letter held           -> neither half started, pick a nation
+--     Kindred Report held   -> both halves done, report to Halver
+--     both absent, KNOWN    -> exactly one half done
+--
+-- Returns 'held', 'absent' or 'unknown'. THE THIRD VALUE IS THE POINT:
+-- key_items_packet_has_id answers false both for "you do not have it" and for
+-- "no 0x055 has arrived yet", and collapsing those would tell a player who has
+-- chosen nothing at all that they are half finished.
+function accessxi.mission_quest_key_item_state(id)
+    id = tonumber(id) or -1;
+    if (id < 0) then
+        return 'unknown';
+    end
+    if (type(accessxi.restore_key_items_packet_cache_if_needed) == 'function') then
+        pcall(accessxi.restore_key_items_packet_cache_if_needed);
+    end
+    local tables = accessxi.key_items_packet_tables;
+    if (type(tables) ~= 'table') then
+        return 'unknown';
+    end
+    local entry = tables[math.floor(id / 512)];
+    if (type(entry) ~= 'table' or #(tostring(entry.flags or '')) < 64) then
+        return 'unknown';
+    end
+    local ok, held = pcall(accessxi.key_items_packet_has_id, id);
+    if (not ok) then
+        return 'unknown';
+    end
+    return held and 'held' or 'absent';
+end
+
+-- HAS THIS NATION MISSION BEEN COMPLETED?
+--
+-- 0x056 at port 0x00D0 is a per-nation bitmap of COMPLETED nation missions --
+-- one u32 per nation, bit N meaning packet mission id N. The reader already
+-- keeps it as mission_packet_nations_complete; nothing read it. Verified live
+-- 2026-08-25: this player's San d'Oria word was 31 (0b11111), missions 0-4 done
+-- through The Davoi Report, while they were part-way through mission 6.
+--
+-- MIND THE NUMBERING. This takes the PACKET id, which runs one below the
+-- guide's native id: guide "mission:San d'Oria:7" is packet mission 6.
+--
+-- Returns true, false, or nil when no 0x00D0 has arrived yet. The bits are
+-- permanent -- a character who ran this chain under a previous allegiance keeps
+-- them -- so callers must use this to ANNOTATE a choice, never to remove one.
+function accessxi.mission_quest_nation_mission_complete(nation_index, packet_mission_id)
+    nation_index = tonumber(nation_index) or -1;
+    packet_mission_id = tonumber(packet_mission_id) or -1;
+    if (nation_index < 0 or nation_index > 2
+        or packet_mission_id < 0 or packet_mission_id > 31) then
+        return nil;
+    end
+    local words = accessxi.mission_packet_nations_complete;
+    if (type(words) ~= 'table') then
+        return nil;
+    end
+    local word = tonumber(words[nation_index + 1]);
+    if (word == nil) then
+        return nil;
+    end
+    return math.floor(word / (2 ^ packet_mission_id)) % 2 == 1;
+end
+
+-- A `when` clause is met only on POSITIVE evidence. An unreadable key-item
+-- table satisfies nothing, and an empty clause satisfies nothing either, so a
+-- record with no matching variant falls through to its default -- which by
+-- construction offers every branch rather than picking one on a guess.
+function accessxi.mission_quest_override_when_met(when)
+    if (type(when) ~= 'table') then
+        return false;
+    end
+    local checked = false;
+    local wanted = when.key_item_held;
+    if (wanted ~= nil) then
+        local ids = type(wanted) == 'table' and wanted or { wanted };
+        for _, id in ipairs(ids) do
+            if (accessxi.mission_quest_key_item_state(id) ~= 'held') then
+                return false;
+            end
+            checked = true;
+        end
+    end
+    local unwanted = when.key_item_absent;
+    if (unwanted ~= nil) then
+        local ids = type(unwanted) == 'table' and unwanted or { unwanted };
+        for _, id in ipairs(ids) do
+            if (accessxi.mission_quest_key_item_state(id) ~= 'absent') then
+                return false;
+            end
+            checked = true;
+        end
+    end
+    -- Completed-mission bits. `nil` -- no 0x00D0 seen -- never satisfies a
+    -- clause in either direction, so an unread bitmap falls through to the
+    -- record's default rather than asserting a mission is unfinished.
+    local done = when.nation_mission_complete;
+    if (done ~= nil) then
+        for _, entry in ipairs(done) do
+            if (accessxi.mission_quest_nation_mission_complete(entry[1], entry[2]) ~= true) then
+                return false;
+            end
+            checked = true;
+        end
+    end
+    local not_done = when.nation_mission_incomplete;
+    if (not_done ~= nil) then
+        for _, entry in ipairs(not_done) do
+            if (accessxi.mission_quest_nation_mission_complete(entry[1], entry[2]) ~= false) then
+                return false;
+            end
+            checked = true;
+        end
+    end
+    local any = when.nation_mission_any_complete;
+    if (any ~= nil) then
+        local hit = false;
+        for _, entry in ipairs(any) do
+            if (accessxi.mission_quest_nation_mission_complete(entry[1], entry[2]) == true) then
+                hit = true;
+            end
+        end
+        if (not hit) then
+            return false;
+        end
+        checked = true;
+    end
+    return checked;
+end
+
+-- Resolve a reviewed override to the step list that fits what we can observe.
+-- A record carries either `steps` (one fixed sequence) or `variants` (ordered,
+-- first match wins) plus a `steps` default. The second return value is the
+-- source label, which carries the variant name so a progression cursor saved
+-- in one state can never be mistaken for one saved in another.
+function accessxi.mission_quest_override_steps(native_key)
+    native_key = tostring(native_key or ''):gsub('^%s+', ''):gsub('%s+$', '');
+    if (native_key == '' or type(accessxi.mission_quest_step_overrides) ~= 'table') then
+        return nil, '', '';
+    end
+    local record = accessxi.mission_quest_step_overrides[native_key];
+    if (type(record) ~= 'table') then
+        return nil, '', '';
+    end
+    local source = tostring(record.source or '');
+    if (type(record.variants) == 'table') then
+        for _, variant in ipairs(record.variants) do
+            if (type(variant) == 'table' and type(variant.steps) == 'table'
+                and #variant.steps > 0
+                and accessxi.mission_quest_override_when_met(variant.when)) then
+                local state = tostring(variant.state or 'variant');
+                return variant.steps, source .. ':' .. state, state;
+            end
+        end
+    end
+    if (type(record.steps) == 'table' and #record.steps > 0) then
+        return record.steps, source, tostring(record.state or '');
+    end
+    return nil, '', '';
 end
 
 return true;

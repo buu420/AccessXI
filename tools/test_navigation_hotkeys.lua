@@ -105,4 +105,17 @@ assert(nav.is_hotkey_vk(0x4B) == true, 'Virtual key K must be recognized.')
 assert(nav.is_hotkey_vk(0x4C) == true, 'Virtual key L must be recognized.')
 assert(nav.is_hotkey_vk(0x48) == false, 'Status key H must not be treated as a navigation key.')
 
+-- N MARKS THE CURRENT STEP DONE. A mission step completes once; if the addon
+-- was not watching, the game never offers it again, and before this the player
+-- could not move the cursor past it by any key. The function behind it existed
+-- with no caller, exactly like the guide browser behind G.
+assert(nav.is_hotkey_vk(0x4E) == true, 'Virtual key N must be recognized.')
+assert(nav.poll(nav.new_state(), snapshot('N')) == 'mark_step_done',
+    'N must mark the current step done.')
+assert(nav.DIK_BY_VK[0x4E] == 0x31, 'N must map to its DirectInput scan code.')
+for _, taken in ipairs({ 0x48, 0x44, 0x42, 0x4D, 0x58 }) do
+    assert(nav.is_hotkey_vk(taken) == false,
+        'A key already bound elsewhere must not become a navigation key.')
+end
+
 print('Navigation hotkey checks passed')

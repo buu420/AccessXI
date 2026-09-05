@@ -7149,7 +7149,7 @@ return {
         marker = "#*",
         depth = 2,
         instruction = "There is now a Survival Guide just inside Ordelle Cave. Use it to return to Northern San d’Oria if you have already activated it.",
-        action = "use",
+        action = "note",
         entities = { "Survival Guide" },
         zones = {  },
         map_numbers = {  },

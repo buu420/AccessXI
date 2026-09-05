@@ -4723,7 +4723,7 @@ return {
     title = "The Enduring Tumult of War",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "645d2deac81253c1364862961f145896a0e14d9ba04baf1c1e91f462262a2fe2",
+    progression_revision = "9ed276fe80dfb1dd64eb000c463941bdfeb87d3751a68bdf25a9e63b3219e950",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",
@@ -8242,7 +8242,7 @@ return {
     title = "The Rescue Drill",
     status = "verified-navigation",
     progression_schema_version = 2,
-    progression_revision = "4b1962a08a4b7b51d3d45b67b45b5d1a06b9c3c7ea10ebab20f2d4e49add28c5",
+    progression_revision = "5b8bacb55d22ad982fecd24a04579dbaa85eda63e736f099bd1c7959f3c812ee",
     source_authority = {
       primary = "bg",
       fallback = "ffxiclopedia",

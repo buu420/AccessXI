@@ -112,6 +112,41 @@ function accessxi.generic_query_label_is_clean(label)
         or label:contains('Hover', true)) then
         return false;
     end
+
+    -- THE ADDON'S OWN DATA IS NOT A MENU LABEL.
+    --
+    -- This test was five hand-written strings and nothing structural, so it
+    -- accepted anything the pointer walk happened to land on -- including our
+    -- OWN memory. Live 2026-08-27 the player opened a Survival Guide and heard
+    --
+    --   "129cobra mercenaryenemycamp:v1:129:cobra-mercenary:50ee1999c005125309740"
+    --
+    -- which is a row of ffxi-nav-destinations.tsv read back to them as if it
+    -- were a travel option. The correct four options were sitting in the
+    -- canonical chain at the same moment, scoring 116 against that row's 33.
+    --
+    -- These shapes cannot occur in a client menu string and always occur in
+    -- ours, so they are safe to refuse outright: our destination identities
+    -- (kind:v1:zone:...), our LandSandBoat provenance keys, the client's menu
+    -- NAME structure ("menu    query", padded with spaces), and the long
+    -- hexadecimal tails our identity hashes end in.
+    local lowered = tostring(label):lower();
+    if (lowered:find('camp:v1:', 1, true) or lowered:find('npc:v1:', 1, true)
+        or lowered:find('object:v1:', 1, true) or lowered:find('area:v1:', 1, true)
+        or lowered:find('enemy:v1:', 1, true)
+        or lowered:find('lsb:npc_list:', 1, true)
+        or lowered:find('lsb:zonelines:', 1, true)
+        or lowered:find('lsb:scripted_trigger:', 1, true)) then
+        return false;
+    end
+    if (lowered:match('^menu%s%s+%S+$') ~= nil) then
+        return false;
+    end
+    if (lowered:match('%x%x%x%x%x%x%x%x%x%x%x%x') ~= nil
+        and lowered:match('%s') == nil) then
+        return false;       -- a twelve-digit hex run with no spaces is a hash
+    end
+
     return true;
 end
 
@@ -1334,6 +1369,11 @@ function accessxi.generic_query_menu_speech(menu_name, title, obj)
         help_mode);
     if (key ~= tostring(accessxi.last_generic_query_menu_log_key or '')) then
         accessxi.last_generic_query_menu_log_key = key;
+        -- A Survival Guide or telepoint opened here can move the player
+        -- without walking; the observed zoneline learner must know.
+        if (type(accessxi.nav_note_warp_intent) == 'function') then
+            accessxi.nav_note_warp_intent(title);
+        end
         log_state(('state generic-query menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X mode="%s" label="%s" help="%s" helpMode="%s" speech="%s"'):fmt(
             menu_name,
             accessxi.escape_probe_log_text(title),

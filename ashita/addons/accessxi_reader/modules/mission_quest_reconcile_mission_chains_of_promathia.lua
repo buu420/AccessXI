@@ -19211,7 +19211,7 @@ return {
         comparison = "single-source",
         agreed_fields = {  },
         conflicting_fields = {  },
-        action = "use",
+        action = "travel",
         entities = {  },
         zones = {  },
         grid_coordinates = {  },

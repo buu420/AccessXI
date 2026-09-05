@@ -202,6 +202,24 @@ While AccessXI Settings is open, Up and Down move between items, Right or Enter 
 
 ## Troubleshooting
 
+Mission, quest and zone-navigation diagnostics are recorded automatically while
+AccessXI is running. After something goes wrong, type `/axi report` in game.
+Send the resulting **`AccessXI-support-report.log`** from
+`Ashita\addons\accessxi_reader\logs` inside your AccessXI installation folder.
+For the default installation this is
+`%USERPROFILE%\AccessXI\Ashita\addons\accessxi_reader\logs\AccessXI-support-report.log`.
+No debug mode or advance recording setup is needed. Run the command soon after
+the problem, since it retains the most recent two 8 MiB log segments. If the
+addon crashed before you could run the command, send `ffxi-support.log` and
+`ffxi-support.log.previous` from the same folder.
+
+The report records the release version, observed mission/quest state, selected
+objective, route and zone coordinates, navigation failures, Stream evidence,
+and speech output results. It can include character names and in-game chat;
+review it before sharing. Add a sentence describing what went wrong and roughly
+when. This often lets a developer diagnose mission or zone defects from another
+player's evidence, although some problems still need a focused in-game retest.
+
 If PlayOnline does not speak:
 
 - Make sure you launched it with the `AccessXI Ashita` desktop shortcut.
@@ -252,6 +270,10 @@ The package builder takes the addon from `ashita\addons\accessxi_reader`, not fr
 
 ## Known limitations
 
+- Promyvion has live evidence for Holla's first forward Stream and arrival on
+  floor two. The complete route to its Spire and traversal in Dem, Mea and Vahzl
+  still need player testing; Holla also has an unresolved floor-two wall-contact
+  case. This release fixes Memory Streams being treated as enemy obstacles.
 - Final Fantasy XI does not expose a universal live stage number for every
   quest and mission. AccessXI automatically selects a step only from verified
   current-session packet, key-item, inventory, or world evidence; other guides

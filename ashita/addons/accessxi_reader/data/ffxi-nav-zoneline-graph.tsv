@@ -393,7 +393,7 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 876032890	115	West Sarutabaruta	z374	504.436	133.854	-13.689	116	East Sarutabaruta	z383	-341.494	106.469	-12.089	lsb-zonelines	untested	
 909587322	115	West Sarutabaruta	z376	425.197	693.491	-29.483	116	East Sarutabaruta	z385	-422.940	601.463	-28.935	lsb-zonelines	untested	
 943141754	115	West Sarutabaruta	z378	-374.546	61.091	-25.351	145	Giddeus	z411	-100.050	406.818	-2.664	lsb-zonelines	untested	
-1731670906	115	West Sarutabaruta	z37g	-228.613	-186.111	-10.402	146	Balga's Dais	z423	-259.648	-358.869	113.723	lsb-zonelines	untested	
+1731670906	115	West Sarutabaruta	z37g	-228.613	-186.111	-10.402	146	Balga's Dais	z423	-259.648	-358.869	113.723	lsb-zonelines	bad	one-way exit only; player-reported 2026-08-26 and confirmed by mesh probe -- Balga's Dais is entered from Giddeus and exits to West Sarutabaruta, never the reverse	
 1698116474	115	West Sarutabaruta	z37e	221.245	39.306	-0.634	192	Inner Horutoto Ruins	z5cb	-200.937	59.994	-11.573	lsb-zonelines	untested	
 1631007610	115	West Sarutabaruta	z37a	-279.160	660.050	-12.112	194	Outer Horutoto Ruins	z5e1	-316.779	860.009	-9.680	lsb-zonelines	untested	
 1664562042	115	West Sarutabaruta	z37c	-340.006	-399.521	8.097	194	Outer Horutoto Ruins	z5e9	-579.995	-636.951	-9.667	lsb-zonelines	untested	
@@ -523,7 +523,7 @@ zoneline_id	from_zone	from_name	from_code	from_x	from_z	from_y	to_zone	to_name	t
 842019962	144	Waughroon Shrine	z402	340.004	280.002	-118.806	143	Palborough Mines	z3z5	180.861	-70.971	-40.500	lsb-zonelines	untested	
 808531066	145	Giddeus	z410	-100.857	411.410	-4.534	115	West Sarutabaruta	z379	-374.008	63.289	-23.712	lsb-zonelines	untested	
 842085498	145	Giddeus	z412	-139.999	-300.329	-7.532	146	Balga's Dais	z421	317.842	380.143	-126.158	lsb-zonelines	untested	
-842151034	146	Balga's Dais	z422	-260.290	-363.578	111.152	115	West Sarutabaruta	z37h	-225.921	-185.284	-8.401	lsb-zonelines	untested	
+842151034	146	Balga's Dais	z422	-260.290	-363.578	111.152	115	West Sarutabaruta	z37h	-225.921	-185.284	-8.401	lsb-zonelines	escape	not a corridor; you reach West Sarutabaruta by winning the battlefield or casting Escape (BG Wiki "Via Escape"), and the Balga-side endpoint is on a pad nothing reaches on foot
 808596602	146	Balga's Dais	z420	321.741	379.976	-128.397	145	Giddeus	z413	-135.904	-300.668	-5.788	lsb-zonelines	untested	
 808662138	147	Beadeaux	z430	-300.088	96.044	-1.085	109	Pashhow Marshlands	z315	578.786	-376.731	23.416	lsb-zonelines	untested	
 842216570	147	Beadeaux	z432	384.501	19.617	36.717	148	Qulun Dome	z441	337.901	20.087	38.091	lsb-zonelines	untested	

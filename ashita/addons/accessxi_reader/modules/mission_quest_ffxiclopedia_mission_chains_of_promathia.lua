@@ -13031,7 +13031,7 @@ return {
         marker = "*",
         depth = 1,
         instruction = "Once through, proceed to the elevator and use it to go to the lower level.",
-        action = "use",
+        action = "travel",
         entities = {  },
         zones = {  },
         map_numbers = {  },

@@ -812,6 +812,21 @@ function GuideState:resolve(native_key)
                 or preferred_source_step_values(sources, orders, 'key_items'),
             field_sources = type(pair.field_sources) == 'table'
                 and deep_copy(pair.field_sources) or {},
+            -- WHICH STEP OF EACH SOURCE PAGE THIS ROW IS.
+            --
+            -- Positional: [1] is the BG Wiki step number, [2] FFXIclopedia's, 0 meaning the
+            -- page does not carry this step at all. It is the ONLY way to read one page's
+            -- steps in that page's own order, because the reconciled list interleaves the two
+            -- BY ORDINAL POSITION -- a short page's later rows sort EARLIER than a long
+            -- page's, so merged `order` answers a different question entirely.
+            --
+            -- It was read into `orders` above and then dropped here, so every consumer that
+            -- came through GuideState saw nil. That is what made the guide postlude find no
+            -- pages live on 2026-08-29 while the offline harness found two: the harness
+            -- returns the reconcile module's own rows and never passes through this
+            -- projection.
+            source_orders = type(pair.source_orders) == 'table'
+                and deep_copy(pair.source_orders) or {},
             route_ready = pair.route_ready == true,
             navigation_target = deep_copy(pair.navigation_target),
             bg_instruction = bg_instruction,
@@ -1012,6 +1027,76 @@ end
 
 function GuideState:current_native_key()
     return self:is_open() and self.selected_native_key or '';
+end
+
+-- THE TWO PAGES, READ SEPARATELY.
+--
+-- A reconciled step merges both wikis' entities and zones into ONE list, and
+-- resolving that merged list can name a destination NEITHER page stated -- the
+-- same cross-product mistake the note contract exists to prevent. The Davoi
+-- Report step-013 is the plain case: BG's own reading is
+-- entities = { "Lost document" } with grid { "J-8" }, FFXIclopedia's is
+-- entities = { "!", "Lost Document" } with no grid, and the merge is
+-- { "Lost document", "!" }. Only the second page ever named the thing you
+-- click.
+--
+-- All 1,451 conflicted steps in the corpus carry exactly one conflicting
+-- field, `target_identity` -- the extractor noticing the pages worded the
+-- target differently, not the pages disagreeing about the world. sol's ruling
+-- (2026-08-23): resolve each source on its own terms and never the union.
+--
+-- Returns { bg = <source step>, ffxiclopedia = <source step> }, either absent
+-- when that page has no reading for this step.
+function GuideState:source_step_readings(native_key, stable_step_id)
+    native_key = clean(native_key);
+    stable_step_id = clean(stable_step_id);
+    local readings = {};
+    if (native_key == '' or stable_step_id == '') then
+        return readings;
+    end
+
+    local entry = self:index_entry(native_key);
+    if (type(entry) ~= 'table') then
+        return readings;
+    end
+
+    local reconciliation_module = self:load_module(clean(entry.reconcile_module));
+    local reconciliation = type(reconciliation_module) == 'table'
+        and reconciliation_module[native_key] or nil;
+    if (type(reconciliation) ~= 'table' or type(reconciliation.steps) ~= 'table') then
+        return readings;
+    end
+
+    local orders = nil;
+    for _, pair in ipairs(reconciliation.steps) do
+        if (clean(pair.stable_step_id) == stable_step_id) then
+            orders = type(pair.source_orders) == 'table' and pair.source_orders or {};
+            break;
+        end
+    end
+    if (orders == nil) then
+        return readings;
+    end
+
+    local source_modules = type(entry.source_modules) == 'table'
+        and entry.source_modules or {};
+    -- source_orders is positional: [1] indexes the bg page, [2] ffxiclopedia.
+    for _, site in ipairs({ { 'bg', 1 }, { 'ffxiclopedia', 2 } }) do
+        local module_name = clean(source_modules[site[1]]);
+        local order = tonumber(orders[site[2]]) or 0;
+        if (module_name ~= '' and order > 0) then
+            local source_module = self:load_module(module_name);
+            local source = type(source_module) == 'table'
+                and source_module[native_key] or nil;
+            local step = type(source) == 'table' and type(source.steps) == 'table'
+                and source.steps[order] or nil;
+            if (type(step) == 'table') then
+                readings[site[1]] = step;
+            end
+        end
+    end
+
+    return readings;
 end
 
 function GuideState:automatic_step_id(native_key, stage_key)

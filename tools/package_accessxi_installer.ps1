@@ -283,6 +283,42 @@ $payloadRoot = Join-Path $packageRoot 'payload'
 $payloadAshita = Join-Path $payloadRoot 'Ashita'
 $payloadNative = Join-Path $payloadRoot 'PlayOnlineNative'
 $payloadPrerequisites = Join-Path $payloadRoot 'Prerequisites'
+
+# FILES THE ADDON WRITES AT RUNTIME NEVER SHIP.
+#
+# Each of these is declared in the reader as a *_cache_path / *_evidence_path /
+# *_mode_path and opened with io.open(..., 'w') or 'a'. They are per-character
+# state, not product data: the shipped copies carried real character names and
+# their mission, quest, key-item, merit and Records of Eminence progress, which
+# both leaks the packager's account and seeds every tester's install with
+# somebody else's progression. Every read site guards a nil handle, so a fresh
+# install simply recreates them.
+$runtimeStateFiles = @(
+    'ffxi-job-abilities-bits.txt',
+    'ffxi-job-traits-bits.txt',
+    'ffxi-key-items-packet.tsv',
+    'ffxi-merits-packet.tsv',
+    'ffxi-mission-main-packet.txt',
+    'ffxi-nav-route-evidence.tsv',
+    'ffxi-objective-interaction-progress.tsv',
+    'ffxi-quest-packets.tsv',
+    'ffxi-roe-active-packet.tsv',
+    'nav-beacon-audio-mode.txt',
+    'survival-guide-last-packet.tsv'
+)
+$runtimeStateExcludePatterns = @($runtimeStateFiles) + @($runtimeStateFiles | ForEach-Object { "data\$_" })
+$addonExcludePatterns = @(
+    'logs',
+    'logs\*',
+    'cache',
+    'cache\*',
+    'backups',
+    'backups\*',
+    '*.boot.log',
+    '*.bak*',
+    '*.tmp'
+) + $runtimeStateExcludePatterns
+
 $payloadAddon = Join-Path $payloadAshita 'addons\accessxi_reader'
 
 New-Item -ItemType Directory -Force -Path $payloadRoot | Out-Null
@@ -305,6 +341,24 @@ $ashitaExcludePatterns = @(
     'addons\accessxi_reader\ffxi-menu-reader.boot.log',
     'addons\accessxi_reader\*.boot.log',
     'polplugins\accessxi_pol*.dll*',
+    # PERSONAL ASHITA STATE.
+    #
+    # config\addons holds per-character settings directories named
+    # <Character>_<id>; config\sandbox and config\imgui.ini are machine state;
+    # config\ashita\custom.* are this machine's signature overrides and can
+    # break a tester whose client differs. The stock config\ashita\ashita.*.ini
+    # signature files are deliberately kept, and the controlled AccessXI boot
+    # profiles excluded by the config\boot rules above are copied back below.
+    'config\addons',
+    'config\addons\*',
+    'config\sandbox',
+    'config\sandbox\*',
+    'config\imgui.ini',
+    'config\ashita\custom.*',
+    'addons\accessxi_reader\backups',
+    'addons\accessxi_reader\backups\*',
+    'addons\accessxi_reader\cache',
+    'addons\accessxi_reader\cache\*',
     '*.bak',
     '*.bak.*',
     '*.bak*',
@@ -338,8 +392,8 @@ if (Test-Path -LiteralPath $payloadAddon) {
     Assert-UnderDirectory -Path $payloadAddon -Parent $payloadAshita -Message "Refusing to replace addon outside packaged Ashita: $payloadAddon"
     Remove-Item -LiteralPath $payloadAddon -Recurse -Force
 }
-Copy-FilteredTree -Source $repoAddonRoot -Destination $payloadAddon -ExcludePatterns @('logs', 'logs\*', '*.boot.log', '*.bak*', '*.tmp')
-Copy-FilteredTree -Source $repoDataRoot -Destination (Join-Path $payloadAddon 'data')
+Copy-FilteredTree -Source $repoAddonRoot -Destination $payloadAddon -ExcludePatterns $addonExcludePatterns
+Copy-FilteredTree -Source $repoDataRoot -Destination (Join-Path $payloadAddon 'data') -ExcludePatterns $runtimeStateFiles
 Copy-FilteredTree -Source $repoSoundsRoot -Destination (Join-Path $payloadAddon 'sounds') -ExcludePatterns @('*.bak*', '*.log', '*.tmp')
 Copy-RequiredFile -Source $stagedCollisionNative -Destination (Join-Path $payloadAddon 'third_party\collision\accessxi_collision_native.dll')
 Copy-FilteredTree -Source $repoNavMeshesRoot -Destination (Join-Path $payloadAddon 'third_party\xiNavmeshes')
@@ -367,6 +421,108 @@ Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\accessxi_p
 Copy-RequiredFile -Source (Join-Path $nativeStage 'AccessXI.PolNative\prism.dll') -Destination (Join-Path $payloadNative 'AccessXI.PolNative\prism.dll')
 Copy-RequiredFile -Source $vcRedistX86 -Destination (Join-Path $payloadPrerequisites 'vc_redist.x86.exe')
 Copy-RequiredFile -Source $vcRedistX64 -Destination (Join-Path $payloadPrerequisites 'vc_redist.x64.exe')
+
+# ---------------------------------------------------------------------------
+# RELEASE GATE: every module the packaged reader loads must be in the payload.
+#
+# accessxi.load_code_module logs "module code load failed" and returns false
+# when a module file is missing -- it does not raise. A payload assembled from
+# a source tree that has fallen behind the reader therefore installs cleanly
+# and runs with whole subsystems silently absent, which for a screen-reader
+# addon is worse than a crash. This gate reads the module names out of the
+# packaged main and proves each one resolves inside the payload.
+function Assert-PackagedModuleReferences {
+    param(
+        [string]$PayloadAddonRoot
+    )
+
+    $mainPath = Join-Path $PayloadAddonRoot 'accessxi_reader.lua'
+    if (-not (Test-Path -LiteralPath $mainPath -PathType Leaf)) {
+        throw "Packaged addon is missing its main reader: $mainPath"
+    }
+
+    $mainSource = [System.IO.File]::ReadAllText($mainPath)
+    $missing = [System.Collections.Generic.List[string]]::new()
+    $checked = 0
+
+    # load_code_module('x') and load_module_table('x') resolve to modules\x.lua;
+    # load_menu_module_table('x') resolves to modules\menus\x.lua.
+    $loaders = @(
+        @{ Pattern = "load_code_module\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
+        @{ Pattern = "load_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
+        @{ Pattern = "load_menu_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules\menus' }
+    )
+    foreach ($loader in $loaders) {
+        $names = [regex]::Matches($mainSource, $loader.Pattern) |
+            ForEach-Object { $_.Groups[1].Value } |
+            Sort-Object -Unique
+        foreach ($name in $names) {
+            $checked++
+            $modulePath = Join-Path (Join-Path $PayloadAddonRoot $loader.Relative) ($name + '.lua')
+            if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
+                $missing.Add("$($loader.Relative)\$name.lua")
+            }
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        throw ("Packaged reader loads modules that are not in the payload: " +
+            ($missing -join ', ') +
+            ". The canonical addon source is behind the reader; sync it forward before packaging.")
+    }
+    if ($checked -eq 0) {
+        throw "Packaged reader declares no module references; the module gate cannot be trusted."
+    }
+
+    # Navigation runtime inputs whose absence stops routing outright. Asserted
+    # only when the packaged reader actually references the file, so optional
+    # navigation data (discoveries, manual steps, recorded marks) is not turned
+    # into a false release blocker.
+    $requiredNavigationData = @(
+        'ffxi-nav-destinations.tsv',
+        'ffxi-nav-points.tsv',
+        'ffxi-nav-zoneline-graph.tsv'
+    )
+    foreach ($dataFile in $requiredNavigationData) {
+        if ($mainSource -notmatch [regex]::Escape($dataFile)) {
+            continue
+        }
+        $dataPath = Join-Path (Join-Path $PayloadAddonRoot 'data') $dataFile
+        if (-not (Test-Path -LiteralPath $dataPath -PathType Leaf)) {
+            throw "Packaged reader loads navigation data that is not in the payload: data\$dataFile"
+        }
+    }
+
+    $navMeshDll = Join-Path $PayloadAddonRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll'
+    if (-not (Test-Path -LiteralPath $navMeshDll -PathType Leaf)) {
+        throw "Packaged addon is missing the navigation mesh native: $navMeshDll"
+    }
+    $navMeshRoot = Join-Path $PayloadAddonRoot 'third_party\xiNavmeshes'
+    if (@(Get-ChildItem -LiteralPath $navMeshRoot -File -ErrorAction SilentlyContinue).Count -eq 0) {
+        throw "Packaged addon has no navigation meshes: $navMeshRoot"
+    }
+
+    # The walk graph is a separate runtime input: the reader consults it only
+    # when the walk-graph modules are loaded, so it is required exactly when
+    # they are packaged and is not asserted otherwise.
+    $loadsWalkGraph = $false
+    foreach ($walkGraphModule in @('walk_graph', 'walk_graph_route')) {
+        if ($mainSource -match ("load_code_module\('" + [regex]::Escape($walkGraphModule) + "'")) {
+            $loadsWalkGraph = $true
+        }
+    }
+    if ($loadsWalkGraph) {
+        $walkGraphRoot = Join-Path (Join-Path $PayloadAddonRoot 'data') 'walkgraph'
+        if (@(Get-ChildItem -LiteralPath $walkGraphRoot -File -Filter '*.axwg' -ErrorAction SilentlyContinue).Count -eq 0) {
+            throw "Packaged reader loads the walk graph but the payload has no data\walkgraph\*.axwg files."
+        }
+    }
+
+    return $checked
+}
+
+$moduleReferenceCount = Assert-PackagedModuleReferences -PayloadAddonRoot $payloadAddon
+Write-Host "ok: packaged reader resolves $moduleReferenceCount module references and its required navigation inputs."
 
 $manifest = [ordered]@{
     CreatedAt = (Get-Date).ToString('o')

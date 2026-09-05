@@ -1476,6 +1476,18 @@ local function maybe_auto_dump_menu(name)
     if (key == accessxi.last_main_menu_native_dump_key) then
         return;
     end
+    -- One dump per menu object every five seconds, whatever the selection
+    -- does. Eleven 100-line pointer-chasing dumps inside the 2026-08-21
+    -- high-address failure window were the stall the player felt on top of
+    -- the silence; a dump is evidence, not something to repeat per keystroke.
+    local gate_key = ('%s:0x%08X'):fmt(name, obj);
+    local now_ms = os.clock() * 1000;
+    if (gate_key == accessxi.last_main_menu_native_dump_gate_key
+        and (now_ms - (tonumber(accessxi.last_main_menu_native_dump_gate_ms) or -1e9)) < 5000) then
+        return;
+    end
+    accessxi.last_main_menu_native_dump_gate_key = gate_key;
+    accessxi.last_main_menu_native_dump_gate_ms = now_ms;
     accessxi.last_main_menu_native_dump_key = key;
 
     dump_current_menu('auto-main-menu-native-missing', true);

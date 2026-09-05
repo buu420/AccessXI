@@ -1,8 +1,11 @@
+param([string]$Addon = 'C:\Users\buu42\Ashita\addons\accessxi_reader')
+
 $ErrorActionPreference = 'Stop'
 
-$addonPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\accessxi_reader.lua'
-$navigationDataPath = 'C:\Users\buu42\Ashita\addons\accessxi_reader\modules\navigation_data.lua'
-$source = Get-Content -LiteralPath $addonPath -Raw
+$addonPath = Join-Path $Addon 'accessxi_reader.lua'
+$navigationDataPath = Join-Path $Addon 'modules\navigation_data.lua'
+$dynamicSource = Get-Content -LiteralPath (Join-Path $Addon 'modules\nav_dynamic_obstacle.lua') -Raw
+$source = $dynamicSource + "`n" + (Get-Content -LiteralPath $addonPath -Raw)
 $navigationData = Get-Content -LiteralPath $navigationDataPath -Raw
 
 function Assert-Match {
@@ -63,7 +66,7 @@ Assert-NotMatch -Text $segmentBody -Pattern 'entity_type\s*~=\s*0\s*and\s*not\s*
 Assert-NotMatch -Text $segmentBody -Pattern 'GetEntityMapSize\(\)' -Message 'Dynamic obstacle detection should not do broad raw entity scans directly.'
 
 $dynamicStart = $source.IndexOf('function accessxi.nav_entity_is_dynamic_obstacle_candidate')
-$dynamicEnd = $source.IndexOf('function accessxi.nav_live_entity_key', $dynamicStart)
+$dynamicEnd = $source.IndexOf('function accessxi.nav_entity_is_steerable_obstacle', $dynamicStart)
 if ($dynamicStart -lt 0 -or $dynamicEnd -lt 0) {
     throw 'Could not locate nav_entity_is_dynamic_obstacle_candidate block.'
 }
@@ -82,7 +85,8 @@ if ($avoidStart -lt 0 -or $avoidEnd -lt 0) {
 }
 $avoidBody = $source.Substring($avoidStart, $avoidEnd - $avoidStart)
 Assert-Match -Text $avoidBody -Pattern 'nav obstacle warn' -Message 'Dynamic obstacle avoidance should keep diagnostic logs.'
-Assert-NotMatch -Text $avoidBody -Pattern 'speak\s*\(' -Message 'Dynamic obstacle avoidance should not speak obstacle warnings.'
+Assert-Match -Text $avoidBody -Pattern 'obstacle\.steerable == true[\s\S]*?nav_obstacle_spoken_tick[\s\S]*?speak\(' -Message 'Observed steerable obstacles should receive rate-limited spoken warnings.'
+Assert-Match -Text $avoidBody -Pattern 'return route_target, obstacle;' -Message 'Obstacle warnings must preserve the route aim; the player chooses how to walk around them.'
 Assert-NotMatch -Text $avoidBody -Pattern 'Obstacle ahead' -Message 'Dynamic obstacle avoidance should not say obstacle ahead.'
 
 $progressStart = $source.IndexOf('function accessxi.nav_progress_watch')

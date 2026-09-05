@@ -5,6 +5,13 @@ local list_methods = {}
 function list_methods:len() return #self end
 function list_methods:append(value) self[#self + 1] = value; return self end
 function list_methods:clear() for index = #self, 1, -1 do self[index] = nil end end
+-- Ashita's T{} carries the whole table library as methods; this stub carried
+-- three. Production uses :concat 731 times, so every branch that reached one
+-- died inside a pcall here and surfaced only as "raised a production reducer
+-- error" -- a harness gap wearing the costume of a runtime bug. Methods added
+-- here must match table.* semantics exactly, or the harness lies in the other
+-- direction.
+function list_methods:concat(separator) return table.concat(self, separator) end
 T = function(values) return setmetatable(values or {}, { __index = list_methods }) end
 
 local task2_red_failures = T{}
@@ -2563,6 +2570,26 @@ accessxi.nav_mission_quest_active_items('quest')
 task2_reducer_expect(task2_progress_bytes() == task2_foreign_legacy,
     'foreign-character legacy cursor migrated into the current owner/World')
 
+-- A re-scraped guide can retain a partial count when its stable action identity
+-- is unchanged. Override sequences and malformed identities remain ineligible.
+do
+    task2_reset_reducer_scenario('kill-counted')
+    local previous = task2_v2_progress_row('quest:sandoria:2', 1, 1, 2,
+        { progression_revision = 'stale-task2-revision' }) .. '\n'
+    local migrated = task2_v2_progress_row('quest:sandoria:2', 1, 1, 2) .. '\n'
+    task2_write_progress_bytes(previous)
+    reload_navigation_module()
+    local item = find(accessxi.nav_mission_quest_active_items('quest'), 'The Pickpocket')
+    task2_reducer_expect(type(item) == 'table'
+            and item.objective_guide_step_id == 'quest:sandoria:2:step-001'
+            and task2_progress_bytes() == previous .. migrated,
+        'stable-action revision migration did not preserve the exact partial count')
+    reload_navigation_module()
+    accessxi.nav_mission_quest_active_items('quest')
+    task2_reducer_expect(task2_progress_bytes() == previous .. migrated,
+        'stable-action revision migration appended again after reload')
+end
+
 -- v2 load validation is fail-closed.  None of these malformed records may
 -- become the current counted action or be normalized silently.
 for _, invalid in ipairs(T{
@@ -2570,8 +2597,8 @@ for _, invalid in ipairs(T{
     { label = 'noninteger progress_count', count = '1.5' },
     { label = 'progress_count above required_count', count = 6 },
     { label = 'terminal count on a nonterminal action', count = 5 },
-    { label = 'progression revision mismatch', count = 2,
-        overrides = { progression_revision = 'stale-task2-revision' } },
+    { label = 'override revision boundary', count = 2,
+        overrides = { progression_revision = 'override:stale-task2-revision' } },
     { label = 'action ID mismatch', count = 2,
         overrides = { action_id = 'quest:sandoria:2:step-001:claim-99' } },
     { label = 'wrong durable owner', count = 2,
@@ -4452,8 +4479,16 @@ assert(instruction_rows[1].objective_candidate_id == '')
 assert(instruction_rows[1].objective_destination_id == '')
 local instruction_payload, instruction_message, instruction_mode = accessxi.nav_mission_quest_prepare_route(
     instruction_rows[1], { zone = 230 })
-assert(instruction_mode == 'instruction' and instruction_message == '')
-assert(instruction_payload == 'Wait for the first signal.')
+-- Instruction-only objectives no longer hand the written prose back as a route
+-- payload. The provider refuses with a typed 'blocked' result that names the
+-- objective and points at the guide browser, so the player hears that there is
+-- no verified route AND where the written steps are, rather than a bare refusal
+-- or a wall of text at route start.
+assert(instruction_mode == 'blocked' and instruction_payload == nil,
+    'an instruction-only objective must refuse instead of returning a route payload')
+assert(instruction_message ==
+    'No exact source-backed route is available for A Long Current Quest. Press K for instructions.',
+    'an instruction-only refusal must name the objective and point at the guide')
 
 accessxi.mission_packet_main.nation = 1
 accessxi.mission_packet_main.nation_mission = 2
@@ -4858,7 +4893,16 @@ missions = accessxi.nav_mission_quest_active_items('mission')
 local available_rov = assert(find(missions, 'Rhapsodies of Vanadiel'))
 assert(available_rov.mission_availability == 'available-to-start')
 assert(available_rov.objective_native_key == "mission:Rhapsodies of Vana'diel:1")
-assert(available_rov.objective_guide_step_id == "mission:Rhapsodies of Vana'diel:1:step-002")
+-- The postponed-cutscene note is grouped under its parent step. Assert the
+-- instruction actually spoken to the player, including that child note.
+assert(available_rov.objective_guide_step_id == "mission:Rhapsodies of Vana'diel:1:step-001")
+local postponed_instruction = "Interact with a Tales' Beginning to resume the postponed opening cutscene."
+assert(accessxi.nav_mission_quest_item_speech(available_rov, 1, #missions)
+        :find(postponed_instruction, 1, true),
+    'postponed RoV item speech lost the child interaction instruction')
+assert(accessxi.objective_step_detail_text(available_rov.objective_native_key,
+        available_rov.objective_guide_step_id):find(postponed_instruction, 1, true),
+    'postponed RoV detail lost the child interaction instruction')
 assert(available_rov.objective_target ~= nil
     and available_rov.objective_target.name == "Tales' Beginning"
     and available_rov.objective_target.zone == 230,

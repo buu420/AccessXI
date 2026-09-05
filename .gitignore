@@ -69,3 +69,16 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Character-specific state is recreated at runtime, never release input.
+**/data/ffxi-job-abilities-bits.txt
+**/data/ffxi-job-traits-bits.txt
+**/data/ffxi-key-items-packet.tsv
+**/data/ffxi-merits-packet.tsv
+**/data/ffxi-mission-main-packet.txt
+**/data/ffxi-nav-route-evidence.tsv
+**/data/ffxi-objective-interaction-progress.tsv
+**/data/ffxi-quest-packets.tsv
+**/data/ffxi-roe-active-packet.tsv
+**/data/nav-beacon-audio-mode.txt
+**/data/survival-guide-last-packet.tsv

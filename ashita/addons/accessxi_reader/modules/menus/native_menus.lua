@@ -109,6 +109,11 @@ data.fixed_titles = T{
     { menus = T{ 'menu    shopbuy' }, title = 'Shop' },
     { menus = T{ 'menu    shopsell' }, title = 'Set Bazaar' },
     { menus = T{ 'menu    itmsort2' }, title = 'Sort' },
+    -- The container variant of the same window. Pressing + in a bag opens this
+    -- one, and it was named nowhere in the addon, so four separate allowlists
+    -- rejected it and the player heard nothing at all. Its own row rather than
+    -- a widened one: tools/test_item_sort_menu_native.ps1 pins the shape above.
+    { menus = T{ 'menu    itmsortw' }, title = 'Sort' },
     { menus = T{ 'menu    blusortw' }, title = 'Sort' },
     { menus = T{ 'menu    mgcsortw' }, title = 'Sort' },
     { menus = data.config_family_menus, title = 'Config' },

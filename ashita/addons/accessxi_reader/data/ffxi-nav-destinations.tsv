@@ -615,7 +615,7 @@
 231	Home Point #4	-132.000	194.000	12.000	object	lsb-san-doria-homepoint	generated	san-doria
 231	Home Point #4	-133.000	195.000	12.000	object	lsb-san-doria-npc-list	generated	san-doria
 231	Proto-Waypoint	96.642	-4.800	-0.199	object	lsb-san-doria-waypoint	generated	san-doria
-231	Survival Guide	-175.210	80.000	-4.000	object	lsb-san-doria-survival-guide	generated	san-doria
+231	Survival Guide	-175.210	80.000	4.000	object	lsb-san-doria-survival-guide	observed	san-doria
 231	Survival Guide	-174.000	80.000	4.000	object	lsb-san-doria-npc-list	generated	san-doria
 231	A.M.A.N. Liaison	114.200	-10.070	0.000	npc	lsb-san-doria-npc-list	generated	san-doria
 231	Abeaule	-138.420	55.188	-2.198	npc	lsb-san-doria-npc-list	generated	san-doria
@@ -1119,7 +1119,7 @@
 233	Trion	-38.000	88.306	-3.749	npc	lsb-san-doria-npc-list	generated	san-doria
 
 
-102	Shattered Telepoint	334.024	-56.596	24.055	npc	live-screenshot-lathine-telepoint-20260628	observed	world-npcs-2026-06-20
+102	Shattered Telepoint	334.024	-56.596	24.055	npc	live-screenshot-lathine-telepoint-20260628	bad	world-npcs-2026-08-26-superseded-by-live-trigger-at-340.210,-60.027,19.104
 102	Telepoint	420.000	20.200	19.100	npc	live-axi-pos-lathine-holla-gate-crystal-20260629	observed	world-npcs-2026-06-20
 238	Mog House entrance	160.000	-53.700	-2.650	area	lsb-moghouse-exits	untested	windurst-moghouse-2026-06-21
 239	Mog House entrance	-249.000	-120.000	-2.650	area	lsb-moghouse-exits	untested	windurst-moghouse-2026-06-21
@@ -3182,17 +3182,17 @@
 16	Memory Flux	-100.000	-140.003	-3.161	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843065	lsb:npc_list:16843065		
 16	Memory Flux	100.005	-140.005	-3.028	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843066	lsb:npc_list:16843066		
 16	Rendezvous Point	84.995	94.853	0.039	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843081	lsb:npc_list:16843081		
-16	warp 01	-279.966	280.030	0.538	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843054	lsb:npc_list:16843054		
-16	warp 02	-360.007	240.035	0.523	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843055	lsb:npc_list:16843055		
-16	warp 03	-359.975	120.052	0.542	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843056	lsb:npc_list:16843056		
-16	warp 04	-240.025	40.079	0.543	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843057	lsb:npc_list:16843057		
-16	warp 05	-280.009	-39.956	0.541	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843058	lsb:npc_list:16843058		
-16	warp 06	-160.016	-200.023	0.504	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843059	lsb:npc_list:16843059		
-16	warp 07	0.064	-39.964	0.547	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843060	lsb:npc_list:16843060		
-16	warp 08	-40.012	200.027	0.589	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843061	lsb:npc_list:16843061		
-16	warp 09	40.026	320.045	0.519	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843062	lsb:npc_list:16843062		
-16	warp 10	160.027	360.020	0.502	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843063	lsb:npc_list:16843063		
-16	warp 11	280.044	200.034	0.564	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843064	lsb:npc_list:16843064		
+16	Memory Stream (floor 3 west, northeast)	-279.966	280.030	0.538	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843054	lsb:npc_list:16843054		
+16	Memory Stream (floor 3 west, northwest)	-360.007	240.035	0.523	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843055	lsb:npc_list:16843055		
+16	Memory Stream (floor 3 west, southwest)	-359.975	120.052	0.542	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843056	lsb:npc_list:16843056		
+16	Memory Stream (floor 2 northwest, leads east)	-240.025	40.079	0.543	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843057	lsb:npc_list:16843057		
+16	Memory Stream (floor 2 southwest, leads west)	-280.009	-39.956	0.541	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843058	lsb:npc_list:16843058		
+16	Memory Stream (floor 2 southeast, leads east)	-160.016	-200.023	0.504	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843059	lsb:npc_list:16843059		
+16	Memory Stream (floor 2 northeast, leads west)	0.064	-39.964	0.547	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843060	lsb:npc_list:16843060		
+16	Memory Stream (floor 1)	-40.012	200.027	0.589	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843061	lsb:npc_list:16843061		
+16	Memory Stream (floor 3 east, northwest)	40.026	320.045	0.519	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843062	lsb:npc_list:16843062		
+16	Memory Stream (floor 3 east, northeast)	160.027	360.020	0.502	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843063	lsb:npc_list:16843063		
+16	Memory Stream (floor 3 east, southeast)	280.044	200.034	0.564	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:16:16843064	lsb:npc_list:16843064		
 16	???	-325.661	192.788	-0.090	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:16:16843085	lsb:npc_list:16843085		
 16	???	-185.282	-7.038	-0.277	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:16:16843083	lsb:npc_list:16843083		
 16	???	-54.625	116.293	-0.036	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:16:16843082	lsb:npc_list:16843082		
@@ -16532,7 +16532,7 @@
 102	Riftworn Pyxis	200.100	-600.000	32.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195695	lsb:npc_list:17195695		
 102	Riftworn Pyxis	640.100	1.000	32.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195693	lsb:npc_list:17195693		
 102	Rohemolipaud	-93.869	-422.947	42.734	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195639	lsb:npc_list:17195639		
-102	Shattered Telepoint	340.000	-60.000	19.104	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195620	lsb:npc_list:17195620		
+102	Shattered Telepoint	340.000	-60.000	19.104	npc	lsb-npc-list-all	proven	live-trace-lathine-telepoint-20260826	npc:v1:102:17195620	lsb:npc_list:17195620		
 102	Smile Helper	-60.919	-91.212	3.274	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195712	lsb:npc_list:17195712		
 102	Smile Helper	-22.973	-220.914	8.553	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195714	lsb:npc_list:17195714		
 102	Smile Helper	16.982	-0.890	5.538	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:102:17195711	lsb:npc_list:17195711		
@@ -19661,7 +19661,7 @@
 114	Field Manual	-64.828	232.528	3.949	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:114:17244659	lsb:npc_list:17244659		
 114	Field Manual	472.690	-63.307	-1.165	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:114:17244657	lsb:npc_list:17244657		
 114	Survival Guide	-260.000	-265.000	8.500	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	object:v1:114:17244669	lsb:npc_list:17244669		
-115	Balga's Dais zone line	-228.613	-186.111	-10.402	area	lsb-zoneline-all	untested	world-zonelines-2026-06-20	area:v1:115:1731670906	lsb:zonelines:1731670906		
+115	Balga's Dais zone line	-228.613	-186.111	-10.402	area	lsb-zoneline-all	bad	one-way-exit-only-2026-08-26; Balga's Dais is entered from Giddeus, this end is arrival-only and sits on unreachable mesh	area:v1:115:1731670906	lsb:zonelines:1731670906		
 115	East Sarutabaruta zone line z374	504.436	133.854	-13.689	area	lsb-zoneline-all	untested	world-zonelines-2026-06-20	area:v1:115:876032890	lsb:zonelines:876032890		
 115	East Sarutabaruta zone line z376	425.197	693.491	-29.483	area	lsb-zoneline-all	untested	world-zonelines-2026-06-20	area:v1:115:909587322	lsb:zonelines:909587322		
 115	Giddeus zone line	-374.546	61.091	-25.351	area	lsb-zoneline-all	untested	world-zonelines-2026-06-20	area:v1:115:943141754	lsb:zonelines:943141754		
@@ -42569,3 +42569,9 @@
 293	Volto Oscuro	510.018	482.725	-530.915	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:293:17977466	lsb:npc_list:17977466		
 298	Alexander	-700.000	-140.000	-13.270	enemy	lsb-mob-spawn-camps	untested	world-enemy-camps-2026-07-01; spawns=1; levels=119-119	camp:v1:298:alexander:a71236cbe4f302e6111c	lsb:mob_spawn_points:group:3:mobname:Alexander	17997827	complete-link-v1-h120-y24
 298	Odin Prime	-700.000	-140.000	-13.270	enemy	lsb-mob-spawn-camps	untested	world-enemy-camps-2026-07-01; spawns=1; levels=124-129	camp:v1:298:odin-prime:2c0856114834945eabb7	lsb:mob_spawn_points:group:1:mobname:Odin_Prime	17997825	complete-link-v1-h120-y24
+
+16	Exit to Hall of Transference	80.000	80.000	-1.000	area	lsb-zone-script-trigger	observed	promyvion-holla-triggers-20260829	area:v1:16:trigger-1	lsb:scripted_trigger:promyvion_holla_1		floor 1 scripted exit
+16	Portal down to floor 1	-120.000	0.000	-0.500	area	lsb-zone-script-trigger	untested	promyvion-holla-triggers-20260829	area:v1:16:trigger-2	lsb:scripted_trigger:promyvion_holla_2		floor 2 return
+16	Portal down to floor 2 (west)	-160.000	120.000	-0.500	area	lsb-zone-script-trigger	untested	promyvion-holla-triggers-20260829	area:v1:16:trigger-3	lsb:scripted_trigger:promyvion_holla_3		floor 3 west return
+16	Portal down to floor 2 (east)	160.000	240.000	-0.500	area	lsb-zone-script-trigger	untested	promyvion-holla-triggers-20260829	area:v1:16:trigger-4	lsb:scripted_trigger:promyvion_holla_4		floor 3 east return
+16	Portal down to floor 3	120.000	-320.000	-0.500	area	lsb-zone-script-trigger	untested	promyvion-holla-triggers-20260829	area:v1:16:trigger-5	lsb:scripted_trigger:promyvion_holla_5		floor 4 return

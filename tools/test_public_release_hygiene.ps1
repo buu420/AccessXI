@@ -112,6 +112,50 @@ if (-not [string]::IsNullOrWhiteSpace($PackageRoot)) {
             (Get-FileHash -LiteralPath $packagedFile -Algorithm SHA256).Hash) `
             "Packaged canonical addon file is stale: $relative"
     }
+    # Independently re-derive the module gate against the produced package, so a
+    # defect in the packager's own copy of this rule cannot blind both checks.
+    $packagedMain = Join-Path $packagedAddon 'accessxi_reader.lua'
+    Assert-True (Test-Path -LiteralPath $packagedMain -PathType Leaf) `
+        'Packaged addon is missing accessxi_reader.lua.'
+    $packagedMainSource = [System.IO.File]::ReadAllText($packagedMain)
+    $moduleChecks = @(
+        @{ Pattern = "load_code_module\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
+        @{ Pattern = "load_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
+        @{ Pattern = "load_menu_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules\menus' }
+    )
+    $referenced = 0
+    foreach ($moduleCheck in $moduleChecks) {
+        $names = [regex]::Matches($packagedMainSource, $moduleCheck.Pattern) |
+            ForEach-Object { $_.Groups[1].Value } |
+            Sort-Object -Unique
+        foreach ($name in $names) {
+            $referenced++
+            Assert-True (Test-Path -LiteralPath (Join-Path (Join-Path $packagedAddon $moduleCheck.Relative) ($name + '.lua')) -PathType Leaf) `
+                "Packaged reader loads a module that is not in the package: $($moduleCheck.Relative)\$name.lua"
+        }
+    }
+    Assert-True ($referenced -gt 0) `
+        'Packaged reader declares no module references; the module gate cannot be trusted.'
+
+    # Per-character runtime state must never reach a tester's install.
+    foreach ($stateFile in @(
+        'ffxi-job-abilities-bits.txt', 'ffxi-job-traits-bits.txt',
+        'ffxi-key-items-packet.tsv', 'ffxi-merits-packet.tsv',
+        'ffxi-mission-main-packet.txt', 'ffxi-nav-route-evidence.tsv',
+        'ffxi-objective-interaction-progress.tsv', 'ffxi-quest-packets.tsv',
+        'ffxi-roe-active-packet.tsv', 'nav-beacon-audio-mode.txt',
+        'survival-guide-last-packet.tsv')) {
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path (Join-Path $packagedAddon 'data') $stateFile))) `
+            "Packaged addon ships per-character runtime state: data\$stateFile"
+    }
+    foreach ($personalPath in @('config\addons', 'config\sandbox', 'config\imgui.ini',
+        'addons\accessxi_reader\cache', 'addons\accessxi_reader\backups')) {
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path (Join-Path $package 'payload\Ashita') $personalPath))) `
+            "Packaged payload ships personal Ashita state: $personalPath"
+    }
+    Assert-True (@(Get-ChildItem -LiteralPath (Join-Path (Join-Path $package 'payload\Ashita') 'config\ashita') -Filter 'custom.*' -ErrorAction SilentlyContinue).Count -eq 0) `
+        'Packaged payload ships this machine''s custom Ashita signature overrides.'
+
     foreach ($overlayName in @('data', 'sounds')) {
         $overlayRoot = Join-Path $root $overlayName
         $overlayFiles = Get-ChildItem -LiteralPath $overlayRoot -Recurse -File |

@@ -55,6 +55,10 @@ function list_methods:append(value) self[#self + 1] = value; return self end
 function list_methods:clear()
     for index = #self, 1, -1 do self[index] = nil end
 end
+-- Ashita's T{} carries the whole table library as methods; this stub carried
+-- three. Production uses :concat 731 times, so a lifted block that reached one
+-- died on a nil method rather than on anything it was asserting about.
+function list_methods:concat(separator) return table.concat(self, separator) end
 
 local function T(value)
     return setmetatable(value or {}, { __index = list_methods })
@@ -69,6 +73,23 @@ local function extract(first_literal, after_literal)
     local after = assert(source:find(after_literal, first + #first_literal, true),
         'reader block end is missing: ' .. after_literal)
     return source:sub(first, after - 1)
+end
+
+-- LOAD REAL HELPERS, DO NOT FAKE THEM.
+--
+-- These fixtures run production blocks lifted out of the reader. When such a
+-- block calls a shared helper, the honest thing is to lift that helper out of
+-- the same source too. A hand-written substitute silently becomes the thing
+-- under test: the previous packet_event_string stub returned `e.data`, so this
+-- harness would have stayed green if production regressed to
+-- `e.data_modified or e.data` and lost every pointer-delivered packet.
+local function load_reader_helper(target, first_literal, after_literal, chunk_name)
+    local helper_source = extract(first_literal, after_literal)
+    local helper_chunk = assert(loadstring(helper_source, '@' .. chunk_name))
+    setfenv(helper_chunk, setmetatable({ accessxi = target, T = T, tick = function() return 0 end,
+        log_line = function() end }, { __index = _G }))
+    helper_chunk()
+    return helper_source
 end
 
 local task2_reader_failures = T{}
@@ -286,6 +307,13 @@ local warp_accessxi = {
     end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
 }
+load_reader_helper(warp_accessxi,
+    'function accessxi.packet_event_string(e, field, size_field)',
+    'function accessxi.packet_from_hex(hex)',
+    'reader-packet-event-string')
+task2_reader_expect(type(warp_accessxi.packet_event_string) == 'function',
+    'production packet_event_string helper did not load into the event fixture')
+
 local event_chunk = assert(loadstring(event_source, '@reader-task2-warp-request'))
 setfenv(event_chunk, setmetatable({
     accessxi = warp_accessxi,
@@ -431,7 +459,6 @@ local combat_accessxi = {
     combat_action_packet_speech = function() return nil, nil end,
     queue_combat_action_feedback = function() error('objective kill fixture queued speech') end,
     log_combat_action_diag = function() end,
-    packet_event_string = function(e) return e.data or '' end,
     packet_hex_limit = function() return 'fixture' end,
     packet_u16 = function(data, index)
         local a, b = data:byte(index, index + 1)
@@ -464,6 +491,14 @@ local combat_accessxi = {
     end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
 }
+load_reader_helper(combat_accessxi,
+    'function accessxi.packet_event_string(e, field, size_field)',
+    'function accessxi.packet_from_hex(hex)',
+    'reader-packet-event-string-combat')
+task2_reader_expect(type(combat_accessxi.packet_event_string) == 'function',
+    'production packet_event_string helper did not load into the combat fixture')
+
+local combat_log_lines = T{}
 local combat_chunk = assert(loadstring(combat_capture_source, '@reader-task2-kill-credit'))
 setfenv(combat_chunk, setmetatable({
     accessxi = combat_accessxi,
@@ -471,6 +506,7 @@ setfenv(combat_chunk, setmetatable({
     tick = function() return combat_tick end,
     nav_zone_id = function() return 100 end,
     log_state = function() end,
+    log_line = function(text) combat_log_lines:append(tostring(text or '')) end,
 }, { __index = _G }))
 combat_chunk()
 combat_accessxi.capture_combat_action_packet({ id = 0x028, data = 'fixture' })
@@ -570,6 +606,60 @@ for index, message_id in ipairs({ 20, 113, 406, 605, 646 }) do
 end
 task2_reader_expect(#combat_signals == signals_before_falls_message,
     'generic 0x029 falls-to-ground messages emitted kill credit')
+
+-- THE NAVIGATION DEFEAT OBSERVER IS EXACT, AND IT IS CONTAINED.
+--
+-- Promyvion watches a defeated Receptacle's paired Stream, so the 0x029 reader
+-- reports the exact dead server id to navigation BEFORE the objective actor
+-- gate -- a Trust kill is still a death the player can observe, even though it
+-- grants no objective credit. That observer is optional, so it runs behind its
+-- own error boundary: a navigation defect must never take down the shared
+-- incoming-packet callback, which is exactly what a missing forward-declared
+-- helper did once already.
+local observer_calls = T{}
+combat_accessxi.nav_promyvion_note_defeat_message = function(server_id, message_id)
+    observer_calls:append({ server_id = server_id, message_id = message_id })
+    return false
+end
+local signals_before_observer = #combat_signals
+combat_tick = 8200
+action_message_put_le(0x04, 0x0A0B0C0D, 4)
+action_message_put_le(0x08, 0x01020304, 4)
+action_message_put_le(0x14, 0x1111, 2)
+action_message_put_le(0x16, 0x2222, 2)
+action_message_put_le(0x18, 6, 2)
+combat_accessxi.capture_combat_action_packet({
+    id = 0x029, data = string.char(unpack(action_message_bytes)),
+})
+task2_reader_expect(#observer_calls == 1
+        and observer_calls[1].server_id == 0x01020304
+        and observer_calls[1].message_id == 6,
+    'incoming 0x029 defeat did not report the exact dead target to navigation')
+task2_reader_expect(#combat_signals == signals_before_observer + 1,
+    'navigation defeat observation suppressed objective kill credit')
+
+local log_lines_before_containment = #combat_log_lines
+local signals_before_containment = #combat_signals
+combat_accessxi.nav_promyvion_note_defeat_message = nil
+-- Past the two-second causal replay window, or this identical packet is
+-- correctly suppressed as a duplicate and proves nothing about containment.
+combat_tick = 10500
+local contained_ok, contained_error = pcall(combat_accessxi.capture_combat_action_packet, {
+    id = 0x029, data = string.char(unpack(action_message_bytes)),
+})
+task2_reader_expect(contained_ok == true,
+    'an absent navigation defeat observer unwound the shared incoming-packet callback: '
+        .. tostring(contained_error))
+task2_reader_expect(#combat_signals == signals_before_containment + 1,
+    'a failing navigation defeat observer suppressed objective kill credit')
+local containment_logged = false
+for index = log_lines_before_containment + 1, #combat_log_lines do
+    if (combat_log_lines[index]:find('nav Promyvion defeat hook failed', 1, true) ~= nil) then
+        containment_logged = true
+    end
+end
+task2_reader_expect(containment_logged,
+    'a failing navigation defeat observer was swallowed without a log line')
 
 local state_change_source = extract(
     'function accessxi.on_mission_quest_state_changed(kind, reason)',
@@ -869,15 +959,32 @@ local committed_zone_source = extract(
     'function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)',
     'function accessxi.nav_poll_zone_transition_only(now)')
 local committed_zone_signals = T{}
+local committed_ownership_advances = T{}
 local committed_accessxi = {
     nav_menu_items = T{}, nav_menu_search_results = T{}, nav_route_points = T{},
     nav_menu_dirty_categories = {}, nav_live_entity_seen = T{},
     nav_clear_zoning_watch = function() end,
+    nav_route_ownership_advance = function(reason, cancel_state)
+        committed_ownership_advances:append({ reason = reason, cancel_state = cancel_state })
+    end,
     nav_mission_quest_clear_pending_interaction = function() end,
     nav_transport_clear = function() end,
     nav_dangruf_fount_drop_clear = function() end,
     nav_beacon_reset_direction_state = function() end,
     nav_collision_quiet = function() end,
+    -- The rest of the collaborators the live zone reset now calls. They are
+    -- recorded rather than executed because each one mutates a subsystem of its
+    -- own; what matters here is that the whole reset body runs the same branches
+    -- it runs in the addon instead of stopping at the first unknown field.
+    nav_route_guidance_reset = function() end,
+    nav_native_zone_reset = function() end,
+    nav_load_zoneline_graph = function() end,
+    nav_zoneline_out_edges = function() return T{} end,
+    pointer_page_cache_clear = function() end,
+    nav_graph_zone_name = function(zone) return ('zone-%s'):fmt(tostring(zone)) end,
+    combat_player_server_id = function() return 0x0A0B0C0D end,
+    resource_item_info = function() return nil end,
+    escape_probe_log_text = function(value) return tostring(value or '') end,
     current_player_identity = function() return 'alpha:1001' end,
     current_player_world_id = function() return 1001 end,
     current_objective_session_epoch = function() return 77 end,
@@ -898,6 +1005,11 @@ setfenv(committed_zone_chunk, setmetatable({
 }, { __index = _G }))
 committed_zone_chunk()
 committed_accessxi.nav_reset_zone_state('poll-zone-change', 231, 140)
+task2_reader_expect(#committed_ownership_advances == 1
+        and committed_ownership_advances[1].reason == 'zone-change'
+        and committed_ownership_advances[1].cancel_state == true,
+    'zoning did not advance route ownership, so a route search started before the '
+        .. 'zone change can still install itself afterwards')
 local committed_zone_signal = committed_zone_signals[1]
 task2_reader_expect(type(committed_zone_signal) == 'table'
         and committed_zone_signal.kind == 'committed-zone'
@@ -1016,6 +1128,8 @@ assert(source:find("accessxi.nav_mission_quest_observe_event_menu(name or '', ti
 -- The always-polled movement-control edge must publish that real close rather
 -- than leaving a completed NPC interaction pending forever.
 local menu_close_calls = 0
+local close_death_notes = T{}
+local close_death_releases = T{}
 local close_accessxi = {
     nav_collision_control_interrupt_active = true,
     nav_collision_control_interrupt_reason = 'target-menu:2',
@@ -1024,6 +1138,15 @@ local close_accessxi = {
     nav_collision_control_interrupt_state = function() return false, '' end,
     nav_collision_quiet = function() end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
+    -- The control-interrupt path also watches the death window, so that a Home
+    -- Point relocation is never learned as a walked road.
+    nav_note_death_relocation = function(reason, zone)
+        close_death_notes:append({ reason = reason, zone = zone })
+    end,
+    nav_death_relocation_release_if_alive = function(now)
+        close_death_releases:append(now)
+        return false
+    end,
     nav_mission_quest_observe_event_menu = function(menu_name, now)
         assert(menu_name == '' and now == 2000,
             'the actual target-menu close published the wrong lifecycle state')
@@ -1082,6 +1205,13 @@ folded_accessxi.nav_route_points_are_collision = function(points)
         and points[1].source == 'dat-collision'
 end
 local folded_environment = setmetatable({ accessxi = folded_accessxi }, { __index = _G })
+-- nav_nearest_route_segment measures the player against each leg with the real
+-- projection helper. Substituting the geometry would make this fixture measure
+-- the substitute, so the production one is loaded.
+load_reader_helper(folded_accessxi,
+    'function accessxi.nav_project_to_segment(pos, a, b)',
+    'function accessxi.nav_route_live_match(pos, points, preferred_segment, first_segment, last_segment)',
+    'reader-project-to-segment')
 local folded_nearest_chunk = assert(loadstring(extract(
     'function accessxi.nav_nearest_route_segment(pos, points, first_segment, last_segment)',
     'function accessxi.nav_lookahead_target(pos, points, lookahead)'),
@@ -1196,7 +1326,10 @@ local menu_environment = setmetatable({
     tick = function() return 1000 end,
     nav_write_route_evidence = function() end,
 }, { __index = _G })
-local menu_source = extract('local function nav_menu_start_route()', '\nlocal nav_route_stop;')
+-- `local nav_route_stop;` is now forward-declared above this function, so the
+-- block terminator is the next definition that follows it.
+local menu_source = extract('local function nav_menu_start_route()',
+    '\nlocal function nav_menu_handle_action(action)')
 local beacon_reset_source = extract(
     'function accessxi.nav_beacon_reset_direction_state()',
     'function accessxi.nav_beacon_direction_delta')
@@ -1206,6 +1339,7 @@ local menu_chunk = assert(loadstring(
 setfenv(menu_chunk, menu_environment)
 local nav_menu_start_route = assert(menu_chunk())
 
+local menu_ownership_advances = T{}
 local function reset_menu(item, result_payload, result_message, result_mode)
     spoken = {}
     logged = {}
@@ -1223,6 +1357,30 @@ local function reset_menu(item, result_payload, result_message, result_mode)
         return result_payload, result_message, result_mode
     end
     accessxi.nav_clear_zone_search = function() end
+    -- Collaborators the live start path acquired since this fixture was written.
+    -- They keep their production shapes so the decision logic under test runs the
+    -- same branches it runs in the addon: the suffix providers contribute nothing
+    -- unless a subsystem owns the route, re-entry declines, and the speech name
+    -- falls through to the row's own name.
+    menu_ownership_advances = T{}
+    accessxi.nav_route_ownership_advance = function(reason, cancel_state)
+        menu_ownership_advances:append({ reason = reason, cancel_state = cancel_state })
+    end
+    accessxi.nav_route_guidance_reset = function() end
+    accessxi.nav_copy_point = function(point)
+        if (type(point) ~= 'table') then return point end
+        local copy = {}
+        for key, value in pairs(point) do copy[key] = value end
+        return copy
+    end
+    accessxi.nav_menu_point_speech_name = function(point)
+        return tostring(type(point) == 'table' and point.name or '')
+    end
+    accessxi.nav_same_zone_reentry_start = function() return nil end
+    accessxi.nav_mission_quest_start_suffix = function() return '' end
+    accessxi.nav_transport_start_suffix = function() return '' end
+    accessxi.nav_dangruf_fount_drop_start_suffix = function() return '' end
+    accessxi.nav_promyvion_start_suffix = function() return '' end
     accessxi.nav_transport_clear = function() end
     accessxi.nav_dangruf_fount_drop_clear = function() end
     accessxi.nav_resolve_live_entity_point = function() return nil end
@@ -1276,7 +1434,10 @@ for _, broken_prepare in ipairs({
     assert(#spoken == 1 and spoken[1] == 'Objective route preparation is unavailable.')
 end
 
-reset_menu(objective_item, 'Open the marked door, then speak to the guard.', '', 'instruction')
+-- The instruction is the objective MESSAGE, not the route payload: production
+-- speaks nav_clean_field(objective_message) and only falls back to the
+-- "Press K" line when that message is empty.
+reset_menu(objective_item, nil, 'Open the marked door, then speak to the guard.', 'instruction')
 nav_menu_start_route()
 assert(#spoken == 1 and spoken[1] == 'Open the marked door, then speak to the guard.',
     'instruction mode must speak the complete action')

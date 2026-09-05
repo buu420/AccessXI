@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '0.1';
+addon.version   = '2026.09.05';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -127,6 +127,12 @@ ffi.cdef[[
     void* GetModuleHandleA(const char* lpModuleName);
     void* GetCurrentProcess(void);
     DWORD GetCurrentProcessId(void);
+    typedef struct PROCESS_MEMORY_COUNTERS {
+        DWORD cb; DWORD PageFaultCount; SIZE_T PeakWorkingSetSize; SIZE_T WorkingSetSize;
+        SIZE_T QuotaPeakPagedPoolUsage; SIZE_T QuotaPagedPoolUsage; SIZE_T QuotaPeakNonPagedPoolUsage;
+        SIZE_T QuotaNonPagedPoolUsage; SIZE_T PagefileUsage; SIZE_T PeakPagefileUsage;
+    } PROCESS_MEMORY_COUNTERS;
+    BOOL __stdcall K32GetProcessMemoryInfo(void* hProcess, PROCESS_MEMORY_COUNTERS* counters, DWORD cb);
     void* GetForegroundWindow(void);
     DWORD GetWindowThreadProcessId(void* hWnd, DWORD* lpdwProcessId);
     void* __stdcall CreateFileW(LPCWCH lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, void* lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, void* hTemplateFile);
@@ -217,7 +223,9 @@ ffi.cdef[[
     void FindClosestPath(void* pFfxiNavClassObject, NavPositionT start, NavPositionT end, bool useCustom);
     int Get_WayPoints(void* pFfxiNavClassObject, NavPositionT** pointer);
     int Pathpoints(void* pFfxiNavClassObject);
+    bool unload(void* pFfxiNavClassObject);
     double GetDistanceToWall(void* pFfxiNavClassObject, NavPositionT start);
+    bool CanSeeDestination(void* pFfxiNavClassObject, NavPositionT start, NavPositionT end);
 
     typedef struct PrismContext PrismContext;
     typedef struct PrismBackend PrismBackend;
@@ -1126,6 +1134,9 @@ local accessxi = T{
     nav_recorded_marks_path = accessxi_paths.addon_path('data', 'ffxi-nav-recorded-marks.tsv'),
     nav_recorded_survey_path = accessxi_paths.addon_path('data', 'ffxi-nav-recorded-survey.tsv'),
     nav_zoneline_graph_path = accessxi_paths.addon_path('data', 'ffxi-nav-zoneline-graph.tsv'),
+    -- Transitions the player has actually made that the shipped graph does not
+    -- contain. See nav_zoneline_note_observed.
+    nav_zoneline_observed_path = accessxi_paths.addon_path('data', 'ffxi-nav-zoneline-observed.tsv'),
     nav_zoneline_edges = T{},
     nav_zoneline_edges_loaded = false,
     nav_route_overrides_path = accessxi_paths.addon_path('data', 'ffxi-nav-route-overrides.tsv'),
@@ -1163,6 +1174,7 @@ local accessxi = T{
     nav_dat_collision_state = nil,
     nav_dat_collision_failure_reason = '',
     nav_dat_collision_pending = nil,
+    nav_route_ownership_generation = 0,
     nav_dat_collision_last_poll_tick = 0,
     nav_dat_collision_preload_zone = 0,
     nav_dat_collision_preload_last_tick = 0,
@@ -1187,6 +1199,8 @@ local accessxi = T{
     nav_beacon_centered = false,
     nav_beacon_center_index = nil,
     nav_beacon_previous_delta = nil,
+    nav_beacon_pending_delta = nil,
+    nav_beacon_reversal_holds = 0,
     nav_beacon_motion_x = nil,
     nav_beacon_motion_z = nil,
     nav_route_poll_ms = 850,
@@ -1251,6 +1265,30 @@ local accessxi = T{
     nav_route_live_replan_last_key = '',
     nav_route_live_replan_last_tick = 0,
     nav_route_last_reject_reason = '',
+    -- Set when the walk graph refuses a specific destination, and stamped with
+    -- WHICH one. Two things read it: the route poll, to stop instead of
+    -- retrying a refusal every three seconds; and the mesh probe, to refuse a
+    -- multi-second synchronous FindPath for a destination already answered.
+    nav_walk_graph_refusal = nil,
+    nav_precise_guidance_target = nil,
+    nav_precise_guidance_points = nil,
+    nav_precise_guidance_index = 0,
+    nav_precise_guidance_player = nil,
+    nav_precise_guidance_tick = 0,
+    nav_precise_guidance_status = '',
+    nav_precise_obstacle_recovery = nil,
+    nav_precise_async_recovery_completion = nil,
+    nav_precise_recovery_destination = nil,
+    nav_precise_recovery_points = nil,
+    nav_precise_recovery_since = 0,
+    nav_precise_recovery_last_replan_tick = 0,
+    nav_precise_recovery_last_player = nil,
+    nav_precise_recovery_last_index = 0,
+    nav_precise_recovery_failure_since = 0,
+    nav_precise_recovery_failures = 0,
+    nav_precise_recovery_notice_spoken = false,
+    nav_precise_recovery_last_full_replan_tick = 0,
+    nav_precise_recovery_last_notice_tick = 0,
     nav_transport_transition = nil,
     nav_dangruf_fount_drop_transition = nil,
     nav_active = false,
@@ -1273,6 +1311,7 @@ local accessxi = T{
     nav_last_direction_text = '',
     nav_progress_x = nil,
     nav_progress_z = nil,
+    nav_progress_y = nil,
     nav_progress_distance = 0,
     nav_progress_tick = 0,
     nav_progress_last_block_tick = 0,
@@ -1284,6 +1323,11 @@ local accessxi = T{
     nav_collision_tick = 0,
     nav_collision_last_sound_tick = 0,
     nav_collision_last_key = '',
+    nav_collision_obstacle_speech_active = false,
+    nav_collision_obstacle_speech_destination = nil,
+    nav_collision_obstacle_speech_points = nil,
+    nav_collision_obstacle_speech_tick = 0,
+    nav_collision_obstacle_speech_min_ms = 5000,
     nav_collision_freewalk_x = nil,
     nav_collision_freewalk_z = nil,
     nav_collision_freewalk_yaw = nil,
@@ -1306,6 +1350,10 @@ local accessxi = T{
     nav_wall_avoid_last_key = '',
     nav_wall_avoid_last_tick = 0,
     compass_hotkey_down = false,
+    compass_turn_direction = '',
+    compass_turn_candidate = '',
+    compass_turn_candidate_tick = 0,
+    compass_turn_announce_tick = 0,
     view_hotkey_down = false,
     view_announce_tick = 0,
     view_last_state_key = '',
@@ -1384,6 +1432,12 @@ function accessxi.debug_probe_logging_active()
 end
 
 local function log_line(text)
+    if (accessxi.support_log ~= nil) then
+        local ok, written, err = pcall(accessxi.support_log.record, accessxi.support_log, text);
+        if (not ok or not written) then
+            accessxi.support_log_error = tostring(ok and err or written);
+        end
+    end
     local f = io.open(accessxi.log_path, 'a');
     if (f ~= nil) then
         f:write(os.date('%Y-%m-%d %H:%M:%S'), ' ', text, '\n');
@@ -1553,6 +1607,16 @@ function accessxi.load_menu_code_module(name, env)
 end
 
 accessxi.debug_commands = accessxi.load_module_table('debug_commands', T{});
+accessxi.support_diagnostics = accessxi.load_module_table('support_diagnostics', T{});
+accessxi.support_report_path = accessxi_paths.addon_path('logs', 'AccessXI-support-report.log');
+if (type(accessxi.support_diagnostics.new) == 'function') then
+    accessxi.support_log = accessxi.support_diagnostics.new({
+        path = accessxi_paths.addon_path('logs', 'ffxi-support.log'),
+        version = addon.version,
+        context = function() return accessxi.support_diagnostics.context(accessxi); end,
+    });
+    log_line('support diagnostics enabled release=' .. addon.version .. ' command="/axi report"');
+end
 accessxi.load_code_module('speech_format');
 accessxi.synthesis_slots = accessxi.load_module_table('synthesis_slots', T{});
 accessxi.quick_status_hotkeys = accessxi.load_module_table('quick_status_hotkeys', T{});
@@ -1757,7 +1821,7 @@ function accessxi.speech_output_text(text)
     return normalized;
 end
 
-local function speak(text, cancel)
+function accessxi.speak_output(text, cancel)
     text = accessxi.speech_output_text(text);
     if (text == nil or text == '') then
         return 'empty';
@@ -1790,6 +1854,15 @@ local function speak(text, cancel)
 
     print('[AccessXI] ' .. text);
     return 'print prism-unavailable';
+end
+
+local function speak(text, cancel)
+    local result = accessxi.speak_output(text, cancel);
+    local promy = accessxi.nav_promyvion_state or {};
+    log_line(('speech output result="%s" phase="%s" island="%s" text="%s"'):fmt(
+        tostring(result), tostring(promy.phase or ''), tostring(promy.island or ''),
+        tostring(accessxi.speech_output_text(text) or ''):gsub('[\r\n]', ' '):gsub('"', "'")));
+    return result;
 end
 
 local function get_menu_obj(ptr, t)
@@ -1846,13 +1919,93 @@ local function get_current_menu_object_ptr()
     return ptr;
 end
 
+-- Pointer validity is READABILITY, not an address range. pol.exe is
+-- LARGEADDRESSAWARE, so the game's heap blocks land above 0x80000000 once the
+-- low 2 GB fill (live 2026-08-21: the main-menu entry block at 0x800AEE88 was
+-- rejected by a "< 0x7FFF0000" range test and every menu went mute until the
+-- next zone change moved it). Ask Windows instead: VirtualQuery must report a
+-- committed page whose protection is readable (PAGE_GUARD and PAGE_NOACCESS
+-- refused), for EVERY page a read touches. Answers are cached per 4 KB page
+-- for the current frame only -- protection can differ inside one 64 KB
+-- allocation block, and a page can be freed between frames -- and the cache is
+-- dropped on zone change or any failed read.
+-- (No new main-chunk locals here: the chunk sits at Lua 5.1's 200-local
+-- limit, so the state and helpers live on the accessxi table.)
+accessxi.frame_counter = 0;
+accessxi.pointer_page_state = { cache = {}, count = 0, mbi = nil, mbi_size = 0 };
+
+function accessxi.pointer_page_cache_clear(reason)
+    local state = accessxi.pointer_page_state;
+    state.cache = {};
+    state.count = 0;
+    accessxi.pointer_page_cache_cleared_reason = tostring(reason or '');
+end
+
+function accessxi.pointer_page_readable(page)
+    local state = accessxi.pointer_page_state;
+    local frame = accessxi.frame_counter or 0;
+    local entry = state.cache[page];
+    if (entry ~= nil and entry.frame == frame) then
+        return entry.ok;
+    end
+    if (state.mbi == nil) then
+        state.mbi = ffi.new('MEMORY_BASIC_INFORMATION[1]');
+        state.mbi_size = ffi.sizeof('MEMORY_BASIC_INFORMATION');
+    end
+    local mbi = state.mbi;
+    local ok, queried = pcall(function ()
+        return kernel32.VirtualQuery(ffi.cast('const void*', page), mbi, state.mbi_size);
+    end);
+    local readable = false;
+    if (ok and (tonumber(queried) or 0) ~= 0) then
+        local mem_state = tonumber(mbi[0].State) or 0;
+        local protect = tonumber(mbi[0].Protect) or 0;
+        readable = mem_state == 0x1000 and accessxi.memory_page_readable(protect);
+    end
+    if (state.count >= 8192) then
+        state.cache = {};
+        state.count = 0;
+    end
+    if (entry == nil) then
+        state.count = state.count + 1;
+    end
+    state.cache[page] = { ok = readable, frame = frame };
+    return readable;
+end
+
+function accessxi.pointer_pages_readable(addr, size)
+    addr = tonumber(addr) or 0;
+    size = tonumber(size) or 4;
+    if (addr < 0x10000 or size < 1 or addr > (0x100000000 - size)) then
+        return false;
+    end
+    local page = addr - (addr % 0x1000);
+    local last = (addr + size - 1) - ((addr + size - 1) % 0x1000);
+    while (page <= last) do
+        if (not accessxi.pointer_page_readable(page)) then
+            return false;
+        end
+        page = page + 0x1000;
+    end
+    return true;
+end
+
+function accessxi.pointer_page_forget(addr)
+    addr = tonumber(addr) or 0;
+    accessxi.pointer_page_state.cache[addr - (addr % 0x1000)] = nil;
+end
+
 local function read_i32(addr)
     if (addr == nil or addr == 0) then
+        return nil;
+    end
+    if (not accessxi.pointer_pages_readable(addr, 4)) then
         return nil;
     end
 
     local ok, value = pcall(ashita.memory.read_int32, addr);
     if (not ok) then
+        accessxi.pointer_page_forget(addr);
         return nil;
     end
     return value;
@@ -1862,9 +2015,13 @@ local function read_u32(addr)
     if (addr == nil or addr == 0) then
         return nil;
     end
+    if (not accessxi.pointer_pages_readable(addr, 4)) then
+        return nil;
+    end
 
     local ok, value = pcall(ashita.memory.read_uint32, addr);
     if (not ok) then
+        accessxi.pointer_page_forget(addr);
         return nil;
     end
     return tonumber(value);
@@ -1874,9 +2031,13 @@ local function read_u16(addr)
     if (addr == nil or addr == 0) then
         return nil;
     end
+    if (not accessxi.pointer_pages_readable(addr, 2)) then
+        return nil;
+    end
 
     local ok, value = pcall(ashita.memory.read_uint16, addr);
     if (not ok) then
+        accessxi.pointer_page_forget(addr);
         return nil;
     end
     return tonumber(value);
@@ -1886,9 +2047,13 @@ local function read_u8(addr)
     if (addr == nil or addr == 0) then
         return nil;
     end
+    if (not accessxi.pointer_pages_readable(addr, 1)) then
+        return nil;
+    end
 
     local ok, value = pcall(ashita.memory.read_uint8, addr);
     if (not ok) then
+        accessxi.pointer_page_forget(addr);
         return nil;
     end
     return tonumber(value);
@@ -1931,9 +2096,13 @@ local function read_probe_string(ptr, length)
     if (length < 1 or length > 512) then
         length = 96;
     end
+    if (not accessxi.pointer_pages_readable(ptr, length)) then
+        return '';
+    end
 
     local ok, text = pcall(ashita.memory.read_string, ptr, length);
     if (not ok) then
+        accessxi.pointer_page_forget(ptr);
         return '';
     end
     return clean_probe_text(text);
@@ -1941,7 +2110,14 @@ end
 
 function accessxi.is_probe_pointer(ptr)
     ptr = tonumber(ptr) or 0;
-    return ptr >= 0x01000000 and ptr < 0x7FFF0000;
+    -- Numeric range is the whole 32-bit space a LARGEADDRESSAWARE process can
+    -- own; validity itself is decided by the page being committed and
+    -- readable. The scan loops keep their own 0x7FFF0000 stop -- that is a
+    -- cost bound on enumeration, not a statement about where pointers live.
+    if (ptr < 0x01000000 or ptr > 0xFFFFFFFC) then
+        return false;
+    end
+    return accessxi.pointer_pages_readable(ptr, 4);
 end
 
 function accessxi.probe_strings_at(ptr)
@@ -4505,6 +4681,8 @@ function accessxi.capture_mission_packet(e)
         accessxi.mission_packet_hex = key;
         accessxi.mission_packet_cache_loaded = true;
         accessxi.save_mission_packet_cache();
+        -- Ask every storyline whether it moved, not only the nation one.
+        pcall(accessxi.detect_mission_progress_changes, 'packet-main');
         local nations = { [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
         local previous_nation = tonumber(type(previous_main) == 'table'
             and previous_main.nation or nil);
@@ -4559,6 +4737,9 @@ function accessxi.capture_mission_packet(e)
         accessxi.mission_packet_ahturghan_identity = mission_identity;
         accessxi.mission_packet_ahturghan_source = 'packet_in_056';
         accessxi.save_mission_packet_cache();
+        -- Assault, Treasures of Aht Urhgan, Wings of the Goddess and Campaign
+        -- all live in this second packet, and none of them was ever compared.
+        pcall(accessxi.detect_mission_progress_changes, 'packet-ahturghan');
     elseif (packet_port == 0x00C0) then
         accessxi.mission_packet_ahturghan_complete = T{
             accessxi.packet_u32(data, base + 0x10 + 1),
@@ -7489,12 +7670,32 @@ function accessxi.capture_key_items_packet(e)
         and accessxi.key_items_packet_tables[table_index] or nil;
     local previous_flags = type(previous_entry) == 'table'
         and tostring(previous_entry.flags or '') or '';
+    -- THE PACKET THAT DELIVERS A KEY ITEM IS USUALLY THE FIRST ONE FOR ITS
+    -- TABLE. The server sends 0x055 for a table only when that table CHANGES,
+    -- so demanding that the previous snapshot also arrived as a packet in this
+    -- same session made the delta unfireable in the case that matters. Live
+    -- 2026-08-24 the player obtained the Lost document for The Davoi Report:
+    -- one 0x055 for table 0 in the whole hour -- the one carrying it -- and
+    -- "key-item-delta" appears ZERO times in the entire 956,000-line log. The
+    -- mechanism had never once fired.
+    --
+    -- The restored cache IS a valid baseline: it is this character's own owned
+    -- bits, written by us and read back at login. Identity is still checked
+    -- strictly, and only a false->true transition is ever emitted, so a stale
+    -- baseline can under-report but never invent an acquisition.
+    local previous_source = tostring(accessxi.key_items_packet_source or '');
+    local previous_entry_source = tostring(
+        type(previous_entry) == 'table' and previous_entry.source or '');
+    local previous_from_packet = previous_source == 'packet_in_055';
+    local previous_from_cache = previous_source == 'cache'
+        or previous_entry_source == 'cache';
     local previous_complete = #previous_flags == 64
-        and tostring(accessxi.key_items_packet_source or '') == 'packet_in_055'
+        and (previous_from_packet or previous_from_cache)
         and tostring(accessxi.key_items_packet_identity or ''):lower()
             == tostring(player_identity or ''):lower()
-        and tonumber(accessxi.key_items_packet_session_epoch) == key_item_session_epoch
-        and tostring(previous_entry.source or '') == 'packet_in_055'
+        and (previous_from_cache
+            or tonumber(accessxi.key_items_packet_session_epoch) == key_item_session_epoch)
+        and (previous_entry_source == 'packet_in_055' or previous_entry_source == 'cache')
         and tostring(previous_entry.identity or ''):lower()
             == tostring(player_identity or ''):lower()
         and tonumber(previous_entry.session_epoch) == key_item_session_epoch;
@@ -10183,7 +10384,25 @@ function accessxi.survival_guide_query_child_state()
     return accessxi.survival_guide_query_child_state_for_obj(get_current_menu_object_ptr());
 end
 
+-- A MENU'S OWN NAME IS NEVER ONE OF ITS ROWS.
+--
+-- The client stores menu names as a fixed field padded with spaces --
+-- "menu    query", "menu    keytops3" -- and a mis-walked pointer chain lands
+-- on it. It reads as a plausible label to the scorer, which rewards the space
+-- and the length, so it can outscore the real rows. It is never a row.
+function accessxi.native_query_label_is_menu_structure(label)
+    label = tostring(label or ''):lower();
+    if (label == '') then
+        return false;
+    end
+    return label:match('^menu%s%s+%S+$') ~= nil
+        or label:match('^menu%s+keytop') ~= nil;
+end
+
 function accessxi.native_query_label_fragment_penalty(label)
+    if (accessxi.native_query_label_is_menu_structure(label)) then
+        return 90;
+    end
     label = accessxi.survival_guide_text(label or '');
     if (label == '') then
         return 0;
@@ -10195,6 +10414,68 @@ function accessxi.native_query_label_fragment_penalty(label)
     end
     if (#label <= 6 and label:find('%s') == nil and label:match('^%a+$') ~= nil and label:match('%l%u') ~= nil) then
         penalty = penalty + 100;
+    end
+
+    -- A MENU OPTION IS A CAPITALISED PHRASE.
+    --
+    -- The offset scorer awards +10 for any non-empty label, so a pointer that
+    -- lands on the middle of some unrelated string beats the real chain when the
+    -- real chain honestly reports blanks. Live 2026-08-28 on a Survival Guide:
+    --
+    --   +000 len=3 score=66 [1:None. | 2:        | 3:]     <- the game's chain
+    --   +088 len=3 score=76 [1:None. | 2:ersion  | 3:]     <- chosen
+    --
+    -- and the player heard "ersion." where the option name belonged. The same
+    -- read produced "R5!d&." on another pass. Both are what a mid-string or
+    -- non-string pointer looks like when it is read as text.
+    --
+    -- Every genuine option in this menu system is a capitalised phrase --
+    -- "Nowhere.", "La Theine Plateau.", "Travel Using Tabs.", "Other
+    -- Mysteries", "Home Point #2". A label that opens lower-case is a string
+    -- entered part-way through.
+    --
+    -- These stay well under 90 on purpose. At 90 native_query_label_looks_real
+    -- rejects the label outright, and a rejected label is silence -- which for
+    -- this player is worse than a wrong word, because a wrong word can at least
+    -- be questioned. Scoring it down loses the offset contest without ever
+    -- removing the only thing we might have to say.
+    if (label:match('^%l') ~= nil) then
+        penalty = penalty + 40;
+    end
+
+    -- Punctuation soup in a short run -- "R5!d&". Apostrophe, hyphen, period,
+    -- comma, hash and parentheses all occur in real names ("Ru'Lude Gardens",
+    -- "Home Point #2", "Chateau d'Oraguille"), so only the characters that do
+    -- not count.
+    --
+    -- AND PLUS, WHICH THIS RULE SILENCED FOR TWO WEEKS.
+    --
+    -- Every upgraded item in the game carries it -- "An Ether +1.", "A Potion
+    -- +3." -- and a Treasure Casket names its contents in exactly that short,
+    -- article-prefixed form. Charging those 60 drove the correct offset chain
+    -- negative, so it lost the contest to a chain of BLANKS and every item row
+    -- in the casket went silent, including the clean ones like "A Wool Hat."
+    -- that only shared the chain. Live 2026-08-29: "when I open some of these
+    -- treasure caskets, the items literally are silent instead of speaking".
+    -- "A Potion +3." read correctly on 2026-08-15, before this clause existed.
+    --
+    -- Plus and nothing else, measured over 2046 replayable offset contests: the
+    -- six casket rows are rescued and no row that speaks today loses its label.
+    -- Colon and percent were tested and rejected -- they flip "3:v1 x" and
+    -- "erf%1a" clean, and those are the mid-string pointer shape this exists
+    -- to catch.
+    if (#label <= 12) then
+        local odd = 0;
+        for character in label:gmatch("[^%w%s'%-%.,#%(%)!%?&%+]") do
+            odd = odd + 1;
+        end
+        local symbols = 0;
+        for character in label:gmatch('[!&%?]') do
+            symbols = symbols + 1;
+        end
+        if (odd > 0 or (symbols > 0 and label:find('%s') == nil)) then
+            penalty = penalty + 60;
+        end
     end
 
     return penalty;
@@ -10818,23 +11099,49 @@ function accessxi.sentence_fragment(text)
     return text .. '.';
 end
 
+-- THE SAME ROW MUST TRANSFORM TO THE SAME WORDS EVERY TIME.
+--
+-- This function announces a menu's title with the first row under it and strips
+-- it from the rest, which is right. What was wrong is that it did so as a
+-- function of CALL ORDER rather than of the row: poll an unchanged row twice
+-- and the first call returned "Black Dragon. Switch Target." while the second
+-- returned "Switch Target." The caller's already-spoken test compares against
+-- the POST-transform string, so the second reading looked new, and speak()
+-- defaults to cancel = true -- so the row was voiced twice about 120 ms apart
+-- and the second killed the first partway through the name. What the player
+-- hears is a name that cuts off, or a name where an option should be. That is
+-- report 5 from 2026-08-26: "instead of reading the option it reads something
+-- weird like a character name."
+--
+-- Memoising on (menu, key, incoming text) makes the answer a property of the
+-- row instead of the call, so an unchanged row returns a string identical to
+-- last time and the caller's comparison correctly suppresses it.
 function accessxi.menu_row_speech_without_repeated_title(text, menu_name, key)
     text = tostring(text or '');
     menu_name = tostring(menu_name or '');
     key = tostring(key or '');
+    local row_signature = ('%s\1%s\1%s'):fmt(menu_name, key, text);
+    if (row_signature == tostring(accessxi.menu_row_speech_row or '')) then
+        return tostring(accessxi.menu_row_speech_result or text);
+    end
+    local function remember(result)
+        accessxi.menu_row_speech_row = row_signature;
+        accessxi.menu_row_speech_result = result;
+        return result;
+    end
     local title = accessxi.survival_guide_text(accessxi.current_menu_speech_title or '');
     if (text == '' or title == '') then
-        return text;
+        return remember(text);
     end
 
     local prefix = title .. '.';
     if (text:sub(1, #prefix) ~= prefix) then
-        return text;
+        return remember(text);
     end
 
     local spoken = text:sub(#prefix + 1):gsub('^%s+', '');
     if (spoken == '') then
-        return text;
+        return remember(text);
     end
 
     local transition_tick = tonumber(accessxi.last_menu_transition_tick) or 0;
@@ -10848,7 +11155,7 @@ function accessxi.menu_row_speech_without_repeated_title(text, menu_name, key)
             accessxi.escape_probe_log_text(key),
             accessxi.escape_probe_log_text(title),
             accessxi.escape_probe_log_text(text)));
-        return text;
+        return remember(text);
     end
 
     log_state(('state menu-title-prefix suppressed menu="%s" key="%s" prefix="%s" original="%s" spoken="%s"'):fmt(
@@ -10857,7 +11164,7 @@ function accessxi.menu_row_speech_without_repeated_title(text, menu_name, key)
         accessxi.escape_probe_log_text(title),
         accessxi.escape_probe_log_text(text),
         accessxi.escape_probe_log_text(spoken)));
-    return spoken;
+    return remember(spoken);
 end
 
 function accessxi.native_query_label_for_position(label, expected_count, selected, context)
@@ -11217,6 +11524,7 @@ function accessxi.native_query_items_for_child(child, expected_count, context)
     local best_items = T{};
     local best_mode = 'empty';
     local best_score = 0;
+    local canonical_items, canonical_score = nil, 0;
     local summaries = T{};
     for _, next_off in ipairs(T{ 0x00, 0x84, 0x88, 0x100, 0x108, 0x10, 0x14, 0x18, 0x1C, 0x20 }) do
         local items = accessxi.native_query_collect_items_with_next(first, expected_count, next_off, context);
@@ -11227,10 +11535,43 @@ function accessxi.native_query_items_for_child(child, expected_count, context)
             sample:append(('%d:%s'):fmt(i, tostring(item.label or ''):gsub('"', "'")));
         end
         summaries:append(('+%03X len=%d score=%d [%s]'):fmt(next_off, items:len(), score, sample:concat(' | ')));
+        if (next_off == 0x00) then
+            canonical_items, canonical_score = items, score;
+        end
         if (score > best_score) then
             best_score = score;
             best_items = items;
             best_mode = ('next+%03X'):fmt(next_off);
+        end
+    end
+
+    -- THE CANONICAL CHAIN MUST BE BEATEN, NOT MERELY EDGED.
+    --
+    -- The ten offsets were compared by bare argmax, so a two or three point
+    -- heuristic edge was enough to replace real row labels with whatever
+    -- happened to sit at another pointer. The scorer cannot tell the
+    -- difference: it rewards a space and a length of eight, and "menu keytops3"
+    -- -- the menu's own NAME structure, read as a row -- earns both.
+    --
+    -- Live 2026-08-27 on the Home Point screen:
+    --     +000 score=77  [1:Nowhere. | 2:Home Point #2 ...]   <- correct
+    --     +088 score=80  [1:Nowhere. | 2:menu keytops3]       <- chosen
+    -- The player heard "menu keytops3" where the name of the home point should
+    -- have been, and had to guess which row they were on. 168 of 1,480 chain
+    -- selections in the log -- 11.4% -- took a non-canonical offset, and their
+    -- labels are near-uniformly garbage.
+    --
+    -- +000 is the chain the game itself walks. The others exist for the cases
+    -- where it genuinely fails, and a real failure is not a three point loss.
+    if (canonical_score > 0 and best_mode ~= 'next+000') then
+        local margin = math.max(10, math.floor(canonical_score * 0.10));
+        -- Beaten, not merely edged -- and a win by EXACTLY the margin is the
+        -- edge. 2026-08-28: canonical 66, alternative 76, margin 10, and
+        -- `76 < 76` is false, so the garbage read won on the boundary.
+        if (best_score <= canonical_score + margin) then
+            best_items = canonical_items;
+            best_score = canonical_score;
+            best_mode = 'next+000';
         end
     end
 
@@ -39081,6 +39422,43 @@ function accessxi.current_status_menu_selection()
     };
 end
 
+-- THE WINDOWS BEHIND THE STATUS MENU.
+--
+-- All eight are real menu names in FFXiMain.dll. Six of them -- btlskill,
+-- mgcskill, trdskill, joblevel, masterle, profile -- have never had a reader of
+-- any kind, in any build back to 2026-06-04. The other two, evitem and ut_menu,
+-- are Currencies and Unity: they read correctly, and they are the only two that
+-- have ever been observed open, which is why a list that omits them would fix
+-- nothing anyone has seen.
+function accessxi.is_status_submenu(name)
+    name = tostring(name or '');
+    return name:eq('menu    btlskill', true)
+        or name:eq('menu    mgcskill', true)
+        or name:eq('menu    trdskill', true)
+        or name:eq('menu    joblevel', true)
+        or name:eq('menu    masterle', true)
+        or name:eq('menu    profile', true)
+        or name:eq('menu    evitem', true)
+        or name:eq('menu    ut_menu', true);
+end
+
+-- WHAT THE PLAYER WAS STANDING ON WHEN THEY PRESSED ENTER.
+--
+-- By the time the sub-window is open, statcom2 is gone and
+-- current_status_menu_selection cannot answer -- it reads the status menu's own
+-- entry. The arrow handler computes the label and row code every poll while the
+-- menu IS open, so the answer is always one poll old. Remember it there.
+function accessxi.status_menu_remember_row(label, row_code)
+    label = tostring(label or '');
+    if (label == '') then
+        return false;
+    end
+    accessxi.status_menu_last_row_label = label;
+    accessxi.status_menu_last_row_code = tonumber(row_code) or 0;
+    accessxi.status_menu_last_row_tick = tick();
+    return true;
+end
+
 function accessxi.status_detail_label_supported(label)
     label = tostring(label or '');
     return label == 'Profile'
@@ -44788,6 +45166,7 @@ function accessxi.home_point_query_menu_speech(menu_name, title, obj)
         label);
     if (key ~= tostring(accessxi.last_home_point_query_log_key or '')) then
         accessxi.last_home_point_query_log_key = key;
+        accessxi.nav_note_warp_intent(title);
         log_state(('state homepoint query menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X mode="%s" label="%s"'):fmt(
             menu_name,
             accessxi.escape_probe_log_text(title),
@@ -50442,6 +50821,7 @@ end
 function accessxi.item_sort_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry)
     menu_name = tostring(menu_name or '');
     if (not menu_name:eq('menu    itmsort2', true)
+        and not menu_name:eq('menu    itmsortw', true)
         and not menu_name:eq('menu    blusortw', true)
         and not menu_name:eq('menu    mgcsortw', true)) then
         return nil;
@@ -50494,7 +50874,30 @@ function accessxi.item_sort_menu_speech(menu_name, title, obj, selected, count, 
     local entry_label = accessxi.plain_native_menu_label(read_probe_string(label_ptr, 160));
     local help = accessxi.plain_native_menu_help(read_probe_string(help_ptr, 260));
     local help_source = help ~= '' and 'entry+40' or '';
-    if (label == '' and entry_label ~= '') then
+    -- ENTRY+44 IS THE CLIENT'S OWN CAPTION, SO IT WINS.
+    --
+    -- Row 1 of the Sort menu spoke "white" while entryLabel on the very same log
+    -- line already held the row's real caption:
+    --
+    --   21:34:48 state nativemenu item-sort-native ... select=1 label="white"
+    --     entryLabel=<the row caption> help=<its help text>
+    --     labelSource="native-query:first-node:order" mode="first-node:order"
+    --
+    -- (The captions are deliberately not quoted here:
+    -- tools/test_item_sort_menu_native.ps1 refuses to let this handler contain
+    -- them, so that nobody is ever tempted to match on them.)
+    --
+    -- When no pointer chain scores positive, native_query_items_for_child
+    -- manufactures a one-element list from the head node -- so row 1 got the
+    -- string the scorer had just REJECTED, and rows 2 and 3 indexed past the end
+    -- of that one-element list, got nothing, and fell through here to the right
+    -- answer. The query was only ever winning where it was wrong.
+    --
+    -- entry comes from read_u32(obj + 0x08), the client's own cursor-tracked
+    -- pointer, and +0x44 is the caption it draws. Over the whole log this flips
+    -- 8 of 61 rows and leaves 53 byte-identical; the query stays as the fallback
+    -- for the case it exists for, an entry with no caption of its own.
+    if (entry_label ~= '') then
         label = entry_label;
         label_source = 'entry+44';
     end
@@ -50537,6 +50940,14 @@ function accessxi.item_sort_menu_speech(menu_name, title, obj, selected, count, 
     accessxi.last_native_menu_selected = selected;
     accessxi.last_native_menu_tick = tick();
     accessxi.current_item_sort_label = label;
+    -- WHICH SORT WINDOW SAID IT.
+    --
+    -- The cached label lives for 120 seconds and recorded nothing about where it
+    -- came from, which did not matter while only one window could produce it.
+    -- Now that the container variant is admitted too, a label left over from an
+    -- inventory sort would otherwise be read out as the container's
+    -- confirmation -- the right words for the wrong window.
+    accessxi.current_item_sort_menu_name = menu_name;
     accessxi.current_item_sort_help = help;
     accessxi.current_item_sort_title = title;
     accessxi.current_item_sort_selected = selected;
@@ -52977,9 +53388,14 @@ function accessxi.current_item_sort_confirmation_context()
     local transition_from = tostring(accessxi.last_menu_transition_from or '');
     local transition_to = tostring(accessxi.last_menu_transition_to or '');
     if (transition_age < 0 or transition_age > 120000
-        or not (transition_from:eq('menu    itmsort2', true) or transition_from:eq('menu    blusortw', true) or transition_from:eq('menu    mgcsortw', true))
+        or not (transition_from:eq('menu    itmsort2', true) or transition_from:eq('menu    itmsortw', true) or transition_from:eq('menu    blusortw', true) or transition_from:eq('menu    mgcsortw', true))
         or not transition_to:eq('menu    sortyn', true)) then
         return nil, 'not-item-sort-transition';
+    end
+    -- And it must be the label THIS window produced, not one still cached from
+    -- a different sort window within the last two minutes.
+    if (not transition_from:eq(tostring(accessxi.current_item_sort_menu_name or ''), true)) then
+        return nil, 'item-sort-context-from-another-window';
     end
 
     return {
@@ -53438,6 +53854,7 @@ function accessxi.native_known_menu_speech(name)
         selected = read_current_native_menu_index(0x4C);
     end
     if (menu_name:eq('menu    itmsort2', true)
+        or menu_name:eq('menu    itmsortw', true)
         or menu_name:eq('menu    blusortw', true)
         or menu_name:eq('menu    mgcsortw', true)) then
         local sort_selected = read_current_native_menu_index(0x4C);
@@ -53484,6 +53901,7 @@ function accessxi.native_known_menu_speech(name)
         return accessxi.player_command_submenu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
     end
     if (menu_name:eq('menu    itmsort2', true)
+        or menu_name:eq('menu    itmsortw', true)
         or menu_name:eq('menu    blusortw', true)
         or menu_name:eq('menu    mgcsortw', true)) then
         return accessxi.item_sort_menu_speech(menu_name, title, obj, selected, count, page, raw, child, entry);
@@ -55116,6 +55534,9 @@ function accessxi.native_known_menu_speech(name)
             if (description:contains('View your profile', true)) then
                 accessxi.status_profile_pending_until = tick() + 2500;
             end
+            -- The row the player is standing on, kept for the instant they
+            -- press Enter and statcom2 stops being able to answer for itself.
+            accessxi.status_menu_remember_row(status_label, row_code);
             accessxi.last_native_menu_name = menu_name;
             accessxi.last_native_menu_label = spoken_description;
             accessxi.last_native_menu_selected = selected;
@@ -60684,6 +61105,56 @@ function accessxi.combat_player_server_id()
     return 0;
 end
 
+-- WHO GETS CREDIT FOR A KILL.
+--
+-- The 0x029 handler has called accessxi.combat_actor_is_local_or_party since at
+-- least 2026-08-14 and NOTHING HAS EVER DEFINED IT -- not in the deployed tree,
+-- not in any backup beside it. The call is guarded by a type check, so it never
+-- raised; actor_ok simply stayed false and the handler returned on every single
+-- defeat packet. No fight objective in the game could complete, for anyone, at
+-- any point in that window. Live 2026-08-26 the player killed the Black Dragon
+-- and the Searcher in Balga's Dais and had to press N to mark the step done.
+--
+-- Party slot 0 is the player; 1..17 are party and alliance. TRUSTS OCCUPY PARTY
+-- SLOTS -- this addon's own trust detection reads them out of exactly these
+-- slots -- which matters more than it looks: a solo player running trusts is
+-- most of the retail population, and disproportionately the players this mod
+-- exists for. If a trust lands the killing blow and trusts do not count, the
+-- objective silently never completes.
+--
+-- Returns (true, 'local') for the player, (true, 'party') for anyone in the
+-- party or alliance including trusts, and (false, '') otherwise.
+function accessxi.combat_actor_is_local_or_party(server_id)
+    server_id = tonumber(server_id) or 0;
+    if (server_id <= 0) then
+        return false, '';
+    end
+
+    local own = tonumber(accessxi.combat_player_server_id()) or 0;
+    if (own > 0 and server_id == own) then
+        return true, 'local';
+    end
+
+    local mm = safe_call(function () return AshitaCore:GetMemoryManager(); end, nil);
+    local party = mm ~= nil and safe_call(function () return mm:GetParty(); end, nil) or nil;
+    if (party == nil) then
+        return false, '';
+    end
+    for index = 0, 17 do
+        local active = tonumber(safe_call(
+            function () return party:GetMemberIsActive(index); end, 0)) or 0;
+        if (active ~= 0) then
+            local member = tonumber(safe_call(
+                function () return party:GetMemberServerId(index); end, 0)) or 0;
+            if (member > 0 and member == server_id) then
+                return true, (index == 0) and 'local' or 'party';
+            end
+        end
+    end
+
+    return false, '';
+end
+
 function accessxi.combat_target_name()
     local mm = safe_call(function () return AshitaCore:GetMemoryManager(); end, nil);
     local target = mm ~= nil and safe_call(function () return mm:GetTarget(); end, nil) or nil;
@@ -61267,6 +61738,30 @@ function accessxi.log_combat_action_diag(action, data, reason)
         accessxi.packet_hex_limit(data, 48)));
 end
 
+-- A WITNESSED DEFEAT IS NAVIGATION EVIDENCE EVEN WHEN A TRUST LANDED IT.
+--
+-- Objective kill credit has a deliberately narrower actor rule.  Promyvion
+-- does not use this signal to award objective progress; it uses the exact dead
+-- Receptacle id to watch the paired Stream for twelve seconds.  Applying the
+-- objective actor gate here made Tenzen's live 2026-09-01 kill invisible to the
+-- portal guidance even though the player could plainly see the enemy die.
+function accessxi.nav_promyvion_note_defeat_message(target_server_id, message_id,
+    now)
+    target_server_id = tonumber(target_server_id) or 0;
+    message_id = tonumber(message_id) or 0;
+    if (target_server_id <= 0 or (message_id ~= 6 and message_id ~= 97)
+        or type(accessxi.nav_promyvion_receptacle_defeated) ~= 'function') then
+        return false;
+    end
+    -- The route already owns the exact Receptacle server id.  Asking the live
+    -- entity table for a name after the death packet is weaker evidence and may
+    -- race the entity disappearing; nav_promyvion_receptacle_defeated rejects
+    -- every id except the transition this route is currently working on.
+    local ok, consumed = pcall(accessxi.nav_promyvion_receptacle_defeated,
+        target_server_id, tonumber(now) or tick());
+    return ok and consumed == true;
+end
+
 function accessxi.capture_combat_action_packet(e)
     if (e == nil) then
         return;
@@ -61274,9 +61769,14 @@ function accessxi.capture_combat_action_packet(e)
 
     local packet_id = tonumber(e.id) or -1;
     if (packet_id == 0x029) then
-        local data = e.data_modified or e.data
-            or accessxi.packet_event_string(e, 'data_modified', 'size')
-            or accessxi.packet_event_string(e, 'data', 'size') or '';
+        -- Incoming packet fields may be raw pointers rather than Lua strings.
+        -- The old `e.data_modified or e.data` expression accepted that pointer
+        -- and failed at `#data`, making a real packet indistinguishable from no
+        -- packet at all.  The shared reader handles both representations.
+        local data = accessxi.packet_event_string(e, 'data_modified', 'size');
+        if (data == '') then
+            data = accessxi.packet_event_string(e, 'data', 'size');
+        end
         if (#data < 0x1A) then return; end
         local actor_server_id = accessxi.packet_u32(data, 0x04 + 1);
         local target_server_id = accessxi.packet_u32(data, 0x08 + 1);
@@ -61287,12 +61787,17 @@ function accessxi.capture_combat_action_packet(e)
             or actor_server_id <= 0 or target_server_id <= 0) then
             return;
         end
-        local actor_ok, actor_kind = false, '';
-        if (type(accessxi.combat_actor_is_local_or_party) == 'function') then
-            actor_ok, actor_kind = accessxi.combat_actor_is_local_or_party(
-                actor_server_id);
+        local now = tick();
+        -- Portal observation is independent of objective kill credit and uses
+        -- only the exact active Receptacle id.  Keep this hook behind its own
+        -- error boundary: a navigation observer must never take down the shared
+        -- incoming-packet callback again.
+        local nav_ok, nav_error = pcall(accessxi.nav_promyvion_note_defeat_message,
+            target_server_id, message_id, now);
+        if (not nav_ok) then
+            log_line(('nav Promyvion defeat hook failed reason="%s"'):fmt(
+                tostring(nav_error or 'unknown'):gsub('[\r\n]+', ' ')));
         end
-        if (actor_ok ~= true) then return; end
         local target_name = '';
         if (type(accessxi.combat_entity_hp_summary_for_server) == 'function') then
             local _, _, name = accessxi.combat_entity_hp_summary_for_server(
@@ -61300,11 +61805,16 @@ function accessxi.capture_combat_action_packet(e)
             target_name = tostring(name or '');
         end
         if (target_name == '' or target_name:lower() == 'unknown') then return; end
+        local actor_ok, actor_kind = false, '';
+        if (type(accessxi.combat_actor_is_local_or_party) == 'function') then
+            actor_ok, actor_kind = accessxi.combat_actor_is_local_or_party(
+                actor_server_id);
+        end
+        if (actor_ok ~= true) then return; end
         local identity = tostring(accessxi.current_player_identity() or ''):lower();
         local world_id = tonumber(accessxi.current_player_world_id()) or 0;
         local session_epoch = tonumber(accessxi.current_objective_session_epoch()) or 0;
         if (identity == '' or world_id <= 0 or session_epoch <= 0) then return; end
-        local now = tick();
         local replay_key = table.concat({ tostring(session_epoch),
             tostring(actor_server_id), tostring(target_server_id),
             tostring(actor_index), tostring(target_index), tostring(message_id) }, ':');
@@ -61354,6 +61864,13 @@ function accessxi.capture_combat_action_packet(e)
         end
         accessxi.log_combat_action_diag(nil, data, ('parse-%s'):fmt(tostring(err or '')));
         return;
+    end
+
+    -- This must run before the speech filter below: relocation items are
+    -- intentionally not combat speech, but their zone change must never be
+    -- learned as a walkable doorway.
+    if (type(accessxi.nav_note_relocation_item_action) == 'function') then
+        accessxi.nav_note_relocation_item_action(action);
     end
 
     local speech, detail = accessxi.combat_action_packet_speech(action);
@@ -68892,6 +69409,14 @@ accessxi.mission_quest_objectives = accessxi.load_module_table('mission_quest_ob
     quests = T{},
 });
 accessxi.mission_quest_guide_index = accessxi.load_module_table('mission_quest_guide_index', T{});
+-- Reviewed step sequences for missions whose scraped page is shared with another
+-- mission through a wiki redirect. See modules/mission_quest_step_overrides.lua.
+accessxi.mission_quest_step_overrides = accessxi.load_module_table('mission_quest_step_overrides', T{});
+-- Additive instructions for steps whose guide prose leaves something out. NOT
+-- an override: these change what is SAID about a step, never which step is
+-- current, so they are safe to add to a mission the player is standing in the
+-- middle of. See modules/mission_quest_step_notes.lua.
+accessxi.mission_quest_step_notes = accessxi.load_module_table('mission_quest_step_notes', T{});
 accessxi.mission_quest_guides_module = accessxi.load_module_table('mission_quest_guides', T{});
 if (type(accessxi.mission_quest_guides_module.new) == 'function') then
     accessxi.objective_guides = accessxi.mission_quest_guides_module.new(T{
@@ -68913,12 +69438,21 @@ if (type(accessxi.mission_quest_guides_module.new) == 'function') then
             if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
                 accessxi.nav_cancel_mission_quest_route('objective-guide-character-changed');
             end
+            -- A different character starts from a silent baseline: whatever this
+            -- one was told about its missions is not something the next one has
+            -- heard, and is not something that just happened to them either.
+            if (type(accessxi.reset_objective_announcements) == 'function') then
+                accessxi.reset_objective_announcements('character-changed');
+            end
         end,
         logger = log_line,
     });
 else
     accessxi.objective_guides = T{};
 end
+accessxi.load_code_module('mission_progress_tracker', T{ T = T, log_line = log_line });
+accessxi.load_code_module('objective_announcer', T{ T = T, log_line = log_line });
+accessxi.load_code_module('mission_quest_step_resolver', T{ T = T, log_line = log_line });
 accessxi.load_code_module('mission_quest_navigation', T{
     T = T,
     bit = bit,
@@ -69048,7 +69582,7 @@ local function nav_player_index()
     return index;
 end
 
-local function nav_entity_position(index)
+local function nav_entity_position(index, want_stream_evidence)
     index = tonumber(index) or -1;
     if (index < 0) then
         return nil;
@@ -69068,7 +69602,7 @@ local function nav_entity_position(index)
         return nil;
     end
 
-    return T{
+    local snapshot = T{
         index = index,
         name = name,
         zone = nav_zone_id(),
@@ -69083,7 +69617,58 @@ local function nav_entity_position(index)
         claim = tonumber(safe_call(function () return entity:GetClaimStatus(index); end, -1)) or -1,
         spawn_flags = tonumber(safe_call(function () return entity:GetSpawnFlags(index); end, 0)) or 0,
         name_color = tonumber(safe_call(function () return entity:GetNameColor(index); end, 0)) or 0,
+        -- Entity slots retain their id, name, HP and coordinates after despawn.
+        -- Flags1 bit 0x1000 is the positive evidence that the slot is no longer
+        -- rendered, so ordinary live-enemy scans need this one field too.
+        render_flags_1 = tonumber(safe_call(function () return entity:GetRenderFlags1(index); end, nil)),
     };
+    -- These fourteen calls exist solely to identify the live Memory Stream
+    -- signature.  Ordinary entity scans touch up to 2304 slots; charging every
+    -- NPC, mob and player for probe-only evidence made a half-second Stream
+    -- probe global work.  Only the server-id lookup opts in.
+    if (want_stream_evidence == true) then
+        snapshot.status_server = tonumber(safe_call(function () return entity:GetStatusServer(index); end, -1)) or -1;
+        snapshot.status_event = tonumber(safe_call(function () return entity:GetStatusEvent(index); end, -1)) or -1;
+        snapshot.animation_0 = tonumber(safe_call(function () return entity:GetAnimation(index, 0); end, -1)) or -1;
+        snapshot.animation_1 = tonumber(safe_call(function () return entity:GetAnimation(index, 1); end, -1)) or -1;
+        snapshot.animation_2 = tonumber(safe_call(function () return entity:GetAnimation(index, 2); end, -1)) or -1;
+        snapshot.animation_3 = tonumber(safe_call(function () return entity:GetAnimation(index, 3); end, -1)) or -1;
+        -- Failure to read renderedness is UNKNOWN.  Zero is a valid rendered
+        -- value, so defaulting an unreadable field to zero would manufacture
+        -- positive evidence and could call a retained Stream slot open.
+        snapshot.render_flags_0 = tonumber(safe_call(function () return entity:GetRenderFlags0(index); end, nil));
+        snapshot.render_flags_2 = tonumber(safe_call(function () return entity:GetRenderFlags2(index); end, 0)) or 0;
+        snapshot.render_flags_3 = tonumber(safe_call(function () return entity:GetRenderFlags3(index); end, 0)) or 0;
+        snapshot.render_flags_4 = tonumber(safe_call(function () return entity:GetRenderFlags4(index); end, 0)) or 0;
+        snapshot.render_flags_5 = tonumber(safe_call(function () return entity:GetRenderFlags5(index); end, 0)) or 0;
+        snapshot.render_flags_6 = tonumber(safe_call(function () return entity:GetRenderFlags6(index); end, 0)) or 0;
+        snapshot.render_flags_7 = tonumber(safe_call(function () return entity:GetRenderFlags7(index); end, 0)) or 0;
+        snapshot.render_flags_8 = tonumber(safe_call(function () return entity:GetRenderFlags8(index); end, 0)) or 0;
+    end
+    return snapshot;
+end
+
+-- Promyvion Stream state is attached to entity fields, not the catalogue.
+-- Build one server-id index per short poll window so checking eleven Streams
+-- does not scan the 2304-slot entity table eleven times.
+function accessxi.nav_entity_snapshot_for_server_id(server_id)
+    server_id = tonumber(server_id) or 0;
+    if (server_id <= 0) then return nil; end
+    local now = tick();
+    if (type(accessxi.nav_entity_server_index) ~= 'table'
+        or (now - (tonumber(accessxi.nav_entity_server_index_tick) or 0)) >= 250) then
+        accessxi.nav_entity_server_index = {};
+        accessxi.nav_entity_server_index_tick = now;
+        local entity = safe_call(function () return AshitaCore:GetMemoryManager():GetEntity(); end, nil);
+        local size = entity ~= nil
+            and (tonumber(safe_call(function () return entity:GetEntityMapSize(); end, 0)) or 0) or 0;
+        for index = 0, math.min(size - 1, 2303) do
+            local id = tonumber(safe_call(function () return entity:GetServerId(index); end, 0)) or 0;
+            if (id > 0) then accessxi.nav_entity_server_index[id] = index; end
+        end
+    end
+    local index = accessxi.nav_entity_server_index[server_id];
+    return index ~= nil and nav_entity_position(index, true) or nil;
 end
 
 local function nav_player_position()
@@ -69120,6 +69705,22 @@ local function nav_player_position()
     if (pos ~= nil) then
         accessxi.nav_current_position = pos;
         accessxi.nav_position_seen = true;
+        -- WHERE THEY LAST STOOD IN EACH ZONE, kept separately on purpose.
+        -- nav_current_position is set to nil by whichever path notices a zone
+        -- change first -- usually nav_cached_player_position, from the walk
+        -- graph poll -- so by the time a zone-change hook runs it is already
+        -- gone. That is why the first version of the exit learner recorded
+        -- nothing at all: it read a field that had just been cleared.
+        local zone_of = tonumber(pos.zone) or 0;
+        if (zone_of > 0) then
+            accessxi.nav_last_position_by_zone = accessxi.nav_last_position_by_zone or {};
+            accessxi.nav_last_position_by_zone[zone_of] = T{
+                zone = zone_of,
+                x = tonumber(pos.x) or 0,
+                z = tonumber(pos.z) or 0,
+                y = tonumber(pos.y) or 0,
+            };
+        end
     end
     return pos;
 end
@@ -69276,6 +69877,12 @@ function accessxi.nav_observe_zone_load_packet(e, now)
         return false;
     end
     accessxi.nav_zone_load_packet_tick = tonumber(now) or tick();
+    -- A same-zone-id re-entry must not inherit a Memory Stream state from the
+    -- prior visit.  Reset on the zone packet itself; the first NPC update in
+    -- the new zone will attach evidence to the actual current zone.
+    if (type(accessxi.nav_promyvion_packet_zone) == 'function') then
+        accessxi.nav_promyvion_packet_zone(0);
+    end
     return true;
 end
 
@@ -69301,6 +69908,10 @@ function accessxi.nav_zone_load_settle_active(now)
 end
 
 function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
+    -- Every zone change funnels through here: the two pollers AND
+    -- nav_cached_player_position's mismatch branch. Hooking the pollers alone
+    -- missed the case that actually fires first.
+    pcall(accessxi.nav_zoneline_note_observed, old_zone, new_zone);
     local from_zone_id = tonumber(old_zone) or 0;
     local zone_id = tonumber(new_zone) or 0;
     local identity = type(accessxi.current_player_identity) == 'function'
@@ -69338,10 +69949,7 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     if (type(accessxi.nav_mission_quest_clear_pending_interaction) == 'function') then
         accessxi.nav_mission_quest_clear_pending_interaction('zone-change');
     end
-    if (accessxi.nav_dat_collision_state ~= nil) then
-        accessxi.nav_dat_collision_state:cancel('zone-change');
-    end
-    accessxi.nav_dat_collision_pending = nil;
+    accessxi.nav_route_ownership_advance('zone-change', true);
     accessxi.nav_dat_collision_preload_zone = 0;
     accessxi.nav_dat_collision_preload_last_tick = 0;
     if (type(accessxi.nav_transport_clear) == 'function') then
@@ -69353,6 +69961,8 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_current_position = nil;
     accessxi.nav_position_seen = false;
     accessxi.nav_active = false;
+    accessxi.nav_final_approach = nil;
+    accessxi.nav_residual_handoff_key = nil;
     accessxi.nav_destination = nil;
     accessxi.nav_route_start_point = nil;
     accessxi.nav_position_last_log_key = '';
@@ -69379,7 +69989,7 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
-    accessxi.nav_beacon_reset_direction_state();
+    accessxi.nav_route_guidance_reset();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -69406,6 +70016,8 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
     accessxi.nav_last_failure_tick = 0;
     accessxi.nav_obstacle_last_key = '';
     accessxi.nav_obstacle_last_tick = 0;
+    accessxi.nav_obstacle_spoken = nil;
+    accessxi.nav_obstacle_spoken_tick = 0;
     accessxi.nav_movement_blocking_menu_last_key = '';
     accessxi.nav_movement_blocking_menu_last_tick = 0;
     accessxi.nav_last_live_obstacle_tick = 0;
@@ -69419,7 +70031,317 @@ function accessxi.nav_reset_zone_state(reason, old_zone, new_zone)
         pcall(function () ffxinav.DisposeFFXINavClass(accessxi.nav_mesh_handle); end);
         accessxi.nav_mesh_handle = nil;
     end
+    accessxi.nav_native_zone_reset();
+    accessxi.pointer_page_cache_clear('zone-change');
     log_line(('nav zone state reset reason="%s" old=%d new=%d'):fmt(reason or '', tonumber(old_zone) or 0, tonumber(new_zone) or 0));
+end
+
+-- Record a zone change the shipped graph has no edge for. Two phases: the
+-- change itself captures where the player STOOD when they left -- which is the
+-- exit trigger, and exactly what a future route should aim at -- and the first
+-- position read in the new zone completes the far end.
+function accessxi.nav_zoneline_note_observed(from_zone, to_zone)
+    from_zone = tonumber(from_zone) or 0;
+    to_zone = tonumber(to_zone) or 0;
+    if (from_zone <= 0 or to_zone <= 0 or from_zone == to_zone) then
+        return;
+    end
+    -- A WARP IS NOT A WALK.
+    --
+    -- Survival Guides and Home Points move the player between zones that are
+    -- nowhere near each other. Recording that as a zone-line edge would tell the
+    -- router those two zones adjoin on foot, and every later chain through them
+    -- would be a lie -- and worse for anyone else running this addon, it would
+    -- route them through a warp THEY MAY NOT HAVE UNLOCKED. Transports are a
+    -- typed edge with an availability rule for exactly this reason; an
+    -- unattuned Home Point is not an edge at all.
+    --
+    -- Both menus already stamp a tick when their packet arrives, so a zone
+    -- change shortly after one is a warp, not a walk.
+    local warp_tick = math.max(
+        tonumber(accessxi.survival_guide_last_packet_tick) or 0,
+        tonumber(accessxi.home_point_last_packet_tick) or 0);
+    if (warp_tick > 0 and (tick() - warp_tick) <= 20000) then
+        log_line(('nav zoneline observed skipped from=%d to=%d reason="warp, not a walked exit"'):fmt(
+            from_zone, to_zone));
+        return;
+    end
+
+    accessxi.nav_load_zoneline_graph();
+    for _, edge in ipairs(accessxi.nav_zoneline_out_edges(from_zone) or T{}) do
+        if ((tonumber(edge.to_zone) or 0) == to_zone) then
+            return;   -- already known
+        end
+    end
+    local by_zone = accessxi.nav_last_position_by_zone;
+    local from = type(by_zone) == 'table' and by_zone[from_zone] or nil;
+    if (type(from) ~= 'table' or (tonumber(from.zone) or 0) ~= from_zone) then
+        return;   -- no trustworthy exit position; a zero coordinate is worse than nothing
+    end
+    -- Who they were talking to, if anyone, within the last fifteen seconds. A
+    -- scripted exit is usually an NPC, and naming it is most of the value.
+    local via = '';
+    local armed = accessxi.nav_objective_talk_intent;
+    if (type(armed) == 'table') then
+        via = nav_clean_field(armed.name or '');
+    end
+    accessxi.nav_zoneline_observed_pending = T{
+        from_zone = from_zone, to_zone = to_zone,
+        from_x = tonumber(from.x) or 0,
+        from_z = tonumber(from.z) or 0,
+        from_y = tonumber(from.y) or 0,
+        via = via,
+    };
+    log_line(('nav zoneline observed pending from=%d to=%d at=(%.1f,%.1f,%.1f) via="%s"'):fmt(
+        from_zone, to_zone, tonumber(from.x) or 0, tonumber(from.z) or 0,
+        tonumber(from.y) or 0, accessxi.escape_probe_log_text(via)));
+end
+
+-- The far end, once the player is standing in the new zone.
+-- WHEN THE PLAYER OPENS SOMETHING THAT MOVES THEM.
+--
+-- Stamped whenever a menu appears that can change zone without walking: a
+-- Survival Guide, a Home Point, a telepoint, a ferry or airship. The observed
+-- zoneline learner reads it, because a zone change that follows one of these is
+-- that menu's doing and must never be recorded as a doorway. Fifteen of the
+-- sixteen transitions it had learned were warps, and each one became a road the
+-- router could plan through that only exists if the player owns that warp.
+--
+-- Deliberately generous: a title we are unsure about still stamps, because a
+-- missed doorway costs one unlearned shortcut while a learned warp costs a
+-- player being sent somewhere they cannot go.
+function accessxi.nav_note_warp_intent(title)
+    local text = tostring(title or ''):lower();
+    if (text == '') then
+        return false;
+    end
+    if (text:find('survival guide', 1, true) or text:find('home point', 1, true)
+        or text:find('telepoint', 1, true) or text:find('waypoint', 1, true)
+        or text:find('runic portal', 1, true) or text:find('conflux', 1, true)
+        or text:find('airship', 1, true) or text:find('ferry', 1, true)
+        or text:find('boat', 1, true) or text:find('chocobo', 1, true)) then
+        accessxi.nav_warp_intent_tick = tick();
+        accessxi.nav_warp_intent_title = tostring(title or '');
+        return true;
+    end
+    return false;
+end
+
+-- A RELOCATION ITEM HAS NO WARP-TITLED MENU.
+--
+-- Live 2026-08-31 the player used a Warp Ring in Promyvion - Holla.  The
+-- native action packet proved actor=self, command=9 and item=28540, but the
+-- only menu title was "Use"; thirteen seconds later the observed-zoneline
+-- learner banked Holla -> Southern San d'Oria as a walkable road.  Menu-title
+-- matching therefore cannot cover item enchantments.  Stamp only an executed
+-- local self-use whose resource description names a relocation enchantment.
+function accessxi.nav_note_relocation_item_action(action)
+    if (type(action) ~= 'table' or (tonumber(action.cmd_no) or 0) ~= 9) then
+        return false;
+    end
+    local player_id = type(accessxi.combat_player_server_id) == 'function'
+        and (tonumber(accessxi.combat_player_server_id()) or 0) or 0;
+    if (player_id <= 0 or (tonumber(action.m_uID) or 0) ~= player_id) then
+        return false;
+    end
+
+    for _, target in ipairs(type(action.target) == 'table' and action.target or {}) do
+        if ((tonumber(target.m_uID) or 0) == player_id) then
+            for _, result in ipairs(type(target.result) == 'table' and target.result or {}) do
+                local item_id = tonumber(result.value) or 0;
+                local info = item_id > 0 and item_id < 65535
+                    and type(accessxi.resource_item_info) == 'function'
+                    and accessxi.resource_item_info(item_id) or nil;
+                local description = type(info) == 'table'
+                    and tostring(info.description or ''):lower() or '';
+                local enchantment = description:match('^%s*enchantment:%s*(.-)%s*$') or '';
+                if (enchantment:find('warp', 1, true)
+                    or enchantment:find('teleport', 1, true)
+                    or enchantment:find('retrace', 1, true)
+                    or enchantment:find('recall', 1, true)) then
+                    accessxi.nav_warp_intent_tick = tick();
+                    accessxi.nav_warp_intent_title = tostring(
+                        (type(info) == 'table' and (info.long_name or info.name))
+                        or ('item ' .. tostring(item_id)));
+                    log_line(('nav relocation item pending item=%d name="%s" enchantment="%s"'):fmt(
+                        item_id,
+                        accessxi.escape_probe_log_text(accessxi.nav_warp_intent_title),
+                        accessxi.escape_probe_log_text(enchantment)));
+                    return true;
+                end
+            end
+        end
+    end
+    return false;
+end
+
+-- A WARP IS NOT A DOORWAY.
+--
+-- This learner exists because scripted exits are real and LandSandBoat does not
+-- list them -- the player walked out of Chateau d'Oraguille through an NPC and
+-- the addon had no idea that road existed. But it recorded every zone change
+-- the same way, and a Home Point, a Survival Guide and a ferry all change zone.
+--
+-- Of the sixteen transitions it learned, FIFTEEN were warps. They land where
+-- warps land: Southern San d'Oria, Northern San d'Oria, Windurst Walls, again
+-- and again, from Qufim, from Sauromugue, from Tahrongi, from Lower Delkfutt's
+-- Tower. Every one became an edge the router could plan through, so a player
+-- could be routed down a road that only exists if they own that Home Point.
+-- The player raised exactly this: "a user doesn't try to navigate to a mission
+-- and it tells them to use a homepoint warp they might not have."
+--
+-- The tell is what they touched just before. A walked exit follows walking; a
+-- warp follows a menu. accessxi.nav_warp_intent_tick is stamped whenever a
+-- Survival Guide, Home Point, telepoint or transport menu is used, and any zone
+-- change within thirty seconds of one is that menu's doing, not a doorway's.
+-- DEATH IS A WARP THE PLAYER DID NOT CHOOSE.
+--
+-- nav_note_warp_intent covers the warps you ASK for -- a Home Point, a Survival
+-- Guide, a ferry -- by matching the menu title you touched. Dying is the one
+-- relocation with no such title: the death window names the mob that killed
+-- you. So it gets its own stamp.
+--
+-- One death, one relocation: the refusal it causes consumes it. The fifteen
+-- minute backstop is for the death that is never followed by a zone change at
+-- all -- a raise where you fell. Erring long is deliberate and matches the rule
+-- written above nav_note_warp_intent: a missed doorway costs one unlearned
+-- shortcut, a learned warp costs the player being sent somewhere they cannot go.
+function accessxi.nav_note_death_relocation(reason, zone)
+    if ((tonumber(accessxi.nav_death_relocation_tick) or 0) > 0) then
+        return false;
+    end
+    accessxi.nav_death_relocation_tick = tick();
+    accessxi.nav_death_relocation_reason = tostring(reason or 'death');
+    accessxi.nav_death_relocation_zone = tonumber(zone) or 0;
+    log_line(('nav death relocation pending reason="%s" zone=%d'):fmt(
+        accessxi.escape_probe_log_text(tostring(reason or 'death')),
+        tonumber(accessxi.nav_death_relocation_zone) or 0));
+    return true;
+end
+
+function accessxi.nav_clear_death_relocation(reason)
+    if ((tonumber(accessxi.nav_death_relocation_tick) or 0) <= 0) then
+        return false;
+    end
+    log_line(('nav death relocation cleared reason="%s"'):fmt(
+        accessxi.escape_probe_log_text(tostring(reason or ''))));
+    accessxi.nav_death_relocation_tick = 0;
+    accessxi.nav_death_relocation_reason = '';
+    accessxi.nav_death_relocation_zone = 0;
+    return true;
+end
+
+-- A RAISE ENDS A DEATH; A HOME POINT DOES NOT.
+--
+-- Both leave the player alive, so being alive is not the test -- being alive IN THE ZONE THEY
+-- DIED IN is. After a raise the player stands where they fell and the next doorway they walk
+-- through is a real one, so the stamp must go. After a Home Point they are alive somewhere
+-- else, and that somewhere else is the relocation the learner must refuse; the zone guard is
+-- what stops the newly positive HP from clearing the stamp before the zone-change handler has
+-- read it (sol).
+function accessxi.nav_death_relocation_release_if_alive(now)
+    if ((tonumber(accessxi.nav_death_relocation_tick) or 0) <= 0) then
+        return false;
+    end
+    local zone = tonumber(safe_call(function () return nav_zone_id(); end, 0)) or 0;
+    if (zone <= 0 or zone ~= (tonumber(accessxi.nav_death_relocation_zone) or 0)) then
+        return false;
+    end
+    local party = safe_call(function ()
+        return AshitaCore:GetMemoryManager():GetParty();
+    end, nil);
+    if (party == nil) then
+        return false;
+    end
+    local hp = tonumber(safe_call(function () return party:GetMemberHP(0); end, -1)) or -1;
+    if (hp <= 0) then
+        return false;
+    end
+    return accessxi.nav_clear_death_relocation('raised-in-place');
+end
+
+function accessxi.nav_death_relocation_pending(now)
+    local stamped = tonumber(accessxi.nav_death_relocation_tick) or 0;
+    if (stamped <= 0) then
+        return false;
+    end
+    -- Corruption cleanup, not control flow: the arm/clear/consume states above are what
+    -- normally end a death. Half an hour is long enough that a corpse waiting for a raise is
+    -- never released by the clock alone.
+    if (((tonumber(now) or tick()) - stamped) >= 1800000) then
+        accessxi.nav_clear_death_relocation('expired');
+        return false;
+    end
+    return true;
+end
+
+function accessxi.nav_zoneline_observed_warp_recent(now)
+    if (accessxi.nav_death_relocation_pending(now)) then
+        return true;
+    end
+    local stamped = tonumber(accessxi.nav_warp_intent_tick) or 0;
+    if (stamped <= 0) then
+        return false;
+    end
+    return ((tonumber(now) or tick()) - stamped) < 30000;
+end
+
+function accessxi.nav_zoneline_complete_observed(position)
+    local pending = accessxi.nav_zoneline_observed_pending;
+    if (type(pending) ~= 'table' or type(position) ~= 'table') then
+        return;
+    end
+    if ((tonumber(position.zone) or 0) ~= (tonumber(pending.to_zone) or 0)) then
+        return;
+    end
+    accessxi.nav_zoneline_observed_pending = nil;
+
+    if (accessxi.nav_zoneline_observed_warp_recent(tick())) then
+        -- One death, one relocation. Consuming it here means the walk the
+        -- player takes AFTER being raised is still learnable; leaving it set
+        -- would quietly stop the learner for the rest of the session.
+        local by_death = accessxi.nav_death_relocation_pending(tick());
+        if (by_death) then
+            accessxi.nav_clear_death_relocation('consumed-by-relocation');
+        end
+        log_line(('nav zoneline observed REFUSED %s -> %s: %s, this is not a doorway'):fmt(
+            nav_clean_field(accessxi.nav_graph_zone_name(pending.from_zone)),
+            nav_clean_field(accessxi.nav_graph_zone_name(pending.to_zone)),
+            by_death and 'the player died and was relocated' or 'a warp menu was used'));
+        return;
+    end
+
+    local from_name = nav_clean_field(accessxi.nav_graph_zone_name(pending.from_zone));
+    local to_name = nav_clean_field(accessxi.nav_graph_zone_name(pending.to_zone));
+    local note = pending.via ~= '' and ('observed exit via ' .. pending.via) or 'observed exit';
+    local row = ('%d%d999\t%d\t%s\tobserved\t%.3f\t%.3f\t%.3f\t%d\t%s\tobserved\t%.3f\t%.3f\t%.3f\tlive-observed\tobserved\t%s\n'):fmt(
+        pending.from_zone, pending.to_zone,
+        pending.from_zone, from_name,
+        pending.from_x, pending.from_z, pending.from_y,
+        pending.to_zone, to_name,
+        tonumber(position.x) or 0, tonumber(position.z) or 0, tonumber(position.y) or 0,
+        note);
+
+    local handle = io.open(accessxi.nav_zoneline_observed_path, 'a');
+    if (handle == nil) then
+        log_line('nav zoneline observed write failed: ' .. tostring(accessxi.nav_zoneline_observed_path));
+        return;
+    end
+    handle:write(row);
+    handle:close();
+
+    accessxi.nav_zoneline_edges:append(T{
+        id = 0,
+        from_zone = pending.from_zone, from_name = from_name, from_code = 'observed',
+        from_x = pending.from_x, from_z = pending.from_z, from_y = pending.from_y,
+        to_zone = pending.to_zone, to_name = to_name, to_code = 'observed',
+        to_x = tonumber(position.x) or 0, to_z = tonumber(position.z) or 0,
+        to_y = tonumber(position.y) or 0,
+        source = 'live-observed', confidence = 'observed',
+    });
+    log_line(('nav zoneline observed learned %s -> %s via="%s"'):fmt(
+        from_name, to_name, accessxi.escape_probe_log_text(pending.via)));
+    speak(('Learned the way out of %s.'):fmt(from_name ~= '' and from_name or 'that zone'));
 end
 
 function accessxi.nav_poll_zone_transition_only(now)
@@ -69462,6 +70384,7 @@ local function poll_nav_position()
         end
         return;
     end
+    pcall(accessxi.nav_zoneline_complete_observed, pos);
 
     local key = nav_position_log_key(pos);
     if (key ~= accessxi.nav_position_last_log_key and (now - (accessxi.nav_position_last_log_tick or 0)) >= 1500) then
@@ -69495,10 +70418,17 @@ local function nav_vertical_phrase(from_pos, to_pos)
     if (math.abs(dy) < 2.0) then
         return '';
     end
+    -- FFXI's Y axis points DOWN: a LARGER y is LOWER ground. This branch was
+    -- inverted -- dy > 0 (target below) spoke "Height up" -- so every height
+    -- cue this phrase produced was backwards. Verified against a live trace on
+    -- 2026-08-21: the route descended 15 yalms while announcing "Height up 2,
+    -- 3", and at a cave mouth it announced "Height up 10" for a tunnel ten
+    -- yalms below the player's feet. For guidance by ear, an inverted vertical
+    -- cue sends the player hunting for a climb that does not exist.
     if (dy > 0) then
-        return (' Height up %.0f.'):fmt(math.abs(dy));
+        return (' Height down %.0f.'):fmt(math.abs(dy));
     end
-    return (' Height down %.0f.'):fmt(math.abs(dy));
+    return (' Height up %.0f.'):fmt(math.abs(dy));
 end
 
 function accessxi.nav_normalize_angle(angle)
@@ -69621,6 +70551,37 @@ function accessxi.nav_next_turn_phrase(from_pos, route_target, next_target)
     return (' Then %s.'):fmt(instruction);
 end
 
+-- A hairpin: the leg beyond the target doubles back on the leg into it
+-- (heading change past 120 degrees) and the two legs are STACKED -- the far
+-- point is within 4 yalms of the player horizontally but 2 or more above or
+-- below. Live 2026-08-21: a switchback spoken as a bare "Turn around" put
+-- the player on the bank between its legs. Returns nil, or which way the far
+-- leg goes.
+function accessxi.nav_hairpin_ahead(from_pos, route_target, next_target)
+    if (from_pos == nil or route_target == nil or next_target == nil) then
+        return nil;
+    end
+    local ax = (tonumber(route_target.x) or 0) - (tonumber(from_pos.x) or 0);
+    local az = (tonumber(route_target.z) or 0) - (tonumber(from_pos.z) or 0);
+    local bx = (tonumber(next_target.x) or 0) - (tonumber(route_target.x) or 0);
+    local bz = (tonumber(next_target.z) or 0) - (tonumber(from_pos.z) or 0) - az;
+    local al = math.sqrt((ax * ax) + (az * az));
+    local bl = math.sqrt((bx * bx) + (bz * bz));
+    if (al < 0.25 or bl < 0.25) then
+        return nil;
+    end
+    if (((ax * bx) + (az * bz)) / (al * bl) > -0.5) then
+        return nil;
+    end
+    local far = nav_distance(from_pos, next_target);
+    local dy = (tonumber(next_target.y) or 0) - (tonumber(from_pos.y) or 0);
+    if (far > 4.0 or math.abs(dy) < 2.0) then
+        return nil;
+    end
+    -- y points DOWN: the far leg is higher when its y is smaller.
+    return T{ climb = dy < 0 };
+end
+
 function accessxi.nav_guidance_phrase(from_pos, route_target, next_target, allow_on_it)
     if (from_pos == nil or route_target == nil) then
         return 'Position unavailable.', 0, 0, 0;
@@ -69631,7 +70592,16 @@ function accessxi.nav_guidance_phrase(from_pos, route_target, next_target, allow
         if (allow_on_it ~= false) then
             return 'You are on it.', distance, dx, dz;
         end
-        if (next_target ~= nil) then
+        if (next_target ~= nil and route_target.clamped_to == nil) then
+            -- A CLAMPED TARGET IS SHORT ON PURPOSE.
+            --
+            -- This substitution exists so a waypoint the player is already
+            -- standing on does not produce a useless bearing -- it looks past
+            -- it to the next one, up to thirty yalms away. But a target that
+            -- was clamped is short because everything beyond it is blocked, and
+            -- reaching past it walks the player straight back into what the
+            -- clamp just steered them around. Live 2026-08-27 the clamp cut an
+            -- aim to 5.1 yalms and the instruction still said nine.
             local next_distance = nav_distance(from_pos, next_target);
             if (next_distance <= 30
                 and accessxi.nav_precise_beacon_lookahead_allowed(from_pos, route_target, next_target)) then
@@ -69644,8 +70614,12 @@ function accessxi.nav_guidance_phrase(from_pos, route_target, next_target, allow
     end
 
     local instruction = accessxi.nav_facing_instruction(from_pos, route_target);
+    local hairpin = accessxi.nav_hairpin_ahead(from_pos, route_target, next_target);
     local phrase = '';
-    if (instruction == 'go straight') then
+    if (hairpin ~= nil and instruction == 'go straight') then
+        phrase = ('%s the ramp %.0f yalms, then turn around.'):fmt(
+            hairpin.climb and 'Climb' or 'Go down', distance);
+    elseif (instruction == 'go straight') then
         phrase = ('Go straight %.0f yalms.'):fmt(distance);
     elseif (instruction == 'You are on it') then
         if (allow_on_it == false) then
@@ -69732,6 +70706,8 @@ function accessxi.nav_dat_collision_bootstrap()
     return true;
 end
 
+local nav_route_stop;
+
 function accessxi.poll_nav_dat_collision_preload(now)
     now = tonumber(now) or tick();
     if (accessxi.nav_active == true or accessxi.nav_dat_collision_pending ~= nil) then
@@ -69809,6 +70785,67 @@ function accessxi.nav_dat_collision_destination_copy(point)
     };
 end
 
+function accessxi.nav_route_ownership_advance(reason, cancel_state)
+    accessxi.nav_route_ownership_generation =
+        (tonumber(accessxi.nav_route_ownership_generation) or 0) + 1;
+    if (type(accessxi.nav_promyvion_clear) == 'function') then
+        accessxi.nav_promyvion_clear(reason);
+    end
+    local pending = accessxi.nav_dat_collision_pending;
+    if (type(accessxi.nav_dat_collision_state) == 'table'
+        and type(accessxi.nav_dat_collision_state.cancel) == 'function'
+        and (pending ~= nil or cancel_state == true)) then
+        pcall(accessxi.nav_dat_collision_state.cancel,
+            accessxi.nav_dat_collision_state,
+            tostring(reason or 'route-owner-changed'));
+    end
+    accessxi.nav_dat_collision_pending = nil;
+    -- The walk graph is asynchronous for the same reason the terrain builder
+    -- is, so it needs the same ownership discipline. Without this, a search
+    -- started before the player pressed stop finishes afterwards and installs
+    -- itself -- navigation switching itself back on, which for a blind player
+    -- is a beacon starting up unbidden with no idea where it is pointing.
+    accessxi.nav_walk_graph_pending = nil;
+    -- A refusal belongs to the destination that earned it. Carrying it across a
+    -- stop, a new route or a zone change would suppress the mesh for a
+    -- destination nobody has actually refused.
+    accessxi.nav_walk_graph_refusal = nil;
+    accessxi.nav_final_approach = nil;
+    -- The stairs-to-point hand-off fires once per destination; a new owner means
+    -- a new destination, so let it fire again.
+    accessxi.nav_residual_handoff_key = nil;
+    if (type(accessxi.walk_graph_route) == 'table'
+        and type(accessxi.walk_graph_route.cancel) == 'function') then
+        pcall(accessxi.walk_graph_route.cancel, tostring(reason or 'route-owner-changed'));
+    end
+    accessxi.nav_precise_async_recovery_completion = nil;
+    return accessxi.nav_route_ownership_generation;
+end
+
+function accessxi.nav_dat_collision_pending_is_current(pending)
+    if (type(pending) ~= 'table') then
+        return false;
+    end
+    -- Old test/runtime state written before request ownership existed is
+    -- allowed to drain once.  Every request created below is owner-bound.
+    if (pending.owner_bound ~= true) then
+        return true;
+    end
+    if ((tonumber(pending.owner_generation) or -1)
+        ~= (tonumber(accessxi.nav_route_ownership_generation) or 0)
+        or accessxi.nav_active ~= true
+        or accessxi.nav_destination ~= pending.owner_destination
+        or accessxi.nav_objective_route_state ~= pending.owner_objective_route_state
+        or accessxi.nav_zone_search_target ~= pending.owner_zone_search_target) then
+        return false;
+    end
+    if (pending.purpose == 'recovery'
+        and accessxi.nav_route_points ~= pending.retained_route_points) then
+        return false;
+    end
+    return true;
+end
+
 function accessxi.nav_dat_collision_prefer_smoother(player, point, points)
     if (type(accessxi.nav_collision_smoother_route) ~= 'function') then
         return points;
@@ -69825,7 +70862,25 @@ function accessxi.nav_dat_collision_prefer_smoother(player, point, points)
     return selected;
 end
 
+-- A ZONE WITH NO COLLISION DATA IS NOT ASKED TWICE.
+--
+-- Chateau d'Oraguille has no referenced collision geometry in its MZB. Asking
+-- anyway costs a load attempt and, worse, returns 'error' -- and the caller
+-- treats 'error' as final and returns an empty route WITHOUT falling through to
+-- nav_compute_mesh_route, which is the very next line. Any mode the caller does
+-- not recognise falls through to the mesh, which is exactly what should happen.
 function accessxi.nav_dat_collision_route(player, point)
+    do
+        local unsupported = accessxi.nav_dat_collision_zone_unsupported;
+        local zone = tonumber(player ~= nil and player.zone) or 0;
+        if (type(unsupported) == 'table' and zone > 0 and unsupported[zone] == true) then
+            return T{}, 'unsupported', '';
+        end
+    end
+    return accessxi.nav_dat_collision_route_attempt(player, point);
+end
+
+function accessxi.nav_dat_collision_route_attempt(player, point)
     if (player == nil or point == nil
         or (tonumber(player.zone) or 0) <= 0
         or (tonumber(player.zone) or 0) ~= (tonumber(point.zone) or 0)) then
@@ -69867,9 +70922,20 @@ function accessxi.nav_dat_collision_route(player, point)
         return copied, 'ready', '';
     end
     if (mode == 'pending') then
+        local retained = accessxi.nav_route_points;
+        local retained_count = type(retained) == 'table'
+            and type(retained.len) == 'function' and retained:len() or 0;
         accessxi.nav_dat_collision_pending = T{
             destination = accessxi.nav_dat_collision_destination_copy(point),
             message = message,
+            owner_bound = true,
+            owner_generation = tonumber(accessxi.nav_route_ownership_generation) or 0,
+            owner_destination = accessxi.nav_destination,
+            owner_objective_route_state = accessxi.nav_objective_route_state,
+            owner_zone_search_target = accessxi.nav_zone_search_target,
+            retained_route_points = retained,
+            purpose = accessxi.nav_active == true and retained_count > 1
+                and 'recovery' or 'start',
         };
         return T{}, 'pending', message;
     end
@@ -69900,6 +70966,13 @@ function accessxi.nav_dat_collision_zoneline_approach(player, destination)
             return points, 'ready', '';
         end
         if (mode == 'pending') then
+            -- The native job is aimed at the paired landing, but route
+            -- ownership and arrival still belong to the original zoneline.
+            -- Retain that exact endpoint so asynchronous completion can append
+            -- the trigger and cannot replace the route with its approach.
+            if (type(accessxi.nav_dat_collision_pending) == 'table') then
+                accessxi.nav_dat_collision_pending.zoneline_destination = destination;
+            end
             return T{}, 'pending', nav_clean_field(message);
         end
         local reason = nav_clean_field(message);
@@ -69956,6 +71029,42 @@ function accessxi.poll_nav_dat_collision(now)
     local player = nav_cached_player_position();
     local pending = accessxi.nav_dat_collision_pending;
     local destination = pending ~= nil and pending.destination or nil;
+    if (not accessxi.nav_dat_collision_pending_is_current(pending)) then
+        if (type(accessxi.nav_dat_collision_state.cancel) == 'function') then
+            pcall(accessxi.nav_dat_collision_state.cancel,
+                accessxi.nav_dat_collision_state,
+                'route-owner-changed');
+        end
+        if (accessxi.nav_dat_collision_pending == pending) then
+            accessxi.nav_dat_collision_pending = nil;
+        end
+        return false;
+    end
+    -- D3D polling reaches this native job before the bounded route poll.  A
+    -- transient cache gap is not a zone change for an already-owned recovery;
+    -- preserve the request so the coordinator can resume from the next usable
+    -- live sample.  Start-purpose requests retain their existing semantics.
+    if (player == nil and pending.purpose == 'recovery'
+        and pending.owner_bound == true) then
+        return true;
+    end
+    if (pending.purpose ~= 'recovery'
+        and pending.owner_bound == true
+        and pending.owner_objective_route_state ~= nil) then
+        if (type(accessxi.nav_mission_quest_route_owner_mismatch) == 'function'
+            and accessxi.nav_mission_quest_route_owner_mismatch()) then
+            if (type(accessxi.nav_cancel_mission_quest_route) == 'function') then
+                accessxi.nav_cancel_mission_quest_route('pending-route-owner-mismatch');
+            end
+            return false;
+        end
+        if (type(accessxi.nav_objective_route_revalidate_or_cancel) == 'function') then
+            local current = accessxi.nav_objective_route_revalidate_or_cancel(player);
+            if (not current) then
+                return false;
+            end
+        end
+    end
     if (player == nil or destination == nil
         or (tonumber(player.zone) or 0) ~= (tonumber(destination.zone) or 0)) then
         accessxi.nav_dat_collision_state:cancel('zone-change');
@@ -69968,6 +71077,10 @@ function accessxi.poll_nav_dat_collision(now)
         player);
     if (not ok) then
         points, mode, message = nil, 'error', tostring(points);
+    end
+    if (accessxi.nav_dat_collision_pending ~= pending
+        or not accessxi.nav_dat_collision_pending_is_current(pending)) then
+        return false;
     end
     if mode == 'pending' then
         return true;
@@ -69987,11 +71100,88 @@ function accessxi.poll_nav_dat_collision(now)
     if mode ~= 'ready' or type(points) ~= 'table' or #points <= 1 then
         local text = nav_clean_field(message);
         text = text ~= '' and text or 'No collision-safe route reaches this destination.';
-        accessxi.nav_active = false;
-        accessxi.nav_destination = nil;
-        accessxi.nav_route_points:clear();
-        accessxi.nav_last_direction_text = text;
-        speak(text);
+        if (pending.purpose == 'recovery'
+            and accessxi.nav_active == true
+            and accessxi.nav_destination == pending.owner_destination
+            and accessxi.nav_route_points == pending.retained_route_points) then
+            accessxi.nav_precise_async_recovery_completion = T{
+                mode = 'error',
+                reason = text,
+                tick = now,
+                player = T{
+                    zone = player.zone, x = player.x, z = player.z,
+                    y = player.y, yaw = player.yaw,
+                },
+                owner_generation = pending.owner_generation,
+                owner_destination = pending.owner_destination,
+                owner_objective_route_state = pending.owner_objective_route_state,
+                owner_zone_search_target = pending.owner_zone_search_target,
+                retained_route_points = pending.retained_route_points,
+                obstacle_changed = pending.obstacle_changed == true,
+            };
+            log_line(('collision terrain recovery unavailable destination="%s" reason="%s"'):fmt(
+                accessxi.escape_probe_log_text(destination.name or ''),
+                accessxi.escape_probe_log_text(text)));
+            return false;
+        end
+        -- A PROVIDER FAILING IS NOT A PLACE BEING UNREACHABLE.
+        --
+        -- Live 2026-08-24 the player zoned into Chateau d'Oraguille, picked
+        -- Halver from thirty-four indexed NPCs, and got no route at all --
+        -- "Safe route is still preparing" and then silence, because the terrain
+        -- provider answered "MZB contains no referenced collision geometry."
+        -- That is this zone having no DAT collision to read, not Halver being
+        -- unreachable: the zone's navmesh was loaded and sitting right there.
+        --
+        -- Same rule as the walk graph's budget result. Only a PROOF may silence
+        -- the other providers; a provider that could not answer falls through,
+        -- and the player is told which map they are on rather than being read a
+        -- sentence about MZB files.
+        -- ANY TERRAIN FAILURE IS A PROVIDER LIMITATION, NOT A PROOF.
+        --
+        -- The first version of this only recognised the MZB message, so live
+        -- 2026-08-25 in the Metalworks -- "The generated walkable terrain has no
+        -- connected corridor" -- came back capability=false, did NOT fall
+        -- through, and stopped navigation to an NPC sixteen yalms up. That zone
+        -- is reached by ELEVATOR, which generated walk-terrain cannot express as
+        -- a corridor at all; the mesh and the Metalworks elevator module both
+        -- can. Whatever the terrain builder could not do, it never proves the
+        -- place is unreachable -- only a certified no-path does that.
+        --
+        -- zone_capability now only decides whether to REMEMBER the zone as
+        -- having no terrain data at all (so we stop retrying it); every error
+        -- falls through either way.
+        local zone_capability = text:find('collision geometry', 1, true) ~= nil
+            or text:find('MZB', 1, true) ~= nil;
+        if (zone_capability) then
+            accessxi.nav_dat_collision_zone_unsupported =
+                accessxi.nav_dat_collision_zone_unsupported or {};
+            accessxi.nav_dat_collision_zone_unsupported[tonumber(player.zone) or 0] = true;
+        end
+        zone_capability = true;   -- every terrain failure falls through; see above
+        log_line(('collision terrain unavailable zone=%d capability=%s reason="%s"'):fmt(
+            tonumber(player.zone) or 0, tostring(zone_capability),
+            accessxi.escape_probe_log_text(text)));
+        if (type(accessxi.nav_walk_graph_fall_through) == 'function'
+            and accessxi.nav_walk_graph_fall_through(player, destination, now,
+                'This zone has no verified terrain data.')) then
+            return false;
+        end
+        if (type(nav_route_stop) == 'function') then
+            nav_route_stop();
+        else
+            accessxi.nav_active = false;
+            accessxi.nav_destination = nil;
+            accessxi.nav_route_points:clear();
+        end
+        -- Never read the internal reason out loud; it means nothing to anyone.
+        local spoken = zone_capability
+            and ('I have no verified terrain data for this zone, and no map route to %s either.'):fmt(
+                nav_clean_field(destination.name) ~= ''
+                    and nav_clean_field(destination.name) or 'that destination')
+            or text;
+        accessxi.nav_last_direction_text = spoken;
+        speak(spoken);
         log_line('collision terrain route stopped: ' .. accessxi.escape_probe_log_text(text));
         return false;
     end
@@ -70008,19 +71198,729 @@ function accessxi.poll_nav_dat_collision(now)
         });
     end
     copied = accessxi.nav_dat_collision_prefer_smoother(player, destination, copied);
+    local zoneline_destination = pending.zoneline_destination;
+    if (zoneline_destination ~= nil
+        and type(accessxi.nav_append_final_zoneline_point) == 'function') then
+        accessxi.nav_append_final_zoneline_point(copied, zoneline_destination);
+    end
+    local installed_destination = (pending.purpose == 'recovery'
+            and zoneline_destination ~= nil)
+        and (pending.owner_destination or zoneline_destination)
+        or (pending.purpose == 'recovery'
+            and destination or (pending.owner_destination or destination));
+    if (pending.purpose == 'recovery') then
+        accessxi.nav_precise_async_recovery_completion = T{
+            mode = 'ready',
+            points = copied,
+            tick = now,
+            player = T{
+                zone = player.zone, x = player.x, z = player.z,
+                y = player.y, yaw = player.yaw,
+            },
+            owner_generation = pending.owner_generation,
+            owner_destination = pending.owner_destination,
+            owner_objective_route_state = pending.owner_objective_route_state,
+            owner_zone_search_target = pending.owner_zone_search_target,
+            retained_route_points = pending.retained_route_points,
+            installed_destination = installed_destination,
+            obstacle_changed = pending.obstacle_changed == true,
+        };
+        log_line(('collision terrain recovery ready destination="%s" zone=%d count=%d'):fmt(
+            accessxi.escape_probe_log_text(destination.name or ''),
+            tonumber(destination.zone) or 0,
+            copied:len()));
+        return false;
+    end
     accessxi.nav_route_points = copied;
-    accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, copied, destination);
+    accessxi.nav_route_point_index = accessxi.nav_first_route_index(
+        player, copied, installed_destination);
     accessxi.nav_route_last_recalc_tick = now;
     accessxi.nav_active = true;
-    accessxi.nav_destination = destination;
+    accessxi.nav_destination = installed_destination;
     local text = ('Terrain map ready. Starting route to %s. %d waypoints.'):fmt(
-        destination.name ~= '' and destination.name or 'destination', copied:len());
+        accessxi.nav_menu_point_speech_name(destination) or 'destination', copied:len());
     accessxi.nav_last_direction_text = text;
     speak(text);
     log_line(('collision terrain automatic start destination="%s" zone=%d count=%d'):fmt(
         accessxi.escape_probe_log_text(destination.name or ''),
         tonumber(destination.zone) or 0,
         copied:len()));
+    return false;
+end
+
+-- Drives the La Theine walk graph's incremental load and search under a frame
+-- budget, and installs the route when it is ready.
+--
+-- Two jobs, and the first one matters more than it looks. Even with no route
+-- requested, entering La Theine starts the load, because the artifact takes
+-- about a second of CPU to read and doing that inside a single frame is a
+-- visible freeze. Spread across frames it is invisible, and by the time the
+-- player asks for a route the graph is usually already there.
+--
+-- Leaving the zone releases it. Holding ninety megabytes for a zone the player
+-- has left is not free in a 32-bit process that has to survive a whole play
+-- session without fragmenting its address space.
+-- Real turns, not waypoints: bends of 30 degrees or more, with bends inside
+-- four yalms of each other counted once. "158 turns" for 159 waypoints was a
+-- number with no meaning to the person hearing it.
+function accessxi.nav_walk_graph_turn_count(points)
+    local count = points ~= nil and points:len() or 0;
+    if (count < 3) then
+        return 0;
+    end
+    local turns = 0;
+    local last_turn_x, last_turn_z = nil, nil;
+    local TURN_COS = 0.86602540;   -- cos(30 deg)
+    for i = 2, count - 1 do
+        local a, b, c = points[i - 1], points[i], points[i + 1];
+        local ix, iz = (tonumber(b.x) or 0) - (tonumber(a.x) or 0), (tonumber(b.z) or 0) - (tonumber(a.z) or 0);
+        local ox, oz = (tonumber(c.x) or 0) - (tonumber(b.x) or 0), (tonumber(c.z) or 0) - (tonumber(b.z) or 0);
+        local il, ol = math.sqrt(ix * ix + iz * iz), math.sqrt(ox * ox + oz * oz);
+        if (il > 0.001 and ol > 0.001) then
+            local cosang = (ix * ox + iz * oz) / (il * ol);
+            if (cosang < TURN_COS) then
+                local bx, bz = tonumber(b.x) or 0, tonumber(b.z) or 0;
+                if (last_turn_x == nil
+                    or math.sqrt((bx - last_turn_x) ^ 2 + (bz - last_turn_z) ^ 2) > 4.0) then
+                    turns = turns + 1;
+                end
+                last_turn_x, last_turn_z = bx, bz;
+            end
+        end
+    end
+    return turns;
+end
+
+-- AIM AT THE FLOOR THE PLAYER IS STANDING ON.
+--
+-- Live 2026-08-24: the player selected the NPC "Shattered Telepoint" from 110
+-- yalms away. The catalogue has two rows for it and the goal snapped to
+-- (340.0, -60.0, 19.1) -- five yalms BELOW the platform -- which is a proven
+-- no-path. They heard "still planning" and then nothing, gave up, and selected
+-- "Shattered Telepoint stairs" instead, which routed in 26 points and got them
+-- there. The row at (334.0, -56.6, 24.1) routes in 230 points from across the
+-- zone. The player was walking on y=24.0 the whole time.
+--
+-- Height is the discriminator, and it is nearly free: a horizontal proximity
+-- test cannot tell a platform from the ground five yalms under it, which is the
+-- same lesson as arches projecting onto the ground beneath them. So when one
+-- name has several rows, prefer the one on the player's own floor FIRST rather
+-- than discovering the mistake thirty seconds later through a sibling retry.
+--
+-- Deliberately conservative: it only overrides when the picked row is off the
+-- player's height by more than two yalms AND another row is within two. If both
+-- are plausible it changes nothing, and the sibling retry remains the backstop.
+function accessxi.nav_row_matching_player_height(player, point)
+    if (type(player) ~= 'table' or type(point) ~= 'table') then return point; end
+    local name = nav_clean_field(point.name);
+    local zone = tonumber(point.zone) or 0;
+    local py = tonumber(player.y);
+    if (name == '' or zone <= 0 or py == nil) then return point; end
+
+    local picked_dy = math.abs((tonumber(point.y) or 0) - py);
+    if (picked_dy <= 2.0) then return point; end
+
+    local best, best_dy, best_flat = nil, picked_dy, nil;
+    for _, row in ipairs(accessxi.nav_points or T{}) do
+        if ((tonumber(row.zone) or 0) == zone
+            and nav_clean_field(row.name):lower() == name:lower()) then
+            local dy = math.abs((tonumber(row.y) or 0) - py);
+            if (dy <= 2.0) then
+                local flat = math.sqrt(
+                    (((tonumber(row.x) or 0) - (tonumber(player.x) or 0)) ^ 2)
+                    + (((tonumber(row.z) or 0) - (tonumber(player.z) or 0)) ^ 2));
+                if (best == nil or dy < best_dy
+                    or (dy == best_dy and flat < (best_flat or math.huge))) then
+                    best, best_dy, best_flat = row, dy, flat;
+                end
+            end
+        end
+    end
+    if (best == nil) then return point; end
+
+    local moved = T{};
+    for key, value in pairs(point) do moved[key] = value; end
+    moved.x = tonumber(best.x) or 0;
+    moved.z = tonumber(best.z) or 0;
+    moved.y = tonumber(best.y) or 0;
+    if (nav_clean_field(best.kind) ~= '') then moved.kind = best.kind; end
+    -- ARRIVING SOMEWHERE ELSE IS NOT ARRIVING.
+    --
+    -- Live 2026-08-24: this moved the Shattered Telepoint goal up from y=19.1 to
+    -- y=24.1, the route ran, and it announced "Arrived at Shattered Telepoint" --
+    -- on the RIM of a sunken hollow, with the telepoint five yalms below. The
+    -- player said it "missed the stairs to climb to get to the telepoint",
+    -- which is exactly what a sighted player would see and we did not say.
+    --
+    -- Probing the graph around it: walkable levels run 19.1, 20.3, 21.4, 22.4,
+    -- 23.3, 24.0 across x=326..346, outer ground at 24. The hollow floor is
+    -- LABELLED component 54, the same as the rim -- and a search to it is still
+    -- a proven no-path at eight million expansions, so those component ids
+    -- claim connectivity the edges do not provide. We cannot route down there,
+    -- but we can say how far down it is instead of calling it arrival.
+    moved.residual_label = nav_clean_field(point.name);
+    moved.residual_x = tonumber(point.x) or 0;
+    moved.residual_z = tonumber(point.z) or 0;
+    moved.residual_y = tonumber(point.y) or 0;
+    log_line(('nav destination row moved to player height name="%s" picked=(%.1f,%.1f,%.1f) dy=%.1f -> (%.1f,%.1f,%.1f) dy=%.1f player_y=%.1f'):fmt(
+        accessxi.escape_probe_log_text(name),
+        tonumber(point.x) or 0, tonumber(point.z) or 0, tonumber(point.y) or 0,
+        picked_dy, moved.x, moved.z, moved.y, best_dy, py));
+    return moved;
+end
+
+-- A REFUSAL TO ONE ROW IS NOT A REFUSAL TO THE PLACE.
+--
+-- Live 2026-08-24, Shattered Telepoint in La Theine. The catalogue holds TWO
+-- rows for that one NPC, seven yalms apart horizontally and five apart in
+-- height, and they are not equivalent to the planner at all:
+--
+--   row (334.0, -56.6, 24.1) -> converges, 230 points, 66k expansions
+--   row (340.0, -60.0, 19.1) -> proved no-path after ~397k expansions
+--
+-- The destination picker aimed at the second one, so the player was told there
+-- was no walkable way to a place that routes perfectly well from the row seven
+-- yalms away. Both rows ARE the Shattered Telepoint; which one we aim at is our
+-- implementation detail, not something the player chose. So a refusal against
+-- one row now retries the siblings before it counts as a refusal to the place.
+--
+-- Verified with the raised-cap run: the second row is a genuine proof, not a
+-- budget artifact -- so this is not papering over a search that needed longer.
+function accessxi.nav_walk_graph_sibling_row(destination, allow_bad)
+    if (type(destination) ~= 'table') then return nil; end
+    local name = nav_clean_field(destination.name);
+    local zone = tonumber(destination.zone) or 0;
+    if (name == '' or zone <= 0) then return nil; end
+
+    local group = ('%d\t%s'):fmt(zone, name:lower());
+    if (tostring(accessxi.nav_walk_graph_tried_group or '') ~= group) then
+        accessxi.nav_walk_graph_tried_group = group;
+        accessxi.nav_walk_graph_tried_rows = {};
+    end
+    local tried = accessxi.nav_walk_graph_tried_rows;
+    if (type(tried) ~= 'table') then
+        tried = {};
+        accessxi.nav_walk_graph_tried_rows = tried;
+    end
+
+    local function row_key(row)
+        return ('%.2f,%.2f,%.2f'):fmt(tonumber(row.x) or 0,
+            tonumber(row.z) or 0, tonumber(row.y) or 0);
+    end
+    tried[row_key(destination)] = true;
+
+    -- A PROVEN-BAD ROW IS NOT A GOAL EITHER.
+    --
+    -- The catalogue already says which rows are wrong, and exactly one place in
+    -- this addon acted on it -- the static browse filter -- which the mission
+    -- and quest categories return before ever reaching. The router never
+    -- checked at all, so a row marked bad was still handed to the planner as
+    -- somewhere to walk.
+    --
+    -- Live 2026-08-28, La Theine. "Shattered Telepoint" has three rows: the
+    -- proven lsb npc at (340.0,-60.0,19.1), the player's own walked mark at
+    -- (337.9,-60.2,19.1), and a confidence=bad screenshot row at
+    -- (334.0,-56.6,24.1). Y is inverted here, so 24.1 is the LOWER ground --
+    -- underneath the stairs the telepoint stands on top of. The log caught the
+    -- planner aiming at it:
+    --
+    --   nav walk graph retrying sibling row destination="Shattered Telepoint"
+    --     mode="budget" -> (334.0,-56.6,24.1)
+    --
+    -- and the player: "your beacons try to either lead me through the bottom
+    -- which it can't do".
+    --
+    -- Two passes, not a filter: a bad row is still returned when it is the only
+    -- sibling left, because a destination that is absent is worse than one that
+    -- is poor. It just goes last.
+    -- A BAD ROW IS THE LAST THING TRIED, AFTER THE APPROACH.
+    --
+    -- The first version of this fix returned the bad row as a late sibling, and
+    -- that was worse than the bug it replaced. The caller only reaches
+    -- nav_walk_graph_proven_approach when this function returns NIL, so handing
+    -- back one more row -- a row the catalogue says is wrong, but which happens
+    -- to sit on ground the player can walk -- meant the planner cheerfully
+    -- routed there and announced arrival at the bottom of the stairs, and the
+    -- stairs approach never ran at all.
+    --
+    -- Live 2026-08-28 18:37, immediately after that change:
+    --   18:37:18 retrying sibling row -> (340.0,-60.0,19.1)   good row, failed
+    --   18:37:32 falling back to a bad row -> (334.0,-56.6,24.1)
+    --   18:37:32 route installed count=7
+    --   18:37:41 nav arrived name="Shattered Telepoint" x=337.2 z=-50.2
+    -- The player: "It just tried to drop me off at the base of the thing."
+    --
+    -- So bad rows are opt-in. The caller exhausts the good rows, tries the
+    -- proven approach -- which is a correct route to the right place by way of
+    -- the stairs the player themselves surveyed -- and only asks for a bad row
+    -- if that fails too. "Never nothing" still holds; it just stops outranking
+    -- a route that works.
+    local passes = allow_bad == true and T{ true } or T{ false };
+    for _, want_bad in ipairs(passes) do
+        for _, row in ipairs(accessxi.nav_points or T{}) do
+            local bad = nav_clean_field(row.confidence):lower() == 'bad';
+            if ((tonumber(row.zone) or 0) == zone
+                and nav_clean_field(row.name):lower() == name:lower()
+                and tried[row_key(row)] ~= true
+                and bad == want_bad) then
+                if (want_bad) then
+                    log_line(('nav walk graph sibling row falling back to a bad row destination="%s" -> (%.1f,%.1f,%.1f)'):fmt(
+                        name, tonumber(row.x) or 0, tonumber(row.z) or 0, tonumber(row.y) or 0));
+                end
+                tried[row_key(row)] = true;
+                -- Carry the caller's own fields across; only the ground moves.
+                local next_row = T{};
+                for key, value in pairs(destination) do next_row[key] = value; end
+                next_row.x = tonumber(row.x) or 0;
+                next_row.z = tonumber(row.z) or 0;
+                next_row.y = tonumber(row.y) or 0;
+                if (nav_clean_field(row.kind) ~= '') then next_row.kind = row.kind; end
+                return next_row;
+            end
+        end
+    end
+    return nil;
+end
+
+-- GROUND THE PLAYER HAS STOOD ON IS THE BEST EVIDENCE WE HAVE.
+--
+-- Live 2026-08-24 the player could not route to the Telepoint, the Shattered
+-- Telepoint or the Dimensional Portal in La Theine. Every one of those NPC rows
+-- is catalogued at y ~= 19.1, and the platform they are reached from is at
+-- y ~= 24 -- the lower ground is severed from it in the walk graph, so all
+-- three refuse however wide the approach envelope is opened (measured: the
+-- 16-yalm area envelope fails exactly as the 4-yalm one does).
+--
+-- Meanwhile the player's OWN recorded marks route perfectly:
+--
+--   Shattered Telepoint stairs (318.1,-61.1,24.9)  22 yalms from the npc row
+--   Telepoint stairs           (420.7, 43.5,25.0)  23 yalms
+--   Dimensional Portal stairs  (421.0,-161.5,24.8) 21 yalms
+--
+-- They found that by hand: they gave up on the NPC, picked the stairs, and
+-- arrived. Those marks are confidence=proven -- ground they actually walked --
+-- which is stronger evidence than any catalogued entity coordinate.
+--
+-- So when nothing named the destination can be routed, approach it by the
+-- nearest proven mark and SAY the target is a little further on. Thirty yalms
+-- because the measured gaps are 21-23 and the mark must plausibly be the same
+-- structure, not the next landmark over.
+function accessxi.nav_walk_graph_proven_approach(player, destination)
+    if (type(player) ~= 'table' or type(destination) ~= 'table') then return nil; end
+    local zone = tonumber(destination.zone) or 0;
+    local dx, dz = tonumber(destination.x), tonumber(destination.z);
+    if (zone <= 0 or dx == nil or dz == nil) then return nil; end
+    local name = nav_clean_field(destination.name):lower();
+    local py = tonumber(player.y);
+
+    local best, best_score, best_gap = nil, nil, nil;
+    for _, row in ipairs(accessxi.nav_points or T{}) do
+        if ((tonumber(row.zone) or 0) == zone
+            and nav_clean_field(row.confidence):lower() == 'proven'
+            and nav_clean_field(row.name):lower() ~= name) then
+            local gap = math.sqrt((((tonumber(row.x) or 0) - dx) ^ 2)
+                + (((tonumber(row.z) or 0) - dz) ^ 2));
+            if (gap <= 30.0) then
+                -- Prefer the player's own floor, then the mark closest to the
+                -- place they actually asked for.
+                local dy = py ~= nil
+                    and math.abs((tonumber(row.y) or 0) - py) or 0;
+                local score = gap + (dy * 4.0);
+                if (best_score == nil or score < best_score) then
+                    best, best_score, best_gap = row, score, gap;
+                end
+            end
+        end
+    end
+    if (best == nil) then return nil; end
+
+    local approach = T{};
+    for key, value in pairs(destination) do approach[key] = value; end
+    approach.x = tonumber(best.x) or 0;
+    approach.z = tonumber(best.z) or 0;
+    approach.y = tonumber(best.y) or 0;
+    approach.name = nav_clean_field(best.name);
+    if (nav_clean_field(best.kind) ~= '') then approach.kind = best.kind; end
+    approach.approach_for = nav_clean_field(destination.name);
+    approach.approach_gap = best_gap;
+    approach.residual_label = nav_clean_field(destination.name);
+    approach.residual_x = tonumber(destination.x) or 0;
+    approach.residual_z = tonumber(destination.z) or 0;
+    approach.residual_y = tonumber(destination.y) or 0;
+    return approach;
+end
+
+-- ONLY A PROOF MAY SILENCE THE OTHER PROVIDERS.
+--
+-- A certified 'no-path' means the graph proved two places do not connect on
+-- walkable ground, and that outranks the shipped mesh, which has been
+-- confidently wrong in La Theine. Everything else the planner can say --
+-- it ran out of expansions, it could not anchor the player on mapped ground,
+-- the artifact is missing, it timed out -- says nothing whatsoever about
+-- whether the two places connect. Live 2026-08-24 those were all funnelled
+-- into the same terminal branch, which stops navigation, so a planner that
+-- merely gave up left the player with no route in a zone that has both a
+-- navmesh and 23 recorded overrides ready to answer.
+--
+-- Returns true when a fallback route was installed.
+function accessxi.nav_walk_graph_fall_through(player, destination, now, lead)
+    if (type(accessxi.nav_compute_route_with_zoneline_approach) ~= 'function'
+        or type(destination) ~= 'table') then
+        return false;
+    end
+    local ok, fallback = pcall(
+        accessxi.nav_compute_route_with_zoneline_approach, player, destination);
+    if (not ok or fallback == nil or fallback.len == nil or fallback:len() <= 1) then
+        return false;
+    end
+    accessxi.nav_route_points = fallback;
+    accessxi.nav_route_point_index = accessxi.nav_first_route_index(
+        player, fallback, destination);
+    accessxi.nav_route_last_recalc_tick = now;
+    accessxi.nav_active = true;
+    accessxi.nav_destination = destination;
+    local name = nav_clean_field(destination.name);
+    if (name == '') then name = 'that destination'; end
+    -- Say WHICH route they are on. Being moved onto less trustworthy guidance
+    -- without being told is the one thing a blind player cannot notice.
+    local text = ('%s Using the map to %s instead. It may be unreliable.'):fmt(
+        nav_clean_field(lead), name);
+    accessxi.nav_last_direction_text = text;
+    speak(text);
+    log_line(('nav walk graph fell through destination="%s" count=%d lead="%s"'):fmt(
+        accessxi.escape_probe_log_text(name), fallback:len(),
+        accessxi.escape_probe_log_text(nav_clean_field(lead))));
+    return true;
+end
+
+function accessxi.poll_nav_walk_graph(now)
+    local provider = accessxi.walk_graph_route;
+    if (type(provider) ~= 'table') then
+        return false;
+    end
+    now = tonumber(now) or tick();
+
+    local player = nav_cached_player_position();
+    local zone = tonumber(player ~= nil and player.zone) or 0;
+
+    if (not provider.enabled()) then
+        accessxi.nav_walk_graph_pending = nil;
+        return false;
+    end
+    if (zone ~= provider.zone()) then
+        accessxi.nav_walk_graph_pending = nil;
+        -- Release an in-flight LOAD too, not just a finished graph. Gating this
+        -- on is_loaded alone left a half-read artifact and its buffer alive
+        -- after the player had already zoned out.
+        if (provider.is_loaded() or provider.is_loading()) then
+            provider.release('left-zone');
+        end
+        return false;
+    end
+
+    local pending = accessxi.nav_walk_graph_pending;
+    if (pending == nil) then
+        -- Standing in La Theine with nothing requested: start the artifact
+        -- loading so the first route does not pay for it, and keep feeding it.
+        if (not provider.is_loaded()) then
+            if (not provider.is_loading()) then
+                pcall(provider.prewarm);
+            else
+                pcall(provider.poll);
+            end
+            -- A prewarm that failed must not fail in silence. It did on
+            -- 2026-08-21, and every route that session quietly ran on the
+            -- shipped mesh instead. Log the provider's own reason, once per
+            -- distinct reason, so the log names why the graph is not there.
+            local status_now, status_reason = '', '';
+            if (type(provider.status) == 'function') then
+                local ok_status, got_mode, got_reason = pcall(provider.status);
+                if (ok_status) then
+                    status_now = tostring(got_mode or '');
+                    status_reason = tostring(got_reason or '');
+                end
+            end
+            if (status_now == 'unavailable') then
+                local why = status_reason;
+                if (why ~= tostring(accessxi.nav_walk_graph_unavailable_logged or '')) then
+                    accessxi.nav_walk_graph_unavailable_logged = why;
+                    log_line(('nav walk graph prewarm UNAVAILABLE reason="%s"'):fmt(
+                        accessxi.escape_probe_log_text(why)));
+                end
+            end
+        end
+        return false;
+    end
+
+    -- A search that outlived its owner must not install itself. Anything that
+    -- changes route ownership -- a manual stop, a new destination, zoning --
+    -- bumps this generation, and a stale result is dropped rather than
+    -- switching navigation back on behind the player.
+    if ((tonumber(pending.owner_generation) or -1)
+        ~= (tonumber(accessxi.nav_route_ownership_generation) or 0)) then
+        accessxi.nav_walk_graph_pending = nil;
+        pcall(provider.cancel, 'route-owner-changed');
+        log_line('nav walk graph pending dropped: route ownership changed');
+        return false;
+    end
+
+    local destination = pending.destination;
+    if (player == nil or destination == nil
+        or (tonumber(destination.zone) or 0) ~= provider.zone()) then
+        accessxi.nav_walk_graph_pending = nil;
+        pcall(provider.cancel, 'zone-change');
+        return false;
+    end
+
+    -- MEASURE THE POLL ITSELF. See walk_graph_route.progress() for why: the
+    -- 2026-08-23 stall was equally consistent with the planner being starved to
+    -- one slice per 7.5s and with it running at 29Hz and never advancing, and
+    -- no line in the log could separate those two. The gap between consecutive
+    -- polls decides it, so it is recorded and reported.
+    do
+        local last = tonumber(pending.last_poll_tick) or 0;
+        if (last > 0) then
+            local gap = now - last;
+            if (gap > (tonumber(pending.max_gap_ms) or 0)) then
+                pending.max_gap_ms = gap;
+            end
+        end
+        pending.last_poll_tick = now;
+        pending.polls = (tonumber(pending.polls) or 0) + 1;
+
+        local elapsed = now - (tonumber(pending.started_tick) or now);
+        if ((now - (tonumber(pending.progress_log_tick) or 0)) >= 5000) then
+            pending.progress_log_tick = now;
+            local phase, expansions, loaded, provider_mode, anchor =
+                'unknown', 0, 0, '', '';
+            if (type(provider.progress) == 'function') then
+                local ok_p, a, b, c, d, e = pcall(provider.progress);
+                if (ok_p) then
+                    phase = tostring(a);
+                    expansions = tonumber(b) or 0;
+                    loaded = tonumber(c) or 0;
+                    provider_mode = tostring(d);
+                    anchor = tostring(e or '');
+                end
+            end
+            log_line(('nav walk graph progress destination="%s" phase=%s mode=%s polls=%d max_gap=%dms elapsed=%dms loaded=%d expansions=%d anchor=[%s]'):fmt(
+                accessxi.escape_probe_log_text(
+                    type(pending.destination) == 'table'
+                        and pending.destination.name or ''),
+                phase, provider_mode, tonumber(pending.polls) or 0,
+                tonumber(pending.max_gap_ms) or 0, elapsed, loaded, expansions,
+                accessxi.escape_probe_log_text(anchor)));
+        end
+
+        -- THE DEADLINE. Thirty seconds from the request (sol). Offline, from the
+        -- player's exact position, this whole plan finishes in 304 polls -- 286
+        -- load slices plus 18 search slices, 1.23s of CPU, a 232-point route --
+        -- and even a fully exhausted search on a cold load is about 25 seconds
+        -- in the worst serialised case. Past thirty it is not slow, it is stuck.
+        --
+        -- A timeout proves NOTHING about whether the two places connect, so it
+        -- must not restrict what may answer next. That is reserved for a
+        -- certified no-path, which is real evidence.
+        if (elapsed >= 30000) then
+            local destination_name = type(pending.destination) == 'table'
+                and nav_clean_field(pending.destination.name) or '';
+            if (destination_name == '') then
+                destination_name = 'that destination';
+            end
+            log_line(('nav walk graph TIMED OUT destination="%s" polls=%d max_gap=%dms elapsed=%dms'):fmt(
+                accessxi.escape_probe_log_text(destination_name),
+                tonumber(pending.polls) or 0,
+                tonumber(pending.max_gap_ms) or 0, elapsed));
+            local timed_out_destination = pending.destination;
+            accessxi.nav_walk_graph_pending = nil;
+            accessxi.nav_walk_graph_planning_notice_tick = 0;
+            accessxi.nav_walk_graph_timeout_until = now + 60000;
+            pcall(provider.cancel, 'timeout');
+
+            -- FALL THROUGH, AND SAY THAT IS WHAT HAPPENED (sol).
+            if (accessxi.nav_walk_graph_fall_through(player, timed_out_destination,
+                now, 'Route planning timed out.')) then
+                return false;
+            end
+
+            -- A REFUSAL MUST END NAVIGATION. Leaving it active with no points is
+            -- what turned a refusal into a per-frame retry and froze the game.
+            if (type(nav_route_stop) == 'function') then
+                nav_route_stop();
+            else
+                accessxi.nav_active = false;
+                accessxi.nav_destination = nil;
+                accessxi.nav_route_points:clear();
+            end
+            local text = ('Route planning timed out to %s, and no other route was available. Navigation stopped.'):fmt(
+                destination_name);
+            accessxi.nav_last_direction_text = text;
+            speak(text);
+            return false;
+        end
+    end
+
+    -- If the graph finished loading while this request was parked, start the
+    -- search NOW and from where the player actually is. The position that came
+    -- in with the request is up to four seconds old by then, and anchoring the
+    -- funnel to ground the player has already left is how a route ends up
+    -- starting behind them.
+    local ok, points, mode, message;
+    if (provider.is_loaded() and not provider.is_searching()) then
+        ok, points, mode, message = pcall(provider.begin, player, destination);
+    else
+        ok, points, mode, message = pcall(provider.poll);
+    end
+    if (not ok) then
+        points, mode, message = nil, 'unavailable', tostring(points);
+    end
+    if (mode == 'pending') then
+        return true;
+    end
+
+    accessxi.nav_walk_graph_pending = nil;
+
+    if (mode == 'ready' and points ~= nil and points:len() > 1) then
+        accessxi.nav_route_points = points;
+        accessxi.nav_route_point_index = accessxi.nav_first_route_index(
+            player, points, destination);
+        accessxi.nav_route_last_recalc_tick = now;
+        accessxi.nav_active = true;
+        accessxi.nav_destination = destination;
+        -- Not "verified". The doorways along this route are certified against
+        -- the source geometry, but the walkable surface has not been eroded by
+        -- the body radius the way Recast erodes it, so a corner can still pass
+        -- closer to a wall than a body fits. Saying "verified" to someone who
+        -- cannot see the wall is a promise this build has not earned.
+        -- Before anything is replaced or spoken (sol, ruling 1).
+        pcall(accessxi.nav_log_route_mutation, 'walk-graph-install',
+            accessxi.nav_current_position, points:len(), destination);
+        local text = ('Route ready to %s. %d turns.'):fmt(
+            destination.name ~= nil and destination.name ~= '' and destination.name
+                or 'destination',
+            accessxi.nav_walk_graph_turn_count(points));
+        accessxi.nav_last_direction_text = text;
+        speak(text);
+        log_line(('nav walk graph route installed destination="%s" count=%d'):fmt(
+            accessxi.escape_probe_log_text(destination.name or ''), points:len()));
+        return false;
+    end
+
+    -- Nothing usable came back -- but WHY decides what may answer next.
+    -- 'no-path' is a proof and stands alone. A budget that ran out, ground the
+    -- player could not be anchored to, or a graph that is simply not there are
+    -- all failures of the planner, not facts about the terrain, so the mesh and
+    -- the recorded overrides are still entitled to answer.
+    -- Try the other rows for this same place first. A certified route to the
+    -- row seven yalms away beats falling through to the older map.
+    if (mode == 'budget' or mode == 'unreachable' or mode == 'no-path') then
+        local sibling = accessxi.nav_walk_graph_sibling_row(destination);
+        if (sibling == nil) then
+            -- Every GOOD row for the place has been tried. Approach it instead.
+            -- This must come before any confidence=bad row: the approach is a
+            -- correct route to the right place by way of ground the player
+            -- surveyed themselves, and a bad row is one the catalogue already
+            -- knows is wrong. Ordering these the other way round walked the
+            -- player to the bottom of the stairs and called it arrival.
+            sibling = accessxi.nav_walk_graph_proven_approach(player, destination);
+            if (sibling ~= nil) then
+                speak(('%s cannot be reached directly. Routing to %s, %d yalms from it.'):fmt(
+                    nav_clean_field(destination.name) ~= ''
+                        and nav_clean_field(destination.name) or 'That destination',
+                    nav_clean_field(sibling.name),
+                    math.floor((tonumber(sibling.approach_gap) or 0) + 0.5)));
+                log_line(('nav walk graph approaching by proven mark target="%s" via="%s" gap=%.1f'):fmt(
+                    accessxi.escape_probe_log_text(destination.name or ''),
+                    accessxi.escape_probe_log_text(sibling.name or ''),
+                    tonumber(sibling.approach_gap) or 0));
+            end
+        end
+        if (sibling == nil) then
+            -- Nothing good routes and there is no proven mark to approach by.
+            -- A row the catalogue calls bad is all that is left, and an absent
+            -- destination is worse than a poor one.
+            sibling = accessxi.nav_walk_graph_sibling_row(destination, true);
+        end
+        if (sibling ~= nil) then
+            local ok_s, s_points, s_mode, s_message =
+                pcall(provider.begin, player, sibling);
+            if (ok_s and s_mode == 'pending') then
+                accessxi.nav_walk_graph_pending = T{
+                    destination = sibling,
+                    owner_generation = tonumber(accessxi.nav_route_ownership_generation) or 0,
+                    owner_zone = tonumber(player.zone) or 0,
+                    message = nav_clean_field(s_message) ~= ''
+                        and nav_clean_field(s_message)
+                        or 'Planning a La Theine route. No direction is ready yet.',
+                    started_tick = tick(),
+                    polls = 0,
+                    last_poll_tick = 0,
+                    max_gap_ms = 0,
+                    progress_log_tick = 0,
+                };
+                log_line(('nav walk graph retrying sibling row destination="%s" mode="%s" -> (%.1f,%.1f,%.1f)'):fmt(
+                    accessxi.escape_probe_log_text(destination.name or ''),
+                    tostring(mode), tonumber(sibling.x) or 0,
+                    tonumber(sibling.z) or 0, tonumber(sibling.y) or 0));
+                return true;
+            end
+            if (ok_s and s_mode == 'ready' and s_points ~= nil and s_points:len() > 1) then
+                accessxi.nav_route_points = s_points;
+                accessxi.nav_route_point_index = accessxi.nav_first_route_index(
+                    player, s_points, sibling);
+                accessxi.nav_route_last_recalc_tick = now;
+                accessxi.nav_active = true;
+                accessxi.nav_destination = sibling;
+                local ready_text = ('Route ready to %s. %d turns.'):fmt(
+                    nav_clean_field(sibling.name) ~= ''
+                        and nav_clean_field(sibling.name) or 'destination',
+                    accessxi.nav_walk_graph_turn_count(s_points));
+                accessxi.nav_last_direction_text = ready_text;
+                speak(ready_text);
+                log_line(('nav walk graph sibling row installed destination="%s" count=%d'):fmt(
+                    accessxi.escape_probe_log_text(sibling.name or ''),
+                    s_points:len()));
+                return false;
+            end
+        end
+    end
+
+    if (mode == 'budget' or mode == 'unreachable' or mode == 'unavailable') then
+        local lead = 'I could not finish planning a safe route.';
+        if (mode == 'unreachable') then
+            lead = 'I could not anchor a safe route from here.';
+        elseif (mode == 'unavailable') then
+            lead = 'The verified La Theine map is not available.';
+        end
+        -- Do not walk straight back into the planner that just failed.
+        accessxi.nav_walk_graph_timeout_until = now + 60000;
+        if (accessxi.nav_walk_graph_fall_through(player, destination, now, lead)) then
+            log_line(('nav walk graph non-proof refusal destination="%s" mode="%s" fell through'):fmt(
+                accessxi.escape_probe_log_text(destination.name or ''),
+                tostring(mode)));
+            return false;
+        end
+    end
+
+    -- Say so out loud. Silence here is the one outcome that is worse than being
+    -- wrong: the player is left holding a beacon with no way to tell whether it
+    -- is still working.
+    local text = nav_clean_field(message);
+    if (text == '') then
+        text = 'I cannot verify a safe route from here.';
+    end
+    if (type(nav_route_stop) == 'function') then
+        nav_route_stop();
+    else
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+    end
+    accessxi.nav_last_direction_text = text;
+    speak(text);
+    log_line(('nav walk graph route unavailable destination="%s" mode="%s" reason="%s"'):fmt(
+        accessxi.escape_probe_log_text(destination.name or ''),
+        tostring(mode), accessxi.escape_probe_log_text(text)));
     return false;
 end
 
@@ -70058,13 +71958,30 @@ function accessxi.nav_first_route_index(from_pos, points, destination)
     local first = points[1] or T{};
     local precise_route_id = tostring(first.route_override_id or first.source or '');
     if (precise_route_id == 'dat-collision' or precise_route_id == 'lathine-navmesh') then
+        -- A freshly computed precise route commonly starts with the player's
+        -- projected mesh position followed by a portal that has already been
+        -- reached.  Normal polling skips that short portal in
+        -- nav_precise_route_track_index.  Do the same at installation time so
+        -- same-stack safety validation does not steer back to it and discard
+        -- an otherwise valid full route before the tracker gets a turn.
+        local current_target = points[2];
+        if (from_pos ~= nil and count > 2 and current_target ~= nil) then
+            local horizontal = nav_distance(from_pos, current_target);
+            local vertical = math.abs((tonumber(from_pos ~= nil and from_pos.y) or 0)
+                - (tonumber(current_target.y) or 0));
+            if (horizontal <= 1.5 and vertical <= 2.0) then
+                return 3;
+            end
+        end
         return 2;
     end
 
     local radius = accessxi.nav_route_waypoint_arrival_radius(destination);
     for i = 2, count do
         local distance = nav_distance(from_pos, points[i]);
-        if (distance > radius) then
+        local vertical = math.abs((tonumber(from_pos ~= nil and from_pos.y) or 0)
+            - (tonumber(points[i] ~= nil and points[i].y) or 0));
+        if (distance > radius or vertical > 4.0) then
             return i;
         end
     end
@@ -70156,6 +72073,56 @@ function accessxi.nav_route_live_match(pos, points, preferred_segment, first_seg
     local forward_best = nil;
     local preferred = nil;
     preferred_segment = math.floor(tonumber(preferred_segment) or 0);
+    local route_id = tostring(points[1] ~= nil
+        and (points[1].route_override_id or points[1].source) or '');
+    local self_crossing_owned = preferred_segment > 0
+        and first_segment == nil
+        and last_segment == nil
+        and (route_id:find('lathine-recorded-survey-', 1, true) == 1
+            or route_id == 'lathine-walk-graph-v2');
+    if (self_crossing_owned) then
+        -- The walked survey crosses close to itself in several places. Once
+        -- a route leg is owned, match only its immediate forward corridor;
+        -- otherwise a nearby leg hundreds of walked yalms later can steal
+        -- progress. A genuine displacement beyond this corridor is handled
+        -- by the live-position replan instead of being treated as progress.
+        --
+        -- A funnelled walk-graph route has exactly the same hazard and needs
+        -- exactly the same bound. It is not a walked survey, but it is a long
+        -- route through a zone that doubles back on itself: one real 31-corner
+        -- La Theine route contains 11 corners that alias another corner inside
+        -- the 6.0 / 4.5 match tolerance while being 28 to 50 walked yalms
+        -- apart. Unbounded, the tracker can call one of those a match and jump
+        -- the player forward across the zone -- which for someone following
+        -- the beacon by ear means being turned to face somewhere they have no
+        -- route to.
+        first_segment = math.max(1, preferred_segment - 1);
+        -- The forward corridor bound depends only on route geometry and the
+        -- owned segment, both of which are stable for the life of the route.
+        -- Recomputing it on every steering tick walked ~24 segments of a
+        -- one-yalm-spaced walked survey each time, which is what made the
+        -- beacon lag on long survey routes. Memoize per route table.
+        local forward_cache = accessxi.nav_route_live_match_forward_cache;
+        if (forward_cache == nil or forward_cache.points ~= points) then
+            forward_cache = T{ points = points, bounds = T{} };
+            accessxi.nav_route_live_match_forward_cache = forward_cache;
+        end
+        local cached_last = tonumber(forward_cache.bounds[preferred_segment]);
+        if (cached_last == nil) then
+            cached_last = preferred_segment;
+            local forward_distance = 0;
+            for i = preferred_segment, count - 1 do
+                local segment_distance = nav_distance(points[i], points[i + 1]);
+                if (forward_distance + segment_distance > 24.0) then
+                    break;
+                end
+                forward_distance = forward_distance + segment_distance;
+                cached_last = i;
+            end
+            forward_cache.bounds[preferred_segment] = cached_last;
+        end
+        last_segment = cached_last;
+    end
     first_segment = math.max(1, math.floor(tonumber(first_segment) or 1));
     last_segment = math.min(count - 1, math.floor(tonumber(last_segment) or (count - 1)));
     for i = first_segment, last_segment do
@@ -70316,7 +72283,7 @@ function accessxi.nav_precise_route_waypoint_passed(player, current_target, next
     return nav_distance(player, next_target) < nav_distance(player, current_target);
 end
 
-function accessxi.nav_precise_route_track_index(player, now)
+function accessxi.nav_precise_route_track_index(player, now, force)
     local count = accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() or 0;
     local index = tonumber(accessxi.nav_route_point_index) or 1;
     if (player == nil or count < 2 or index < 1 or index >= count
@@ -70325,7 +72292,7 @@ function accessxi.nav_precise_route_track_index(player, now)
     end
 
     now = tonumber(now) or tick();
-    if ((now - (tonumber(accessxi.nav_precise_route_track_tick) or 0)) < 50) then
+    if (not force and (now - (tonumber(accessxi.nav_precise_route_track_tick) or 0)) < 50) then
         return false;
     end
     accessxi.nav_precise_route_track_tick = now;
@@ -70415,19 +72382,40 @@ function accessxi.nav_route_position_delta(pos, points)
         };
     end
 
+    -- When these are the active route points, progress ownership is the
+    -- durable context for a folded or vertically stacked route.  A global
+    -- nearest-segment search can otherwise alias a fall onto an already
+    -- completed lower leg and make the still-forward cursor look healthy.
+    -- Keep the live comparison local to the owned leg and its immediate
+    -- neighbors; a real displacement then becomes a truthful replan signal.
+    local first_segment = 1;
+    local last_segment = count - 1;
+    if (points == accessxi.nav_route_points) then
+        local current = math.max(2, math.min(
+            math.floor(tonumber(accessxi.nav_route_point_index) or 2),
+            count));
+        first_segment = math.max(1, current - 2);
+        last_segment = math.min(count - 1, current);
+    end
+
     local best = nil;
-    for i = 1, count - 1 do
+    for i = first_segment, last_segment do
         local projected, _, horizontal = accessxi.nav_project_to_segment(pos, points[i], points[i + 1]);
-        if (projected ~= nil and (best == nil or horizontal < best.horizontal)) then
+        if (projected ~= nil) then
             local signed_vertical = py - (tonumber(projected.y) or 0);
-            best = T{
-                horizontal = horizontal,
-                vertical = math.abs(signed_vertical),
-                signed_vertical = signed_vertical,
-                below = math.max(0, -signed_vertical),
-                segment = i,
-                point = projected,
-            };
+            local vertical = math.abs(signed_vertical);
+            local score = math.sqrt((horizontal * horizontal) + (vertical * vertical * 4));
+            if (best == nil or score < best.score) then
+                best = T{
+                    horizontal = horizontal,
+                    vertical = vertical,
+                    signed_vertical = signed_vertical,
+                    below = math.max(0, -signed_vertical),
+                    segment = i,
+                    point = projected,
+                    score = score,
+                };
+            end
         end
     end
 
@@ -70446,6 +72434,54 @@ function accessxi.nav_lathine_lower_ravine_position(pos)
         return false;
     end
     return px >= -670 and px <= -585 and pz >= 200 and pz <= 350 and py <= 12.5;
+end
+
+-- WHY IS THE ROUTE BEING REBUILT? Live 2026-08-22 La Theine rebuilt the route
+-- five times in under five minutes while the player was demonstrably ON it --
+-- horizontal offset under 1.6 yalms, the precise matcher advancing 120 -> 132
+-- of 292 -- with only the VERTICAL gap growing (2.92, then 4.23) as walk-graph
+-- nodes sat above a player standing on a slope.
+--
+-- The existing replan log prints the NEW route's delta, so it cannot say what
+-- triggered the old one to be thrown away, and 4.23 cannot trip the `> 7.0`
+-- vertical test anyway -- some other path is reinstalling. sol's ruling:
+-- instrument every request and install path BEFORE the mutation, and do not
+-- change any threshold until the trigger is visible. This only records.
+function accessxi.nav_log_route_mutation(reason, player, new_count, destination)
+    local points = accessxi.nav_route_points;
+    local old_count = (type(points) == 'table' and points.len ~= nil) and points:len() or 0;
+    local index = tonumber(accessxi.nav_route_point_index) or 0;
+    local horizontal, vertical, leg = -1, -1, -1;
+    if (old_count > 1 and player ~= nil and type(accessxi.nav_route_pursuit_project) == 'function') then
+        local ok, at = pcall(accessxi.nav_route_pursuit_project, player, points, index);
+        if (ok and type(at) == 'table') then
+            leg = tonumber(at.segment) or -1;
+            horizontal = tonumber(at.distance) or -1;
+            local a, b = points[at.segment], points[at.segment + 1];
+            if (a ~= nil and b ~= nil) then
+                local ay = tonumber(a.y) or 0;
+                local by = tonumber(b.y) or 0;
+                -- The height the LEG says this spot is, not the nearest node's
+                -- (sol: compare against the projected corridor, since in
+                -- La Theine a node's Y belongs at a different X/Z).
+                local expected = ay + ((tonumber(at.t) or 0) * (by - ay));
+                vertical = math.abs((tonumber(player.y) or 0) - expected);
+            end
+        end
+    end
+    local id = (tonumber(accessxi.nav_route_mutation_sequence) or 0) + 1;
+    accessxi.nav_route_mutation_sequence = id;
+    log_line(('nav route mutation req=%d reason="%s" owner=%d old_id="%s" old_index=%d/%d new_count=%d dest="%s" player=(%.1f,%.1f,%.1f) leg=%d horizontal=%.2f vertical=%.2f'):fmt(
+        id, tostring(reason or ''),
+        tonumber(accessxi.nav_route_ownership_generation) or 0,
+        tostring(accessxi.nav_route_points_override_id(points) or ''),
+        index, old_count, tonumber(new_count) or 0,
+        tostring(type(destination) == 'table' and destination.name or destination or ''),
+        tonumber(player ~= nil and player.x) or 0,
+        tonumber(player ~= nil and player.z) or 0,
+        tonumber(player ~= nil and player.y) or 0,
+        leg, horizontal, vertical));
+    return id;
 end
 
 function accessxi.nav_route_live_replan_reason(player, destination, points, delta)
@@ -70500,7 +72536,13 @@ function accessxi.nav_nearest_route_segment(pos, points, first_segment, last_seg
     local best_index = first_segment;
     local best_distance = 999999;
     for i = first_segment, last_segment do
-        local distance = accessxi.nav_distance_to_segment(pos, points[i], points[i + 1]);
+        local projected, _, horizontal = accessxi.nav_project_to_segment(
+            pos, points[i], points[i + 1]);
+        local vertical = projected ~= nil
+            and math.abs((tonumber(pos.y) or 0) - (tonumber(projected.y) or 0))
+            or 999999;
+        local distance = math.sqrt(
+            ((tonumber(horizontal) or 999999) ^ 2) + ((vertical * 2) ^ 2));
         if (distance < best_distance) then
             best_distance = distance;
             best_index = i;
@@ -70604,6 +72646,40 @@ function accessxi.nav_sync_route_index(pos)
         return;
     end
 
+    -- RAMPS AND STAIRWELLS. Horizontal nearness says nothing about which floor
+    -- the player is standing on, and the arrival test's height gate refused to
+    -- advance past any waypoint more than four yalms up -- which is every
+    -- waypoint on a ramp. Live 2026-08-22 that stuck the index at 182 of 184 at
+    -- the King Ranperre's Tomb zone line for two minutes.
+    --
+    -- While a run is under way, position along it decides progress: project on
+    -- to the run, require the player's height to agree with the route's height
+    -- there, and never move backwards. Disagreement PAUSES the index rather
+    -- than guessing a floor (sol, ruling C).
+    if (type(accessxi.nav_vertical_run_detect) == 'function') then
+        local current = math.max(1, math.min(tonumber(accessxi.nav_route_point_index) or 1, count));
+        local run = accessxi.nav_vertical_run_detect(
+            accessxi.nav_route_points, math.max(1, current - 1));
+        accessxi.nav_vertical_run_active = run;
+        if (run ~= nil) then
+            local resolved, advanced, reason = accessxi.nav_vertical_run_progress(
+                pos, accessxi.nav_route_points, run, current);
+            accessxi.nav_vertical_run_reason = reason;
+            if (advanced and resolved > current) then
+                accessxi.nav_route_point_index = math.min(resolved, count);
+            end
+            if (reason ~= tostring(accessxi.nav_vertical_run_logged_reason or '')) then
+                accessxi.nav_vertical_run_logged_reason = reason;
+                log_line(('nav vertical run first=%d last=%d rise=%.1f index=%d->%d %s'):fmt(
+                    run.first, run.last, tonumber(run.rise) or 0,
+                    current, tonumber(accessxi.nav_route_point_index) or current, tostring(reason)));
+            end
+            return;
+        end
+        accessxi.nav_vertical_run_reason = nil;
+        accessxi.nav_vertical_run_logged_reason = nil;
+    end
+
     local first_segment = nil;
     local last_segment = nil;
     if (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)) then
@@ -70624,6 +72700,35 @@ function accessxi.nav_sync_route_index(pos)
     end
 
     local desired = math.min(segment + 1, count);
+    -- The nearest segment is chosen by distance, and a waypoint on top of a
+    -- ledge is near in 3D even though the player cannot climb to it. Because
+    -- this index only ever moves forward, one bad advance strands them for
+    -- good: on 2026-08-20 it ratcheted to waypoint 7 above a ledge and every
+    -- cue afterwards aimed past ground the player could never stand on.
+    -- Only advance onto somewhere they could actually have walked.
+    -- Walking the route legs, not the direct line: from here the ledge top can
+    -- look like a gentle 0.68 rise because it is far away horizontally, while
+    -- the leg that actually climbs it is 5.5 yalms over 4.7. Stop the index at
+    -- the first leg the player could not have walked.
+    -- If the player is already at that elevation they plainly did reach it, so
+    -- only vet the legs when they are standing well below or above the target.
+    local desired_point = accessxi.nav_route_points[desired];
+    local height_gap = desired_point ~= nil
+        and math.abs((tonumber(pos.y) or 0) - (tonumber(desired_point.y) or 0)) or 0;
+    if (type(accessxi.nav_leg_walkable) == 'function' and height_gap > 3.0) then
+        local current = math.max(1, tonumber(accessxi.nav_route_point_index) or 1);
+        for step = current, desired - 1 do
+            local from_point = accessxi.nav_route_points[step];
+            local to_point = accessxi.nav_route_points[step + 1];
+            if (from_point ~= nil and to_point ~= nil
+                and accessxi.nav_leg_walkable(
+                    tonumber(from_point.x) or 0, tonumber(from_point.y) or 0, tonumber(from_point.z) or 0,
+                    tonumber(to_point.x) or 0, tonumber(to_point.y) or 0, tonumber(to_point.z) or 0) ~= true) then
+                desired = step;
+                break;
+            end
+        end
+    end
     if (desired > (accessxi.nav_route_point_index or 1)) then
         accessxi.nav_route_point_index = desired;
     end
@@ -70675,7 +72780,19 @@ accessxi.nav_mesh_filename_from_zone_name = function (name)
         return '';
     end
 
-    local mesh = name:gsub("'", ''):gsub('[^A-Za-z0-9%[%]]+', '_'):gsub('_+', '_'):gsub('^_', ''):gsub('_$', '');
+    -- " - " IS A HYPHEN IN THE SHIPPED NAMES, NOT AN UNDERSCORE.
+    --
+    -- The client calls zone 16 "Promyvion - Holla", spaces either side. This
+    -- collapsed the whole run to one underscore and asked for
+    -- Promyvion_Holla.nav; the file on disk is Promyvion-Holla.nav, so the mesh
+    -- was never found -- and a missing mesh made nav_mesh_probe_can_see answer
+    -- false for every leg, which is why the beacon refused 16 aims in a row and
+    -- clamped none of them.
+    --
+    -- The convention across the shipped set is consistent: a hyphen in the zone
+    -- name survives, ordinary spaces become underscores. Promyvion-Holla.nav,
+    -- Promyvion-Dem.nav, Abyssea-La_Theine.nav, Hall_of_Transference.nav.
+    local mesh = name:gsub("'", ''):gsub('%s*%-%s*', '-'):gsub('[^A-Za-z0-9%[%]%-]+', '_'):gsub('_+', '_'):gsub('^_', ''):gsub('_$', '');
     if (mesh == '') then
         return '';
     end
@@ -70742,6 +72859,9 @@ local function nav_try_load_mesh(zone)
     if (zone <= 0) then
         return false;
     end
+    if (accessxi.nav_native_disabled_until_zone == true) then
+        return false;
+    end
     if (accessxi.nav_mesh_loaded and accessxi.nav_mesh_zone == zone and accessxi.nav_mesh_handle ~= nil) then
         objective_observe('nav_objective_native_revalidate_loaded_mesh', zone);
         return true;
@@ -70788,6 +72908,7 @@ local function nav_try_load_mesh(zone)
     objective_observe('nav_objective_native_before_mesh_load', zone, mesh_name, path);
     local ok, loaded = pcall(function () return ffxinav.LoadMesh(accessxi.nav_mesh_handle, wide_path); end);
     accessxi.nav_mesh_loaded = ok and loaded;
+    accessxi.nav_mesh_wide_path = (ok and loaded) and wide_path or nil;
     accessxi.nav_mesh_zone = accessxi.nav_mesh_loaded and zone or 0;
     if (not accessxi.nav_mesh_loaded
         and type(accessxi.nav_objective_native_mark_untrusted) == 'function') then
@@ -70814,6 +72935,397 @@ function accessxi.nav_objective_native_get_distance_to_wall(point)
     local handle = accessxi.nav_objective_native_handle();
     local position = nav_mesh_position(point);
     return tonumber(ffxinav.GetDistanceToWall(handle, position));
+end
+
+-- Raw-coordinate mesh probes for the route repair, which makes thousands of
+-- these per route. The table-and-pcall wrappers below cost about ten times the
+-- native query itself and turned a repair into a visible stall (866 ms
+-- measured on 2026-08-20). These reuse one FFI struct and skip the wrapper
+-- entirely; the caller already runs the whole repair inside a pcall.
+function accessxi.nav_mesh_probe_ready()
+    return ffxinav ~= nil and accessxi.nav_mesh_handle ~= nil and accessxi.nav_mesh_loaded == true
+        and accessxi.nav_native_disabled_until_zone ~= true;
+end
+
+-- Native pathfinding accounting (bench 2026-08-21, tools/navprobe/navbench):
+-- FFXINAV.dll's per-call latency grows linearly with the cumulative number
+-- of FindClosestPath/FindPath calls made through ONE context (18 -> 881 us
+-- for a 3-waypoint query after 2,400 calls), whatever the query; Get_WayPoints
+-- is free; unload()+LoadMesh() on the same context resets it. Every completed
+-- sequence is counted and timed here with its ordinal, so a live slow frame
+-- can be read against the bench curve. Sol's bounded stopgap: at 900
+-- completed sequences, while the coordinator is idle, recycle the context
+-- ONCE per zone; at a second 900 disable native pathfinding until the next
+-- zone change and say so. Never an unbounded recycle loop in a 32-bit heap.
+function accessxi.nav_process_private_kb()
+    local ok, kb = pcall(function ()
+        local counters = ffi.new('PROCESS_MEMORY_COUNTERS');
+        counters.cb = ffi.sizeof('PROCESS_MEMORY_COUNTERS');
+        if (kernel32.K32GetProcessMemoryInfo(kernel32.GetCurrentProcess(), counters, counters.cb) == 0) then
+            return -1;
+        end
+        return math.floor(tonumber(counters.PagefileUsage) / 1024);
+    end);
+    return ok and kb or -1;
+end
+
+-- One unit per native SEARCH export call (sol): FindClosestPath and the
+-- fallback FindPath each count, Get_WayPoints never does (the bench showed it
+-- free). Logged with the export name so the live curve can be read per export.
+function accessxi.nav_native_call_end(started, export, label)
+    local now = tick();
+    local ms = now - (tonumber(started) or now);
+    local ordinal = (tonumber(accessxi.nav_native_call_ordinal) or 0) + 1;
+    accessxi.nav_native_call_ordinal = ordinal;
+    accessxi.nav_native_window_ms = (tonumber(accessxi.nav_native_window_ms) or 0) + ms;
+    local per_export = accessxi.nav_native_window_exports or T{};
+    accessxi.nav_native_window_exports = per_export;
+    per_export[export] = (tonumber(per_export[export]) or 0) + 1;
+    if (ms >= 5) then
+        log_line(('nav native slow ordinal=%d export=%s ms=%d label=%s'):fmt(
+            ordinal, tostring(export), ms, tostring(label or '')));
+    end
+    if (ordinal % 100 == 0) then
+        local parts = T{};
+        for name, count in pairs(per_export) do
+            parts:append(('%s=%d'):fmt(tostring(name), count));
+        end
+        log_line(('nav native summary ordinal=%d mean_ms_last100=%.2f exports=%s recycled=%s'):fmt(
+            ordinal, (tonumber(accessxi.nav_native_window_ms) or 0) / 100,
+            parts:concat(' '), tostring(accessxi.nav_native_recycled_in_zone == true)));
+        accessxi.nav_native_window_ms = 0;
+        accessxi.nav_native_window_exports = T{};
+    end
+    if (ordinal < 900) then
+        return;
+    end
+    local idle = accessxi.nav_walk_graph_pending == nil and accessxi.nav_dat_collision_pending == nil;
+    if (accessxi.nav_native_recycled_in_zone ~= true) then
+        if (idle) then
+            accessxi.nav_native_recycle(('%d native search calls'):fmt(ordinal));
+        end
+        return;
+    end
+    if (accessxi.nav_native_disabled_until_zone ~= true) then
+        accessxi.nav_native_disabled_until_zone = true;
+        log_line(('nav native DISABLED until zone change ordinal=%d (second budget exhausted)'):fmt(ordinal));
+        speak('Mesh navigation is paused until you change zones.');
+    end
+end
+
+function accessxi.nav_native_recycle(reason)
+    if (ffxinav == nil or accessxi.nav_mesh_handle == nil or accessxi.nav_mesh_wide_path == nil) then
+        return false;
+    end
+    local handle = accessxi.nav_mesh_handle;
+    local wide_path = accessxi.nav_mesh_wide_path;
+    local private_before = accessxi.nav_process_private_kb();
+    local recycle_started = tick();
+    local ok_unload, unloaded = pcall(function () return ffxinav.unload(handle); end);
+    local ok_load, loaded = pcall(function () return ffxinav.LoadMesh(handle, wide_path); end);
+    local recycle_ms = tick() - recycle_started;
+    local private_after = accessxi.nav_process_private_kb();
+    accessxi.nav_native_recycled_in_zone = true;
+    accessxi.nav_native_call_ordinal = 0;
+    accessxi.nav_native_window_ms = 0;
+    -- every cache that holds a native answer belongs to the old generation
+    accessxi.nav_mesh_probe_memo = nil;
+    accessxi.nav_mesh_probe_wanted = nil;
+    accessxi.nav_beacon_detour_repair_cache = nil;
+    accessxi.nav_beacon_detour_repair_key = nil;
+    if (type(accessxi.nav_lathine_local_target_cache_clear) == 'function') then
+        accessxi.nav_lathine_local_target_cache_clear();
+    end
+    local healthy = ok_unload and unloaded == true and ok_load and loaded == true;
+    accessxi.nav_mesh_loaded = healthy;
+    log_line(('nav native recycle reason="%s" unload=%s reload=%s ms=%d private_kb=%d->%d'):fmt(
+        accessxi.escape_probe_log_text(reason or ''), tostring(ok_unload and unloaded), tostring(ok_load and loaded),
+        recycle_ms, private_before, private_after));
+    if (not healthy) then
+        accessxi.nav_native_disabled_until_zone = true;
+        speak('Mesh navigation is paused until you change zones.');
+    end
+    return healthy;
+end
+
+function accessxi.nav_native_zone_reset()
+    accessxi.nav_native_call_ordinal = 0;
+    accessxi.nav_native_window_ms = 0;
+    accessxi.nav_native_recycled_in_zone = false;
+    accessxi.nav_native_disabled_until_zone = false;
+    accessxi.nav_mesh_probe_memo = nil;
+    accessxi.nav_mesh_probe_wanted = nil;
+    accessxi.nav_mesh_wide_path = nil;
+end
+
+function accessxi.nav_mesh_probe_valid(x, y, z)
+    if (not accessxi.nav_mesh_probe_ready()) then
+        return false;
+    end
+    local p = accessxi.nav_probe_position_a;
+    if (p == nil) then
+        p = ffi.new('NavPositionT');
+        accessxi.nav_probe_position_a = p;
+    end
+    p.X, p.Y, p.Z = x, y, z;
+    return ffxinav.IsValidPosition(accessxi.nav_mesh_handle, p, false) == true;
+end
+
+function accessxi.nav_mesh_probe_wall(x, y, z)
+    if (not accessxi.nav_mesh_probe_ready()) then
+        return 0;
+    end
+    local p = accessxi.nav_probe_position_a;
+    if (p == nil) then
+        p = ffi.new('NavPositionT');
+        accessxi.nav_probe_position_a = p;
+    end
+    p.X, p.Y, p.Z = x, y, z;
+    return tonumber(ffxinav.GetDistanceToWall(accessxi.nav_mesh_handle, p)) or 0;
+end
+
+function accessxi.nav_mesh_probe_can_see(ax, ay, az, bx, by, bz)
+    if (not accessxi.nav_mesh_probe_ready()) then
+        return false;
+    end
+    local a = accessxi.nav_probe_position_b;
+    local b = accessxi.nav_probe_position_c;
+    if (a == nil) then
+        a = ffi.new('NavPositionT');
+        b = ffi.new('NavPositionT');
+        accessxi.nav_probe_position_b, accessxi.nav_probe_position_c = a, b;
+    end
+    a.X, a.Y, a.Z = ax, ay, az;
+    b.X, b.Y, b.Z = bx, by, bz;
+    return ffxinav.CanSeeDestination(accessxi.nav_mesh_handle, a, b) == true;
+end
+
+-- The mesh's own way round between two points. Used when nothing on the route
+-- is reachable in a straight line, so the beacon can aim at the first step of
+-- the detour instead of centring the player on the rock in between.
+function accessxi.nav_mesh_probe_path(ax, ay, az, bx, by, bz, producer)
+    if (not accessxi.nav_mesh_probe_ready()) then
+        return nil;
+    end
+    -- FindPath runs SYNCHRONOUSLY on the render thread, and against an
+    -- unreachable destination it explores the whole zone mesh before giving up.
+    -- Measured 2026-08-21: 3.1 to 4.2 SECONDS per call, once every three
+    -- seconds, which the player experienced as the game freezing.
+    --
+    -- If the walk graph has already refused the destination we are steering to,
+    -- there is nothing here worth waiting for. The mesh cannot overturn a
+    -- proof; it can only spend seconds disagreeing with one, and in this zone
+    -- its disagreements are what put a blind player on a cliff face.
+    local refusal = accessxi.nav_walk_graph_refusal;
+    if (type(refusal) == 'table'
+        and refusal.destination ~= nil
+        and refusal.destination == accessxi.nav_destination) then
+        return nil;
+    end
+    -- And never while a certified walk-graph route owns navigation. Its whole
+    -- purpose is to stop steering by this mesh; consulting it for a detour
+    -- reintroduces the exact geometry the route was built to avoid, and the
+    -- alternation between the two is what the player hears as a moving beacon.
+    if (accessxi.nav_route_points_override_id(accessxi.nav_route_points)
+        == 'lathine-walk-graph-v2') then
+        return nil;
+    end
+
+    -- Memoize by endpoints, FAILURES INCLUDED, for half a second. The freeze
+    -- class this kills: callers invoke this every frame with near-identical
+    -- endpoints, and the moment either endpoint fails to snap -- an
+    -- unreachable destination, or a player pinned against geometry -- FindPath
+    -- degenerates to a whole-zone search costing seconds, per frame, on the
+    -- render thread. Measured twice: 3-4s/frame on 2026-08-21 morning (bad
+    -- goal), 1.9-3.4s/frame that afternoon (pinned player). The answer to an
+    -- identical question half a second later is the same answer; the expensive
+    -- case is precisely the one that must not be re-asked at frame rate.
+    -- Small ring rather than one slot: two call sites alternate queries.
+    local memo = accessxi.nav_mesh_probe_memo;
+    if (memo == nil) then
+        memo = T{};
+        accessxi.nav_mesh_probe_memo = memo;
+    end
+    local memo_now = tick();
+    for slot = 1, #memo do
+        local entry = memo[slot];
+        if ((memo_now - entry.tick) <= 1500
+            and math.abs(entry.ax - ax) <= 0.5 and math.abs(entry.az - az) <= 0.5
+            and math.abs(entry.bx - bx) <= 0.5 and math.abs(entry.bz - bz) <= 0.5) then
+            accessxi.nav_mesh_probe_memo_hits = (tonumber(accessxi.nav_mesh_probe_memo_hits) or 0) + 1;
+            if ((memo_now - (tonumber(accessxi.nav_mesh_probe_memo_hit_log_tick) or 0)) >= 1000) then
+                accessxi.nav_mesh_probe_memo_hit_log_tick = memo_now;
+                log_line(('nav native probe memo hit hits=%d from=(%.1f,%.1f) to=(%.1f,%.1f) result=%s age_ms=%d'):fmt(
+                    accessxi.nav_mesh_probe_memo_hits, ax, az, bx, bz,
+                    entry.result ~= nil and tostring(entry.result:len()) or 'none', memo_now - entry.tick));
+            end
+            if (entry.result == nil) then
+                return nil;
+            end
+            -- Hand back a copy: at least one caller repairs the route in
+            -- place, and mutating a shared memo entry poisons later hits.
+            local copy = T{};
+            for i = 1, entry.result:len() do
+                local p = entry.result[i];
+                copy:append(T{ zone = p.zone, x = p.x, y = p.y, z = p.z,
+                               name = p.name, kind = p.kind, source = p.source });
+            end
+            return copy;
+        end
+    end
+
+    -- Invariant (sol, 2026-08-21): the BEACON never calls FindClosestPath,
+    -- FindPath or Get_WayPoints. A memo miss records ONE wanted request and
+    -- answers nothing; the route coordinator fulfils it on its own cadence
+    -- (nav_mesh_probe_fulfil, from the present callback, at most one native
+    -- sequence per 250 ms, only while the request's route generation is
+    -- still current) and the next pulse reads the memo, failures included.
+    -- One latest-value slot PER PRODUCER (sol): the sightline clamp and the
+    -- detour each keep exactly one pending request, a producer's newer
+    -- endpoints replace only its own request, and the coordinator serves the
+    -- older of the two first -- so neither can evict or starve the other.
+    local slots = accessxi.nav_mesh_probe_wanted;
+    if (type(slots) ~= 'table' or slots.len ~= nil) then
+        slots = {};
+        accessxi.nav_mesh_probe_wanted = slots;
+    end
+    producer = tostring(producer or 'unnamed');
+    local generation = tonumber(accessxi.nav_route_ownership_generation) or 0;
+    local w = slots[producer];
+    if (w ~= nil and math.abs(w.ax - ax) <= 0.5 and math.abs(w.az - az) <= 0.5
+        and math.abs(w.bx - bx) <= 0.5 and math.abs(w.bz - bz) <= 0.5) then
+        w.generation = generation;   -- same ask: keep its queue position
+        return nil;
+    end
+    slots[producer] = T{
+        ax = ax, ay = ay, az = az, bx = bx, by = by, bz = bz,
+        tick = memo_now,
+        generation = generation,
+        producer = producer,
+    };
+    return nil;
+end
+
+function accessxi.nav_mesh_probe_fulfil(now)
+    local slots = accessxi.nav_mesh_probe_wanted;
+    if (type(slots) ~= 'table' or slots.len ~= nil) then
+        return false;
+    end
+    local oldest_key, wanted = nil, nil;
+    for key, w in pairs(slots) do
+        if (wanted == nil or (tonumber(w.tick) or 0) < (tonumber(wanted.tick) or 0)) then
+            oldest_key, wanted = key, w;
+        end
+    end
+    if (wanted == nil) then
+        return false;
+    end
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_mesh_probe_last_compute_tick) or 0)) < 250) then
+        return false;
+    end
+    slots[oldest_key] = nil;
+    local queued = 0;
+    for _ in pairs(slots) do queued = queued + 1; end
+    if ((now - (tonumber(wanted.tick) or 0)) > 1500
+        or (tonumber(wanted.generation) or -1) ~= (tonumber(accessxi.nav_route_ownership_generation) or 0)
+        or not accessxi.nav_mesh_probe_ready()) then
+        log_line(('nav native probe request dropped age_ms=%d generation=%s/%s'):fmt(
+            now - (tonumber(wanted.tick) or now), tostring(wanted.generation),
+            tostring(accessxi.nav_route_ownership_generation)));
+        return false;   -- stale, or the route it served no longer owns navigation
+    end
+    accessxi.nav_mesh_probe_last_compute_tick = now;
+    local result = accessxi.nav_mesh_probe_compute(wanted.ax, wanted.ay, wanted.az, wanted.bx, wanted.by, wanted.bz);
+    log_line(('nav native probe fulfilled producer=%s from=(%.1f,%.1f) to=(%.1f,%.1f) result=%s wait_ms=%d queued=%d'):fmt(
+        tostring(wanted.producer), wanted.ax, wanted.az, wanted.bx, wanted.bz,
+        result ~= nil and tostring(result:len()) or 'none', now - (tonumber(wanted.tick) or now), queued));
+    return true;
+end
+
+function accessxi.nav_mesh_probe_compute(ax, ay, az, bx, by, bz)
+    if (not accessxi.nav_mesh_probe_ready()) then
+        return nil;
+    end
+    local memo = accessxi.nav_mesh_probe_memo;
+    if (memo == nil) then
+        memo = T{};
+        accessxi.nav_mesh_probe_memo = memo;
+    end
+    local memo_now = tick();
+    local a = accessxi.nav_probe_position_b;
+    local b = accessxi.nav_probe_position_c;
+    if (a == nil) then
+        a = ffi.new('NavPositionT');
+        b = ffi.new('NavPositionT');
+        accessxi.nav_probe_position_b, accessxi.nav_probe_position_c = a, b;
+    end
+    a.X, a.Y, a.Z = ax, ay, az;
+    b.X, b.Y, b.Z = bx, by, bz;
+    -- Remember the answer -- and if this call was expensive, SAY SO with the
+    -- endpoints, so the next multi-second stall is attributed by the log
+    -- instead of reverse-engineered from phase totals. The memo keeps its own
+    -- copy because at least one caller repairs the returned route in place.
+    local function probe_remember(result)
+        local elapsed = tick() - memo_now;
+        if (elapsed >= 150) then
+            log_line(('nav mesh probe SLOW %dms from=(%.1f,%.1f) to=(%.1f,%.1f) result=%s'):fmt(
+                elapsed, ax, az, bx, bz,
+                result ~= nil and tostring(result:len()) or 'none'));
+        end
+        local kept = nil;
+        if (result ~= nil) then
+            kept = T{};
+            for i = 1, result:len() do
+                local p = result[i];
+                kept:append(T{ zone = p.zone, x = p.x, y = p.y, z = p.z,
+                               name = p.name, kind = p.kind, source = p.source });
+            end
+        end
+        if (#memo >= 4) then
+            table.remove(memo, 1);
+        end
+        memo:append(T{ tick = tick(), ax = ax, az = az, bx = bx, bz = bz, result = kept });
+        return result;
+    end
+
+    local native_started = tick();
+    local ok = pcall(function ()
+        ffxinav.FindPath(accessxi.nav_mesh_handle, a, b, false);
+    end);
+    accessxi.nav_native_call_end(native_started, 'FindPath', ok and 'probe' or 'probe-error');
+    if (not ok) then
+        return probe_remember(nil);
+    end
+    local ptr = ffi.new('NavPositionT*[1]');
+    local count = tonumber(ffxinav.Get_WayPoints(accessxi.nav_mesh_handle, ptr)) or 0;
+    if (count <= 0 or ptr[0] == nil) then
+        return probe_remember(nil);
+    end
+    -- Copy at once: the returned pointer does not survive the next query.
+    local out = T{};
+    for i = 0, math.min(count - 1, 32) do
+        local p = ptr[0][i];
+        out:append(T{
+            zone = accessxi.nav_mesh_zone,
+            x = tonumber(p.X) or 0,
+            y = tonumber(p.Y) or 0,
+            z = tonumber(p.Z) or 0,
+            name = 'detour',
+            kind = 'route',
+            source = 'sightline-detour',
+        });
+    end
+    return probe_remember(out);
+end
+
+-- Straight-line traversability between two points on the loaded mesh. The
+-- route repair needs this: two waypoints can each stand in open ground while
+-- the line the player actually walks between them passes through rock.
+function accessxi.nav_objective_native_can_see(from_point, to_point)
+    local handle = accessxi.nav_objective_native_handle();
+    return ffxinav.CanSeeDestination(
+        handle, nav_mesh_position(from_point), nav_mesh_position(to_point)) == true;
 end
 
 function accessxi.nav_objective_native_find_path(start_point, end_point)
@@ -70885,7 +73397,7 @@ function accessxi.nav_compute_exact_objective_leg(request)
     return points, reason, evidence;
 end
 
-local function nav_compute_mesh_route(start_pos, end_pos, quiet)
+local function nav_compute_mesh_route(start_pos, end_pos, quiet, closest_only)
     local points = T{};
     if (start_pos == nil or end_pos == nil or (tonumber(start_pos.zone) or 0) ~= (tonumber(end_pos.zone) or 0)) then
         return points;
@@ -70895,19 +73407,26 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
         return points;
     end
 
+    if (accessxi.nav_native_disabled_until_zone == true) then
+        return points;
+    end
     local start = nav_mesh_position(start_pos);
     local finish = nav_mesh_position(end_pos);
+    local native_started = tick();
     local ok = pcall(function ()
         ffxinav.FindClosestPath(accessxi.nav_mesh_handle, start, finish, false);
     end);
+    accessxi.nav_native_call_end(native_started, 'FindClosestPath', ok and 'route' or 'route-error');
     if (not ok) then
         return points;
     end
 
     local ptr = ffi.new('NavPositionT*[1]');
     local count = tonumber(ffxinav.Get_WayPoints(accessxi.nav_mesh_handle, ptr)) or 0;
-    if (count <= 0) then
+    if (count <= 0 and closest_only ~= true) then
+        local fallback_started = tick();
         pcall(function () ffxinav.FindPath(accessxi.nav_mesh_handle, start, finish, false); end);
+        accessxi.nav_native_call_end(fallback_started, 'FindPath', 'route-fallback');
         count = tonumber(ffxinav.Get_WayPoints(accessxi.nav_mesh_handle, ptr)) or 0;
     end
 
@@ -70927,7 +73446,14 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
         return points;
     end
 
-    for i = 0, math.min(count - 1, 96) do
+    -- The old cap of 97 silently handed back a route that stopped short of the
+    -- destination with no signal to the caller.  Keep a bound, but say so.
+    local cap = 512;
+    if (count > cap and not quiet) then
+        log_line(('navmesh route truncated zone=%d destination="%s" count=%d cap=%d'):fmt(
+            start_pos.zone or 0, end_pos.name or '', count, cap));
+    end
+    for i = 0, math.min(count - 1, cap - 1) do
         local p = ptr[0][i];
         points:append(T{
             zone = start_pos.zone,
@@ -70938,6 +73464,83 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
             kind = 'route',
             source = 'navmesh',
         });
+    end
+
+    -- Detour's corridor points sit on polygon boundaries -- on the walls -- and
+    -- can be tens of yalms apart.  That is fine for something that can see the
+    -- geometry and slide along it, and useless for a player following a beacon
+    -- in a straight line.  Stand the waypoints in open ground and shorten the
+    -- legs before anything downstream treats this as a walkable course.
+    -- ACCESSXI_CANSEE_SANITY_BEGIN (temporary)
+    -- Confirms CanSeeDestination discriminates through the FFI boundary. A bool
+    -- that always reads the same way would silently disable every sightline
+    -- check built on it. Uses real on-mesh waypoints, once per mesh load.
+    if (points:len() > 2 and type(accessxi.nav_mesh_probe_can_see) == 'function'
+        and accessxi.nav_cansee_sanity_zone ~= accessxi.nav_mesh_zone) then
+        accessxi.nav_cansee_sanity_zone = accessxi.nav_mesh_zone;
+        local first, last = points[1], points[points:len()];
+        local adjacent = accessxi.nav_mesh_probe_can_see(
+            first.x, first.y, first.z, points[2].x, points[2].y, points[2].z);
+        local across = accessxi.nav_mesh_probe_can_see(
+            first.x, first.y, first.z, last.x, last.y, last.z);
+        log_line(('navmesh cansee sanity zone=%d adjacent=%s across=%s discriminates=%s'):fmt(
+            start_pos.zone or 0, tostring(adjacent), tostring(across), tostring(adjacent ~= across)));
+    end
+    -- ACCESSXI_CANSEE_SANITY_END
+
+    if (type(accessxi.nav_mesh_route_repair) == 'function'
+        and type(accessxi.nav_mesh_route_repair_probe) == 'function') then
+        local repair_ok, repaired = pcall(function ()
+            return accessxi.nav_mesh_route_repair(points, accessxi.nav_mesh_route_repair_probe());
+        end);
+        if (repair_ok and repaired ~= nil and repaired:len() >= points:len()) then
+            local moved = tonumber(accessxi.nav_mesh_route_repair_last_moved) or 0;
+            local bent = tonumber(accessxi.nav_mesh_route_repair_last_bent) or 0;
+            if (not quiet and (moved > 0 or bent > 0 or repaired:len() > points:len())) then
+                log_line(('navmesh route repaired zone=%d destination="%s" raw=%d walkable=%d moved=%d bent=%d'):fmt(
+                    start_pos.zone or 0, end_pos.name or '', points:len(), repaired:len(), moved, bent));
+            end
+            points = repaired;
+        end
+    end
+
+    -- A NONEMPTY NATIVE RESULT IS NOT YET A ROUTE.
+    --
+    -- Promyvion - Holla returned the Spire as one waypoint while the player's
+    -- start was 133.48 yalms from the connected graph.  Another result carried
+    -- an 89.63-yalm leg through unseen geometry.  FFXINAV calls both success;
+    -- the beacon must not.  Check anchoring, destination coverage and every
+    -- straight leg after repair, before any caller can install the points.
+    if (type(accessxi.nav_route_validity_reason) == 'function') then
+        local valid_ok, invalid_reason = pcall(
+            accessxi.nav_route_validity_reason,
+            points,
+            start_pos,
+            end_pos,
+            T{
+                arrival_radius = accessxi.nav_arrival_radius(end_pos),
+                max_anchor_snap = 12.0,
+                max_endpoint_snap = 12.0,
+                max_leg = 6.25,
+                can_see = accessxi.nav_mesh_probe_can_see,
+                leg_walkable = accessxi.nav_leg_walkable,
+            });
+        if (not valid_ok) then
+            invalid_reason = 'the native route validity check failed safely';
+        end
+        invalid_reason = tostring(invalid_reason or '');
+        if (invalid_reason ~= '') then
+            accessxi.nav_route_last_reject_reason = invalid_reason;
+            if (not quiet) then
+                log_line(('navmesh route rejected zone=%d destination="%s" validity="%s" count=%d'):fmt(
+                    start_pos.zone or 0,
+                    end_pos.name or '',
+                    accessxi.escape_probe_log_text(invalid_reason),
+                    points:len()));
+            end
+            points:clear();
+            return points;
+        end
     end
 
     local quarantine = accessxi.nav_route_quarantine_reason(points, end_pos);
@@ -70954,6 +73557,10 @@ local function nav_compute_mesh_route(start_pos, end_pos, quiet)
         return points;
     end
     return points;
+end
+
+function accessxi.nav_compute_closest_mesh_route(start_pos, end_pos, quiet)
+    return nav_compute_mesh_route(start_pos, end_pos, quiet, true);
 end
 
 function accessxi.nav_collision_smoother_route(player, destination, collision_points)
@@ -71226,11 +73833,18 @@ function accessxi.nav_area_point_direct_route_allowed(player, point)
     if (not direct_known_area) then
         return false;
     end
-    return nav_distance(player, point) <= 35;
+    local player_y = tonumber(player.y);
+    local point_y = tonumber(point.y);
+    local vertical_ok = player_y == nil or point_y == nil
+        or math.abs(player_y - point_y) <= 4.0;
+    return vertical_ok and nav_distance(player, point) <= 35;
 end
 
 function accessxi.nav_nearby_zoneline_direct_route_allowed(player, point)
     if (not accessxi.nav_point_is_zoneline(point) or not accessxi.nav_area_point_direct_route_allowed(player, point)) then
+        return false;
+    end
+    if (accessxi.nav_zoneline_direct_leg_vetoed(player, point)) then
         return false;
     end
 
@@ -71492,10 +74106,116 @@ function accessxi.nav_route_quarantine_match(point, destination)
     return nil;
 end
 
+-- A ROUTE MAY BE BENT, BUT IT MUST ALSO BE REFUSABLE.
+--
+-- Live 2026-08-23 and again 2026-08-25, the west escarpment of the mesa in
+-- Valkurm Dunes at roughly (96,-108). Valkurm_Dunes.nav marks a 39.7 to 45.8
+-- degree rock face as walkable and routes straight up it; FFXI's collision does
+-- not. Measured on the shipped mesh: the leg (94.0,-106.4,-6.4) ->
+-- (103.2,-101.6,-15.0) climbs 8.60 over a 10.38 run, ratio 0.829, and the next
+-- leg fails the mesh's OWN CanSeeDestination. Three consecutive legs fail
+-- nav_leg_walkable, whose limit is WALK_MAX_CLIMB_RATIO = 0.8.
+--
+-- The repair pass bends and splits legs but can never DROP one, so an
+-- impossible climb survived it (raw=56 -> walkable=257) and was installed. The
+-- player held forward into a cliff for ten seconds, twice, on two separate
+-- days, with two different destinations -- the face, not the errand, is the
+-- constant. Their own walked way round tops out at 18.4 degrees.
+--
+-- So: after repair, a leg the addon's own walkability test still refuses
+-- quarantines the whole route, and the caller falls through to the overrides or
+-- to an honest refusal instead of steering into rock.
+function accessxi.nav_route_unwalkable_leg(points)
+    if (type(accessxi.nav_leg_walkable) ~= 'function') then
+        return nil;   -- no way to judge; never invent a refusal
+    end
+    local count = points ~= nil and points:len() or 0;
+    for index = 1, count - 1 do
+        local a, b = points[index], points[index + 1];
+        if (type(a) == 'table' and type(b) == 'table') then
+            local see = type(accessxi.nav_mesh_probe_can_see) == 'function'
+                and accessxi.nav_mesh_probe_can_see or nil;
+            local ok, walkable = pcall(
+                accessxi.nav_leg_walkable,
+                tonumber(a.x) or 0,
+                tonumber(a.y) or 0,
+                tonumber(a.z) or 0,
+                tonumber(b.x) or 0,
+                tonumber(b.y) or 0,
+                tonumber(b.z) or 0,
+                see);
+            if (ok and walkable == false) then
+                local run = math.sqrt((((tonumber(b.x) or 0) - (tonumber(a.x) or 0)) ^ 2)
+                    + (((tonumber(b.z) or 0) - (tonumber(a.z) or 0)) ^ 2));
+                local climb = math.abs((tonumber(b.y) or 0) - (tonumber(a.y) or 0));
+                return ('leg %d of %d climbs %.1f over %.1f'):fmt(index, count, climb, run);
+            end
+        end
+    end
+    return nil;
+end
+
+-- A ZONE HAS MORE THAN ONE ZONE LINE.
+--
+-- Live 2026-08-25 in North Gustaberg. The router aimed at "South Gustaberg zone
+-- line z2y2" at (0.7,-79.1,-5.6) and the shipped mesh returned a ONE-POINT
+-- route -- no path -- three times running, because North_Gustaberg.nav is
+-- fragmented and z2y2 sits in a component the player's ground cannot reach.
+-- "South Gustaberg zone line z2y4" routed in 31 waypoints, 203 after repair.
+--
+-- The player fixed it by scrolling one row down the Areas menu and choosing the
+-- other exit themselves. That is the retry the code never performed: it picked
+-- one edge, the mesh said no, and it sat on "Navigation will start
+-- automatically" for eighty-six seconds. Measured on the shipped mesh, only two
+-- of that zone's eight catalogued exits are reachable from where they stood.
+--
+-- Same rule as a catalogue row: a refusal to ONE zone line is not a refusal to
+-- the place. Ordered nearest-first, and the swap is spoken so they know which
+-- exit they are being sent to. (These are ZONE LINES -- a door is a separate
+-- kind of object in this game and must not be confused with one.)
+function accessxi.nav_zoneline_sibling_points(player, point)
+    local out = T{};
+    if (type(player) ~= 'table' or type(point) ~= 'table') then
+        return out;
+    end
+    local name = nav_clean_field(point.name);
+    local zone = tonumber(player.zone) or 0;
+    if (name == '' or zone <= 0) then
+        return out;
+    end
+    -- "South Gustaberg zone line z2y4" -> "south gustaberg zone line". Zone
+    -- lines into the same zone share everything up to the code suffix.
+    local prefix = name:lower():match('^(.-zone line)');
+    if (prefix == nil or prefix == '') then
+        return out;
+    end
+    -- No nav_load_points() here: it is a file-scope local declared further down,
+    -- so calling it from this point compiles to a nil global. Routing cannot
+    -- reach here without the catalogue already being loaded, and an empty list
+    -- simply means no sibling door was offered.
+    for _, row in ipairs(accessxi.nav_points or T{}) do
+        local row_name = nav_clean_field(row.name);
+        if ((tonumber(row.zone) or 0) == zone
+            and row_name:lower():sub(1, #prefix) == prefix
+            and row_name:lower() ~= name:lower()) then
+            out:append(row);
+        end
+    end
+    table.sort(out, function (a, b)
+        return nav_distance(player, a) < nav_distance(player, b);
+    end);
+    return out;
+end
+
 function accessxi.nav_route_quarantine_reason(points, destination)
     local count = points ~= nil and points:len() or 0;
     if (count <= 0) then
         return '';
+    end
+
+    local unwalkable = accessxi.nav_route_unwalkable_leg(points);
+    if (unwalkable ~= nil) then
+        return ('the mesh route climbs ground the player cannot walk (%s)'):fmt(unwalkable);
     end
 
     for _, point in ipairs(points) do
@@ -71608,6 +74328,16 @@ function accessxi.nav_route_precise_override_active(player, points)
         return true;
     end
     if (route_id:startswith('lathine-recorded-ravine-escape-')) then
+        return true;
+    end
+    -- The certified walk graph steers precisely everywhere in the zone, so it
+    -- is a precise route. It is deliberately NOT folded in with
+    -- 'lathine-navmesh' below: that identifier also switches on the old La
+    -- Theine local-target machinery -- nav_lathine_locally_safe_target, the
+    -- tight narrow-collision clamp, the lathine-local-safe waypoint search --
+    -- which exists to paper over the shipped mesh this route replaces. Reusing
+    -- the id would silently make the new route behave like the old one.
+    if (route_id == 'lathine-walk-graph-v2') then
         return true;
     end
     if (route_id == 'lathine-navmesh') then
@@ -71922,6 +74652,43 @@ function accessxi.nav_load_zoneline_graph()
             if (#parts >= 15) then
                 local from_zone = tonumber(parts[2]) or 0;
                 local to_zone = tonumber(parts[8]) or 0;
+                -- A ZONE LINE LISTED BOTH WAYS IS NOT ALWAYS WALKABLE BOTH WAYS.
+                --
+                -- LSB's zoneline table pairs every transition mechanically, so a
+                -- ONE-WAY exit arrives here as two edges. Several battlefield
+                -- zones work exactly that way: you enter Balga's Dais from
+                -- Giddeus, fight, and leave by a separate exit into West
+                -- Sarutabaruta that you can never walk back in through. The
+                -- graph nevertheless offered West Sarutabaruta -> Balga's Dais
+                -- as an entrance, and live 2026-08-26 the planner chose it and
+                -- then sat for fifteen minutes because the arrival point has no
+                -- walkable approach on that side -- the mesh probe returns zero
+                -- waypoints with a 567-yalm snap error. The player worked it out
+                -- themselves and hand-picked Giddeus, twice.
+                --
+                -- The geometry agrees: inside Balga's Dais the Giddeus hall sits
+                -- at y -126 beside the Burning Circle entrance, while the West
+                -- Sarutabaruta exit sits at y +111 in a part of the zone that
+                -- does not connect to it at all.
+                --
+                -- Confidence 'bad' means "this direction does not exist", and
+                -- 'escape' means "it exists but you cannot WALK it". Neither is
+                -- a low score to be outranked later; both are dropped from
+                -- walking adjacency.
+                --
+                -- The second is its own trap. Balga's Dais -> West Sarutabaruta
+                -- is real -- winning the battlefield ejects you there, and
+                -- Escape lands you there -- but it is not a corridor, and the
+                -- Balga-side endpoint sits on a pad no route reaches on foot.
+                -- Offering it as a walking edge invites the planner to send the
+                -- player toward a door that is only ever an exit. BG Wiki marks
+                -- this class "Via Escape"; an API sweep of the Zone Geography
+                -- rows finds 50 of them across 278 area pages, so this will not
+                -- stay a single case for long.
+                local edge_traversal = nav_clean_field(parts[15] or ''):lower();
+                if (edge_traversal == 'bad' or edge_traversal == 'escape') then
+                    from_zone = 0;
+                end
                 if (from_zone > 0 and to_zone > 0) then
                     accessxi.nav_zoneline_edges:append(T{
                         id = tonumber(parts[1]) or 0,
@@ -71947,6 +74714,184 @@ function accessxi.nav_load_zoneline_graph()
     end
     f:close();
     log_line(('nav zoneline graph loaded %d edges from "%s"'):fmt(loaded, accessxi.nav_zoneline_graph_path));
+
+    -- WHAT THE PLAYER HAS ACTUALLY WALKED OUTRANKS WHAT THE GRAPH LISTS.
+    --
+    -- Live 2026-08-24: leaving Chateau d'Oraguille routed DOWN THROUGH
+    -- Bostaunieux Oubliette, a dungeon, to reach the courtyard the Chateau opens
+    -- onto. The graph holds Northern San d'Oria -> Chateau d'Oraguille as a
+    -- one-way "lsb-scripted-trigger" edge (event 569) and no way back -- one of
+    -- only two one-way edges in 487. The player said it plainly: "there's an npc
+    -- you talk to to exit this place." Scripted exits are not zone lines, so LSB
+    -- does not list them and no amount of reasoning about the shipped data will
+    -- produce one. Walking it once will.
+    local observed = io.open(accessxi.nav_zoneline_observed_path, 'r');
+    if (observed ~= nil) then
+        local learned = 0;
+        for line in observed:lines() do
+            if (line ~= nil and line ~= '' and not line:startswith('#') and line:match('^%d')) then
+                local parts = nav_split_tsv(line);
+                if (#parts >= 15) then
+                    local from_zone = tonumber(parts[2]) or 0;
+                    local to_zone = tonumber(parts[8]) or 0;
+                    if (from_zone > 0 and to_zone > 0) then
+                        accessxi.nav_zoneline_edges:append(T{
+                            id = tonumber(parts[1]) or 0,
+                            from_zone = from_zone,
+                            from_name = nav_clean_field(parts[3] or ''),
+                            from_code = nav_clean_field(parts[4] or ''),
+                            from_x = tonumber(parts[5]) or 0,
+                            from_z = tonumber(parts[6]) or 0,
+                            from_y = tonumber(parts[7]) or 0,
+                            to_zone = to_zone,
+                            to_name = nav_clean_field(parts[9] or ''),
+                            to_code = nav_clean_field(parts[10] or ''),
+                            to_x = tonumber(parts[11]) or 0,
+                            to_z = tonumber(parts[12]) or 0,
+                            to_y = tonumber(parts[13]) or 0,
+                            source = nav_clean_field(parts[14] or ''),
+                            confidence = nav_clean_field(parts[15] or ''),
+                        });
+                        learned = learned + 1;
+                    end
+                end
+            end
+        end
+        observed:close();
+        if (learned > 0) then
+            log_line(('nav zoneline observed edges loaded %d from "%s"'):fmt(
+                learned, accessxi.nav_zoneline_observed_path));
+        end
+    end
+
+    -- Typed transports (airship, ferry, Cavernous Maw, shattered telepoint)
+    -- are directed edges too, but with semantics a zone line does not have:
+    -- the player stands at an ANCHOR, boards or examines, passes through a
+    -- transit zone, and the leg completes on arrival in to_zone. Availability
+    -- is character state (an airship pass is a key item), checked at search
+    -- time, never assumed. Data: data/ffxi-nav-transport-edges.tsv.
+    local transport_path = accessxi_paths.addon_path('data', 'ffxi-nav-transport-edges.tsv');
+    local tf = io.open(transport_path, 'r');
+    if (tf == nil) then
+        log_line('nav transport edges unavailable: ' .. tostring(transport_path));
+        return;
+    end
+    local transports = 0;
+    for line in tf:lines() do
+        if (line ~= nil and line ~= '' and not line:startswith('#') and line:match('^%d')) then
+            local parts = nav_split_tsv(line);
+            if (#parts >= 17) then
+                local from_zone = tonumber(parts[3]) or 0;
+                local to_zone = tonumber(parts[9]) or 0;
+                if (from_zone > 0 and to_zone > 0) then
+                    accessxi.nav_zoneline_edges:append(T{
+                        id = tonumber(parts[1]) or 0,
+                        from_zone = from_zone,
+                        from_name = nav_clean_field(parts[4] or ''),
+                        from_code = 'transport',
+                        from_x = tonumber(parts[5]) or 0,
+                        from_z = tonumber(parts[6]) or 0,
+                        from_y = tonumber(parts[7]) or 0,
+                        to_zone = to_zone,
+                        to_name = nav_clean_field(parts[10] or ''),
+                        to_code = 'transport',
+                        to_x = tonumber(parts[11]) or 0,
+                        to_z = tonumber(parts[12]) or 0,
+                        to_y = tonumber(parts[13]) or 0,
+                        source = nav_clean_field(parts[17] or ''),
+                        confidence = nav_clean_field(parts[18] or 'untested'),
+                        transport = T{
+                            type = nav_clean_field(parts[2] or ''),
+                            anchor_name = nav_clean_field(parts[8] or ''),
+                            via_zone = tonumber(parts[14]) or 0,
+                            availability = nav_clean_field(parts[15] or 'always'),
+                            instruction = nav_clean_field(parts[16] or ''),
+                        },
+                    });
+                    transports = transports + 1;
+                end
+            end
+        end
+    end
+    tf:close();
+    log_line(('nav transport edges loaded %d from "%s"'):fmt(transports, transport_path));
+end
+
+-- ONE SHARED KEY WAS THE BUG. A single scalar last-key meant two edges
+-- refusing in alternation reset each other every pulse: 1389 lines in ten
+-- minutes on 2026-08-22. State is per edge, per reason, per availability
+-- string, per character identity -- and, for refusals that can change while
+-- the player plays, per key-item state revision (sol, ruling E).
+function accessxi.nav_transport_refusal_log_once(edge, reason, availability, text, volatile)
+    local state = accessxi.nav_transport_refusal_logged;
+    if (type(state) ~= 'table') then
+        state = {};
+        accessxi.nav_transport_refusal_logged = state;
+    end
+    local identity = '';
+    if (type(accessxi.current_player_identity) == 'function') then
+        local ok_identity, value = pcall(accessxi.current_player_identity);
+        if (ok_identity) then identity = tostring(value or ''):lower(); end
+    end
+    local revision = '';
+    if (volatile == true) then
+        revision = tostring(tonumber(accessxi.key_items_packet_session_epoch) or 0);
+    end
+    local key = ('%d:%s:%s:%s:%s'):fmt(
+        tonumber(edge ~= nil and edge.id or 0) or 0,
+        tostring(reason or ''), tostring(availability or ''), identity, revision);
+    if (state[key] == true) then
+        return false;
+    end
+    state[key] = true;
+    log_line(text);
+    return true;
+end
+
+-- A transport the character cannot use is not an edge. "always" needs
+-- nothing; "key_item:<name>" needs that key item in the live key-item state.
+-- When the key-item reader itself is unavailable the edge is kept and the
+-- spoken instruction still names the pass, so the player is told, not
+-- stranded by a silent assumption either way.
+function accessxi.nav_transport_edge_available(edge)
+    if (edge == nil or edge.transport == nil) then
+        return true;
+    end
+    local availability = nav_clean_field(edge.transport.availability or 'always');
+    if (availability == '' or availability == 'always') then
+        return true;
+    end
+    local key_item = availability:match('^key_item:(.+)$');
+    if (key_item == nil) then
+        -- unlock:<condition> -- a gate the runtime cannot prove (a Crystal War
+        -- Maw opened from the past side). This one is STATIC: nothing the
+        -- character does this session changes it, so once per identity is the
+        -- honest cadence.
+        accessxi.nav_transport_refusal_log_once(
+            edge, 'not-offered', availability,
+            ('nav transport not offered id=%d availability="%s"'):fmt(
+                tonumber(edge.id) or 0, accessxi.escape_probe_log_text(availability)));
+        return false;
+    end
+    if (type(accessxi.objective_key_item_owned_by_name) ~= 'function') then
+        return true;
+    end
+    local ok, owned = pcall(accessxi.objective_key_item_owned_by_name, key_item);
+    if (not ok) then
+        return true;
+    end
+    if (owned ~= true) then
+        -- A key-item refusal is NOT static: the pass can be earned mid-session.
+        -- Key on the key-item state revision as well, so the line reappears
+        -- when the answer could genuinely have changed (sol, ruling E).
+        accessxi.nav_transport_refusal_log_once(
+            edge, 'needs-key-item', availability,
+            ('nav transport unavailable id=%d needs key item "%s"'):fmt(
+                tonumber(edge.id) or 0, accessxi.escape_probe_log_text(key_item)),
+            true);
+        return false;
+    end
+    return true;
 end
 
 function accessxi.nav_graph_zone_name(zone)
@@ -71971,6 +74916,67 @@ function accessxi.nav_graph_zone_name(zone)
     end
 
     return ('zone %d'):fmt(zone);
+end
+
+-- Zone id for a name the guide wrote. Built once from the zone-line graph's
+-- own from_name/to_name columns, which are the same strings the wikis use, so
+-- "Jugner Forest" in a mission step resolves to 104 without a second table to
+-- keep in step. Unknown names return 0 and simply do not score.
+function accessxi.nav_zone_id_for_name(name)
+    local key = nav_clean_field(name):lower();
+    if (key == '') then
+        return 0;
+    end
+    local index = accessxi.nav_zone_name_index;
+    if (type(index) ~= 'table') then
+        index = {};
+        accessxi.nav_load_zoneline_graph();
+        for _, edge in ipairs(accessxi.nav_zoneline_edges) do
+            local from_name = nav_clean_field(edge.from_name or ''):lower();
+            local to_name = nav_clean_field(edge.to_name or ''):lower();
+            local from_zone = tonumber(edge.from_zone) or 0;
+            local to_zone = tonumber(edge.to_zone) or 0;
+            if (from_name ~= '' and from_zone > 0 and index[from_name] == nil) then
+                index[from_name] = from_zone;
+            end
+            if (to_name ~= '' and to_zone > 0 and index[to_name] == nil) then
+                index[to_name] = to_zone;
+            end
+        end
+        -- A ZONE YOU CANNOT WALK INTO STILL HAS A NAME.
+        --
+        -- The index above is built ONLY from zoneline edges, so a zone with no
+        -- zonelines is nameless. That is 134 of the game's 297 zones -- every
+        -- place reached by warp, telepoint or a scripted exit.
+        --
+        -- Live 2026-08-29 that included the Hall of Transference (14). Below the
+        -- Arks step-009 is an enter-through whose target IS "Hall of
+        -- Transference" and which names its zone nowhere else, so the arrival
+        -- could never be matched and the mission would not move however many
+        -- times the player walked in: "the mission didn't update".
+        --
+        -- The shipped LandSandBoat settings dump is the authority on what zones
+        -- exist. Zoneline names win where both have one -- those are the names
+        -- the player hears spoken elsewhere -- and this only fills the gaps.
+        local settings = io.open(accessxi_paths.addon_path('data', 'lsb_zone_settings.sql'), 'r');
+        if (settings ~= nil) then
+            for line in settings:lines() do
+                local zone_id, internal = tostring(line):match(
+                    "VALUES%s*%((%d+),%d+,'[^']*',%d+,'([^']*)'");
+                if (zone_id ~= nil and internal ~= nil) then
+                    local spaced = nav_clean_field((internal:gsub('_', ' '))):lower();
+                    local id = tonumber(zone_id) or 0;
+                    if (spaced ~= '' and spaced ~= 'unknown' and id > 0
+                        and index[spaced] == nil) then
+                        index[spaced] = id;
+                    end
+                end
+            end
+            settings:close();
+        end
+        accessxi.nav_zone_name_index = index;
+    end
+    return tonumber(index[key]) or 0;
 end
 
 function accessxi.nav_zoneline_edge_rank(edge, player)
@@ -71999,6 +75005,190 @@ function accessxi.nav_zoneline_edge_rank(edge, player)
     return rank, distance;
 end
 
+-- NAVIGATION MUST NEVER SIT ACTIVE AND SILENT.
+--
+-- The invariant, in one line: while nav_active is true the route must either
+-- hold usable points or have a typed planner working on it. Anything else is a
+-- dead route wearing an active flag, and the player hears nothing at all.
+--
+-- Live 2026-08-26, routing to Balga's Dais: the search picked the West
+-- Sarutabaruta entrance, which does not exist; the leg started; terrain mapping
+-- was requested for an endpoint sitting off the mesh, and never produced a
+-- corridor. nav_active stayed true, so poll_nav_zone_search returned at its
+-- first line on every pulse and the 2.5-second re-plan never ran. The addon
+-- said "Mapping terrain for West Sarutabaruta. Navigation will start
+-- automatically" and then said NOTHING FOR FIFTEEN MINUTES. The player opened
+-- the Areas menu and picked Giddeus by hand -- an entrance the addon had in its
+-- own graph the whole time. It happened twice.
+--
+-- A plan may take time; it may not take forever. On a blown deadline the edge
+-- being attempted is excluded and the search re-runs, which is what turns this
+-- from a dead end into a detour. Exclusion is scoped by WHY it failed:
+-- an endpoint off the mesh is a property of the edge and lasts the session,
+-- while a provider that never answered says nothing about the road and must
+-- never be held against it.
+function accessxi.nav_route_plan_deadline_ms()
+    return 20000;
+end
+
+function accessxi.nav_route_exclude_edge(edge_id, reason, scope)
+    edge_id = tonumber(edge_id) or 0;
+    if (edge_id <= 0) then
+        return false;
+    end
+    accessxi.nav_route_excluded_edges = accessxi.nav_route_excluded_edges or {};
+    if (accessxi.nav_route_excluded_edges[edge_id] ~= nil) then
+        return false;
+    end
+    accessxi.nav_route_excluded_edges[edge_id] = {
+        reason = tostring(reason or 'refused'),
+        scope = tostring(scope or 'session'),
+        tick = tick(),
+    };
+    log_line(('nav route edge EXCLUDED id=%d reason="%s" scope="%s"'):fmt(
+        edge_id, tostring(reason or 'refused'), tostring(scope or 'session')));
+    return true;
+end
+
+function accessxi.nav_route_clear_excluded_edges(reason)
+    if (type(accessxi.nav_route_excluded_edges) == 'table'
+        and next(accessxi.nav_route_excluded_edges) ~= nil) then
+        log_line(('nav route edge exclusions cleared reason="%s"'):fmt(tostring(reason or '')));
+    end
+    accessxi.nav_route_excluded_edges = {};
+    accessxi.nav_route_current_edge_id = 0;
+    accessxi.nav_route_leg_started_tick = 0;
+end
+
+function accessxi.nav_route_stall_watchdog(now)
+    now = tonumber(now) or tick();
+    if (accessxi.nav_active ~= true or accessxi.nav_zone_search_target == nil) then
+        return false;
+    end
+
+    local points = accessxi.nav_route_points;
+    local usable = (type(points) == 'table' and points.len ~= nil) and points:len()
+        or (type(points) == 'table' and #points or 0);
+    if (usable > 1) then
+        accessxi.nav_route_watchdog_anchor = nil;
+        return false;
+    end
+
+    -- A ROUTE THAT IS MOVING THE PLAYER IS NOT A DEAD ROUTE.
+    --
+    -- An empty waypoint list is not the same as a stalled route. Once the
+    -- player has consumed the last waypoint the beacon steers straight at the
+    -- destination, which is a perfectly healthy final run -- and it looks
+    -- identical to a dead route if you only count waypoints.
+    --
+    -- Live 2026-08-27, At the Heavens' Door: the player walked ninety yalms
+    -- across Port Jeuno on a twenty-nine point route, reached the straight run
+    -- in, and was told twenty-eight yalms from the zone line that the route
+    -- could not be reached. This watchdog killed a route that was working. It
+    -- also excluded the edge, so the next attempt had to find another way in.
+    --
+    -- Movement is the only honest test of whether a route is doing its job.
+    -- The waypoint count says what the planner produced; the player's position
+    -- says whether it is helping.
+    if (accessxi.nav_final_approach ~= nil) then
+        accessxi.nav_route_watchdog_anchor = nil;
+        return false;       -- the last few yalms have their own timeout
+    end
+
+    -- A PLAYER WHO IS BUSY IS NOT A PLAYER WHO IS STUCK.
+    --
+    -- Standing still is the signal this watchdog reads, and it is exactly what
+    -- a player does while fighting, resting or sitting in a cutscene. The
+    -- player levels in the zones they are also navigating -- "it just so
+    -- happens qufim is a good leveling spot for my level right now" -- so
+    -- fighting mid-route is the normal case, not the exception. Killing their
+    -- route because they stopped to kill a crab would be worse than the stall
+    -- this exists to catch.
+    --
+    -- FFXI entity status: 0 idle, 1 engaged, 2 dead, 3 engaged-dead,
+    -- 4 in an event, 33 resting. Only an idle player standing still is stuck.
+    local entity = safe_call(function () return GetPlayerEntity(); end, nil);
+    local status = entity ~= nil and (tonumber(entity.Status) or 0) or 0;
+    if (status ~= 0) then
+        accessxi.nav_route_watchdog_anchor = nil;
+        return false;
+    end
+    local here = nav_cached_player_position();
+    if (type(here) ~= 'table') then
+        return false;       -- no position is not evidence of a stall
+    end
+    local anchor = accessxi.nav_route_watchdog_anchor;
+    if (type(anchor) ~= 'table' or (tonumber(anchor.zone) or 0) ~= (tonumber(here.zone) or 0)) then
+        accessxi.nav_route_watchdog_anchor = {
+            x = tonumber(here.x) or 0, z = tonumber(here.z) or 0,
+            y = tonumber(here.y) or 0, zone = tonumber(here.zone) or 0, tick = now,
+        };
+        return false;
+    end
+    local dx = (tonumber(here.x) or 0) - (tonumber(anchor.x) or 0);
+    local dz = (tonumber(here.z) or 0) - (tonumber(anchor.z) or 0);
+    if (math.sqrt((dx * dx) + (dz * dz)) > 3.0) then
+        -- Still travelling. Re-anchor and let them walk.
+        accessxi.nav_route_watchdog_anchor = {
+            x = tonumber(here.x) or 0, z = tonumber(here.z) or 0,
+            y = tonumber(here.y) or 0, zone = tonumber(here.zone) or 0, tick = now,
+        };
+        return false;
+    end
+    -- Time the STILLNESS, not the leg. The leg clock was what fired nineteen
+    -- seconds into a walk the player was completing successfully; what matters
+    -- is how long they have been getting nowhere.
+    if ((now - (tonumber(anchor.tick) or now)) < 12000) then
+        return false;
+    end
+
+    -- A typed planner is allowed to be working -- but not past its deadline.
+    local pending = accessxi.nav_walk_graph_pending or accessxi.nav_dat_collision_pending;
+    local started = tonumber(accessxi.nav_route_leg_started_tick) or 0;
+    if (type(pending) == 'table') then
+        started = tonumber(pending.started_tick) or started;
+    end
+    if (started <= 0) then
+        started = now;
+        accessxi.nav_route_leg_started_tick = now;
+    end
+    local waited = now - started;
+    if (pending ~= nil and waited < accessxi.nav_route_plan_deadline_ms()) then
+        return false;
+    end
+    if (pending == nil and waited < 1500) then
+        -- A route is briefly empty between planning and installing; only a
+        -- route that is empty AND unattended is dead.
+        return false;
+    end
+
+    local edge_id = tonumber(accessxi.nav_route_current_edge_id) or 0;
+    local edge_name = tostring(accessxi.nav_route_current_edge_name or '');
+    local reason = (pending ~= nil) and 'plan-deadline' or 'no-route-installed';
+    local scope = (pending ~= nil) and 'session' or 'zone-visit';
+    log_line(('nav route STALLED edge=%d name="%s" reason="%s" waited=%dms usable=%d'):fmt(
+        edge_id, accessxi.escape_probe_log_text(edge_name), reason, waited, usable));
+
+    accessxi.nav_route_exclude_edge(edge_id, reason, scope);
+    accessxi.nav_walk_graph_pending = nil;
+    accessxi.nav_dat_collision_pending = nil;
+    accessxi.nav_active = false;
+    accessxi.nav_route_points = T{};
+    accessxi.nav_route_current_edge_id = 0;
+    accessxi.nav_route_leg_started_tick = 0;
+    accessxi.nav_route_watchdog_anchor = nil;
+    -- Let poll_nav_zone_search re-plan on its next pulse rather than searching
+    -- from inside the watchdog: one planner, one place, no recursion.
+    accessxi.nav_zone_search_last_replan_tick = 0;
+
+    local target = accessxi.nav_zone_search_target;
+    local target_name = accessxi.speech_name(
+        type(target) == 'table' and (target.name or 'the destination') or 'the destination');
+    speak(('%s cannot be reached that way. Looking for another route to %s.'):fmt(
+        edge_name ~= '' and edge_name or 'That route', target_name));
+    return true;
+end
+
 function accessxi.nav_zoneline_out_edges(zone, player)
     zone = tonumber(zone) or 0;
     local edges = {};
@@ -72007,8 +75197,20 @@ function accessxi.nav_zoneline_out_edges(zone, player)
     end
 
     accessxi.nav_load_zoneline_graph();
+    local excluded = accessxi.nav_route_excluded_edges;
     for _, edge in ipairs(accessxi.nav_zoneline_edges) do
-        if ((tonumber(edge.from_zone) or 0) == zone and (tonumber(edge.to_zone) or 0) > 0) then
+        if ((tonumber(edge.from_zone) or 0) == zone and (tonumber(edge.to_zone) or 0) > 0
+            and accessxi.nav_transport_edge_available(edge)
+            -- AN EDGE THAT HAS ALREADY REFUSED IS NOT OFFERED AGAIN.
+            --
+            -- Every path search goes through here, so excluding an edge once
+            -- removes it from the whole planner rather than from one call site.
+            -- Live 2026-08-26 the search chose West Sarutabaruta -> Balga's
+            -- Dais, the leg could not be planned, and the search was re-run on
+            -- a 2.5 second timer -- choosing the SAME edge every time. It had
+            -- Giddeus -> Balga's Dais in the very same graph and never tried it.
+            and (type(excluded) ~= 'table'
+                or excluded[tonumber(edge.id) or 0] == nil)) then
             table.insert(edges, edge);
         end
     end
@@ -72027,92 +75229,14 @@ function accessxi.nav_zoneline_out_edges(zone, player)
     return edges;
 end
 
-function accessxi.nav_zoneline_path(from_zone, to_zone, final_edge_id)
-    from_zone = tonumber(from_zone) or 0;
-    to_zone = tonumber(to_zone) or 0;
-    final_edge_id = tonumber(final_edge_id) or 0;
-    local path = T{};
-    if (from_zone <= 0 or to_zone <= 0 or final_edge_id < 0) then
-        return path;
-    end
-    if (from_zone == to_zone) then
-        return path;
-    end
+-- accessxi.nav_zoneline_path MOVED to modules/nav_zoneline_router.lua.
+-- It is the road chooser, and the router module exists so the choice of road
+-- can be tested offline; leaving the entry point here meant every harness had
+-- to hand-mirror it instead, which is how the fourth preferred_zones argument
+-- went unnoticed for so long.
 
-    if (final_edge_id > 0) then
-        accessxi.nav_load_zoneline_graph();
-        local final_edge = nil;
-        local id_matches = 0;
-        for _, edge in ipairs(accessxi.nav_zoneline_edges) do
-            if ((tonumber(edge.id) or 0) == final_edge_id) then
-                final_edge = edge;
-                id_matches = id_matches + 1;
-            end
-        end
-        if (id_matches ~= 1 or final_edge == nil
-            or (tonumber(final_edge.to_zone) or 0) ~= to_zone
-            or (tonumber(final_edge.from_zone) or 0) <= 0) then
-            return path;
-        end
 
-        local final_from_zone = tonumber(final_edge.from_zone) or 0;
-        if (from_zone == final_from_zone) then
-            path:append(final_edge);
-            return path;
-        end
-        local prefix = accessxi.nav_zoneline_path(from_zone, final_from_zone, 0);
-        if (prefix:len() == 0) then
-            return path;
-        end
-        for _, edge in ipairs(prefix) do
-            if ((tonumber(edge.id) or 0) == final_edge_id
-                or (tonumber(edge.from_zone) or 0) == to_zone
-                or (tonumber(edge.to_zone) or 0) == to_zone) then
-                return T{};
-            end
-            path:append(edge);
-        end
-        path:append(final_edge);
-        return path;
-    end
 
-    local queue = { from_zone };
-    local head = 1;
-    local seen = {};
-    local previous = {};
-    seen[from_zone] = true;
-
-    while (head <= #queue) do
-        local zone = queue[head];
-        head = head + 1;
-        for _, edge in ipairs(accessxi.nav_zoneline_out_edges(zone)) do
-            local next_zone = tonumber(edge.to_zone) or 0;
-            if (next_zone > 0 and not seen[next_zone]) then
-                seen[next_zone] = true;
-                previous[next_zone] = T{ zone = zone, edge = edge };
-                if (next_zone == to_zone) then
-                    local reverse = {};
-                    local cursor = to_zone;
-                    while (cursor ~= from_zone) do
-                        local step = previous[cursor];
-                        if (step == nil or step.edge == nil) then
-                            return T{};
-                        end
-                        table.insert(reverse, 1, step.edge);
-                        cursor = tonumber(step.zone) or 0;
-                    end
-                    for _, route_edge in ipairs(reverse) do
-                        path:append(route_edge);
-                    end
-                    return path;
-                end
-                table.insert(queue, next_zone);
-            end
-        end
-    end
-
-    return path;
-end
 
 function accessxi.nav_zoneline_approach_candidates(point)
     local candidates = T{};
@@ -72174,6 +75298,67 @@ function accessxi.nav_zoneline_approach_candidates(point)
     return candidates;
 end
 
+-- A zone trigger's stored Y is the volume's centre, not the ground a body
+-- stands on. Live 2026-08-21 20:40, Northern San d'Oria: "Mog House entrance"
+-- sits 7 yalms above the floor 4 yalms away, the last leg said "Height up 7",
+-- and the player circled under a point nobody can walk to for a minute. The
+-- direct final leg is vetoed when it is steep AND short (vertical > 3 over
+-- horizontal < 6); a ground-level sibling row of the same destination is
+-- preferred as the walking target; the zone change is what completes it.
+-- (Literals, not main-chunk locals: the chunk is at Lua 5.1's 200-local
+-- limit.) Final-leg veto: horizontal < 6.0 and vertical > 3.0. Ground
+-- sibling: within 8.0 horizontal, at least 1.5 apart vertically.
+
+function accessxi.nav_zoneline_direct_leg_vetoed(from_point, destination)
+    if (from_point == nil or destination == nil) then
+        return false;
+    end
+    local dy = math.abs((tonumber(destination.y) or 0) - (tonumber(from_point.y) or 0));
+    return nav_distance(from_point, destination) < 6.0
+        and dy > 3.0;
+end
+
+function accessxi.nav_zoneline_ground_sibling(point)
+    if (point == nil or not accessxi.nav_point_is_zoneline(point)) then
+        return nil;
+    end
+    local zone = tonumber(point.zone) or 0;
+    local name = nav_clean_field(point.name or ''):lower();
+    if (zone <= 0 or name == '') then
+        return nil;
+    end
+    local found = nil;
+    local count = 0;
+    for _, candidate in ipairs(accessxi.nav_points or T{}) do
+        if (candidate ~= point
+            and (tonumber(candidate.zone) or 0) == zone
+            and nav_clean_field(candidate.name or ''):lower() == name
+            and not tostring(candidate.source or ''):lower():contains('zoneline')) then
+            local dy = math.abs((tonumber(candidate.y) or 0) - (tonumber(point.y) or 0));
+            if (nav_distance(candidate, point) <= 8.0 and dy >= 1.5) then
+                count = count + 1;
+                found = candidate;
+            end
+        end
+    end
+    if (count ~= 1) then
+        if (count > 1) then
+            log_line(('nav zoneline ground sibling ambiguous destination="%s" zone=%d count=%d'):fmt(
+                accessxi.escape_probe_log_text(point.name or ''), zone, count));
+        end
+        return nil;
+    end
+    return T{
+        zone = zone,
+        name = found.name,
+        x = tonumber(found.x) or 0,
+        z = tonumber(found.z) or 0,
+        y = tonumber(found.y) or 0,
+        kind = 'route',
+        source = ('zoneline-ground-sibling:%s'):fmt(tostring(found.source or '')),
+    };
+end
+
 function accessxi.nav_append_final_zoneline_point(points, destination)
     if (points == nil or destination == nil or points:len() <= 1) then
         return points;
@@ -72181,15 +75366,25 @@ function accessxi.nav_append_final_zoneline_point(points, destination)
 
     local last = points[points:len()];
     if (last ~= nil and nav_distance(last, destination) > 2) then
+        local final_y = tonumber(destination.y) or 0;
+        local projected = false;
+        if (accessxi.nav_zoneline_direct_leg_vetoed(last, destination)) then
+            final_y = tonumber(last.y) or final_y;
+            projected = true;
+        end
         points:append(T{
             zone = destination.zone,
             name = destination.name,
             x = destination.x,
             z = destination.z,
-            y = destination.y,
+            y = final_y,
             kind = 'route',
-            source = 'zoneline-final',
+            source = projected and 'zoneline-final-projected' or 'zoneline-final',
         });
+        if (projected) then
+            log_line(('nav zoneline final point projected to walking height destination="%s" trigger_y=%.2f walking_y=%.2f'):fmt(
+                accessxi.escape_probe_log_text(destination.name or ''), tonumber(destination.y) or 0, final_y));
+        end
     end
     return points;
 end
@@ -72609,9 +75804,13 @@ function accessxi.nav_lathine_recorded_corridor_route(player, point)
         if (tostring(accessxi.nav_route_last_reject_reason or '') == '') then
             accessxi.nav_route_last_reject_reason = 'recorded walked corridor has no verified safe tail';
         end
-        log_line(('nav recorded corridor unavailable destination="%s" reason="%s"'):fmt(
-            point.name or '',
-            accessxi.escape_probe_log_text(accessxi.nav_route_last_reject_reason)));
+        local corridor_key = ('%s|%s'):fmt(tostring(point.name or ''), tostring(accessxi.nav_route_last_reject_reason or ''));
+        if (corridor_key ~= tostring(accessxi.nav_recorded_corridor_unavailable_key or '')) then
+            accessxi.nav_recorded_corridor_unavailable_key = corridor_key;
+            log_line(('nav recorded corridor unavailable destination="%s" reason="%s"'):fmt(
+                point.name or '',
+                accessxi.escape_probe_log_text(accessxi.nav_route_last_reject_reason)));
+        end
     end
     return T{}, matched;
 end
@@ -72646,9 +75845,146 @@ function accessxi.nav_lathine_live_recorded_corridor_handoff(player, point, curr
     return empty;
 end
 
+accessxi.load_code_module('mesh_route_repair', T{
+    T = T,
+});
+
+-- La Theine's certified walk graph. The library is the AXWG v2 reader; the
+-- route module is the provider that drives it. Both are loaded unconditionally
+-- so the switch can be flipped without a reload, but neither one touches a
+-- route until the seam in nav_compute_route_with_zoneline_approach asks, and
+-- that seam is gated on zone 102 at both ends. Nothing outside La Theine can
+-- reach this code.
+accessxi.walk_graph_library = accessxi.load_module_table('walk_graph', nil);
+
+accessxi.load_code_module('walk_graph_route', T{
+    T = T,
+    tick = tick,
+    log_line = log_line,
+    accessxi_paths = accessxi_paths,
+});
+
+-- Records how far the player drifts from the route while following the beacon.
+-- OFF unless switched on; it only ever writes a file. Nothing already stored can
+-- answer that question -- see the module header for why the survey cannot be
+-- reused for it -- and the answer decides how far routes must stay back from a
+-- drop, which is not a number worth guessing.
+accessxi.route_adherence = accessxi.load_module_table('route_adherence', nil);
+
+accessxi.load_code_module('compass_stability', T{
+    T = T,
+});
+
+-- A native waypoint vector is not evidence that its start, end or intervening
+-- straight legs are connected.  This gate runs before the beacon sees it.
+accessxi.load_code_module('nav_route_validity', T{
+    T = T,
+});
+
+accessxi.load_code_module('beacon_sightline', T{
+    T = T,
+    tick = tick,
+    log_line = log_line,
+});
+
+-- Promyvion floors are same-zone navmesh islands joined by temporary Memory
+-- Streams.  The provider routes to one real transition at a time, waits without
+-- a directional beacon, then replans after the observed position jump.
+accessxi.load_code_module('promyvion_navigation', T{
+    T = T,
+    tick = tick,
+    log_line = log_line,
+    speak = speak,
+    nav_clean_field = nav_clean_field,
+    nav_split_tsv = nav_split_tsv,
+    nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    accessxi_paths = accessxi_paths,
+    entity_snapshot = accessxi.nav_entity_snapshot_for_server_id,
+    clear_route = function()
+        if (accessxi.nav_route_points ~= nil) then accessxi.nav_route_points:clear(); end
+        accessxi.nav_route_point_index = 1;
+        accessxi.nav_last_key = '';
+        accessxi.nav_beacon_last_key = '';
+    end,
+    stop_route = function()
+        -- A Promyvion wait keeps ownership while its directional polyline is
+        -- intentionally empty.  A deadline is different: it must take the same
+        -- durable stop path as the user's command or the empty-route poll will
+        -- silently recreate the route after speech says it ended.
+        if (type(nav_route_stop) == 'function') then nav_route_stop(); end
+    end,
+    install_route = function(player, destination, route)
+        accessxi.nav_route_points = route;
+        accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, route, destination);
+        accessxi.nav_route_last_recalc_tick = tick();
+        accessxi.nav_route_live_replan_last_key = '';
+        accessxi.nav_beacon_last_key = '';
+        accessxi.nav_beacon_last_tick = 0;
+        if (type(accessxi.nav_reset_progress_watch) == 'function') then
+            accessxi.nav_reset_progress_watch(player, nav_distance(player, destination), tick());
+        end
+    end,
+});
+
+function accessxi.capture_promyvion_entity_update_packet(e)
+    -- NPC updates are common; unrelated packets must not pay for two zone
+    -- lookups and four protected SDK calls on the packet hot path.
+    if (type(e) ~= 'table' or tonumber(e.id) ~= 0x00E
+        or type(accessxi.nav_promyvion_entity_update_packet) ~= 'function') then
+        return false;
+    end
+    local ok, message = pcall(function()
+        local zone = tonumber(accessxi.current_zone_id()) or 0;
+        local data = accessxi.packet_event_string(e, 'data_modified', 'size');
+        if (data == '') then data = accessxi.packet_event_string(e, 'data', 'size'); end
+        if (data ~= '') then
+            accessxi.nav_promyvion_entity_update_packet(data, zone, tick());
+        end
+    end);
+    if (not ok) then
+        log_line('nav Promyvion packet capture error: ' .. tostring(message));
+    end
+    return ok;
+end
+
+-- Dynamic obstacle detection and side-stepping. Lives in a module so the
+-- decision logic can be exercised offline instead of only in the live game.
+accessxi.load_code_module('nav_dynamic_obstacle', T{
+    T = T,
+    tick = tick,
+    log_line = log_line,
+});
+
+-- Which road between two zones. In a module so the choice can be tested
+-- offline against the shipped zone-line graph.
+accessxi.load_code_module('nav_zoneline_router', T{
+    T = T,
+    log_line = log_line,
+});
+
+-- Ramps, stairs and tunnel mouths. In a module so the projection rules can be
+-- tested offline, including the wrong-floor and switchback refusals.
+accessxi.load_code_module('nav_vertical_run', T{
+    T = T,
+    log_line = log_line,
+});
+
+-- THE beacon aim rule. One point, a fixed distance ahead along the route.
+accessxi.load_code_module('nav_route_pursuit', T{
+    T = T,
+    log_line = log_line,
+});
+
 accessxi.load_code_module('recorded_survey_navigation', T{
     T = T,
     nav_distance = nav_distance,
+    nav_compute_mesh_route = nav_compute_mesh_route,
+    nav_compute_closest_mesh_route = accessxi.nav_compute_closest_mesh_route,
+    nav_lathine_direct_target_safe = function(player, target)
+        return type(accessxi.nav_lathine_direct_target_safe) == 'function'
+            and accessxi.nav_lathine_direct_target_safe(player, target) or false;
+    end,
     nav_split_tsv = nav_split_tsv,
     nav_clean_field = nav_clean_field,
     log_line = log_line,
@@ -72701,6 +76037,181 @@ accessxi.load_code_module('dangruf_fount_drop_navigation', T{
 
 function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     accessxi.nav_route_last_reject_reason = '';
+
+    -- PROMYVION FLOORS ARE NOT ONE WALKABLE SURFACE.
+    --
+    -- Zones 16, 18, 20 and 22 reuse one zone id across disconnected islands.
+    -- A Memory Stream is a temporary same-zone teleport; treating its landing
+    -- as the next navmesh waypoint produces a straight bearing through empty
+    -- space.  This provider owns every same-zone request there.  Missing data
+    -- fails closed rather than falling through to the native result that put
+    -- the live Holla player 133 yalms from its first alleged waypoint.
+    local promyvion_zone = tonumber(player ~= nil and player.zone) or 0;
+    if (point ~= nil and promyvion_zone == (tonumber(point.zone) or 0)
+        and (promyvion_zone == 16 or promyvion_zone == 18
+            or promyvion_zone == 20 or promyvion_zone == 22)) then
+        if (type(accessxi.nav_promyvion_route) ~= 'function') then
+            accessxi.nav_route_last_reject_reason =
+                'Promyvion transition navigation is unavailable.';
+            return T{}, nil;
+        end
+        local promyvion_ok, promyvion_points, promyvion_mode, promyvion_message = pcall(
+            accessxi.nav_promyvion_route, player, point);
+        if (not promyvion_ok) then
+            accessxi.nav_route_last_reject_reason =
+                'Promyvion transition navigation failed safely.';
+            log_line('nav Promyvion route error: ' .. tostring(promyvion_points));
+            return T{}, nil;
+        end
+        if ((promyvion_mode == 'route' or promyvion_mode == 'same-island')
+            and type(promyvion_points) == 'table' and promyvion_points:len() > 1) then
+            accessxi.nav_route_last_reject_reason = '';
+            log_line(('nav Promyvion route mode=%s destination="%s" count=%d'):fmt(
+                tostring(promyvion_mode),
+                accessxi.escape_probe_log_text(point.name or ''),
+                promyvion_points:len()));
+            return promyvion_points, nil;
+        end
+        accessxi.nav_route_last_reject_reason = nav_clean_field(promyvion_message) ~= ''
+            and nav_clean_field(promyvion_message)
+            or 'No reviewed Promyvion transition reaches that destination from this floor.';
+        log_line(('nav Promyvion unavailable destination="%s" mode=%s reason="%s"'):fmt(
+            accessxi.escape_probe_log_text(point.name or ''),
+            tostring(promyvion_mode),
+            accessxi.escape_probe_log_text(accessxi.nav_route_last_reject_reason)));
+        return T{}, nil;
+    end
+
+    -- La Theine's certified walk graph, and the ONLY place it is consulted.
+    -- Both initial starts and live replans come through here, so one seam
+    -- covers the zone; and because the gate below requires zone 102 at BOTH
+    -- ends, no other zone can reach a single line of it. Everywhere else in
+    -- Vana'diel keeps byte-identical behaviour.
+    --
+    -- The tri-state matters. 'unavailable' means we learned nothing, so the old
+    -- behaviour is exactly right. But 'no-path' means the graph PROVED these
+    -- two places do not connect on walkable ground, and that is stronger
+    -- evidence than the shipped mesh -- which has been confidently wrong in
+    -- this zone all along -- is capable of producing. Letting the mesh overrule
+    -- a proof is how a blind player gets walked off the Galaihaurat cliff
+    -- again, so a proof restricts what may answer afterwards.
+    local walk_graph_restricted = false;
+    -- A TIMEOUT MUST NOT BE RE-ENTERED IMMEDIATELY. Falling through to another
+    -- provider and then handing the next request back to the planner that just
+    -- timed out is the retry loop that froze frames on 2026-08-21 wearing a
+    -- different hat.
+    local walk_graph_timed_out_recently =
+        (tonumber(accessxi.nav_walk_graph_timeout_until) or 0) > tick();
+    -- THE CATALOGUED COORDINATE WAS RIGHT ALL ALONG, so this no longer moves
+    -- the goal. Measured from the player's own walked trace in zone 102:
+    --
+    --   Telepoint           closest stood 0.0 yalms, at y=19.1 (102 samples)
+    --   Dimensional Portal  closest stood 0.3 yalms, at y=19.1
+    --   Shattered Telepoint closest stood 0.3 yalms, at y=24.0, and 2.1 at 19.1
+    --
+    -- They have physically stood on the y=19.1 ground the walk graph calls
+    -- unreachable, and walked the whole range 19.1 to 24.4 getting there. So the
+    -- graph is wrong, not the destination -- and snapping the goal up to the rim
+    -- aimed at somewhere they did not ask for, which is why it "missed the
+    -- stairs to climb to get to the telepoint". The stand-in is still used when
+    -- the graph cannot route, but the true point stays the destination and the
+    -- hand-off below finishes the job.
+    if (type(accessxi.walk_graph_route) == 'table'
+        and not walk_graph_timed_out_recently
+        and accessxi.walk_graph_route.enabled()
+        and accessxi.walk_graph_route.applies(player, point)) then
+        local ok, wg_points, wg_mode, wg_message = pcall(
+            accessxi.walk_graph_route.begin, player, point);
+        if (not ok) then
+            wg_points, wg_mode, wg_message = nil, 'unavailable', tostring(wg_points);
+            log_line(('nav walk graph raised an error: %s'):fmt(tostring(wg_message)));
+        end
+        if (wg_mode == 'ready' and wg_points ~= nil and wg_points:len() > 1) then
+            accessxi.nav_walk_graph_pending = nil;
+            accessxi.nav_route_last_reject_reason = '';
+            log_line(('nav La Theine walk graph route destination="%s" count=%d'):fmt(
+                accessxi.escape_probe_log_text(point.name or ''), wg_points:len()));
+            return wg_points, nil;
+        end
+        if (wg_mode == 'pending') then
+            accessxi.nav_walk_graph_pending = T{
+                destination = point,
+                -- The deadline is measured from the ORIGINAL request and is
+                -- never reset by a heartbeat or a phase change (sol), because
+                -- every candidate cause of the 2026-08-23 stall looked like
+                -- progress from inside whichever phase it was in.
+                started_tick = tick(),
+                polls = 0,
+                last_poll_tick = 0,
+                max_gap_ms = 0,
+                progress_log_tick = 0,
+                -- Stamped so a search that outlives its owner cannot install
+                -- itself. Everything that changes route ownership bumps this
+                -- generation, and the install path refuses a pending record
+                -- whose stamp no longer matches.
+                owner_generation = tonumber(accessxi.nav_route_ownership_generation) or 0,
+                owner_zone = tonumber(player.zone) or 0,
+                message = nav_clean_field(wg_message) ~= ''
+                    and nav_clean_field(wg_message)
+                    or 'Preparing the verified La Theine route. Navigation will start automatically.',
+            };
+            return T{}, nil;
+        end
+        accessxi.nav_walk_graph_pending = nil;
+        if (wg_mode == 'budget') then
+            -- Running out of expansions is not evidence about the world, so it
+            -- restricts nothing -- exactly as a timeout does not. Suppress the
+            -- planner briefly so the next request does not walk straight back
+            -- in and burn the same budget again.
+            accessxi.nav_walk_graph_timeout_until = tick() + 60000;
+            log_line(('nav walk graph budget exhausted destination="%s" reason="%s"'):fmt(
+                accessxi.escape_probe_log_text(point.name or ''),
+                accessxi.escape_probe_log_text(nav_clean_field(wg_message))));
+            speak(('I could not finish planning a safe route to %s. Using the older La Theine map instead. It may be unreliable.'):fmt(
+                nav_clean_field(point.name) ~= '' and nav_clean_field(point.name)
+                    or 'that destination'));
+        end
+        if (wg_mode == 'no-path' or wg_mode == 'unreachable' or wg_mode == 'rejected') then
+            walk_graph_restricted = true;
+            accessxi.nav_route_last_reject_reason = nav_clean_field(wg_message);
+            -- Stamped with WHICH destination was refused, so the caller can tell
+            -- a live refusal from a stale one and stop navigation instead of
+            -- retrying it every three seconds forever. Without this the route
+            -- stayed active with no points, and on 2026-08-21 that retry loop
+            -- put the game into 3-4 second frame stalls until the player
+            -- stopped it by hand.
+            accessxi.nav_walk_graph_refusal = T{
+                destination = point,
+                zone = tonumber(point ~= nil and point.zone) or 0,
+                reason = nav_clean_field(wg_message),
+                tick = tick(),
+            };
+            log_line(('nav La Theine walk graph %s destination="%s" reason="%s"'):fmt(
+                tostring(wg_mode),
+                accessxi.escape_probe_log_text(point.name or ''),
+                accessxi.escape_probe_log_text(tostring(wg_message or ''))));
+        elseif (wg_mode ~= 'ready') then
+            -- 'unavailable', or anything unrecognised. Falling back to the old
+            -- planners is the DESIGNED behaviour here -- a missing graph must
+            -- not strand the player -- but it happened in perfect silence on
+            -- 2026-08-21: prewarm failed without a word, begin answered
+            -- 'unavailable' without a word, the shipped mesh took over without
+            -- a word, and the player spent forty minutes reporting bugs against
+            -- a planner they were not running. The reason was in wg_message the
+            -- whole time and nobody wrote it down.
+            log_line(('nav walk graph UNAVAILABLE, falling back to older planners: mode="%s" reason="%s"'):fmt(
+                tostring(wg_mode),
+                accessxi.escape_probe_log_text(tostring(wg_message or ''))));
+            -- Say it out loud, throttled: replans re-enter this dispatcher, and
+            -- repeating the sentence every few seconds would drown the beacon.
+            local now_skip = tick();
+            if ((now_skip - (tonumber(accessxi.nav_walk_graph_skip_spoken_tick) or 0)) >= 30000) then
+                accessxi.nav_walk_graph_skip_spoken_tick = now_skip;
+                speak('The verified route is unavailable. Using the older map.');
+            end
+        end
+    end
+
     local survey_collision_fallback = false;
     if (type(accessxi.nav_recorded_survey_route) == 'function') then
         local recorded_survey, survey_required, collision_required = accessxi.nav_recorded_survey_route(player, point);
@@ -72713,6 +76224,16 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
         survey_collision_fallback = collision_required == true;
     end
 
+    -- A graph proof retires the mesh branch below, but that branch is also the
+    -- thing that clears survey_collision_fallback so the walked evidence after
+    -- it gets a turn. Skipping the branch without clearing the flag would
+    -- silently discard the recorded surveys, corridors and ravine escapes --
+    -- the strongest evidence in this zone, because a player actually walked
+    -- them. Clear it here so a proof retires the mesh WITHOUT retiring them.
+    if (walk_graph_restricted) then
+        survey_collision_fallback = false;
+    end
+
     -- La Theine's installed full-zone navmesh answers immediately and avoids
     -- the synchronous DAT terrain build. The DAT mapper twice produced a
     -- live-disproved loop at the Galaihaurat cliff and the latest build kept
@@ -72723,6 +76244,7 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     -- nearby proven transition point.  Never fall through to the slow DAT
     -- terrain builder for La Theine when this installed mesh has no path.
     if survey_collision_fallback
+        and not walk_graph_restricted
         and player ~= nil and point ~= nil
         and (tonumber(player.zone) or 0) == 102
         and (tonumber(point.zone) or 0) == 102 then
@@ -72760,12 +76282,37 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
             return lathine_mesh_route, nil;
         end
         if (is_zoneline) then
+            -- The installed navmesh is preferred because it answers
+            -- immediately and yields a short route that stays cheap to
+            -- track. When it genuinely has no path, the walked survey is
+            -- still the best available evidence, so ask it explicitly
+            -- rather than declaring the destination unreachable.
+            if (type(accessxi.nav_recorded_survey_route) == 'function') then
+                local survey_fallback, survey_fallback_required =
+                    accessxi.nav_recorded_survey_route(player, point, nil, nil, true);
+                if (survey_fallback ~= nil and survey_fallback:len() > 1) then
+                    accessxi.nav_route_last_reject_reason = '';
+                    log_line(('nav La Theine walked survey fallback destination="%s" count=%d'):fmt(
+                        point.name or '', survey_fallback:len()));
+                    return survey_fallback, nil;
+                end
+                if (survey_fallback_required) then
+                    return T{}, nil;
+                end
+            end
             accessxi.nav_route_last_reject_reason =
                 'installed La Theine navmesh has no route to this zone line';
             log_line(('nav La Theine zoneline navmesh unavailable destination="%s"'):fmt(
                 point.name or ''));
             return T{}, nil;
         end
+        -- Non-zoneline destinations reach here when the installed mesh had no
+        -- answer.  Control used to fall out of this block with the flag still
+        -- set, which skipped every verified provider below -- the recorded
+        -- corridors, the ravine escapes, and all the proven route overrides --
+        -- and dropped straight through to the terrain builder.  Clearing the
+        -- flag lets that walked evidence be tried first, as it always should.
+        survey_collision_fallback = false;
     end
 
     if (not survey_collision_fallback) then
@@ -72820,6 +76367,107 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
         end
     end
 
+    -- Everything above this line is walked evidence: recorded surveys, recorded
+    -- corridors, recorded ravine escapes, and explicit hand-verified overrides.
+    -- Those are allowed to answer even when the walk graph found nothing,
+    -- because a route somebody actually walked outranks a proof about geometry.
+    --
+    -- Everything BELOW is the shipped navmesh and the DAT terrain builder, and
+    -- neither may overrule the graph. The mesh cannot disprove a proof; it can
+    -- only disagree with it, and in this zone its disagreements are what put a
+    -- blind player on a cliff face. So when the graph rejected the destination
+    -- and no walked evidence rescued it, stop here and say so rather than
+    -- letting the thing this rebuild replaced answer instead.
+    if (walk_graph_restricted) then
+        if (nav_clean_field(accessxi.nav_route_last_reject_reason) == '') then
+            accessxi.nav_route_last_reject_reason =
+                'I cannot verify a safe route from here.';
+        end
+        log_line(('nav La Theine walk graph restricted fallback exhausted destination="%s"'):fmt(
+            accessxi.escape_probe_log_text(point ~= nil and point.name or '')));
+        return T{}, nil;
+    end
+
+    -- Cross-zone legs already have an exact reciprocal landing for the zone
+    -- trigger.  Prefer the installed navmesh to that landing before starting
+    -- the asynchronous DAT terrain builder.  The latter can take tens of
+    -- seconds and produces a dense, repeatedly replanned route; it remains a
+    -- fallback when the installed mesh cannot reach either endpoint.
+    if player ~= nil and point ~= nil and accessxi.nav_point_is_zoneline(point) then
+        local zoneline_mesh_route = T{};
+        local zoneline_mesh_approach = nil;
+        local ground_sibling = accessxi.nav_zoneline_ground_sibling(point);
+        if (ground_sibling ~= nil) then
+            zoneline_mesh_route = nav_compute_mesh_route(player, ground_sibling);
+            if (zoneline_mesh_route:len() > 1) then
+                zoneline_mesh_approach = ground_sibling;
+                accessxi.nav_append_final_zoneline_point(zoneline_mesh_route, point);
+                log_line(('nav zoneline ground sibling route destination="%s" sibling=(%.1f,%.1f,%.1f) trigger=(%.1f,%.1f,%.1f)'):fmt(
+                    accessxi.escape_probe_log_text(point.name or ''),
+                    ground_sibling.x, ground_sibling.z, ground_sibling.y,
+                    tonumber(point.x) or 0, tonumber(point.z) or 0, tonumber(point.y) or 0));
+            end
+        end
+        local direct_vetoed = accessxi.nav_zoneline_direct_leg_vetoed(player, point);
+        if (zoneline_mesh_route:len() <= 1 and not direct_vetoed) then
+            zoneline_mesh_route = nav_compute_mesh_route(player, point);
+        end
+        if (zoneline_mesh_route:len() <= 1) then
+            for _, approach in ipairs(accessxi.nav_zoneline_approach_candidates(point)) do
+                zoneline_mesh_route = nav_compute_mesh_route(player, approach);
+                if (zoneline_mesh_route:len() > 1) then
+                    zoneline_mesh_approach = approach;
+                    accessxi.nav_append_final_zoneline_point(zoneline_mesh_route, point);
+                    break;
+                end
+            end
+        end
+        -- Every approach to THIS zone line failed. Try the zone's other zone
+        -- lines before concluding the zone cannot be reached.
+        if (zoneline_mesh_route:len() <= 1) then
+            for _, sibling in ipairs(accessxi.nav_zoneline_sibling_points(player, point)) do
+                local attempt = nav_compute_mesh_route(player, sibling);
+                if (attempt:len() > 1) then
+                    log_line(('nav zoneline exit swapped from="%s" to="%s" count=%d'):fmt(
+                        accessxi.escape_probe_log_text(point.name or ''),
+                        accessxi.escape_probe_log_text(sibling.name or ''),
+                        attempt:len()));
+                    speak(('%s cannot be reached from here. Routing to %s instead.'):fmt(
+                        nav_clean_field(point.name), nav_clean_field(sibling.name)));
+                    point = sibling;
+                    zoneline_mesh_route = attempt;
+                    zoneline_mesh_approach = nil;
+                    break;
+                end
+            end
+        end
+        if (zoneline_mesh_route:len() <= 1 and direct_vetoed) then
+            accessxi.nav_route_last_reject_reason =
+                'The entrance is on a different level. Safe final approach unavailable.';
+            log_line(('nav zoneline final leg vetoed destination="%s" horizontal=%.1f vertical=%.1f'):fmt(
+                accessxi.escape_probe_log_text(point.name or ''),
+                nav_distance(player, point),
+                math.abs((tonumber(point.y) or 0) - (tonumber(player.y) or 0))));
+            return T{}, nil;
+        end
+        if (zoneline_mesh_route:len() > 1) then
+            if (type(accessxi.nav_transport_clear) == 'function') then
+                accessxi.nav_transport_clear('zoneline-navmesh-verified');
+            end
+            if (type(accessxi.nav_dangruf_fount_drop_clear) == 'function') then
+                accessxi.nav_dangruf_fount_drop_clear('zoneline-navmesh-verified');
+            end
+            accessxi.nav_route_last_reject_reason = '';
+            pcall(accessxi.nav_log_route_mutation, 'zoneline-mesh-install',
+                accessxi.nav_current_position, zoneline_mesh_route:len(), point);
+            log_line(('nav installed zoneline mesh route destination="%s" approach="%s" count=%d'):fmt(
+                point.name or '',
+                zoneline_mesh_approach ~= nil and (zoneline_mesh_approach.name or '') or '',
+                zoneline_mesh_route:len()));
+            return zoneline_mesh_route, zoneline_mesh_approach;
+        end
+    end
+
     local collision_route, collision_mode, collision_message = accessxi.nav_dat_collision_route(player, point);
     if (collision_mode == 'ready') then
         accessxi.nav_route_last_reject_reason = '';
@@ -72828,6 +76476,26 @@ function accessxi.nav_compute_route_with_zoneline_approach(player, point)
     if (collision_mode == 'pending') then
         accessxi.nav_route_last_reject_reason = '';
         return T{}, nil;
+    end
+    if (collision_mode == 'error') then
+        -- THE ZONE CANNOT ANSWER, WHICH IS NOT THE SAME AS A REFUSAL. Remember
+        -- it, and drop straight to the mesh below rather than returning an empty
+        -- route -- live 2026-08-24 this branch returned empty for Chateau
+        -- d'Oraguille and the player got no route to Halver at all, with the
+        -- zone's navmesh loaded and 34 NPCs indexed.
+        -- Only a zone with NO terrain data at all is remembered as
+        -- unsupported; a zone that merely could not produce a corridor this
+        -- time may well manage it from somewhere else in the zone.
+        if (nav_clean_field(collision_message):find('collision geometry', 1, true) ~= nil
+            or nav_clean_field(collision_message):find('MZB', 1, true) ~= nil) then
+            accessxi.nav_dat_collision_zone_unsupported =
+                accessxi.nav_dat_collision_zone_unsupported or {};
+            accessxi.nav_dat_collision_zone_unsupported[tonumber(player.zone) or 0] = true;
+        end
+        log_line(('collision terrain unsupported zone=%d reason="%s" -- using the mesh instead'):fmt(
+            tonumber(player.zone) or 0,
+            accessxi.escape_probe_log_text(nav_clean_field(collision_message))));
+        collision_mode = 'unsupported';
     end
     if (collision_mode == 'error') then
         local approach_route, approach_mode, approach_message =
@@ -73421,6 +77089,14 @@ function accessxi.nav_entity_is_npc(pos)
 end
 
 function accessxi.nav_entity_is_obvious_object(pos)
+    -- The native Object flag identifies Stream/door mechanisms even when their
+    -- retained HP/type looks like a mob. Holla warp_05 (spawn flags 0x22) was
+    -- announced as an enemy obstacle and steered around on 2026-09-04.
+    -- Preserve entities carrying positive Monster evidence (0x10).
+    local flags = tonumber(pos ~= nil and pos.spawn_flags or 0) or 0;
+    if (bit.band(flags, 0x0020) ~= 0 and bit.band(flags, 0x0010) == 0) then
+        return true;
+    end
     local name = tostring(pos ~= nil and pos.name or ''):lower():gsub('%s+', ' ');
     if (name == '') then
         return true;
@@ -73561,27 +77237,6 @@ function accessxi.nav_entity_kind(pos)
     return 'nearby';
 end
 
-function accessxi.nav_zone_suppresses_named_npc_obstacles(zone)
-    zone = tonumber(zone) or 0;
-    return zone == 230 or zone == 231 or zone == 232 or zone == 233
-        or zone == 234 or zone == 235 or zone == 236 or zone == 237
-        or zone == 238 or zone == 239 or zone == 240 or zone == 241
-        or zone == 242 or zone == 243 or zone == 244 or zone == 245
-        or zone == 246;
-end
-
-function accessxi.nav_entity_is_dynamic_obstacle_candidate(pos)
-    if (pos == nil or not accessxi.nav_live_entity_valid(pos)) then
-        return false;
-    end
-
-    local kind = tostring(pos.live_kind or accessxi.nav_entity_kind(pos));
-    if (kind == 'enemy' and accessxi.nav_zone_suppresses_named_npc_obstacles(pos.zone)
-        and not accessxi.nav_entity_name_looks_like_enemy(pos)) then
-        return false;
-    end
-    return kind == 'player' or kind == 'enemy' or kind == 'live-nm';
-end
 
 function accessxi.nav_live_entity_key(pos)
     if (pos == nil) then
@@ -73603,6 +77258,17 @@ function accessxi.nav_live_entity_valid(pos)
     end
     local status = tonumber(pos.status) or -1;
     if (status == 2 or status == 3) then
+        return false;
+    end
+    local render_flags_1 = tonumber(pos.render_flags_1);
+    local enemy = accessxi.nav_entity_is_enemy(pos);
+    if (enemy and render_flags_1 == nil) then
+        return false;
+    end
+    if (bit.band(render_flags_1 or 0, 0x1000) ~= 0) then
+        return false;
+    end
+    if ((tonumber(pos.hp) or -1) == 0 and enemy) then
         return false;
     end
 
@@ -73895,16 +77561,17 @@ function accessxi.nav_refresh_live_route_destination(player, now)
     end
 
     now = tonumber(now) or tick();
-    accessxi.nav_destination = resolved;
     local route_count = accessxi.nav_route_points ~= nil and accessxi.nav_route_points:len() or 0;
     if (moved >= 3.0 and route_count > 1 and ((now - (tonumber(accessxi.nav_route_last_recalc_tick) or 0)) > 1800)) then
         accessxi.nav_route_last_recalc_tick = now;
-        accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, resolved);
-        if (accessxi.nav_route_points:len() > 1) then
-            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, accessxi.nav_route_points, resolved);
-        else
-            accessxi.nav_route_point_index = 1;
+        local refreshed = accessxi.nav_compute_route_with_zoneline_approach(player, resolved);
+        if (refreshed:len() > 1) then
+            accessxi.nav_destination = resolved;
+            accessxi.nav_route_points = refreshed;
+            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, resolved);
         end
+    else
+        accessxi.nav_destination = resolved;
     end
     log_line(('nav live route retarget name="%s" moved=%.1f x=%.3f z=%.3f'):fmt(
         resolved.name or current.name or '',
@@ -74051,10 +77718,122 @@ accessxi.nav_menu_static_key = function (point)
         return nav_point_key(point);
     end
 
+    -- A DESTINATION ON ANOTHER FLOOR IS ANOTHER DESTINATION.
+    --
+    -- This key carried no coordinate at all, so every same-named static row in
+    -- a zone collapsed to ONE browse entry, and which one survived was decided
+    -- by nav_distance -- which measures x and z and never reads y. In Palborough
+    -- Mines the two Elevator Levers sit at the SAME x and z, 33 yalms apart in
+    -- height: one on the refinery's upper floor and one on the lower. The upper
+    -- one was always nearer in a measurement that cannot see height, so the
+    -- lever that takes you DOWN was silently dropped and could never be picked
+    -- from the menu at all. Live 2026-08-26 the player had to find it on their
+    -- own. The two Refiner Levers, 16 yalms apart in height, collapsed the same
+    -- way. This is not a Palborough problem -- it is every stacked destination
+    -- in the game.
+    --
+    -- Height splits the key; horizontal spread deliberately does not. Forty
+    -- eight Armoury Crates spread across one floor are interchangeable and
+    -- should stay a single entry the player can walk to the nearest of, but a
+    -- lever behind an elevator ride is somewhere else entirely.
+    --
+    -- The key still groups by NAME. Separating the floors is done afterwards
+    -- by nav_cluster_static_points_by_height, because a fixed band cannot do
+    -- it: quantising y put the two Dock Levers -- 0.64 yalms apart on one floor
+    -- -- either side of a band edge and split them, while any band wide enough
+    -- to avoid that starts merging real floors. Clustering on the GAPS between
+    -- points has no edges to straddle.
     return ('%d:%s:%s'):fmt(
         tonumber(point.zone) or 0,
         kind,
         tostring(point.name or ''):lower():gsub('%s+', ' '));
+end
+
+-- SEPARATE THE FLOORS, KEEP THE CROWD TOGETHER.
+--
+-- Same-named static destinations used to collapse to exactly one browse entry,
+-- chosen with nav_distance -- which measures x and z and never reads y. In
+-- Palborough Mines the two Elevator Levers sit at the SAME x and z, 33 yalms
+-- apart in height: one on the refinery's upper floor, one on the lower. The
+-- upper was always nearer to a measurement that cannot see height, so the lever
+-- that takes you DOWN was silently dropped and could not be selected at all.
+-- Live 2026-08-26 the player had to find it themselves. The two Refiner Levers,
+-- 16 yalms apart in height, collapsed the same way. This is not a Palborough
+-- problem; it is every stacked destination in the game.
+--
+-- Single-linkage on height: walk the points in height order and start a new
+-- entry only where the gap to the previous one is at least six yalms. Two
+-- sources describing one object stay one entry, a scatter of forty eight
+-- Armoury Crates across a floor stays one entry the player walks to the nearest
+-- of, and a lever behind an elevator ride becomes its own entry the browse can
+-- describe with its own "Height down" phrase.
+--
+-- FFXI's y axis is INVERTED -- a SMALLER y is HIGHER ground. Only the ordering
+-- of the walk depends on that, and the walk is symmetric, so it holds either way.
+function accessxi.nav_cluster_static_points_by_height(points)
+    local list = {};
+    for _, point in ipairs(points or {}) do
+        list[#list + 1] = point;
+    end
+    if (#list <= 1) then
+        return list;
+    end
+
+    -- AN IDENTIFIED DOORWAY SUPERSEDES AN UNIDENTIFIED GUESS OF THE SAME NAME.
+    --
+    -- Port Jeuno ships two rows called "Qufim Island zone line": one from
+    -- lsb-zoneline-all carrying the exact transition id lsb:zonelines:880096890,
+    -- and one from bg-wiki-lsb-npc-list with seven fields, no identity and
+    -- coordinates a hundred yalms away. Only the first is the door.
+    --
+    -- Before this function existed the ranking hid the impostor, because an
+    -- exact zoneline identity earns a bias in nav_point_source_rank. Splitting
+    -- by height surfaced it as a second entry, and live 2026-08-27 the player
+    -- was walked to it, told "You are on it", and stood there until the zoning
+    -- watch timed out. Widening a menu must not promote a row that was being
+    -- suppressed on merit.
+    --
+    -- Only 32 name-groups in the catalogue are affected, and in every one the
+    -- unidentified row is the odd one out.
+    local identified = false;
+    for _, point in ipairs(list) do
+        local identity = tostring(point.raw_identity or ''):lower();
+        if (identity:sub(1, 14) == 'lsb:zonelines:'
+            or identity:sub(1, 21) == 'lsb:scripted_trigger:') then
+            identified = true;
+            break;
+        end
+    end
+    if (identified) then
+        local kept = {};
+        for _, point in ipairs(list) do
+            local identity = tostring(point.raw_identity or ''):lower();
+            if (identity:sub(1, 14) == 'lsb:zonelines:'
+                or identity:sub(1, 21) == 'lsb:scripted_trigger:') then
+                kept[#kept + 1] = point;
+            end
+        end
+        list = kept;
+        if (#list <= 1) then
+            return list;
+        end
+    end
+    table.sort(list, function (a, b)
+        return (tonumber(a.y) or 0) < (tonumber(b.y) or 0);
+    end);
+
+    local kept, current, previous_y = {}, 0, nil;
+    for _, point in ipairs(list) do
+        local y = tonumber(point.y) or 0;
+        if (current == 0 or (y - previous_y) >= 6) then
+            kept[#kept + 1] = point;
+            current = #kept;
+        elseif (accessxi.nav_static_destination_is_better(point, kept[current])) then
+            kept[current] = point;
+        end
+        previous_y = y;
+    end
+    return kept;
 end
 
 accessxi.nav_static_destination_is_better = function (point, previous)
@@ -74069,6 +77848,58 @@ accessxi.nav_static_destination_is_better = function (point, previous)
     return point_rank < previous_rank
         or (point_rank == previous_rank
             and (tonumber(point.distance) or 999999) < (tonumber(previous.distance) or 999999));
+end
+
+-- LIVE EVIDENCE REPLACES ONLY THE STATIC ROW IT ACTUALLY OVERLAPS.
+--
+-- Static enemy coordinates are useful search platforms; they are not proof an
+-- enemy is standing there.  Conversely, a rendered entity has current
+-- coordinates and an exact server id.  The old static-first `seen` list threw
+-- that stronger row away when the two rounded to the same point.  Replacement
+-- is limited to enemy rows so the established NPC/object dedup remains intact.
+function accessxi.nav_merge_live_menu_point(items, seen, point)
+    if (type(items) ~= 'table' or type(seen) ~= 'table' or point == nil) then
+        return false, 'invalid';
+    end
+    local key = nav_point_key(point);
+    local index = tonumber(seen[key]);
+    if (index ~= nil and items[index] ~= nil) then
+        local previous = items[index];
+        local live_kind = nav_clean_field(point.live_kind or point.kind):lower();
+        local previous_kind = accessxi.nav_point_effective_kind(previous);
+        if ((live_kind == 'enemy' or live_kind == 'live-nm')
+            and (previous_kind == 'enemy' or previous_kind == 'nm')
+            and accessxi.nav_point_is_live_entity(point)
+            and not accessxi.nav_point_is_live_entity(previous)) then
+            items[index] = point;
+            return true, 'replaced';
+        end
+        return false, 'duplicate';
+    end
+    table.insert(items, point);
+    seen[key] = #items;
+    return true, 'added';
+end
+
+-- THE ROW NAME CARRIES THE EVIDENCE A SIGHTED PLAYER GETS FOR FREE.
+--
+-- "Memory Receptacle" used to mean both a catalogue spawn camp and an enemy
+-- visibly standing in the client.  Those are materially different instructions
+-- to a blind player, so the browse says which one it has without changing the
+-- underlying route target name consumed by Promyvion navigation.
+function accessxi.nav_menu_point_speech_name(point)
+    local name = nav_clean_field(point ~= nil and point.name or '');
+    if (name:lower():gsub('%s+', ' ') ~= 'memory receptacle') then
+        return name;
+    end
+    if (accessxi.nav_point_is_live_entity(point)) then
+        return name .. ', visible now';
+    end
+    local kind = accessxi.nav_point_effective_kind(point);
+    if (kind == 'enemy' or kind == 'nm') then
+        return name .. ' search platform';
+    end
+    return name;
 end
 
 accessxi.nav_search_text = function (value)
@@ -74099,6 +77930,88 @@ accessxi.nav_point_matches_search = function (point, query)
     return haystack:gsub('%s+', ''):contains(query:gsub('%s+', ''));
 end
 
+-- THE MISSION BROWSE NEVER GOT THE DEDUP EVERY OTHER CATEGORY GETS.
+--
+-- nav_collect_menu_items returns early for the mission and quest categories.
+-- Everything below that return -- the confidence ~= 'bad' filter, the
+-- nav_menu_static_key bucketing, the nav_cluster_static_points_by_height
+-- collapse -- is dead code for them. So the two categories a player spends the
+-- most time in were the only two with no duplicate handling at all.
+--
+-- Live 2026-08-28, "Below the Arks": ten rows for one step, 13 through 22 of 34.
+-- Three of them were the SAME La Theine Shattered Telepoint -- the proven
+-- lsb-npc-list row, a confidence=bad screenshot row 6 yalms away, and a recorded
+-- survey mark 3 yalms away out of a fourth data file the destinations TSV knows
+-- nothing about. Five more were Large Apparatus in the Hall of Transference.
+-- The player: "it appears as if it's showing a bunch of duplicate entries...
+-- you can make it show just the places you need to visit."
+--
+-- Bucketed by the OBJECTIVE as well as the place, so two rows that happen to
+-- share a destination name but belong to different steps stay separate -- they
+-- are different instructions and collapsing them would hide one.
+--
+-- Note what this deliberately does NOT do: it does not filter confidence='bad'
+-- outright, the way the static path does. It lets the existing rank tie-break
+-- inside the cluster prefer a proven row over a bad one, so a bad row still
+-- survives when it is the ONLY row for that objective. An objective that
+-- silently loses its last destination is worse than one that offers a poor
+-- destination and says so.
+function accessxi.nav_dedupe_objective_rows(items)
+    if (type(items) ~= 'table' or #items <= 1) then
+        return items;
+    end
+
+    local buckets, order = {}, {};
+    for _, item in ipairs(items) do
+        local place = accessxi.nav_menu_static_key(item);
+        local named = nav_clean_field(item.name) ~= '' and (tonumber(item.zone) or 0) > 0;
+        if (named and place ~= '') then
+            local key = table.concat({
+                nav_clean_field(item.objective_native_key),
+                nav_clean_field(item.objective_guide_step_id),
+                nav_clean_field(item.objective_action_id),
+                nav_clean_field(item.objective_candidate_id),
+                place,
+            }, '\t');
+            local bucket = buckets[key];
+            if (bucket == nil) then
+                bucket = {};
+                buckets[key] = bucket;
+                order[#order + 1] = key;
+            end
+            bucket[#bucket + 1] = item;
+        end
+    end
+
+    local keep = {};
+    local collapsed = 0;
+    for _, key in ipairs(order) do
+        local bucket = buckets[key];
+        local survivors = accessxi.nav_cluster_static_points_by_height(bucket);
+        if (#survivors < #bucket) then
+            collapsed = collapsed + (#bucket - #survivors);
+        end
+        for _, point in ipairs(survivors) do
+            keep[point] = true;
+        end
+    end
+
+    local result = {};
+    for _, item in ipairs(items) do
+        local place = accessxi.nav_menu_static_key(item);
+        local named = nav_clean_field(item.name) ~= '' and (tonumber(item.zone) or 0) > 0;
+        if (not named or place == '' or keep[item]) then
+            result[#result + 1] = item;
+        end
+    end
+
+    if (collapsed > 0) then
+        log_line(('nav browser objective rows deduped %d -> %d (dropped %d duplicate destination(s))'):fmt(
+            #items, #result, collapsed));
+    end
+    return result;
+end
+
 local function nav_collect_menu_items(category_key, search_query)
     nav_load_points();
 
@@ -74112,7 +78025,9 @@ local function nav_collect_menu_items(category_key, search_query)
                 table.insert(dynamic, item);
             end
         end
-        return dynamic;
+        -- Same-place rows collapse here, because this path returns before the
+        -- bucketing and clustering below ever run.
+        return accessxi.nav_dedupe_objective_rows(dynamic);
     end
 
     local player = nav_cached_player_position();
@@ -74123,7 +78038,19 @@ local function nav_collect_menu_items(category_key, search_query)
 
     for _, point in ipairs(accessxi.nav_points) do
         local effective_kind = accessxi.nav_point_effective_kind(point);
-        if ((tonumber(point.zone) or 0) == zone and nav_clean_field(point.name) ~= '' and accessxi.nav_point_matches_category(point, category_key) and accessxi.nav_point_matches_search(point, search_query)) then
+        -- A PROVEN-BAD POINT IS NOT A DESTINATION.
+        --
+        -- Confidence 'bad' already ranked a point last, but last is still
+        -- offered, and a destination that cannot be reached is worse than one
+        -- that is absent: the player picks it, walks, and is told there is no
+        -- path. Zone 115 shipped "Balga's Dais zone line" at
+        -- (-228.613,-186.111,-10.402) -- the far end of a transition that does
+        -- not exist in that direction, on a scrap of mesh with no route to any
+        -- other door in West Sarutabaruta. Marking the graph edge bad did not
+        -- reach this file; the two loaders are independent.
+        if ((tonumber(point.zone) or 0) == zone and nav_clean_field(point.name) ~= ''
+            and nav_point_confidence(point) ~= 'bad'
+            and accessxi.nav_point_matches_category(point, category_key) and accessxi.nav_point_matches_search(point, search_query)) then
             local key = accessxi.nav_menu_static_key(point);
             point.distance = player ~= nil and nav_distance(player, point) or 0;
             point.kind = effective_kind;
@@ -74131,17 +78058,21 @@ local function nav_collect_menu_items(category_key, search_query)
             if (duplicate_key ~= '') then
                 static_destination_keys[duplicate_key] = true;
             end
-            local previous = static_by_key[key];
-            if (accessxi.nav_static_destination_is_better(point, previous)) then
-                static_by_key[key] = point;
+            local bucket = static_by_key[key];
+            if (bucket == nil) then
+                bucket = {};
+                static_by_key[key] = bucket;
             end
+            bucket[#bucket + 1] = point;
         end
     end
 
-    local seen = T{};
-    for _, point in pairs(static_by_key) do
-        table.insert(items, point);
-        seen:append(nav_point_key(point));
+    local seen = {};
+    for _, bucket in pairs(static_by_key) do
+        for _, point in ipairs(accessxi.nav_cluster_static_points_by_height(bucket)) do
+            table.insert(items, point);
+            seen[nav_point_key(point)] = #items;
+        end
     end
 
     local live_distance = (category_key == 'enemy' or category_key == 'live-nm') and accessxi.nav_live_entity_search_range() or 120;
@@ -74165,13 +78096,10 @@ local function nav_collect_menu_items(category_key, search_query)
                 live_kind = entity_kind,
                 live_nm = entity_point.live_nm,
             };
-            local key = nav_point_key(point);
             if (accessxi.nav_point_matches_category(point, category_key)
                 and accessxi.nav_point_matches_search(point, search_query)
-                and not accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, static_destination_keys)
-                and not seen:contains(key)) then
-                seen:append(key);
-                table.insert(items, point);
+                and not accessxi.nav_live_entity_shadowed_by_static_destination(entity_point, static_destination_keys)) then
+                accessxi.nav_merge_live_menu_point(items, seen, point);
             end
         end
     end
@@ -74291,7 +78219,7 @@ local function nav_menu_item_speech()
         note_text = section;
     end
     return accessxi.navigation_row_speech(
-        accessxi.speech_name(item.name or 'destination'),
+        accessxi.speech_name(accessxi.nav_menu_point_speech_name(item) or 'destination'),
         accessxi.nav_menu_index,
         total,
         kind,
@@ -74544,6 +78472,292 @@ function accessxi.on_mission_quest_state_changed(kind, reason)
     return changed, cancelled;
 end
 
+-- SPEAKING A MISSION TRANSITION.
+--
+-- Three things have to be true at once, and each one has bitten us before.
+--
+-- DEDUP BY MEANING. The reducer recomputes the same state freely -- live
+-- 2026-08-22 `mission active context complete` appeared four times in eight
+-- seconds. A time window would either swallow a real second transition or let a
+-- repeat through depending on nothing but scheduling, so the key is the
+-- transition itself and it holds for the whole mission instance (sol).
+--
+-- COALESCE, DO NOT STACK. Objective completion, native mission completion and
+-- successor acceptance arrive as separate signals within a breath of each
+-- other. Speaking three sentences for one moment is worse than one sentence
+-- that says all of it, so a richer transition arriving inside the window
+-- replaces the one waiting.
+--
+-- NEVER TALK OVER THE THING THAT CAUSED IT. The NPC line and the completion
+-- land in the same second -- live, the outgoing trigger at 17:05:49 and
+-- Zantaviat's reply at 17:05:50. speak(text, false) appends instead of
+-- interrupting, so the player hears what the NPC said and then what it meant.
+-- The announcement is durable: it is never dropped to make room.
+accessxi.objective_announcements = accessxi.objective_announcements or {};
+accessxi.objective_announcement_pending = nil;
+
+function accessxi.objective_announcement_flush(now)
+    local pending = accessxi.objective_announcement_pending;
+    if (type(pending) ~= 'table') then return false; end
+    local announcer = accessxi.objective_announcer;
+    if (type(announcer) ~= 'table') then
+        accessxi.objective_announcement_pending = nil;
+        return false;
+    end
+    if ((tonumber(now) or 0) - (tonumber(pending.queued_at) or 0) < announcer.COALESCE_MS) then
+        return false;
+    end
+    accessxi.objective_announcement_pending = nil;
+    local text = announcer.sentence(pending.transition);
+    if (nav_clean_field(text) == '') then
+        log_line(('objective announce empty type="%s"'):fmt(
+            tostring(pending.transition.type or '')));
+        return false;
+    end
+    -- cancel = false: queue behind whatever is speaking rather than cutting it off.
+    speak(text, false);
+    log_line(('objective announce type="%s" key="%s" text="%s"'):fmt(
+        tostring(pending.transition.type or ''), tostring(pending.key or ''), text));
+    return true;
+end
+
+-- The player knows missions by name. "mission:San d'Oria:5" is our key for it.
+-- EVERY STORYLINE, NOT JUST THE THREE NATIONS.
+--
+-- The mission packet reports eleven progress fields -- nation, nation_mission,
+-- zilart, cop, cop_status, addons, tales, soa, rov, port -- plus the Aht Urhgan
+-- snapshot's assault/toau/wotg/campaign. Exactly ONE of them, nation_mission,
+-- was ever compared for a change. So finishing a Rise of the Zilart, Chains of
+-- Promathia, Treasures of Aht Urhgan, Wings of the Goddess, Seekers of Adoulin
+-- or Rhapsodies of Vana'diel mission produced no signal at all, and the player
+-- was told nothing -- which is exactly what the user asked about: "Same with
+-- every other nation, ROV, treasures, chains, zilart, you get the idea."
+--
+-- Nothing here is new information: accessxi.mission_rom_tables already names
+-- the packet field for all sixteen storylines, and
+-- accessxi.current_mission_value_for_context already reads any of them,
+-- including the acp/mkd/asa bitfields packed into `addons`. Only the comparison
+-- was missing.
+accessxi.mission_nation_contexts = {
+    [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst',
+};
+
+-- Storylines whose packet field is NOT a current-mission counter, so a change
+-- in it says nothing about which mission is active.
+--
+-- `tales` is caught by sol reviewing this work: the addon logs it as
+-- `tales=0x%08X`, hex, exactly as it logs `addons` -- and `addons` is
+-- definitively a bitfield, since acp, mkd and asa are unpacked out of it with
+-- masks. Treating a bitfield as a progress value could name a real mission from
+-- a coincidental numeric match, and naming the wrong mission is worse than
+-- naming none. Excluded until someone produces evidence of what it counts.
+--
+-- Campaign needs no entry: mission_rom_tables gives it an empty packet key, so
+-- the snapshot never reads it.
+accessxi.mission_progress_unmeasured_contexts = {
+    ['The Voracious Resurgence'] = 'tales is a bitfield, not a mission counter',
+};
+
+-- Both lookups live in modules/mission_progress_tracker.lua so they can be
+-- driven offline against the real guide index; these are thin delegates.
+function accessxi.mission_native_key_for_progress(context, progress_id)
+    local tracker = accessxi.mission_progress_tracker;
+    if (type(tracker) ~= 'table') then return '', 0; end
+    -- Third return: true when the value is a mission's starting value, false
+    -- when it is a point INSIDE that mission. Both name a real mission.
+    return tracker.native_key_for_progress(
+        accessxi.mission_quest_guide_index, context, progress_id);
+end
+
+function accessxi.mission_is_direct_successor(context, previous_id, native_id)
+    local tracker = accessxi.mission_progress_tracker;
+    if (type(tracker) ~= 'table') then return false; end
+    return tracker.is_direct_successor(
+        accessxi.mission_quest_guide_index, context, previous_id, native_id);
+end
+
+-- What every storyline currently reads. A nation appears only if it is the
+-- player's own: nation_mission is a single field, so all three would otherwise
+-- report the same value and two of them would be fiction.
+function accessxi.mission_progress_snapshot()
+    local snapshot = {};
+    local tables = accessxi.mission_rom_tables;
+    if (type(tables) ~= 'table') then return snapshot; end
+    local own_nation = accessxi.mission_nation_contexts[
+        tonumber((accessxi.mission_packet_main or {}).nation)];
+    for context, entry in pairs(tables) do
+        local key = nav_clean_field(type(entry) == 'table' and entry.packet or '');
+        local is_nation = false;
+        for _, name in pairs(accessxi.mission_nation_contexts) do
+            if (name == context) then is_nation = true; end
+        end
+        local unmeasured = type(accessxi.mission_progress_unmeasured_contexts) == 'table'
+            and accessxi.mission_progress_unmeasured_contexts[context] or nil;
+        if (key ~= '' and unmeasured == nil and (not is_nation or context == own_nation)) then
+            local ok, value = pcall(accessxi.current_mission_value_for_context, context);
+            if (ok and tonumber(value) ~= nil) then
+                snapshot[context] = tonumber(value);
+            end
+        end
+    end
+    return snapshot;
+end
+
+-- Compare against what we last saw and say what moved. The first comparison of
+-- a session establishes the baseline in silence (sol): logging in is not a
+-- mission having just changed.
+function accessxi.detect_mission_progress_changes(reason)
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    local snapshot = accessxi.mission_progress_snapshot();
+    local previous = accessxi.mission_progress_previous;
+    local previous_identity = nav_clean_field(accessxi.mission_progress_previous_identity or '');
+    accessxi.mission_progress_previous = snapshot;
+    accessxi.mission_progress_previous_identity = identity;
+    if (type(previous) ~= 'table' or identity == '' or epoch <= 0
+        or previous_identity ~= identity) then
+        log_line(('mission progress baseline reason="%s" contexts=%d'):fmt(
+            tostring(reason or ''), (function ()
+                local n = 0; for _ in pairs(snapshot) do n = n + 1; end; return n;
+            end)()));
+        return false;
+    end
+    local announced = false;
+    local tracker = accessxi.mission_progress_tracker;
+    local moved = type(tracker) == 'table' and tracker.diff(previous, snapshot) or {};
+    for _, change in ipairs(moved) do
+        local context, before, value = change.context, change.before, change.after;
+        do
+            local previous_key, previous_id = accessxi.mission_native_key_for_progress(context, before);
+            local current_key, current_id = accessxi.mission_native_key_for_progress(context, value);
+            log_line(('mission progress changed context="%s" %d -> %d previous="%s" current="%s"'):fmt(
+                context, before, value, previous_key, current_key));
+
+            -- THE GAME'S OWN COUNTER IS EVIDENCE OF PROGRESS.
+            --
+            -- When the value rises but the mission is the same, the player has
+            -- finished something INSIDE that mission. Nothing else has to be
+            -- observed for that to be true: the server moved the counter.
+            --
+            -- Live 2026-08-27, Chains of Promathia: the player watched two
+            -- cutscenes, the value went 110 -> 115, and the cursor sat on
+            -- "Head to Lower Delkfutt's Tower" -- somewhere they had been the
+            -- day before. The arrival that would have completed it happened at
+            -- 19:37:30 and will never happen again, so the step could only be
+            -- cleared by hand. They said it plainly: "I already did that."
+            --
+            -- One step per rise, never more. The counter says SOMETHING was
+            -- finished, not how much, and a cursor that runs ahead silently
+            -- swallows steps -- which is worse than one that lags, because a
+            -- lagging cursor merely repeats something you have done.
+            if (current_key ~= '' and current_key == previous_key
+                and (tonumber(value) or 0) > (tonumber(before) or 0)
+                and type(accessxi.nav_mission_quest_advance_within_mission) == 'function') then
+                pcall(accessxi.nav_mission_quest_advance_within_mission,
+                    current_key, ('progress %d -> %d'):fmt(
+                        tonumber(before) or 0, tonumber(value) or 0));
+            end
+            if (current_key ~= '' and type(accessxi.objective_announce) == 'function'
+                and type(accessxi.objective_announcer) == 'table') then
+                pcall(function ()
+                    local announcer = accessxi.objective_announcer;
+                    local instruction, step_id = '', '';
+                    if (type(accessxi.nav_mission_quest_first_objective) == 'function') then
+                        instruction, step_id = accessxi.nav_mission_quest_first_objective(current_key);
+                    end
+                    local capability, zone_name, route_choice = 'unavailable', '', nil;
+                    if (type(accessxi.nav_mission_quest_step_route_capability) == 'function') then
+                        capability, zone_name, route_choice = accessxi.nav_mission_quest_step_route_capability(
+                            current_key, step_id);
+                    end
+                    -- Succession must be PROVEN (sol). The next mission in the
+                    -- guide's own ordering is a completion; a jump, a repeat or
+                    -- a storyline we cannot name is only "changed", and is never
+                    -- reported as a completion the player did not earn.
+                    local succeeded = previous_key ~= ''
+                        and accessxi.mission_is_direct_successor(context, previous_id, current_id);
+                    accessxi.objective_announce({
+                        type = succeeded and announcer.TRANSITIONS.MISSION_SUCCESSOR
+                            or (previous_key == '' and announcer.TRANSITIONS.MISSION_ACCEPTED
+                                or announcer.TRANSITIONS.MISSION_CHANGED),
+                        category = 'mission',
+                        identity = identity,
+                        mission_epoch = epoch,
+                        previous_mission = previous_key ~= ''
+                            and accessxi.objective_title_for_native_key(previous_key) or '',
+                        mission = accessxi.objective_title_for_native_key(current_key),
+                        previous_step_id = '',
+                        step_id = step_id,
+                        instruction = instruction,
+                        route = capability,
+                        zone_name = zone_name,
+                        route_choice = route_choice,
+                        objective_seen = false,
+                    });
+                end);
+                announced = true;
+            end
+        end
+    end
+    return announced;
+end
+
+function accessxi.objective_title_for_native_key(native_key)
+    native_key = nav_clean_field(native_key);
+    local index = accessxi.mission_quest_guide_index;
+    local record = type(index) == 'table' and index[native_key] or nil;
+    local title = nav_clean_field(type(record) == 'table' and record.title or '');
+    return title ~= '' and title or native_key;
+end
+
+function accessxi.objective_announce(transition)
+    local announcer = accessxi.objective_announcer;
+    if (type(announcer) ~= 'table' or type(transition) ~= 'table') then return false; end
+    local key = announcer.dedup_key(transition);
+    if (key == '' or accessxi.objective_announcements[key] == true) then
+        log_line(('objective announce suppressed key="%s" reason="%s"'):fmt(
+            tostring(key), key == '' and 'no-key' or 'already-said'));
+        return false;
+    end
+    accessxi.objective_announcements[key] = true;
+    local now = tick();
+    local pending = accessxi.objective_announcement_pending;
+    if (type(pending) == 'table' and announcer.outranks(transition, pending.transition)) then
+        -- The same moment, described better. Keep the original arrival time so
+        -- coalescing cannot be extended indefinitely by a stream of signals.
+        accessxi.objective_announcement_pending = {
+            transition = transition, key = key, queued_at = pending.queued_at,
+        };
+        return true;
+    end
+    if (type(pending) == 'table') then
+        -- A distinct, lesser transition must still be heard: say the one that
+        -- was waiting now, and let this one take the window.
+        accessxi.objective_announcement_flush(now + announcer.COALESCE_MS);
+    end
+    accessxi.objective_announcement_pending = {
+        transition = transition, key = key, queued_at = now,
+    };
+    return true;
+end
+
+-- Announcements are released from the frame loop, not from the signal, so the
+-- coalescing window is real time rather than however many signals happen to
+-- arrive.
+function accessxi.poll_objective_announcements()
+    return accessxi.objective_announcement_flush(tick());
+end
+
+-- A fresh character or a fresh session is a new baseline, not a mission that
+-- just changed (sol: login establishes a silent baseline).
+function accessxi.reset_objective_announcements(reason)
+    accessxi.objective_announcements = {};
+    accessxi.objective_announcement_pending = nil;
+    log_line(('objective announce reset reason="%s"'):fmt(tostring(reason or '')));
+end
+
 function accessxi.on_objective_interaction_progress_changed(kind, cancelled)
     kind = nav_clean_field(kind):lower();
     accessxi.nav_menu_dirty_categories = accessxi.nav_menu_dirty_categories or {};
@@ -74642,12 +78856,12 @@ local function nav_menu_start_route()
             return;
         end
         if (objective_mode == 'instruction') then
-            local text = nav_clean_field(target or objective_message);
+            local text = nav_clean_field(objective_message);
             if (text == '') then
-                text = 'No exact source-backed destination is available for this objective.';
+                text = 'No exact source-backed route is available for this objective. Press K for instructions.';
             end
             speak(text);
-            log_line('nav objective instruction ' .. text);
+            log_line('nav objective start blocked ' .. text);
             return;
         end
         if (objective_mode == 'wiki-ready') then
@@ -74846,13 +79060,14 @@ local function nav_menu_start_route()
         item = live_item;
     end
 
+    accessxi.nav_route_ownership_advance('menu-route-start', false);
     accessxi.nav_active = true;
     accessxi.nav_destination = item;
     accessxi.nav_last_key = '';
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
-    accessxi.nav_beacon_reset_direction_state();
+    accessxi.nav_route_guidance_reset();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -74883,12 +79098,30 @@ local function nav_menu_start_route()
     accessxi.nav_live_route_missing_since = 0;
     accessxi.nav_route_live_replan_last_key = '';
     accessxi.nav_route_live_replan_last_tick = 0;
+    accessxi.nav_route_points = T{};
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, item);
     if (accessxi.nav_dat_collision_pending ~= nil) then
         local text = 'Safe route is still preparing. Navigation will start automatically.';
         accessxi.nav_last_direction_text = text;
         speak(text);
         log_line('nav menu start pending ' .. text);
+        return;
+    end
+    -- A provider refusal is a spoken outcome, not permission to install an
+    -- empty route.  The command route path already enforced this invariant;
+    -- the menu path did not, so it could announce "Starting route" with no
+    -- points and then leave a blind player with a silent beacon.
+    if (accessxi.nav_route_points:len() <= 1
+        and nav_clean_field(accessxi.nav_route_last_reject_reason) ~= '') then
+        local provider_text = nav_clean_field(accessxi.nav_route_last_reject_reason);
+        nav_write_route_evidence('unreachable', player, item, nil,
+            T{ reason = provider_text });
+        accessxi.nav_active = false;
+        accessxi.nav_destination = nil;
+        accessxi.nav_route_points:clear();
+        accessxi.nav_last_direction_text = provider_text;
+        speak(provider_text);
+        log_line('nav menu start provider refused ' .. provider_text);
         return;
     end
     local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, item);
@@ -74930,9 +79163,11 @@ local function nav_menu_start_route()
     local phrase = accessxi.nav_guidance_phrase(player, item, nil);
     local text;
     if (accessxi.nav_beacon_enabled) then
-        text = ('Starting route to %s. Beacon active.'):fmt(item.name or 'destination');
+        text = ('Starting route to %s. Beacon active.'):fmt(
+            accessxi.nav_menu_point_speech_name(item) or 'destination');
     else
-        text = ('Starting route to %s. %s'):fmt(item.name or 'destination', phrase);
+        text = ('Starting route to %s. %s'):fmt(
+            accessxi.nav_menu_point_speech_name(item) or 'destination', phrase);
     end
     if (accessxi.nav_route_points:len() > 1) then
         local first_index = accessxi.nav_first_route_index(player, accessxi.nav_route_points, item);
@@ -74941,13 +79176,20 @@ local function nav_menu_start_route()
         local first_phrase = accessxi.nav_guidance_phrase(player, first, second, false);
         accessxi.nav_route_point_index = first_index;
         if (accessxi.nav_beacon_enabled) then
-            text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(item.name or 'destination', accessxi.nav_route_points:len());
+            text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(
+                accessxi.nav_menu_point_speech_name(item) or 'destination',
+                accessxi.nav_route_points:len());
         else
-            text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(item.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
+            text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(
+                accessxi.nav_menu_point_speech_name(item) or 'destination',
+                accessxi.nav_route_points:len(), first_phrase);
         end
     end
     if (type(accessxi.nav_transport_start_suffix) == 'function') then
         text = text .. accessxi.nav_transport_start_suffix();
+    end
+    if (type(accessxi.nav_promyvion_start_suffix) == 'function') then
+        text = text .. accessxi.nav_promyvion_start_suffix();
     end
     if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
         text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
@@ -74961,9 +79203,11 @@ local function nav_menu_start_route()
     log_line('nav menu start ' .. text);
 end
 
-local nav_route_stop;
-
+-- While the guide is open, the three item keys walk the GUIDE'S steps instead
+-- of the menu's rows. Nothing else changes -- I still routes the menu item --
+-- so the player can read ahead and then start the route they were already on.
 local function nav_menu_handle_action(action)
+    local guide_open = accessxi.nav_objective_step_view_open() == true;
     if (action == 'start_route') then
         nav_menu_start_route();
     elseif (action == 'stop_route') then
@@ -74975,11 +79219,66 @@ local function nav_menu_handle_action(action)
     elseif (action == 'next_category') then
         nav_menu_category_move(1);
     elseif (action == 'previous_item') then
-        nav_menu_move(-1);
+        if (guide_open) then
+            speak(accessxi.objective_guides:move(-1));
+        else
+            nav_menu_move(-1);
+        end
     elseif (action == 'repeat_item') then
-        nav_menu_move(0);
+        if (guide_open) then
+            speak(accessxi.objective_guides:repeat_step());
+        else
+            nav_menu_move(0);
+        end
     elseif (action == 'next_item') then
-        nav_menu_move(1);
+        if (guide_open) then
+            speak(accessxi.objective_guides:move(1));
+        else
+            nav_menu_move(1);
+        end
+    elseif (action == 'mark_step_done') then
+        -- THE STEP THE GAME ALREADY TOOK. A completion the addon missed cannot
+        -- be replayed -- the NPC has nothing left to say -- so the player has
+        -- to be able to say "I have done this one" and move the cursor on.
+        --
+        -- PASS THE IDENTITY, NOT THE KIND. This read the selected row and then
+        -- kept only objective_kind -- the string "mission" -- so mark_step_done
+        -- had nothing to go on but the category and took the head of the active
+        -- list. Live 2026-08-28 the player was on row 13, "The Rites of Life",
+        -- and pressed N twice; both presses advanced row 1, "Smash the Orcish
+        -- Scouts", and the speech named neither. The row carries
+        -- objective_native_key and always has.
+        local selected = accessxi.nav_menu_items[accessxi.nav_menu_index];
+        local kind = nav_clean_field(type(selected) == 'table'
+            and selected.objective_kind or '');
+        local native = nav_clean_field(type(selected) == 'table'
+            and selected.objective_native_key or '');
+        local ok, spoken = accessxi.nav_mission_quest_mark_step_done(kind, native);
+        spoken = nav_clean_field(spoken);
+        if (spoken == '') then
+            spoken = ok and 'Step marked done.' or 'That step could not be marked done.';
+        end
+        speak(spoken);
+        log_line(('nav hotkey mark step done ok=%s native="%s" spoke="%s"'):fmt(
+            tostring(ok), native, spoken));
+    elseif (action == 'open_guide') then
+        -- G reads the guide for the selected objective, and closes it again.
+        if (guide_open) then
+            accessxi.objective_guides:close('step-view-closed');
+            speak('Closed the guide.');
+            return;
+        end
+        local item = accessxi.nav_menu_items[accessxi.nav_menu_index];
+        if (item == nil) then
+            speak('No objective is selected.');
+            return;
+        end
+        local text, reason = accessxi.nav_mission_quest_open_guide(item);
+        text = nav_clean_field(text);
+        local spoken = text ~= '' and text or nav_clean_field(reason);
+        speak(spoken);
+        log_line(('nav guide opened item="%s" spoke="%s"'):fmt(
+            nav_clean_field(item.name or ''), spoken));
     end
 end
 
@@ -75007,6 +79306,14 @@ accessxi.poll_nav_browser_hotkeys = function ()
             J = accessxi.quick_status_key_down(tonumber(vk.J) or 0x4A),
             K = accessxi.quick_status_key_down(tonumber(vk.K) or 0x4B),
             L = accessxi.quick_status_key_down(tonumber(vk.L) or 0x4C),
+            -- N WAS WIRED EVERYWHERE EXCEPT HERE. It is in KEY_ORDER, in VK, in
+            -- DIK_BY_VK and in action_by_key -- and this snapshot never sampled
+            -- it, so current_key could not return it and mark_step_done could
+            -- not fire. "mark_step_done" appears ZERO times in a 956,000-line
+            -- log. Exactly the failure the module header describes for the
+            -- guide browser behind G: complete, correct, and with no caller.
+            N = accessxi.quick_status_key_down(tonumber(vk.N) or 0x4E),
+            G = accessxi.quick_status_key_down(tonumber(vk.G) or 0x47),
         },
     };
     local action = accessxi.navigation_hotkeys.poll(
@@ -75041,6 +79348,10 @@ local function nav_find_point(query)
 end
 
 accessxi.nav_clear_zone_search = function ()
+    accessxi.nav_route_watchdog_anchor = nil;
+    accessxi.nav_route_excluded_edges = {};
+    accessxi.nav_route_current_edge_id = 0;
+    accessxi.nav_route_leg_started_tick = 0;
     accessxi.nav_zone_search_target = nil;
     accessxi.nav_zone_search_query = '';
     accessxi.nav_zone_search_waiting_zone = 0;
@@ -75114,6 +79425,7 @@ function accessxi.nav_copy_point(point)
         objective_native_key = nav_clean_field(point.objective_native_key or ''),
         guide_step_id = nav_clean_field(point.guide_step_id or ''),
         objective_guide_step_id = nav_clean_field(point.objective_guide_step_id or point.guide_step_id or ''),
+        objective_via_zones = type(point.objective_via_zones) == 'table' and point.objective_via_zones or nil,
         objective_candidate_id = nav_clean_field(point.objective_candidate_id or ''),
         objective_action_id = nav_clean_field(point.objective_action_id or ''),
         objective_group_id = type(point.objective_group_id) == 'string' and point.objective_group_id or nil,
@@ -75138,6 +79450,9 @@ function accessxi.nav_copy_point(point)
         objective_destination_zone_name = nav_clean_field(point.objective_destination_zone_name or ''),
         objective_canonical_edge_id = tonumber(point.objective_canonical_edge_id),
         objective_canonical_from_zone = tonumber(point.objective_canonical_from_zone),
+        via_zone = tonumber(point.via_zone),
+        transport_instruction = nav_clean_field(point.transport_instruction or ''),
+        transport_type = nav_clean_field(point.transport_type or ''),
         objective_transport_id = nav_clean_field(point.objective_transport_id or ''),
         objective_route_evidence = nav_clean_field(point.objective_route_evidence or ''),
         objective_completion_items = copy_nested(point.objective_completion_items),
@@ -75207,6 +79522,7 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
         return 'No exact current objective leg is proven from here.', false;
     end
     accessxi.nav_clear_zone_search();
+    accessxi.nav_route_ownership_advance('authorized-objective-route-start', false);
     accessxi.nav_active = true;
     accessxi.nav_destination = accessxi.nav_copy_point(target);
     accessxi.nav_objective_route_state = accessxi.nav_copy_point(target);
@@ -75226,7 +79542,7 @@ function accessxi.nav_activate_authorized_objective_points(target, player, route
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
-    accessxi.nav_beacon_reset_direction_state();
+    accessxi.nav_route_guidance_reset();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -75294,8 +79610,48 @@ function accessxi.nav_start_test_objective_route(target, player)
     local marker = nav_clean_field(target.objective_kind):lower() == 'quest'
         and 'Source-verified quest objective.'
         or 'Source-verified mission objective.';
-    return marker
+    -- Their own choice, played back next time the list opens.
+    if (nav_clean_field(target.objective_kind):lower() == 'mission'
+        and type(accessxi.nav_objective_remember_mission) == 'function') then
+        pcall(accessxi.nav_objective_remember_mission,
+            nav_clean_field(target.objective_native_key));
+    end
+    return accessxi.nav_objective_mission_prefix(target) .. marker
         .. (route_text ~= '' and (' ' .. route_text) or ''), true;
+end
+
+-- SAY WHICH MISSION THIS ROUTE BELONGS TO.
+--
+-- Live 2026-08-24 the player had THREE missions active at once -- San d'Oria 5
+-- (The Davoi Report), Rhapsodies 8 (The Path Untraveled) and A Moogle Kupo
+-- d'Etat 2. active_missions() appends the nation mission first and always has,
+-- so the Missions list opened on The Davoi Report; they pressed route on the
+-- first entry and were sent to Davoi while they were working Rhapsodies.
+--
+-- The route start named the target and the zone -- "! is in Davoi. Route 2
+-- zones." -- and never named the MISSION. A sighted player reads the highlighted
+-- row; this one had one line of speech to go on and it was the one line that
+-- did not say which storyline had just been chosen.
+function accessxi.nav_objective_mission_prefix(target)
+    if (type(target) ~= 'table') then return ''; end
+    local title = nav_clean_field(target.objective_title);
+    if (title == '') then title = nav_clean_field(target.objective_name); end
+    if (title == '') then
+        -- Fall back to the native key's own storyline, which is always present:
+        -- "mission:Rhapsodies of Vana'diel:8" -> "Rhapsodies of Vana'diel 8".
+        local native = nav_clean_field(target.objective_native_key);
+        local body = native:match('^%a+:(.+)$');
+        if (body ~= nil) then
+            local story, number = body:match('^(.-):(%d+)$');
+            if (story ~= nil) then
+                title = ('%s %s'):fmt(story, number);
+            else
+                title = body;
+            end
+        end
+    end
+    if (title == '') then return ''; end
+    return title .. '. ';
 end
 
 function accessxi.nav_start_wiki_objective_route(target, player)
@@ -75534,13 +79890,14 @@ function accessxi.nav_start_route_to_point(point, reason)
         point = live_point;
     end
 
+    accessxi.nav_route_ownership_advance('route-start', false);
     accessxi.nav_active = true;
     accessxi.nav_destination = point;
     accessxi.nav_last_key = '';
     accessxi.nav_last_direction_text = '';
     accessxi.nav_beacon_last_key = '';
     accessxi.nav_beacon_last_tick = 0;
-    accessxi.nav_beacon_reset_direction_state();
+    accessxi.nav_route_guidance_reset();
     accessxi.nav_progress_x = nil;
     accessxi.nav_progress_z = nil;
     accessxi.nav_progress_distance = 0;
@@ -75575,7 +79932,22 @@ function accessxi.nav_start_route_to_point(point, reason)
     accessxi.nav_live_route_missing_since = 0;
     accessxi.nav_route_live_replan_last_key = '';
     accessxi.nav_route_live_replan_last_tick = 0;
+    accessxi.nav_route_points = T{};
     accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, point);
+    -- The walk graph loads incrementally across frames, so the first route
+    -- asked for after entering La Theine arrives a few seconds later. Say so
+    -- once. Going quiet here is the failure this mod exists to prevent: a blind
+    -- player cannot tell a beacon that is still thinking from one that is
+    -- broken, and guessing wrong costs them the walk.
+    if (accessxi.nav_walk_graph_pending ~= nil) then
+        local waiting_text = nav_clean_field(accessxi.nav_walk_graph_pending.message);
+        waiting_text = waiting_text ~= '' and waiting_text
+            or 'Preparing the verified La Theine route. Navigation will start automatically.';
+        accessxi.nav_last_direction_text = waiting_text;
+        log_line(('nav walk graph pending destination="%s"'):fmt(
+            accessxi.escape_probe_log_text(point.name or '')));
+        return waiting_text;
+    end
     if (accessxi.nav_dat_collision_pending ~= nil) then
         local pending_text = nav_clean_field(accessxi.nav_dat_collision_pending.message);
         pending_text = pending_text ~= '' and pending_text
@@ -75633,12 +80005,19 @@ function accessxi.nav_start_route_to_point(point, reason)
         accessxi.nav_route_point_index = first_index;
         local text;
         if (accessxi.nav_beacon_enabled) then
-            text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(point.name or 'destination', accessxi.nav_route_points:len());
+            text = ('Starting route to %s. %d waypoints. Beacon active.'):fmt(
+                accessxi.nav_menu_point_speech_name(point) or 'destination',
+                accessxi.nav_route_points:len());
         else
-            text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(point.name or 'destination', accessxi.nav_route_points:len(), first_phrase);
+            text = ('Starting route to %s. %d waypoints. Next, %s'):fmt(
+                accessxi.nav_menu_point_speech_name(point) or 'destination',
+                accessxi.nav_route_points:len(), first_phrase);
         end
         if (type(accessxi.nav_transport_start_suffix) == 'function') then
             text = text .. accessxi.nav_transport_start_suffix();
+        end
+        if (type(accessxi.nav_promyvion_start_suffix) == 'function') then
+            text = text .. accessxi.nav_promyvion_start_suffix();
         end
         if (type(accessxi.nav_dangruf_fount_drop_start_suffix) == 'function') then
             text = text .. accessxi.nav_dangruf_fount_drop_start_suffix();
@@ -75652,9 +80031,11 @@ function accessxi.nav_start_route_to_point(point, reason)
     end
     local text;
     if (accessxi.nav_beacon_enabled) then
-        text = ('Starting route to %s. Beacon active.'):fmt(point.name or 'destination');
+        text = ('Starting route to %s. Beacon active.'):fmt(
+            accessxi.nav_menu_point_speech_name(point) or 'destination');
     else
-        text = ('Starting route to %s. %s'):fmt(point.name or 'destination', phrase);
+        text = ('Starting route to %s. %s'):fmt(
+            accessxi.nav_menu_point_speech_name(point) or 'destination', phrase);
     end
     if (type(accessxi.nav_mission_quest_start_suffix) == 'function') then
         text = text .. accessxi.nav_mission_quest_start_suffix(point);
@@ -75952,7 +80333,24 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         or target.objective_canonical_edge_id) or 0;
     local canonical_from_zone = tonumber(target.zone_search_canonical_from_zone
         or target.objective_canonical_from_zone) or 0;
-    local path = accessxi.nav_zoneline_path(player.zone, target.zone, canonical_edge_id);
+    -- Prefer the road the guide named. Without this the search picked any
+    -- chain of equal edge count, which sent a level-14 player through an
+    -- undead dungeon instead of La Theine Plateau (2026-08-22).
+    -- The road on the target first; the step registry if a copy dropped it.
+    local guide_road = target.objective_via_zones;
+    if (type(guide_road) ~= 'table') then
+        local step_id = nav_clean_field(
+            target.objective_guide_step_id or target.guide_step_id or '');
+        local roads = accessxi.nav_guide_road_by_step;
+        if (step_id ~= '' and type(roads) == 'table') then
+            guide_road = roads[step_id];
+            if (type(guide_road) == 'table') then
+                log_line(('nav road recovered step="%s" from the guide-road registry'):fmt(step_id));
+            end
+        end
+    end
+    local path = accessxi.nav_zoneline_path(
+        player.zone, target.zone, canonical_edge_id, guide_road);
     if (canonical_edge_id > 0) then
         local final_edge = path[path:len()];
         if (canonical_from_zone <= 0 or final_edge == nil
@@ -75965,8 +80363,20 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         path = T{};
     end
     if (path:len() == 0) then
-        accessxi.nav_clear_zone_search();
         local current_zone_name = accessxi.nav_graph_zone_name(player_zone);
+        -- Say WHY there is nothing left. A search that has just spent its
+        -- alternatives is a different answer from one that never had any, and
+        -- the player has been walking on the strength of the first.
+        local tried = 0;
+        if (type(accessxi.nav_route_excluded_edges) == 'table') then
+            for _ in pairs(accessxi.nav_route_excluded_edges) do tried = tried + 1; end
+        end
+        accessxi.nav_clear_zone_search();
+        accessxi.nav_route_clear_excluded_edges('search-exhausted');
+        if (tried > 0) then
+            return ('%s is in %s. Every known way in from %s was tried and none could be planned. Navigation stopped.'):fmt(
+                accessxi.speech_name(target.name or 'NPC'), target_zone_name, current_zone_name);
+        end
         return ('%s is in %s. No zone route known from %s.'):fmt(accessxi.speech_name(target.name or 'NPC'), target_zone_name, current_zone_name);
     end
 
@@ -75989,8 +80399,29 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         final_name = target.name or 'NPC',
     };
 
+    if (edge.transport ~= nil) then
+        -- Not a zone line: a dock, a maw, a telepoint. The leg ends at the
+        -- anchor; the player boards or examines; the transit zone (an airship
+        -- or ship hold) is expected on the way; arrival in the destination
+        -- zone completes it.
+        leg.name = nav_clean_field(edge.transport.anchor_name) ~= '' and nav_clean_field(edge.transport.anchor_name)
+            or ('%s transport'):fmt(next_zone_name ~= '' and next_zone_name or 'next zone');
+        leg.kind = 'transport';
+        leg.source = ('transport:%d:%d:%d'):fmt(edge.id or 0, player_zone, target_zone);
+        leg.via_zone = tonumber(edge.transport.via_zone) or 0;
+        leg.transport_instruction = nav_clean_field(edge.transport.instruction or '');
+        leg.transport_type = nav_clean_field(edge.transport.type or '');
+        leg.arrival_radius = 4.0;
+    end
     accessxi.nav_zone_search_waiting_zone = next_zone;
     accessxi.nav_zone_search_waiting_from_zone = player_zone;
+    accessxi.nav_zone_search_waiting_via_zone = tonumber(leg.via_zone) or 0;
+    -- Which edge this leg is riding, so a stall can be attributed to it and
+    -- the next search can route around it. See nav_route_stall_watchdog.
+    accessxi.nav_route_current_edge_id = tonumber(edge.id) or 0;
+    accessxi.nav_route_current_edge_name = ('%s to %s'):fmt(
+        accessxi.nav_graph_zone_name(player_zone), next_zone_name);
+    accessxi.nav_route_leg_started_tick = tick();
     local start_text = accessxi.nav_start_route_to_point(leg, reason or 'zone-search');
     if (not accessxi.nav_active) then
         accessxi.nav_clear_zone_search();
@@ -76002,6 +80433,9 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         target_zone_name,
         path:len(),
         start_text);
+    if (nav_clean_field(leg.transport_instruction or '') ~= '') then
+        text = text .. ' ' .. nav_clean_field(leg.transport_instruction);
+    end
     accessxi.nav_last_direction_text = text;
     return text;
 end
@@ -76072,6 +80506,11 @@ function accessxi.poll_nav_zone_search()
     if (waiting_zone > 0 and waiting_from_zone > 0) then
         local player_zone = tonumber(player.zone) or 0;
         if (player_zone == waiting_from_zone) then
+            return false;
+        end
+        local waiting_via_zone = tonumber(accessxi.nav_zone_search_waiting_via_zone) or 0;
+        if (waiting_via_zone > 0 and player_zone == waiting_via_zone) then
+            -- aboard the airship or ship: the leg completes at the far dock
             return false;
         end
         if (player_zone ~= waiting_zone) then
@@ -77047,9 +81486,10 @@ local function nav_route_start(query)
 end
 
 nav_route_stop = function ()
+    accessxi.nav_route_ownership_advance('route-stop', true);
     accessxi.nav_clear_zone_search();
     accessxi.nav_clear_zoning_watch('route-stop');
-    accessxi.nav_beacon_reset_direction_state();
+    accessxi.nav_route_guidance_reset();
     if (type(accessxi.nav_transport_clear) == 'function') then
         accessxi.nav_transport_clear('route-stop');
     end
@@ -83907,7 +88347,19 @@ function accessxi.auction_item_list_capture_packet_data(data, source, direction)
     for i = 0, entry_count - 1 do
         local base = 0x18 + (i * 0x0A);
         local item_id = accessxi.packet_u16(data, base + 1);
-        if (is_valid_inventory_item_id(item_id)) then
+        -- AN ENTRY WE CANNOT READ POISONS THE WHOLE LIST. Skipping it used to
+        -- compress the reconstruction silently, and since the cursor is found
+        -- by COUNTING rows, every row after the gap named the wrong item. There
+        -- is no safe partial answer here: reject the capture and let the list
+        -- report that it cannot be identified (sol).
+        if (not is_valid_inventory_item_id(item_id)) then
+            log_line(('auction packet rejected reason=unreadable-entry index=%d id=%d entries=%d category=%d'):fmt(
+                i, item_id, entry_count, category_id));
+            accessxi.auction_item_packet_rows = {};
+            accessxi.auction_item_packet_capture_key = '';
+            return false;
+        end
+        do
             if (not accessxi.auction_packet_item_matches_current_category(item_id, category_id)) then
                 return false;
             end
@@ -84089,14 +88541,36 @@ function accessxi.auction_item_list_load_searchhook_packet()
     return true;
 end
 
+-- THE ROW LIST MUST MATCH THE SCREEN EXACTLY, ROW FOR ROW.
+--
+-- The auction list's own text cannot be read -- labelPtr is null and the native
+-- query returns nothing for `menu auclist` -- so the addon reconstructs the
+-- list from packet 0x095 and counts rows to find the cursor. Every row it gets
+-- wrong displaces every row below it.
+--
+-- The 0x095 stack field is TRI-STATE, and the parser above already decodes it:
+--   -1  the item does not stack        -> no stack row
+--    0  stackable, none listed now     -> STILL A ROW, and this was the bug
+--   >0  stackable, that many listed    -> a row
+-- Zero availability means the variant has nothing listed, not that the variant
+-- is absent; the player can still open it and read its price history.
+--
+-- Live 2026-08-23: 89 packet records -- 54 non-stackable, 16 stackable with
+-- zero stacks, 19 with stacks -- so the screen has 89 + 16 + 19 = 124 rows and
+-- this function was building 108. The player selected screen row 69, heard
+-- "Prism Powder", and got Poison Potion, which is what logical 69 really is;
+-- Prism Powder sits at 76/77 (sol).
 function accessxi.auction_item_list_packet_display_rows()
     local rows = accessxi.auction_item_packet_rows or {};
     local display_rows = T{};
     for _, row in ipairs(rows) do
         local item_id = tonumber(row.id) or 0;
-        if (is_valid_inventory_item_id(item_id)) then
+        -- A row is never dropped for being unnameable: dropping shifts every
+        -- row after it, which is the same failure by another route. The parser
+        -- has already rejected ids that are not items at all.
+        do
             local single_count = tonumber(row.single) or 0;
-            local stack_count = tonumber(row.stack) or 0;
+            local stack_count = tonumber(row.stack) or -1;
             display_rows:append(T{
                 id = item_id,
                 single = single_count,
@@ -84105,7 +88579,7 @@ function accessxi.auction_item_list_packet_display_rows()
                 listing_kind = 'single',
                 category = row.category,
             });
-            if (stack_count > 0) then
+            if (stack_count >= 0) then
                 display_rows:append(T{
                     id = item_id,
                     single = 0,
@@ -84156,15 +88630,25 @@ function accessxi.auction_item_list_packet_label(selected, count, page, child, e
     local resource_info = resource_item_info(tonumber(row.id) or 0);
     local name = clean_resource_text(resource_info ~= nil and (resource_info.name or resource_info.long_name) or '');
     if (name == '') then
-        return '', ('auction-packet-no-resource:%d'):fmt(tonumber(row.id) or 0), nil, '', 0, 0, logical, total, scroll_top, scroll_raw;
+        -- AN UNNAMEABLE ROW STILL OCCUPIES ITS PLACE. Returning nothing here
+        -- used to leave the row unspoken while the list kept counting it, so
+        -- the player heard the wrong name for every row after it. Say what we
+        -- do know -- there is a listing here and this is its id -- and keep the
+        -- position (sol).
+        name = ('Unknown auction item, ID %d'):fmt(tonumber(row.id) or 0);
     end
 
     local raw_label = name;
     local single_count = tonumber(row.single) or 0;
     local stack_count = tonumber(row.stack) or 0;
-    local display_count = tonumber(row.display_count) or 0;
-    if (display_count > 0) then
-        raw_label = ('%s [%d]'):fmt(raw_label, display_count);
+    -- STACK SIZE IS NOT STACK AVAILABILITY. The bracket says how many the item
+    -- stacks to, which is fixed metadata; the packet's count says how many are
+    -- listed right now. Prism Powder hid this because both were 12. Poison
+    -- Potion stacks to 12 with nine listed, and reading availability as the
+    -- size would have announced "[9]" for an item that stacks to 12 (sol).
+    local stack_size = tonumber(resource_info ~= nil and resource_info.stack or 0) or 0;
+    if (tostring(row.listing_kind or '') == 'stack' and stack_size > 1) then
+        raw_label = ('%s [%d]'):fmt(raw_label, stack_size);
     end
     return name, 'auction-packet', resource_info, raw_label, single_count, stack_count, logical, total, scroll_top, scroll_raw;
 end
@@ -85336,7 +89820,7 @@ function accessxi.auction_item_list_menu_speech(menu_name, title, obj, selected,
         index = visible_selected,
         source = 'auction',
     });
-    log_state(('state auction-item-list native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X labelPtr=0x%08X helpPtr=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" mode="%s" labelSource="%s" rawLabel="%s" label="%s" entryHelp="%s" speechName="%s" nameSource="%s" itemId=%d listingCount=%d stackListingCount=%d packetRows=%d packetTotal=%d packetCategory=%d packetLogical=%d packetScrollTop=%d packetScrollRaw=0x%08X detailCount=%d source="%s" speech="%s"'):fmt(
+    log_state(('state auction-item-list native menu="%s" title="%s" select=%d count=%d page=%d raw=0x%08X child=0x%08X entry=0x%08X labelPtr=0x%08X helpPtr=0x%08X cursor4c=%d cursor34=%d cursorSource="%s" mode="%s" labelSource="%s" rawLabel="%s" label="%s" entryHelp="%s" speechName="%s" nameSource="%s" itemId=%d listingCount=%d stackListingCount=%d packetRows=%d packetTotal=%d packetDisplayRows=%d packetCategory=%d packetLogical=%d packetScrollTop=%d packetScrollRaw=0x%08X detailCount=%d source="%s" speech="%s"'):fmt(
         menu_name,
         tostring(title or 'Bid'),
         visible_selected,
@@ -85362,6 +89846,7 @@ function accessxi.auction_item_list_menu_speech(menu_name, title, obj, selected,
         tonumber(packet_stack_count) or 0,
         #(accessxi.auction_item_packet_rows or {}),
         tonumber(accessxi.auction_item_packet_total) or 0,
+        tonumber(packet_total) or 0,
         tonumber(accessxi.auction_item_packet_category_id) or 0,
         tonumber(packet_logical) or 0,
         tonumber(packet_scroll_top) or 0,
@@ -87508,6 +91993,45 @@ function accessxi.generic_comyn_prompt_from_context(ctx)
         end
     end
 
+    -- THE MOB THAT KILLED YOU IS NOT THE QUESTION.
+    --
+    -- The death prompt arrives as a comyn with an EMPTY prompt, so the window
+    -- name is used instead -- and after a death the window name is the target
+    -- window, i.e. whatever killed you. Live 2026-08-29 the player answered
+    -- this dialog twice while hearing "Confirmation. Gigas's Leech. Yes." and
+    -- "Confirmation. Weeper. Yes.", and both times it Home Pointed them out of
+    -- the zone. Being told a mob name where a question is asked is worse than
+    -- being told nothing, because it sounds like an answer.
+    --
+    -- The transition tells us what this is: comyn arriving straight from
+    -- menu    dead is the defeat prompt, whatever the DAT string turns out to
+    -- say. The wording below is what BOTH observed cases did -- Yes returned
+    -- the player to their Home Point -- and is marked as inferred in the log
+    -- so it can be replaced with the game's own sentence once that string is
+    -- located.
+    if (tostring(ctx.transition_from or ''):eq('menu    dead', true)) then
+        return 'Return to your Home Point?', 'You were defeated', 'transition:menu    dead:inferred';
+    end
+
+    -- THE MENU'S OWN TITLE BEFORE THE TARGET'S. ctx.window_name is
+    -- GetWindowName() on the target manager -- the TARGET window, not this one --
+    -- which is why the death branch above had to be special-cased after it read
+    -- a Home Point prompt out as "Gigas's Leech". Every other confirmation runs
+    -- through the same field. A title this addon actually knows for the menu is
+    -- always better than a name it happened to find selected.
+    local known_title = '';
+    if (type(accessxi.native_known_menu_title) == 'function') then
+        local ok_title, resolved = pcall(accessxi.native_known_menu_title,
+            tostring(ctx.source_menu or ''));
+        known_title = ok_title and tostring(resolved or '') or '';
+    end
+    if (known_title ~= '' and known_title ~= tostring(ctx.window_name or '')) then
+        return '', known_title, 'known-title';
+    end
+    if (label ~= '') then
+        return '', label, 'last-native';
+    end
+
     local window_name = accessxi.survival_guide_text(ctx.window_name or '');
     if (window_name ~= '') then
         return '', window_name, 'window';
@@ -87532,11 +92056,22 @@ function accessxi.generic_comyn_confirmation_speech(menu_name)
     if (age > 30000) then
         return nil;
     end
-    local source_menu = tostring(ctx.source_menu or '');
-    if (not source_menu:eq('menu    socialme', true) and not source_menu:eq('menu    menuwind', true)) then
-        return nil;
-    end
-
+    -- A YES/NO THE PLAYER CANNOT HEAR IS THE WORST THING THIS ADDON CAN DO.
+    --
+    -- This used to answer only for `socialme` and `menuwind` -- Shut Down and
+    -- Log Out -- and return nil for every other confirmation. Live 2026-08-23
+    -- the player placed an auction bid, the game asked them to confirm, and
+    -- the addon said NOTHING: the comyn arrived with sourceMenu="menu auc3",
+    -- failed both names, and was dropped even though the context captured one
+    -- line earlier held exactly the right words --
+    --
+    --   generic-comyn context from="menu    moneyctr" sourceMenu="menu    auc3"
+    --     label="pinch of prism powder. Bid. Place..."
+    --
+    -- This function is the LAST handler in the comyn chain (see the dispatcher:
+    -- equipment set, records of eminence and item-dispose all get first
+    -- refusal and return non-nil when they apply), so speaking here can never
+    -- pre-empt a more specific reading. It only ever fills a silence.
     local prompt, context_label, prompt_source = accessxi.generic_comyn_prompt_from_context(ctx);
     if (context_label == '') then
         return nil;
@@ -88720,6 +93255,7 @@ function accessxi.refresh_objective_inventory_state(reason)
             == 'native-inventory'
         and tostring(accessxi.inventory_packet_identity or ''):lower() == identity
         and tonumber(accessxi.inventory_packet_session_epoch) == epoch;
+    local previous_coverage = tostring(accessxi.inventory_packet_coverage or '');
 
     local manager_ok, manager = pcall(function () return AshitaCore:GetMemoryManager(); end);
     local inventory_ok, inventory = false, nil;
@@ -88732,30 +93268,65 @@ function accessxi.refresh_objective_inventory_state(reason)
         return false, false;
     end
 
-    local max_ok, max_count = pcall(function () return inventory:GetContainerCountMax(0); end);
-    max_count = tonumber(max_count);
-    if (not max_ok or max_count == nil or max_count < 0 or max_count > 256
-        or max_count ~= math.floor(max_count)) then
-        log_line(('objective inventory scan unavailable reason="%s" stage="capacity"'):fmt(
+    -- EVERY CONTAINER THE PLAYER OWNS, NOT ONLY THE ONE IN THEIR HANDS.
+    --
+    -- This scanned container 0 and nothing else, so Safe, Storage, Satchel,
+    -- Sack, Case, Locker and every Wardrobe were invisible. On this very
+    -- character a Seedspall Lux is sitting in Mog Storage; asked whether they
+    -- held it, we would have said no and sent them back to Jugner Forest to
+    -- farm one they already own. Telling a player to redo work they have done
+    -- is the same failure as telling them nothing.
+    --
+    -- Recycle Bin (17) is excluded: an item in there has been discarded and is
+    -- not a holding. Temporary (3) is kept, because event items live there and
+    -- a quest that hands you one expects you to have it.
+    local counts = {};
+    local loaded = {};
+    local scanned_slots = 0;
+    for container = 0, 16 do
+        local max_ok, max_count = pcall(function ()
+            return inventory:GetContainerCountMax(container);
+        end);
+        max_count = tonumber(max_count);
+        if (max_ok and max_count ~= nil and max_count > 0 and max_count <= 256
+            and max_count == math.floor(max_count)) then
+            loaded[#loaded + 1] = container;
+            for slot = 1, max_count do
+                local item_ok, item = pcall(function ()
+                    return inventory:GetContainerItem(container, slot);
+                end);
+                if (not item_ok) then
+                    log_line(('objective inventory scan unavailable reason="%s" stage="slot" container=%d slot=%d'):fmt(
+                        accessxi.escape_probe_log_text(reason or 'refresh'), container, slot));
+                    return false, false;
+                end
+                scanned_slots = scanned_slots + 1;
+                local id_ok, item_id = pcall(function ()
+                    return tonumber(item.Id or item.id) or 0;
+                end);
+                item_id = id_ok and item_id or 0;
+                local count = tonumber(inventory_item_count(item)) or 0;
+                if (item_id > 0 and item_id <= 65535 and count > 0) then
+                    counts[item_id] = (tonumber(counts[item_id]) or 0) + math.floor(count);
+                end
+            end
+        end
+    end
+
+    -- A SNAPSHOT OF NOTHING IS NOT A SNAPSHOT.
+    --
+    -- The old capacity guard rejected a negative count but accepted ZERO, and
+    -- then stamped the result 'native-inventory' regardless -- so a read taken
+    -- before the containers had loaded looked exactly like a player carrying
+    -- nothing. 199 of 601 snapshots in the live log recorded zero items, one of
+    -- them written in the same second the mission tracker resolved eight steps
+    -- against it. If no container reported capacity, we know nothing.
+    if (#loaded == 0 or scanned_slots == 0) then
+        log_line(('objective inventory scan unavailable reason="%s" stage="capacity" containers=0'):fmt(
             accessxi.escape_probe_log_text(reason or 'refresh')));
         return false, false;
     end
-
-    local counts = {};
-    for slot = 1, max_count do
-        local item_ok, item = pcall(function () return inventory:GetContainerItem(0, slot); end);
-        if (not item_ok) then
-            log_line(('objective inventory scan unavailable reason="%s" stage="slot" slot=%d'):fmt(
-                accessxi.escape_probe_log_text(reason or 'refresh'), slot));
-            return false, false;
-        end
-        local id_ok, item_id = pcall(function () return tonumber(item.Id or item.id) or 0; end);
-        item_id = id_ok and item_id or 0;
-        local count = tonumber(inventory_item_count(item)) or 0;
-        if (item_id > 0 and item_id <= 65535 and count > 0) then
-            counts[item_id] = (tonumber(counts[item_id]) or 0) + math.floor(count);
-        end
-    end
+    local coverage = table.concat(loaded, ',');
 
     local ids = {};
     for item_id in pairs(counts) do ids[#ids + 1] = item_id; end
@@ -88769,11 +93340,31 @@ function accessxi.refresh_objective_inventory_state(reason)
         or tostring(accessxi.inventory_packet_source or '') ~= 'native-inventory'
         or tostring(accessxi.inventory_packet_identity or ''):lower() ~= identity;
 
+    -- WIDER EYES ARE NOT A WINDFALL.
+    --
+    -- Every count below is compared against the previous snapshot and a rise
+    -- emits an 'inventory-delta', which can COMPLETE an objective. The first
+    -- scan after this function learned to read Safe, Storage and the wardrobes
+    -- would therefore look like the player suddenly acquiring everything they
+    -- had ever banked, and would tick off obtain steps they have not done. When
+    -- the set of containers we can see changes, the snapshot is a fresh
+    -- baseline and nothing in it is evidence of an acquisition.
+    if (previous_coverage ~= coverage) then
+        if (previous_complete) then
+            log_line(('objective inventory coverage changed from "%s" to "%s" -- rebaselining, no deltas emitted'):fmt(
+                accessxi.escape_probe_log_text(previous_coverage),
+                accessxi.escape_probe_log_text(coverage)));
+        end
+        previous_complete = false;
+    end
+
     accessxi.objective_inventory_counts = counts;
     accessxi.inventory_packet_player = player;
     accessxi.inventory_packet_identity = identity;
     accessxi.inventory_packet_session_epoch = epoch;
     accessxi.inventory_packet_source = 'native-inventory';
+    accessxi.inventory_packet_coverage = coverage;
+    accessxi.inventory_packet_slots = scanned_slots;
     accessxi.inventory_packet_key = key;
     local now = tick();
     accessxi.inventory_packet_tick = now;
@@ -88815,6 +93406,60 @@ function accessxi.refresh_objective_inventory_state(reason)
             accessxi.escape_probe_log_text(key)));
     end
     return changed, true;
+end
+
+-- DO WE ACTUALLY KNOW WHAT THE PLAYER IS CARRYING?
+--
+-- objective_inventory_count returns 0 for an item the player does not have AND
+-- for an inventory we have not been told about -- wrong identity, wrong session
+-- epoch, or no native snapshot yet. Those are different answers and the caller
+-- cannot tell them apart. Key items have had key_item_state_available for
+-- exactly this; ordinary items never got the equivalent.
+--
+-- It matters the moment the tracker starts REPORTING holdings rather than
+-- merely gating on them. "You still need Seedspall Lux" said to a player who is
+-- carrying it is worse than saying nothing, and this addon has already lost
+-- twelve days to a false() that meant both "no" and "no data".
+--
+-- The conditions are lifted from objective_inventory_count itself so the two
+-- cannot drift: if this returns false, that function's zero is meaningless.
+function accessxi.objective_inventory_state_available()
+    local identity = type(accessxi.current_player_identity) == 'function'
+        and tostring(accessxi.current_player_identity() or ''):lower() or '';
+    local epoch = type(accessxi.current_objective_session_epoch) == 'function'
+        and (tonumber(accessxi.current_objective_session_epoch()) or 0) or 0;
+    if (identity == '' or epoch <= 0) then
+        return false;
+    end
+    -- The label alone is not enough: refresh_objective_inventory_state used to
+    -- stamp it on a read of nothing. A usable snapshot is one that actually saw
+    -- at least one container with capacity.
+    return tostring(accessxi.inventory_packet_source or '') == 'native-inventory'
+        and tostring(accessxi.inventory_packet_identity or ''):lower() == identity
+        and tonumber(accessxi.inventory_packet_session_epoch) == epoch
+        and tostring(accessxi.inventory_packet_coverage or '') ~= ''
+        and (tonumber(accessxi.inventory_packet_slots) or 0) > 0;
+end
+
+-- Held count for a NAMED item, with the third state made explicit.
+-- Returns (count, item_id, state) where state is:
+--   'held'    the player has at least one
+--   'absent'  we can see the inventory and it is not there
+--   'unknown' no usable snapshot, or the name resolves to no known item
+function accessxi.objective_inventory_named_state(name)
+    if (type(accessxi.objective_inventory_count_by_name) ~= 'function') then
+        return 0, nil, 'unknown';
+    end
+    local ok, count, item_id = pcall(accessxi.objective_inventory_count_by_name, name);
+    if (not ok or tonumber(item_id) == nil or (tonumber(item_id) or 0) <= 0) then
+        -- An unresolvable name is not evidence that the player lacks it.
+        return 0, nil, 'unknown';
+    end
+    if (not accessxi.objective_inventory_state_available()) then
+        return 0, tonumber(item_id), 'unknown';
+    end
+    count = tonumber(count) or 0;
+    return count, tonumber(item_id), (count > 0) and 'held' or 'absent';
 end
 
 function accessxi.objective_inventory_count(item_id)
@@ -88892,12 +93537,89 @@ end
 -- Raw packets are translated directly into one typed reducer signal.  They do
 -- not also call accessxi.nav_mission_quest_observe_event_packet, because that
 -- legacy compatibility bridge feeds the same reducer and would double count.
+-- WHAT DOES TALKING TO AN NPC ACTUALLY SEND? Live 2026-08-22 the player talked
+-- to Zantaviat -- catalogue id and live server id both 17388006, an exact match
+-- -- and no interaction fired, so The Davoi Report never advanced. Yesterday
+-- the same machinery completed three steps via `completed-interaction-menu`.
+--
+-- sol's ruling: instrument the packet ids and target/message fields around the
+-- outgoing interaction and the incoming line before choosing how a menu-less
+-- one-line dialogue should complete. 0x032/0x034 BEGIN a scripted event (they
+-- are not "menu opened"); 0x005B in End mode is strong completion evidence but
+-- only when mode, event, target, zone, step and ownership all agree. Nothing
+-- below completes anything -- it only records what arrived.
+function accessxi.log_objective_event_packet(e, direction)
+    if (e == nil) then
+        return;
+    end
+    local packet_id = tonumber(e.id) or -1;
+    local interesting = packet_id == 0x0032 or packet_id == 0x0034
+        or packet_id == 0x005B or packet_id == 0x005C or packet_id == 0x001A;
+    if (not interesting) then
+        return;
+    end
+    -- READ THE PAYLOAD THE WAY THE WORKING CAPTURES DO. `e.data_modified` is
+    -- not always a Lua string -- for incoming packets it can be a raw pointer,
+    -- which is exactly why accessxi.packet_event_string exists and why every
+    -- capture that works uses it. Reading the field directly threw, this whole
+    -- function is pcall'd by its caller, and so it logged NOTHING for incoming
+    -- packets. Across 200 MB of log the only trace ever written was the
+    -- outgoing 0x001A; the instrumentation sol asked for on 2026-08-22 has been
+    -- silently producing no data ever since, and that silence was read as
+    -- "the event packets never arrive". It was never established either way.
+    local data = accessxi.packet_event_string(e, 'data_modified', 'size');
+    if (data == '') then
+        data = accessxi.packet_event_string(e, 'data', 'size');
+    end
+    local function u32(index)
+        local ok, value = pcall(accessxi.packet_u32, data, index);
+        return ok and (tonumber(value) or 0) or 0;
+    end
+    local function u16(index)
+        local ok, value = pcall(accessxi.packet_u16, data, index);
+        return ok and (tonumber(value) or 0) or 0;
+    end
+    -- Logged even when the payload could not be read, so an absent packet and
+    -- an unreadable one are never again mistaken for each other.
+    log_line(('objective packet trace id=0x%04X dir=%s len=%d target=%d a=%d b=%d c=%d d=%d'):fmt(
+        packet_id, tostring(direction or ''), #data,
+        u32(0x04 + 1), u16(0x0A + 1), u16(0x0C + 1), u16(0x1A + 1), u16(0x2C + 1)));
+end
+
 function accessxi.capture_mission_quest_event_packet(e, direction)
+    pcall(accessxi.log_objective_event_packet, e, direction);
+    -- Pressing enter on an NPC is an outgoing action packet with category 0
+    -- (trigger). That is the "outgoing interaction aimed at the exact server
+    -- id" half of sol's rule for menu-less dialogue; the NPC's reply is the
+    -- other half and arrives separately.
+    if (tostring(direction or ''):lower() == 'out' and (tonumber(e.id) or -1) == 0x001A
+        and type(accessxi.nav_mission_quest_note_talk_intent) == 'function') then
+        local payload = e.data_modified or e.data or '';
+        local ok_target, target = pcall(accessxi.packet_u32, payload, 0x04 + 1);
+        local ok_category, category = pcall(accessxi.packet_u16, payload, 0x0A + 1);
+        if (ok_target and ok_category and (tonumber(category) or -1) == 0) then
+            -- The catalogue matcher identifies a target by ZONE PLUS server id,
+            -- because a bare server id is only unique within the zone the
+            -- player is standing in.  Live 2026-08-22 this call passed the id
+            -- alone: `objective packet trace id=0x001A dir=out target=17388006`
+            -- arrived, Zantaviat answered one second later, and the arm matched
+            -- nothing at all -- an omitted zone reads as zone 0, which equals
+            -- no catalogue point, so the talk could never have been detected.
+            local zone_id = type(accessxi.current_zone_id) == 'function'
+                and (tonumber(accessxi.current_zone_id()) or 0) or 0;
+            pcall(accessxi.nav_mission_quest_note_talk_intent, target, zone_id, tick());
+        end
+    end
     if (e == nil or type(accessxi.nav_mission_quest_reduce_signal) ~= 'function') then
         return false;
     end
     local packet_id = tonumber(e.id) or -1;
-    local data = e.data_modified or e.data or '';
+    -- Same reason as the trace above: the completion evidence itself was being
+    -- read out of a field that is not a string for incoming packets.
+    local data = accessxi.packet_event_string(e, 'data_modified', 'size');
+    if (data == '') then
+        data = accessxi.packet_event_string(e, 'data', 'size');
+    end
     direction = tostring(direction or ''):lower();
     local kind = '';
     local target_server_id = 0;
@@ -88923,11 +93645,22 @@ function accessxi.capture_mission_quest_event_packet(e, direction)
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
         zone_id = accessxi.packet_u16(data, 0x2A + 1);
         event_id = accessxi.packet_u16(data, 0x2C + 1);
+        -- The half that proves the target ANSWERED. It does not prove the step
+        -- succeeded -- that is still the key item or native progress -- but its
+        -- absence proves nothing happened at all, and that is worth saying.
+        if (type(accessxi.nav_mission_quest_note_interaction_response) == 'function') then
+            pcall(accessxi.nav_mission_quest_note_interaction_response,
+                target_server_id, tick());
+        end
     elseif (direction == 'in' and packet_id == 0x0032) then
         kind = 'interaction-start';
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
         zone_id = accessxi.packet_u16(data, 0x0A + 1);
         event_id = accessxi.packet_u16(data, 0x0C + 1);
+        if (type(accessxi.nav_mission_quest_note_interaction_response) == 'function') then
+            pcall(accessxi.nav_mission_quest_note_interaction_response,
+                target_server_id, tick());
+        end
     elseif (direction == 'out' and packet_id == 0x005B) then
         kind = 'interaction-finish';
         target_server_id = accessxi.packet_u32(data, 0x04 + 1);
@@ -88989,6 +93722,13 @@ function accessxi.capture_mission_quest_event_packet(e, direction)
 end
 
 function accessxi.on_objective_inventory_changed(reason)
+    -- What the player is carrying decides which places a step still needs to
+    -- send them to, and that decision is cached with the step list. Drop it so
+    -- picking an item up removes its destination without a reload.
+    if (type(accessxi.nav_mission_quest_forget_source_steps) == 'function') then
+        pcall(accessxi.nav_mission_quest_forget_source_steps,
+            reason or 'inventory-changed');
+    end
     if (type(accessxi.on_mission_quest_state_changed) == 'function') then
         return accessxi.on_mission_quest_state_changed('objective', reason or 'inventory-changed');
     end
@@ -91201,6 +95941,17 @@ local function current_menu_speech(full_details)
     end
     accessxi.last_nonblank_menu_name = name;
     accessxi.last_nonblank_menu_tick = tick();
+    -- THE WATERMARK. Whatever was last spoken at the moment this window opened;
+    -- if it is still the last thing spoken when the fallback comes due, then
+    -- nothing has read this window and the fallback is the only voice it will
+    -- ever get. Taken HERE, on the transition, and not when the fallback arms
+    -- -- arming happens the first time there is nothing to add, which for an
+    -- inventory is just the player pausing on a row they already heard.
+    if (not name:eq(tostring(accessxi.unsupported_menu_open_name or ''), true)) then
+        accessxi.unsupported_menu_open_name = name;
+        accessxi.unsupported_menu_open_last = tostring(accessxi.last or '');
+        accessxi.clear_unsupported_menu_voice();
+    end
     accessxi.remember_generic_comyn_context(name, previous_menu_name);
     accessxi.log_menu_dispatch_probe(name, previous_menu_name);
     local is_mog_door_menu = name:eq('menu    mogdoor', true);
@@ -91217,9 +95968,37 @@ local function current_menu_speech(full_details)
         accessxi.mog_door_last_cursor_mode = '';
         accessxi.mog_door_last_cursor_tick = 0;
     end
+    -- ENTER OPENED A WINDOW NOTHING HAS EVER READ.
+    if (accessxi.is_status_submenu(name) and not previous_menu_name:eq(name, true)) then
+        accessxi.status_overview_pending_due = 0;
+        accessxi.status_overview_pending_until = 0;
+        accessxi.status_menu_just_opened_until = 0;
+        local remembered = tostring(accessxi.status_menu_last_row_label or '');
+        if (remembered ~= '' and accessxi.status_detail_label_supported(remembered)) then
+            accessxi.schedule_status_detail_screen_read(T{
+                label = remembered,
+                row_code = tonumber(accessxi.status_menu_last_row_code) or 0,
+                selected = tonumber(accessxi.last_native_menu_selected) or 0,
+            }, 'status-submenu-open', 250);
+        else
+            log_state(('state status-detail submenu-unread menu="%s" remembered="%s"'):fmt(
+                accessxi.escape_probe_log_text(name),
+                accessxi.escape_probe_log_text(remembered)));
+        end
+    end
     if (name:eq('menu    statcom2', true) and not previous_menu_name:eq('menu    statcom2', true)) then
-        accessxi.status_menu_just_opened_until = tick() + 650;
-        accessxi.schedule_status_overview_screen_read('status-menu-open', 350);
+        -- COMING BACK IS NOT OPENING.
+        --
+        -- Escaping out of a sub-window re-opens statcom2 and this branch used
+        -- to answer by reciting the whole thirty-word status overview over the
+        -- row the player is standing on. Live 20:02:01 the Currencies window
+        -- read correctly and was buried one second later by "Status.
+        -- Longrodvonhugen. Level 29 Black Mage. Support job White Mage...".
+        -- The player already heard the overview when they opened the menu.
+        if (not accessxi.is_status_submenu(previous_menu_name)) then
+            accessxi.status_menu_just_opened_until = tick() + 650;
+            accessxi.schedule_status_overview_screen_read('status-menu-open', 350);
+        end
     end
     if (not is_chat_log_menu_name(name)) then
         accessxi.chat_log_full_visible_texts = nil;
@@ -91653,7 +96432,106 @@ local function current_menu_speech(full_details)
     if (not name:eq('menu    magic', true)) then
         log_ingame_target_probe('unsupported-menu-' .. name);
     end
+    -- NOTHING CLAIMED THIS WINDOW. Arm a last-resort line rather than going
+    -- silent; poll_unsupported_menu_voice fires it only if the window is still
+    -- open and nothing at all has spoken by then.
+    accessxi.arm_unsupported_menu_voice(name);
     return nil;
+end
+
+-- SAY SOMETHING, BUT ONLY IF NOBODY ELSE DID.
+--
+-- This branch is reached both by windows with no reader anywhere (menu netbar,
+-- 387 opens, not one word) and by windows whose contents are spoken by a
+-- different subsystem (menu magic, 2002 opens in one recent window, every spell
+-- row read correctly from poll_menu). An immediate announcement would talk over
+-- the second group. So it is armed here and fired later, and anything that
+-- speaks in between cancels it -- every speaker in this addon stamps
+-- accessxi.last with the text it said, which makes "did anyone speak?" a single
+-- comparison.
+function accessxi.arm_unsupported_menu_voice(name)
+    name = tostring(name or '');
+    if (name == '') then
+        return false;
+    end
+    if (name == tostring(accessxi.unsupported_menu_voice_name or '')) then
+        return false;
+    end
+    -- A window that has spoken since it opened is being read. Whatever it said
+    -- beats anything this could say, so it never arms in the first place.
+    if (name ~= tostring(accessxi.unsupported_menu_open_name or '')
+        or tostring(accessxi.last or '') ~= tostring(accessxi.unsupported_menu_open_last or '')) then
+        return false;
+    end
+    accessxi.unsupported_menu_voice_name = name;
+    accessxi.unsupported_menu_voice_due = tick() + 700;
+    return true;
+end
+
+function accessxi.clear_unsupported_menu_voice()
+    accessxi.unsupported_menu_voice_name = '';
+    accessxi.unsupported_menu_voice_due = 0;
+end
+
+function accessxi.poll_unsupported_menu_voice()
+    local due = tonumber(accessxi.unsupported_menu_voice_due) or 0;
+    if (due <= 0) then
+        return false;
+    end
+    local now = tick();
+    if (now < due) then
+        return false;
+    end
+    local armed = tostring(accessxi.unsupported_menu_voice_name or '');
+    accessxi.unsupported_menu_voice_due = 0;
+    if (armed == '') then
+        return false;
+    end
+    -- Somebody spoke while we waited. Whatever they said, it beats this.
+    if (tostring(accessxi.last or '') ~= tostring(accessxi.unsupported_menu_open_last or '')) then
+        log_state(('state unsupported-menu voice cancelled menu="%s" reason="something-else-spoke"'):fmt(
+            accessxi.escape_probe_log_text(armed)));
+        return false;
+    end
+    -- The window closed or changed while we waited.
+    local current = tostring(safe_call(function () return get_menu_name(); end, '') or '');
+    if (not current:eq(armed, true)) then
+        log_state(('state unsupported-menu voice cancelled menu="%s" reason="window-changed" now="%s"'):fmt(
+            accessxi.escape_probe_log_text(armed),
+            accessxi.escape_probe_log_text(current)));
+        return false;
+    end
+    if (is_chat_input_open()) then
+        return false;
+    end
+
+    -- NO TITLE. GetWindowName() is the TARGET window's name, so with a player
+    -- or a mob selected it hands back "Achantere, T.K." or "Gigas's Leech" --
+    -- and this line spoke both, as if they were the name of the window that had
+    -- just opened. A name sounds like an answer; the raw menu id obviously does
+    -- not, and it is something the player can read back to us. Until a source
+    -- for the real caption is found, the id is what this can stand behind.
+    local spoken_name = armed:gsub('^menu%s+', '');
+    local text = ('Window open. %s. This window is not read yet.'):fmt(spoken_name);
+    local key = ('unsupported-menu-voice:%s'):fmt(armed);
+    if (key == tostring(accessxi.unsupported_menu_voice_last_key or '')
+        and (now - (tonumber(accessxi.unsupported_menu_voice_last_tick) or 0)) < 3000) then
+        return false;
+    end
+    accessxi.unsupported_menu_voice_last_key = key;
+    accessxi.unsupported_menu_voice_last_tick = now;
+    accessxi.last = text;
+    accessxi.last_key = key;
+    speak(text);
+    -- `window` was a local until the target-window read was removed from this
+    -- function; the argument outlived it and became an undeclared global, so
+    -- every one of these lines has recorded window="" since. Log what was
+    -- actually said instead.
+    log_state(('state unsupported-menu voice menu="%s" said="%s"'):fmt(
+        accessxi.escape_probe_log_text(armed),
+        accessxi.escape_probe_log_text(spoken_name)));
+    log_line(text);
+    return true;
 end
 
 function accessxi.poll_gear_detail_hotkeys()
@@ -92386,6 +97264,9 @@ local function poll_menu()
         accessxi.last = text;
         accessxi.last_key = key;
         speak(text);
+        -- Stamped so the target poll can stand down rather than cancel this
+        -- row mid-word. See poll_target.
+        accessxi.menu_row_speech_tick = now;
         if (key:find('character%-creation:name:', 1, false) == 1) then
             accessxi.chat_input_speech_hold_until = now + 3200;
         end
@@ -92745,6 +97626,22 @@ local function current_focus_target_speech()
         return nil, '';
     end
 
+    -- THE GAME'S MENU FLAG IS NOT THIS ADDON'S MENU FLAG.
+    --
+    -- GetIsMenuOpen reads 0 for the lists AccessXI voices itself, so the guard
+    -- above does not cover the case that actually hurts: the player arrows onto
+    -- an option, the row starts speaking, and this poll announces the current
+    -- target over the top of it. speak() cancels by default, so the entity name
+    -- is the utterance that survives and the option is simply lost. The log for
+    -- 2026-08-26 holds 163 of these collisions, and the player's report is
+    -- exactly that -- an option that reads out as a character name.
+    --
+    -- A row the player is still hearing owns the speech channel.
+    local menu_tick = tonumber(accessxi.menu_row_speech_tick) or 0;
+    if (menu_tick > 0 and (tick() - menu_tick) < 1500) then
+        return nil, '';
+    end
+
     local focus_index = tonumber(safe_call(function () return target:GetFocusTargetIndex(); end, -1)) or -1;
     local server_id = tonumber(safe_call(function () return target:GetFocusTargetServerId(); end, 0)) or 0;
     local window_server_id = tonumber(safe_call(function () return target:GetWindowServerId(); end, 0)) or 0;
@@ -92755,7 +97652,14 @@ local function current_focus_target_speech()
     local window_only_label = ((window_loaded ~= 0) and accessxi.target_window_only_label(window_name)) or '';
     local identity_parts = T{
         ('focus=%d:%d'):fmt(focus_index, server_id),
-        ('window=%d:%d:%d:%d'):fmt(window_loaded, window_server_id, window_hp, window_death),
+        -- HP IS DELIBERATELY NOT IN THIS IDENTITY.
+        --
+        -- It used to be, so every point of damage made the target look like a
+        -- new target and re-announced its NAME -- several times a second in a
+        -- fight. The name has not changed; only its health has, and that is
+        -- already reported by the combat HP feedback path. Death stays, because
+        -- that is a state change worth hearing.
+        ('window=%d:%d:%d'):fmt(window_loaded, window_server_id, window_death),
     };
     if (focus_index < 0) then
         if (window_only_label ~= '') then
@@ -92943,6 +97847,10 @@ local function poll_target()
 end
 
 local function nav_route_suppressed()
+    if (type(accessxi.nav_promyvion_waiting) == 'function'
+        and accessxi.nav_promyvion_waiting()) then
+        return true;
+    end
     if (accessxi.nav_collision_control_interrupt_state ~= nil) then
         local active = accessxi.nav_collision_control_interrupt_state();
         return active == true;
@@ -93123,6 +98031,20 @@ function accessxi.nav_collision_update_control_interrupt(now)
         accessxi.nav_collision_control_interrupt_reason = reason;
         accessxi.nav_collision_control_interrupt_tick = now;
         accessxi.nav_collision_quiet('control-interrupt:' .. reason, accessxi.nav_collision_control_quiet_ms, now);
+        -- A DEAD PLAYER CANNOT WALK THROUGH A DOORWAY.
+        --
+        -- This function already sees every menu by name, which is how the log
+        -- carried reason="menu:menu    dead" at 15:14:32 and 19:34:51 on
+        -- 2026-08-29 -- the two deaths whose Home Point warps the zone-line
+        -- learner then banked as walkable exits, Promyvion - Holla -> Southern
+        -- San d'Oria and Qufim Island -> Southern San d'Oria. Neither road
+        -- exists. The warp guard could not know, because the only thing that
+        -- ever stamped a warp intent was the Home Point QUERY handler matching
+        -- on menu titles, and the death menu's title is whatever killed you.
+        if (reason:find('menu    dead', 1, true) ~= nil) then
+            accessxi.nav_note_death_relocation('death-menu',
+                safe_call(function () return nav_zone_id(); end, 0));
+        end
 
         local key = 'active:' .. reason;
         if (key ~= accessxi.nav_collision_control_last_log_key) then
@@ -93131,6 +98053,9 @@ function accessxi.nav_collision_update_control_interrupt(now)
         end
         return true, reason;
     end
+
+    -- Cheap: returns immediately unless a death is actually pending.
+    accessxi.nav_death_relocation_release_if_alive(now);
 
     if (was_active) then
         accessxi.nav_collision_control_interrupt_active = false;
@@ -93260,6 +98185,33 @@ function accessxi.nav_collision_current_movement_intent(movement_signal)
         or movement_signal.input_intent == true;
 end
 
+function accessxi.nav_collision_obstacle_speech_reset()
+    accessxi.nav_collision_obstacle_speech_active = false;
+    accessxi.nav_collision_obstacle_speech_destination = nil;
+    accessxi.nav_collision_obstacle_speech_points = nil;
+    accessxi.nav_collision_obstacle_speech_tick = 0;
+end
+
+function accessxi.nav_collision_obstacle_speak_once(text, destination, points, now)
+    now = tonumber(now) or tick();
+    local same_owner = accessxi.nav_collision_obstacle_speech_destination == destination
+        and accessxi.nav_collision_obstacle_speech_points == points;
+    if (accessxi.nav_collision_obstacle_speech_active == true and same_owner) then
+        return false;
+    end
+    local elapsed = now - (tonumber(accessxi.nav_collision_obstacle_speech_tick) or 0);
+    if (same_owner and elapsed >= 0
+        and elapsed < (tonumber(accessxi.nav_collision_obstacle_speech_min_ms) or 5000)) then
+        return false;
+    end
+    speak(tostring(text or ''));
+    accessxi.nav_collision_obstacle_speech_active = true;
+    accessxi.nav_collision_obstacle_speech_destination = destination;
+    accessxi.nav_collision_obstacle_speech_points = points;
+    accessxi.nav_collision_obstacle_speech_tick = now;
+    return true;
+end
+
 function accessxi.nav_collision_reset(player, destination_distance, route_distance, now)
     accessxi.nav_collision_x = player ~= nil and player.x or nil;
     accessxi.nav_collision_z = player ~= nil and player.z or nil;
@@ -93329,6 +98281,7 @@ function accessxi.nav_collision_state(player, destination, route_target, destina
     local destination_improvement = (tonumber(accessxi.nav_collision_destination_distance) or destination_distance) - destination_distance;
     local route_improvement = (tonumber(accessxi.nav_collision_route_distance) or route_distance) - route_distance;
     if (moved >= 0.85 or route_improvement >= 0.65 or destination_improvement >= 0.65) then
+        accessxi.nav_collision_obstacle_speech_reset();
         accessxi.nav_collision_reset(player, destination_distance, route_distance, now);
         return nil;
     end
@@ -93528,7 +98481,18 @@ function accessxi.nav_door_begin_prompt(player, destination, route_target, door,
     accessxi.nav_door_wait_key = key;
     accessxi.nav_door_wait_name = name;
 
-    local text = ('Door ahead: %s. Press Tab until %s is targeted, then press Enter to open it. Navigation will resume with the beacon through the doorway.'):fmt(name, name);
+    -- SAY THE WHOLE THING ONCE. The wait expires after fifteen seconds and
+    -- re-prompts while the player is still beside the door: live at the
+    -- Mayor's Residence this fired five times in one minute, each time a
+    -- twenty-word instruction over the top of what they were doing. The full
+    -- form is worth hearing the first time and is noise every time after.
+    local repeated = (tostring(accessxi.nav_door_last_spoken_key or '') == key)
+        and (now - (tonumber(accessxi.nav_door_last_spoken_tick) or 0)) < 120000;
+    accessxi.nav_door_last_spoken_key = key;
+    accessxi.nav_door_last_spoken_tick = now;
+    local text = repeated
+        and ('%s is still ahead. Open it to continue.'):fmt(name)
+        or ('Door ahead: %s. Press Tab until %s is targeted, then press Enter to open it. Navigation will resume with the beacon through the doorway.'):fmt(name, name);
     nav_write_route_evidence('door', player, destination, door, T{
         wall = state ~= nil and state.wall or nil,
         off_route = state ~= nil and state.route_distance or 0,
@@ -93591,7 +98555,7 @@ function accessxi.nav_collision_watch(player, destination, route_target, destina
     if (accessxi.nav_door_prompt_for_collision(player, destination, route_target, state, now)) then
         accessxi.nav_collision_play_sound(state.state, now);
         accessxi.nav_collision_reset(player, destination_distance, state.route_distance, now);
-        return true;
+        return true, 'door';
     end
 
     local key = ('%s:%s:%d:%d'):fmt(
@@ -93605,12 +98569,19 @@ function accessxi.nav_collision_watch(player, destination, route_target, destina
     local text;
     if (state.state == 'blocked') then
         accessxi.nav_wall_escape_begin_recovery(now);
-        text = 'Collision detected. You are not moving forward. Turn until the beacon moves off-center, then go forward.';
+        if (type(accessxi.nav_precise_obstacle_recovery_publish) == 'function') then
+            accessxi.nav_precise_obstacle_recovery_publish(player, now);
+        end
+        text = 'Obstacle or wall detected. Turn or move away from the wall. Your route remains active and safe guidance will resume automatically.';
     else
         text = 'Edge contact. You are scraping a wall. Steer away from the wall, then continue.';
     end
     if (state.wall ~= nil and state.wall <= 3) then
         text = text .. (' Clearance %.0f yalm.'):fmt(state.wall);
+    end
+    if (state.state == 'blocked') then
+        accessxi.nav_collision_obstacle_speak_once(
+            text, destination, accessxi.nav_route_points, now);
     end
 
     nav_write_route_evidence('collision', player, destination, route_target, T{
@@ -93633,7 +98604,7 @@ function accessxi.nav_collision_watch(player, destination, route_target, destina
         sound_ok and 'ok' or 'failed',
         text));
     accessxi.nav_collision_reset(player, destination_distance, state.route_distance, now);
-    return true;
+    return true, state.state;
 end
 
 function accessxi.nav_freewalk_collision_reset(player, now)
@@ -93850,6 +98821,11 @@ function accessxi.nav_route_contact_sound(player, route_target, now, movement_si
 end
 
 function accessxi.nav_current_route_instruction()
+    -- `now` was read four times in this function and declared nowhere in it,
+    -- so it compiled to a global read and was nil every time. Arrival was
+    -- therefore recorded with no timestamp -- pcall swallowed the consequences
+    -- and the bytecode was the only place it was visible.
+    local now = tick();
     if (not accessxi.nav_active or accessxi.nav_destination == nil) then
         return '';
     end
@@ -93940,7 +98916,8 @@ function accessxi.nav_current_route_instruction()
                 accessxi.nav_last_direction_text = 'At the verified zone line. Continue into the next zone.';
                 return accessxi.nav_last_direction_text;
             end
-            local text = ('Arrived at %s.'):fmt(destination.name or 'objective destination');
+            local text = ('Arrived at %s.'):fmt(
+                accessxi.nav_menu_point_speech_name(destination) or 'objective destination');
             if (type(accessxi.nav_mission_quest_remember_arrival) == 'function') then
                 pcall(function ()
                     accessxi.nav_mission_quest_remember_arrival(destination, now);
@@ -94060,6 +99037,64 @@ function accessxi.compass_speech()
         end
     end
     return text;
+end
+
+function accessxi.poll_compass_turn_announcement(now)
+    now = tonumber(now) or tick();
+    local player = nav_cached_player_position();
+    if (player == nil) then
+        accessxi.compass_turn_direction = '';
+        accessxi.compass_turn_candidate = '';
+        accessxi.compass_turn_candidate_tick = 0;
+        accessxi.compass_turn_announce_tick = 0;
+        return;
+    end
+
+    -- Hold the announced heading until the player turns clear of its sector.
+    -- Without this, walking a line that sits on a sector boundary chatters
+    -- across it and the constant speech starves the navigation beacon.
+    local direction;
+    if (type(accessxi.nav_compass_direction_stable) == 'function') then
+        direction = accessxi.nav_compass_direction_stable(player.yaw, accessxi.compass_turn_direction);
+    else
+        direction = accessxi.nav_compass_direction(player.yaw);
+    end
+    if (direction == 'unknown') then
+        accessxi.compass_turn_direction = '';
+        accessxi.compass_turn_candidate = '';
+        accessxi.compass_turn_candidate_tick = 0;
+        return;
+    end
+
+    if (accessxi.compass_turn_direction == '') then
+        accessxi.compass_turn_direction = direction;
+        accessxi.compass_turn_candidate = '';
+        accessxi.compass_turn_candidate_tick = 0;
+        return;
+    end
+    if (direction == accessxi.compass_turn_direction) then
+        accessxi.compass_turn_candidate = '';
+        accessxi.compass_turn_candidate_tick = 0;
+        return;
+    end
+    if (direction ~= accessxi.compass_turn_candidate) then
+        accessxi.compass_turn_candidate = direction;
+        accessxi.compass_turn_candidate_tick = now;
+        return;
+    end
+    if ((now - (tonumber(accessxi.compass_turn_candidate_tick) or 0)) < 120
+        or (now - (tonumber(accessxi.compass_turn_announce_tick) or 0)) < 300) then
+        return;
+    end
+
+    accessxi.compass_turn_direction = direction;
+    accessxi.compass_turn_candidate = '';
+    accessxi.compass_turn_candidate_tick = 0;
+    accessxi.compass_turn_announce_tick = now;
+    -- The player asked for the bare direction, no "Facing" prefix.
+    local text = ('%s%s.'):fmt(direction:sub(1, 1):upper(), direction:sub(2));
+    speak(text);
+    log_line(('compass turn direction=%s'):fmt(direction));
 end
 
 function accessxi.poll_compass_hotkey()
@@ -95047,7 +100082,10 @@ function accessxi.nav_precise_beacon_lookahead_allowed(player, route_target, nex
         return false;
     end
     if (approach_length <= 0.75) then
-        return true;
+        -- At the apex horizontally is not at the apex: on a stacked hairpin a
+        -- player who slid off the upper leg stands under it. The lookahead
+        -- crosses the turn only once the player is on the apex's own level.
+        return math.abs((tonumber(player.y) or 0) - (tonumber(route_target.y) or 0)) <= 1.0;
     end
 
     local turn_cosine = ((approach_x * exit_x) + (approach_z * exit_z))
@@ -95081,7 +100119,7 @@ function accessxi.nav_lathine_direct_target_safe(player, target)
         return false;
     end
 
-    local local_route = nav_compute_mesh_route(player, target, true);
+    local local_route = accessxi.nav_compute_closest_mesh_route(player, target, true);
     local count = local_route ~= nil and local_route:len() or 0;
     if (count <= 0) then
         return false;
@@ -95089,9 +100127,9 @@ function accessxi.nav_lathine_direct_target_safe(player, target)
 
     -- FFXINAV FindClosestPath can return both the projected endpoint and the
     -- requested endpoint at identical X/Z with a tiny height correction.  It
-    -- is still a direct local leg; only a geometrically distinct intermediate
-    -- point represents another corner that steering must not cut across.
-    local distinct_points = 1;
+    -- can also expose one near-collinear portal on a direct local leg.  Admit
+    -- that portal only when it lies between the endpoints without a real turn.
+    local distinct_route = T{ local_route[1] };
     local previous = local_route[1];
     for route_index = 2, count do
         local current = local_route[route_index];
@@ -95099,12 +100137,40 @@ function accessxi.nav_lathine_direct_target_safe(player, target)
         local vertical = math.abs((tonumber(current ~= nil and current.y) or 0)
             - (tonumber(previous ~= nil and previous.y) or 0));
         if (horizontal > 0.05 or vertical > 2.0) then
-            distinct_points = distinct_points + 1;
+            distinct_route:append(current);
         end
         previous = current;
     end
-    if (distinct_points > 2) then
+    local distinct_points = distinct_route:len();
+    if (distinct_points > 3) then
         return false;
+    end
+    if (distinct_points == 3) then
+        local intermediate = distinct_route[2];
+        local ax = tonumber(player.x) or 0;
+        local az = tonumber(player.z) or 0;
+        local bx = tonumber(target.x) or 0;
+        local bz = tonumber(target.z) or 0;
+        local vx = bx - ax;
+        local vz = bz - az;
+        local len2 = (vx * vx) + (vz * vz);
+        if (len2 <= 0.001) then
+            return false;
+        end
+        local wx = (tonumber(intermediate ~= nil and intermediate.x) or 0) - ax;
+        local wz = (tonumber(intermediate ~= nil and intermediate.z) or 0) - az;
+        local progress = ((wx * vx) + (wz * vz)) / len2;
+        if (progress <= 0 or progress >= 1) then
+            return false;
+        end
+        local projected_x = ax + (progress * vx);
+        local projected_z = az + (progress * vz);
+        local offset_x = (tonumber(intermediate.x) or 0) - projected_x;
+        local offset_z = (tonumber(intermediate.z) or 0) - projected_z;
+        local deviation = math.sqrt((offset_x * offset_x) + (offset_z * offset_z));
+        if (deviation > 0.25) then
+            return false;
+        end
     end
 
     local finish = local_route[count];
@@ -95171,7 +100237,7 @@ function accessxi.nav_lathine_locally_safe_target(player, points, index, nominal
     local side_x = -unit_z;
     local side_z = unit_x;
     local forward_steps = { math.min(2.0, distance), math.min(1.25, distance), math.min(0.75, distance) };
-    local side_steps = { 0, 1.25, -1.25, 2.0, -2.0 };
+    local side_steps = { 0, 1.25, -1.25, 1.4, -1.4, 2.0, -2.0 };
     for _, forward in ipairs(forward_steps) do
         for _, side in ipairs(side_steps) do
             local candidate = T{
@@ -95194,41 +100260,7 @@ function accessxi.nav_lathine_locally_safe_target(player, points, index, nominal
     return nil;
 end
 
-function accessxi.nav_lathine_replan_or_stop(player, points, lookahead, already_replanned)
-    local destination = accessxi.nav_destination;
-    local owns_active_route = accessxi.nav_active
-        and destination ~= nil
-        and accessxi.nav_route_points == points
-        and (tonumber(destination.zone) or 0) == (tonumber(player.zone) or 0);
-    if (owns_active_route and not already_replanned) then
-        local refreshed = nav_compute_mesh_route(player, destination, true);
-        if (refreshed ~= nil and refreshed:len() > 1) then
-            for _, point in ipairs(refreshed) do
-                point.route_override_id = 'lathine-navmesh';
-            end
-            accessxi.nav_route_points = refreshed;
-            accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, destination);
-            accessxi.nav_route_last_recalc_tick = tick();
-            accessxi.nav_precise_route_return_clear();
-            accessxi.nav_lathine_local_target_cache_clear();
-            log_line(('nav lathine local safety replan destination="%s" count=%d'):fmt(
-                destination.name or '', refreshed:len()));
-            return accessxi.nav_precise_steering_target(
-                player, refreshed, accessxi.nav_route_point_index, lookahead, true);
-        end
-    end
-
-    if (owns_active_route) then
-        local name = tostring(destination.name or 'destination');
-        nav_route_stop();
-        local text = ('Navigation stopped. No locally reachable path to %s.'):fmt(name);
-        speak(text);
-        log_line(('nav lathine local safety blocked destination="%s"'):fmt(name));
-    end
-    return nil;
-end
-
-function accessxi.nav_precise_steering_target(player, points, index, lookahead, safety_replanned)
+function accessxi.nav_precise_steering_target(player, points, index, lookahead)
     if (player == nil) then
         return nil;
     end
@@ -95241,10 +100273,32 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
         or (route_id == 'dat-collision' and (tonumber(player.zone) or 0) == 102);
     local match_first = collision_segment and preferred_segment or nil;
     local match_last = collision_segment and preferred_segment or nil;
-    local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1;
+    -- The walk-graph route gets the SAME smoothing as a recorded survey, for the
+    -- same measured reason. Its waypoints are now roughly seven yalms apart, and
+    -- a five-yalm carrot lands between them: the aim then sits a couple of yalms
+    -- from the player, where ordinary walking swings the played angle wildly.
+    -- Observed live 2026-08-21 at dist=2.3: -51, +54, +63, -61, +82 degrees on
+    -- consecutive pulses. This is the identical failure the collision branch
+    -- below documents at two yalms, and it takes the identical fix -- look far
+    -- enough ahead that a lateral wobble is not a steering command.
+    local smooth_lookahead = route_id:find('lathine-recorded-survey-', 1, true) == 1
+        or route_id == 'lathine-walk-graph-v2';
     local effective_lookahead = smooth_lookahead and math.max(9, tonumber(lookahead) or 0) or lookahead;
     if (narrow_collision_segment) then
-        effective_lookahead = math.min(2.0, tonumber(effective_lookahead) or 5);
+        -- A two-yalm carrot sits essentially at the player's feet, so every
+        -- step re-aims it. Observed live on 2026-08-16 the audible cue
+        -- reversed up to 135 degrees between pulses, including false rear
+        -- cues, which walks a player following it in circles. The wider
+        -- collision branch below uses 9.0 for exactly this reason. Stay
+        -- tighter than that out of respect for the narrow-corner case this
+        -- clamp was added for, but far enough ahead to be stable.
+        --
+        -- Only widen where the result is actually validated:
+        -- nav_lathine_locally_safe_target runs for 'lathine-navmesh' below.
+        -- A dat-collision route in zone 102 has no such validator, so it
+        -- keeps the tight clamp.
+        effective_lookahead = route_id == 'lathine-navmesh' and 6.0
+            or math.min(2.0, tonumber(effective_lookahead) or 5);
     elseif (collision_segment) then
         -- Stay on the validated segment, but look far enough ahead that a
         -- small lateral walking wobble does not command a sharp correction.
@@ -95289,8 +100343,7 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
                     if (safe_anchor ~= nil) then
                         return safe_anchor;
                     end
-                    return accessxi.nav_lathine_replan_or_stop(
-                        player, points, lookahead, safety_replanned == true);
+                    return nil;
                 else
                     accessxi.nav_precise_route_return_clear();
                     match = nil;
@@ -95315,64 +100368,958 @@ function accessxi.nav_precise_steering_target(player, points, index, lookahead, 
         if (safe_target ~= nil) then
             return safe_target;
         end
-        return accessxi.nav_lathine_replan_or_stop(player, points, lookahead, safety_replanned == true);
+        return nil;
     end
     return target;
 end
 
-function accessxi.nav_precise_route_recover_or_stop(player, destination, points, lookahead)
-    if (player == nil or destination == nil or accessxi.nav_dat_collision_pending ~= nil
-        or not accessxi.nav_active or accessxi.nav_destination ~= destination
-        or accessxi.nav_route_points ~= points) then
+function accessxi.nav_precise_guidance_cache_clear()
+    accessxi.nav_precise_guidance_target = nil;
+    accessxi.nav_precise_guidance_points = nil;
+    accessxi.nav_precise_guidance_index = 0;
+    accessxi.nav_precise_guidance_player = nil;
+    accessxi.nav_precise_guidance_tick = 0;
+end
+
+function accessxi.nav_precise_obstacle_recovery_publish(player, now)
+    local destination = accessxi.nav_destination;
+    local points = accessxi.nav_route_points;
+    if (player == nil or destination == nil or accessxi.nav_active ~= true
+        or points == nil or points:len() < 2
+        or not accessxi.nav_route_precise_override_active(player, points)) then
+        return false;
+    end
+
+    local recovery = accessxi.nav_precise_obstacle_recovery;
+    if (recovery ~= nil
+        and recovery.destination == destination
+        and recovery.points == points) then
+        recovery.tick = tonumber(now) or tick();
+        recovery.player = T{
+            zone = player.zone,
+            x = player.x,
+            z = player.z,
+            y = player.y,
+            yaw = player.yaw,
+        };
+        return false;
+    end
+
+    accessxi.nav_precise_obstacle_recovery = T{
+        tick = tonumber(now) or tick(),
+        player = T{
+            zone = player.zone,
+            x = player.x,
+            z = player.z,
+            y = player.y,
+            yaw = player.yaw,
+        },
+        destination = destination,
+        points = points,
+        index = tonumber(accessxi.nav_route_point_index) or 1,
+        replan_tick = 0,
+        replan_player = nil,
+    };
+    return true;
+end
+
+function accessxi.nav_precise_obstacle_recovery_changed(recovery, player, now)
+    if (recovery == nil or player == nil) then
+        return false;
+    end
+    local previous = recovery.replan_player;
+    if (previous == nil) then
+        return true;
+    end
+
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(recovery.replan_tick) or 0)) < 250) then
+        return false;
+    end
+    local moved = nav_distance(player, previous);
+    local vertical = math.abs((tonumber(player.y) or 0) - (tonumber(previous.y) or 0));
+    local yaw = tonumber(player.yaw);
+    local previous_yaw = tonumber(previous.yaw);
+    local turned = 0;
+    if (yaw ~= nil and previous_yaw ~= nil) then
+        if (math.abs(yaw) > (math.pi * 2.1)) then
+            yaw = yaw * math.pi / 180;
+        end
+        if (math.abs(previous_yaw) > (math.pi * 2.1)) then
+            previous_yaw = previous_yaw * math.pi / 180;
+        end
+        turned = math.abs(accessxi.nav_normalize_angle(yaw - previous_yaw));
+    end
+    return moved >= 1.0 or vertical >= 1.0
+        or turned >= (tonumber(accessxi.nav_collision_freewalk_turn_radians) or 0.18);
+end
+
+function accessxi.nav_precise_obstacle_reacquired_target(recovery, player, points, index)
+    if (recovery == nil or recovery.replan_player == nil
+        or player == nil or points == nil) then
         return nil;
     end
-
-    accessxi.nav_route_last_recalc_tick = tick();
-    local refreshed = T{};
-    if (type(accessxi.nav_compute_route_with_zoneline_approach) == 'function') then
-        refreshed = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
-    end
-    if (accessxi.nav_dat_collision_pending ~= nil) then
+    local match = accessxi.nav_route_live_match(
+        player, points, math.max(1, (tonumber(index) or 1) - 1));
+    if (match == nil
+        or (tonumber(match.horizontal) or 999999) > 3.25
+        or (tonumber(match.vertical) or 999999) > 2.0) then
         return nil;
     end
-
-    if (refreshed ~= nil and refreshed:len() > 1) then
-        accessxi.nav_route_points = refreshed;
-        accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, refreshed, destination);
-        accessxi.nav_precise_route_return_clear();
-
-        local target = nil;
-        if (accessxi.nav_route_precise_override_active(player, refreshed)) then
-            target = accessxi.nav_precise_steering_target(
-                player, refreshed, accessxi.nav_route_point_index, lookahead, true);
-        else
-            target = accessxi.nav_indexed_lookahead_target(
-                player, refreshed, accessxi.nav_route_lookahead_distance(player, destination));
-        end
-        if (target ~= nil) then
-            log_line(('nav precise target recovered destination="%s" count=%d'):fmt(
-                destination.name or '', refreshed:len()));
-            return target;
-        end
+    local wall = accessxi.nav_wall_distance(player);
+    if (wall == nil or wall < 1.2) then
+        return nil;
     end
-
-    local name = tostring(destination.name or 'destination');
-    local text = ('Navigation stopped. No safe route from the current position to %s.'):fmt(name);
-    if (type(nav_write_route_evidence) == 'function') then
-        nav_write_route_evidence('unreachable', player, destination, nil, T{
-            reason = 'precise route lost its local steering target',
-        });
+    local target = accessxi.nav_precise_steering_target(player, points, index, 5);
+    local route_id = accessxi.nav_route_points_override_id(points);
+    if (target ~= nil and route_id:startswith('lathine-recorded-survey-')
+        and (type(accessxi.nav_lathine_direct_target_safe) ~= 'function'
+            or not accessxi.nav_lathine_direct_target_safe(player, target))) then
+        return nil;
     end
-    if (accessxi.nav_active and accessxi.nav_destination == destination) then
-        nav_route_stop();
-        speak(text);
-        log_line(('nav precise target lost destination="%s"'):fmt(name));
+    return target;
+end
+
+function accessxi.nav_precise_guidance_reset()
+    accessxi.nav_precise_guidance_cache_clear();
+    accessxi.nav_precise_guidance_status = '';
+    accessxi.nav_precise_obstacle_recovery = nil;
+    accessxi.nav_precise_async_recovery_completion = nil;
+    accessxi.nav_precise_recovery_destination = nil;
+    accessxi.nav_precise_recovery_points = nil;
+    accessxi.nav_precise_recovery_since = 0;
+    accessxi.nav_precise_recovery_last_replan_tick = 0;
+    accessxi.nav_precise_recovery_last_player = nil;
+    accessxi.nav_precise_recovery_last_index = 0;
+    accessxi.nav_precise_recovery_failure_since = 0;
+    accessxi.nav_precise_recovery_failures = 0;
+    accessxi.nav_precise_recovery_notice_spoken = false;
+    accessxi.nav_precise_recovery_last_full_replan_tick = 0;
+    accessxi.nav_precise_recovery_last_notice_tick = 0;
+    accessxi.nav_collision_obstacle_speech_reset();
+    accessxi.nav_precise_route_return_clear();
+    accessxi.nav_lathine_local_target_cache_clear();
+end
+
+function accessxi.nav_precise_guidance_cached_target(player)
+    local target = accessxi.nav_precise_guidance_target;
+    local origin = accessxi.nav_precise_guidance_player;
+    local age = tick() - (tonumber(accessxi.nav_precise_guidance_tick) or 0);
+    if (player ~= nil
+        and target ~= nil
+        and origin ~= nil
+        and accessxi.nav_precise_guidance_points == accessxi.nav_route_points
+        and (tonumber(accessxi.nav_precise_guidance_index) or 0)
+            == (tonumber(accessxi.nav_route_point_index) or 1)
+        and (tonumber(player.zone) or 0) == (tonumber(origin.zone) or 0)
+        and age >= 0 and age <= 700
+        and nav_distance(player, origin) <= 0.75
+        and math.abs((tonumber(player.y) or 0) - (tonumber(origin.y) or 0)) <= 2.0) then
+        return target;
     end
     return nil;
 end
 
+function accessxi.nav_precise_guidance_store_target(player, target, now)
+    accessxi.nav_precise_guidance_target = target;
+    accessxi.nav_precise_guidance_points = accessxi.nav_route_points;
+    accessxi.nav_precise_guidance_index = tonumber(accessxi.nav_route_point_index) or 1;
+    accessxi.nav_precise_guidance_player = T{
+        zone = player.zone,
+        x = player.x,
+        z = player.z,
+        y = player.y,
+    };
+    accessxi.nav_precise_guidance_tick = tonumber(now) or tick();
+end
+
+function accessxi.nav_precise_route_matches_live_position(player, points, index)
+    local count = points ~= nil and points:len() or 0;
+    if (player == nil or count < 2) then
+        return false;
+    end
+    local match = accessxi.nav_route_live_match(
+        player, points, math.max(1, (tonumber(index) or 1) - 1));
+    return match ~= nil
+        and (tonumber(match.horizontal) or 999999) <= 6.0
+        and (tonumber(match.vertical) or 999999) <= 4.5;
+end
+
+function accessxi.nav_precise_guidance_note_pause(now, destination)
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_precise_recovery_since) or 0)) < 1000) then
+        return;
+    end
+    -- The recovery window is long enough that a single announcement would
+    -- leave a blind player with no idea whether guidance is still working.
+    -- Speak once immediately, then heartbeat every 7 seconds until guidance
+    -- resumes or stops.
+    if (accessxi.nav_precise_recovery_notice_spoken) then
+        local last_notice = tonumber(accessxi.nav_precise_recovery_last_notice_tick) or 0;
+        if (last_notice > 0 and (now - last_notice) < 7000) then
+            return;
+        end
+        accessxi.nav_precise_recovery_last_notice_tick = now;
+        speak('Still recalculating your route.');
+        log_line(('nav precise guidance still recalculating destination="%s"'):fmt(
+            tostring(destination ~= nil and destination.name or 'destination')));
+        return;
+    end
+    accessxi.nav_precise_recovery_notice_spoken = true;
+    accessxi.nav_precise_recovery_last_notice_tick = now;
+    local text = 'Safe guidance paused. Route remains active while recalculating.';
+    speak(text);
+    log_line(('nav precise guidance paused destination="%s"'):fmt(
+        tostring(destination ~= nil and destination.name or 'destination')));
+end
+
+function accessxi.nav_precise_guidance_finish(player, target, now, destination)
+    local resumed = accessxi.nav_precise_recovery_notice_spoken == true;
+    accessxi.nav_precise_obstacle_recovery = nil;
+    accessxi.nav_collision_obstacle_speech_reset();
+    accessxi.nav_precise_guidance_store_target(player, target, now);
+    accessxi.nav_precise_guidance_status = 'guiding';
+    accessxi.nav_precise_recovery_since = 0;
+    accessxi.nav_precise_recovery_last_replan_tick = 0;
+    accessxi.nav_precise_recovery_last_player = nil;
+    accessxi.nav_precise_recovery_last_index = 0;
+    accessxi.nav_precise_recovery_failure_since = 0;
+    accessxi.nav_precise_recovery_failures = 0;
+    accessxi.nav_precise_recovery_notice_spoken = false;
+    accessxi.nav_precise_recovery_last_full_replan_tick = 0;
+    accessxi.nav_precise_recovery_last_notice_tick = 0;
+    accessxi.nav_precise_recovery_destination = destination;
+    accessxi.nav_precise_recovery_points = accessxi.nav_route_points;
+    if (resumed) then
+        speak('Safe guidance resumed.');
+        log_line(('nav precise guidance resumed destination="%s"'):fmt(
+            tostring(destination ~= nil and destination.name or 'destination')));
+    end
+    return target;
+end
+
+function accessxi.nav_precise_guidance_candidate_cache_snapshot()
+    return T{
+        return_target = accessxi.nav_precise_return_target,
+        return_points = accessxi.nav_precise_return_points,
+        return_segment = accessxi.nav_precise_return_segment,
+        local_target = accessxi.nav_lathine_local_target,
+        local_points = accessxi.nav_lathine_local_target_points,
+        local_index = accessxi.nav_lathine_local_target_index,
+        local_tick = accessxi.nav_lathine_local_target_tick,
+        local_player = accessxi.nav_lathine_local_target_player,
+    };
+end
+
+function accessxi.nav_precise_guidance_candidate_cache_restore(saved)
+    saved = saved or T{};
+    accessxi.nav_precise_return_target = saved.return_target;
+    accessxi.nav_precise_return_points = saved.return_points;
+    accessxi.nav_precise_return_segment = tonumber(saved.return_segment) or 0;
+    accessxi.nav_lathine_local_target = saved.local_target;
+    accessxi.nav_lathine_local_target_points = saved.local_points;
+    accessxi.nav_lathine_local_target_index = tonumber(saved.local_index) or 0;
+    accessxi.nav_lathine_local_target_tick = tonumber(saved.local_tick) or 0;
+    accessxi.nav_lathine_local_target_player = saved.local_player;
+end
+
+function accessxi.nav_precise_guidance_prepare_candidate(player, points, destination)
+    if (player == nil or destination == nil or points == nil or points:len() < 2) then
+        return nil, nil;
+    end
+    local saved = accessxi.nav_precise_guidance_candidate_cache_snapshot();
+    accessxi.nav_precise_route_return_clear();
+    accessxi.nav_lathine_local_target_cache_clear();
+    local index = accessxi.nav_first_route_index(player, points, destination);
+    local target = accessxi.nav_precise_steering_target(player, points, index, 5);
+    if (target == nil) then
+        accessxi.nav_precise_guidance_candidate_cache_restore(saved);
+        return nil, nil;
+    end
+    return index, target, saved;
+end
+
+function accessxi.nav_precise_async_recovery_completion_is_current(completion)
+    return type(completion) == 'table'
+        and (tonumber(completion.owner_generation) or -1)
+            == (tonumber(accessxi.nav_route_ownership_generation) or 0)
+        and accessxi.nav_active == true
+        and accessxi.nav_destination == completion.owner_destination
+        and accessxi.nav_route_points == completion.retained_route_points
+        and accessxi.nav_objective_route_state
+            == completion.owner_objective_route_state
+        and accessxi.nav_zone_search_target
+            == completion.owner_zone_search_target;
+end
+
+function accessxi.nav_precise_guidance_consume_async_recovery(
+    completion, player, now, destination, points, obstacle)
+    accessxi.nav_precise_async_recovery_completion = nil;
+    if (not accessxi.nav_precise_async_recovery_completion_is_current(completion)) then
+        return false, nil;
+    end
+
+    accessxi.nav_precise_guidance_cache_clear();
+    accessxi.nav_precise_guidance_status = 'recovering';
+    if ((tonumber(accessxi.nav_precise_recovery_since) or 0) <= 0) then
+        accessxi.nav_precise_recovery_since = now;
+    end
+    accessxi.nav_precise_recovery_last_replan_tick = now;
+    accessxi.nav_precise_recovery_last_player = T{
+        zone = player.zone, x = player.x, z = player.z, y = player.y,
+    };
+    accessxi.nav_precise_recovery_last_index =
+        tonumber(accessxi.nav_route_point_index) or 1;
+
+    if (completion.mode == 'ready'
+        and completion.points ~= nil and completion.points:len() > 1) then
+        local refreshed = completion.points;
+        local refreshed_index, refreshed_target, saved_candidate_cache =
+            accessxi.nav_precise_guidance_prepare_candidate(
+                player, refreshed, destination);
+        local completion_current =
+            accessxi.nav_precise_async_recovery_completion_is_current(
+                completion);
+        if (refreshed_target == nil or not completion_current) then
+            if (refreshed_target ~= nil) then
+                accessxi.nav_precise_guidance_candidate_cache_restore(
+                    saved_candidate_cache);
+            end
+            if (refreshed_target == nil and completion_current) then
+                accessxi.nav_precise_guidance_completed_candidate_unusable(
+                    player, now, destination, points, obstacle,
+                    completion.obstacle_changed == true,
+                    'completed collision-safe route has no safe steering target from the live position');
+            else
+                accessxi.nav_precise_guidance_note_pause(now, destination);
+            end
+            return true, nil;
+        end
+        accessxi.nav_route_points = refreshed;
+        accessxi.nav_route_point_index = refreshed_index;
+        accessxi.nav_route_last_recalc_tick = now;
+        accessxi.nav_precise_recovery_points = refreshed;
+        accessxi.nav_precise_recovery_failure_since = 0;
+        accessxi.nav_precise_recovery_failures = 0;
+        accessxi.nav_precise_obstacle_recovery = nil;
+        log_line(('nav precise async replan destination="%s" count=%d index=%d'):fmt(
+            tostring(destination.name or ''), refreshed:len(),
+            tonumber(accessxi.nav_route_point_index) or 1));
+        return true, accessxi.nav_precise_guidance_finish(
+            player, refreshed_target, now, destination);
+    end
+
+    local reason = nav_clean_field(completion.reason);
+    reason = reason ~= '' and reason
+        or 'No collision-safe route reaches this destination.';
+    if (obstacle ~= nil
+        and obstacle.destination == destination
+        and obstacle.points == points) then
+        local wall = accessxi.nav_wall_distance(player);
+        if (completion.obstacle_changed == true
+            and wall ~= nil and wall >= 1.2
+            and not accessxi.nav_precise_route_matches_live_position(
+                player, points, accessxi.nav_route_point_index)) then
+            accessxi.nav_precise_obstacle_recovery = nil;
+            accessxi.nav_precise_guidance_full_route_failure(
+                player, now, destination, points, reason);
+        else
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+        end
+        return true, nil;
+    end
+    accessxi.nav_precise_guidance_full_route_failure(
+        player, now, destination, points, reason);
+    return true, nil;
+end
+
+function accessxi.nav_precise_guidance_full_route_failure(player, now, destination, points, reason)
+    now = tonumber(now) or tick();
+    if (player == nil or destination == nil or points == nil
+        or accessxi.nav_active ~= true
+        or accessxi.nav_destination ~= destination
+        or accessxi.nav_route_points ~= points) then
+        return false;
+    end
+    local obstacle = accessxi.nav_precise_obstacle_recovery;
+    if (obstacle ~= nil
+        and obstacle.destination == destination
+        and obstacle.points == points) then
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return false;
+    end
+    if (accessxi.nav_precise_route_matches_live_position(
+        player, points, accessxi.nav_route_point_index)) then
+        accessxi.nav_precise_recovery_failure_since = 0;
+        accessxi.nav_precise_recovery_failures = 0;
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return false;
+    end
+
+    if ((tonumber(accessxi.nav_precise_recovery_failure_since) or 0) <= 0) then
+        accessxi.nav_precise_recovery_failure_since = now;
+    end
+    accessxi.nav_precise_recovery_failures =
+        (tonumber(accessxi.nav_precise_recovery_failures) or 0) + 1;
+    local failure_span = now - (tonumber(accessxi.nav_precise_recovery_failure_since) or now);
+    -- Giving up after 3 failures inside 3 seconds killed routes that a
+    -- couple more seconds of replanning would have recovered -- one bad
+    -- sample after a wall bump was enough. Keep guidance paused and keep
+    -- retrying for a real grace period; the player can always cancel.
+    if (accessxi.nav_precise_recovery_failures >= 12 and failure_span >= 20000
+        and accessxi.nav_active and accessxi.nav_destination == destination
+        and accessxi.nav_route_points == points) then
+        local name = tostring(destination.name or 'destination');
+        local text = ('Navigation stopped. No route could be found from your current position to %s after repeated checks.'):fmt(name);
+        if (type(nav_write_route_evidence) == 'function') then
+            nav_write_route_evidence('unreachable', player, destination, nil, T{
+                reason = tostring(reason or 'repeated full-route failures from live position'),
+            });
+        end
+        local completed_failures = tonumber(accessxi.nav_precise_recovery_failures) or 0;
+        nav_route_stop();
+        speak(text);
+        log_line(('nav precise full route unavailable destination="%s" failures=%d span=%d'):fmt(
+            name, completed_failures, failure_span));
+        return true;
+    end
+
+    accessxi.nav_precise_guidance_note_pause(now, destination);
+    return false;
+end
+
+function accessxi.nav_precise_guidance_completed_candidate_unusable(
+    player, now, destination, points, obstacle, obstacle_changed, reason)
+    local wall = accessxi.nav_wall_distance(player);
+    local on_retained_route = accessxi.nav_precise_route_matches_live_position(
+        player, points, accessxi.nav_route_point_index);
+    if (wall == nil or wall < 1.2 or on_retained_route) then
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return false;
+    end
+    if (obstacle ~= nil
+        and obstacle.destination == destination
+        and obstacle.points == points) then
+        if (obstacle_changed == true) then
+            -- This completed candidate came from a fresh usable sample after
+            -- leaving the confirmed wall, so it is real route-loss evidence.
+            -- Remove only the obstacle pause; the retained route transaction
+            -- remains installed until the shared terminal policy is met.
+            accessxi.nav_precise_obstacle_recovery = nil;
+        else
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+            return false;
+        end
+    end
+    return accessxi.nav_precise_guidance_full_route_failure(
+        player, now, destination, points, reason);
+end
+
+function accessxi.nav_precise_guidance_update(player, now)
+    local destination = accessxi.nav_destination;
+    local points = accessxi.nav_route_points;
+    local count = points ~= nil and points:len() or 0;
+    now = tonumber(now) or tick();
+    if (player == nil or destination == nil or not accessxi.nav_active or count < 2
+        or (tonumber(destination.zone) or 0) ~= (tonumber(player.zone) or 0)
+        or not accessxi.nav_route_precise_override_active(player, points)) then
+        accessxi.nav_precise_guidance_reset();
+        return nil;
+    end
+
+    local player_y = tonumber(player.y);
+    local destination_y = tonumber(destination.y);
+    -- STANDING ON IT IS ARRIVING, WHATEVER THE CATALOGUE SAYS ITS HEIGHT IS.
+    --
+    -- Live 2026-08-24, the Survival Guide in Northern San d'Oria. Its catalogue
+    -- row read y = -4.0 with confidence "generated"; the player has stood 0.2
+    -- yalms from that exact x/z at y = 4.0, and every one of 148 nearby samples
+    -- is positive. FFXI's y is inverted, so the row put it EIGHT YALMS UP,
+    -- through a floor.
+    --
+    -- The bearing was not the real damage -- this gate was. Arrival needs
+    -- |dy| <= 4.0, the bad row made it 8.0, so the player stood ON the guide and
+    -- never arrived. The route stayed live at one to three yalms, where any step
+    -- swings the bearing by a hundred degrees, and it "spins in circles".
+    --
+    -- Two yalms horizontally is not "near" a thing, it IS the thing. Deliberately
+    -- tighter than the telepoint case, where the player was 6.2 yalms out on a
+    -- rim above a hollow they genuinely could not reach; that must still refuse.
+    local destination_vertical_reached = player_y == nil or destination_y == nil
+        or math.abs(player_y - destination_y) <= 4.0;
+    if (not destination_vertical_reached) then
+        local standing_on = accessxi.nav_destination;
+        if (type(standing_on) == 'table') then
+            local flat_dx = (tonumber(player.x) or 0) - (tonumber(standing_on.x) or 0);
+            local flat_dz = (tonumber(player.z) or 0) - (tonumber(standing_on.z) or 0);
+            local flat_here = math.sqrt((flat_dx * flat_dx) + (flat_dz * flat_dz));
+            if (flat_here <= 2.0) then
+                destination_vertical_reached = true;
+                local naming = tostring(standing_on.name or '');
+                if (tostring(accessxi.nav_height_disagreement_key or '') ~= naming) then
+                    accessxi.nav_height_disagreement_key = naming;
+                    log_line(('nav destination height disagrees name="%s" recorded=%.1f standing=%.1f flat=%.2f -- treating as arrived'):fmt(
+                        accessxi.escape_probe_log_text(naming),
+                        destination_y or 0, player_y or 0, flat_here));
+                end
+            end
+        end
+    end
+    if (nav_distance(player, destination) <= accessxi.nav_arrival_radius(destination)
+        and destination_vertical_reached) then
+        accessxi.nav_precise_guidance_reset();
+        return destination;
+    end
+
+    local route_changed = accessxi.nav_precise_recovery_destination ~= destination
+        or accessxi.nav_precise_recovery_points ~= points;
+    if (route_changed) then
+        accessxi.nav_precise_guidance_reset();
+        accessxi.nav_precise_recovery_destination = destination;
+        accessxi.nav_precise_recovery_points = points;
+    end
+
+    local obstacle = accessxi.nav_precise_obstacle_recovery;
+    if (obstacle ~= nil
+        and (obstacle.destination ~= destination or obstacle.points ~= points)) then
+        accessxi.nav_precise_obstacle_recovery = nil;
+        obstacle = nil;
+    end
+    if (obstacle ~= nil and obstacle.cursor_restore_points == points) then
+        accessxi.nav_route_point_index = math.max(1, math.min(
+            tonumber(obstacle.cursor_restore_index) or 1,
+            points:len()));
+        obstacle.index = accessxi.nav_route_point_index;
+        obstacle.cursor_restore_points = nil;
+        obstacle.cursor_restore_index = nil;
+    end
+    local completion = accessxi.nav_precise_async_recovery_completion;
+    if (completion ~= nil) then
+        if (not accessxi.nav_precise_async_recovery_completion_is_current(
+            completion)) then
+            accessxi.nav_precise_async_recovery_completion = nil;
+        else
+            local consumed, completed_target =
+                accessxi.nav_precise_guidance_consume_async_recovery(
+                    completion, player, now, destination, points, obstacle);
+            if (consumed) then
+                return completed_target;
+            end
+        end
+    end
+
+    local obstacle_changed = false;
+    if (obstacle ~= nil) then
+        accessxi.nav_precise_guidance_cache_clear();
+        accessxi.nav_precise_guidance_status = 'recovering';
+        if ((tonumber(accessxi.nav_precise_recovery_since) or 0) <= 0) then
+            accessxi.nav_precise_recovery_since = tonumber(obstacle.tick) or now;
+        end
+        obstacle_changed = accessxi.nav_precise_obstacle_recovery_changed(
+            obstacle, player, now);
+        if (obstacle_changed and obstacle.replan_player ~= nil) then
+            local reacquired = accessxi.nav_precise_obstacle_reacquired_target(
+                obstacle, player, points, accessxi.nav_route_point_index);
+            if (reacquired ~= nil) then
+                return accessxi.nav_precise_guidance_finish(
+                    player, reacquired, now, destination);
+            end
+        end
+        if (not obstacle_changed) then
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+            return nil;
+        end
+    end
+
+    local pending = accessxi.nav_dat_collision_pending;
+    if (type(pending) == 'table'
+        and pending.purpose == 'recovery'
+        and pending.owner_destination == destination
+        and pending.retained_route_points == points) then
+        accessxi.nav_precise_guidance_cache_clear();
+        accessxi.nav_precise_guidance_status = 'recovering';
+        if ((tonumber(accessxi.nav_precise_recovery_since) or 0) <= 0) then
+            accessxi.nav_precise_recovery_since = now;
+        end
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return nil;
+    end
+
+    local target = nil;
+    if (obstacle == nil) then
+        local cached = accessxi.nav_precise_guidance_cached_target(player);
+        if (cached ~= nil) then
+            return cached;
+        end
+
+        target = accessxi.nav_precise_steering_target(
+            player, points, accessxi.nav_route_point_index, 5);
+        if (target ~= nil) then
+            return accessxi.nav_precise_guidance_finish(player, target, now, destination);
+        end
+    end
+
+    accessxi.nav_precise_guidance_cache_clear();
+    accessxi.nav_precise_guidance_status = 'recovering';
+    if ((tonumber(accessxi.nav_precise_recovery_since) or 0) <= 0) then
+        accessxi.nav_precise_recovery_since = now;
+    end
+
+    local last_replan_tick = tonumber(accessxi.nav_precise_recovery_last_replan_tick) or 0;
+    local last_player = accessxi.nav_precise_recovery_last_player;
+    local moved = last_player ~= nil and nav_distance(player, last_player) or 999999;
+    local vertical_moved = last_player ~= nil
+        and math.abs((tonumber(player.y) or 0) - (tonumber(last_player.y) or 0)) or 999999;
+    local index_changed = (tonumber(accessxi.nav_precise_recovery_last_index) or 0)
+        ~= (tonumber(accessxi.nav_route_point_index) or 1);
+    local elapsed = now - last_replan_tick;
+    local replan_due = obstacle ~= nil and obstacle_changed
+        or last_replan_tick <= 0
+        or elapsed >= 1000
+        or (elapsed >= 250 and (moved >= 1.0 or vertical_moved >= 1.0 or index_changed));
+    if (not replan_due) then
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return nil;
+    end
+
+    accessxi.nav_precise_recovery_last_replan_tick = now;
+    accessxi.nav_precise_recovery_last_player = T{
+        zone = player.zone,
+        x = player.x,
+        z = player.z,
+        y = player.y,
+    };
+    accessxi.nav_precise_recovery_last_index = tonumber(accessxi.nav_route_point_index) or 1;
+    accessxi.nav_route_last_recalc_tick = now;
+    if (obstacle ~= nil) then
+        obstacle.replan_tick = now;
+        obstacle.replan_player = T{
+            zone = player.zone,
+            x = player.x,
+            z = player.z,
+            y = player.y,
+            yaw = player.yaw,
+        };
+    end
+
+    local refreshed = T{};
+    local current_route_id = accessxi.nav_route_points_override_id(points);
+    if (current_route_id:startswith('lathine-recorded-survey-')) then
+        if (type(accessxi.nav_recorded_survey_route) == 'function') then
+            refreshed = accessxi.nav_recorded_survey_route(
+                player, destination, points, accessxi.nav_route_point_index, true);
+        end
+    end
+    -- A displacement the owned-route connector cannot bridge -- a fall into
+    -- a valley, a bump onto a ledge -- is not a dead end. Replan a fresh
+    -- full route from the live position to the same destination rather than
+    -- insisting on rejoining the original walked line.
+    --
+    -- A full dispatcher pass is synchronous and far heavier than a connector
+    -- probe, so it must not run at the 250 ms recovery cadence. Hold it to
+    -- at most once per second.
+    -- A certified route is not discarded because the player bumped off it.
+    -- Live 2026-08-21: three yalms below the route in a pocket, the recovery
+    -- replanned from the live position five times in 23 seconds, each answered
+    -- "too far from mapped ground" -- correct answers to the wrong question,
+    -- since the 61-point route was still valid three yalms away. Retain the
+    -- route while the player is locally matched to it; hand them a return
+    -- point that passes the walkability gate; pause without destroying
+    -- anything when no such point exists; replan only after the match has
+    -- been lost continuously, and rarely.
+    if (current_route_id == 'lathine-walk-graph-v2' and (refreshed == nil or refreshed:len() <= 1)) then
+        local matched = accessxi.nav_precise_route_matches_live_position(
+            player, points, accessxi.nav_route_point_index);
+        if (matched) then
+            accessxi.nav_precise_recovery_match_lost_since = 0;
+            local see_fn = type(accessxi.nav_beacon_sightline_see) == 'function'
+                and accessxi.nav_beacon_sightline_see() or nil;
+            local cursor = math.max(1, math.min(tonumber(accessxi.nav_route_point_index) or 1, points:len()));
+            local return_point = nil;
+            local return_distance = nil;
+            for ri = math.max(1, cursor - 1), math.min(points:len(), cursor + 3) do
+                local candidate = points[ri];
+                if (candidate ~= nil) then
+                    local rh = nav_distance(player, candidate);
+                    local rv = math.abs((tonumber(player.y) or 0) - (tonumber(candidate.y) or 0));
+                    if (rh >= 0.75 and rh <= 4.0 and rv <= 3.0
+                        and (return_distance == nil or rh < return_distance)
+                        and see_fn ~= nil and type(accessxi.nav_leg_walkable) == 'function'
+                        and accessxi.nav_leg_walkable(
+                            tonumber(player.x) or 0, tonumber(player.y) or 0, tonumber(player.z) or 0,
+                            tonumber(candidate.x) or 0, tonumber(candidate.y) or 0, tonumber(candidate.z) or 0,
+                            see_fn)) then
+                        return_point = candidate;
+                        return_distance = rh;
+                    end
+                end
+            end
+            if (return_point ~= nil) then
+                local return_target = T{
+                    zone = player.zone,
+                    x = return_point.x, z = return_point.z, y = return_point.y,
+                    name = 'Return to route',
+                    kind = 'route',
+                    source = 'live-route-return',
+                    route_override_id = return_point.route_override_id,
+                };
+                log_line(('nav walk graph return cue destination="%s" distance=%.1f'):fmt(
+                    tostring(destination.name or ''), return_distance));
+                return accessxi.nav_precise_guidance_finish(player, return_target, now, destination);
+            end
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+            return nil;
+        end
+        local lost_since = tonumber(accessxi.nav_precise_recovery_match_lost_since) or 0;
+        if (lost_since <= 0) then
+            accessxi.nav_precise_recovery_match_lost_since = now;
+            lost_since = now;
+        end
+        if ((now - lost_since) < 1750) then
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+            return nil;
+        end
+    end
+    if ((refreshed == nil or refreshed:len() <= 1)
+        and type(accessxi.nav_compute_route_with_zoneline_approach) == 'function') then
+        local last_full_replan = tonumber(accessxi.nav_precise_recovery_last_full_replan_tick) or 0;
+        local replan_gap = current_route_id == 'lathine-walk-graph-v2' and 5000 or 1000;
+        if (last_full_replan > 0 and (now - last_full_replan) < replan_gap) then
+            -- Throttled. Keep guidance paused, and do not charge a failure
+            -- for an attempt that was never made -- otherwise the stop
+            -- threshold counts polls instead of real routing attempts.
+            accessxi.nav_precise_guidance_note_pause(now, destination);
+            return nil;
+        end
+        accessxi.nav_precise_recovery_last_full_replan_tick = now;
+        refreshed = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
+    end
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        local recovery_pending = accessxi.nav_dat_collision_pending;
+        if (type(recovery_pending) == 'table'
+            and recovery_pending.purpose == 'recovery'
+            and recovery_pending.owner_destination == destination
+            and recovery_pending.retained_route_points == points) then
+            recovery_pending.obstacle_changed = obstacle_changed == true;
+        end
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return nil;
+    end
+
+    if (refreshed ~= nil and refreshed:len() > 1) then
+        local refreshed_index, refreshed_target =
+            accessxi.nav_precise_guidance_prepare_candidate(
+                player, refreshed, destination);
+        if (refreshed_target == nil) then
+            accessxi.nav_precise_guidance_cache_clear();
+            accessxi.nav_precise_guidance_status = 'recovering';
+            accessxi.nav_precise_guidance_completed_candidate_unusable(
+                player, now, destination, points, obstacle, obstacle_changed,
+                'completed route candidate has no safe steering target from the live position');
+            return nil;
+        end
+        accessxi.nav_route_points = refreshed;
+        accessxi.nav_route_point_index = refreshed_index;
+        accessxi.nav_precise_recovery_points = refreshed;
+        accessxi.nav_precise_recovery_failure_since = 0;
+        accessxi.nav_precise_recovery_failures = 0;
+        accessxi.nav_precise_obstacle_recovery = nil;
+        log_line(('nav precise live replan destination="%s" count=%d index=%d'):fmt(
+            tostring(destination.name or ''), refreshed:len(),
+            tonumber(accessxi.nav_route_point_index) or 1));
+        return accessxi.nav_precise_guidance_finish(
+            player, refreshed_target, now, destination);
+    end
+
+    if (obstacle ~= nil) then
+        local wall = accessxi.nav_wall_distance(player);
+        if (obstacle_changed and wall ~= nil and wall >= 1.2
+            and not accessxi.nav_precise_route_matches_live_position(
+                player, points, accessxi.nav_route_point_index)) then
+            accessxi.nav_precise_obstacle_recovery = nil;
+            accessxi.nav_precise_guidance_full_route_failure(
+                player, now, destination, points,
+                'repeated full-route failures from live position');
+            return nil;
+        end
+        accessxi.nav_precise_guidance_note_pause(now, destination);
+        return nil;
+    end
+
+    accessxi.nav_precise_guidance_full_route_failure(
+        player, now, destination, points,
+        'repeated full-route failures from live position');
+    return nil;
+end
+
+-- PRODUCER HOLD. Three components can each supply the beacon aim point --
+-- the indexed lookahead, the sightline detour (an async mesh answer, so it is
+-- present on some pulses and absent on the next), and the precise cache's
+-- corrections. Each has its own geometry, so alternating between them is heard
+-- as a beacon that will not hold still. Measured live 2026-08-22: 278 of 516
+-- beacon-seconds played two conflicting angles inside one second.
+--
+-- The hold is on the MODE, not on a coordinate (sol, ruling A): the winning
+-- producer keeps supplying the aim for two seconds and may move it as the
+-- player walks. It ends early when ownership changes or the held leg is
+-- blocked; return-to-route and wall-escape may interrupt at any time because
+-- their whole content is that the current aim is unreachable.
+accessxi.nav_beacon_aim_hold_ms = 2000;   -- table, not a local: Lua 5.1 caps the main chunk at 200
+
+function accessxi.nav_beacon_aim_mode_for(source)
+    source = tostring(source or '');
+    if (source == 'live-route-return' or source == 'wall-escape'
+        or source == 'dynamic-obstacle') then
+        return 'correction';
+    end
+    if (source == 'sightline-detour') then
+        return 'detour';
+    end
+    return 'normal';
+end
+
+-- The mode in force right now, and whether the hold on it is still live.
+function accessxi.nav_beacon_aim_mode_held(now)
+    now = tonumber(now) or tick();
+    local mode = accessxi.nav_beacon_aim_mode;
+    if (mode == nil) then
+        return nil, false;
+    end
+    local generation = tonumber(accessxi.nav_route_ownership_generation) or 0;
+    if ((tonumber(accessxi.nav_beacon_aim_mode_generation) or -1) ~= generation) then
+        accessxi.nav_beacon_aim_mode = nil;   -- ownership changed: nothing is held
+        return nil, false;
+    end
+    local elapsed = now - (tonumber(accessxi.nav_beacon_aim_mode_tick) or 0);
+    return tostring(mode), elapsed < (tonumber(accessxi.nav_beacon_aim_hold_ms) or 2000);
+end
+
+function accessxi.nav_beacon_aim_mode_note(mode, now)
+    mode = tostring(mode or 'normal');
+    now = tonumber(now) or tick();
+    if (tostring(accessxi.nav_beacon_aim_mode or '') ~= mode) then
+        accessxi.nav_beacon_aim_mode = mode;
+        accessxi.nav_beacon_aim_mode_tick = now;
+    end
+    accessxi.nav_beacon_aim_mode_generation = tonumber(accessxi.nav_route_ownership_generation) or 0;
+end
+
+function accessxi.nav_beacon_aim_mode_invalidate()
+    accessxi.nav_beacon_aim_mode = nil;
+    accessxi.nav_beacon_aim_mode_tick = 0;
+end
+
+-- May the detour take the aim this pulse? Only when nothing is held, when the
+-- detour is what is already held, or when the leg the hold was granted on has
+-- turned out to be blocked (sol, ruling A).
+function accessxi.nav_beacon_detour_permitted(now, leg_blocked)
+    local mode, held = accessxi.nav_beacon_aim_mode_held(now);
+    if (mode == nil or not held) then
+        return true;
+    end
+    if (mode == 'detour' or mode == 'correction') then
+        return true;
+    end
+    return leg_blocked == true;
+end
+
+-- THE AIM MUST BE SOMEWHERE THE PLAYER CAN ACTUALLY WALK.
+--
+-- On 2026-08-22 the beacon aim was unified on nav_route_pursuit_aim and
+-- inserted into nav_beacon_route_target as an early return guarded by
+-- `route_count > 1` -- the SAME guard as the validation block immediately
+-- below it. Since pursuit only declines when the route has fewer than two
+-- points, which that guard has already excluded, the early return wins on
+-- every pulse and everything after it became unreachable: the sightline clamp,
+-- the walkability test, the backward rejoin search, and the refusal that says
+-- "No clear line ahead".
+--
+-- The log settles it rather than arguing it. The clamp prints one line a second
+-- while it runs: 16,885 of them, the last at 2026-08-22 11:49:00. The first
+-- pursuit aim is at 11:49:11. In the 40,394 pursuit pulses since, not one.
+-- The beacon's whole geometry defence has been switched off for five days.
+--
+-- The consequence, measured over 2,247 reconstructed (position, aim) pairs:
+-- 22.9% of aims in Jugner Forest cross ground the mesh says is not walkable,
+-- and when one does, the player can walk a median of 3.1 yalms before leaving
+-- it -- while being told to go nine. That is the player's report exactly:
+-- "the beacons do lead you but try to run you in to walls".
+--
+-- Pursuit's rule stays: aim along the route, never at a substitute. What
+-- changes is that the aim is pulled BACK along the same polyline until the
+-- player has a walkable line to it. Walking it back along the route rather
+-- than shortening the bearing is what keeps the tone steady -- the direction
+-- barely moves, only the distance does. If even the floor cannot be reached
+-- the player is pinned, and this returns nil so the block below -- wall-escape,
+-- the sightline clamp, the detour -- can finally do its job.
+function accessxi.nav_pursuit_aim_reachable(player, aim)
+    if (type(player) ~= 'table' or type(aim) ~= 'table') then
+        return aim;
+    end
+    if (type(accessxi.nav_leg_walkable) ~= 'function') then
+        return aim;             -- no test available; do not invent a refusal
+    end
+    -- On a walk-graph route the shipped mesh gets no vote: it is the older
+    -- geometry, it lacks the staircase climbs the 2026-08-28 graph repair
+    -- added, and it refused every aim up them. The slope, step and drop guards
+    -- inside nav_leg_walkable still run.
+    local see;
+    if (type(accessxi.nav_route_points_override_id) == 'function'
+        and accessxi.nav_route_points_override_id(accessxi.nav_route_points)
+            == 'lathine-walk-graph-v2'
+        and type(accessxi.nav_beacon_geometry_only_see) == 'function') then
+        see = accessxi.nav_beacon_geometry_only_see();
+    else
+        see = type(accessxi.nav_beacon_sightline_see) == 'function'
+            and accessxi.nav_beacon_sightline_see() or nil;
+    end
+
+    local px, py, pz = tonumber(player.x) or 0, tonumber(player.y) or 0, tonumber(player.z) or 0;
+    local ok, walkable = pcall(accessxi.nav_leg_walkable, px, py, pz,
+        tonumber(aim.x) or 0, tonumber(aim.y) or 0, tonumber(aim.z) or 0, see);
+    if (not ok or walkable == true) then
+        return aim;             -- a raising test is not evidence of a wall
+    end
+
+    -- Blocked. Walk the aim back toward the player along the same line, taking
+    -- the furthest point that passes. Eight steps resolves a nine-yalm aim to
+    -- better than half a yalm, which is finer than the player can walk.
+    local floor_distance = 4.0;
+    local dx = (tonumber(aim.x) or 0) - px;
+    local dz = (tonumber(aim.z) or 0) - pz;
+    local dy = (tonumber(aim.y) or 0) - py;
+    local span = math.sqrt((dx * dx) + (dz * dz));
+    if (span <= floor_distance) then
+        return nil;             -- already inside the floor and still blocked
+    end
+
+    local low, high, best = 0.0, 1.0, nil;
+    for _ = 1, 8 do
+        local mid = (low + high) * 0.5;
+        local cx, cy, cz = px + (dx * mid), py + (dy * mid), pz + (dz * mid);
+        local ok_mid, mid_walkable = pcall(accessxi.nav_leg_walkable,
+            px, py, pz, cx, cy, cz, see);
+        if (ok_mid and mid_walkable == true) then
+            best = { x = cx, y = cy, z = cz, source = aim.source, index = aim.index };
+            low = mid;
+        else
+            high = mid;
+        end
+    end
+
+    if (best == nil or (span * low) < floor_distance) then
+        return nil;             -- pinned; let wall-escape take it
+    end
+    best.clamped_from = span;
+    best.clamped_to = span * low;
+    return best;
+end
+
 function accessxi.nav_beacon_route_target(player)
     if (player == nil or not accessxi.nav_active or accessxi.nav_destination == nil) then
+        return nil;
+    end
+    if (accessxi.nav_precise_obstacle_recovery ~= nil) then
         return nil;
     end
     if accessxi.nav_dat_collision_pending ~= nil then
@@ -95384,8 +101331,107 @@ function accessxi.nav_beacon_route_target(player)
         return nil;
     end
 
+    -- An obstruction is SPOKEN, never a reason to go quiet. Withholding the
+    -- bearing left the player with nothing to walk on at the moment they most
+    -- needed it; they would rather hear the route and step round the thing
+    -- themselves. (This overrides sol's ruling that a blocked aim must be
+    -- suppressed -- the player's call, and they walk every yalm of this.)
+
     local route_count = accessxi.nav_route_points:len();
+
+    -- ONE RULE. The player's whole contract with the beacon is "centred means
+    -- walk this way"; everything else was machinery they should never have had
+    -- to feel. Aim at the point on the route a fixed distance ahead of where
+    -- they actually are, and let it slide forward as they walk.
+    --
+    -- This deliberately runs BEFORE the indexed lookahead, the sightline clamp
+    -- substitution, the async detour and the precise cache. Those each produced
+    -- a different point on a different pulse, and the tone swung 40 to 90
+    -- degrees between them (live 2026-08-22 11:42). Filtering the tone could
+    -- never fix an aim that was itself moving; giving the aim one definition
+    -- does. Obstacles may still shape the route, and the obstruction refusal
+    -- above still withholds the aim entirely -- but nothing gets to substitute
+    -- a different point for this one.
+    if (route_count > 1 and type(accessxi.nav_route_pursuit_aim) == 'function') then
+        accessxi.nav_sync_route_index(player);
+        local ok_pursuit, pursuit_aim, pursuit_distance = pcall(
+            accessxi.nav_route_pursuit_aim, player, accessxi.nav_route_points,
+            accessxi.nav_route_point_index);
+        if (ok_pursuit and pursuit_aim ~= nil) then
+            local key = ('%d:%.0f:%.0f'):fmt(
+                tonumber(accessxi.nav_route_point_index) or 0,
+                tonumber(pursuit_aim.x) or 0, tonumber(pursuit_aim.z) or 0);
+            if (key ~= tostring(accessxi.nav_route_pursuit_last_key or '')) then
+                accessxi.nav_route_pursuit_last_key = key;
+                log_line(('nav pursuit aim=(%.1f,%.1f,%.1f) ahead=%.1f index=%d/%d'):fmt(
+                    pursuit_aim.x, pursuit_aim.z, pursuit_aim.y,
+                    tonumber(pursuit_distance) or 0,
+                    tonumber(accessxi.nav_route_point_index) or 0, route_count));
+            end
+            -- Only if the player can actually get there. When they cannot,
+            -- fall through rather than returning: the block below holds
+            -- wall-escape, the sightline clamp and the detour, and has been
+            -- unreachable since 2026-08-22.
+            local reachable = accessxi.nav_pursuit_aim_reachable(player, pursuit_aim);
+            if (reachable ~= nil) then
+                if (reachable.clamped_to ~= nil) then
+                    local note = ('nav pursuit CLAMPED %.1f -> %.1f yalms'):fmt(
+                        tonumber(reachable.clamped_from) or 0,
+                        tonumber(reachable.clamped_to) or 0);
+                    if (note ~= tostring(accessxi.nav_pursuit_clamp_last or '')) then
+                        accessxi.nav_pursuit_clamp_last = note;
+                        log_line(note);
+                    end
+                end
+                accessxi.nav_beacon_aim_mode_note('normal', tick());
+                return reachable;
+            end
+            log_line(('nav pursuit aim BLOCKED at (%.1f,%.1f,%.1f) -- falling through to sightline'):fmt(
+                tonumber(pursuit_aim.x) or 0, tonumber(pursuit_aim.z) or 0,
+                tonumber(pursuit_aim.y) or 0));
+        end
+    end
+
     if (route_count > 1) then
+        local walk_graph_aim = accessxi.nav_route_points_override_id(
+            accessxi.nav_route_points) == 'lathine-walk-graph-v2';
+        local precise_aim = nil;
+        if (accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
+            local precise_target = accessxi.nav_precise_guidance_cached_target(player);
+            if (precise_target ~= nil) then
+                -- Returning the cached target here skips everything below it.
+                -- For every other precise route that is intended. For the walk
+                -- graph it silently defeated the whole point: the sightline
+                -- clamp and the native-mesh suppression further down were never
+                -- reached on the normal path, so the shipped mesh could still
+                -- substitute an aim point on a route built specifically to stop
+                -- using it. Carry the cached target down as the candidate and
+                -- let it be validated exactly once, like any other.
+                if (not walk_graph_aim) then
+                    return precise_target;
+                end
+                -- ONE PRODUCER. The precise cache and the indexed lookahead
+                -- compute slightly different points on the same leg, and the
+                -- cache validates and expires with movement, so the two
+                -- alternated about once a second -- 152 aim-source switches
+                -- in a six-minute walk on 2026-08-21, heard as a beacon that
+                -- never settles. On a certified route the cache may supply a
+                -- CORRECTION (return-to-route, obstacle, wall escape) and
+                -- nothing else; ordinary steering is the indexed lookahead.
+                -- The producer hold above keeps the two from trading places.
+                local precise_source = tostring(precise_target.source or '');
+                if (accessxi.nav_beacon_aim_mode_for(precise_source) == 'correction') then
+                    precise_aim = precise_target;
+                end
+            end
+            -- The precise cache only survives 0.75 yalms of movement, so a
+            -- walking player invalidates it almost at once.  Returning nil here
+            -- left the beacon with nothing to point at for whole seconds at a
+            -- time -- silence exactly while moving, which is when the cue
+            -- matters.  The precise target is a refinement, not a prerequisite:
+            -- fall through to the ordinary route target instead.
+        end
+
         accessxi.nav_sync_route_index(player);
         if (accessxi.nav_route_point_index < 1) then
             accessxi.nav_route_point_index = 1;
@@ -95393,24 +101439,108 @@ function accessxi.nav_beacon_route_target(player)
             accessxi.nav_route_point_index = route_count;
         end
 
-        if (accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points)) then
-            local route_points = accessxi.nav_route_points;
-            local target = accessxi.nav_precise_steering_target(
-                player, route_points, accessxi.nav_route_point_index, 5);
-            if (target == nil) then
-                return accessxi.nav_precise_route_recover_or_stop(
-                    player, destination, route_points, 5);
-            end
-            return target;
-        end
-
         local route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
-        if (route_target ~= nil) then
-            local distance = nav_distance(player, route_target);
-            if (distance <= 5 and next_target ~= nil) then
-                return next_target;
+        -- Choose which point the beacon will steer at BEFORE validating it.
+        -- The hand-over to the lookahead used to happen AFTER clamping, so
+        -- whenever the near point sat within 5 yalms the point the player
+        -- actually heard had skipped the detour check entirely and carried the
+        -- other point's clamp flag. One candidate, validated once.
+        local aim = route_target;
+        if (aim ~= nil and next_target ~= nil and nav_distance(player, aim) <= 5) then
+            aim = next_target;
+        end
+        -- A walk-graph route's cached precise target replaces the lookahead
+        -- choice, but does NOT replace the validation below it.
+        if (precise_aim ~= nil) then
+            aim = precise_aim;
+        end
+        -- ON A RAMP, AIM UP THE RAMP. The lookahead lands one to five yalms
+        -- away and several yalms above, and at that range the bearing to it
+        -- flips with every stride -- the "really weird at zone lines" the
+        -- player reported. Only when the run says the player is demonstrably
+        -- on it; ambiguity keeps the ordinary aim rather than confidently
+        -- pointing at a floor we cannot prove (sol, ruling C).
+        local vertical_run_aim = nil;
+        if (precise_aim == nil
+            and accessxi.nav_vertical_run_active ~= nil
+            and tostring(accessxi.nav_vertical_run_reason or '') == 'projected'
+            and type(accessxi.nav_vertical_run_aim) == 'function') then
+            vertical_run_aim = accessxi.nav_vertical_run_aim(
+                player, accessxi.nav_route_points, accessxi.nav_vertical_run_active);
+            if (vertical_run_aim ~= nil) then
+                aim = vertical_run_aim;
             end
-            return route_target;
+        end
+        -- The lookahead measures distance ALONG the route, so on a corner it
+        -- lands past the bend and the straight line the player walks toward it
+        -- goes through rock. Clamp the aim point to something actually visible.
+        -- CanSeeDestination ignores the endpoint Y, so it cannot tell a point
+        -- on the ramp from one on the floor below it. A run aim is already
+        -- certified by position along the run; letting sight clamp it is how a
+        -- blind player gets pointed at the wrong level.
+        if (aim ~= nil and vertical_run_aim == nil
+            and type(accessxi.nav_beacon_clamp_to_sightline) == 'function'
+            and type(accessxi.nav_beacon_sightline_see) == 'function') then
+            local see = accessxi.nav_beacon_sightline_see();
+            -- Same rule as the detour below: on a certified walk-graph route
+            -- the shipped mesh must not get a vote. Withholding it from the
+            -- detour alone was half the job -- the sightline CLAMP still asked
+            -- it, and it answered visible=false for every leg up the telepoint
+            -- stairs. Swap in the geometry-only test so the clamp still runs.
+            if (see ~= nil
+                and accessxi.nav_route_points_override_id(accessxi.nav_route_points)
+                    == 'lathine-walk-graph-v2'
+                and type(accessxi.nav_beacon_geometry_only_see) == 'function') then
+                see = accessxi.nav_beacon_geometry_only_see();
+            end
+            if (see ~= nil) then
+                -- On a certified walk-graph route the shipped mesh must not get
+                -- a vote. Both the sightline clamp and the detour aim below fall
+                -- back to nav_mesh_probe_path when nothing is visible, and that
+                -- is the same mesh whose 67-degree legs and on-wall corridor
+                -- points this route exists to stop using. Letting it answer here
+                -- would hand back its route one function after we validated
+                -- ours. Withholding it leaves the forward/backward clamping
+                -- along the validated route intact, which is the part that
+                -- actually helps, and leaves 'blocked' to be spoken rather than
+                -- papered over with a guess.
+                local detour = accessxi.nav_mesh_probe_path;
+                if (accessxi.nav_route_points_override_id(accessxi.nav_route_points)
+                    == 'lathine-walk-graph-v2') then
+                    detour = nil;
+                end
+                aim = accessxi.nav_beacon_clamp_to_sightline(
+                    player, accessxi.nav_route_points, accessxi.nav_route_point_index,
+                    aim, see, detour);
+                -- Nothing in either direction was reachable. Announcing "no
+                -- clear line" and then playing a confident angle at the
+                -- unreachable point anyway is how the player ends up centred
+                -- on rock, so hand back nothing and let the caller say so.
+                if (accessxi.nav_beacon_sightline_blocked == true) then
+                    return nil;
+                end
+                -- Last: an obstacle you must walk around is invisible to both
+                -- the sightline and the slope test. Ask the mesh how far the
+                -- leg really is, and steer along its first step when the
+                -- direct line turns out to be a 2.5x detour.
+                -- The detour is an ASYNC mesh answer: present on one pulse,
+                -- absent on the next, and each state produces a different
+                -- angle. While a normal aim is held it may only interrupt if
+                -- the leg that hold was granted on is actually blocked -- which
+                -- the clamp above has just reported (sol, ruling A).
+                if (type(accessxi.nav_beacon_detour_target) == 'function'
+                    and accessxi.nav_beacon_detour_permitted(
+                        tick(), accessxi.nav_beacon_sightline_clamped == true)) then
+                    aim = accessxi.nav_beacon_detour_target(player, aim, detour);
+                end
+            end
+        end
+        if (aim ~= nil) then
+            -- Exactly one aim leaves this function per pulse. Record which
+            -- producer supplied it so the next pulse can hold the same one.
+            accessxi.nav_beacon_aim_mode_note(
+                accessxi.nav_beacon_aim_mode_for(aim.source), tick());
+            return aim;
         end
     end
 
@@ -95418,95 +101548,164 @@ function accessxi.nav_beacon_route_target(player)
 end
 
 function accessxi.nav_beacon_reset_direction_state()
+    accessxi.nav_beacon_aim_mode = nil;
+    accessxi.nav_beacon_aim_mode_tick = 0;
     accessxi.nav_beacon_route_identity = nil;
     accessxi.nav_beacon_route_acquired = false;
     accessxi.nav_beacon_centered = false;
     accessxi.nav_beacon_center_index = nil;
     accessxi.nav_beacon_previous_delta = nil;
+    accessxi.nav_beacon_pending_delta = nil;
+    accessxi.nav_beacon_reversal_holds = 0;
     accessxi.nav_beacon_motion_x = nil;
     accessxi.nav_beacon_motion_z = nil;
 end
 
+function accessxi.nav_route_guidance_reset()
+    if (type(accessxi.nav_precise_guidance_reset) == 'function') then
+        accessxi.nav_precise_guidance_reset();
+    end
+    accessxi.nav_beacon_reset_direction_state();
+end
+
 function accessxi.nav_beacon_direction_delta(player, route_target, points, index, route_geometry)
-    local target_heading = accessxi.nav_heading_to(player, route_target);
     local yaw = player ~= nil and tonumber(player.yaw) or nil;
-    if (target_heading == nil or yaw == nil) then
+    if (yaw == nil) then
         return nil;
     end
     if (math.abs(yaw) > (math.pi * 2.1)) then
         yaw = yaw * math.pi / 180;
     end
 
-    local raw_delta = accessxi.nav_normalize_angle(target_heading + yaw);
-    local acquired_before = accessxi.nav_beacon_route_acquired == true;
+    -- The player turns until this angle reads centred and then walks forward,
+    -- so it is ALWAYS the bearing from where they stand to the point they are
+    -- being sent to. It used to be the compass heading of the route segment at
+    -- points[index], which matches only while they are already on the route --
+    -- and is a wall the moment they are not. Live on 2026-08-20, 14.6 yalms off
+    -- route, that played 9 degrees ("centred, walk forward") while the aim point
+    -- lay 106 degrees away. Nine fixes to the aim point were all discarded here.
+    accessxi.nav_beacon_direction_suppressed = false;
+    local aim = route_target;
+    local see = nil;
+    if (type(accessxi.nav_beacon_sightline_see) == 'function') then
+        see = accessxi.nav_beacon_sightline_see();
+    end
+    local count = points ~= nil and points:len() or 0;
     local source = tostring(route_target ~= nil and route_target.source or '');
     local explicit_correction = source == 'live-route-return'
         or source == 'dynamic-obstacle'
         or source == 'wall-escape'
         or source == 'lathine-local-safe';
-    local count = points ~= nil and points:len() or 0;
-    if (route_geometry == true and count >= 2 and not explicit_correction
-        and not acquired_before
-        and math.abs(raw_delta) <= (20 * math.pi / 180)) then
+
+    -- An aim point on top of the player gives a bearing that swings wildly, and
+    -- below 0.001 gives none at all. Reach FURTHER along the route for a steady
+    -- one -- validated the same way, because advancing blindly along the
+    -- polyline can round a corner into rock.
+    --
+    -- Never past a correction, whose entire content is "go to THIS point
+    -- instead". A detour target is deliberately close: it is the mesh's first
+    -- step AROUND an obstacle, so continuing along the route past it aims back
+    -- at the obstacle. A clamped target is close because that is as far as the
+    -- player can safely see. Extending either one is the same substitution
+    -- that route geometry was.
+    local correction = explicit_correction
+        or accessxi.nav_beacon_detour_active == true
+        or accessxi.nav_beacon_sightline_clamped == true;
+    if (aim ~= nil and see ~= nil and not correction
+        and route_geometry == true and count > 0
+        and nav_distance(player, aim) < 2.5
+        and type(accessxi.nav_beacon_extend_aim) == 'function') then
+        local extended = accessxi.nav_beacon_extend_aim(player, aim, points, index, see);
+        if (extended ~= nil) then
+            aim = extended;
+        elseif (type(accessxi.nav_leg_walkable) == 'function'
+            and accessxi.nav_leg_walkable(
+                tonumber(player.x) or 0, tonumber(player.y) or 0, tonumber(player.z) or 0,
+                tonumber(aim.x) or 0, tonumber(aim.y) or 0, tonumber(aim.z) or 0,
+                see) ~= true) then
+            -- Nothing far enough is safe and the near target is not walkable
+            -- either. Fail closed: the caller says so out loud. A confident
+            -- wrong angle is worse than silence, because they commit to it.
+            accessxi.nav_beacon_direction_suppressed = true;
+            return nil;
+        end
+    end
+
+    -- THE FINAL GATE. While a certified walk-graph route owns navigation, the
+    -- shipped mesh may not supply the aim point. Not as a detour, not as a
+    -- wall-escape, not at all.
+    --
+    -- Suppression existed in nav_beacon_route_target only, and other paths
+    -- reached the cue without passing it. Measured live 2026-08-21, nine
+    -- seconds of one route produced SIX different aim sources -- live-route-
+    -- return, navmesh, sightline-detour, walk-graph, lookahead -- with the
+    -- played angle swinging -51, +54, -176, +63, -61, -28, +82 degrees. Each
+    -- source has its own geometry, so alternating between them is heard as a
+    -- beacon that will not hold still, which is exactly what the player
+    -- reported. The mesh ones are also the ones this rebuild exists to stop
+    -- trusting.
+    --
+    -- Falling back to silence would be worse than a wrong angle only if the
+    -- angle were right; here it is not. Aim at the route's own current
+    -- waypoint instead -- certified geometry, and stable between frames.
+    if (aim ~= nil
+        and accessxi.nav_route_points_override_id(accessxi.nav_route_points) == 'lathine-walk-graph-v2') then
+        local aim_source = tostring(aim.source or '');
+        if (aim_source == 'navmesh' or aim_source == 'sightline-detour'
+            or aim_source == 'dat-collision') then
+            -- Bias one waypoint FORWARD. The current waypoint is frequently at
+            -- the player's feet or just behind them -- the index advances after
+            -- they pass it -- and an aim behind the player is a rear cue, which
+            -- is worse than the flapping this gate exists to stop. Legs are
+            -- densified to eight yalms, so one step ahead is always nearby.
+            local owned_count = accessxi.nav_route_points:len();
+            local owned = accessxi.nav_route_points[
+                math.max(1, math.min((tonumber(accessxi.nav_route_point_index) or 1) + 1,
+                                     owned_count))];
+            if (owned ~= nil) then
+                aim = owned;
+                source = 'walk-graph-owned';
+            else
+                accessxi.nav_beacon_direction_suppressed = true;
+                return nil;
+            end
+        end
+    end
+
+    local heading = accessxi.nav_heading_to(player, aim);
+    if (heading == nil) then
+        accessxi.nav_beacon_direction_suppressed = true;
+        return nil;
+    end
+    local delta = accessxi.nav_normalize_angle(heading + yaw);
+    -- ACCESSXI_DIRECTION_PROBE_BEGIN (temporary)
+    -- One quantity now, so the probe records what is played and what it aims
+    -- at. Throttled to one line a second.
+    if ((tick() - (tonumber(accessxi.nav_direction_probe_tick) or 0)) >= 1000) then
+        accessxi.nav_direction_probe_tick = tick();
+        log_line(('nav direction aim=(%.1f,%.1f,%.1f) dist=%.1f delta=%.0f acquired=%s source=%s extended=%s'):fmt(
+            tonumber(aim and aim.x) or 0, tonumber(aim and aim.z) or 0, tonumber(aim and aim.y) or 0,
+            nav_distance(player, aim), delta * 180 / math.pi,
+            tostring(accessxi.nav_beacon_route_acquired),
+            source ~= '' and source or 'route',
+            tostring(aim ~= route_target)));
+    end
+    -- ACCESSXI_DIRECTION_PROBE_END
+    -- Latch the route as acquired once the player is roughly lined up, but
+    -- report the angle they are actually off by. This used to answer a real
+    -- 19 degree error with a literal 0, which in this UI reads as "centred,
+    -- walk forward" -- the same lie by a different route.
+    if (accessxi.nav_beacon_route_acquired ~= true
+        and math.abs(delta) <= (20 * math.pi / 180)) then
         accessxi.nav_beacon_route_acquired = true;
     end
-
-    local ordinary_tracking = route_geometry == true and count >= 2
-        and not explicit_correction and acquired_before;
-    if (not ordinary_tracking) then
-        accessxi.nav_beacon_centered = false;
-        accessxi.nav_beacon_center_index = nil;
-        accessxi.nav_beacon_previous_delta = nil;
-        return raw_delta;
-    end
-
-    local current_index = tonumber(index) or 0;
-    if (accessxi.nav_beacon_center_index ~= current_index) then
-        accessxi.nav_beacon_centered = false;
-        accessxi.nav_beacon_center_index = current_index;
-        accessxi.nav_beacon_previous_delta = raw_delta;
-        return raw_delta;
-    end
-
-    local center_enter = 12 * math.pi / 180;
-    local center_exit = 18 * math.pi / 180;
-    local magnitude = math.abs(raw_delta);
-    local previous_delta = tonumber(accessxi.nav_beacon_previous_delta);
-    local center_crossing = previous_delta ~= nil
-        and (previous_delta * raw_delta) < 0
-        and math.abs(previous_delta) <= center_exit
-        and magnitude <= center_exit;
-    accessxi.nav_beacon_previous_delta = raw_delta;
-
-    if (accessxi.nav_beacon_centered == true) then
-        if (magnitude <= center_exit) then
-            return 0;
-        end
-        accessxi.nav_beacon_centered = false;
-    elseif (magnitude <= center_enter or center_crossing) then
-        accessxi.nav_beacon_centered = true;
-        return 0;
-    end
-    return raw_delta;
+    return delta;
 end
 
 function accessxi.nav_beacon_file_for_delta(delta)
-    local pan = -math.sin(delta);
-    if (pan < -1) then
-        pan = -1;
-    elseif (pan > 1) then
-        pan = 1;
-    end
-
-    local bin = math.floor(((pan + 1) * 6) + 0.5);
-    if (bin < 0) then
-        bin = 0;
-    elseif (bin > 12) then
-        bin = 12;
-    end
-
-    local rear = math.cos(delta) < -0.35;
-    local prefix = rear and 'rear' or 'front';
+    -- Bin selection lives in beacon_sightline so the centre deadband can be
+    -- exercised against the live delta sequence offline.
+    local prefix, bin, pan = accessxi.nav_beacon_bin_for_delta(delta);
     return ('%s\\%s_%02d.wav'):fmt(accessxi.nav_beacon_dir, prefix, bin), prefix, bin, pan;
 end
 
@@ -95538,122 +101737,6 @@ function accessxi.nav_valid_mesh_position(pos)
     return ok and valid == true;
 end
 
-function accessxi.nav_segment_obstacle(player, route_target)
-    if (player == nil or route_target == nil) then
-        return nil;
-    end
-
-    local ax = tonumber(player.x) or 0;
-    local az = tonumber(player.z) or 0;
-    local bx = tonumber(route_target.x) or 0;
-    local bz = tonumber(route_target.z) or 0;
-    local vx = bx - ax;
-    local vz = bz - az;
-    local segment_length = math.sqrt((vx * vx) + (vz * vz));
-    local len2 = segment_length * segment_length;
-    if (len2 < 0.001) then
-        return nil;
-    end
-
-    local scan_ahead = math.max(5.5, math.min(13.5, segment_length + 2.0));
-    local corridor_radius = 2.8;
-    local warn_radius = 3.4;
-    local player_index = tonumber(player.index) or -1;
-    local best = nil;
-    local candidates = accessxi.nav_live_entity_snapshot(80, scan_ahead + 8);
-    for _, pos in ipairs(candidates) do
-        if ((tonumber(pos.index) or -1) ~= player_index and accessxi.nav_live_entity_valid(pos)) then
-            if (accessxi.nav_entity_is_dynamic_obstacle_candidate(pos)) then
-                local wx = (tonumber(pos.x) or 0) - ax;
-                local wz = (tonumber(pos.z) or 0) - az;
-                local t = ((wx * vx) + (wz * vz)) / len2;
-                if (t >= 0.08 and t <= 1.15) then
-                    local cx = ax + (t * vx);
-                    local cz = az + (t * vz);
-                    local dx = (tonumber(pos.x) or 0) - cx;
-                    local dz = (tonumber(pos.z) or 0) - cz;
-                    local side_distance = math.sqrt((dx * dx) + (dz * dz));
-                    local ahead_distance = math.sqrt(len2) * t;
-                    local kind = tostring(pos.live_kind or accessxi.nav_entity_kind(pos));
-                    local entity_radius = kind == 'player' and 1.4 or 1.7;
-                    local collision_radius = corridor_radius + entity_radius;
-                    if (ahead_distance >= 1.8 and ahead_distance <= scan_ahead and side_distance <= collision_radius) then
-                        if (best == nil or ahead_distance < best.ahead) then
-                            best = T{
-                                entity = pos,
-                                ahead = ahead_distance,
-                                side = side_distance,
-                                radius = collision_radius,
-                                warn = side_distance <= (warn_radius + entity_radius),
-                                t = t,
-                                cx = cx,
-                                cz = cz,
-                            };
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return best;
-end
-
-function accessxi.nav_obstacle_avoidance_target(player, route_target)
-    local obstacle = accessxi.nav_segment_obstacle(player, route_target);
-    if (obstacle == nil) then
-        accessxi.nav_obstacle_last_key = '';
-        return nil, nil;
-    end
-
-    local ax = tonumber(player.x) or 0;
-    local az = tonumber(player.z) or 0;
-    local bx = tonumber(route_target.x) or 0;
-    local bz = tonumber(route_target.z) or 0;
-    local vx = bx - ax;
-    local vz = bz - az;
-    local length = math.sqrt((vx * vx) + (vz * vz));
-    if (length < 0.001) then
-        return nil, obstacle;
-    end
-
-    local nx = -vz / length;
-    local nz = vx / length;
-    local clearance = math.max(3.4, (tonumber(obstacle.radius) or 4.5) + 0.8);
-    local left = T{
-        zone = player.zone,
-        x = (obstacle.cx or bx) + (nx * clearance),
-        z = (obstacle.cz or bz) + (nz * clearance),
-        y = player.y,
-        name = 'obstacle left',
-        kind = 'route',
-        source = 'dynamic-obstacle',
-    };
-    local right = T{
-        zone = player.zone,
-        x = (obstacle.cx or bx) - (nx * clearance),
-        z = (obstacle.cz or bz) - (nz * clearance),
-        y = player.y,
-        name = 'obstacle right',
-        kind = 'route',
-        source = 'dynamic-obstacle',
-    };
-
-    local left_wall = accessxi.nav_wall_distance(left) or 0;
-    local right_wall = accessxi.nav_wall_distance(right) or 0;
-    local left_valid = accessxi.nav_valid_mesh_position(left);
-    local right_valid = accessxi.nav_valid_mesh_position(right);
-    if (right_valid and (not left_valid or right_wall > left_wall)) then
-        return right, obstacle;
-    end
-    if (left_valid) then
-        return left, obstacle;
-    end
-    if (right_valid) then
-        return right, obstacle;
-    end
-    return nil, obstacle;
-end
 
 function accessxi.nav_apply_dynamic_obstacle(player, route_target)
     if (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)) then
@@ -95669,6 +101752,30 @@ function accessxi.nav_apply_dynamic_obstacle(player, route_target)
     accessxi.nav_last_live_obstacle_tick = now;
     accessxi.nav_last_live_obstacle_name = name;
     local key = ('%s:%d'):fmt(name, math.floor((tonumber(obstacle.ahead) or 0) + 0.5));
+    -- SAY IT WHILE THERE IS STILL ROOM TO WALK ROUND. A sighted player sees the
+    -- Orcish Grunt from across the clearing; this tracked one from ten yalms
+    -- out and said nothing until it was 2.6 yalms ahead and unavoidable, so the
+    -- player was "lead in to stuff" and discovered it by walking into it. The
+    -- route aim is untouched -- this is information, not steering (sol: a
+    -- neutral, rate-limited "X ahead").
+    --
+    -- Only things that could actually block the way: another player character
+    -- or a city NPC is not a hazard, and announcing them would be chatter.
+    if (obstacle.steerable == true and (tonumber(obstacle.ahead) or 0) >= 3.0) then
+        local spoken = accessxi.nav_obstacle_spoken;
+        if (type(spoken) ~= 'table') then
+            spoken = {};
+            accessxi.nav_obstacle_spoken = spoken;
+        end
+        if ((now - (tonumber(spoken[name]) or 0)) > 12000
+            and (now - (tonumber(accessxi.nav_obstacle_spoken_tick) or 0)) > 2500) then
+            spoken[name] = now;
+            accessxi.nav_obstacle_spoken_tick = now;
+            speak(('%s ahead, %d yalms.'):fmt(name, math.floor((tonumber(obstacle.ahead) or 0) + 0.5)));
+            log_line(('nav obstacle announced %s ahead=%.1f'):fmt(name, obstacle.ahead or 0));
+        end
+    end
+
     if ((obstacle.warn == true) and (key ~= accessxi.nav_obstacle_last_key or ((now - (accessxi.nav_obstacle_last_tick or 0)) > 9000))) then
         accessxi.nav_obstacle_last_key = key;
         accessxi.nav_obstacle_last_tick = now;
@@ -95692,7 +101799,53 @@ function accessxi.nav_apply_dynamic_obstacle(player, route_target)
         end
     end
 
-    return avoid or route_target, obstacle;
+    -- BLOCKED, NOT BRUSHED PAST. A steerable obstacle with no usable side-step
+    -- means the way ahead is genuinely obstructed: every candidate either went
+    -- backwards or lay more than 60 degrees off the leg. Continuing to play the
+    -- base-target bearing would keep walking a blind player into it and call
+    -- that guidance, leaving contact collision to discover the problem -- which
+    -- sol ruled is not acceptable as the reason the cue keeps pointing there.
+    --
+    -- Say it once, keep the route, and let the beacon suppress its bearing
+    -- until the obstruction moves or the player does.
+    if (obstacle.steerable == true and avoid == nil) then
+        local block_key = ('%s:%d'):fmt(name, math.floor((tonumber(obstacle.ahead) or 0) + 0.5));
+        local state = accessxi.nav_obstacle_block_state;
+        if (type(state) ~= 'table' or tostring(state.key or '') ~= block_key) then
+            accessxi.nav_obstacle_block_state = { key = block_key, name = name, tick = now };
+            speak(('%s is in the way. Step around it.'):fmt(name));
+            log_line(('nav obstacle blocked %s ahead=%.1f side=%.1f no side-step within 60 degrees'):fmt(
+                name, obstacle.ahead or 0, obstacle.side or 0));
+        else
+            state.tick = now;
+        end
+    elseif (type(accessxi.nav_obstacle_block_state) == 'table') then
+        accessxi.nav_obstacle_block_state = nil;
+    end
+
+    -- ANNOUNCE, DO NOT STEER (the player's ruling, 2026-08-22). Substituting a
+    -- side-step for the route aim put a different point in front of the player
+    -- on 18% of pulses and produced the zig-zag they reported -- consecutive
+    -- tones of -25 and +100 degrees, a 125-degree jump, while the route itself
+    -- had not moved. The beacon's one rule is the route; being told what is
+    -- ahead is information, and walking round it is the player's own business.
+    return route_target, obstacle;
+end
+
+-- True while an obstruction with no way round it is still in front of the
+-- player. Deliberately short: it must lapse on its own the moment the
+-- obstacle or the player moves, so the beacon recovers without being told.
+function accessxi.nav_obstacle_blocking(now)
+    local state = accessxi.nav_obstacle_block_state;
+    if (type(state) ~= 'table') then
+        return false;
+    end
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(state.tick) or 0)) > 1200) then
+        accessxi.nav_obstacle_block_state = nil;
+        return false;
+    end
+    return true;
 end
 
 function accessxi.nav_recent_live_obstacle(now)
@@ -95800,6 +101953,7 @@ end
 function accessxi.nav_reset_progress_watch(player, destination_distance, now)
     accessxi.nav_progress_x = player ~= nil and player.x or nil;
     accessxi.nav_progress_z = player ~= nil and player.z or nil;
+    accessxi.nav_progress_y = player ~= nil and player.y or nil;
     accessxi.nav_progress_distance = tonumber(destination_distance) or 0;
     accessxi.nav_progress_tick = tonumber(now) or tick();
 end
@@ -95826,8 +101980,15 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
         return false;
     end
 
-    local anchor = T{ x = accessxi.nav_progress_x, z = accessxi.nav_progress_z, y = player.y, zone = player.zone };
-    local moved = nav_distance(player, anchor);
+    local anchor = T{
+        x = accessxi.nav_progress_x,
+        z = accessxi.nav_progress_z,
+        y = accessxi.nav_progress_y,
+        zone = player.zone,
+    };
+    local horizontal_moved = nav_distance(player, anchor);
+    local vertical_moved = math.abs((tonumber(player.y) or 0) - (tonumber(anchor.y) or 0));
+    local moved = math.sqrt((horizontal_moved * horizontal_moved) + (vertical_moved * vertical_moved));
     local improvement = (tonumber(accessxi.nav_progress_distance) or destination_distance) - destination_distance;
     if (moved >= 3 or improvement >= 3) then
         accessxi.nav_reset_progress_watch(player, destination_distance, now);
@@ -95862,15 +102023,19 @@ function accessxi.nav_progress_watch(player, destination, route_target, destinat
     else
         local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, destination);
         if (unsafe_route_text ~= '') then
-            nav_write_route_evidence('unreachable', player, destination, nil, T{ wall = wall, off_route = route_distance, reason = unsafe_route_text });
-            accessxi.nav_active = false;
-            accessxi.nav_destination = nil;
-            accessxi.nav_route_points:clear();
-            accessxi.nav_route_point_index = 1;
-            accessxi.nav_last_key = '';
-            accessxi.nav_last_direction_text = unsafe_route_text;
-            speak(unsafe_route_text);
-            log_line('nav blocked unsafe ' .. unsafe_route_text);
+            nav_write_route_evidence('recovery-needed', player, destination, route_target, T{
+                wall = wall,
+                off_route = route_distance,
+                reason = unsafe_route_text,
+            });
+            if (type(accessxi.nav_precise_guidance_cache_clear) == 'function') then
+                accessxi.nav_precise_guidance_cache_clear();
+                accessxi.nav_precise_guidance_status = 'recovering';
+            end
+            text = text .. ' Route remains active while recalculating.';
+            accessxi.nav_last_direction_text = text;
+            speak(text);
+            log_line('nav no-progress route retained');
             accessxi.nav_reset_progress_watch(player, destination_distance, now);
             return true;
         end
@@ -95901,11 +102066,75 @@ function accessxi.nav_route_guidance_speech_enabled()
     return not accessxi.nav_beacon_enabled;
 end
 
+-- Identical guidance is not information. 191 cues in six minutes on
+-- 2026-08-21, 91 of them word-for-word repeats of the one before, because the
+-- speech key advanced with every waypoint. Suppress an identical cue inside
+-- this window; anything that differs -- a turn, a height, a correction, a
+-- pause -- still speaks at once. The route poll guarantees a heartbeat.
+-- (The window is a literal below: the main chunk is at Lua 5.1's 200-local limit.)
 function accessxi.nav_speak_route_guidance(text)
-    if (accessxi.nav_route_guidance_speech_enabled()) then
-        speak(text);
+    if (not accessxi.nav_route_guidance_speech_enabled()) then
+        return;
+    end
+    local now = tick();
+    local last_text = tostring(accessxi.nav_route_guidance_last_text or '');
+    local last_tick = tonumber(accessxi.nav_route_guidance_last_tick) or 0;
+    if (text == last_text and (now - last_tick) < 6000) then
+        return;
+    end
+    accessxi.nav_route_guidance_last_text = text;
+    accessxi.nav_route_guidance_last_tick = now;
+    speak(text);
+end
+
+-- ACCESSXI_BEACON_CADENCE_PROBE_BEGIN
+-- Temporary. Counts why a beacon pulse did not happen and rolls the tally up
+-- every five seconds, so a short walk shows which gate is starving the cue.
+accessxi.nav_beacon_exit_counts = accessxi.nav_beacon_exit_counts or {};
+accessxi.nav_beacon_exit_rollup_tick = accessxi.nav_beacon_exit_rollup_tick or 0;
+
+-- ACCESSXI_FRAME_WATCHDOG_REPORT_BEGIN (temporary)
+-- Logs any render-thread frame that stalls past the threshold, with a
+-- per-phase breakdown, so a freeze can be attributed to a specific poll.
+accessxi.frame_watchdog_worst = accessxi.frame_watchdog_worst or 0;
+
+function accessxi.frame_watchdog_report(label, started, phases)
+    local elapsed = tick() - (tonumber(started) or 0);
+    if (elapsed < 150) then
+        return;
+    end
+    local parts = T{};
+    for key, value in pairs(phases or T{}) do
+        local ms = tonumber(value) or 0;
+        if (ms >= 1) then
+            parts:append(('%s=%dms'):fmt(key, ms));
+        end
+    end
+    table.sort(parts);
+    if (elapsed > (tonumber(accessxi.frame_watchdog_worst) or 0)) then
+        accessxi.frame_watchdog_worst = elapsed;
+    end
+    log_line(('nav frame stall %s total=%dms worst=%dms %s'):fmt(
+        label, elapsed, accessxi.frame_watchdog_worst, parts:concat(' ')));
+end
+-- ACCESSXI_FRAME_WATCHDOG_REPORT_END
+
+function accessxi.nav_beacon_exit(reason, now)
+    local counts = accessxi.nav_beacon_exit_counts;
+    counts[reason] = (tonumber(counts[reason]) or 0) + 1;
+    now = tonumber(now) or tick();
+    if ((now - (tonumber(accessxi.nav_beacon_exit_rollup_tick) or 0)) >= 5000) then
+        accessxi.nav_beacon_exit_rollup_tick = now;
+        local parts = {};
+        for key, value in pairs(counts) do
+            parts[#parts + 1] = ('%s=%d'):fmt(key, value);
+        end
+        table.sort(parts);
+        log_line(('nav beacon cadence %s'):fmt(table.concat(parts, ' ')));
+        accessxi.nav_beacon_exit_counts = {};
     end
 end
+-- ACCESSXI_BEACON_CADENCE_PROBE_END
 
 function accessxi.poll_nav_beacon()
     if (not accessxi.nav_beacon_enabled or not accessxi.nav_active or accessxi.nav_destination == nil) then
@@ -95917,17 +102146,39 @@ function accessxi.poll_nav_beacon()
         tonumber(accessxi.nav_beacon_last_tick) or 0,
         tonumber(accessxi.nav_beacon_last_attempt_tick) or 0);
     if ((now - last_pulse_tick) < 520) then
+        accessxi.nav_beacon_exit('too-soon', now);
         return;
     end
     if (not accessxi.beacon_audio_available(now)) then
+        accessxi.nav_beacon_exit('audio-busy:' .. tostring(accessxi.beacon_audio_busy_source or ''), now);
         return;
     end
 
     if (nav_route_suppressed()) then
+        accessxi.nav_beacon_exit('suppressed', now);
+        return;
+    end
+
+    -- While the verified La Theine route is still being planned there is NO
+    -- route, and an empty route is not walk-graph owned, so every guard that
+    -- keeps the shipped mesh away from the cue is off. Live 2026-08-21 18:42:
+    -- the beacon aimed at the raw destination 419 yalms away, asked the mesh
+    -- for a detour to it every pulse, and the render thread went from 1.0 to
+    -- 4.1 seconds a frame until the player stopped the route by hand. A
+    -- beacon that is still thinking must say nothing, not guess with the mesh.
+    if (accessxi.nav_walk_graph_pending ~= nil
+        and (accessxi.nav_route_points == nil or accessxi.nav_route_points:len() <= 1)) then
+        accessxi.nav_beacon_exit('walk-graph-pending', now);
         return;
     end
 
     local player = nav_cached_player_position();
+    -- Start the pulse clean: the blocked/clamped/detour flags describe one aim
+    -- point, and several paths below reach a target without going near the
+    -- checks that write them.
+    if (type(accessxi.nav_beacon_begin_pulse) == 'function') then
+        accessxi.nav_beacon_begin_pulse();
+    end
     local route_target = nil;
     local drop_handled = false;
     if (type(accessxi.nav_dangruf_fount_drop_beacon_target) == 'function') then
@@ -95942,22 +102193,150 @@ function accessxi.poll_nav_beacon()
     end
     if (not drop_handled and not transport_waiting) then
         if (accessxi.nav_door_waiting(player, now)) then
-            return;
+            -- THE BEACON DOES NOT GO QUIET AT A DOOR.
+            --
+            -- Waiting used to return here, so the beacon fell silent for up to
+            -- fifteen seconds while the player stood at a closed door -- and
+            -- the prompt they had just heard promised the opposite:
+            -- "Navigation will resume with the beacon through the doorway."
+            -- Live 2026-08-23 at the Mayor's Residence in Selbina that prompt
+            -- fired five times in one minute, four of them timing out, and the
+            -- player rerouted repeatedly because nothing was guiding them.
+            --
+            -- Aim at the DOOR rather than past it. That keeps the safety this
+            -- wait exists for -- never steering someone through a closed door
+            -- -- while they can still hear where it is.
+            -- nav_door_waiting() is true ONLY while now < nav_door_pause_until
+            -- -- read its last line. So an extra "and not still pausing" test
+            -- here can never pass, and the first version of this branch was
+            -- dead code that I shipped and reported as working (sol caught it).
+            -- The pause is exactly the window that needs a beacon: it is the
+            -- 2.5 seconds right after the door prompt, when the player is
+            -- turning to find the door and used to hear nothing.
+            local door_x = tonumber(accessxi.nav_door_x);
+            local door_z = tonumber(accessxi.nav_door_z);
+            if (door_x == nil or door_z == nil) then
+                return;
+            end
+            route_target = T{
+                zone = tonumber(player.zone) or 0,
+                x = door_x,
+                z = door_z,
+                y = tonumber(player.y) or 0,
+                name = nav_clean_field(accessxi.nav_door_wait_name or 'door'),
+                source = 'door-wait',
+                arrival_radius = 2.0,
+            };
+        else
+            route_target = accessxi.nav_beacon_route_target(player);
         end
-        route_target = accessxi.nav_beacon_route_target(player);
+        -- Centring the beacon is how the player commits to walking, so aiming
+        -- at something unreachable walks them into it. When neither the route
+        -- nor a mesh detour offers a clear line, say so instead of letting them
+        -- centre on rock. Throttled so it cannot become chatter.
+        if (accessxi.nav_beacon_sightline_blocked == true
+            and (now - (tonumber(accessxi.nav_beacon_blocked_spoken_tick) or 0)) >= 8000) then
+            accessxi.nav_beacon_blocked_spoken_tick = now;
+            speak('No clear line ahead. Back up and try another angle.');
+            log_line('nav beacon sightline blocked; no clear line to the route');
+        end
     end
     if (player == nil or route_target == nil) then
+        accessxi.nav_beacon_exit(player == nil and 'no-player' or 'no-target', now);
         return;
     end
     local precise_override = (not drop_handled and not transport_waiting)
         and accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
     if (not precise_override and not transport_waiting and not drop_handled) then
-        route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
-        route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
+        -- These two may VETO the verified aim point, but they must not replace
+        -- it with one nothing has checked. Both build a candidate from raw
+        -- clearance alone and hand it straight to the cue; on 2026-08-20 that
+        -- swapped a verified north-east detour for a 'wall-escape' target 5.4
+        -- yalms up a ledge, which is what the player then walked into.
+        local approved = route_target;
+        local proposed = accessxi.nav_apply_dynamic_obstacle(player, approved);
+        proposed = accessxi.nav_apply_wall_avoidance(player, proposed);
+        if (type(accessxi.nav_beacon_approve_override) == 'function'
+            and type(accessxi.nav_beacon_sightline_see) == 'function') then
+            route_target = accessxi.nav_beacon_approve_override(
+                player, approved, proposed, accessxi.nav_beacon_sightline_see());
+        else
+            route_target = proposed;
+        end
+        -- Walkability has the last word: re-check the surviving target against
+        -- the mesh's own path so an obstacle that must be walked around still
+        -- steers the player round it rather than into it.
+        --
+        -- THE SAME GATE AS THE BEACON, because this is the same decision.
+        --
+        -- Live 2026-08-25, stuck in Valkurm Dunes at (90.0,-115.5). This site
+        -- called the detour EVERY PULSE with no permission check and no mode
+        -- note, while nav_beacon_route_target's copy sits behind
+        -- nav_beacon_detour_permitted and a two-second hold. Two producers, two
+        -- policies, one player: within a single second the aim went
+        --
+        --   pursuit  (98.2,-102.5)  delta +114     -- forward, up a bank
+        --   detour   (92.6,-111.6)  delta -138     -- backward
+        --   pursuit  (97.2,-103.1)               -- forward again
+        --
+        -- Speech comes from this target and the tone from the beacon aim, so
+        -- disagreeing producers are heard as being told to go two ways at once.
+        -- The hold exists precisely to stop that; it was only ever applied to
+        -- half the decision.
+        if (type(accessxi.nav_beacon_detour_target) == 'function'
+            and accessxi.nav_beacon_detour_permitted(
+                tick(), accessxi.nav_beacon_sightline_clamped == true)) then
+            route_target = accessxi.nav_beacon_detour_target(
+                player, route_target, accessxi.nav_mesh_probe_path);
+            if (type(accessxi.nav_beacon_aim_mode_note) == 'function'
+                and type(route_target) == 'table') then
+                accessxi.nav_beacon_aim_mode_note(
+                    accessxi.nav_beacon_aim_mode_for(route_target.source), tick());
+            end
+        end
     end
 
     local destination_distance = nav_distance(player, accessxi.nav_destination);
-    if (destination_distance <= accessxi.nav_arrival_radius(accessxi.nav_destination)) then
+    local player_y = tonumber(player.y);
+    local destination_y = tonumber(accessxi.nav_destination.y);
+    -- STANDING ON IT IS ARRIVING, WHATEVER THE CATALOGUE SAYS ITS HEIGHT IS.
+    --
+    -- Live 2026-08-24, the Survival Guide in Northern San d'Oria. Its catalogue
+    -- row read y = -4.0 with confidence "generated"; the player has stood 0.2
+    -- yalms from that exact x/z at y = 4.0, and every one of 148 nearby samples
+    -- is positive. FFXI's y is inverted, so the row put it EIGHT YALMS UP,
+    -- through a floor.
+    --
+    -- The bearing was not the real damage -- this gate was. Arrival needs
+    -- |dy| <= 4.0, the bad row made it 8.0, so the player stood ON the guide and
+    -- never arrived. The route stayed live at one to three yalms, where any step
+    -- swings the bearing by a hundred degrees, and it "spins in circles".
+    --
+    -- Two yalms horizontally is not "near" a thing, it IS the thing. Deliberately
+    -- tighter than the telepoint case, where the player was 6.2 yalms out on a
+    -- rim above a hollow they genuinely could not reach; that must still refuse.
+    local destination_vertical_reached = player_y == nil or destination_y == nil
+        or math.abs(player_y - destination_y) <= 4.0;
+    if (not destination_vertical_reached) then
+        local standing_on = accessxi.nav_destination;
+        if (type(standing_on) == 'table') then
+            local flat_dx = (tonumber(player.x) or 0) - (tonumber(standing_on.x) or 0);
+            local flat_dz = (tonumber(player.z) or 0) - (tonumber(standing_on.z) or 0);
+            local flat_here = math.sqrt((flat_dx * flat_dx) + (flat_dz * flat_dz));
+            if (flat_here <= 2.0) then
+                destination_vertical_reached = true;
+                local naming = tostring(standing_on.name or '');
+                if (tostring(accessxi.nav_height_disagreement_key or '') ~= naming) then
+                    accessxi.nav_height_disagreement_key = naming;
+                    log_line(('nav destination height disagrees name="%s" recorded=%.1f standing=%.1f flat=%.2f -- treating as arrived'):fmt(
+                        accessxi.escape_probe_log_text(naming),
+                        destination_y or 0, player_y or 0, flat_here));
+                end
+            end
+        end
+    end
+    if (destination_vertical_reached
+        and destination_distance <= accessxi.nav_arrival_radius(accessxi.nav_destination)) then
         return;
     end
 
@@ -95975,6 +102354,8 @@ function accessxi.poll_nav_beacon()
     local direction_centered_before = accessxi.nav_beacon_centered;
     local direction_center_index_before = accessxi.nav_beacon_center_index;
     local direction_previous_delta_before = accessxi.nav_beacon_previous_delta;
+    local direction_pending_delta_before = accessxi.nav_beacon_pending_delta;
+    local direction_reversal_holds_before = accessxi.nav_beacon_reversal_holds;
     local direction_motion_x_before = accessxi.nav_beacon_motion_x;
     local direction_motion_z_before = accessxi.nav_beacon_motion_z;
     local function restore_unheard_direction_state()
@@ -95982,6 +102363,8 @@ function accessxi.poll_nav_beacon()
         accessxi.nav_beacon_centered = direction_centered_before;
         accessxi.nav_beacon_center_index = direction_center_index_before;
         accessxi.nav_beacon_previous_delta = direction_previous_delta_before;
+        accessxi.nav_beacon_pending_delta = direction_pending_delta_before;
+        accessxi.nav_beacon_reversal_holds = direction_reversal_holds_before;
         accessxi.nav_beacon_motion_x = direction_motion_x_before;
         accessxi.nav_beacon_motion_z = direction_motion_z_before;
     end
@@ -95989,8 +102372,55 @@ function accessxi.poll_nav_beacon()
         player, route_target, accessxi.nav_route_points, accessxi.nav_route_point_index, route_geometry);
     if (delta == nil) then
         restore_unheard_direction_state();
+        -- Suppression is deliberate: no aim point far enough away was walkable
+        -- and the near one was not either. Going quiet without saying why is
+        -- the failure this whole mod exists to prevent, so say it. Throttled
+        -- so it cannot become chatter.
+        if (accessxi.nav_beacon_direction_suppressed == true
+            and (now - (tonumber(accessxi.nav_beacon_suppressed_spoken_tick) or 0)) >= 8000) then
+            accessxi.nav_beacon_suppressed_spoken_tick = now;
+            speak('No safe direction from here. Back up and try another angle.');
+            log_line('nav beacon direction suppressed; no walkable aim point');
+        end
+        accessxi.nav_beacon_exit('no-delta', now);
         return;
     end
+
+    -- Angular hysteresis. One bad sample must never command a turn: a large
+    -- reversal has to repeat before it is played.
+    --
+    -- This works on the WORLD heading, not the player-relative delta. Delta
+    -- is measured against yaw, so holding a stale delta while the player
+    -- turns would keep pointing at a stale angle relative to a body that has
+    -- moved -- actively misleading. Holding the world heading and
+    -- re-deriving delta from current yaw each pulse keeps the cue rotating
+    -- with the character, which is the whole point of the beacon.
+    --
+    -- Explicit corrections (return-to-route, wall escape, dynamic obstacle)
+    -- are urgent and bypass this entirely.
+    local beacon_yaw = tonumber(player.yaw) or 0;
+    if (math.abs(beacon_yaw) > (math.pi * 2.1)) then
+        beacon_yaw = beacon_yaw * math.pi / 180;
+    end
+    local target_source = tostring(route_target ~= nil and route_target.source or '');
+    -- Clamped, rejoin and detour targets are corrections too, and a detour is
+    -- exactly the large swing the hysteresis would smooth -- smoothing it plays
+    -- the previous heading while the player walks on it.
+    local urgent_correction;
+    if (type(accessxi.nav_beacon_urgent_correction) == 'function') then
+        urgent_correction = accessxi.nav_beacon_urgent_correction(target_source);
+    else
+        urgent_correction = target_source == 'live-route-return'
+            or target_source == 'dynamic-obstacle'
+            or target_source == 'wall-escape'
+            or target_source == 'lathine-local-safe';
+    end
+    -- The hysteresis lives in beacon_sightline so the exact live alternation
+    -- can be replayed against the real code offline, not a copy of it.
+    local heading = accessxi.nav_normalize_angle(delta - beacon_yaw);
+    heading = accessxi.nav_beacon_smoothed_heading(heading, urgent_correction);
+    delta = accessxi.nav_normalize_angle(heading + beacon_yaw);
+
     if (not accessxi.nav_beacon_ensure_files()) then
         restore_unheard_direction_state();
         return;
@@ -96006,6 +102436,7 @@ function accessxi.poll_nav_beacon()
     end
     accessxi.nav_beacon_last_tick = now;
     accessxi.beacon_audio_claim('nav', 180, now);
+    accessxi.nav_beacon_exit('PULSED', now);
 
     local key = ('%s:%02d'):fmt(prefix, bin);
     if (key ~= accessxi.nav_beacon_last_key) then
@@ -96018,9 +102449,6 @@ local function poll_nav_route()
     if (not accessxi.nav_active or accessxi.nav_destination == nil) then
         return;
     end
-    if (accessxi.nav_dat_collision_pending ~= nil) then
-        return;
-    end
     if (type(accessxi.nav_mission_quest_route_owner_mismatch) == 'function'
         and accessxi.nav_mission_quest_route_owner_mismatch()) then
         if (accessxi.nav_cancel_mission_quest_route('active-route-owner-mismatch')) then
@@ -96030,27 +102458,30 @@ local function poll_nav_route()
         end
         return;
     end
-
     local now = tick();
-    accessxi.nav_precise_route_track_index(nav_cached_player_position(), now);
-    if ((now - (accessxi.nav_last_tick or 0)) < (tonumber(accessxi.nav_route_poll_ms) or 850)) then
+    local live_player = nav_cached_player_position();
+    if (live_player == nil) then
+        return;
+    end
+    local precise_route_active = accessxi.nav_route_precise_override_active(
+        live_player, accessxi.nav_route_points);
+    local route_poll_due = (now - (accessxi.nav_last_tick or 0))
+        >= (tonumber(accessxi.nav_route_poll_ms) or 850);
+    if (not route_poll_due) then
+        local recovery_waiting = accessxi.nav_precise_guidance_status == 'recovering'
+            or accessxi.nav_precise_obstacle_recovery ~= nil
+            or accessxi.nav_precise_async_recovery_completion ~= nil
+            or accessxi.nav_dat_collision_pending ~= nil;
+        if (precise_route_active and not recovery_waiting
+            and not nav_route_suppressed()) then
+            accessxi.nav_precise_route_track_index(live_player, now);
+        end
         return;
     end
     accessxi.nav_last_tick = now;
 
-    if (accessxi.nav_collision_update_control_interrupt(now)) then
-        return;
-    end
-    if (nav_route_suppressed()) then
-        return;
-    end
-
-    local player = nav_cached_player_position();
-    if (player == nil) then
-        return;
-    end
     if (accessxi.nav_objective_route_state ~= nil) then
-        local current, reason = accessxi.nav_objective_route_revalidate_or_cancel(player);
+        local current, reason = accessxi.nav_objective_route_revalidate_or_cancel(live_player);
         if (not current) then
             local text = nav_clean_field(reason) ~= '' and nav_clean_field(reason)
                 or 'Mission or quest route stopped because the active objective changed.';
@@ -96059,11 +102490,59 @@ local function poll_nav_route()
             return;
         end
     end
-    if (accessxi.nav_door_waiting(player, now)) then
+    local precise_points_before = precise_route_active and accessxi.nav_route_points or nil;
+    local precise_destination_before = precise_route_active and accessxi.nav_destination or nil;
+    local precise_index_before = precise_route_active
+        and (tonumber(accessxi.nav_route_point_index) or 1) or nil;
+    if (precise_route_active and not nav_route_suppressed()) then
+        accessxi.nav_precise_guidance_update(live_player, now);
+        if (not accessxi.nav_active or accessxi.nav_destination == nil) then
+            return;
+        end
+    end
+    if (accessxi.nav_dat_collision_pending ~= nil) then
+        return;
+    end
+    if (accessxi.nav_precise_guidance_status ~= 'recovering') then
+        accessxi.nav_precise_route_track_index(live_player, now);
+    end
+
+    if (accessxi.nav_collision_update_control_interrupt(now)) then
+        return;
+    end
+    local player = live_player or nav_cached_player_position();
+    local destination = accessxi.nav_destination;
+    if (player ~= nil and accessxi.nav_refresh_live_route_destination(player, now)) then
+        destination = accessxi.nav_destination;
+        if (destination == nil) then
+            return;
+        end
+    end
+    if (player ~= nil and type(accessxi.nav_promyvion_poll) == 'function'
+        and accessxi.nav_promyvion_poll(player, destination, now)) then
+        return;
+    end
+    if (nav_route_suppressed()) then
         return;
     end
 
-    local destination = accessxi.nav_destination;
+    if (player == nil) then
+        return;
+    end
+    if (accessxi.nav_door_waiting(player, now)) then
+        -- Silence here is what made the player reroute: they were told to open
+        -- a door and then heard nothing at all until the wait timed out.
+        -- Remind them, sparingly, for as long as the wait lasts.
+        -- Same reachability trap: requiring the pause to be OVER made this
+        -- unreachable, because the wait is only true while it is running.
+        if ((now - (tonumber(accessxi.nav_door_reminder_tick) or 0)) >= 6000) then
+            accessxi.nav_door_reminder_tick = now;
+            speak(('Open %s to continue.'):fmt(
+                nav_clean_field(accessxi.nav_door_wait_name or 'the door')));
+        end
+        return;
+    end
+
     if ((tonumber(destination.zone) or 0) ~= (tonumber(player.zone) or 0)) then
         local text = ('Zoned. Route to %s complete.'):fmt(destination.name or 'destination');
         nav_write_route_evidence('zoned', player, destination, nil, T{ reason = 'zone change' });
@@ -96093,13 +102572,6 @@ local function poll_nav_route()
         return;
     end
 
-    if (accessxi.nav_refresh_live_route_destination(player, now)) then
-        destination = accessxi.nav_destination;
-        if (destination == nil) then
-            return;
-        end
-    end
-
     if (type(accessxi.nav_dangruf_fount_drop_poll) == 'function'
         and accessxi.nav_dangruf_fount_drop_poll(player, destination, now)) then
         return;
@@ -96110,12 +102582,70 @@ local function poll_nav_route()
         return;
     end
 
-    if ((accessxi.nav_route_points:len() == 0) and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 3000)) then
+    -- A PLAN IN FLIGHT IS NOT AN EMPTY ROUTE.
+    --
+    -- This block re-plans whenever the route is empty and three seconds have
+    -- passed. While the walk graph is still WORKING the route is legitimately
+    -- empty, so the timer fired straight through the middle of it: every three
+    -- seconds the pending record was rebuilt with a fresh started_tick, which
+    -- discarded the loader and the A* workspace and started both again.
+    --
+    -- The plan never had a chance to finish. The deadline four hundred lines up
+    -- measures `now - pending.started_tick`, so restarting the record also reset
+    -- the deadline -- thirty seconds that could never elapse. Every one of the
+    -- 186 "nav walk graph progress" lines in the whole log reads polls=1; no
+    -- pending record has ever survived to a second sample.
+    --
+    -- The numbers are already written down one screen below: this plan needs
+    -- "286 load slices plus 18 search slices, 1.23s of CPU". At roughly thirty
+    -- polls a second, three seconds kills it around poll ninety -- part way
+    -- through the LOAD, before the search ever begins. That is why the progress
+    -- line always said expansions=0: not a stalled search, a search that was
+    -- never reached.
+    --
+    -- Live 2026-08-28 the player watched this for forty-five seconds on the La
+    -- Theine Shattered Telepoint, and named the symptom from the outside: "it'll
+    -- tell me recalculating route when I'm walking a straight path. A few times
+    -- it told me it couldn't find a route even though I was walking a straight
+    -- path."
+    --
+    -- Letting the plan run is safe: eleven separate paths clear
+    -- nav_walk_graph_pending -- completion, refusal, zone change, ownership
+    -- change and the thirty second deadline among them -- so this can wait but
+    -- cannot wedge.
+    if ((accessxi.nav_route_points:len() == 0)
+        and type(accessxi.nav_walk_graph_pending) ~= 'table'
+        and ((now - (accessxi.nav_route_last_recalc_tick or 0)) > 3000)) then
         accessxi.nav_route_last_recalc_tick = now;
         accessxi.nav_route_points = accessxi.nav_compute_route_with_zoneline_approach(player, destination);
         if (accessxi.nav_route_points:len() > 1) then
             accessxi.nav_route_point_index = accessxi.nav_first_route_index(player, accessxi.nav_route_points, destination);
         else
+            -- The walk graph REFUSED this destination. That is an answer, not a
+            -- transient miss, and retrying it every three seconds is how the
+            -- game ended up stalling: each attempt left the route empty, left
+            -- navigation running, and sent the beacon to the shipped mesh --
+            -- whose FindPath spends seconds on the render thread proving what
+            -- the graph already established. Stop, and say so.
+            local refusal = accessxi.nav_walk_graph_refusal;
+            if (type(refusal) == 'table' and refusal.destination == destination) then
+                local refusal_text = nav_clean_field(refusal.reason);
+                if (refusal_text == '') then
+                    refusal_text = 'I cannot verify a safe route to that destination.';
+                end
+                nav_write_route_evidence('unreachable', player, destination, nil,
+                    T{ reason = refusal_text });
+                accessxi.nav_walk_graph_refusal = nil;
+                accessxi.nav_active = false;
+                accessxi.nav_destination = nil;
+                accessxi.nav_route_points:clear();
+                accessxi.nav_route_point_index = 1;
+                accessxi.nav_last_key = '';
+                accessxi.nav_last_direction_text = refusal_text;
+                speak(refusal_text);
+                log_line('nav route stopped on walk graph refusal ' .. refusal_text);
+                return;
+            end
             local unsafe_route_text = accessxi.nav_route_direct_fallback_block_reason(player, destination);
             if (unsafe_route_text ~= '') then
                 nav_write_route_evidence('unreachable', player, destination, nil, T{ reason = unsafe_route_text });
@@ -96134,6 +102664,8 @@ local function poll_nav_route()
 
     if (accessxi.nav_route_points:len() > 1
         and not accessxi.nav_route_points_are_override(accessxi.nav_route_points)
+        and not (type(accessxi.nav_promyvion_applies) == 'function'
+            and accessxi.nav_promyvion_applies(player, destination))
         and accessxi.nav_nearby_zoneline_direct_route_allowed(player, destination)) then
         accessxi.nav_route_points:clear();
         accessxi.nav_route_point_index = 1;
@@ -96213,6 +102745,30 @@ local function poll_nav_route()
         end
     end
 
+    -- Pending means no route yet. The straight-line fallback below would speak
+    -- the raw bearing to the destination -- "Go straight 242 yalms. Height up
+    -- 31" across a cliff on 2026-08-21 -- for the seconds the search takes.
+    -- Say that planning is still under way, nothing else, and say it on a
+    -- heartbeat so a blind player can tell thinking from broken.
+    if (accessxi.nav_walk_graph_pending ~= nil and route_count <= 1) then
+        local planning_last = tonumber(accessxi.nav_walk_graph_planning_notice_tick) or 0;
+        if (planning_last <= 0) then
+            accessxi.nav_walk_graph_planning_notice_tick = now;
+        elseif ((now - planning_last) >= 10000) then
+            -- Not "verified" (sol): the doorways are certified against source
+            -- geometry, but the walkable surface is not eroded by body radius,
+            -- so the word promises more than this build has earned. And say
+            -- outright that there is no direction yet -- the player stood in
+            -- silence for over two minutes believing the addon had died.
+            accessxi.nav_walk_graph_planning_notice_tick = now;
+            speak('Still planning the route. No direction is ready yet.');
+            log_line(('nav walk graph still planning destination="%s"'):fmt(
+                accessxi.escape_probe_log_text(destination.name or '')));
+        end
+        return;
+    end
+    accessxi.nav_walk_graph_planning_notice_tick = 0;
+
     local route_target = destination;
     local real_route_target = destination;
     if (route_count > 1) then
@@ -96229,9 +102785,25 @@ local function poll_nav_route()
     local next_target = (route_count > 1 and accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
     local precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
     if (route_count > 1 and precise_override) then
-        route_target = accessxi.nav_precise_steering_target(
-            player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+        route_target = accessxi.nav_precise_guidance_update(player, now);
         next_target = nil;
+        -- Same producer as the beacon (see nav_beacon_route_target): on a
+        -- certified route the precise target is consulted for corrections
+        -- only; ordinary steering for speech is the indexed lookahead.
+        if (route_target ~= nil
+            and accessxi.nav_route_points_override_id(accessxi.nav_route_points) == 'lathine-walk-graph-v2') then
+            local speech_source = tostring(route_target.source or '');
+            local speech_correction = speech_source == 'live-route-return'
+                or speech_source == 'dynamic-obstacle'
+                or speech_source == 'wall-escape';
+            if (not speech_correction) then
+                local unified, unified_next = accessxi.nav_indexed_lookahead_target(
+                    player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
+                if (unified ~= nil) then
+                    route_target, next_target = unified, unified_next;
+                end
+            end
+        end
     elseif (route_count > 1) then
         route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
         route_target = route_target or real_route_target;
@@ -96247,11 +102819,48 @@ local function poll_nav_route()
         route_target = accessxi.nav_apply_dynamic_obstacle(player, route_target);
         route_target = accessxi.nav_apply_wall_avoidance(player, route_target);
     end
+
+    -- THE WORDS MUST AGREE WITH THE TONE.
+    --
+    -- There are two aim producers. The beacon tone comes from
+    -- nav_beacon_route_target, where the reachability clamp lives; the SPOKEN
+    -- instruction comes from nav_indexed_lookahead_target, which had none. So
+    -- the tone steered around a tree while the voice said to walk into it.
+    --
+    -- Live 2026-08-27 in Jugner Forest: "nav pursuit CLAMPED 10.3 -> 5.1
+    -- yalms" and, in the same second, guidance="Go straight 9 yalms." The
+    -- player stood still for thirty-three seconds. They had said the beacon
+    -- "seemed a little better" but still bounced them off walls -- the half
+    -- that improved was the half I had fixed.
+    --
+    -- When even the floor cannot be reached the original target is kept: the
+    -- wall-avoidance and dynamic-obstacle passes above own the pinned case, and
+    -- a phrase is better than silence.
+    if (route_target ~= nil and type(accessxi.nav_pursuit_aim_reachable) == 'function') then
+        local ok_reach, reachable = pcall(
+            accessxi.nav_pursuit_aim_reachable, player, route_target);
+        if (ok_reach and type(reachable) == 'table') then
+            if (reachable.clamped_to ~= nil) then
+                local note = ('nav guidance CLAMPED %.1f -> %.1f yalms'):fmt(
+                    tonumber(reachable.clamped_from) or 0,
+                    tonumber(reachable.clamped_to) or 0);
+                if (note ~= tostring(accessxi.nav_guidance_clamp_last or '')) then
+                    accessxi.nav_guidance_clamp_last = note;
+                    log_line(note);
+                end
+            end
+            route_target = reachable;
+        end
+    end
+
     local phrase, distance, dx, dz = accessxi.nav_guidance_phrase(player, route_target, next_target, false);
     local real_waypoint_distance = route_count > 1 and nav_distance(player, real_route_target) or distance;
+    local real_waypoint_vertical = route_count > 1 and real_route_target ~= nil
+        and math.abs((tonumber(player.y) or 0) - (tonumber(real_route_target.y) or 0)) or 0;
     if (route_count > 1
         and not precise_override
         and real_waypoint_distance <= accessxi.nav_route_waypoint_arrival_radius(destination)
+        and real_waypoint_vertical <= 4.0
         and accessxi.nav_route_point_index < route_count) then
         accessxi.nav_route_point_index = accessxi.nav_route_point_index + 1;
         real_route_target = accessxi.nav_route_points[accessxi.nav_route_point_index] or destination;
@@ -96293,8 +102902,7 @@ local function poll_nav_route()
             next_target = (accessxi.nav_route_point_index < route_count) and accessxi.nav_route_points[accessxi.nav_route_point_index + 1] or nil;
             precise_override = accessxi.nav_route_precise_override_active(player, accessxi.nav_route_points);
             if (precise_override) then
-                route_target = accessxi.nav_precise_steering_target(
-                    player, accessxi.nav_route_points, accessxi.nav_route_point_index, 5);
+                route_target = accessxi.nav_precise_guidance_update(player, now);
                 next_target = nil;
             else
                 route_target, next_target = accessxi.nav_indexed_lookahead_target(player, accessxi.nav_route_points, accessxi.nav_route_lookahead_distance(player, destination));
@@ -96318,7 +102926,74 @@ local function poll_nav_route()
     end
 
     local destination_distance = nav_distance(player, destination);
-    if (destination_distance <= accessxi.nav_arrival_radius(destination)) then
+    local player_y = tonumber(player.y);
+    local destination_y = tonumber(destination.y);
+    -- STANDING ON IT IS ARRIVING, WHATEVER THE CATALOGUE SAYS ITS HEIGHT IS.
+    --
+    -- Live 2026-08-24, the Survival Guide in Northern San d'Oria. Its catalogue
+    -- row read y = -4.0 with confidence "generated"; the player has stood 0.2
+    -- yalms from that exact x/z at y = 4.0, and every one of 148 nearby samples
+    -- is positive. FFXI's y is inverted, so the row put it EIGHT YALMS UP,
+    -- through a floor.
+    --
+    -- The bearing was not the real damage -- this gate was. Arrival needs
+    -- |dy| <= 4.0, the bad row made it 8.0, so the player stood ON the guide and
+    -- never arrived. The route stayed live at one to three yalms, where any step
+    -- swings the bearing by a hundred degrees, and it "spins in circles".
+    --
+    -- Two yalms horizontally is not "near" a thing, it IS the thing. Deliberately
+    -- tighter than the telepoint case, where the player was 6.2 yalms out on a
+    -- rim above a hollow they genuinely could not reach; that must still refuse.
+    local destination_vertical_reached = player_y == nil or destination_y == nil
+        or math.abs(player_y - destination_y) <= 4.0;
+    if (not destination_vertical_reached) then
+        local standing_on = accessxi.nav_destination;
+        if (type(standing_on) == 'table') then
+            local flat_dx = (tonumber(player.x) or 0) - (tonumber(standing_on.x) or 0);
+            local flat_dz = (tonumber(player.z) or 0) - (tonumber(standing_on.z) or 0);
+            local flat_here = math.sqrt((flat_dx * flat_dx) + (flat_dz * flat_dz));
+            if (flat_here <= 2.0) then
+                destination_vertical_reached = true;
+                local naming = tostring(standing_on.name or '');
+                if (tostring(accessxi.nav_height_disagreement_key or '') ~= naming) then
+                    accessxi.nav_height_disagreement_key = naming;
+                    log_line(('nav destination height disagrees name="%s" recorded=%.1f standing=%.1f flat=%.2f -- treating as arrived'):fmt(
+                        accessxi.escape_probe_log_text(naming),
+                        destination_y or 0, player_y or 0, flat_here));
+                end
+            end
+        end
+    end
+    local final_approach_key = ('%s:%.1f:%.1f'):fmt(tostring(destination.name or ''),
+        tonumber(destination.x) or 0, tonumber(destination.z) or 0);
+    local final_approach_active = accessxi.nav_final_approach ~= nil
+        and accessxi.nav_final_approach.key == final_approach_key;
+    if (final_approach_active) then
+        -- A refusal must end navigation, and so must a final approach that is
+        -- not working. Sixty seconds of guidance across a four-yalm approach
+        -- with no zone change means the volume is not where the route thinks
+        -- it is; saying so and stopping is honest, while guiding forever is
+        -- the orbit again. Sol's ruling: time out to an honest refusal.
+        local fa_started = tonumber(accessxi.nav_final_approach.tick) or now;
+        if ((now - fa_started) >= 60000) then
+            accessxi.nav_final_approach = nil;
+            nav_write_route_evidence('final-approach-timeout', player, destination, route_target,
+                T{ reason = 'no zone change within 60 seconds of the anchor' });
+            accessxi.nav_active = false;
+            accessxi.nav_destination = nil;
+            accessxi.nav_route_points:clear();
+            accessxi.nav_route_point_index = 1;
+            accessxi.nav_last_key = '';
+            local fa_stop = ('You are at the %s, but the zone did not change. Stopping the route. Step forward into the zone line, or start the route again.'):fmt(destination.name or 'zone line');
+            accessxi.nav_last_direction_text = fa_stop;
+            speak(fa_stop);
+            log_line(('nav final approach TIMEOUT destination="%s"'):fmt(destination.name or ''));
+            return;
+        end
+    end
+    if (destination_vertical_reached
+        and not final_approach_active
+        and destination_distance <= accessxi.nav_arrival_radius(destination)) then
         if (accessxi.nav_zone_search_target ~= nil and tostring(destination.source or ''):startswith('zonesearch:')) then
             if tonumber(destination.same_zone_reentry_step) ~= nil
                 and (type(accessxi.nav_same_zone_reentry_advance) ~= 'function'
@@ -96338,6 +103013,7 @@ local function poll_nav_route()
             accessxi.nav_collision_quiet('zone-search-zoneline-arrival', accessxi.nav_collision_zoneline_quiet_ms, now);
             accessxi.nav_zone_search_waiting_zone = tonumber(destination.to_zone) or 0;
             accessxi.nav_zone_search_waiting_from_zone = tonumber(destination.zone) or 0;
+            accessxi.nav_zone_search_waiting_via_zone = tonumber(destination.via_zone) or 0;
             accessxi.nav_active = false;
             accessxi.nav_destination = nil;
             accessxi.nav_route_points:clear();
@@ -96362,12 +103038,49 @@ local function poll_nav_route()
             local next_zone_name = nav_clean_field(destination.to_zone_name or accessxi.nav_graph_zone_name(destination.to_zone));
             local final_name = nav_clean_field(destination.final_name or (accessxi.nav_zone_search_target ~= nil and accessxi.nav_zone_search_target.name or 'NPC'));
             local text = ('At %s. Zone into %s to continue to %s.'):fmt(destination.name or 'zone line', next_zone_name ~= '' and next_zone_name or 'the next zone', final_name ~= '' and final_name or 'the NPC');
+            if (nav_clean_field(destination.transport_instruction or '') ~= '') then
+                text = ('At the %s. %s'):fmt(destination.name or 'dock', nav_clean_field(destination.transport_instruction));
+            end
             speak(text);
             log_line(('nav zone search leg arrived name="%s" from=%d to=%d final="%s"'):fmt(
                 destination.name or '',
                 destination.zone or 0,
                 destination.to_zone or 0,
                 final_name));
+            return;
+        end
+        local final_arrival_name = tostring(destination.name or ''):lower();
+        if (final_arrival_name:find('zone line', 1, true) ~= nil
+            or accessxi.nav_point_is_zoneline(destination)) then
+            -- Reaching the anchor is NOT arrival at a zone line. The anchor is
+            -- the last certified point BEFORE the trigger volume; completing
+            -- here strands the player a body-length short with navigation
+            -- dead. Enter the final approach instead: extend the route to the
+            -- trigger itself at WALKING height (the stored trigger Y sits
+            -- metres off the ground, and a height cue built from it would
+            -- send the player into the earth), keep guiding, and let the zone
+            -- change itself complete the route. Leaving the corridor replans
+            -- through the normal off-route machinery.
+            accessxi.nav_final_approach = T{ key = final_approach_key, tick = now };
+            accessxi.nav_begin_zoning_watch('zone-line-final-approach', player, destination, now);
+            accessxi.nav_collision_quiet('zone-line-final-approach', accessxi.nav_collision_zoneline_quiet_ms, now);
+            local fa_points = accessxi.nav_route_points;
+            if (fa_points ~= nil and fa_points:len() >= 1) then
+                local fa_tail = fa_points[fa_points:len()];
+                fa_points:append(T{
+                    x = tonumber(destination.x) or 0,
+                    z = tonumber(destination.z) or 0,
+                    y = tonumber(fa_tail ~= nil and fa_tail.y or player.y) or 0,
+                    zone = tonumber(destination.zone) or 0,
+                    route_override_id = fa_tail ~= nil and fa_tail.route_override_id or nil,
+                    source = fa_tail ~= nil and fa_tail.source or nil,
+                });
+            end
+            nav_write_route_evidence('final-approach', player, destination, route_target, T{ reason = 'zone line final approach' });
+            local fa_text = ('At the %s. Walk straight into it to zone.'):fmt(destination.name or 'zone line');
+            speak(fa_text);
+            log_line(('nav final approach begin destination="%s" distance=%.2f'):fmt(
+                destination.name or '', destination_distance));
             return;
         end
         nav_write_route_evidence('arrived', player, destination, route_target, T{ reason = 'arrival' });
@@ -96409,13 +103122,107 @@ local function poll_nav_route()
         if (type(accessxi.nav_mission_quest_arrival_suffix) == 'function') then
             arrival_suffix = accessxi.nav_mission_quest_arrival_suffix(destination);
         end
-        speak(('Arrived at %s.%s'):fmt(destination.name or 'destination', arrival_suffix));
+        -- If the route was aimed at a stand-in, say what is still between the
+        -- player and the place they actually asked for. No compass word: the
+        -- only bearing helper here takes FFXI player yaw and does not share a
+        -- convention with a world-space delta, and a confidently wrong
+        -- direction is worse for a blind player than no direction at all.
+        local residual_label = nav_clean_field(destination.residual_label);
+        if (residual_label ~= ''
+            and residual_label:lower() ~= nav_clean_field(destination.name):lower()) then
+            local rx = tonumber(destination.residual_x);
+            local rz = tonumber(destination.residual_z);
+            local ry = tonumber(destination.residual_y);
+            -- FINISH THE JOB. The stairs objects for all three La Theine
+            -- telepoints are mapped and route perfectly; only the last stretch
+            -- onto the point itself is missing from the walk graph. The player
+            -- asked for exactly this: "the stairs ... have been mapped already,
+            -- you just have to lead them up the stairs to click on the point."
+            --
+            -- So reaching the stairs is not arrival. Extend the route to the
+            -- point and keep guiding, the same way a zone-line final approach
+            -- extends to the trigger rather than stopping at the anchor. The
+            -- walk graph could not certify this leg, so say so once -- the
+            -- player is walking ground it does not know about, which is ground
+            -- they have already walked.
+            if (rx ~= nil and rz ~= nil
+                and accessxi.nav_residual_handoff_key ~= final_approach_key) then
+                accessxi.nav_residual_handoff_key = final_approach_key;
+                local hand_points = accessxi.nav_route_points;
+                if (hand_points ~= nil and hand_points.append ~= nil) then
+                    hand_points:append(T{
+                        x = rx,
+                        z = rz,
+                        y = ry or (tonumber(player.y) or 0),
+                        zone = tonumber(destination.zone) or 0,
+                        source = 'residual-handoff',
+                    });
+                    accessxi.nav_route_point_index = hand_points:len();
+                end
+                accessxi.nav_destination = T{
+                    zone = tonumber(destination.zone) or 0,
+                    x = rx, z = rz, y = ry or (tonumber(player.y) or 0),
+                    name = residual_label,
+                    kind = tostring(destination.kind or ''),
+                };
+                local drop = ry ~= nil and (ry - (tonumber(player.y) or 0)) or 0;
+                local climb_phrase = '';
+                if (math.abs(drop) >= 1.5) then
+                    climb_phrase = (' The steps go %s about %d yalms.'):fmt(
+                        drop < 0 and 'down' or 'up',
+                        math.floor(math.abs(drop) + 0.5));
+                end
+                local hand_text = ('At %s. Continuing to %s.%s I could not verify this last stretch.'):fmt(
+                    destination.name or 'the stairs', residual_label, climb_phrase);
+                accessxi.nav_last_direction_text = hand_text;
+                speak(hand_text);
+                log_line(('nav residual handoff from="%s" to="%s" drop=%.1f'):fmt(
+                    accessxi.escape_probe_log_text(destination.name or ''),
+                    accessxi.escape_probe_log_text(residual_label), drop));
+                return;
+            end
+            if (rx ~= nil and rz ~= nil) then
+                local flat = math.sqrt((((tonumber(player.x) or 0) - rx) ^ 2)
+                    + (((tonumber(player.z) or 0) - rz) ^ 2));
+                local vertical = ry ~= nil
+                    and (ry - (tonumber(player.y) or 0)) or 0;
+                local height_phrase = '';
+                if (math.abs(vertical) >= 1.5) then
+                    height_phrase = (' and %d yalms %s'):fmt(
+                        math.floor(math.abs(vertical) + 0.5),
+                        vertical < 0 and 'below' or 'above');
+                end
+                arrival_suffix = ('%s %s is about %d yalms away%s. I could not verify a route to it from here.'):fmt(
+                    arrival_suffix, residual_label,
+                    math.floor(flat + 0.5), height_phrase);
+                log_line(('nav arrival residual target="%s" flat=%.1f vertical=%.1f'):fmt(
+                    accessxi.escape_probe_log_text(residual_label), flat, vertical));
+            end
+        end
+        speak(('Arrived at %s.%s'):fmt(
+            accessxi.nav_menu_point_speech_name(destination) or 'destination', arrival_suffix));
         log_line(('nav arrived name="%s" zone=%d x=%.3f z=%.3f'):fmt(destination.name or '', player.zone or 0, player.x or 0, player.z or 0));
         return;
     end
 
     local movement_signal = accessxi.nav_player_movement_signal(player, now);
-    if (accessxi.nav_collision_watch(player, destination, route_target, destination_distance, now, movement_signal)) then
+    local collision_handled, collision_state = accessxi.nav_collision_watch(
+        player, destination, route_target, destination_distance, now, movement_signal);
+    if (collision_handled) then
+        if (collision_state == 'blocked'
+            and precise_points_before ~= nil
+            and accessxi.nav_active == true
+            and accessxi.nav_destination == precise_destination_before
+            and accessxi.nav_route_points == precise_points_before) then
+            local obstacle = accessxi.nav_precise_obstacle_recovery;
+            if (obstacle ~= nil
+                and obstacle.destination == precise_destination_before
+                and obstacle.points == precise_points_before) then
+                obstacle.cursor_restore_points = precise_points_before;
+                obstacle.cursor_restore_index = precise_index_before;
+            end
+            accessxi.nav_precise_guidance_update(player, now);
+        end
         return;
     end
 
@@ -96425,8 +103232,52 @@ local function poll_nav_route()
 
     accessxi.nav_route_contact_sound(player, route_target, now, movement_signal);
 
-    local key = ('%s:%d:%d:%d:%d'):fmt(destination.name or '', accessxi.nav_route_point_index or 0, math.floor((distance + 2.5) / 5), math.floor((dx + 5) / 10), math.floor((dz + 5) / 10));
-    if (key ~= accessxi.nav_last_key) then
+    -- A STUCK PLAYER MUST LEAVE A TRACE.
+    --
+    -- The freewalk collision detector watches someone walking on their own; it
+    -- says nothing while a route is running. Live 2026-08-23 the player walked
+    -- Jugner Forest twice and Valkurm Dunes once and "got stuck a couple
+    -- places" -- 240 and 190 position samples between them, and NOT ONE
+    -- navigation event logged in either zone. There was nothing to look at.
+    --
+    -- Measure the PLAYER, not the route. The first version of this compared
+    -- distance-to-the-next-waypoint against a best that never reset when a
+    -- waypoint advanced, so every advance looked like a stall -- 26 reports in
+    -- one session, most of them a player walking normally. Whether they are
+    -- stuck is a fact about whether they moved, and nothing else.
+    do
+        local px = tonumber(player.x) or 0;
+        local pz = tonumber(player.z) or 0;
+        local anchor_x = tonumber(accessxi.nav_route_stall_x);
+        local anchor_z = tonumber(accessxi.nav_route_stall_z);
+        local moved = (anchor_x ~= nil and anchor_z ~= nil)
+            and math.sqrt(((px - anchor_x) ^ 2) + ((pz - anchor_z) ^ 2))
+            or math.huge;
+
+        if (moved > 3.0) then
+            accessxi.nav_route_stall_x = px;
+            accessxi.nav_route_stall_z = pz;
+            accessxi.nav_route_stall_since = now;
+            accessxi.nav_route_stall_logged = false;
+        elseif (accessxi.nav_route_stall_logged ~= true
+            and (now - (tonumber(accessxi.nav_route_stall_since) or now)) >= 10000) then
+            accessxi.nav_route_stall_logged = true;
+            log_line(('nav route stalled zone=%d player=(%.3f,%.3f,%.3f) moved=%.2f held=%dms guidance="%s"'):fmt(
+                tonumber(player.zone) or 0,
+                px, pz, tonumber(player.y) or 0,
+                moved,
+                now - (tonumber(accessxi.nav_route_stall_since) or now),
+                accessxi.escape_probe_log_text(tostring(accessxi.nav_last_direction_text or ''))));
+        end
+    end
+
+    -- The waypoint index is not part of the key: advancing a waypoint does not
+    -- change what the player should do. A heartbeat re-speaks the current cue
+    -- when nothing has changed for eight seconds, so silence is never read as
+    -- a broken beacon.
+    local key = ('%s:%d:%d:%d'):fmt(destination.name or '', math.floor((distance + 2.5) / 5), math.floor((dx + 5) / 10), math.floor((dz + 5) / 10));
+    local heartbeat_due = (now - (tonumber(accessxi.nav_route_guidance_last_tick) or 0)) >= 8000;
+    if (key ~= accessxi.nav_last_key or heartbeat_due) then
         accessxi.nav_last_key = key;
         local prefix = route_count > 1 and '' or ('To %s. '):fmt(destination.name or 'destination');
         local text = prefix .. phrase;
@@ -96575,6 +103426,50 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
                 now);
         end);
     end
+    -- An NPC reply that arrives on the ordinary speech channel still answers
+    -- the step the player armed. Speech is unchanged -- 144 carries on to
+    -- handle_chat_text and is spoken there -- this only stops the early return
+    -- below from throwing the completion evidence away.
+    if (type(accessxi.nav_mission_quest_dialogue_mode) == 'function'
+        and accessxi.nav_mission_quest_dialogue_mode(mid)
+        and type(accessxi.nav_mission_quest_note_talk_response) == 'function') then
+        local speaker = tostring(text or ''):match('^%s*([^:]-)%s*:');
+        if (speaker ~= nil and speaker ~= '') then
+            pcall(accessxi.nav_mission_quest_note_talk_response, speaker, now);
+        end
+    end
+    -- "Obtained key item: Lost document." -- the game saying outright that the
+    -- thing the step was waiting for has happened. Unambiguous, speaker-less
+    -- system text naming the exact key item, and a completely independent
+    -- witness to the 0x055 bit flip above. A missed completion can never be
+    -- re-observed, so this class is worth two witnesses; the reducer ignores a
+    -- second report for a step that has already advanced.
+    do
+        local obtained = tostring(text or ''):match('^%s*Obtained key item:%s*(.-)%s*%.?%s*$');
+        if (obtained ~= nil and obtained ~= ''
+            and type(accessxi.nav_mission_quest_reduce_signal) == 'function') then
+            local identity = accessxi.current_player_identity();
+            local world_id = tonumber(accessxi.current_player_world_id()) or 0;
+            local epoch = accessxi.current_objective_session_epoch();
+            if (identity ~= '' and world_id > 0 and epoch > 0) then
+                local sequence = (tonumber(accessxi.objective_signal_sequence) or 0) + 1;
+                accessxi.objective_signal_sequence = sequence;
+                log_line(('objective key item obtained name="%s"'):fmt(
+                    accessxi.escape_probe_log_text(obtained)));
+                pcall(accessxi.nav_mission_quest_reduce_signal, {
+                    kind = 'key-item-delta',
+                    key_item_id = 0,
+                    key_item_name = obtained,
+                    before_owned = false, after_owned = true,
+                    snapshot_complete = true,
+                    character_identity = identity, world_id = world_id,
+                    session_epoch = epoch,
+                    sequence = sequence, tick = now,
+                    corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
+                });
+            end
+        end
+    end
     if (mid ~= 150 and mid ~= 151) then
         if (accessxi.chat_text_is_recent_npc_echo(mid, text, now)) then
             log_line(('chat text npc echo suppressed mode=%d "%s"'):fmt(mid, accessxi.escape_probe_log_text(text)));
@@ -96645,10 +103540,19 @@ ashita.events.register('text_in', 'accessxi_reader_text_in_cb', function (e)
     accessxi.last_log_key = '';
     speak(text);
     log_line(('npc text mode=%d "%s"'):fmt(mid, text));
+    -- An attributable response from the creature the player just spoke to
+    -- completes a menu-less talk step (see nav_mission_quest_note_talk_response).
+    if (type(accessxi.nav_mission_quest_note_talk_response) == 'function') then
+        local speaker = tostring(text or ''):match('^%s*([^:]-)%s*:');
+        if (speaker ~= nil and speaker ~= '') then
+            pcall(accessxi.nav_mission_quest_note_talk_response, speaker, now);
+        end
+    end
 end);
 
 ashita.events.register('packet_in', 'accessxi_reader_packet_in_cb', function (e)
     accessxi.nav_observe_zone_load_packet(e, tick());
+    accessxi.capture_promyvion_entity_update_packet(e);
     accessxi.capture_objective_inventory_packet(e);
     accessxi.capture_mission_quest_event_packet(e, 'in');
     accessxi.trace_character_creation_world_packet(e, 'in');
@@ -97134,6 +104038,83 @@ function accessxi.handle_axi_command(args, e, source)
         else
             nav_open_menu();
         end
+    elseif (#args >= 2 and args[2]:any('adherence', 'drift')) then
+        -- Records how far you drift from the route while following the beacon.
+        -- Deliberately not persisted: it is a measurement session, and a logger
+        -- that survives a restart is one somebody forgets is running.
+        e.blocked = true;
+        local rec = accessxi.route_adherence;
+        if (type(rec) ~= 'table') then
+            speak('The route recorder is not installed.');
+        elseif (#args >= 3 and args[3]:any('on', 'start')) then
+            rec.set_enabled(true);
+            speak('Route drift recording on. Walk a route and it will be written down.');
+            log_line('nav adherence on -> ' .. tostring(rec.path()));
+        elseif (#args >= 3 and args[3]:any('off', 'stop')) then
+            rec.set_enabled(false);
+            speak('Route drift recording off.');
+            log_line('nav adherence off');
+        else
+            speak(rec.enabled() and 'Route drift recording is on.'
+                                or 'Route drift recording is off.');
+        end
+    elseif (#args >= 2 and args[2]:any('walkgraph', 'walkgraphs', 'lathine', 'latheine')) then
+        e.blocked = true;
+        local provider = accessxi.walk_graph_route;
+        if (type(provider) ~= 'table') then
+            speak('The La Theine walk graph is not installed.');
+            log_line('nav walkgraph unavailable');
+        elseif (#args >= 3 and args[3]:any('off', 'disable', '0')) then
+            local saved, save_reason = provider.set_enabled(false);
+            accessxi.nav_walk_graph_pending = nil;
+            -- Releasing the graph is not enough. A walk-graph route already
+            -- installed keeps steering after "off", which makes the switch a
+            -- lie and leaves the player following a route the mod has just
+            -- told them is no longer in use. Stop it.
+            local was_routing = accessxi.nav_active == true
+                and accessxi.nav_route_points_override_id(accessxi.nav_route_points)
+                    == 'lathine-walk-graph-v2';
+            if (was_routing and type(nav_route_stop) == 'function') then
+                nav_route_stop();
+            end
+            if (saved == nil) then
+                speak(tostring(save_reason or 'Could not save the setting.')
+                    .. ' La Theine walk graph is off for this session.');
+                log_line('nav walkgraph off (not persisted)');
+            elseif (was_routing) then
+                speak('La Theine walk graph off. That route is stopped and standard navigation is restored.');
+                log_line('nav walkgraph off, active route stopped');
+            else
+                speak('La Theine walk graph off. Standard navigation restored.');
+                log_line('nav walkgraph off');
+            end
+        elseif (#args >= 3 and args[3]:any('on', 'enable', '1')) then
+            local saved, save_reason = provider.set_enabled(true);
+            if (saved == nil) then
+                speak(tostring(save_reason or 'Could not save the setting.')
+                    .. ' La Theine walk graph is on for this session only.');
+                log_line('nav walkgraph on (not persisted)');
+            else
+                speak('La Theine walk graph on.');
+                log_line('nav walkgraph on');
+            end
+        else
+            local mode, reason = provider.status();
+            local text = provider.enabled()
+                and 'La Theine walk graph is on.'
+                or 'La Theine walk graph is off.';
+            if (provider.enabled() and provider.is_loaded()) then
+                text = text .. ' The graph is loaded.';
+            elseif (provider.enabled() and mode == 'loading') then
+                text = text .. ' The graph is still loading.';
+            elseif (provider.enabled() and mode == 'unavailable') then
+                text = text .. ' ' .. (nav_clean_field(reason) ~= ''
+                    and nav_clean_field(reason) or 'The graph is unavailable.');
+            end
+            speak(text);
+            log_line(('nav walkgraph status enabled=%s mode=%s'):fmt(
+                tostring(provider.enabled()), tostring(mode)));
+        end
     elseif (#args >= 2 and args[2]:any('beacon', 'navbeacon')) then
         e.blocked = true;
         if (#args >= 3 and args[3]:any('off', 'disable', '0')) then
@@ -97283,6 +104264,23 @@ function accessxi.handle_axi_command(args, e, source)
         local text = accessxi.nav_zone_checklist_speech();
         speak(text);
         log_line('nav manual ' .. text);
+    elseif (#args >= 2 and args[2]:any('undo', 'objectiveundo', 'unmark')) then
+        -- Takes back the last step marked done by hand. Not bound to a key:
+        -- navigation_hotkeys.available() refuses the suite while any modifier
+        -- is held, so Shift N cannot reach it without loosening the gate for
+        -- every other key, and stealing a further unmodified letter from the
+        -- game is the player's call to make, not ours.
+        e.blocked = true;
+        local ok, text = false, '';
+        if (type(accessxi.nav_objective_undo_last_mark) == 'function') then
+            ok, text = accessxi.nav_objective_undo_last_mark();
+        end
+        text = nav_clean_field(text);
+        if (text == '') then
+            text = ok and 'Undone.' or 'There is nothing to undo.';
+        end
+        speak(text);
+        log_line(('nav manual objective undo ok=%s %s'):fmt(tostring(ok), text));
     end
     return e.blocked == true;
 end
@@ -97493,8 +104491,24 @@ ashita.events.register('key_state', 'accessxi_drive_key_state_cb', function (e)
     ptr[directinput_key] = 0x80;
 end);
 
+-- Speak once when a triggered target stays silent. The contract lives in the
+-- navigation module next to the arm; this is only the voice for it.
+function accessxi.poll_objective_unanswered_interaction(now)
+    if (type(accessxi.nav_mission_quest_unanswered_talk) ~= 'function') then
+        return;
+    end
+    local ok, text = pcall(accessxi.nav_mission_quest_unanswered_talk, now);
+    if (not ok or type(text) ~= 'string' or text == '') then
+        return;
+    end
+    log_line(('objective interaction unanswered text="%s"'):fmt(
+        accessxi.escape_probe_log_text(text)));
+    speak(text);
+end
+
 ashita.events.register('d3d_present', 'present_cb', function ()
     local now = tick();
+    accessxi.frame_counter = (accessxi.frame_counter or 0) + 1;
     accessxi.poll_axi_drive(now);
     if (accessxi.poll_axi_external_control(now)) then
         return;
@@ -97512,15 +104526,24 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         accessxi.nav_route_recorder_poll(now);
     end
     accessxi.poll_nav_dat_collision_preload(now);
+    accessxi.nav_mesh_probe_fulfil(now);
+    if (type(accessxi.nav_promyvion_probe) == 'function') then
+        pcall(accessxi.nav_promyvion_probe, nav_cached_player_position(), now);
+    end
     accessxi.poll_mission_quest_state_changes(now);
     accessxi.poll_objective_inventory_refresh(now);
+    accessxi.poll_objective_unanswered_interaction(now);
     accessxi.poll_compass_hotkey();
+    accessxi.poll_compass_turn_announcement(now);
     accessxi.poll_view_hotkey();
     accessxi.poll_combat_action_feedback();
     accessxi.poll_chat_reader_hotkeys();
     accessxi.poll_config_chat_filter_confirm_key();
     accessxi.poll_config_log_window_designation_confirm_key();
     accessxi.poll_chat_log_native_trace();
+    -- Ahead of every early return below: an objective announcement is durable
+    -- and must not be stranded because some other poll claimed the frame.
+    accessxi.poll_objective_announcements();
     if (accessxi.poll_chat_log_missing_retry()) then
         return;
     end
@@ -97541,6 +104564,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         return;
     end
     poll_menu();
+    accessxi.poll_unsupported_menu_voice();
     if (accessxi.poll_chat_log_deferred_speech()) then
         return;
     end
@@ -97559,12 +104583,78 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     end
     accessxi.poll_nav_browser_hotkeys();
     poll_target();
+    -- ACCESSXI_FRAME_WATCHDOG_BEGIN (temporary)
+    -- Names whichever phase stalled the render thread, so a freeze reported by
+    -- the player can be attributed instead of guessed at.
+    local watchdog_t0 = tick();
+    accessxi.poll_nav_walk_graph(now);
+    if (accessxi.route_adherence ~= nil and accessxi.route_adherence.enabled()) then
+        pcall(accessxi.route_adherence.poll, now, nav_player_position());
+    end
     accessxi.poll_nav_dat_collision(now);
+    local watchdog_dat = tick();
     accessxi.poll_nav_collision_sound();
+    local watchdog_sound = tick();
+    if (accessxi.nav_route_stall_watchdog(now)) then
+        return;
+    end
     if (accessxi.poll_nav_zone_search()) then
+        accessxi.frame_watchdog_report('zone-search', watchdog_t0, T{
+            dat = watchdog_dat - watchdog_t0,
+            sound = watchdog_sound - watchdog_dat,
+        });
         return;
     end
     poll_nav_route();
+    local watchdog_route = tick();
     accessxi.poll_nav_beacon();
+    local watchdog_beacon = tick();
     accessxi.poll_enemy_warning();
+    accessxi.frame_watchdog_report('frame', watchdog_t0, T{
+        dat = watchdog_dat - watchdog_t0,
+        sound = watchdog_sound - watchdog_dat,
+        route = watchdog_route - watchdog_sound,
+        beacon = watchdog_beacon - watchdog_route,
+        enemy = tick() - watchdog_beacon,
+    });
 end);
+-- ACCESSXI_FRAME_WATCHDOG_END
+
+-- ACCESSXI_BEACON_ATTRIBUTION_BEGIN (temporary)
+-- Names the expensive step INSIDE a stalled beacon frame. Four freezes were
+-- diagnosed this session by guessing from coarse phase totals, and two guesses
+-- were wrong; the watchdog says "beacon=3376ms" and nothing more. These wrap
+-- the two candidates that do native work, and log only when one is slow.
+-- Inside a called closure: the main chunk sits at Lua 5.1's 200-local ceiling,
+-- and a bare do-block's locals would count against it.
+(function ()
+    local wrapped_route_target = accessxi.nav_beacon_route_target;
+    if (type(wrapped_route_target) == 'function') then
+        accessxi.nav_beacon_route_target = function (player)
+            local started = tick();
+            local aim = wrapped_route_target(player);
+            local elapsed = tick() - started;
+            if (elapsed >= 300) then
+                log_line(('nav beacon SLOW route_target %dms route="%s" aim=%s'):fmt(
+                    elapsed,
+                    tostring(accessxi.nav_route_points_override_id(accessxi.nav_route_points)),
+                    aim ~= nil and 'yes' or 'nil'));
+            end
+            return aim;
+        end;
+    end
+
+    local wrapped_safe_target = accessxi.nav_lathine_locally_safe_target;
+    if (type(wrapped_safe_target) == 'function') then
+        accessxi.nav_lathine_locally_safe_target = function (...)
+            local started = tick();
+            local result = wrapped_safe_target(...);
+            local elapsed = tick() - started;
+            if (elapsed >= 300) then
+                log_line(('nav beacon SLOW locally_safe_target %dms'):fmt(elapsed));
+            end
+            return result;
+        end;
+    end
+end)();
+-- ACCESSXI_BEACON_ATTRIBUTION_END

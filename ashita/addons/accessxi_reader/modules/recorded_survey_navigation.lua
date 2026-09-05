@@ -4,10 +4,37 @@ local west_corridor_prefix = 'lathine-recorded-corridor-20260712-west-via-';
 local survey_collision_blocked_edges = {
     ['3924:3923'] = true,
 };
+-- tail_budget: how far the short mesh hop from the marked node to the zone-line
+--   trigger may run in total.  Defaults to 20 yalms; only widen it for a mark
+--   whose measured gap to the trigger is larger, and never past what the walk
+--   supports.  Every other tail check still applies.
+-- When an edge here cannot be served -- the player is off the walked line, or
+-- the tail will not verify -- the walk hands back to the mesh rather than
+-- calling the zone line unreachable, so a marked edge can only ever add routes.
 local survey_zoneline_marked_edges = {
     [947204730] = {
         node_id = 845,
         label = 'ordelles caves zone 2',
+        from_zone = 102,
+        to_zone = 193,
+        x = -60.125,
+        z = 148.001,
+        y = 27.231,
+    },
+    -- Valkurm Dunes was the one La Theine exit with no override, no marked edge
+    -- and no survey coverage -- the live log has 14 "Valkurm Dunes zone line is
+    -- not reachable from here".  The player walked to and marked it as survey
+    -- node 1969; the trigger sits 26.9 yalms further on, across flat ground
+    -- (vertical delta 0.41), so the tail budget is widened to cover that hop.
+    [880095866] = {
+        node_id = 1969,
+        label = 'valkern dunes zone line',
+        from_zone = 102,
+        to_zone = 103,
+        x = 159.989,
+        z = -760.190,
+        y = 31.950,
+        tail_budget = 32.0,
     },
 };
 
@@ -189,6 +216,16 @@ local function survey_heap_pop(heap)
     return first;
 end
 
+local function survey_collision_edge_blocked(from_id, to_id)
+    from_id = math.floor(tonumber(from_id) or 0);
+    to_id = math.floor(tonumber(to_id) or 0);
+    if (from_id <= 0 or to_id <= 0) then
+        return false;
+    end
+    return survey_collision_blocked_edges[('%d:%d'):fmt(from_id, to_id)] == true
+        or survey_collision_blocked_edges[('%d:%d'):fmt(to_id, from_id)] == true;
+end
+
 function accessxi.nav_recorded_survey_shortest_path(start_id, destination_id)
     local result = T{};
     start_id = math.floor(tonumber(start_id) or 0);
@@ -214,13 +251,15 @@ function accessxi.nav_recorded_survey_shortest_path(start_id, destination_id)
             end
             local node = accessxi.nav_recorded_survey_nodes[current.id];
             for _, neighbor_id in ipairs(node.neighbors) do
-                local neighbor = accessxi.nav_recorded_survey_nodes[neighbor_id];
-                local _, _, edge_distance = survey_horizontal_vertical(node, neighbor);
-                local candidate = current_cost + edge_distance;
-                if (candidate < (tonumber(distances[neighbor_id]) or 999999999)) then
-                    distances[neighbor_id] = candidate;
-                    previous[neighbor_id] = current.id;
-                    survey_heap_push(heap, { id = neighbor_id, cost = candidate });
+                if (not survey_collision_edge_blocked(current.id, neighbor_id)) then
+                    local neighbor = accessxi.nav_recorded_survey_nodes[neighbor_id];
+                    local _, _, edge_distance = survey_horizontal_vertical(node, neighbor);
+                    local candidate = current_cost + edge_distance;
+                    if (candidate < (tonumber(distances[neighbor_id]) or 999999999)) then
+                        distances[neighbor_id] = candidate;
+                        previous[neighbor_id] = current.id;
+                        survey_heap_push(heap, { id = neighbor_id, cost = candidate });
+                    end
                 end
             end
         end
@@ -251,14 +290,124 @@ local function survey_path_collision_blocked_edge(path)
     for index = 2, path:len() do
         local from_id = math.floor(tonumber(path[index - 1]) or 0);
         local to_id = math.floor(tonumber(path[index]) or 0);
-        if (survey_collision_blocked_edges[('%d:%d'):fmt(from_id, to_id)] == true) then
+        if (survey_collision_edge_blocked(from_id, to_id)) then
             return from_id, to_id;
         end
     end
     return 0, 0;
 end
 
-local function survey_route_append(route, point, node_id)
+local survey_route_append;
+
+local function survey_marked_zoneline_destination(point)
+    if (point == nil) then
+        return 0, nil, nil;
+    end
+    local source = tostring(point.source or ''):lower();
+    local edge_id = math.floor(tonumber(source:match('^zonesearch:(%d+):%d+:%d+$')) or 0);
+    local expected = survey_zoneline_marked_edges[edge_id];
+    if (expected == nil or not accessxi.nav_recorded_survey_load()
+        or (tonumber(point.zone) or 0) ~= (tonumber(expected.from_zone) or 0)
+        or (tonumber(point.to_zone) or 0) ~= (tonumber(expected.to_zone) or 0)) then
+        return 0, nil, nil;
+    end
+
+    local dx = (tonumber(point.x) or 0) - (tonumber(expected.x) or 0);
+    local dz = (tonumber(point.z) or 0) - (tonumber(expected.z) or 0);
+    local dy = math.abs((tonumber(point.y) or 0) - (tonumber(expected.y) or 0));
+    if (math.sqrt((dx * dx) + (dz * dz)) > 0.25 or dy > 0.5) then
+        return 0, nil, nil;
+    end
+
+    local node = accessxi.nav_recorded_survey_nodes[expected.node_id];
+    if (node == nil
+        or tostring(node.event or ''):lower() ~= 'mark'
+        or tostring(node.label or ''):lower() ~= expected.label) then
+        return 0, nil, nil;
+    end
+    return edge_id, expected, node;
+end
+
+local function survey_marked_zoneline_tail_is_local(tail, start_pos, destination, budget)
+    local count = tail ~= nil and tail:len() or 0;
+    if (count < 2 or count > 6 or start_pos == nil or destination == nil) then
+        return false;
+    end
+    budget = tonumber(budget) or 20.0;
+
+    local first_horizontal, first_vertical = survey_horizontal_vertical(tail[1], start_pos);
+    local last_horizontal, last_vertical = survey_horizontal_vertical(tail[count], destination);
+    if (first_horizontal > 1.5 or first_vertical > 2.0
+        or last_horizontal > 1.0 or last_vertical > 4.0) then
+        return false;
+    end
+
+    local total_distance = 0;
+    local expected_zone = tonumber(destination.zone) or 0;
+    for index, waypoint in ipairs(tail) do
+        if ((tonumber(waypoint.zone) or 0) ~= expected_zone) then
+            return false;
+        end
+        if (index > 1) then
+            local _, _, segment_distance = survey_horizontal_vertical(tail[index - 1], waypoint);
+            if (segment_distance > 12.0) then
+                return false;
+            end
+            total_distance = total_distance + segment_distance;
+        end
+    end
+    return total_distance <= budget;
+end
+
+local function survey_marked_zoneline_route(player_id, point, edge_id, expected, destination_node)
+    local route = T{};
+    local path = accessxi.nav_recorded_survey_shortest_path(player_id, expected.node_id);
+    if (path:len() <= 0) then
+        accessxi.nav_route_last_reject_reason = 'walked La Theine entrance has no connected course';
+        return route;
+    end
+
+    for _, node_id in ipairs(path) do
+        local node = accessxi.nav_recorded_survey_nodes[node_id];
+        survey_route_append(route, T{
+            zone = node.zone,
+            name = node.label ~= '' and node.label or ('Recorded La Theine survey %d'):fmt(node.sequence),
+            x = node.x,
+            z = node.z,
+            y = node.y,
+        }, node.id);
+    end
+
+    local tail_start = T{
+        zone = destination_node.zone,
+        name = destination_node.label,
+        x = destination_node.x,
+        z = destination_node.z,
+        y = destination_node.y,
+    };
+    local tail = type(nav_compute_mesh_route) == 'function'
+        and nav_compute_mesh_route(tail_start, point, true) or T{};
+    if (not survey_marked_zoneline_tail_is_local(tail, tail_start, point, expected.tail_budget)) then
+        accessxi.nav_route_last_reject_reason = 'walked La Theine entrance has no verified short zone-line tail';
+        return T{};
+    end
+    for index = 2, tail:len() do
+        survey_route_append(route, tail[index], nil);
+    end
+
+    local final = route[route:len()];
+    local final_horizontal, final_vertical = survey_horizontal_vertical(final, point);
+    if (final == nil or final_horizontal > 0.05 or final_vertical > 0.05) then
+        survey_route_append(route, point, nil);
+    end
+
+    accessxi.nav_route_last_reject_reason = '';
+    log_line(('nav recorded survey marked zoneline route edge=%d destination="%s" start=%d finish=%d count=%d'):fmt(
+        edge_id, point.name or '', player_id, expected.node_id, route:len()));
+    return route;
+end
+
+survey_route_append = function(route, point, node_id)
     if (route == nil or point == nil) then
         return;
     end
@@ -278,6 +427,182 @@ local function survey_route_append(route, point, node_id)
         route_override_id = route_id,
         survey_node_id = tonumber(node_id) or tonumber(point.survey_node_id),
     });
+end
+
+local function survey_owned_recovery_joins(owned_points, owned_index)
+    local joins = T{};
+    local count = owned_points ~= nil and owned_points:len() or 0;
+    local index = math.floor(tonumber(owned_index) or 0);
+    if (count <= 0 or index < 1 or index > count
+        or tostring(owned_points[1] ~= nil and owned_points[1].route_override_id or '') ~= route_id) then
+        return joins;
+    end
+
+    local walked = 0;
+    local previous = nil;
+    for route_index = index, count do
+        local waypoint = owned_points[route_index];
+        if (waypoint == nil or tostring(waypoint.route_override_id or '') ~= route_id) then
+            return T{};
+        end
+        if (previous ~= nil) then
+            local _, _, segment_distance = survey_horizontal_vertical(previous, waypoint);
+            walked = walked + segment_distance;
+            if (walked > 24.000001) then
+                break;
+            end
+        end
+
+        local node_id = math.floor(tonumber(waypoint.survey_node_id) or 0);
+        local node = accessxi.nav_recorded_survey_nodes[node_id];
+        if (node ~= nil) then
+            local horizontal, vertical = survey_horizontal_vertical(waypoint, node);
+            if (horizontal <= 0.05 and vertical <= 0.25) then
+                joins:append(T{
+                    route_index = route_index,
+                    node = node,
+                });
+            end
+        end
+        previous = waypoint;
+    end
+    return joins;
+end
+
+local function survey_owned_connector_is_local(connector, player, join)
+    local count = connector ~= nil and connector:len() or 0;
+    if (count < 2 or count > 3 or player == nil or join == nil) then
+        return false;
+    end
+
+    local expected_zone = tonumber(player.zone) or 0;
+    if (expected_zone <= 0 or expected_zone ~= (tonumber(join.zone) or 0)) then
+        return false;
+    end
+    local first_horizontal, first_vertical = survey_horizontal_vertical(connector[1], player);
+    local last_horizontal, last_vertical = survey_horizontal_vertical(connector[count], join);
+    if (first_horizontal > 1.5 or first_vertical > 2.0
+        or last_horizontal > 1.25 or last_vertical > 2.0) then
+        return false;
+    end
+
+    local player_y = tonumber(player.y) or 0;
+    local join_y = tonumber(join.y) or 0;
+    local minimum_y = math.min(player_y, join_y) - 2.0;
+    local maximum_y = math.max(player_y, join_y) + 2.0;
+    local direct_horizontal, _, direct_distance = survey_horizontal_vertical(player, join);
+    if (direct_horizontal <= 0.001 or direct_distance > 20.0) then
+        return false;
+    end
+
+    local direct_x = (tonumber(join.x) or 0) - (tonumber(player.x) or 0);
+    local direct_z = (tonumber(join.z) or 0) - (tonumber(player.z) or 0);
+    local direct_horizontal_squared = (direct_x * direct_x) + (direct_z * direct_z);
+    local total_distance = 0;
+    local previous = player;
+    local previous_progress = -0.05;
+    for connector_index, waypoint in ipairs(connector) do
+        if (waypoint == nil or (tonumber(waypoint.zone) or 0) ~= expected_zone) then
+            return false;
+        end
+        local waypoint_y = tonumber(waypoint.y) or 0;
+        if (waypoint_y < minimum_y or waypoint_y > maximum_y) then
+            return false;
+        end
+
+        local _, _, segment_distance = survey_horizontal_vertical(previous, waypoint);
+        if (segment_distance <= 0.05
+            or (count > 2 and connector_index > 1 and segment_distance > 12.0)) then
+            return false;
+        end
+        total_distance = total_distance + segment_distance;
+
+        local offset_x = (tonumber(waypoint.x) or 0) - (tonumber(player.x) or 0);
+        local offset_z = (tonumber(waypoint.z) or 0) - (tonumber(player.z) or 0);
+        local progress = ((offset_x * direct_x) + (offset_z * direct_z))
+            / direct_horizontal_squared;
+        if (connector_index > 1 and progress <= (previous_progress + 0.001)) then
+            return false;
+        end
+        if (progress < -0.05 or progress > 1.05) then
+            return false;
+        end
+        previous_progress = progress;
+        previous = waypoint;
+    end
+
+    local _, _, snap_distance = survey_horizontal_vertical(previous, join);
+    total_distance = total_distance + snap_distance;
+    if (total_distance > 20.0 or total_distance > (direct_distance + 1.0)) then
+        return false;
+    end
+    return true;
+end
+
+local function survey_owned_recovery_route(player, point, owned_points, owned_index)
+    local route = T{};
+    local joins = survey_owned_recovery_joins(owned_points, owned_index);
+    if (joins:len() <= 0) then
+        accessxi.nav_route_last_reject_reason =
+            'walked La Theine recovery has no current or forward owned survey join';
+        return route;
+    end
+
+    local saw_local_connector = false;
+    for _, candidate in ipairs(joins) do
+        local join_index = tonumber(candidate.route_index) or 0;
+        local join_node = candidate.node;
+        local direct_horizontal, direct_vertical, direct_distance =
+            survey_horizontal_vertical(player, join_node);
+        if (join_index > 0 and join_node ~= nil
+            and direct_horizontal > 0.001 and direct_vertical <= 2.0 and direct_distance <= 20.0) then
+            local join = T{
+                zone = join_node.zone,
+                name = join_node.label ~= '' and join_node.label
+                    or ('Recorded La Theine survey %d'):fmt(join_node.sequence),
+                x = join_node.x,
+                z = join_node.z,
+                y = join_node.y,
+                survey_node_id = join_node.id,
+            };
+            local connector = type(nav_compute_closest_mesh_route) == 'function'
+                and nav_compute_closest_mesh_route(player, join, true) or T{};
+            if (survey_owned_connector_is_local(connector, player, join)) then
+                saw_local_connector = true;
+                if (type(nav_lathine_direct_target_safe) == 'function'
+                    and nav_lathine_direct_target_safe(player, join)) then
+                    for connector_index = 1, connector:len() do
+                        if (connector_index == connector:len()) then
+                            survey_route_append(route, join, join_node.id);
+                        else
+                            survey_route_append(route, connector[connector_index], nil);
+                        end
+                    end
+                    for route_index = join_index + 1, owned_points:len() do
+                        local waypoint = owned_points[route_index];
+                        survey_route_append(route, waypoint,
+                            waypoint ~= nil and waypoint.survey_node_id or nil);
+                    end
+
+                    if (route:len() > 1) then
+                        accessxi.nav_route_last_reject_reason = '';
+                        log_line(('nav recorded survey recovered destination="%s" join=%d route_index=%d connector=%d count=%d'):fmt(
+                            point.name or '', join_node.id, join_index, connector:len(), route:len()));
+                        return route;
+                    end
+                    route:clear();
+                end
+            end
+        end
+    end
+    if (saw_local_connector) then
+        accessxi.nav_route_last_reject_reason =
+            'walked La Theine recovery connectors failed direct-target safety validation';
+    else
+        accessxi.nav_route_last_reject_reason =
+            'walked La Theine recovery has no verified short local connector';
+    end
+    return T{};
 end
 
 local function survey_west_route(player_id, point)
@@ -328,7 +653,19 @@ local function survey_west_route(player_id, point)
     return empty, saw_collision_blocked_path;
 end
 
-function accessxi.nav_recorded_survey_route(player, point)
+-- The walked survey owns marked zoneline destinations by default, and a
+-- caller must pass allow_marked_zoneline = false to decline that.
+--
+-- It was briefly the other way round. Handing these destinations to the
+-- installed full-zone navmesh produced shorter, cheaper routes that were not
+-- walkable: on 2026-08-17 the mesh returned the same 50-waypoint answer four
+-- times in ninety seconds, each one walking the player into terrain around
+-- waypoint 5-8 at zero clearance. The waypoint cursor reset 8->3->5->3 and
+-- the distance to the destination rose from 581 to 605 yalms -- the player
+-- walked in a circle. The survey is expensive and its recovery is narrow,
+-- but the ground it covers is ground someone actually walked, and that is
+-- the property that matters. Route quality first; cost second.
+function accessxi.nav_recorded_survey_route(player, point, owned_points, owned_index, allow_marked_zoneline)
     local route = T{};
     if (player == nil or point == nil
         or (tonumber(player.zone) or 0) ~= 102
@@ -338,17 +675,62 @@ function accessxi.nav_recorded_survey_route(player, point)
 
     local destination_name = tostring(point.name or ''):lower();
     local destination_is_west = destination_name:find('west ronfaure', 1, true) ~= nil;
-    if (not destination_is_west) then
-        accessxi.nav_route_last_reject_reason = '';
-        log_line(('nav recorded survey yielded to full-zone collision terrain destination="%s"'):fmt(
-            point.name or ''));
-        return route, false, true;
+    -- Ownership is the default; only an explicit false declines it. Skipping
+    -- the lookup in that case also avoids cold-loading the 6499-node survey
+    -- purely to discard the answer.
+    local marked_edge_id, marked_edge, marked_node = 0, nil, nil;
+    if (allow_marked_zoneline ~= false) then
+        marked_edge_id, marked_edge, marked_node = survey_marked_zoneline_destination(point);
+    end
+    -- Every zone-102 destination the walk actually covers is answered from the
+    -- walk.  This used to yield everything except West Ronfaure and the one
+    -- wired marked edge, which left the generic course below unreachable and
+    -- handed ordinary destinations -- mission NPCs, the Telepoint, the Field
+    -- Manual -- to a mesh that routes through cliffs.  Destinations the walk
+    -- does not cover still yield further down, so the mesh keeps its turn.
+
+    if (owned_points ~= nil or owned_index ~= nil) then
+        route = survey_owned_recovery_route(player, point, owned_points, owned_index);
+        if (route:len() > 1) then
+            return route, true;
+        end
+        -- A refresh connector that cannot bridge back to the walked line means
+        -- the walk has lost the player, not that the destination is gone.
+        return T{}, false, true;
     end
 
     local player_id, player_horizontal, player_vertical = accessxi.nav_recorded_survey_nearest(player);
     local player_covered = player_id > 0 and player_horizontal <= 6.0 and player_vertical <= 4.5;
     if (not player_covered) then
+        if (marked_edge_id > 0) then
+            accessxi.nav_route_last_reject_reason =
+                'live position is outside the walked La Theine entrance course';
+            log_line(('nav recorded survey marked zoneline recovery waiting edge=%d destination="%s" horizontal=%.1f vertical=%.1f'):fmt(
+                marked_edge_id,
+                point.name or '',
+                tonumber(player_horizontal) or 999999,
+                tonumber(player_vertical) or 999999));
+            -- The walk cannot snap a player standing this far off it, but it has
+            -- no evidence about the ground they are on either, so it must not
+            -- veto the whole leg.  Blocking here stranded a cross-zone mission
+            -- leg on 2026-08-20 with nothing spoken but a refusal.  Hand back
+            -- and let the verified overrides and the mesh answer.
+            return T{}, false, true;
+        end
+        -- Handing off to the other providers, so do not leave an older
+        -- rejection behind for the caller to speak as if it were this one.
+        accessxi.nav_route_last_reject_reason = '';
         return route, false;
+    end
+
+    if (marked_edge_id > 0) then
+        route = survey_marked_zoneline_route(player_id, point, marked_edge_id, marked_edge, marked_node);
+        if (route:len() > 1) then
+            return route, true;
+        end
+        -- Same rule as above: an unverifiable zone-line tail means the walk has
+        -- no answer, not that the destination is unreachable.
+        return T{}, false, true;
     end
 
     if (destination_is_west) then
@@ -364,20 +746,27 @@ function accessxi.nav_recorded_survey_route(player, point)
             accessxi.nav_route_last_reject_reason = '';
             return T{}, false, true;
         end
-        accessxi.nav_route_last_reject_reason = 'complete walked La Theine survey has no proven West exit connection';
-        return T{}, true;
+        -- No proven West corridor in the walk is not the same as no way west.
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey yielded west leg destination="%s"'):fmt(point.name or ''));
+        return T{}, false, true;
     end
 
     local destination_id, destination_horizontal, destination_vertical = accessxi.nav_recorded_survey_nearest(point);
     if (destination_id <= 0 or destination_horizontal > 6.0 or destination_vertical > 4.5) then
-        accessxi.nav_route_last_reject_reason = 'destination is outside the complete walked La Theine survey';
-        return route, true;
+        -- Off the walked ground.  Yield rather than claim the destination:
+        -- blocking here would strand every target the walk never reached.
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey yielded to full-zone collision terrain destination="%s"'):fmt(
+            point.name or ''));
+        return route, false, true;
     end
 
     local path = accessxi.nav_recorded_survey_shortest_path(player_id, destination_id);
     if (path:len() <= 0) then
-        accessxi.nav_route_last_reject_reason = 'complete walked La Theine survey has no connected course';
-        return route, true;
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey has no connected course destination="%s"'):fmt(point.name or ''));
+        return route, false, true;
     end
     local blocked_from, blocked_to = survey_path_collision_blocked_edge(path);
     if (blocked_from > 0) then
@@ -416,6 +805,17 @@ function accessxi.nav_recorded_survey_route(player, point)
             route_override_id = route_id,
             survey_node_id = destination_id,
         });
+    end
+
+    -- The caller only accepts a course of more than one waypoint.  A single
+    -- node -- the player already standing on the node nearest the destination,
+    -- which happens on replans as the route completes -- would be claimed and
+    -- then silently discarded, leaving the player with nothing.  Hand it back.
+    if (route:len() <= 1) then
+        accessxi.nav_route_last_reject_reason = '';
+        log_line(('nav recorded survey yielded single-node course destination="%s" node=%d'):fmt(
+            point.name or '', player_id));
+        return T{}, false, true;
     end
 
     accessxi.nav_route_last_reject_reason = '';

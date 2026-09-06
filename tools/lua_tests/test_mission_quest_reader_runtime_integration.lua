@@ -425,12 +425,22 @@ task2_reader_expect(type(finish_05b) == 'table'
         and finish_05b.zone_id == 237
         and finish_05b.event_id == 0x4455
         and finish_05b.menu_id == 0x4455
+        and finish_05b.automated == false
         and finish_05b.character_identity == 'alpha:1001'
         and finish_05b.world_id == 1001
         and finish_05b.session_epoch == 77,
     'raw outgoing 0x05B did not emit one exact owner-qualified interaction-finish signal')
 task2_reader_expect(old_event_bridge_calls == 0,
     'raw 0x05B double-dispatched through the legacy interaction bridge')
+
+local automated_05b = task2_capture_event(0x05B, 'out', 0x16, {
+    { offset = 0x04, value = 0x11223344, width = 4 },
+    { offset = 0x0E, value = 1, width = 1 },
+    { offset = 0x10, value = 237, width = 2 },
+    { offset = 0x12, value = 0x4455, width = 2 },
+})
+task2_reader_expect(automated_05b and automated_05b.automated == true,
+    'an intermediate automated 0x05B must be distinguished from closing the interaction')
 
 -- Combat adapters are evidence producers only.  Incoming 0x028 actions may
 -- retain bounded battle/entity context, but only incoming 0x029 Action

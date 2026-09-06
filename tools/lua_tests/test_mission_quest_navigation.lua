@@ -1,5 +1,11 @@
 local objectives_path = assert(arg[1], 'missing objectives module path')
 local module_path = assert(arg[2], 'missing navigation module path')
+-- This suite supplies synthetic catalogue/actions. Its optional reviewed-data
+-- lookup must be an empty fixture, while the source integration suite uses the
+-- installed TSV and tests real bindings.
+accessxi_paths = { addon_path = function(...)
+    return module_path .. '.fixture-data/' .. table.concat({...}, '/')
+end }
 
 local list_methods = {}
 function list_methods:len() return #self end
@@ -1591,7 +1597,7 @@ local function task2_reduce(signal, label)
         return false
     end
     local ok, accepted = pcall(accessxi.nav_mission_quest_reduce_signal, signal)
-    task2_reducer_expect(ok, label .. ' raised a production reducer error')
+    task2_reducer_expect(ok, label .. ' raised a production reducer error: ' .. tostring(accepted))
     return ok and accepted == true
 end
 

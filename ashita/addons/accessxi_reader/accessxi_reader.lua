@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.05.1';
+addon.version   = '2026.09.06';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -69451,6 +69451,8 @@ else
     accessxi.objective_guides = T{};
 end
 accessxi.load_code_module('mission_progress_tracker', T{ T = T, log_line = log_line });
+accessxi.load_code_module('objective_event_evidence');
+accessxi.load_code_module('mission_quest_search_steps');
 accessxi.load_code_module('objective_announcer', T{ T = T, log_line = log_line });
 accessxi.load_code_module('mission_quest_step_resolver', T{ T = T, log_line = log_line });
 accessxi.load_code_module('nav_destination_ingress', T{ accessxi_paths = accessxi_paths });
@@ -93648,7 +93650,8 @@ function accessxi.capture_mission_quest_event_packet(e, direction)
     -- other half and arrives separately.
     if (tostring(direction or ''):lower() == 'out' and (tonumber(e.id) or -1) == 0x001A
         and type(accessxi.nav_mission_quest_note_talk_intent) == 'function') then
-        local payload = e.data_modified or e.data or '';
+        local payload = accessxi.packet_event_string(e, 'data_modified', 'size');
+        if (payload == '') then payload = accessxi.packet_event_string(e, 'data', 'size'); end
         local ok_target, target = pcall(accessxi.packet_u32, payload, 0x04 + 1);
         local ok_category, category = pcall(accessxi.packet_u16, payload, 0x0A + 1);
         if (ok_target and ok_category and (tonumber(category) or -1) == 0) then
@@ -93754,6 +93757,8 @@ function accessxi.capture_mission_quest_event_packet(e, direction)
         target_server_id = target_server_id, target_index = target_index,
         target_name = target_name, zone_id = zone_id,
         event_id = event_id, menu_id = menu_id,
+        automated = direction == 'out' and packet_id == 0x005B
+            and (data:byte(0x0E + 1) or 0) ~= 0,
         destination_x = destination_x, destination_z = destination_z,
         destination_y = destination_y,
         character_identity = identity, world_id = world_id,
@@ -93761,6 +93766,11 @@ function accessxi.capture_mission_quest_event_packet(e, direction)
         corpus_revision = tonumber(accessxi.nav_catalog_revision) or 0,
     };
     local ok, result = pcall(accessxi.nav_mission_quest_reduce_signal, signal);
+    if (kind == 'interaction-start' or kind == 'interaction-finish') then
+        log_line(('objective event result kind=%s target=%d zone=%d event=%d automated=%s accepted=%s'):fmt(
+            kind, target_server_id, zone_id, event_id,
+            tostring(signal.automated), tostring(ok and result == true)));
+    end
     if (ok and result == true and kind == 'transport-request') then
         accessxi.objective_transport_target_server_id = target_server_id;
         accessxi.objective_transport_menu_id = menu_id;
@@ -104548,6 +104558,13 @@ end);
 -- Speak once when a triggered target stays silent. The contract lives in the
 -- navigation module next to the arm; this is only the voice for it.
 function accessxi.poll_objective_unanswered_interaction(now)
+    if (now >= (tonumber(accessxi.objective_history_next_check) or 0)) then
+        accessxi.objective_history_next_check = now + 2000;
+        if (type(accessxi.nav_mission_quest_recover_event_history) == 'function') then
+            local ok, result = pcall(accessxi.nav_mission_quest_recover_event_history);
+            if (not ok) then log_line('objective history recovery failed: ' .. tostring(result)); end
+        end
+    end
     if (type(accessxi.nav_mission_quest_unanswered_talk) ~= 'function') then
         return;
     end

@@ -12,5 +12,7 @@
 # step_id	zone	target_name	source	note	destination_id (optional exact identity)
 mission:San d'Oria:6:step-007	237	Savae E Paleade	lsb-journey-abroad	Bastok branch contact; speaking to him sets the Bastok path
 mission:San d'Oria:6:step-008	241	Mourices	lsb-journey-abroad	Windurst branch contact; speaking to him sets the Windurst path
+mission:Windurst:1:step-007	240	Hakkuru-Rinkuru	lsb-windurst-1-1_The_Horutoto_Ruins_Experiment;retail-interaction-20260906	Orastery mission contact at -111.145,102.058,-4.249; the other same-name actor is not this contact	npc:v1:240:17760273
 mission:Windurst:1:step-009	116	Inner Horutoto Ruins zone line	ffxiclopedia-horutoto-experiment	Lily Tower entrance 5 at J-7 in East Sarutabaruta; reach the tower, not merely the outdoor zone	area:v1:116:1631073146
 mission:Windurst:1:step-017	192	Gate: Magical Gizmo	lsb-windurst-1-1_The_Horutoto_Ruins_Experiment	Lily Tower gate _5c5 handles this mission; _5c6 is a different gate	object:v1:192:17563876
+mission:Windurst:1:step-021	240	Hakkuru-Rinkuru	lsb-windurst-1-1_The_Horutoto_Ruins_Experiment;retail-interaction-20260906	Return the Cracked Mana Orb to the same Orastery mission contact	npc:v1:240:17760273

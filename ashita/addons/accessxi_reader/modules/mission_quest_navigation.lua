@@ -2399,6 +2399,14 @@ local function source_route_rows(native_key)
             if (#targets == 0 and resolver_ctx ~= nil and allow_resolver) then
                 local resolved, info = resolver.resolve_step(steps, step_index, resolver_ctx);
                 if (type(resolved) == 'table' and #resolved > 0) then
+                    info = type(info) == 'table' and info or {};
+                    if (type(step.search_set) == 'table') then
+                        info.kind = 'search-set';
+                        info.choice_stage = 'search';
+                        info.unbound_square = '';
+                        info.ambiguity = '';
+                        info.equivalent_choices = true;
+                    end
                     for _, point in ipairs(resolved) do
                         targets[#targets + 1] = point_copy_with_identity(point);
                     end
@@ -2407,6 +2415,8 @@ local function source_route_rows(native_key)
                         partial = clean(info.partial),
                         ambiguity = clean(info.ambiguity),
                         choice_stage = clean(info.choice_stage),
+                        completion_item = type(step.search_set) == 'table'
+                            and clean(step.search_set.completion_item) or '',
                         choice_count = tonumber(info.choice_count) or #resolved,
                         equivalent_choices = info.equivalent_choices,
                         choice_origin = clean(info.choice_origin),
@@ -2531,7 +2541,11 @@ local function source_route_rows(native_key)
                         point, attached_notes[clean(step.stable_step_id)]);
                 end
                 local row = source_route_candidate(native_key, step, emitted_point);
-                local key = row ~= nil and clean(row.destination_id) or '';
+                -- A later return to the same contact is a different objective.
+                -- Deduplicate within a step so its destination is still present
+                -- when the cursor advances past the first visit.
+                local key = row ~= nil and clean(row.destination_id) ~= ''
+                    and (clean(step.stable_step_id) .. '\t' .. clean(row.destination_id)) or '';
                 if (row ~= nil and key ~= '' and seen[key] ~= true) then
                     seen[key] = true;
                     rows:append(row);
@@ -2567,6 +2581,7 @@ end
 -- only: the endpoint, the zone the guide named, or nowhere.
 -- The resolver kinds that mean "the player still has to pick".
 local CHOICE_RESOLUTION_KINDS = {
+    ['search-set'] = true,
     ['entity-choice'] = true,
     ['entity-zone-choice'] = true,
     ['return-to-prior-choice'] = true,
@@ -2620,6 +2635,7 @@ function accessxi.nav_mission_quest_step_route_capability(native_key, step_id)
         return announcer.ROUTE.CHOICE, clean(resolution.zone_name), {
             count = tonumber(resolution.choice_count) or 0,
             stage = clean(resolution.choice_stage),
+            completion_item = clean(resolution.completion_item),
             unbound_square = clean(resolution.unbound_square),
             unreachable = unreachable,
         };
@@ -2855,6 +2871,27 @@ objective_source_steps = function(native_key)
         return clean(left.stable_step_id) < clean(right.stable_step_id);
     end);
     accessxi.objective_roll_up_child_targets(result);
+    local searches = accessxi.mission_quest_search_steps;
+    if (type(searches) == 'table') then
+        local catalog = ensure_catalog_index();
+        result = searches.normalize_steps(result, function(zone,name)
+            return catalog.points_by_zone_entity[('%d\t%s'):fmt(zone,source_name_key(name))] or {};
+        end, function(name)
+            local zones = catalog.zone_ids_by_name[source_name_key(name)] or {};
+            local found = {};
+            for zone in pairs(zones) do
+                found[#found+1] = tonumber(zone);
+            end
+            return found;
+        end);
+        for _,step in ipairs(result) do
+            if (type(step.search_refusal) == 'table') then
+                log_line(('objective search refused native="%s" step="%s" reason="%s" detail="%s"'):fmt(
+                    clean(native_key), clean(step.stable_step_id),
+                    clean(step.search_refusal.reason), clean(step.search_refusal.detail)));
+            end
+        end
+    end
     source_derivation_cache.source_steps[native_key] = result;
     return result, true;
 end;
@@ -3044,6 +3081,17 @@ function progression_actions(native_key)
         end
         return (tonumber(left.action_order) or 0) < (tonumber(right.action_order) or 0);
     end);
+    local searches = accessxi.mission_quest_search_steps;
+    if (type(searches) == 'table') then
+        local normalized = objective_source_steps(native_key);
+        actions = searches.augment_actions(actions, normalized);
+        for _,action in ipairs(actions) do
+            if (type(action.search_set) == 'table') then
+                revision = revision .. ':search-v1';
+                break;
+            end
+        end
+    end
     return actions, revision;
 end
 
@@ -6108,6 +6156,20 @@ local function point_matches_signal(point, signal, require_server_id)
 end
 
 local function action_target_matches(native_key, action, signal, require_server_id)
+    -- Use the same reviewed identity as routing. Some guide steps refer to a
+    -- previous contact as "him", and some names belong to several actors.
+    local binding = accessxi.nav_step_target_binding(action.step_id);
+    if (binding ~= nil and clean(binding.destination_id) ~= '') then
+        local index = ensure_catalog_index();
+        local key = ('%d\t%s'):fmt(binding.zone, source_name_key(binding.target));
+        for _, point in ipairs(index.points_by_zone_entity[key] or T{}) do
+            if (clean(point.destination_id) == binding.destination_id
+                and point_matches_signal(point, signal, require_server_id)) then
+                return true, point;
+            end
+        end
+        return false, nil;
+    end
     local catalogue = action_catalogue(native_key, action);
     for _, point in ipairs(catalogue) do
         if (point_matches_signal(point, signal, require_server_id)) then
@@ -6546,7 +6608,7 @@ function accessxi.nav_mission_quest_mark_step_done(category, native_key)
         return false, 'That objective has no current step.';
     end
     local finished = clean(action.instruction);
-    if (not advance_objective_match(chosen, chosen.index, 1)) then
+    if (not advance_objective_match(chosen, chosen.index, 1, 'player')) then
         return false, 'That step could not be marked done.';
     end
     if (type(notify_objective_progress) == 'function') then
@@ -6903,9 +6965,11 @@ function accessxi.nav_mission_quest_note_talk_response(speaker, now)
     return false;
 end
 
-advance_objective_match = function(objective, match_index, causal_units)
+advance_objective_match = function(objective, match_index, causal_units, proof)
     local action = objective.actions[match_index];
     if (type(action) ~= 'table' or match_index < objective.index) then return false; end
+    if (clean(action.completion_evidence) ~= '' and proof ~= 'acquisition'
+        and proof ~= 'player') then return false; end
     local required = tonumber(action.required_count) or 1;
     local mode = clean(action.count_mode):lower();
     local current_count = 0;
@@ -6924,6 +6988,7 @@ advance_objective_match = function(objective, match_index, causal_units)
         saved = save_cursor_action(objective.native_key, action, count, objective.revision);
     end
     if (not saved) then return false; end
+    objective.completed_index = match_index;
     purge_objective_arms(objective.native_key);
     -- Remember whether the route we stopped was THIS objective's, so the
     -- announcement can say "Navigation stopped" only when it truly was --
@@ -6946,8 +7011,9 @@ notify_objective_progress = function(objectives)
         and type(accessxi.objective_announcer) == 'table') then
         pcall(function ()
             local announcer = accessxi.objective_announcer;
-            local completed = first.actions[first.index];
-            local following = first.actions[first.index + 1];
+            local completed_index = tonumber(first.completed_index) or first.index;
+            local completed = first.actions[completed_index];
+            local following = first.actions[completed_index + 1];
             local final = type(following) ~= 'table';
             local step_id = clean(type(following) == 'table' and following.step_id or '');
             local capability, zone_name, route_choice = accessxi.nav_mission_quest_step_route_capability(
@@ -6983,6 +7049,54 @@ notify_objective_progress = function(objectives)
     end
 end;
 
+function accessxi.nav_mission_quest_recover_event_history(paths)
+    local evidence = accessxi.objective_event_evidence;
+    local identity = character_identity();
+    local owner = identity .. ':' .. tostring(objective_session_epoch());
+    if (type(evidence) ~= 'table' or identity == '' or player_world_id() <= 0
+        or objective_session_epoch() <= 0
+        or accessxi.nav_objective_history_owner == owner) then return 0; end
+    local current = reducer_active_objectives();
+    local relevant = false;
+    for _,objective in ipairs(current) do
+        if (evidence.get(objective.native_key)
+            and clean(objective.item.mission_availability) == 'active') then
+            relevant = true;
+        end
+    end
+    if (not relevant) then return 0; end
+    if (paths == nil) then
+        local writer = accessxi.support_log;
+        if (type(writer) ~= 'table' or clean(writer.path) == '') then return 0; end
+        paths = { writer.previous, writer.path };
+    end
+    local proofs, scan = evidence.read_history(paths, identity);
+    scan = type(scan) == 'table' and scan or {};
+    log_line(('objective event history scan files=%d bytes=%d unreadable=%d truncated=%d proofs=%d'):fmt(
+        tonumber(scan.files) or 0, tonumber(scan.bytes) or 0,
+        tonumber(scan.unreadable) or 0, tonumber(scan.truncated) or 0, #proofs));
+    local changed = T{};
+    for _,proof in ipairs(proofs) do
+        for _,objective in ipairs(current) do
+            if (objective.native_key == proof.native_key
+                and clean(objective.item.mission_availability) == 'active') then
+                for index = objective.index, #objective.actions do
+                    if (clean(objective.actions[index].action_id) == proof.action_id
+                        and advance_objective_match(objective, index, 1, 'history')) then
+                        changed:append(objective);
+                        log_line(('objective event history recovered native="%s" step="%s" from="%s" target=%d event=%d'):fmt(
+                            proof.native_key, proof.step_id, clean(objective.action.step_id),
+                            proof.target_server_id, proof.event_id));
+                    end
+                end
+            end
+        end
+    end
+    accessxi.nav_objective_history_owner = owner;
+    if (#changed > 0) then notify_objective_progress(changed); end
+    return #changed;
+end
+
 local function interaction_action(action)
     local value = clean(action.action):lower();
     return value == 'talk' or value == 'trade' or value == 'deliver'
@@ -6996,10 +7110,16 @@ local function interaction_matches(objectives, signal)
             for index = objective.index, #objective.actions do
                 local action = objective.actions[index];
                 if (interaction_action(action)) then
+                    local evidence = accessxi.objective_event_evidence;
+                    local reviewed = type(evidence) == 'table' and evidence.get(
+                        objective.native_key, clean(action.action_id));
+                    local reviewed_match = reviewed and evidence.match(
+                        objective.native_key, clean(action.action_id), signal);
                     local matched, point = action_target_matches(
                         objective.native_key, action, signal, true);
-                    if (matched) then
-                        local candidate = { objective = objective, index = index, point = point };
+                    if (matched and (not reviewed or reviewed_match)) then
+                        local candidate = { objective = objective, index = index,
+                            point = point, reviewed_event = type(reviewed_match) == 'table' };
                         all:append(candidate);
                         if (index == objective.index) then current:append(candidate); end
                     end
@@ -7010,6 +7130,9 @@ local function interaction_matches(objectives, signal)
     if (#current > 0) then return current; end
     if (#all ~= 1) then return T{}; end
     local match = all[1];
+    -- A reviewed stage event identifies the step the server is actually
+    -- running, including when an earlier approach instruction had no signal.
+    if (match.reviewed_event) then return T{ match }; end
     for index = match.objective.index, match.index - 1 do
         if (action_future_boundary(match.objective.native_key,
             match.objective.actions[index])) then
@@ -7216,6 +7339,8 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
             or arm.session_epoch ~= tonumber(signal.session_epoch)
             or (tonumber(signal.sequence) or 0) <= (tonumber(arm.sequence) or 0)
             or (tonumber(signal.tick) or 0) < (tonumber(arm.tick) or 0)
+            or (tonumber(signal.tick) or 0) - (tonumber(arm.tick) or 0) > 1200000
+            or signal.automated == true
             or clean(signal.progression_revision) ~= clean(arm.progression_revision)) then
             return false;
         end
@@ -7258,7 +7383,7 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
                     units = after - before;
                 end
             end
-            if (advance_objective_match(match.objective, match.index, units)) then
+            if (advance_objective_match(match.objective, match.index, units, 'acquisition')) then
                 changed:append(match.objective);
             end
         end
@@ -7274,7 +7399,7 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         local matches = inventory_matches(objectives, signal, true);
         local changed = T{};
         for _, match in ipairs(matches) do
-            if (advance_objective_match(match.objective, match.index, 1)) then
+            if (advance_objective_match(match.objective, match.index, 1, 'acquisition')) then
                 changed:append(match.objective);
             end
         end

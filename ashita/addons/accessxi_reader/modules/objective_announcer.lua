@@ -83,6 +83,11 @@ function M.choice_suffix(choice)
     local square = clean(choice.unbound_square);
     local stage = clean(choice.stage);
     local plural = unreachable == 1 and '' or 's';
+    if (stage == 'search' and count > 0) then
+        local item = clean(choice.completion_item);
+        if (item == '') then item = 'the requested item'; end
+        return ('Search %d locations until you obtain %s. Press I to choose a location to search.'):format(count, item);
+    end
 
     if (count <= 1) then
         if (unreachable > 0) then

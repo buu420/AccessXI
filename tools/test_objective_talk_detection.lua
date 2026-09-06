@@ -20,6 +20,7 @@
 -- Exit code 1 on any failed claim.
 
 local ADDON = os.getenv('ACCESSXI_ADDON') or 'C:/Users/buu42/Ashita/addons/accessxi_reader';
+accessxi_paths = { addon_path = function(...) return ADDON .. '/' .. table.concat({...}, '/'); end };
 
 accessxi = { mission_quest_objectives = { missions = {}, quests = {} } };
 T = function (t)

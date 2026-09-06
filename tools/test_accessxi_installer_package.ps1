@@ -242,6 +242,12 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+IID\s*\*\s*REFIID') 'Packaged win32types.lua must expose REFIID as a C pointer typedef.'
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+GUID\s*\*\s*REFGUID') 'Packaged win32types.lua must expose REFGUID as a C pointer typedef.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'accessxi_reader.lua')) 'Package must contain the AccessXI Ashita addon.'
+    foreach ($missionModule in @('objective_event_evidence.lua', 'mission_quest_search_steps.lua')) {
+        $payloadFile = Join-Path $payloadAddon "modules\$missionModule"
+        $sourceFile = Join-Path $RepoRoot "ashita\addons\accessxi_reader\modules\$missionModule"
+        Assert-True (Test-Path -LiteralPath $payloadFile -PathType Leaf) "Package must contain $missionModule."
+        Assert-True ((Get-FileHash -LiteralPath $payloadFile).Hash -eq (Get-FileHash -LiteralPath $sourceFile).Hash) "Package must preserve mission progression module: $missionModule."
+    }
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_guide_index.lua')) 'Package must contain the complete native objective guide index.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_bg_mission_bastok.lua')) 'Package must contain BG Wiki objective guide chunks.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'modules\mission_quest_ffxiclopedia_mission_bastok.lua')) 'Package must contain FFXIclopedia objective guide chunks.'
@@ -251,7 +257,7 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')) 'Package must contain the FFXIclopedia objective-guide notice.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')) 'Package must contain AccessXI nav destinations beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-zoneline-graph.tsv')) 'Package must contain AccessXI nav zoneline graph beside the addon.'
-    foreach ($missionData in @('ffxi-objective-step-targets.tsv', 'ffxi-nav-destination-ingress.tsv')) {
+    foreach ($missionData in @('ffxi-objective-step-targets.tsv', 'ffxi-nav-destination-ingress.tsv', 'ffxi-nav-destinations.tsv')) {
         $payloadFile = Join-Path $payloadAddon "data\$missionData"
         $sourceFile = Join-Path $RepoRoot "ashita\addons\accessxi_reader\data\$missionData"
         Assert-True (Test-Path -LiteralPath $payloadFile -PathType Leaf) "Package must contain $missionData."

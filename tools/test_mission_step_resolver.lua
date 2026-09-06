@@ -12,6 +12,7 @@
 --
 --   luajit tools/test_mission_step_resolver.lua            -- claims + census
 --   luajit tools/test_mission_step_resolver.lua --census   -- census only
+--   luajit tools/test_mission_step_resolver.lua --claims-only -- focused regressions
 --
 -- Exit code 1 on any failed claim.
 
@@ -2165,6 +2166,10 @@ if (run_claims) then
 end
 
 -- census ------------------------------------------------------------------
+if (arg[1] == '--claims-only') then
+    print(('%d claims passed, %d failed'):format(passes, failures));
+    os.exit(failures == 0 and 0 or 1);
+end
 print('');
 print('Census over every reconciled step (player zone 230 for zone-travel reachability):');
 -- --missions restricts the census to mission modules. The guide road is now

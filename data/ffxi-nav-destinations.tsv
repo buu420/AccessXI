@@ -30862,12 +30862,12 @@
 192	Ace of Swords	-14.299	19.881	0.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563883	lsb:npc_list:17563883		
 192	Ace of Wands	-14.648	18.726	0.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563882	lsb:npc_list:17563882		
 192	Ajido-Marujido	418.774	-52.515	0.398	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563874	lsb:npc_list:17563874		
-192	Ancient Magical Gizmo	295.501	19.995	-3.522	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563871	lsb:npc_list:17563871		
-192	Ancient Magical Gizmo	295.501	100.011	-3.491	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563873	lsb:npc_list:17563873		
-192	Ancient Magical Gizmo	353.497	60.001	-3.003	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563872	lsb:npc_list:17563872		
-192	Ancient Magical Gizmo	406.511	59.987	-3.024	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563869	lsb:npc_list:17563869		
-192	Ancient Magical Gizmo	464.500	20.000	-3.519	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563870	lsb:npc_list:17563870		
-192	Ancient Magical Gizmo	464.506	100.004	-3.508	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563868	lsb:npc_list:17563868		
+192	Ancient Magical Gizmo	295.501	19.995	-3.522	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563871	lsb:npc_list:17563871		
+192	Ancient Magical Gizmo	295.501	100.011	-3.491	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563873	lsb:npc_list:17563873		
+192	Ancient Magical Gizmo	353.497	60.001	-3.003	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563872	lsb:npc_list:17563872		
+192	Ancient Magical Gizmo	406.511	59.987	-3.024	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563869	lsb:npc_list:17563869		
+192	Ancient Magical Gizmo	464.500	20.000	-3.519	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563870	lsb:npc_list:17563870		
+192	Ancient Magical Gizmo	464.506	100.004	-3.508	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563868	lsb:npc_list:17563868		
 192	Apururu	419.935	-49.918	0.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563875	lsb:npc_list:17563875		
 192	Black Circle	-256.817	-24.236	0.499	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563864	lsb:npc_list:17563864		
 192	Bopa Greso	-27.640	17.511	-0.092	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:192:17563879	lsb:npc_list:17563879		

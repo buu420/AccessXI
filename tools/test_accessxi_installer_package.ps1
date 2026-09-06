@@ -251,6 +251,12 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt')) 'Package must contain the FFXIclopedia objective-guide notice.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-destinations.tsv')) 'Package must contain AccessXI nav destinations beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'data\ffxi-nav-zoneline-graph.tsv')) 'Package must contain AccessXI nav zoneline graph beside the addon.'
+    foreach ($missionData in @('ffxi-objective-step-targets.tsv', 'ffxi-nav-destination-ingress.tsv')) {
+        $payloadFile = Join-Path $payloadAddon "data\$missionData"
+        $sourceFile = Join-Path $RepoRoot "ashita\addons\accessxi_reader\data\$missionData"
+        Assert-True (Test-Path -LiteralPath $payloadFile -PathType Leaf) "Package must contain $missionData."
+        Assert-True ((Get-FileHash -LiteralPath $payloadFile).Hash -eq (Get-FileHash -LiteralPath $sourceFile).Hash) "Package must preserve reviewed mission data: $missionData."
+    }
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'resources\dat_index\ffxi_dat_strings.tsv')) 'Package must contain the DAT string index beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'resources\windower\items.lua')) 'Package must contain Windower item names beside the addon.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'resources\windower\item_descriptions.lua')) 'Package must contain Windower item descriptions beside the addon.'

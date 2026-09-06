@@ -2748,8 +2748,11 @@ function M.resolve_compact_action_rescue(step, action, ctx)
         return nil, nil;
     end
 
+    local zones, _, _, nations = M.classify_step(step, ctx);
+    local authoritative = M.entity_authoritative_zones(step, ctx, zones, nations);
     local targets, info = M.finalize_entity_candidates(step, rows, ctx, {
         base_kind = 'compact-action-rescue',
+        authoritative_zones = authoritative,
         stats = stats,
         absent = absent,
         wrong_kind = wrong_kind,
@@ -3601,13 +3604,40 @@ end
 --   info.kind   = 'explicit' | 'inherited' | 'catalogue-unique' | 'zone-travel' | 'none'
 --   info.reason = one of M.REASONS when targets is empty
 --   info.detail = human text for logs/speech
-function M.resolve_step(steps, index, ctx)
+function M.resolve_step_unbound(steps, index, ctx)
     local step = steps[index];
     local targets = {};
     local info = M.new_resolution_info(step);
     if (type(step) ~= 'table') then
         info.reason = M.REASONS.NO_DESTINATION;
         return targets, info;
+    end
+    -- Reviewed identity bindings apply to both reconciled and conflicted
+    -- readings. Names alone cannot distinguish two doors in the same zone.
+    if (type(ctx.step_target_binding) == 'function') then
+        local ok_bind, bound = pcall(ctx.step_target_binding, clean(step.stable_step_id));
+        if (ok_bind and type(bound) == 'table' and clean(bound.target) ~= '') then
+            local key = type(ctx.name_key) == 'function' and ctx.name_key(bound.target) or clean(bound.target):lower();
+            local rows = list(ctx.points_for_entity(key));
+            local selected = {};
+            for _, point in ipairs(rows) do
+                if tonumber(point.zone) == tonumber(bound.zone)
+                    and (clean(bound.destination_id) == '' or clean(point.destination_id) == clean(bound.destination_id)) then
+                    selected[#selected + 1] = point;
+                end
+            end
+            if #selected > 0 then
+                local bound_targets, bound_info = M.finalize_entity_candidates(step, selected, ctx, {
+                    base_kind = 'step-binding', authoritative_zones = { [tonumber(bound.zone)] = true },
+                });
+                return bound_targets, M.attach_guide_metadata(bound_info, step);
+            end
+            if clean(bound.destination_id) ~= '' then
+                info.reason = M.REASONS.ENTITY_ABSENT;
+                info.detail = 'the reviewed mission target is missing from the installed destination data';
+                return {}, M.attach_guide_metadata(info, step);
+            end
+        end
     end
     if (clean(step.comparison):lower() == 'conflict') then
         local conflicted, conflicted_info =
@@ -3637,31 +3667,6 @@ function M.resolve_step(steps, index, ctx)
             steps,
             index,
             ctx);
-    end
-
-    -- A BINDING BEATS A GUESS. Where the guide never named the target, a
-    -- reviewed row says which catalogued place it meant. Checked before any
-    -- zone fallback, because "go to Bastok" is what this exists to replace.
-    if (type(ctx.step_target_binding) == 'function') then
-        local ok_bind, bound = pcall(ctx.step_target_binding, clean(step.stable_step_id));
-        if (ok_bind and type(bound) == 'table' and clean(bound.target) ~= '') then
-            local rows = list(ctx.points_for_entity(
-                type(ctx.name_key) == 'function' and ctx.name_key(bound.target)
-                    or clean(bound.target):lower()));
-            local picked = {};
-            for _, point in ipairs(rows) do
-                if ((tonumber(point.zone) or 0) == (tonumber(bound.zone) or 0)) then
-                    picked[#picked + 1] = point;
-                end
-            end
-            if (#picked > 0) then
-                local bound_targets, bound_info = M.finalize_entity_candidates(
-                    step, picked, ctx, { base_kind = 'step-binding' });
-                if (bound_targets ~= nil and #bound_targets > 0) then
-                    return bound_targets, M.attach_guide_metadata(bound_info, step);
-                end
-            end
-        end
     end
 
     local zone_ids,
@@ -3831,6 +3836,12 @@ function M.resolve_step(steps, index, ctx)
         return targets, info;
     end
 
+    -- An explicit interaction target in the compact action outranks arriving
+    -- anywhere in its zone. This must run before the outside-zone fallback,
+    -- not only after the player has already entered the wrong chamber.
+    local precise, precise_info = M.resolve_compact_action_rescue(step, action, ctx);
+    if precise ~= nil then return precise, M.attach_guide_metadata(precise_info, step); end
+
     -- No entities: a zone-travel step, or nothing to route. "Talk to the
     -- guards in Ru'Lude Gardens" written with only the zone is still "get to
     -- Ru'Lude Gardens"; any positional action with a zone and no entity is
@@ -3921,6 +3932,49 @@ function M.resolve_step(steps, index, ctx)
 
     info.reason = M.REASONS.NO_DESTINATION;
     info.detail = M.no_destination_detail(step);
+    return targets, info;
+end
+
+function M.resolve_step(steps, index, ctx)
+    local targets, info = M.resolve_step_unbound(steps, index, ctx);
+    if type(targets) ~= 'table' or type(ctx.destination_ingress) ~= 'function'
+        or type(ctx.select_destination_ingress) ~= 'function' then return targets, info; end
+    local ingress_unverified = 0;
+    for _, target in ipairs(targets) do
+        if target.source ~= 'zone-travel' and target.entity_choice_stage ~= 'zone' then
+            local preferred = M.named_via_zones(steps[index], ctx);
+            -- Carry only an explicitly described approach to THIS zone. A
+            -- previous unrelated destination or optional shortcut is not one.
+            if type(preferred) ~= 'table' or #preferred < 2 then
+                for j = index - 1, 1, -1 do
+                    local prior = steps[j];
+                    if M.is_zone_changing_action(prior.action) and prior.optional_nonessential ~= true then
+                        local via = M.named_via_zones(prior, ctx);
+                        if type(via) == 'table' and #via > 0 then
+                            local mentions = false;
+                            for _, zone in ipairs(via) do if zone == tonumber(target.zone) then mentions = true; end end
+                            if mentions and #via > 1 then preferred = via; end
+                            break;
+                        end
+                    end
+                end
+            end
+            local edge, refusal = ctx.select_destination_ingress(target, ctx.destination_ingress(target), ctx, preferred);
+            if edge then
+                target.canonical_edge_id = tonumber(edge.id);
+                target.canonical_from_zone = tonumber(edge.from_zone);
+                target.objective_via_zones = preferred;
+            end
+            if refusal then
+                ingress_unverified = ingress_unverified + 1;
+                target.choice_note = clean(target.choice_note) .. ' The approach to this destination is unverified.';
+            end
+        end
+    end
+    if ingress_unverified > 0 then
+        info = info or {};
+        info.ingress_unverified = ingress_unverified;
+    end
     return targets, info;
 end
 

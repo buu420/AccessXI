@@ -493,6 +493,14 @@ function Assert-PackagedModuleReferences {
         }
     }
 
+    # Reviewed mission targets and measured entrance connectivity are read by
+    # modules, so scanning only the main Lua file cannot detect their absence.
+    foreach ($dataFile in @('ffxi-objective-step-targets.tsv', 'ffxi-nav-destination-ingress.tsv')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $PayloadAddonRoot "data\$dataFile") -PathType Leaf)) {
+            throw "Packaged mission navigation is missing required data: data\$dataFile"
+        }
+    }
+
     $navMeshDll = Join-Path $PayloadAddonRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll'
     if (-not (Test-Path -LiteralPath $navMeshDll -PathType Leaf)) {
         throw "Packaged addon is missing the navigation mesh native: $navMeshDll"

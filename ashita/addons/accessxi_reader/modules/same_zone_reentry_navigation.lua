@@ -66,6 +66,52 @@ function accessxi.nav_same_zone_reentry_find(player, target)
 
     local previous_reject_reason = accessxi.nav_route_last_reject_reason;
     local best = nil;
+    -- A reviewed physical destination may require leaving through one zone
+    -- and returning through another (Horutoto: West -> East -> Lily Tower).
+    -- Only consider the measured destination entrance and ordinary walking
+    -- edges. Every intermediate corridor must pass the normal mesh validator.
+    local canonical = tonumber(target.objective_canonical_edge_id or target.canonical_edge_id) or 0;
+    local ingress_rows = type(accessxi.nav_destination_ingress) == 'function'
+        and accessxi.nav_destination_ingress(target) or nil;
+    local measured = false;
+    for _, row in ipairs(ingress_rows or {}) do
+        if tonumber(row.edge_id) == canonical and row.status == 'mesh-connected' then measured = true; end
+    end
+    if measured and type(accessxi.nav_zoneline_path) == 'function' then
+        for _, exit_edge in ipairs(accessxi.nav_zoneline_out_edges(origin_zone, player)) do
+            if exit_edge.transport == nil and tonumber(exit_edge.to_zone) ~= origin_zone then
+                local prefix = accessxi.nav_zoneline_path(exit_edge.to_zone, origin_zone, canonical, target.objective_via_zones);
+                if type(prefix) == 'table' and #prefix > 0 and #prefix <= 3
+                    and tonumber(prefix[#prefix].id) == canonical
+                    and not same_physical_boundary(exit_edge, prefix[#prefix]) then
+                    local edges = T{exit_edge};
+                    for _, edge in ipairs(prefix) do edges:append(edge); end
+                    local position, valid, score = player, true, 0;
+                    for _, edge in ipairs(edges) do
+                        if edge.transport ~= nil or tonumber(edge.from_zone) ~= tonumber(position.zone) then valid = false; break; end
+                        local route = nav_compute_mesh_route(position, point_from_edge(edge));
+                        if route_count(route) <= 1 then valid = false; break; end
+                        score = score + route_count(route);
+                        position = point_after_edge(edge);
+                    end
+                    if valid then
+                        local final_route = nav_compute_mesh_route(position, target);
+                        if route_count(final_route) > 1 and (best == nil or score < best.score) then
+                            best = T{ edges = edges, origin_zone = origin_zone,
+                                neighbor_zone = tonumber(exit_edge.to_zone), score = score,
+                                first_count = 0, middle_count = 0, final_count = route_count(final_route) };
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if best ~= nil then
+        accessxi.nav_route_last_reject_reason = previous_reject_reason;
+        log_line(('nav same-zone reentry connected target="%s" origin=%d crossings=%d final=%d'):fmt(
+            nav_clean_field(target.name or ''), origin_zone, best.edges:len(), best.final_count));
+        return best;
+    end
     for _, exit_edge in ipairs(accessxi.nav_zoneline_out_edges(origin_zone, player)) do
         local neighbor_zone = tonumber(exit_edge.to_zone) or 0;
         if neighbor_zone > 0 and neighbor_zone ~= origin_zone and transition_is_verified(exit_edge) then
@@ -130,7 +176,7 @@ function accessxi.nav_same_zone_reentry_active()
     return accessxi.nav_zone_search_target ~= nil
         and edges ~= nil
         and type(edges.len) == 'function'
-        and edges:len() == 2
+        and edges:len() >= 2 and edges:len() <= 4
         and (tonumber(accessxi.nav_same_zone_reentry_index) or 0) > 0;
 end
 

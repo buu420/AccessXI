@@ -14,6 +14,7 @@
 --   luajit tools/test_source_route_integration.lua
 
 local ADDON = os.getenv('ACCESSXI_ADDON') or 'C:/Users/buu42/Ashita/addons/accessxi_reader';
+accessxi_paths = { addon_path = function(...) return ADDON .. '/' .. table.concat({...}, '/'); end };
 
 accessxi = {};
 T = function (t)
@@ -279,6 +280,7 @@ end
 load_code_module('nav_zoneline_router');
 load_code_module('objective_announcer');
 load_code_module('mission_quest_step_resolver');
+load_code_module('nav_destination_ingress');
 load_code_module('mission_quest_navigation');
 
 claim(type(accessxi.mission_step_resolver) == 'table',

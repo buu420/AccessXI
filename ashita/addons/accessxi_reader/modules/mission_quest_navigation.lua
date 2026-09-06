@@ -1989,6 +1989,7 @@ local function source_route_candidate(native_key, step, point)
         arrival_radius = tonumber(point.arrival_radius),
         canonical_edge_id = tonumber(point.canonical_edge_id),
         canonical_from_zone = tonumber(point.canonical_from_zone),
+        objective_via_zones = deep_copy(point.objective_via_zones),
         source_route_entry_distance2 = tonumber(point._source_route_entry_distance2),
         label = ('%s in %s'):fmt(spoken, zone_name ~= '' and zone_name or ('zone %d'):fmt(zone)),
         items = type(step.items) == 'table' and deep_copy(step.items) or T{},
@@ -2170,6 +2171,9 @@ local function source_route_rows(native_key)
         end
         resolver_ctx = {
             player_zone = player_zone,
+            destination_ingress = accessxi.nav_destination_ingress,
+            select_destination_ingress = type(accessxi.destination_ingress) == 'table'
+                and accessxi.destination_ingress.select or nil,
             name_key = source_name_key,
             zone_ids_for_name = function (value)
                 return known_zones[source_name_key(value)];
@@ -2478,9 +2482,12 @@ local function source_route_rows(native_key)
             -- the target means every builder sees the same preference.
             if (resolver_ctx ~= nil and type(resolver.named_via_zones) == 'function') then
                 local via = resolver.named_via_zones(step, resolver_ctx);
+                if type(targets[1]) == 'table' and type(targets[1].objective_via_zones) == 'table' then
+                    via = targets[1].objective_via_zones;
+                end
                 if (via ~= nil) then
                     for _, point in ipairs(targets) do
-                        point.objective_via_zones = via;
+                        if type(point.objective_via_zones) ~= 'table' then point.objective_via_zones = via; end
                     end
                     -- AND PUBLISH IT AGAINST THE STEP ID. Carrying the road on
                     -- the point failed three times: the object that actually
@@ -2713,6 +2720,7 @@ function accessxi.nav_step_target_binding(step_id)
                             target = target,
                             source = clean(fields[4] or ''),
                             note = clean(fields[5] or ''),
+                            destination_id = clean(fields[6] or ''),
                         };
                     end
                 end
@@ -2722,7 +2730,8 @@ function accessxi.nav_step_target_binding(step_id)
     end
     local row = STEP_TARGET_BINDINGS[step_id];
     if (row == nil) then return nil; end
-    return { zone = row.zone, target = row.target, source = row.source, note = row.note };
+    return { zone = row.zone, target = row.target, source = row.source, note = row.note,
+        destination_id = row.destination_id };
 end
 
 function accessxi.nav_nation_of_zone(zone)

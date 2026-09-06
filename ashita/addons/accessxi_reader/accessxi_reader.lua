@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.05';
+addon.version   = '2026.09.05.1';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -69453,6 +69453,7 @@ end
 accessxi.load_code_module('mission_progress_tracker', T{ T = T, log_line = log_line });
 accessxi.load_code_module('objective_announcer', T{ T = T, log_line = log_line });
 accessxi.load_code_module('mission_quest_step_resolver', T{ T = T, log_line = log_line });
+accessxi.load_code_module('nav_destination_ingress', T{ accessxi_paths = accessxi_paths });
 accessxi.load_code_module('mission_quest_navigation', T{
     T = T,
     bit = bit,
@@ -71167,6 +71168,19 @@ function accessxi.poll_nav_dat_collision(now)
                 'This zone has no verified terrain data.')) then
             return false;
         end
+        -- A terrain request can fail asynchronously, after the initial route
+        -- starter's re-entry check has already returned. Recover here too.
+        if type(accessxi.nav_same_zone_reentry_start) == 'function'
+            and not accessxi.nav_same_zone_reentry_active()
+            and not tostring((pending.owner_destination or destination).source or ''):find('^zonesearch:') then
+            local reentry = accessxi.nav_same_zone_reentry_start(player,
+                pending.owner_destination or destination, 'terrain-fallback-reentry');
+            if reentry ~= nil then
+                accessxi.nav_last_direction_text = reentry;
+                speak(reentry);
+                return false;
+            end
+        end
         if (type(nav_route_stop) == 'function') then
             nav_route_stop();
         else
@@ -71176,7 +71190,7 @@ function accessxi.poll_nav_dat_collision(now)
         end
         -- Never read the internal reason out loud; it means nothing to anyone.
         local spoken = zone_capability
-            and ('I have no verified terrain data for this zone, and no map route to %s either.'):fmt(
+            and ('I could not find a connected route from here to %s. This location may require a different entrance.'):fmt(
                 nav_clean_field(destination.name) ~= ''
                     and nav_clean_field(destination.name) or 'that destination')
             or text;
@@ -79114,6 +79128,12 @@ local function nav_menu_start_route()
     if (accessxi.nav_route_points:len() <= 1
         and nav_clean_field(accessxi.nav_route_last_reject_reason) ~= '') then
         local provider_text = nav_clean_field(accessxi.nav_route_last_reject_reason);
+        if type(accessxi.nav_same_zone_reentry_start) == 'function'
+            and not accessxi.nav_same_zone_reentry_active()
+            and not tostring(item.source or ''):find('^zonesearch:') then
+            local reentry = accessxi.nav_same_zone_reentry_start(player, item, 'menu-rejected-route-reentry');
+            if reentry ~= nil then speak(reentry); return; end
+        end
         nav_write_route_evidence('unreachable', player, item, nil,
             T{ reason = provider_text });
         accessxi.nav_active = false;
@@ -79961,6 +79981,12 @@ function accessxi.nav_start_route_to_point(point, reason)
     if (accessxi.nav_route_points:len() <= 1
         and nav_clean_field(accessxi.nav_route_last_reject_reason) ~= '') then
         local collision_text = nav_clean_field(accessxi.nav_route_last_reject_reason);
+        if type(accessxi.nav_same_zone_reentry_start) == 'function'
+            and not accessxi.nav_same_zone_reentry_active()
+            and not tostring(point.source or ''):find('^zonesearch:') then
+            local reentry = accessxi.nav_same_zone_reentry_start(player, point, 'rejected-route-reentry');
+            if reentry ~= nil then return reentry; end
+        end
         accessxi.nav_active = false;
         accessxi.nav_destination = nil;
         accessxi.nav_route_points:clear();
@@ -80307,9 +80333,10 @@ function accessxi.nav_zone_search_start_next_leg(reason)
                 return ('Safe re-entry route to %s stopped. %s'):fmt(accessxi.speech_name(target.name or 'destination'), start_text);
             end
             local step = tonumber(leg.same_zone_reentry_step) or 1;
-            local text = ('Safe re-entry route to %s. Crossing %d of 2 through %s. %s'):fmt(
+            local text = ('Re-entry route to %s. Crossing %d of %d through %s. %s'):fmt(
                 accessxi.speech_name(target.name or 'destination'),
                 step,
+                accessxi.nav_same_zone_reentry_edges:len(),
                 accessxi.nav_graph_zone_name(tonumber(leg.to_zone) or 0),
                 start_text);
             accessxi.nav_last_direction_text = text;
@@ -80333,6 +80360,33 @@ function accessxi.nav_zone_search_start_next_leg(reason)
         or target.objective_canonical_edge_id) or 0;
     local canonical_from_zone = tonumber(target.zone_search_canonical_from_zone
         or target.objective_canonical_from_zone) or 0;
+    if canonical_edge_id == 0 and type(accessxi.nav_destination_ingress) == 'function' then
+        local edge, ingress_refusal = accessxi.destination_ingress.select(target, accessxi.nav_destination_ingress(target), {
+            player_zone = player_zone,
+            incoming_edges = function(zone)
+                local incoming = {};
+                for _, candidate in ipairs(accessxi.nav_zoneline_edges or {}) do
+                    if tonumber(candidate.to_zone) == tonumber(zone) then incoming[#incoming+1] = candidate; end
+                end
+                return incoming;
+            end,
+            zone_path = accessxi.nav_zoneline_path,
+            edge_rank = accessxi.nav_zoneline_edge_rank,
+        }, target.objective_via_zones);
+        if ingress_refusal then
+            log_line(('nav ingress unverified target="%s" zone=%d reason=%s'):fmt(
+                nav_clean_field(target.name), target_zone, ingress_refusal));
+            -- A mesh limitation must not erase a mission target that another
+            -- provider can reach. Preserve the uncertainty explicitly; the
+            -- final walking route still has to pass normal provider checks.
+            route_context = route_context .. '. The approach to this destination is unverified';
+        end
+        if edge then canonical_edge_id, canonical_from_zone = tonumber(edge.id), tonumber(edge.from_zone); end
+    end
+    if canonical_edge_id > 0 then
+        log_line(('nav ingress selected target="%s" zone=%d edge=%d from=%d'):fmt(
+            nav_clean_field(target.name), target_zone, canonical_edge_id, canonical_from_zone));
+    end
     -- Prefer the road the guide named. Without this the search picked any
     -- chain of equal edge count, which sent a level-14 player through an
     -- undead dungeon instead of La Theine Plateau (2026-08-22).

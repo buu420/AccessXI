@@ -1,0 +1,16 @@
+# AccessXI objective step target bindings.
+#
+# The guide corpus sometimes names a step's real target only in prose, or not at
+# all. "Journey Abroad" says "visit your nation's embassies" and never names the
+# NPC, so the step could only ever degrade to "go to this nation" -- which left
+# the player cycling between city entrances with no idea who to talk to.
+#
+# A row here binds one guide step to a target that EXISTS in
+# ffxi-nav-destinations.tsv. It does not invent a place; it says which catalogued
+# place the guide meant. Every row must name its evidence.
+#
+# step_id	zone	target_name	source	note	destination_id (optional exact identity)
+mission:San d'Oria:6:step-007	237	Savae E Paleade	lsb-journey-abroad	Bastok branch contact; speaking to him sets the Bastok path
+mission:San d'Oria:6:step-008	241	Mourices	lsb-journey-abroad	Windurst branch contact; speaking to him sets the Windurst path
+mission:Windurst:1:step-009	116	Inner Horutoto Ruins zone line	ffxiclopedia-horutoto-experiment	Lily Tower entrance 5 at J-7 in East Sarutabaruta; reach the tower, not merely the outdoor zone	area:v1:116:1631073146
+mission:Windurst:1:step-017	192	Gate: Magical Gizmo	lsb-windurst-1-1_The_Horutoto_Ruins_Experiment	Lily Tower gate _5c5 handles this mission; _5c6 is a different gate	object:v1:192:17563876

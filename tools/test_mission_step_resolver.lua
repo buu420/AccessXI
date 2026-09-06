@@ -450,12 +450,23 @@ local function harness_source_readings(native_key, step_id)
     return (ok and type(value) == 'table') and value or {};
 end
 
+local harness_ingress, harness_ingress_index;
 local function make_ctx(player_zone, destination_zone_for_step, nation, native_key)
     -- Which objective the ctx is currently reading. A census walks many
     -- objectives through one ctx, so this is a handle it can retarget rather
     -- than a value captured once.
     local objective = { key = native_key or '' };
     return {
+        destination_ingress = function(point)
+            if not harness_ingress then
+                harness_ingress = dofile(ADDON .. '/modules/nav_destination_ingress.lua');
+                harness_ingress_index = harness_ingress.load(ADDON .. '/data/ffxi-nav-destination-ingress.tsv');
+            end
+            return harness_ingress.lookup(harness_ingress_index, point);
+        end,
+        select_destination_ingress = function(...)
+            return harness_ingress.select(...);
+        end,
         objective = objective,
         source_readings = function (step_id)
             return harness_source_readings(objective.key, step_id);
@@ -508,7 +519,7 @@ local function make_ctx(player_zone, destination_zone_for_step, nation, native_k
                     local f = {};
                     for field in (line .. '	'):gmatch('([^	]*)	') do f[#f+1] = field; end
                     if (trim(f[1] or '') == trim(step_id) and tonumber(f[2]) and trim(f[3] or '') ~= '') then
-                        found = { zone = tonumber(f[2]), target = trim(f[3]) };
+                        found = { zone = tonumber(f[2]), target = trim(f[3]), destination_id = trim(f[6] or '') };
                     end
                 end
             end

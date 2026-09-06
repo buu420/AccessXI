@@ -105,6 +105,9 @@ h.claim(transitions[#transitions] and transitions[#transitions].step_id==NATIVE.
 local source_rows=upvalue(accessxi.nav_mission_quest_step_route_capability,'source_route_rows');
 local menu=accessxi.nav_mission_quest_active_items('mission');
 h.claim(#menu==6,'the actual Missions menu exposes six search selections');
+local search_speech=accessxi.nav_mission_quest_item_speech(menu[1],1,#menu);
+h.claim(not search_speech:find('Port Windurst',1,true),
+    'the next city heading is not announced as a gizmo search instruction');
 for _,item in ipairs(menu) do
     local point=accessxi.nav_mission_quest_prepare_route(item,{zone=192,x=420,z=-30.375,y=-1.660});
     h.claim(type(point)=='table' and point.objective_guide_step_id==NATIVE..':step-018'

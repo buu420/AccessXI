@@ -1861,14 +1861,23 @@ function accessxi.objective_step_detail_lines(native_key, step_id)
     -- once per source and speak whichever is more complete.
     local subtree = {};
     local found = false;
+    local search = false;
     for _, step in ipairs(steps) do
         if (found) then
             if (clean(step.action):lower() ~= 'note') then
                 break;      -- the next real step ends the subtree
             end
+            -- A city/map heading opens the next section of the guide; it is
+            -- not a location hint for the preceding search inside the ruins.
+            local heading = clean(step.primary_instruction);
+            if (heading == '') then heading = clean(step.bg_instruction); end
+            if (heading == '') then heading = clean(step.ffxiclopedia_instruction); end
+            if (search and type(step.zones) == 'table' and #step.zones > 0
+                and heading:match('^%b{}$')) then break; end
             subtree[#subtree + 1] = step;
         elseif (clean(step.stable_step_id) == step_id) then
             found = true;
+            search = type(step.search_set) == 'table';
         end
     end
 

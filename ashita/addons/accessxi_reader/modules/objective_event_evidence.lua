@@ -104,7 +104,65 @@ function M.recover(text, identity)
     return result;
 end;
 
-function M.read_history(paths, identity)
+-- Reward-based history needs no table of per-mission event numbers: the native
+-- reward confirms which conversation happened. The caller still verifies the
+-- exact NPC, the declared result, current ownership, and unique active action.
+function M.recover_rewards(text, identity, nation, mission)
+    identity = tostring(identity or ''):lower();
+    if identity == '' or tonumber(nation) == nil or tonumber(mission) == nil then return {}; end;
+    local active, pending, finished = false, nil, nil;
+    local proved = {};
+    for line in tostring(text or ''):gmatch('[^\r\n]+') do
+        if line:find(' support session ', 1, true) then active, pending, finished = false, nil, nil; end;
+        local owner = line:match(' support context reason=%S+ %{identity="([^"]*)"');
+        if owner then
+            local state = line:match(',mission=(%b{})');
+            local packet = state and state:match('packet=(%b{})');
+            local mission_owner = state and state:match('identity="([^"]*)"');
+            local valid = owner:lower() == identity and state and packet
+                and mission_owner and mission_owner:lower() == identity
+                and state:find('source="packet_in_056"', 1, true);
+            active = valid and tonumber(packet:match('[{,]nation=(%d+)')) == tonumber(nation)
+                and tonumber(packet:match('[{,]nation_mission=(%d+)')) == tonumber(mission);
+            if not active then pending, finished = nil, nil; end;
+            if valid and not active then proved = {}; end;
+        end;
+        local now = timestamp(line);
+        if pending and (not now or now < pending.time or now - pending.time > 1200) then pending = nil; end;
+        if finished and (not now or now < finished.time or now - finished.time > 30) then finished = nil; end;
+        if active and now then
+            local target, action = line:match(' objective packet trace id=0x001A dir=out len=%d+ target=(%d+) a=(%d+)');
+            if target then
+                pending = tonumber(action) == 0 and {target_server_id=tonumber(target), time=now} or nil;
+                finished = nil;
+            end;
+            local kind, event_target, zone, event, automated = line:match(
+                ' objective event result kind=(interaction%-%a+) target=(%d+) zone=(%d+) event=(%d+) automated=(%a+)');
+            if kind == 'interaction-start' then
+                finished = nil;
+                if pending and pending.target_server_id == tonumber(event_target)
+                    and tonumber(zone) > 0 and tonumber(event) > 0 then
+                    pending.zone_id, pending.event_id = tonumber(zone), tonumber(event);
+                else pending = nil; end;
+            elseif kind == 'interaction-finish' and automated == 'false' then
+                if pending and pending.target_server_id == tonumber(event_target)
+                    and pending.zone_id == tonumber(zone) and pending.event_id == tonumber(event) then
+                    finished = {target_server_id=pending.target_server_id, zone_id=pending.zone_id,
+                        event_id=pending.event_id, time=now};
+                else finished = nil; end;
+                pending = nil;
+            end;
+            local name = line:match(' objective key item obtained name="([^"]+)"');
+            if finished and name then
+                proved[#proved+1] = {key_item_name=name, target_server_id=finished.target_server_id,
+                    zone_id=finished.zone_id, event_id=finished.event_id, observed_at=now};
+            end;
+        end;
+    end;
+    return proved;
+end;
+
+local function read_history_text(paths)
     local parts={};
     local scan={files=0,bytes=0,unreadable=0,truncated=0};
     for _,path in ipairs(paths or {}) do
@@ -123,7 +181,17 @@ function M.read_history(paths, identity)
             f:close();
         else scan.unreadable=scan.unreadable+1; end;
     end;
-    return M.recover(table.concat(parts,'\n'),identity),scan;
+    return table.concat(parts,'\n'), scan;
+end;
+
+function M.read_history(paths, identity)
+    local text, scan = read_history_text(paths);
+    return M.recover(text, identity), scan;
+end;
+
+function M.read_reward_history(paths, identity, nation, mission)
+    local text, scan = read_history_text(paths);
+    return M.recover_rewards(text, identity, nation, mission), scan;
 end;
 
 if type(accessxi)=='table' then accessxi.objective_event_evidence=M; end;

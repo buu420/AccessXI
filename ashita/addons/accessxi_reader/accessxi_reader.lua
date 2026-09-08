@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.06';
+addon.version   = '2026.09.07';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -69453,6 +69453,7 @@ end
 accessxi.load_code_module('mission_progress_tracker', T{ T = T, log_line = log_line });
 accessxi.load_code_module('objective_event_evidence');
 accessxi.load_code_module('mission_quest_search_steps');
+accessxi.load_code_module('objective_npc_rewards');
 accessxi.load_code_module('objective_announcer', T{ T = T, log_line = log_line });
 accessxi.load_code_module('mission_quest_step_resolver', T{ T = T, log_line = log_line });
 accessxi.load_code_module('nav_destination_ingress', T{ accessxi_paths = accessxi_paths });
@@ -104564,6 +104565,10 @@ function accessxi.poll_objective_unanswered_interaction(now)
             local ok, result = pcall(accessxi.nav_mission_quest_recover_event_history);
             if (not ok) then log_line('objective history recovery failed: ' .. tostring(result)); end
         end
+        if (type(accessxi.nav_mission_quest_recover_npc_reward_history) == 'function') then
+            local ok, result = pcall(accessxi.nav_mission_quest_recover_npc_reward_history);
+            if (not ok) then log_line('objective NPC reward recovery failed: ' .. tostring(result)); end;
+        end;
     end
     if (type(accessxi.nav_mission_quest_unanswered_talk) ~= 'function') then
         return;

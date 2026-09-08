@@ -1,0 +1,45 @@
+zone_id	zone_name	destination_id	target_name	target_x	target_z	target_y	edge_id	from_zone	from_name	entry_x	entry_z	entry_y	steps	status	waypoints	start_snap	end_snap	start_valid	end_valid
+194	Outer Horutoto Ruins	npc:v1:194:17572253	Ancient Magical Gizmo	457.995	-701.998	-3.293	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1743.612	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572253	Ancient Magical Gizmo	457.995	-701.998	-3.293	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1040.046	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572253	Ancient Magical Gizmo	457.995	-701.998	-3.293	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1419.512	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572253	Ancient Magical Gizmo	457.995	-701.998	-3.293	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	14	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572252	Ancient Magical Gizmo	458.005	-618.008	-3.271	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1668.792	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572252	Ancient Magical Gizmo	458.005	-618.008	-3.271	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1038.193	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572252	Ancient Magical Gizmo	458.005	-618.008	-3.271	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1335.555	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572252	Ancient Magical Gizmo	458.005	-618.008	-3.271	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	12	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572254	Ancient Magical Gizmo	499.996	-747.005	-3.314	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1802.680	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572254	Ancient Magical Gizmo	499.996	-747.005	-3.314	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1085.602	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572254	Ancient Magical Gizmo	499.996	-747.005	-3.314	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1466.194	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572254	Ancient Magical Gizmo	499.996	-747.005	-3.314	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	16	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572251	Ancient Magical Gizmo	500.005	-572.998	-3.254	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1649.450	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572251	Ancient Magical Gizmo	500.005	-572.998	-3.254	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1081.911	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572251	Ancient Magical Gizmo	500.005	-572.998	-3.254	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1292.484	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572251	Ancient Magical Gizmo	500.005	-572.998	-3.254	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	16	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572250	Ancient Magical Gizmo	541.980	-617.991	-3.265	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1709.384	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572250	Ancient Magical Gizmo	541.980	-617.991	-3.265	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1122.153	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572250	Ancient Magical Gizmo	541.980	-617.991	-3.265	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1340.559	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572250	Ancient Magical Gizmo	541.980	-617.991	-3.265	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	16	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572255	Ancient Magical Gizmo	542.020	-702.004	-3.293	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1782.543	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572255	Ancient Magical Gizmo	542.020	-702.004	-3.293	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1123.917	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572255	Ancient Magical Gizmo	542.020	-702.004	-3.293	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1424.247	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572255	Ancient Magical Gizmo	542.020	-702.004	-3.293	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	17	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572256	Cracked Wall	300.000	750.250	-1.897	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	626.517	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572256	Cracked Wall	300.000	750.250	-1.897	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1642.796	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572256	Cracked Wall	300.000	750.250	-1.897	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-connected	8	1.361	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572256	Cracked Wall	300.000	750.250	-1.897	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-no-path	1	1415.439	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572258	Cracked Wall	499.996	-708.245	-1.930	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1768.220	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572258	Cracked Wall	499.996	-708.245	-1.930	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1082.369	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572258	Cracked Wall	499.996	-708.245	-1.930	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1427.501	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572258	Cracked Wall	499.996	-708.245	-1.930	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	13	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572257	Cracked Wall	500.003	-611.751	-1.845	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1683.233	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572257	Cracked Wall	500.003	-611.751	-1.845	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1080.320	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572257	Cracked Wall	500.003	-611.751	-1.845	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1331.172	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572257	Cracked Wall	500.003	-611.751	-1.845	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	14	1.365	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572259	Cracked Wall	548.251	-660.005	-1.930	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1748.937	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572259	Cracked Wall	548.251	-660.005	-1.930	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1128.508	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572259	Cracked Wall	548.251	-660.005	-1.930	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1382.978	0.000	1	1
+194	Outer Horutoto Ruins	npc:v1:194:17572259	Cracked Wall	548.251	-660.005	-1.930	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	17	1.365	0.000	1	1
+194	Outer Horutoto Ruins	object:v1:194:17572249	Gate: Magical Gizmo	590.393	-660.020	-1.555	1631007610	115	West Sarutabaruta	-316.779	860.009	-9.680	mission:Windurst:2	mesh-no-path	1	1770.174	0.000	1	1
+194	Outer Horutoto Ruins	object:v1:194:17572249	Gate: Magical Gizmo	590.393	-660.020	-1.555	1664562042	115	West Sarutabaruta	-579.995	-636.951	-9.667	mission:Windurst:2	mesh-no-path	1	1170.643	0.000	1	1
+194	Outer Horutoto Ruins	object:v1:194:17572249	Gate: Magical Gizmo	590.393	-660.020	-1.555	943207290	116	East Sarutabaruta	419.991	716.991	-9.637	mission:Windurst:2	mesh-no-path	1	1387.538	0.000	1	1
+194	Outer Horutoto Ruins	object:v1:194:17572249	Gate: Magical Gizmo	590.393	-660.020	-1.555	1664627578	116	East Sarutabaruta	580.018	-637.011	-25.626	mission:Windurst:2	mesh-connected	18	1.365	0.000	1	1

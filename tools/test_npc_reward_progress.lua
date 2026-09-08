@@ -167,6 +167,15 @@ for _, item in ipairs(menu) do
         or tostring(item.objective_action_id):find(':step-021:',1,true) then pore=true; end;
 end;
 h.claim(not pore, 'the Missions menu stops offering the completed conversation');
+if not bastok then
+    local point, message = accessxi.nav_mission_quest_prepare_route(menu[1],
+        {zone=116, x=260.488, z=-456.192, y=-17.25});
+    h.claim(type(point) == 'table',
+        'the next tower instruction can actually start navigation: ' .. tostring(message));
+    h.claim(type(point) == 'table' and point.zone == 116
+        and point.destination_id == 'area:v1:116:1664627578',
+        'the next route uses the Marguerite Tower entrance beside Pore-Ohre');
+end;
 dofile(ADDON .. '/modules/mission_quest_navigation.lua');
 active = upvalue(accessxi.nav_mission_quest_reduce_signal, 'reducer_active_objectives');
 h.claim(current_step() == following, 'the corrected cursor survives a reader reload');

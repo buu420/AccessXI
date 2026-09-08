@@ -21,6 +21,7 @@ T = function (t)
     t = t or {};
     t.len = function (s) return #s; end
     t.append = function (s, v) s[#s + 1] = v; end
+    t.concat = table.concat;
     return t;
 end
 string.fmt = string.format;
@@ -281,6 +282,10 @@ load_code_module('nav_zoneline_router');
 load_code_module('objective_announcer');
 load_code_module('mission_quest_step_resolver');
 load_code_module('nav_destination_ingress');
+local search_file = io.open(ADDON .. '/modules/mission_quest_search_steps.lua','r');
+if search_file then search_file:close(); load_code_module('mission_quest_search_steps'); end;
+local review_file = io.open(ADDON .. '/modules/objective_action_reviews.lua','r');
+if review_file then review_file:close(); load_code_module('objective_action_reviews'); end;
 load_code_module('mission_quest_navigation');
 
 claim(type(accessxi.mission_step_resolver) == 'table',
@@ -307,6 +312,9 @@ end
 -- Everything below drives the module's own public entry. No internal is poked
 -- and no seam is replaced.
 local items = accessxi.nav_mission_quest_active_items('mission');
+-- Exercise an ordinary source resolution even when this mission has a reviewed
+-- action catalogue that can answer directly without parsing its source steps.
+accessxi.nav_mission_quest_step_route_capability('mission:Windurst:1','mission:Windurst:1:step-017');
 
 claim(type(items) == 'table' and #items > 0,
     ('the mission category builds its items through the real module (%d)')
@@ -332,14 +340,17 @@ local capability, zone_name, choice =
 claim(capability ~= nil and capability ~= accessxi.objective_announcer.ROUTE.UNAVAILABLE,
     ('"speak to Apururu" is routable through the real module (%s)'):format(tostring(capability)));
 
-claim(capability == accessxi.objective_announcer.ROUTE.CHOICE
+local reviewed_return = type(accessxi.objective_action_reviews)=='table';
+claim(reviewed_return and capability==accessxi.objective_announcer.ROUTE.FULL
+        or not reviewed_return and capability == accessxi.objective_announcer.ROUTE.CHOICE
         and type(choice) == 'table'
         and (tonumber(choice.count) or 0) > 1,
-    ('and it is offered as a choice, not silently picked (%d places)')
+    ('the reviewed Manustery identity is used when present; unresolved duplicates stay choices (%d places)')
         :format(type(choice) == 'table' and (tonumber(choice.count) or 0) or -1));
 
 local spoken = accessxi.objective_announcer.route_suffix(capability, zone_name, choice);
-claim(spoken:find('Press I to choose from', 1, true) ~= nil
+claim(reviewed_return and spoken:find('Press I to start navigation',1,true)~=nil
+        or not reviewed_return and spoken:find('Press I to choose from', 1, true) ~= nil
         and spoken:find('Press I to start navigation', 1, true) == nil,
     ('and what the player hears says so: "%s"'):format(spoken));
 

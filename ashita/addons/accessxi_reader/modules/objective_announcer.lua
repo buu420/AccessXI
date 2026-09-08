@@ -28,6 +28,7 @@
 local M = {};
 
 M.TRANSITIONS = {
+    OBJECTIVE_PROGRESS = 'objective-progress', -- part of a distinct set completed
     OBJECTIVE = 'objective',                 -- an intermediate guide step completed
     FINAL_OBJECTIVE = 'final-objective',     -- the last guide step completed; mission not yet confirmed
     MISSION_COMPLETE = 'mission-complete',   -- native state confirms the mission finished
@@ -83,6 +84,9 @@ function M.choice_suffix(choice)
     local square = clean(choice.unbound_square);
     local stage = clean(choice.stage);
     local plural = unreachable == 1 and '' or 's';
+    if (stage == 'all-members' and count > 0) then
+        return ('Complete all %d locations. Press I to choose an unfinished location.'):format(count);
+    end;
     if (stage == 'search' and count > 0) then
         local item = clean(choice.completion_item);
         if (item == '') then item = 'the requested item'; end
@@ -157,6 +161,14 @@ function M.sentence(transition)
     local suffix = M.route_suffix(transition.route, transition.zone_name, transition.route_choice);
     local mission = clean(transition.mission);
     local previous = clean(transition.previous_mission);
+    if (kind == M.TRANSITIONS.OBJECTIVE_PROGRESS) then
+        local done = tonumber(transition.completed_count) or 0;
+        local total = tonumber(transition.required_count) or 0;
+        local next_route = transition.distinct_interactions and transition.route ~= M.ROUTE.UNAVAILABLE
+            and 'Press I to choose an unfinished location.' or suffix;
+        return join({('Objective progress: %d of %d complete.'):format(done, total), stopped,
+            sentence(instruction), ('%d remaining.'):format(math.max(0,total-done)), next_route});
+    end;
 
     if (kind == M.TRANSITIONS.OBJECTIVE) then
         if (instruction == '') then
@@ -233,7 +245,7 @@ end
 -- transition itself, and it holds for the whole mission instance.
 function M.dedup_key(transition)
     if (type(transition) ~= 'table') then return ''; end
-    return table.concat({
+    local key = table.concat({
         clean(transition.identity):lower(),
         tostring(tonumber(transition.mission_epoch) or 0),
         clean(transition.type),
@@ -242,6 +254,10 @@ function M.dedup_key(transition)
         clean(transition.mission),
         clean(transition.step_id),
     }, '|');
+    if transition.type == M.TRANSITIONS.OBJECTIVE_PROGRESS then
+        key = key .. '|' .. tostring(tonumber(transition.completed_count) or 0);
+    end;
+    return key;
 end
 
 -- Which of two transitions describes more of the same moment. Objective

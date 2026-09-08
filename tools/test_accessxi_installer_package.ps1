@@ -242,7 +242,7 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+IID\s*\*\s*REFIID') 'Packaged win32types.lua must expose REFIID as a C pointer typedef.'
     Assert-True ($payloadWin32TypesSource -match 'typedef\s+const\s+GUID\s*\*\s*REFGUID') 'Packaged win32types.lua must expose REFGUID as a C pointer typedef.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAddon 'accessxi_reader.lua')) 'Package must contain the AccessXI Ashita addon.'
-    foreach ($missionModule in @('objective_event_evidence.lua', 'mission_quest_search_steps.lua', 'objective_npc_rewards.lua')) {
+    foreach ($missionModule in @('objective_event_evidence.lua', 'mission_quest_search_steps.lua', 'objective_npc_rewards.lua', 'objective_action_reviews.lua', 'objective_action_review_data.lua')) {
         $payloadFile = Join-Path $payloadAddon "modules\$missionModule"
         $sourceFile = Join-Path $RepoRoot "ashita\addons\accessxi_reader\modules\$missionModule"
         Assert-True (Test-Path -LiteralPath $payloadFile -PathType Leaf) "Package must contain $missionModule."

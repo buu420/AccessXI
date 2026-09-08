@@ -31141,20 +31141,20 @@
 194	Ace of Swords	-460.000	621.500	-0.019	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572296	lsb:npc_list:17572296		
 194	Ace of Wands	-460.000	618.500	-0.019	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572295	lsb:npc_list:17572295		
 194	Ajido-Marujido	418.774	-52.515	0.398	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572293	lsb:npc_list:17572293		
-194	Ancient Magical Gizmo	457.995	-701.998	-3.293	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572253	lsb:npc_list:17572253		
-194	Ancient Magical Gizmo	458.005	-618.008	-3.271	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572252	lsb:npc_list:17572252		
-194	Ancient Magical Gizmo	499.996	-747.005	-3.314	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572254	lsb:npc_list:17572254		
-194	Ancient Magical Gizmo	500.005	-572.998	-3.254	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572251	lsb:npc_list:17572251		
-194	Ancient Magical Gizmo	541.980	-617.991	-3.265	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572250	lsb:npc_list:17572250		
-194	Ancient Magical Gizmo	542.020	-702.004	-3.293	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572255	lsb:npc_list:17572255		
-194	Cracked Wall	-424.255	619.995	-1.909	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572261	lsb:npc_list:17572261		
-194	Cracked Wall	-409.746	-659.999	-1.919	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572262	lsb:npc_list:17572262		
-194	Cracked Wall	-335.747	-660.003	-1.941	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572263	lsb:npc_list:17572263		
-194	Cracked Wall	-249.746	740.002	-1.937	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572260	lsb:npc_list:17572260		
-194	Cracked Wall	300.000	750.250	-1.897	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572256	lsb:npc_list:17572256		
-194	Cracked Wall	499.996	-708.245	-1.930	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572258	lsb:npc_list:17572258		
-194	Cracked Wall	500.003	-611.751	-1.845	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572257	lsb:npc_list:17572257		
-194	Cracked Wall	548.251	-660.005	-1.930	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572259	lsb:npc_list:17572259		
+194	Ancient Magical Gizmo	457.995	-701.998	-3.293	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572253	lsb:npc_list:17572253		
+194	Ancient Magical Gizmo	458.005	-618.008	-3.271	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572252	lsb:npc_list:17572252		
+194	Ancient Magical Gizmo	499.996	-747.005	-3.314	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572254	lsb:npc_list:17572254		
+194	Ancient Magical Gizmo	500.005	-572.998	-3.254	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572251	lsb:npc_list:17572251		
+194	Ancient Magical Gizmo	541.980	-617.991	-3.265	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572250	lsb:npc_list:17572250		
+194	Ancient Magical Gizmo	542.020	-702.004	-3.293	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572255	lsb:npc_list:17572255		
+194	Cracked Wall	-424.255	619.995	-1.909	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572261	lsb:npc_list:17572261		
+194	Cracked Wall	-409.746	-659.999	-1.919	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572262	lsb:npc_list:17572262		
+194	Cracked Wall	-335.747	-660.003	-1.941	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572263	lsb:npc_list:17572263		
+194	Cracked Wall	-249.746	740.002	-1.937	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572260	lsb:npc_list:17572260		
+194	Cracked Wall	300.000	750.250	-1.897	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572256	lsb:npc_list:17572256		
+194	Cracked Wall	499.996	-708.245	-1.930	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572258	lsb:npc_list:17572258		
+194	Cracked Wall	500.003	-611.751	-1.845	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572257	lsb:npc_list:17572257		
+194	Cracked Wall	548.251	-660.005	-1.930	object	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572259	lsb:npc_list:17572259		
 194	DIRECTOR	541.866	-619.906	-2.500	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572248	lsb:npc_list:17572248		
 194	Goblin Footprint	-331.011	867.855	-8.000	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572302	lsb:npc_list:17572302		
 194	Hazy Rune	-584.939	739.867	-1.361	npc	lsb-npc-list-all	untested	world-npcs-2026-06-20	npc:v1:194:17572319	lsb:npc_list:17572319		

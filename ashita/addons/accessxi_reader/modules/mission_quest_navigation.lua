@@ -3101,6 +3101,16 @@ function progression_actions(native_key)
             end
         end
     end
+    local rewards = accessxi.objective_npc_rewards;
+    if (type(rewards) == 'table' and type(rewards.augment_actions) == 'function'
+        and type(accessxi.objective_key_item_owned_by_name) == 'function') then
+        local changed;
+        actions, changed = rewards.augment_actions(actions, objective_source_steps(native_key), function(name)
+            local ok, _, id = pcall(accessxi.objective_key_item_owned_by_name, name);
+            return ok and tonumber(id) or nil;
+        end);
+        if (changed) then revision = revision .. ':npc-rewards-v1'; end;
+    end;
     return actions, revision;
 end
 
@@ -7137,7 +7147,18 @@ local function interaction_matches(objectives, signal)
         end
     end
     if (#current > 0) then return current; end
-    if (#all ~= 1) then return T{}; end
+    if (#all ~= 1) then
+        local cursors = {};
+        for index, objective in ipairs(objectives) do
+            if (index > 6) then break; end;
+            cursors[#cursors+1] = clean(objective.native_key) .. '=' .. clean(objective.action.action_id);
+        end;
+        log_line(('objective interaction refused target=%d zone=%d event=%d matches=%d cursors="%s" reason=%s'):fmt(
+            tonumber(signal.target_server_id) or 0, tonumber(signal.zone_id) or 0,
+            tonumber(signal.event_id) or 0, #all, table.concat(cursors, ';'),
+            #all == 0 and 'no-matching-action' or 'ambiguous-actions'));
+        return T{};
+    end
     local match = all[1];
     -- A reviewed stage event identifies the step the server is actually
     -- running, including when an earlier approach instruction had no signal.
@@ -7145,6 +7166,9 @@ local function interaction_matches(objectives, signal)
     for index = match.objective.index, match.index - 1 do
         if (action_future_boundary(match.objective.native_key,
             match.objective.actions[index])) then
+            log_line(('objective interaction refused native="%s" action="%s" blocker="%s" reason=earlier-action'):fmt(
+                match.objective.native_key, clean(match.objective.actions[match.index].action_id),
+                clean(match.objective.actions[index].action_id)));
             return T{};
         end
     end
@@ -7215,16 +7239,49 @@ local function distinct_inventory_set_count(action)
     return owned, true;
 end
 
+-- A confirmed, uniquely named NPC reward also proves the approach and the
+-- duplicate heading/prose describing that conversation. Other interactions,
+-- combat, waits and transport remain distinct work, even with an empty catalogue.
+local function npc_reward_catchup_allows(action, reward)
+    local earlier = type(action.completion_reward) == 'table' and action.completion_reward or nil;
+    if (earlier ~= nil and earlier.group_action_id == reward.group_action_id
+        and earlier.kind == reward.kind and earlier.id == reward.id) then return true; end;
+    if (clean(action.action):lower() ~= 'travel' or clean(action.target) == ''
+        or clean(action.target_kind):lower() == 'transport'
+        or clean(action.completion_evidence) ~= '') then return false; end;
+    local relationship = clean(action.relationship):lower();
+    if (relationship ~= 'travel-to' and relationship ~= 'enter-through') then return false; end;
+    for _, point in ipairs(type(action.catalogue) == 'table' and action.catalogue or {}) do
+        if (clean(point.transport_id) ~= '' or clean(point.battlefield_id) ~= '') then return false; end;
+    end;
+    return true;
+end;
+
 local function inventory_matches(objectives, signal, key_item)
     local all = T{};
     local wanted = clean(key_item and signal.key_item_name or signal.item_name):lower();
     if (wanted == '') then return T{}; end
     for _, objective in ipairs(objectives) do
         if (objective_signal_revision_matches(signal, objective)) then
+            local groups = {};
             for index = objective.index, #objective.actions do
-                if (acquisition_action_matches(objective.actions[index], wanted, key_item)) then
+                local action = objective.actions[index];
+                if (acquisition_action_matches(action, wanted, key_item)) then
                     local candidate = { objective = objective, index = index };
-                    all:append(candidate);
+                    local reward = type(action.completion_reward) == 'table' and action.completion_reward or nil;
+                    if (reward == nil) then
+                        all:append(candidate);
+                    elseif (key_item and reward.kind == 'key-item'
+                        and tonumber(reward.id) == tonumber(signal.key_item_id)
+                        and clean(reward.group_action_id) ~= '') then
+                        -- The final talk owns completion; earlier duplicates
+                        -- carry the same result so dialogue cannot finish them.
+                        if (action.action_id == reward.group_action_id and not groups[reward.group_action_id]) then
+                            candidate.reward = reward;
+                            all:append(candidate);
+                            groups[reward.group_action_id] = true;
+                        end;
+                    end;
                 end
             end
         end
@@ -7232,17 +7289,95 @@ local function inventory_matches(objectives, signal, key_item)
     -- Inventory and key-item evidence has no objective identity of its own.
     -- Even an exact current action is unsafe when the same canonical evidence
     -- also names a future action in this or another active objective.
-    if (#all ~= 1) then return T{}; end
+    if (#all ~= 1) then
+        log_line(('objective acquisition refused kind=%s name="%s" id=%d matches=%d reason=%s'):fmt(
+            key_item and 'key-item' or 'item', wanted,
+            tonumber(key_item and signal.key_item_id or signal.item_id) or 0, #all,
+            #all == 0 and 'no-matching-action' or 'ambiguous-actions'));
+        return T{};
+    end
     local match = all[1];
     if (match.index == match.objective.index) then return T{ match }; end
     for index = match.objective.index, match.index - 1 do
-        if (action_future_boundary(match.objective.native_key,
-            match.objective.actions[index])) then
+        local action = match.objective.actions[index];
+        local blocked = match.reward ~= nil and not npc_reward_catchup_allows(action, match.reward)
+            or match.reward == nil and action_future_boundary(match.objective.native_key, action);
+        if (blocked) then
+            log_line(('objective acquisition refused native="%s" reward="%s" action="%s" blocker="%s" reason=earlier-material-action'):fmt(
+                match.objective.native_key, wanted, clean(match.objective.actions[match.index].action_id),
+                clean(action.action_id)));
             return T{};
         end
     end
     return T{ match };
 end
+
+function accessxi.nav_mission_quest_recover_npc_reward_history(paths)
+    local evidence = accessxi.objective_event_evidence;
+    if (type(evidence) ~= 'table' or type(evidence.read_reward_history) ~= 'function'
+        or not mission_state_ready()) then return 0; end;
+    local packet = accessxi.mission_packet_main or {};
+    local contexts = { [0]="San d'Oria", [1]='Bastok', [2]='Windurst' };
+    local context = contexts[tonumber(packet.nation)];
+    if (context == nil or tonumber(packet.nation_mission) == 65535) then return 0; end;
+    local identity = character_identity();
+    local owner = table.concat({identity, tostring(objective_session_epoch()),
+        tostring(packet.nation), tostring(packet.nation_mission)}, ':');
+    if (paths == nil and accessxi.nav_objective_reward_history_owner == owner) then return 0; end;
+    local current = reducer_active_objectives();
+    local native_key, waiting_key;
+    for _, objective in ipairs(current) do
+        if (clean(objective.item.mission_context):lower() == context:lower()
+            and clean(objective.item.mission_availability) == 'active') then
+            for index=objective.index,#objective.actions do
+                local reward = objective.actions[index].completion_reward;
+                if (type(reward) == 'table') then
+                    waiting_key = objective.native_key;
+                    if (key_item_state_available(reward.id)) then native_key = objective.native_key; end;
+                end;
+            end;
+        end;
+    end;
+    if (native_key == nil) then
+        if (waiting_key ~= nil and accessxi.nav_objective_reward_history_wait ~= owner) then
+            accessxi.nav_objective_reward_history_wait = owner;
+            log_line(('objective NPC reward recovery waiting native="%s" reason=current-key-item-snapshot-unavailable'):fmt(waiting_key));
+        end;
+        return 0;
+    end;
+    if (paths == nil) then
+        local writer = accessxi.support_log;
+        if (type(writer) ~= 'table' or clean(writer.path) == '') then return 0; end;
+        paths = {};
+        if (clean(writer.previous) ~= '') then paths[#paths+1] = writer.previous; end;
+        paths[#paths+1] = writer.path;
+    end;
+    local proofs, scan = evidence.read_reward_history(paths, identity, packet.nation, packet.nation_mission);
+    local recovered = 0;
+    for _, proof in ipairs(proofs) do
+        local ok, owned, id = pcall(accessxi.objective_key_item_owned_by_name, proof.key_item_name);
+        if (ok and owned == true and key_item_state_available(id)) then
+            local signal = {key_item_name=proof.key_item_name, key_item_id=id,
+                target_server_id=proof.target_server_id, zone_id=proof.zone_id};
+            local matches = inventory_matches(reducer_active_objectives(), signal, true);
+            local match = #matches == 1 and matches[1] or nil;
+            if (match ~= nil and match.reward ~= nil and match.objective.native_key == native_key
+                and action_target_matches(native_key, match.objective.actions[match.index], signal, true)
+                and advance_objective_match(match.objective, match.index, 1, 'acquisition')) then
+                recovered = recovered + 1;
+                log_line(('objective NPC reward history recovered native="%s" action="%s" key-item=%d target=%d event=%d'):fmt(
+                    native_key, clean(match.objective.actions[match.index].action_id), id,
+                    proof.target_server_id, proof.event_id));
+                notify_objective_progress(T{match.objective});
+            end;
+        end;
+    end;
+    accessxi.nav_objective_reward_history_owner = owner;
+    log_line(('objective NPC reward history scan files=%d bytes=%d unreadable=%d truncated=%d proofs=%d recovered=%d'):fmt(
+        tonumber(scan.files) or 0, tonumber(scan.bytes) or 0, tonumber(scan.unreadable) or 0,
+        tonumber(scan.truncated) or 0, #proofs, recovered));
+    return recovered;
+end;
 
 function accessxi.nav_mission_quest_reduce_signal(signal)
     local kind = clean(type(signal) == 'table' and signal.kind or ''):lower();
@@ -7410,6 +7545,9 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         for _, match in ipairs(matches) do
             if (advance_objective_match(match.objective, match.index, 1, 'acquisition')) then
                 changed:append(match.objective);
+                log_line(('objective acquisition completed kind=key-item name="%s" id=%d native="%s" from="%s" through="%s"'):fmt(
+                    clean(signal.key_item_name), tonumber(signal.key_item_id) or 0, match.objective.native_key,
+                    clean(match.objective.action.action_id), clean(match.objective.actions[match.index].action_id)));
             end
         end
         if (#changed == 0) then return false; end

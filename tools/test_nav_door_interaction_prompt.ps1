@@ -1,6 +1,7 @@
+param([string]$RepoRoot = 'C:\Users\buu42\AccessXI')
 $ErrorActionPreference = 'Stop'
 
-$addonPath = 'C:\Users\buu42\AccessXI\ashita\addons\accessxi_reader\accessxi_reader.lua'
+$addonPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $source = Get-Content -LiteralPath $addonPath -Raw
 
 function Assert-Match {
@@ -117,6 +118,9 @@ $pureDoorFunctions
 assert(accessxi.nav_entity_is_verified_door({ type = 3, name = 'Door: Warehouse' }) == true)
 assert(accessxi.nav_entity_is_verified_door({ type = 3, name = 'Harbor Light' }) == false)
 assert(accessxi.nav_entity_is_verified_door({ type = 2, name = 'Door: Warehouse' }) == false)
+assert(accessxi.nav_entity_is_verified_door({ type = 3, name = 'Cracked Wall' }) == true)
+assert(accessxi.nav_entity_is_verified_door({ type = 2, name = 'Cracked Wall' }) == false)
+assert(accessxi.nav_entity_is_verified_door({ type = 3, name = 'Stone Wall' }) == false)
 local entities = { { type = 3, name = 'Door: Warehouse', zone = 240, x = 5, z = 1, index = 10 } }
 accessxi.nav_live_entity_snapshot = function() return entities end
 local player = { zone = 240, x = 0, z = 0 }
@@ -124,6 +128,17 @@ local target = { zone = 240, x = 10, z = 0 }
 assert(accessxi.nav_verified_door_ahead(player, target).index == 10)
 entities = { { type = 3, name = 'Door: Warehouse', zone = 240, x = 5, z = 5, index = 11 } }
 assert(accessxi.nav_verified_door_ahead(player, target) == nil)
+for _,wall in ipairs({
+    {server_id=17572257,x=500.003,z=-611.751,dx=0,dz=1},
+    {server_id=17572258,x=499.996,z=-708.245,dx=0,dz=-1},
+    {server_id=17572259,x=548.251,z=-660.005,dx=1,dz=0}
+}) do
+    wall.type=3;wall.name='Cracked Wall';wall.zone=194;
+    entities={wall};
+    player={zone=194,x=wall.x-wall.dx*4,z=wall.z-wall.dz*4};
+    target={zone=194,x=wall.x+wall.dx*4,z=wall.z+wall.dz*4};
+    assert(accessxi.nav_verified_door_ahead(player,target).server_id==wall.server_id);
+end
 entities = { { type = 3, name = 'Door: Warehouse', zone = 240, x = -2, z = 0, index = 12 } }
 assert(accessxi.nav_verified_door_ahead(player, target) == nil)
 "@

@@ -141,7 +141,7 @@ local function load_objective_progress()
         for field in value:gmatch('([^\t]*)\t') do
             fields[#fields + 1] = field;
         end
-        if (#fields == 10 and fields[1] == 'v2'
+        if ((#fields == 10 and fields[1] == 'v2' or #fields == 11 and fields[1] == 'v4-members')
             and not progress_row_crosses_datasets(clean(fields[4]), clean(fields[5]), clean(fields[6]))) then
             local identity = clean(fields[2]):lower();
             local world_id = tonumber(fields[3]) or 0;
@@ -159,6 +159,7 @@ local function load_objective_progress()
                 action_id = clean(fields[8]),
                 action_order = tonumber(fields[9]),
                 progress_count = tonumber(fields[10]),
+                progress_members = fields[11],
                 raw_step_order = fields[7],
                 raw_action_order = fields[9],
                 raw_progress_count = fields[10],
@@ -243,7 +244,7 @@ local function append_objective_progress(record)
         return false;
     end
     local encoded = table.concat({
-        'v2',
+        clean(record.progress_members) ~= '' and 'v4-members' or 'v2',
         clean(record.identity):lower(),
         tostring(tonumber(record.world_id) or 0),
         clean(record.native_key),
@@ -254,9 +255,10 @@ local function append_objective_progress(record)
         tostring(tonumber(record.action_order) or 0),
         tostring(tonumber(record.progress_count) or 0),
     }, '\t');
-    file:write(encoded, '\n');
-    file:close();
-    return true;
+    if clean(record.progress_members) ~= '' then encoded = encoded .. '\t' .. record.progress_members; end;
+    local written = file:write(encoded, '\n');
+    local closed = file:close();
+    return written ~= nil and closed ~= nil;
 end
 
 -- Append one raw row to the progress file. The file is strictly append-only
@@ -272,9 +274,9 @@ function accessxi.objective_progress_append_row(fields)
         end
         return false;
     end
-    file:write(table.concat(fields, '\t'), '\n');
-    file:close();
-    return true;
+    local written = file:write(table.concat(fields, '\t'), '\n');
+    local closed = file:close();
+    return written ~= nil and closed ~= nil;
 end
 
 local function save_objective_progress(record)
@@ -298,7 +300,8 @@ local function save_objective_progress(record)
         and tonumber(existing.step_order) == tonumber(record.step_order)
         and clean(existing.action_id) == clean(record.action_id)
         and tonumber(existing.action_order) == tonumber(record.action_order)
-        and tonumber(existing.progress_count) == tonumber(record.progress_count)) then
+        and tonumber(existing.progress_count) == tonumber(record.progress_count)
+        and clean(existing.progress_members) == clean(record.progress_members)) then
         return true;
     end
     local saved = {
@@ -308,6 +311,7 @@ local function save_objective_progress(record)
         step_id = clean(record.step_id), step_order = tonumber(record.step_order),
         action_id = clean(record.action_id), action_order = tonumber(record.action_order),
         progress_count = tonumber(record.progress_count) or 0,
+        progress_members = clean(record.progress_members),
     };
     if (not append_objective_progress(saved)) then
         return false;
@@ -1124,12 +1128,12 @@ end
 local function point_for_destination_id(destination_id)
     destination_id = clean(destination_id);
     if (destination_id == '') then return nil; end
-    for _, point in ipairs(accessxi.nav_points or T{}) do
-        if (clean(point.destination_id) == destination_id) then
-            return point_copy(point);
-        end
-    end
-    return nil;
+    local index = ensure_catalog_index();
+    local point = index.points_by_destination_id[destination_id];
+    if type(point) ~= 'table' then return nil; end;
+    local result = point_copy(point);
+    result.zone_name = source_point_zone_name(point);
+    return result;
 end
 
 ensure_catalog_index = function()
@@ -1144,6 +1148,7 @@ ensure_catalog_index = function()
         zone_ids_by_name = {},
         points_by_zone_entity = {},
         points_by_entity = {},
+        points_by_destination_id = {},
         points_by_zone_base = {},
         points_by_base = {},
         referenced_targets = {},
@@ -1154,6 +1159,14 @@ ensure_catalog_index = function()
         point_visits = point_visits + 1;
         local zone = tonumber(point.zone) or 0;
         if (zone > 0) then
+            local id = clean(point.destination_id);
+            if id ~= '' then
+                local prior = index.points_by_destination_id[id];
+                if prior == nil then index.points_by_destination_id[id] = point;
+                elseif prior == false or tonumber(prior.zone) ~= zone or not same_exact_physical_point(prior,point) then
+                    index.points_by_destination_id[id] = false;
+                end;
+            end;
             local zone_name = source_point_zone_name(point);
             if (zone_name ~= '') then
                 local zone_key = source_name_key(zone_name);
@@ -2597,12 +2610,43 @@ local CHOICE_RESOLUTION_KINDS = {
     ['note-route-choice'] = true,
 };
 
-function accessxi.nav_mission_quest_step_route_capability(native_key, step_id)
+function accessxi.nav_mission_quest_step_route_capability(native_key, step_id, action_id)
     local announcer = accessxi.objective_announcer;
     if (type(announcer) ~= 'table') then return 'unavailable', ''; end
     native_key = clean(native_key);
     step_id = clean(step_id);
     if (step_id == '') then return announcer.ROUTE.UNAVAILABLE, ''; end
+    if type(accessxi.objective_action_reviews) == 'table' then
+        local actions = progression_actions(native_key);
+        for _, action in ipairs(actions or {}) do
+            if action.step_id == step_id and action.review_revision
+                and (clean(action_id) == '' or action.action_id == action_id) then
+                local count = #(action.catalogue or {});
+                local player_zone = tonumber(type(accessxi.current_zone_id) == 'function'
+                    and accessxi.current_zone_id()) or 0;
+                local zone_name = '';
+                if action.review_route_refusal or count == 0 then return announcer.ROUTE.UNAVAILABLE, ''; end;
+                for _, point in ipairs(action.catalogue) do
+                    local zone = tonumber(point.zone_id) or 0;
+                    zone_name = clean(point.zone_name);
+                    if zone ~= player_zone or zone <= 0 then
+                        if player_zone <= 0 or type(accessxi.nav_zoneline_path) ~= 'function' then
+                            return announcer.ROUTE.UNAVAILABLE, zone_name;
+                        end;
+                        local ok, path = pcall(accessxi.nav_zoneline_path,
+                            player_zone, zone, point.canonical_edge_id);
+                        if not ok or type(path) ~= 'table' or #path == 0 then
+                            return announcer.ROUTE.UNAVAILABLE, zone_name;
+                        end;
+                    end;
+                end;
+                if count > 1 then
+                    return announcer.ROUTE.CHOICE, zone_name, {count=count,
+                        stage=action.interaction_set and 'all-members' or 'entity'};
+                elseif count == 1 then return announcer.ROUTE.FULL, zone_name; end;
+            end;
+        end;
+    end;
     -- NOT YET COMPUTED IS NOT THE SAME AS NO ROUTE.
     --
     -- This reads a cache that source_route_rows fills, and a mission that has
@@ -3111,6 +3155,13 @@ function progression_actions(native_key)
         end);
         if (changed) then revision = revision .. ':npc-rewards-v1'; end;
     end;
+    local reviews = accessxi.objective_action_reviews;
+    if type(reviews) == 'table' then
+        local suffix, refusal;
+        actions, suffix, refusal = reviews.augment_actions(native_key, actions, point_for_destination_id);
+        if suffix ~= '' then revision = revision .. ':' .. suffix; end;
+        if refusal then log_line('objective action review refused native="' .. native_key .. '" reason="' .. refusal .. '"'); end;
+    end;
     return actions, revision;
 end
 
@@ -3141,6 +3192,11 @@ end
 local function progress_count_is_valid(record, action, index, action_count)
     local count = tonumber(type(record) == 'table' and record.progress_count or nil);
     local required = tonumber(type(action) == 'table' and action.required_count or nil) or 0;
+    if type(action) == 'table' and type(action.interaction_set) == 'table' then
+        local reviews = accessxi.objective_action_reviews;
+        local members, member_count = reviews.members(action, record.progress_members);
+        if not members or member_count ~= count then return false; end;
+    elseif clean(record.progress_members) ~= '' then return false; end;
     return count ~= nil and count >= 0 and count == math.floor(count)
         and count <= required and not (count == required and index < action_count);
 end
@@ -3242,6 +3298,7 @@ local function mapped_previous_progress_record(
         action_id = clean(action.action_id),
         action_order = tonumber(action.action_order),
         progress_count = tonumber(record.progress_count),
+        progress_members = clean(record.progress_members),
         index = index,
     };
 end
@@ -3267,6 +3324,10 @@ end
 function accessxi.nav_objective_travel_destination_zones(native_key, action)
     local zones = {};
     if (type(action) ~= 'table') then return zones; end
+    if (tonumber(action.completion_zone) or 0) > 0 then
+        zones[tonumber(action.completion_zone)] = true;
+        return zones;
+    end;
     local single = tonumber(action.destination_zone_id) or 0;
     if (single > 0) then zones[single] = true; end
     local index = ensure_catalog_index ~= nil and ensure_catalog_index() or nil;
@@ -3325,7 +3386,7 @@ function accessxi.nav_objective_travel_destination_zones(native_key, action)
     return zones;
 end
 
-local function save_cursor_action(native_key, action, progress_count, revision)
+local function save_cursor_action(native_key, action, progress_count, revision, progress_members)
     if (type(action) ~= 'table') then return false; end
     return save_objective_progress({
         identity = character_identity(),
@@ -3337,6 +3398,7 @@ local function save_cursor_action(native_key, action, progress_count, revision)
         action_id = clean(action.action_id),
         action_order = tonumber(action.action_order),
         progress_count = tonumber(progress_count) or 0,
+        progress_members = clean(progress_members),
     });
 end
 
@@ -3439,7 +3501,7 @@ local function resolved_progress_record(native_key, actions, revision)
         local index = tonumber(migration.index) or 0;
         if (index > 0 and type(actions[index]) == 'table'
             and save_cursor_action(
-                native_key, actions[index], migration.progress_count, revision)) then
+                native_key, actions[index], migration.progress_count, revision, migration.progress_members)) then
             -- SAY WHEN A CURSOR MOVES ON ITS OWN.
             --
             -- Of every writer that can put a row in the progress file this is
@@ -4348,6 +4410,8 @@ local function compact_action_destination_row(action, point)
         enemies = deep_copy(action.enemies),
         destination_zone_name = clean(action.destination_zone_name),
         destination_zone_id = tonumber(action.destination_zone_id) or 0,
+        canonical_edge_id = tonumber(point.canonical_edge_id),
+        canonical_from_zone = tonumber(point.canonical_from_zone),
     };
 end
 
@@ -4753,6 +4817,16 @@ local function append_current_progression_rows(item, replacements)
         return true, nil, clean(state) ~= '' and clean(state) or 'exhausted', actions;
     end
 
+    if action.review_route_refusal then
+        local replacement = expanded_objective_row(item, instruction_row_for_action(action));
+        if replacement then
+            replacement.objective_progression_revision = revision;
+            replacement.objective_cursor_action_id = clean(action.action_id);
+            replacements:append(replacement);
+        end;
+        return true, action, 'active', actions;
+    end;
+
     local cursor_action = action;
     local cursor_index = action_index_by_identity(actions, action.step_id,
         action.step_order, action.action_id, action.action_order) or 1;
@@ -4918,6 +4992,16 @@ local function append_current_progression_rows(item, replacements)
             end
         end
     end
+    if type(action.interaction_set) == 'table' and type(accessxi.objective_action_reviews) == 'table' then
+        local members = accessxi.objective_action_reviews.members(action,
+            type(record) == 'table' and record.progress_members or '');
+        local remaining = T{};
+        for _, row in ipairs(rows) do
+            local id = tonumber(clean(row.destination_id):match(':(%d+)$'));
+            if not (members and members[id]) then remaining:append(row); end;
+        end;
+        rows = remaining;
+    end;
     if (#rows == 0) then rows:append(instruction_row_for_action(action)); end
 
     local progress_count = type(record) == 'table'
@@ -6661,7 +6745,7 @@ function accessxi.nav_mission_quest_mark_step_done(category, native_key)
             'v3-mark', character_identity(), tostring(player_world_id()),
             clean(chosen.native_key), event_id,
             clean(following.step_id), clean(following.action_id),
-            clean(action.step_id), clean(action.action_id),
+            clean(action.step_id), (clean(action.action_id)),
         });
     end
 
@@ -6745,7 +6829,7 @@ function accessxi.nav_objective_undo_last_mark()
 
     if (not accessxi.objective_progress_append_row({
         'v3-undo', clean(mark.identity), tostring(mark.world_id),
-        clean(mark.native_key), clean(mark.event_id),
+        clean(mark.native_key), (clean(mark.event_id)),
     })) then
         return false, 'That could not be undone; the progress file could not be written.';
     end
@@ -6984,9 +7068,13 @@ function accessxi.nav_mission_quest_note_talk_response(speaker, now)
     return false;
 end
 
-advance_objective_match = function(objective, match_index, causal_units, proof)
+advance_objective_match = function(objective, match_index, causal_units, proof, progress_members)
     local action = objective.actions[match_index];
     if (type(action) ~= 'table' or match_index < objective.index) then return false; end
+    if action.review_route_refusal and proof ~= 'player' then return false; end;
+    if type(action.interaction_set) == 'table' and proof ~= 'members' and proof ~= 'player' then return false; end;
+    if type(action.interaction_events) == 'table' and proof ~= 'event'
+        and proof ~= 'acquisition' and proof ~= 'player' then return false; end;
     if (clean(action.completion_evidence) ~= '' and proof ~= 'acquisition'
         and proof ~= 'player') then return false; end
     local required = tonumber(action.required_count) or 1;
@@ -6996,7 +7084,16 @@ advance_objective_match = function(objective, match_index, causal_units, proof)
         and clean(objective.record.action_id) == clean(action.action_id)) then
         current_count = tonumber(objective.record.progress_count) or 0;
     end
-    local added = mode == 'single' and required or math.max(0, tonumber(causal_units) or 0);
+    -- N confirms the displayed objective as a whole. It cannot identify which
+    -- member was used, so never write a count without its native identities.
+    local added = (mode == 'single' or proof == 'player' and type(action.interaction_set) == 'table')
+        and required or math.max(0, tonumber(causal_units) or 0);
+    if proof == 'player' and type(action.interaction_set) == 'table' then
+        local members = {};
+        for id in pairs(action.interaction_set) do members[#members+1] = tostring(id); end;
+        table.sort(members);
+        progress_members = table.concat(members, ',');
+    end;
     if (added <= 0) then return false; end
     local count = math.min(required, current_count + added);
     local saved = false;
@@ -7004,10 +7101,11 @@ advance_objective_match = function(objective, match_index, causal_units, proof)
         saved = save_cursor_action(
             objective.native_key, objective.actions[match_index + 1], 0, objective.revision);
     else
-        saved = save_cursor_action(objective.native_key, action, count, objective.revision);
+        saved = save_cursor_action(objective.native_key, action, count, objective.revision, progress_members);
     end
     if (not saved) then return false; end
     objective.completed_index = match_index;
+    objective.partial_count = count < required and count or nil;
     purge_objective_arms(objective.native_key);
     -- Remember whether the route we stopped was THIS objective's, so the
     -- announcement can say "Navigation stopped" only when it truly was --
@@ -7032,14 +7130,18 @@ notify_objective_progress = function(objectives)
             local announcer = accessxi.objective_announcer;
             local completed_index = tonumber(first.completed_index) or first.index;
             local completed = first.actions[completed_index];
-            local following = first.actions[completed_index + 1];
+            local following = first.partial_count and completed or first.actions[completed_index + 1];
             local final = type(following) ~= 'table';
             local step_id = clean(type(following) == 'table' and following.step_id or '');
             local capability, zone_name, route_choice = accessxi.nav_mission_quest_step_route_capability(
-                first.native_key, step_id);
+                first.native_key, step_id, type(following) == 'table' and following.action_id);
             accessxi.objective_announce({
-                type = final and announcer.TRANSITIONS.FINAL_OBJECTIVE
+                type = first.partial_count and announcer.TRANSITIONS.OBJECTIVE_PROGRESS
+                    or final and announcer.TRANSITIONS.FINAL_OBJECTIVE
                     or announcer.TRANSITIONS.OBJECTIVE,
+                completed_count = first.partial_count,
+                required_count = type(completed) == 'table' and completed.required_count,
+                distinct_interactions = type(completed) == 'table' and type(completed.interaction_set) == 'table',
                 -- What the guide still says once the compact actions run out.
                 -- Empty for every other transition, and empty for an objective
                 -- whose page really does end where its actions do.
@@ -7136,6 +7238,14 @@ local function interaction_matches(objectives, signal)
                         objective.native_key, clean(action.action_id), signal);
                     local matched, point = action_target_matches(
                         objective.native_key, action, signal, true);
+                    local reviews = accessxi.objective_action_reviews;
+                    if matched and type(reviews) == 'table' then
+                        matched = reviews.event_matches(action, signal);
+                        if matched and action.interaction_set and index == objective.index then
+                            local done = reviews.members(action, type(objective.record) == 'table' and objective.record.progress_members);
+                            if done and done[tonumber(signal.target_server_id)] then matched = false; end;
+                        end;
+                    end;
                     if (matched and (not reviewed or reviewed_match)) then
                         local candidate = { objective = objective, index = index,
                             point = point, reviewed_event = type(reviewed_match) == 'table' };
@@ -7493,10 +7603,22 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
         local changed = T{};
         for _, snapshot in ipairs(arm.matches) do
             local match = revalidated_objective_match(snapshot, fresh_objectives);
-            if (type(match) == 'table'
-                and objective_signal_revision_matches(signal, match.objective)
-                and advance_objective_match(match.objective, match.index, 1)) then
-                changed:append(match.objective);
+            if (type(match) == 'table' and objective_signal_revision_matches(signal, match.objective)) then
+                local action = match.objective.actions[match.index];
+                local members, count;
+                if action.interaction_set then
+                    members, count = accessxi.objective_action_reviews.complete_member(action, match.objective.record, signal);
+                end;
+                if (not action.interaction_set or members)
+                    and advance_objective_match(match.objective, match.index, 1,
+                        action.interaction_set and 'members' or 'event', members) then
+                    changed:append(match.objective);
+                    if members then
+                        log_line(('objective member completed native="%s" action="%s" target=%d event=%d count=%d/%d members="%s"'):fmt(
+                            match.objective.native_key, action.action_id, signal.target_server_id,
+                            signal.event_id, count, action.required_count, members));
+                    end;
+                end;
             end
         end
         if (#changed == 0) then return false; end
@@ -7785,6 +7907,8 @@ function accessxi.nav_mission_quest_reduce_signal(signal)
             if (clean(objective.native_key) == clean(signal.objective_native_key)
                 and clean(action.action_id) == clean(signal.action_id)
                 and clean(action.action):lower() == 'travel'
+                and ((tonumber(action.completion_zone) or 0) <= 0
+                    or tonumber(signal.zone_id) == tonumber(action.completion_zone))
                 and objective_signal_revision_matches(signal, objective)
                 and advance_objective_match(objective, objective.index, 1)) then
                 remember_objective_cause(cause);

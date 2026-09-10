@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.08';
+addon.version   = '2026.09.10';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -84540,6 +84540,61 @@ function accessxi.native_vendor_shop_item_info(menu_name, obj, entry, label_ptr,
     return info;
 end
 
+function accessxi.configure_inventory_name_offset()
+    -- FFXI's Sept. 10, 2026 update moved the selected name pointer from
+    -- +0xCC8 to +0x14C8. Both native readers must independently identify the
+    -- same reviewed layout. Only change Ashita's runtime offset cache; leave
+    -- its files, the game, and unrecognized/custom offsets untouched.
+    local current, detected = 0, 0;
+    local ok, applied, reason = pcall(function ()
+        local offsets = AshitaCore:GetOffsetManager();
+        current = tonumber(offsets:Get('inventory.selecteditem', 'name.offset4')) or 0;
+        if (current ~= 0xCC8 and current ~= 0x14C8) then
+            return false, 'unrecognized-current-offset';
+        end
+
+        local function displacement(pattern, field)
+            local first = tonumber(ashita.memory.find(':ffximain', 0, pattern, 0, 0)) or 0;
+            local second = tonumber(ashita.memory.find(':ffximain', 0, pattern, 0, 1)) or 0;
+            if (first == 0 or second ~= 0) then
+                return 0;
+            end
+            return tonumber(read_u32(first + field)) or 0;
+        end
+
+        -- Old/new native getter: 10230230 / 102306D0. Its independent
+        -- formatting caller is 1013EDC3 / 1013EE93 (preferred image VAs).
+        detected = displacement('8B410485C07501C38B80????????C3', 10);
+        local witness = displacement('8B86????????85C0741B0FBF4C2414556A005083C114', 2);
+        if (detected == 0 or witness == 0) then
+            return false, 'missing-or-ambiguous-signature';
+        end
+        if (detected ~= witness) then
+            return false, 'signatures-disagree';
+        end
+        if (detected ~= 0xCC8 and detected ~= 0x14C8) then
+            return false, 'unreviewed-native-layout';
+        end
+        if (current == detected) then
+            return true, 'already-correct';
+        end
+
+        offsets:Add('inventory.selecteditem', 'name.offset4', detected);
+        if (tonumber(offsets:Get('inventory.selecteditem', 'name.offset4')) ~= detected) then
+            return false, 'cache-readback-failed';
+        end
+        return true, 'applied';
+    end);
+    if (not ok) then
+        reason = 'unavailable: ' .. tostring(applied or '');
+        applied = false;
+    end
+    log_line(('inventory name-layout status=%s previous=0x%X detected=0x%X reason="%s"'):fmt(
+        applied and 'ready' or 'unchanged', current, detected,
+        accessxi.escape_probe_log_text(tostring(reason or ''))));
+    return applied == true;
+end
+
 function accessxi.get_native_selected_inventory_item_info(menu_name)
     local inv = AshitaCore:GetMemoryManager():GetInventory();
     if (inv == nil) then
@@ -103393,6 +103448,7 @@ function accessxi.run_load_startup(reason)
     accessxi.load_startup_ran = true;
     log_line('load begin');
     load_step('prism-init', function () accessxi.prism_init_speech(true); end);
+    load_step('inventory-name-layout', function () accessxi.configure_inventory_name_offset(); end);
 
     load_step('nav-load-points', nav_load_points);
     load_step('nav-beacon-ensure-files', function () accessxi.nav_beacon_ensure_files(); end);

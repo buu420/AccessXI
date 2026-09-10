@@ -24,6 +24,18 @@ function Write-TestFile {
     [System.IO.File]::WriteAllText($Path, $Content)
 }
 
+# Model the process boundary for this temporary installation. A real running
+# game elsewhere on the machine must neither block this test nor be touched.
+$testPlayOnlineRunning = $false
+function Get-Process {
+    [CmdletBinding()]
+    param([string]$Name)
+    if ($Name -ne 'pol') { throw "Unexpected process query in migration test: $Name" }
+    if ($testPlayOnlineRunning) {
+        [pscustomobject]@{ ProcessName = 'pol'; Id = 99999 }
+    }
+}
+
 $sourceInstaller = Join-Path $RepoRoot 'installer\install_accessxi.ps1'
 $sourceCleanup = Join-Path $RepoRoot 'installer\legacy_accessxi_cleanup.ps1'
 Assert-True (Test-Path -LiteralPath $sourceInstaller -PathType Leaf) "Installer source is missing: $sourceInstaller"
@@ -93,6 +105,24 @@ try {
     $polHashBefore = (Get-FileHash -LiteralPath $polExe -Algorithm SHA256).Hash
     $appHashBefore = (Get-FileHash -LiteralPath $appDll -Algorithm SHA256).Hash
     $packagedInstaller = Join-Path $packageRoot 'install_accessxi.ps1'
+    $testPlayOnlineRunning = $true
+    $refusedRunningGame = $false
+    try {
+        & $packagedInstaller `
+            -InstallRoot $installRoot `
+            -PolExe $polExe `
+            -LegacyAccessXiConfigRoot $configRoot `
+            -SkipVisualCppRedistributables `
+            -NoDesktopShortcut | Out-Null
+    }
+    catch {
+        if ($_.Exception.Message -notlike 'Close PlayOnline Viewer before installing AccessXI*') { throw }
+        $refusedRunningGame = $true
+    }
+    Assert-True $refusedRunningGame 'Installer did not refuse a running PlayOnline process.'
+    Assert-Equal (Get-Content -LiteralPath (Join-Path $polRoot 'ddraw.dll') -Raw) 'previous-loader' 'Running-game refusal changed the loader.'
+    Assert-True (Test-Path -LiteralPath $legacyRoot) 'Running-game refusal removed the existing installation.'
+    $testPlayOnlineRunning = $false
     & $packagedInstaller `
         -InstallRoot $installRoot `
         -PolExe $polExe `

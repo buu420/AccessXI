@@ -1,6 +1,7 @@
 param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
     [string]$AshitaRoot = 'C:\Users\buu42\Ashita',
+    [string]$WindowerResourcesRoot = '',
     [string]$OutputDirectory = '',
     [switch]$NoPayloadBuild
 )
@@ -70,9 +71,9 @@ if (-not (Test-Path -LiteralPath $publicGuide)) {
 }
 
 if ($NoPayloadBuild) {
-    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -OutputDirectory $OutputDirectory -NoBuild }
+    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -OutputDirectory $OutputDirectory -NoBuild }
 } else {
-    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -OutputDirectory $OutputDirectory }
+    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -OutputDirectory $OutputDirectory }
 }
 
 Invoke-PowerShellScript -Name $packageTest -Command { & $packageTest -RepoRoot $RepoRoot -PackageRoot (Join-Path $OutputDirectory 'AccessXI-Ashita-Installer') }

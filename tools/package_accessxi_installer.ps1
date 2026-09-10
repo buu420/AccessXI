@@ -1,6 +1,7 @@
 param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
     [string]$AshitaRoot = 'C:\Users\buu42\Ashita',
+    [string]$WindowerResourcesRoot = '',
     [string]$OutputDirectory = '',
     [switch]$NoBuild
 )
@@ -143,7 +144,10 @@ $repoDatIndex = Join-Path $RepoRoot 'pol_re\out\dat_index\ffxi_dat_strings.tsv'
 $repoNavMeshDll = Join-Path $RepoRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll'
 $repoNavMeshesRoot = Join-Path $RepoRoot 'third_party\xiNavmeshes'
 $repoLsbSqlRoot = Join-Path $RepoRoot 'third_party\LandSandBoat-server\sql'
-$windowerResourcesRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'windower\res'
+if ($WindowerResourcesRoot -eq '') {
+    $WindowerResourcesRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'windower\res'
+}
+$windowerResourcesRoot = Resolve-FullPath $WindowerResourcesRoot
 $packageRoot = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer'
 $zipPath = Join-Path $OutputDirectory 'AccessXI-Ashita-Installer.zip'
 

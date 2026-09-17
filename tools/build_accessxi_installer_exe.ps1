@@ -2,6 +2,7 @@ param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
     [string]$AshitaRoot = 'C:\Users\buu42\Ashita',
     [string]$WindowerResourcesRoot = '',
+    [string]$SharedAssetsRoot = '',
     [string]$OutputDirectory = '',
     [switch]$NoPayloadBuild
 )
@@ -39,6 +40,8 @@ function Invoke-NativeCommand {
 
 $RepoRoot = Resolve-FullPath $RepoRoot
 $AshitaRoot = Resolve-FullPath $AshitaRoot
+if ($SharedAssetsRoot -eq '') { $SharedAssetsRoot = $RepoRoot }
+$SharedAssetsRoot = Resolve-FullPath $SharedAssetsRoot
 if ($OutputDirectory -eq '') {
     $OutputDirectory = Join-Path $RepoRoot 'dist'
 }
@@ -46,6 +49,7 @@ $OutputDirectory = Resolve-FullPath $OutputDirectory
 
 $packageScript = Join-Path $RepoRoot 'tools\package_accessxi_installer.ps1'
 $packageTest = Join-Path $RepoRoot 'tools\test_accessxi_installer_package.ps1'
+$moduleGateTest = Join-Path $RepoRoot 'tools\test_packaged_menu_code_modules.ps1'
 $publicReadmeTest = Join-Path $RepoRoot 'tools\test_accessxi_public_readme.ps1'
 $nativeStructureTest = Join-Path $RepoRoot 'tools\test_pol_native_asi_structure.ps1'
 $legacyCleanupTest = Join-Path $RepoRoot 'tools\test_legacy_accessxi_cleanup.ps1'
@@ -71,14 +75,15 @@ if (-not (Test-Path -LiteralPath $publicGuide)) {
 }
 
 if ($NoPayloadBuild) {
-    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -OutputDirectory $OutputDirectory -NoBuild }
+    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -SharedAssetsRoot $SharedAssetsRoot -OutputDirectory $OutputDirectory -NoBuild }
 } else {
-    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -OutputDirectory $OutputDirectory }
+    Invoke-PowerShellScript -Name $packageScript -Command { & $packageScript -RepoRoot $RepoRoot -AshitaRoot $AshitaRoot -WindowerResourcesRoot $WindowerResourcesRoot -SharedAssetsRoot $SharedAssetsRoot -OutputDirectory $OutputDirectory }
 }
 
 Invoke-PowerShellScript -Name $packageTest -Command { & $packageTest -RepoRoot $RepoRoot -PackageRoot (Join-Path $OutputDirectory 'AccessXI-Ashita-Installer') }
+Invoke-PowerShellScript -Name $moduleGateTest -Command { & $moduleGateTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $publicReadmeTest -Command { & $publicReadmeTest -RepoRoot $RepoRoot }
-Invoke-PowerShellScript -Name $nativeStructureTest -Command { & $nativeStructureTest -RepoRoot $RepoRoot }
+Invoke-PowerShellScript -Name $nativeStructureTest -Command { & $nativeStructureTest -RepoRoot $RepoRoot -PrismDll (Join-Path $SharedAssetsRoot 'third_party\prism\build-win32\Release\prism.dll') }
 Invoke-PowerShellScript -Name $legacyCleanupTest -Command { & $legacyCleanupTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $nativeMigrationTest -Command { & $nativeMigrationTest -RepoRoot $RepoRoot }
 Invoke-PowerShellScript -Name $autoUpdateTest -Command { & $autoUpdateTest -RepoRoot $RepoRoot }

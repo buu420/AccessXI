@@ -128,4 +128,60 @@ assert(installed_accessxi.current_speech_key == prior_key,
 assert(#state_logs == 2 and state_logs[2]:find('reason="invalid-help-pointer"', 1, true) ~= nil,
     'Expected a quiet evidence log when the native help pointer is invalid.')
 
+-- Exercise the real loader and its call site. A hand-built module environment
+-- can hide a mismatch between the reader's context and the module's contract.
+local source_path = assert(arg[2], 'Expected live reader source path.')
+local source_file = assert(io.open(source_path, 'rb'))
+local source = source_file:read('*a')
+source_file:close()
+local function source_between(first, last)
+    local start_at = assert(source:find(first, 1, true), first)
+    local end_at = assert(source:find(last, start_at + #first, true), last)
+    return source:sub(start_at, end_at - 1)
+end
+local production_logs = {}
+local production_accessxi = {
+    is_probe_pointer = is_pointer,
+    plain_native_menu_help = context.clean_help,
+}
+local production_env = {
+    accessxi = production_accessxi,
+    accessxi_paths = {
+        addon_path = function(directory, family, filename)
+            assert(directory == 'modules' and family == 'menus'
+                and filename == 'search_player_options.lua', 'Unexpected module path')
+            return module_path
+        end,
+    },
+    T = function(value) return value end,
+    read_u32 = read_u32,
+    read_probe_string = read_string,
+    tick = context.tick,
+    log_line = function(text) production_logs[#production_logs + 1] = text end,
+    log_state = function(text) production_logs[#production_logs + 1] = text end,
+}
+setmetatable(production_env, { __index = _G })
+string.fmt = string.format
+local production_chunk = assert(loadstring(source_between(
+    'function accessxi.load_menu_code_module(name, env)',
+    'accessxi.debug_commands =') .. '\n' .. source_between(
+    'function accessxi.search_player_options_module_context()',
+    'function accessxi.search_result_rendered_label_looks_useful'), '@search-player-production-loader'))
+setfenv(production_chunk, production_env)
+production_chunk()
+assert(type(production_accessxi.search_player_option_menu_speech) == 'function',
+    'Expected the production loader to install the search action reader.')
+assert(production_accessxi.search_player_option_menu_speech('menu    scoption', 4, row_4)
+    == "Express desire to join another's party.",
+    'Expected the production loader to supply the native memory callbacks to the search action reader.')
+assert(production_accessxi.last_native_menu_selected == 4
+    and production_accessxi.last_native_menu_tick == 4242,
+    'Expected production speech state to track the native cursor and clock.')
+assert(#production_logs == 1 and production_logs[1]:find('source="entry+0x40"', 1, true),
+    'Expected production loading to preserve native evidence logging.')
+assert(production_accessxi.search_player_option_menu_speech('menu    scoption', 3, 0x18DAD560) == nil,
+    'Expected the production reader to reject an unverified help pointer.')
+assert(#production_logs == 2 and production_logs[2]:find('reason="invalid-help-pointer"', 1, true),
+    'Expected production loading to preserve quiet failure diagnostics.')
+
 print('Search player option native-help checks passed')

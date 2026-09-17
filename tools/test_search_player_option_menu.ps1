@@ -10,7 +10,7 @@ $module = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\modules\menus\searc
 $sourcePath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\accessxi_reader.lua'
 $nativeMenusPath = Join-Path $RepoRoot 'ashita\addons\accessxi_reader\modules\menus\native_menus.lua'
 
-& $lua $test $module
+& $lua $test $module $sourcePath
 if ($LASTEXITCODE -ne 0) {
     throw "Search player option Lua checks failed with exit code $LASTEXITCODE."
 }
@@ -18,7 +18,7 @@ if ($LASTEXITCODE -ne 0) {
 $source = Get-Content -LiteralPath $sourcePath -Raw
 $nativeMenus = Get-Content -LiteralPath $nativeMenusPath -Raw
 
-if ($source -notmatch "load_menu_code_module\('search_player_options',\s*accessxi\.search_player_options_module_context\(\)\)") {
+if ($source -notmatch "load_menu_code_module\('search_player_options',\s*\{\s*search_player_options_context\s*=\s*accessxi\.search_player_options_module_context\(\)") {
     throw 'Expected the live reader to load the tested search-player option speech module.'
 }
 if ($nativeMenus -notmatch "menus\s*=\s*T\{\s*'menu    scoption'\s*\},\s*title\s*=\s*'Search'") {

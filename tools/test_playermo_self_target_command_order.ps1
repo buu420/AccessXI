@@ -14,7 +14,7 @@ if ($functionEnd -lt 0) {
 $body = $source.Substring($functionStart, $functionEnd - $functionStart)
 
 $nativeQueryIndex = $body.IndexOf('native_query_label_for_selection(child, selected, count')
-$selfDatIndex = $body.IndexOf('playermo_command_menu_dat_entry(selected, command_ptr)')
+$selfDatIndex = $body.IndexOf('playermo_command_menu_dat_entry(selected, command_ptr, dynamic_command_id)')
 if ($nativeQueryIndex -lt 0 -or $selfDatIndex -lt 0) {
     throw 'Missing generic native query or verified self-command DAT resolver.'
 }
@@ -29,7 +29,7 @@ if ($body -notmatch "(?s)if\s+\(not\s+tostring\(target_context\.kind\s+or\s+''\)
     throw 'Generic native text-pointer lookup must be explicitly limited to non-self targets.'
 }
 
-if ($body -notmatch "(?s)if\s+\(not\s+tostring\(target_context\.kind.*?return\s+nil;.*?playermo_command_menu_dat_entry\(selected,\s*command_ptr\).*?count\s*==\s*12") {
+if ($body -notmatch "(?s)if\s+\(not\s+tostring\(target_context\.kind.*?return\s+nil;.*?playermo_command_menu_dat_entry\(selected,\s*command_ptr,\s*dynamic_command_id\).*?count\s*==\s*12") {
     throw 'Verified self-command DAT rows must remain reachable after dynamic-target handling.'
 }
 

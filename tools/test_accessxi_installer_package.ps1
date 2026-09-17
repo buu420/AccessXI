@@ -220,6 +220,21 @@ if (Test-Path -LiteralPath $PackageRoot) {
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'legacy_accessxi_cleanup.ps1')) 'Package must contain the legacy Reloaded cleanup library.'
     Assert-True (Test-Path -LiteralPath (Join-Path $PackageRoot 'setup-guide.md')) 'Package must contain setup-guide.md at the root.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAshita 'Ashita-cli.exe')) 'Package must contain the Ashita v4 CLI.'
+    # September 2026 retail changed item DAT layouts. Older cores silently lose
+    # whole item records, including descriptions, even with native names working.
+    $runtimeVersions = @{}
+    foreach ($runtimeFile in @('Ashita.dll', 'Ashita-cli.exe')) {
+        $runtimePath = Join-Path $payloadAshita $runtimeFile
+        Assert-True (Test-Path -LiteralPath $runtimePath) "Missing Ashita runtime: $runtimeFile"
+        $runtimeVersion = [version](Get-Item -LiteralPath $runtimePath).VersionInfo.FileVersion
+        Assert-True ($runtimeVersion -ge [version]'4.3.2.1') "Packaged $runtimeFile $runtimeVersion cannot provide current retail item descriptions; Ashita 4.3.2.1 or newer is required."
+        $runtimeVersions[$runtimeFile] = $runtimeVersion
+    }
+    Assert-True ($runtimeVersions['Ashita.dll'] -eq $runtimeVersions['Ashita-cli.exe']) 'Packaged Ashita core and CLI versions must agree.'
+    $datMap = Get-Content -LiteralPath (Join-Path $payloadAshita 'config\ashita\ashita.datmap.ini') -Raw
+    $generalItems = [regex]::Match($datMap, '(?ms)^\[items\.general3\]\s*$(?<body>.*?)(?=^\[|\z)').Groups['body'].Value
+    Assert-Contains $generalItems '(?m)^na_id\s*=\s*55675\s*$' 'Package must map the new retail English general-item DAT.'
+    Assert-Contains $generalItems '(?m)^jp_id\s*=\s*55555\s*$' 'Package must map the new retail Japanese general-item DAT.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadAshita 'Ashita.exe'))) 'Package must not contain the v3 Ashita GUI updater.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $payloadAshita 'Ashita.exe.v3-updater.disabled'))) 'Package must not contain disabled v3 Ashita updater leftovers.'
     Assert-True (Test-Path -LiteralPath (Join-Path $payloadAshita 'AccessXI.cmd')) 'Package must contain the AccessXI CLI launcher.'

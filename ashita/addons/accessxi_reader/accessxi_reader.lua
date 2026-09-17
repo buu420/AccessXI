@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.10';
+addon.version   = '2026.09.17';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -40902,6 +40902,50 @@ function accessxi.search_result_rendered_cell_text(cell)
     return text;
 end
 
+function accessxi.player_trade_inventory_base()
+    local pointer = tonumber(safe_call(function () return AshitaCore:GetPointerManager():Get('inventory'); end, 0)) or 0;
+    if (not accessxi.is_probe_pointer(pointer)) then return 0; end
+    local root = read_u32(pointer);
+    if (not accessxi.is_probe_pointer(root)) then return 0; end
+    local inventory = read_u32(root);
+    return accessxi.is_probe_pointer(inventory) and inventory or 0;
+end
+
+function accessxi.player_trade_module_context()
+    return {
+        is_pointer = accessxi.is_probe_pointer,
+        read_u32 = read_u32,
+        read_u16 = read_u16,
+        read_u8 = read_u8,
+        inventory_base = accessxi.player_trade_inventory_base,
+        item_info = function (id) return accessxi.resource_item_info(id); end,
+        escape_log_text = function (text) return accessxi.escape_probe_log_text(text); end,
+        log_state = log_state,
+        tick = tick,
+    };
+end
+
+accessxi.load_menu_code_module('player_trade', {
+    player_trade_context = accessxi.player_trade_module_context(),
+});
+
+function accessxi.treasure_pool_module_context()
+    return {
+        is_pointer = accessxi.is_probe_pointer,
+        read_u32 = read_u32,
+        read_u16 = read_u16,
+        read_u8 = read_u8,
+        item_info = function (id) return accessxi.resource_item_info(id); end,
+        escape_log_text = function (text) return accessxi.escape_probe_log_text(text); end,
+        log_state = log_state,
+        tick = tick,
+    };
+end
+
+accessxi.load_menu_code_module('treasure_pool', {
+    treasure_pool_context = accessxi.treasure_pool_module_context(),
+});
+
 function accessxi.search_player_options_module_context()
     return {
         is_pointer = accessxi.is_probe_pointer,
@@ -40919,7 +40963,9 @@ function accessxi.search_player_options_module_context()
     };
 end
 
-accessxi.load_menu_code_module('search_player_options', accessxi.search_player_options_module_context());
+accessxi.load_menu_code_module('search_player_options', {
+    search_player_options_context = accessxi.search_player_options_module_context(),
+});
 
 function accessxi.search_result_rendered_label_looks_useful(label)
     label = tostring(label or ''):gsub('%s+', ' '):trim();
@@ -48129,6 +48175,7 @@ function accessxi.playermo_command_id_dat_entry(command_id)
         [9] = { label_dat = 'ROM\\165\\74.DAT', label_row = 113, help_dat = 'ROM\\165\\75.DAT', help_row = 26 },
         [19] = { label_dat = 'ROM\\165\\76.DAT', label_row = 10, help_dat = 'ROM\\165\\75.DAT', help_row = 38 },
         [10] = { label_dat = 'ROM\\165\\74.DAT', label_row = 122, help_dat = 'ROM\\165\\75.DAT', help_row = 30 },
+        [12] = { label_dat = 'ROM\\165\\76.DAT', label_row = 73, help_dat = 'ROM\\165\\75.DAT', help_row = 300 },
         [3] = { label_auto_translate = 2101, help_dat = 'ROM\\165\\75.DAT', help_row = 32 },
         [11] = { label_dat = 'ROM\\165\\74.DAT', label_row = 122, help_dat = 'ROM\\165\\75.DAT', help_row = 30 },
     };
@@ -48162,46 +48209,20 @@ function accessxi.playermo_command_id_dat_entry(command_id)
     }, 'ok';
 end
 
-function accessxi.playermo_command_menu_dat_entry(selected, command_ptr)
+function accessxi.playermo_command_menu_dat_entry(selected, command_ptr, command_id)
     selected = tonumber(selected) or 0;
     command_ptr = tonumber(command_ptr) or 0;
+    if (selected < 1 or selected > 16) then return nil, 'invalid-selection'; end
+    if (not accessxi.is_probe_pointer(command_ptr)) then return nil, 'missing-command'; end
 
-    local rows = {
-        [1] = { label_dat = 'ROM\\165\\76.DAT', label_row = 129, help = '' },
-        [2] = { label_dat = 'ROM\\165\\76.DAT', label_row = 77, help_dat = 'ROM\\165\\75.DAT', help_row = 25 },
-        [3] = { label_dat = 'ROM\\165\\76.DAT', label_row = 68, help_dat = 'ROM\\165\\75.DAT', help_row = 24 },
-        [4] = { help_dat = 'ROM\\165\\75.DAT', help_row = 718 },
-        [5] = { label_dat = 'ROM\\165\\76.DAT', label_row = 2, help = '' },
-        [6] = { label_dat = 'ROM\\165\\76.DAT', label_row = 10, help_dat = 'ROM\\165\\75.DAT', help_row = 38 },
-        [7] = { label_dat = 'ROM\\165\\74.DAT', label_row = 122, help_dat = 'ROM\\165\\75.DAT', help_row = 30 },
-    };
-    local spec = rows[selected];
-    if (spec == nil) then
-        return nil, 'unmapped-selected';
-    end
-    if (command_ptr <= 0) then
-        return nil, 'missing-command';
-    end
+    -- The selected command record moves when optional commands appear or vanish.
+    -- Use its live child command ID, including self targets, never its row number.
+    local entry, reason = accessxi.playermo_command_id_dat_entry(command_id);
+    if (entry == nil) then return nil, reason; end
     local command_base = command_ptr - ((selected - 1) * 0x14);
-
-    local label = accessxi.plain_native_menu_label(tostring(spec.label or ''));
-    if (label == '' and spec.label_dat ~= nil) then
-        label = accessxi.dat_index_row_text(spec.label_dat, spec.label_row, 'label');
-    end
-    local help = accessxi.plain_native_menu_help(tostring(spec.help or ''));
-    if (help == '' and spec.help_dat ~= nil) then
-        help = accessxi.dat_index_row_text(spec.help_dat, spec.help_row, 'help');
-    end
-    if (label == '' and help == '') then
-        return nil, 'empty-command-text';
-    end
-
-    return {
-        label = label,
-        help = help,
-        source = ('command=0x%08X base=0x%08X'):fmt(command_ptr, command_base),
-        base = command_base,
-    }, 'ok';
+    entry.source = ('command=0x%08X base=0x%08X'):fmt(command_ptr, command_base);
+    entry.base = command_base;
+    return entry, 'native-command-id';
 end
 
 function accessxi.playermo_command_context_label(command_label, command_help)
@@ -48538,7 +48559,7 @@ function accessxi.playermo_menu_speech(menu_name, title, obj, selected, count, p
         return nil;
     end
 
-    local command_entry, command_mode = accessxi.playermo_command_menu_dat_entry(selected, command_ptr);
+    local command_entry, command_mode = accessxi.playermo_command_menu_dat_entry(selected, command_ptr, dynamic_command_id);
     if (command_entry ~= nil and count == 12) then
         local command_label = accessxi.plain_native_menu_label(command_entry.label or '');
         local command_help = accessxi.plain_native_menu_help(command_entry.help or '');
@@ -48573,7 +48594,7 @@ function accessxi.playermo_menu_speech(menu_name, title, obj, selected, count, p
                 count,
                 command_ptr,
                 spoken_command);
-            log_state(('state playermo command-row menu="%s" title="%s" select=%d count=%d raw=0x%08X command=0x%08X commandBase=0x%08X mode="%s" targetKind="%s" label="%s" help="%s" context="%s"'):fmt(
+            log_state(('state playermo command-row menu="%s" title="%s" select=%d count=%d raw=0x%08X command=0x%08X commandBase=0x%08X commandId=%d mode="%s" targetKind="%s" label="%s" help="%s" context="%s"'):fmt(
                 menu_name,
                 accessxi.escape_probe_log_text(title),
                 selected,
@@ -48581,6 +48602,7 @@ function accessxi.playermo_menu_speech(menu_name, title, obj, selected, count, p
                 raw,
                 command_ptr,
                 tonumber(command_entry.base) or 0,
+                dynamic_command_id,
                 accessxi.escape_probe_log_text(tostring(command_mode or '')),
                 accessxi.escape_probe_log_text(target_context.kind or 'unknown'),
                 accessxi.escape_probe_log_text(command_label),
@@ -53804,6 +53826,14 @@ function accessxi.native_known_menu_speech(name)
     local obj = get_current_menu_object_ptr();
     if (obj == 0) then
         return nil;
+    end
+
+    if (menu_name:eq('menu    trade', true) or menu_name:eq('menu    gift', true)) then
+        return accessxi.player_trade_menu_speech(menu_name, obj, read_u32(obj + 0x0C));
+    end
+
+    if (menu_name:eq('menu    loot', true) or menu_name:eq('menu    lootope', true)) then
+        return accessxi.treasure_pool_menu_speech(menu_name, obj, read_u32(obj + 0x0C));
     end
 
     local selected, page, raw, child, count = accessxi.survival_guide_query_child_state_for_obj(obj);

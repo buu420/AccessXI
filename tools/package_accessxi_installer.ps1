@@ -2,6 +2,7 @@ param(
     [string]$RepoRoot = 'C:\Users\buu42\AccessXI',
     [string]$AshitaRoot = 'C:\Users\buu42\Ashita',
     [string]$WindowerResourcesRoot = '',
+    [string]$SharedAssetsRoot = '',
     [string]$OutputDirectory = '',
     [switch]$NoBuild
 )
@@ -108,6 +109,8 @@ function Get-OptionalFileHash {
 
 $RepoRoot = Resolve-FullPath $RepoRoot
 $AshitaRoot = Resolve-FullPath $AshitaRoot
+if ($SharedAssetsRoot -eq '') { $SharedAssetsRoot = $RepoRoot }
+$SharedAssetsRoot = Resolve-FullPath $SharedAssetsRoot
 if ($OutputDirectory -eq '') {
     $OutputDirectory = Join-Path $RepoRoot 'dist'
 }
@@ -124,7 +127,8 @@ $fetchAsiLoaderScript = Join-Path $RepoRoot 'tools\fetch_ultimate_asi_loader.ps1
 $ultimateAsiLoaderVersion = 'v9.7.2'
 $ultimateAsiLoaderArchiveSha256 = '0F34758B30EAA0EFB59F7AE04100DB789914E1A08891B89878B8FDB189C2A7C5'
 $ultimateAsiLoaderDllSha256 = 'C7277E832F6F07AF64903A99ECEBAB2936260CBF55EDA70787C5D7B2D5B9FE60'
-$asiLoaderSource = Join-Path $RepoRoot "third_party\Ultimate-ASI-Loader\$ultimateAsiLoaderVersion\x86\dinput8.dll"
+$asiLoaderSource = Join-Path $SharedAssetsRoot "third_party\Ultimate-ASI-Loader\$ultimateAsiLoaderVersion\x86\dinput8.dll"
+$sourcePrism = Join-Path $SharedAssetsRoot 'third_party\prism\build-win32\Release\prism.dll'
 $asiLoaderLicense = Join-Path $RepoRoot 'third-party-notices\Ultimate-ASI-Loader-LICENSE.txt'
 $bgWikiGuideNotice = Join-Path $RepoRoot 'third-party-notices\BG-Wiki-objective-guides-CC-BY-NC-SA-3.0.txt'
 $ffxiclopediaGuideNotice = Join-Path $RepoRoot 'third-party-notices\FFXIclopedia-objective-guides-CC-BY-SA-3.0.txt'
@@ -140,10 +144,10 @@ $vcRedistX64 = Join-Path $RepoRoot 'installer\prerequisites\vc_redist.x64.exe'
 $repoAddonRoot = Join-Path $RepoRoot 'ashita\addons\accessxi_reader'
 $repoDataRoot = Join-Path $RepoRoot 'data'
 $repoSoundsRoot = Join-Path $RepoRoot 'sounds'
-$repoDatIndex = Join-Path $RepoRoot 'pol_re\out\dat_index\ffxi_dat_strings.tsv'
-$repoNavMeshDll = Join-Path $RepoRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll'
-$repoNavMeshesRoot = Join-Path $RepoRoot 'third_party\xiNavmeshes'
-$repoLsbSqlRoot = Join-Path $RepoRoot 'third_party\LandSandBoat-server\sql'
+$repoDatIndex = Join-Path $SharedAssetsRoot 'pol_re\out\dat_index\ffxi_dat_strings.tsv'
+$repoNavMeshDll = Join-Path $SharedAssetsRoot 'third_party\FFXI-NavMesh-Builder\FFXINAV.dll'
+$repoNavMeshesRoot = Join-Path $SharedAssetsRoot 'third_party\xiNavmeshes'
+$repoLsbSqlRoot = Join-Path $SharedAssetsRoot 'third_party\LandSandBoat-server\sql'
 if ($WindowerResourcesRoot -eq '') {
     $WindowerResourcesRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'windower\res'
 }
@@ -187,7 +191,7 @@ foreach ($guideNotice in @($bgWikiGuideNotice, $ffxiclopediaGuideNotice)) {
     }
 }
 if (-not (Test-Path -LiteralPath $asiLoaderSource -PathType Leaf)) {
-    & $fetchAsiLoaderScript -RepoRoot $RepoRoot -Version $ultimateAsiLoaderVersion -ArchiveSha256 $ultimateAsiLoaderArchiveSha256 -DllSha256 $ultimateAsiLoaderDllSha256
+    & $fetchAsiLoaderScript -RepoRoot $SharedAssetsRoot -Version $ultimateAsiLoaderVersion -ArchiveSha256 $ultimateAsiLoaderArchiveSha256 -DllSha256 $ultimateAsiLoaderDllSha256
     if (-not $?) { throw 'Unable to fetch the pinned official x86 Ultimate ASI Loader.' }
 }
 $actualAsiLoaderHash = (Get-FileHash -LiteralPath $asiLoaderSource -Algorithm SHA256).Hash
@@ -251,7 +255,7 @@ if (-not $NoBuild) {
     }
 }
 
-& $testNativeStructureScript -RepoRoot $RepoRoot -StageRoot $nativeStage
+& $testNativeStructureScript -RepoRoot $RepoRoot -StageRoot $nativeStage -PrismDll $sourcePrism
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
@@ -328,6 +332,10 @@ $payloadAddon = Join-Path $payloadAshita 'addons\accessxi_reader'
 New-Item -ItemType Directory -Force -Path $payloadRoot | Out-Null
 
 $ashitaExcludePatterns = @(
+    # Addons are assembled from Ashita's libraries and the reviewed repository
+    # below. Avoid staging personal addons and then deleting them under sync.
+    'addons',
+    'addons\*',
     'Ashita.exe*',
     'logs',
     'logs\*',
@@ -369,6 +377,7 @@ $ashitaExcludePatterns = @(
     '*~'
 )
 Copy-FilteredTree -Source $AshitaRoot -Destination $payloadAshita -ExcludePatterns $ashitaExcludePatterns
+Copy-FilteredTree -Source (Join-Path $AshitaRoot 'addons\libs') -Destination (Join-Path $payloadAshita 'addons\libs') -ExcludePatterns @('*.bak*', '*.tmp', '*~')
 $payloadWin32Types = Join-Path $payloadAshita 'addons\libs\win32types.lua'
 if (-not (Test-Path -LiteralPath $payloadWin32Types)) {
     throw "Ashita win32types.lua is missing from the packaged payload: $payloadWin32Types"
@@ -450,11 +459,13 @@ function Assert-PackagedModuleReferences {
     $checked = 0
 
     # load_code_module('x') and load_module_table('x') resolve to modules\x.lua;
-    # load_menu_module_table('x') resolves to modules\menus\x.lua.
+    # load_menu_module_table('x') and load_menu_code_module('x') resolve to
+    # modules\menus\x.lua. Both data tables and executable readers are required.
     $loaders = @(
         @{ Pattern = "load_code_module\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
         @{ Pattern = "load_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules' },
-        @{ Pattern = "load_menu_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules\menus' }
+        @{ Pattern = "load_menu_module_table\('([A-Za-z0-9_%-]+)'"; Relative = 'modules\menus' },
+        @{ Pattern = "load_menu_code_module\('([A-Za-z0-9_%-]+)'"; Relative = 'modules\menus' }
     )
     foreach ($loader in $loaders) {
         $names = [regex]::Matches($mainSource, $loader.Pattern) |

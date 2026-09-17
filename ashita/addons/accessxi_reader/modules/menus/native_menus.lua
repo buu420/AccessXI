@@ -70,6 +70,8 @@ data.character_creation_family_menus = T{
 };
 
 data.fixed_titles = T{
+    { menus = T{ 'menu    trade', 'menu    gift' }, title = 'Trade' },
+    { menus = T{ 'menu    loot', 'menu    lootope' }, title = 'Treasure Pool' },
     { menus = T{ 'menu    statcom2' }, title = 'Status menu' },
     { menus = T{ 'menu    jobchang', 'menu    jobcselu' }, title = 'Change Jobs' },
     { menus = T{ 'menu    jbpcat' }, title = 'Job Points' },

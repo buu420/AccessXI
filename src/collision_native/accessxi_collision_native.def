@@ -8,3 +8,5 @@ EXPORTS
     AXI_PollLoadZone
     AXI_SweepCapsule
     AXI_FindPath
+    AXI_FindPathAsync
+    AXI_CancelFindPath

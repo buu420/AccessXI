@@ -42,6 +42,7 @@ accessxi = {
         return nil
     end,
     escape_probe_log_text = function(value) return tostring(value or '') end,
+    nav_menu_point_speech_name = function(point) return point.name end,
     nav_arrival_radius = function() return 8 end,
     nav_route_points = nil,
 }

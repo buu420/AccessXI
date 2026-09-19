@@ -92,7 +92,7 @@ _G._addon = addon;
 
 addon.name      = 'accessxi_reader';
 addon.author    = 'AccessXI';
-addon.version   = '2026.09.17';
+addon.version   = '2026.09.19';
 addon.desc      = 'Speaks native FFXI login and character-select menus.';
 addon.link      = '';
 accessxi_boot_trace('metadata-ok');
@@ -72006,6 +72006,10 @@ function accessxi.nav_first_route_index(from_pos, points, destination)
     local first = points[1] or T{};
     local precise_route_id = tostring(first.route_override_id or first.source or '');
     if (precise_route_id == 'dat-collision' or precise_route_id == 'lathine-navmesh') then
+        if (precise_route_id == 'dat-collision' and tonumber(first.zone) == 197) then
+            -- Let the cave tracker account for short contact-settled corners.
+            return 2;
+        end
         -- A freshly computed precise route commonly starts with the player's
         -- projected mesh position followed by a portal that has already been
         -- reached.  Normal polling skips that short portal in
@@ -72345,8 +72349,12 @@ function accessxi.nav_precise_route_track_index(player, now, force)
     end
     accessxi.nav_precise_route_track_tick = now;
 
+    local precise_route_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
+    local cave_contact = precise_route_id == 'dat-collision' and tonumber(player.zone) == 197;
     local match = accessxi.nav_route_live_match(
-        player, accessxi.nav_route_points, math.max(1, index - 1));
+        player, accessxi.nav_route_points, math.max(1, index - 1),
+        cave_contact and math.max(1, index - 1) or nil,
+        cave_contact and math.min(index, count - 1) or nil);
     if (match == nil
         or (tonumber(match.horizontal) or 999999) > 6.0
         or (tonumber(match.vertical) or 999999) > 4.5) then
@@ -72354,14 +72362,33 @@ function accessxi.nav_precise_route_track_index(player, now, force)
     end
 
     local desired = math.min((tonumber(match.segment) or 1) + 1, count);
-    local precise_route_id = accessxi.nav_route_points_override_id(accessxi.nav_route_points);
+    if (cave_contact and desired > index
+        and ((tonumber(match.t) or 0) < 0.05
+            or (tonumber(match.horizontal) or 999999) > 0.5
+            or (tonumber(match.vertical) or 999999) > 0.5)) then
+        desired = index;
+    end
     if (desired == index and (accessxi.nav_route_points_are_collision(accessxi.nav_route_points)
         or precise_route_id == 'lathine-navmesh')) then
         local current_target = accessxi.nav_route_points[index];
         if (current_target ~= nil) then
             local horizontal = nav_distance(player, current_target);
             local vertical = math.abs((tonumber(player.y) or 0) - (tonumber(current_target.y) or 0));
-            if (horizontal <= 1.5 and vertical <= 2.0) then
+            local horizontal_limit, vertical_limit = 1.5, 2.0;
+            if (cave_contact) then
+                local shortest = math.huge;
+                for _, neighbor_index in ipairs({ index - 1, index + 1 }) do
+                    local neighbor = accessxi.nav_route_points[neighbor_index];
+                    if (neighbor ~= nil) then
+                        shortest = math.min(shortest, nav_distance(current_target, neighbor));
+                    end
+                end
+                if (shortest < 2.0) then
+                    horizontal_limit = math.max(0.15, shortest * 0.20);
+                    vertical_limit = 0.5;
+                end
+            end
+            if (horizontal <= horizontal_limit and vertical <= vertical_limit) then
                 desired = math.min(index + 1, count);
                 accessxi.nav_precise_route_return_clear();
             end
@@ -73612,10 +73639,13 @@ function accessxi.nav_compute_closest_mesh_route(start_pos, end_pos, quiet)
 end
 
 function accessxi.nav_collision_smoother_route(player, destination, collision_points)
+    -- Crawler's Nest paths also require native floor/contact validation; the
+    -- capsule-only hybrid below cannot preserve that proof.
     if (type(collision_points) ~= 'table' or #collision_points < 5
         or type(accessxi.nav_dat_collision_state) ~= 'table'
         or type(accessxi.nav_dat_collision_state.validate_direct_route) ~= 'function'
-        or (tonumber(player ~= nil and player.zone) or 0) == 102) then
+        or (tonumber(player ~= nil and player.zone) or 0) == 102
+        or (tonumber(player ~= nil and player.zone) or 0) == 197) then
         return collision_points;
     end
 

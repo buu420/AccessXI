@@ -74,11 +74,30 @@ CollisionContext::CollisionContext() = default;
 
 CollisionContext::~CollisionContext()
 {
+    // The path worker holds a shared_ptr to its zone, so it keeps the Bullet
+    // terrain alive for as long as it runs. Stop and join it before the rest of
+    // the context goes away; jthread's destructor does the join.
+    stop_path_worker_unlocked();
     for (std::jthread& worker : workers_)
     {
         worker.request_stop();
     }
     workers_.clear();
+}
+
+void CollisionContext::stop_path_worker_unlocked()
+{
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        ++path_job_;
+        path_running_ = false;
+        path_ready_ = false;
+        path_result_ = PathResult{};
+        path_request_ = PathRequest{};
+    }
+    // Joining happens with the mutex released: the worker takes it briefly to
+    // publish, and holding it here would deadlock against that.
+    path_worker_ = std::jthread{};
 }
 
 std::int32_t CollisionContext::begin_load(
@@ -105,6 +124,12 @@ std::int32_t CollisionContext::begin_load(
         {
             worker.request_stop();
         }
+        // Any query in flight belongs to the zone being replaced.
+        ++path_job_;
+        path_running_ = false;
+        path_ready_ = false;
+        path_result_ = PathResult{};
+        path_request_ = PathRequest{};
         ++generation_;
         if (generation_ == 0u)
         {
@@ -119,6 +144,9 @@ std::int32_t CollisionContext::begin_load(
         message_ = "Reading installed FFXI terrain.";
         dat_sha256_.clear();
     }
+
+    // Outside the lock: replacing the jthread joins the previous query worker.
+    path_worker_ = std::jthread{};
 
     workers_.emplace_back(
         [this, generation, zone_id, ffxi_root, cache_root](const std::stop_token stop_token) {
@@ -138,6 +166,14 @@ std::int32_t CollisionContext::cancel(const std::uint64_t generation)
     {
         worker.request_stop();
     }
+    // The query worker is only asked to stop here; it is joined by the next
+    // begin_load or by the destructor, neither of which holds this mutex.
+    ++path_job_;
+    path_running_ = false;
+    path_ready_ = false;
+    path_result_ = PathResult{};
+    path_request_ = PathRequest{};
+    path_worker_.request_stop();
     ready_.reset();
     state_ = AXI_LOAD_CANCELED;
     progress_ = 0u;
@@ -334,6 +370,167 @@ std::int32_t CollisionContext::find_path(
     {
         points[index] = copy_vector(path.points[index]);
     }
+    return AXI_RESULT_OK;
+}
+
+void CollisionContext::run_path_worker(
+    const std::stop_token stop_token,
+    const std::uint64_t job,
+    std::shared_ptr<const LoadedZone> zone,
+    const PathRequest request)
+{
+    // Same policy as the terrain loader: never outrank the game's own threads.
+    (void)SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    PathResult computed;
+    try
+    {
+        // Bullet terrain remains immutable and supports concurrent sweeps.
+        // RecastZone serializes its queries, including temporary polygon-flag
+        // changes, with its query mutex. This shared_ptr retains both objects
+        // if the context starts loading another zone.
+        computed = zone->recast_zone.find_path(
+            request.start, request.destination, request.arrival_radius, request.capacity,
+            stop_token);
+    }
+    catch (...)
+    {
+        computed = PathResult{};
+        computed.reason = "The terrain path query failed.";
+    }
+
+    const std::lock_guard<std::mutex> lock(mutex_);
+    if (job != path_job_)
+    {
+        // Somebody asked a different question, or the zone changed. Drop this.
+        return;
+    }
+    if (stop_token.stop_requested())
+    {
+        path_running_ = false;
+        return;
+    }
+    path_result_ = std::move(computed);
+    path_ready_ = true;
+    path_running_ = false;
+}
+
+std::int32_t CollisionContext::find_path_async(
+    const std::uint64_t generation,
+    const AXIVec3 start,
+    const AXIVec3 destination,
+    const float arrival_radius,
+    AXIVec3* points,
+    const std::uint32_t capacity,
+    AXIPathResult& result)
+{
+    if (points == nullptr || capacity == 0u)
+    {
+        return AXI_RESULT_INVALID_ARGUMENT;
+    }
+
+    PathRequest wanted;
+    wanted.generation = generation;
+    wanted.start = copy_vector(start);
+    wanted.destination = copy_vector(destination);
+    wanted.arrival_radius = arrival_radius;
+    wanted.capacity = capacity;
+
+    std::shared_ptr<const LoadedZone> zone;
+    std::uint64_t job = 0u;
+    bool start_worker = false;
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        if (generation != generation_)
+        {
+            return AXI_RESULT_STALE_GENERATION;
+        }
+        if (state_ != AXI_LOAD_READY || ready_ == nullptr)
+        {
+            return AXI_RESULT_NOT_READY;
+        }
+
+        if ((path_running_ || path_ready_) && path_request_ == wanted)
+        {
+            if (!path_ready_)
+            {
+                result.status = AXI_PATH_PENDING;
+                result.point_count = 0u;
+                result.total_length = 0.0f;
+                result.projected_start = AXIVec3{0.0f, 0.0f, 0.0f};
+                result.projected_end = AXIVec3{0.0f, 0.0f, 0.0f};
+                copy_text(result.reason, std::string{});
+                return AXI_RESULT_OK;
+            }
+
+            // Collect. Only here does anything reach the caller's buffer.
+            const PathResult path = std::move(path_result_);
+            path_result_ = PathResult{};
+            path_ready_ = false;
+            path_running_ = false;
+            path_request_ = PathRequest{};
+            ++path_job_;
+
+            result.status =
+                path.status == PathStatus::ready ? AXI_PATH_READY : AXI_PATH_UNREACHABLE;
+            result.point_count = static_cast<std::uint32_t>(path.points.size());
+            result.total_length = path.total_length;
+            result.projected_start = copy_vector(path.projected_start);
+            result.projected_end = copy_vector(path.projected_end);
+            copy_text(result.reason, path.reason);
+            if (path.points.size() > capacity)
+            {
+                return AXI_RESULT_BUFFER_TOO_SMALL;
+            }
+            for (std::size_t index = 0; index < path.points.size(); ++index)
+            {
+                points[index] = copy_vector(path.points[index]);
+            }
+            return AXI_RESULT_OK;
+        }
+
+        // Either nothing is in flight, or what is in flight answers a different
+        // question. Retire it and take the new one.
+        ++path_job_;
+        job = path_job_;
+        path_request_ = wanted;
+        path_result_ = PathResult{};
+        path_ready_ = false;
+        path_running_ = true;
+        zone = ready_;
+        start_worker = true;
+    }
+
+    if (start_worker)
+    {
+        // Stop and join before constructing the next thread, keeping exactly
+        // one worker alive. Both assignments are outside the publication lock.
+        // The retired job number is already stale, so its answer is discarded.
+        path_worker_ = std::jthread{};
+        path_worker_ = std::jthread(
+            [this, job, zone, wanted](const std::stop_token stop_token) {
+                run_path_worker(stop_token, job, zone, wanted);
+            });
+    }
+
+    result.status = AXI_PATH_PENDING;
+    result.point_count = 0u;
+    result.total_length = 0.0f;
+    result.projected_start = AXIVec3{0.0f, 0.0f, 0.0f};
+    result.projected_end = AXIVec3{0.0f, 0.0f, 0.0f};
+    copy_text(result.reason, std::string{});
+    return AXI_RESULT_OK;
+}
+
+std::int32_t CollisionContext::cancel_find_path(const std::uint64_t generation)
+{
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        if (generation != generation_)
+        {
+            return AXI_RESULT_STALE_GENERATION;
+        }
+    }
+    stop_path_worker_unlocked();
     return AXI_RESULT_OK;
 }
 

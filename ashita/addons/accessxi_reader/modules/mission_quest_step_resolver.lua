@@ -1023,6 +1023,76 @@ end
 
 -- Filtering precedes counting, deduplication and zone grouping. This is what
 -- prevents the Nyzul enemy named Naja Salaheem from becoming a talk target.
+-- "???" IS NOT A NAME. The catalogue holds 1,267 rows named exactly "???",
+-- spread across most zones, because every pop point in the game is called that.
+-- The generator already says so: such a compact action ships with
+-- target_key = "" and target_kind = "question-mark".
+--
+-- A placeholder is therefore admissible only inside a zone the step itself or
+-- its own compact action states, and never as a global candidate. A zone
+-- inherited from a NEIGHBOURING step is not evidence about a nameless object.
+-- With no stated zone the step refuses and the caller speaks the guide sentence.
+local PLACEHOLDER_ENTITY_KEYS = { ['???'] = true };
+
+function M.is_placeholder_entity_key(key)
+    return PLACEHOLDER_ENTITY_KEYS[clean(key):lower()] == true;
+end
+
+-- The only zones a placeholder may be looked up in: the ones this step names,
+-- the ones its own compact actions name, and a recorded compact destination.
+-- Nation defaults, the player's current zone and inherited neighbours are all
+-- absent on purpose.
+function M.stated_placeholder_zones(step, ctx, zone_ids)
+    local zones = {};
+
+    for zone in pairs(type(zone_ids) == 'table' and zone_ids or {}) do
+        zone = tonumber(zone) or 0;
+        if (zone > 0) then zones[zone] = true; end
+    end
+
+    if (type(ctx) ~= 'table' or type(step) ~= 'table') then
+        return zones;
+    end
+
+    local step_id = clean(step.stable_step_id);
+
+    if (type(ctx.destination_zone_for_step) == 'function') then
+        local ok, recorded = pcall(ctx.destination_zone_for_step, step_id);
+        recorded = (ok and tonumber(recorded) or 0) or 0;
+        if (recorded > 0) then zones[recorded] = true; end
+    end
+
+    local names = {};
+    for _, name in ipairs(type(step.zones) == 'table' and step.zones or {}) do
+        names[#names + 1] = name;
+    end
+    if (type(ctx.primary_actions_for_step) == 'function') then
+        local ok, actions = pcall(ctx.primary_actions_for_step, step_id);
+        if (ok and type(actions) == 'table') then
+            for _, entry in ipairs(actions) do
+                for _, name in ipairs(
+                    type(entry) == 'table'
+                        and type(entry.zones) == 'table'
+                        and entry.zones or {}) do
+                    names[#names + 1] = name;
+                end
+            end
+        end
+    end
+
+    for _, name in ipairs(names) do
+        if (clean(name) ~= '') then
+            local ids = M.zone_ids_for_name(ctx, name);
+            for zone in pairs(type(ids) == 'table' and ids or {}) do
+                zone = tonumber(zone) or 0;
+                if (zone > 0) then zones[zone] = true; end
+            end
+        end
+    end
+
+    return zones;
+end
+
 function M.collect_entity_rows(entity_keys, action, ctx)
     local rows, absent, wrong_kind = {}, {}, {};
     local stats = {
@@ -1037,18 +1107,27 @@ function M.collect_entity_rows(entity_keys, action, ctx)
 
     for _, key in ipairs(keys) do
         local label = clean(entity_keys[key]);
-        local points = list(ctx.points_for_entity(key));
 
-        -- Numbered facilities such as Home Point #1 are physical instances of
-        -- the guide's unnumbered “Home Point”, not absent entities.
-        if (#points == 0
-            and type(ctx.points_for_entity_base) == 'function') then
-            points = list(ctx.points_for_entity_base(key));
+        -- A placeholder has no global identity, so it is not collected and it is
+        -- NOT reported absent either: the ??? exists, it simply cannot be found
+        -- without a zone, and calling it missing would be a different lie.
+        local points = nil;
+        if (not M.is_placeholder_entity_key(key)) then
+            points = list(ctx.points_for_entity(key));
+
+            -- Numbered facilities such as Home Point #1 are physical instances
+            -- of the guide's unnumbered “Home Point”, not absent entities.
+            if (#points == 0
+                and type(ctx.points_for_entity_base) == 'function') then
+                points = list(ctx.points_for_entity_base(key));
+            end
+
+            stats.raw_count = stats.raw_count + #points;
         end
 
-        stats.raw_count = stats.raw_count + #points;
-
-        if (#points == 0) then
+        if (points == nil) then
+            -- placeholder: already recorded, contributes nothing
+        elseif (#points == 0) then
             absent[#absent + 1] = label;
         else
             local accepted = 0;
@@ -1866,21 +1945,32 @@ function M.entity_authoritative_zones(
     return nil, nil;
 end
 
+-- `placeholder_zones` is the set from M.stated_placeholder_zones. A "???" is
+-- looked up only inside it; every other key is unaffected. Omitting the
+-- argument therefore admits no placeholder at all, which is the safe default
+-- for any caller that has not proven a zone.
 function M.entity_rows_in_zones(
     zone_ids,
     entity_keys,
     action,
-    ctx)
+    ctx,
+    placeholder_zones)
 
     local rows = {};
 
     for zone in pairs(
         type(zone_ids) == 'table' and zone_ids or {}) do
         for key in pairs(entity_keys) do
-            local points =
-                list(ctx.points_for_zone_entity(zone, key));
+            -- A "???" is admitted only in a zone the step or its own compact
+            -- action stated. Everything else is untouched.
+            local admit = (not M.is_placeholder_entity_key(key))
+                or (type(placeholder_zones) == 'table'
+                    and placeholder_zones[zone] == true);
+            local points = admit
+                and list(ctx.points_for_zone_entity(zone, key))
+                or {};
 
-            if (#points == 0 and PERSON_ACTIONS[action]) then
+            if (admit and #points == 0 and PERSON_ACTIONS[action]) then
                 local aliased =
                     M.points_for_zone_entity_alias(
                         ctx, zone, key);
@@ -1890,7 +1980,7 @@ function M.entity_rows_in_zones(
                 end
             end
 
-            if (#points == 0
+            if (admit and #points == 0
                 and ctx.points_for_zone_base ~= nil) then
                 points =
                     list(ctx.points_for_zone_base(zone, key));
@@ -3103,6 +3193,13 @@ function M.resolve_entity_step(
     info = type(info) == 'table'
         and info or M.new_resolution_info(step);
 
+    -- CAPTURED BEFORE ANY WIDENING. Below, zone_ids gains nation defaults, the
+    -- default zone group and finally an inherited neighbour. None of those is
+    -- evidence about a nameless "???", so the placeholder set is snapshotted
+    -- from what the step and its own compact action actually state.
+    local placeholder_zones =
+        M.stated_placeholder_zones(step, ctx, zone_ids);
+
     local global_rows, absent, wrong_kind, candidate_stats =
         M.collect_entity_rows(entity_keys, action, ctx);
     local labels = M.entity_labels(entity_keys);
@@ -3248,7 +3345,8 @@ function M.resolve_entity_step(
                 zone_ids,
                 scoped_entity_keys,
                 action,
-                ctx);
+                ctx,
+                placeholder_zones);
 
         if (#scoped > 0) then
             local narrowed_zones =
@@ -3368,7 +3466,8 @@ function M.resolve_entity_step(
                     { [group_zone] = true },
                     entity_keys,
                     action,
-                    ctx);
+                    ctx,
+                    placeholder_zones);
 
             if (#scoped > 0) then
                 return M.finalize_entity_candidates(

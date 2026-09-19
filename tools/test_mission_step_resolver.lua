@@ -1108,16 +1108,28 @@ if (run_claims) then
             resolver.resolve_step(
                 { step }, 1, make_ctx(230));
 
+        -- A "???" IS SCOPED, NOT AMBIGUOUS. This claim used to require
+        -- nf.ambiguity == ENTITY_DUPLICATED, which only held because the global
+        -- entity sweep admitted all 1,267 catalogue rows named "???" and then
+        -- narrowed them down: raw_candidate_count was 1267 and
+        -- physical_candidate_count 1244 for a step that names Qufim Island. That
+        -- worldwide candidate set is what routed a Crawler's Nest ??? step to
+        -- West Ronfaure on 2026-09-19, so the resolver now admits a placeholder
+        -- only inside a zone the step or its own compact action states. The
+        -- ROUTE here is unchanged -- one target, Qufim Island, narrowed by
+        -- guide-zone -- and the bookkeeping now describes one candidate, which
+        -- is the truth about a placeholder scoped to its stated zone.
         claim(#tg == 1
             and tg[1].zone == 126
             and name_key(tg[1].name) == '???'
             and nf.kind == 'explicit'
             and nf.reason == nil
-            and nf.ambiguity
-                == resolver.REASONS.ENTITY_DUPLICATED
+            and nf.ambiguity == nil
             and nf.narrowed_by == 'guide-zone'
-            and nf.narrowed_candidate_count == 1,
-            'real Qufim ??? preserves explicit kind while retaining global ambiguity');
+            and nf.narrowed_candidate_count == 1
+            and nf.raw_candidate_count == 1
+            and nf.physical_candidate_count == 1,
+            'real Qufim ??? routes on its stated zone and counts only scoped candidates');
 
         claim(nf.unbound_square == 'G-6'
             and nf.instruction == step.bg_instruction

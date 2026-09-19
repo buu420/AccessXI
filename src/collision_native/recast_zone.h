@@ -46,11 +46,15 @@ public:
     RecastZone(RecastZone&&) noexcept;
     RecastZone& operator=(RecastZone&&) noexcept;
 
+    // The optional stop token only affects the zone profiles that use the
+    // player-contact checks; a default token never reports a stop, so every
+    // existing synchronous caller behaves exactly as before.
     PathResult find_path(
         const Vec3& start,
         const Vec3& destination,
         float arrival_radius,
-        std::size_t maximum_points) const;
+        std::size_t maximum_points,
+        std::stop_token stop_token = {}) const;
 
     static const std::string& settings_digest();
 

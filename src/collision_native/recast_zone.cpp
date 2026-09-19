@@ -13,9 +13,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <map>
 #include <mutex>
 #include <numbers>
 #include <string>
@@ -26,6 +29,14 @@ namespace accessxi::collision {
 
 float recast_raster_walkable_climb(const std::uint32_t zone_id) noexcept
 {
+    // Crawler's Nest has jagged cave-floor seams that the ordinary raster
+    // splits into disconnected islands. This only admits candidate corridors;
+    // ground support and the client's contact model below still decide
+    // whether any segment can be returned.
+    if (zone_id == 197u)
+    {
+        return 2.50f;
+    }
     // Mhaura's multi-level connector needs two additional 0.10-yalm voxel
     // steps to remain connected. Runtime route validation still uses the
     // ordinary 0.60-yalm player step and exact Bullet capsule sweeps.
@@ -306,12 +317,14 @@ TileBuildResult build_tile(
     const int tile_y,
     const float* tile_minimum,
     const float* tile_maximum,
-    const float raster_walkable_climb)
+    const float raster_walkable_climb,
+    const float raster_cell_size,
+    const float raster_max_slope)
 {
     rcConfig config{};
-    config.cs = cell_size;
+    config.cs = raster_cell_size;
     config.ch = cell_height;
-    config.walkableSlopeAngle = agent_max_slope;
+    config.walkableSlopeAngle = raster_max_slope;
     config.walkableHeight = static_cast<int>(std::ceil(agent_height / config.ch));
     config.walkableClimb = static_cast<int>(std::floor(raster_walkable_climb / config.ch));
     // Radius erosion is followed by an exact Bullet capsule/step check for
@@ -509,6 +522,9 @@ struct RecastZone::Impl final
         const std::stop_token stop_token)
         : collision_world(&collision)
         , raster_walkable_climb(recast_raster_walkable_climb(mesh.zone_id))
+        , raster_cell_size(mesh.zone_id == 197u ? 0.25f : cell_size)
+        , raster_max_slope(mesh.zone_id == 197u ? 85.0f : agent_max_slope)
+        , use_player_contact(mesh.zone_id == 197u)
         , allow_long_step_segments(mesh.zone_id != 102u && mesh.zone_id != 244u)
         , reject_excessive_local_detours(mesh.zone_id == 102u)
     {
@@ -593,7 +609,7 @@ struct RecastZone::Impl final
 
         int grid_width = 0;
         int grid_height = 0;
-        rcCalcGridSize(minimum, maximum, cell_size, &grid_width, &grid_height);
+        rcCalcGridSize(minimum, maximum, raster_cell_size, &grid_width, &grid_height);
         const int tile_width = (grid_width + tile_size - 1) / tile_size;
         const int tile_height = (grid_height + tile_size - 1) / tile_size;
         if (tile_width <= 0 || tile_height <= 0
@@ -613,8 +629,8 @@ struct RecastZone::Impl final
         }
         dtNavMeshParams nav_params{};
         rcVcopy(nav_params.orig, minimum);
-        nav_params.tileWidth = static_cast<float>(tile_size) * cell_size;
-        nav_params.tileHeight = static_cast<float>(tile_size) * cell_size;
+        nav_params.tileWidth = static_cast<float>(tile_size) * raster_cell_size;
+        nav_params.tileHeight = static_cast<float>(tile_size) * raster_cell_size;
         nav_params.maxTiles = 1 << tile_bits;
         nav_params.maxPolys = 1 << poly_bits;
         if (dtStatusFailed(nav_mesh->init(&nav_params)))
@@ -633,14 +649,14 @@ struct RecastZone::Impl final
                     throw CollisionError("Terrain mapping was canceled.");
                 }
                 float tile_minimum[3]{
-                    minimum[0] + static_cast<float>(x * tile_size) * cell_size,
+                    minimum[0] + static_cast<float>(x * tile_size) * raster_cell_size,
                     minimum[1],
-                    minimum[2] + static_cast<float>(y * tile_size) * cell_size,
+                    minimum[2] + static_cast<float>(y * tile_size) * raster_cell_size,
                 };
                 float tile_maximum[3]{
-                    minimum[0] + static_cast<float>((x + 1) * tile_size) * cell_size,
+                    minimum[0] + static_cast<float>((x + 1) * tile_size) * raster_cell_size,
                     maximum[1],
-                    minimum[2] + static_cast<float>((y + 1) * tile_size) * cell_size,
+                    minimum[2] + static_cast<float>((y + 1) * tile_size) * raster_cell_size,
                 };
                 TileBuildResult tile = build_tile(
                     context,
@@ -650,7 +666,9 @@ struct RecastZone::Impl final
                     y,
                     tile_minimum,
                     tile_maximum,
-                    raster_walkable_climb);
+                    raster_walkable_climb,
+                    raster_cell_size,
+                    raster_max_slope);
                 if (stop_token.stop_requested())
                 {
                     if (tile.data != nullptr)
@@ -693,6 +711,9 @@ struct RecastZone::Impl final
 
     const CollisionWorld* collision_world;
     const float raster_walkable_climb;
+    const float raster_cell_size;
+    const float raster_max_slope;
+    const bool use_player_contact;
     bool allow_long_step_segments;
     bool reject_excessive_local_detours;
     NavMeshPointer nav_mesh;
@@ -716,8 +737,8 @@ RecastZone& RecastZone::operator=(RecastZone&&) noexcept = default;
 const std::string& RecastZone::settings_digest()
 {
     // SHA-256 of:
-    // accessxi-recast-v7;prior=e954fdb66965b495223e3ce58e8d5cff804cfd42742b899ec1a25d383f00ba1c;zone249-raster-walkable-climb=0.80;runtime-agent-max-climb=0.60
-    static const std::string digest = "a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32";
+    // accessxi-recast-v12;prior=864924cfd1a5d2e290000c52f2fbb17db8f86e5e194e4258e11eb3d806911236;zone197-contact-work-units=1000000
+    static const std::string digest = "fbd9d83386f631a523850365dc2ab5921759d17949408c8d70d2398c6bb5aae1";
     return digest;
 }
 
@@ -725,7 +746,8 @@ PathResult RecastZone::find_path(
     const Vec3& start,
     const Vec3& destination,
     const float arrival_radius,
-    const std::size_t maximum_points) const
+    const std::size_t maximum_points,
+    std::stop_token stop_token) const
 {
     if (!finite_vec3(start) || !finite_vec3(destination)
         || !std::isfinite(arrival_radius)
@@ -784,9 +806,27 @@ PathResult RecastZone::find_path(
     bool found_complete_corridor = false;
     bool found_straight_path = false;
     bool rejected_by_capsule = false;
+    bool rejected_by_support = false;
+    std::string first_contact_failure;
     std::string first_capsule_failure;
+    // ONE ALLOWANCE FOR THE WHOLE QUERY, shared by every candidate. Sizing it
+    // per candidate would let a destination with many samples multiply the cost
+    // back up, which is the case this is here to bound.
+    // The token only reaches the contact profile's charges, so a canceled
+    // query stops at the next floor cast instead of running to completion.
+    ContactBudget contact_budget(kPlayerContactQueryWorkUnits, stop_token);
+    // Destination samples often share most of their corridor. Rechecking the
+    // same seam can otherwise consume the entire allowance before a reachable
+    // endpoint is tried. Keys use exact coordinates, and this cache lives only
+    // for the current query against this immutable collision world.
+    std::map<std::array<float, 6>, std::vector<Vec3>> contact_segments;
     for (const Vec3& sample : destination_samples)
     {
+        if (impl_->use_player_contact
+            && (contact_budget.exhausted() || stop_token.stop_requested()))
+        {
+            break;
+        }
         const float candidate_position[3]{sample.x, sample.y, sample.z};
         const float end_extents[3]{1.5f, 5.0f, 1.5f};
         dtPolyRef end_reference = 0;
@@ -967,6 +1007,61 @@ PathResult RecastZone::find_path(
                 }
                 if (!candidate.points.empty())
                 {
+                    if (impl_->use_player_contact)
+                    {
+                        if (candidate.points.size() >= maximum_points)
+                        {
+                            failed_waypoint_index = static_cast<int>(index);
+                            clear = false;
+                            break;
+                        }
+                        const Vec3 from = candidate.points.back();
+                        const std::array<float, 6> key{from.x, from.y, from.z, point.x, point.y, point.z};
+                        auto cached = contact_segments.find(key);
+                        if (cached == contact_segments.end())
+                        {
+                            std::vector<Vec3> checked;
+                            if (impl_->collision_world->player_walk_segment(from, point, &contact_budget))
+                            {
+                                checked = {from, point};
+                            }
+                            else
+                            {
+                                // Use the whole query's point cap here so a
+                                // failed cache entry does not depend on how
+                                // many points a particular prefix already used.
+                                checked = impl_->collision_world->player_segment_detour(
+                                    from, point, maximum_points, &contact_budget);
+                            }
+                            cached = contact_segments.emplace(key, std::move(checked)).first;
+                        }
+                        const std::vector<Vec3>& local_path = cached->second;
+                        if (local_path.size() < 2u)
+                        {
+                            rejected_by_support = true;
+                            if (first_contact_failure.empty() && !contact_budget.exhausted())
+                            {
+                                first_contact_failure = " segment "
+                                    + std::to_string(from.x) + "," + std::to_string(from.y) + "," + std::to_string(from.z)
+                                    + " -> " + std::to_string(point.x) + "," + std::to_string(point.y) + "," + std::to_string(point.z);
+                            }
+                            failed_waypoint_index = static_cast<int>(index);
+                            clear = false;
+                            break;
+                        }
+                        if (local_path.size() > maximum_points - candidate.points.size() + 1u)
+                        {
+                            failed_waypoint_index = static_cast<int>(index);
+                            clear = false;
+                            break;
+                        }
+                        for (std::size_t local = 1; local < local_path.size(); ++local)
+                        {
+                            candidate.total_length += distance(candidate.points.back(), local_path[local]);
+                            candidate.points.push_back(local_path[local]);
+                        }
+                        continue;
+                    }
                     const SweepResult sweep = impl_->collision_world->sweep_capsule(
                         candidate.points.back(),
                         point,
@@ -1076,6 +1171,34 @@ PathResult RecastZone::find_path(
             best.reason = "Every generated corridor failed the player-sized collision check."
                 + first_capsule_failure;
         }
+        else if (impl_->use_player_contact && contact_budget.canceled())
+        {
+            // Nobody is waiting for this answer any more. Say so rather than
+            // blaming the allowance, so a canceled query is never mistaken for
+            // a zone that needs a larger one.
+            best.reason = "The ground and player contact check was canceled before any corridor "
+                "could be confirmed.";
+        }
+        else if (impl_->use_player_contact && contact_budget.exhausted())
+        {
+            best.reason = "The ground and player contact check ran out of its work allowance "
+                "before any corridor could be confirmed.";
+        }
+        else if (rejected_by_support)
+        {
+            best.reason = "Every generated corridor failed the ground and player contact check."
+                + first_contact_failure;
+        }
+    }
+    // Opt-in measurement, so re-sizing the allowance stays a measurement rather
+    // than a guess. Costs nothing when the variable is unset.
+    if (impl_->use_player_contact && std::getenv("ACCESSXI_CONTACT_WORK_TRACE") != nullptr)
+    {
+        std::fprintf(stderr, "CONTACT_WORK consumed=%llu remaining=%llu points=%zu\n",
+            static_cast<unsigned long long>(
+                kPlayerContactQueryWorkUnits - contact_budget.remaining()),
+            static_cast<unsigned long long>(contact_budget.remaining()),
+            best.points.size());
     }
     return best;
 }

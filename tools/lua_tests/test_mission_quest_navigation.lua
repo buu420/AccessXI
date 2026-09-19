@@ -141,6 +141,12 @@ local quest_rows = {
         [100] = { id = 100, label = 'Safe Aht Urhgan Quest', area = 'Aht Urhgan', source = 'ROM test row 100' },
         [180] = { id = 180, label = 'Overlaid Mission Word', area = 'Aht Urhgan', source = 'ROM test row 180' },
     },
+    -- The level 55 limit break the 2026-09-19 reporter was on. A ROM row is
+    -- CLIENT quest-log data, so it belongs in the fixture; what this exercises
+    -- is that active_quests() lists it from the packet bit alone.
+    jeuno = {
+        [128] = { id = 128, label = 'In Defiant Challenge', area = 'Jeuno', source = 'ROM test row 128' },
+    },
 }
 
 local function words_with(...)
@@ -171,6 +177,9 @@ local quest_entries = {
     ['sandoria:completed'] = { area_key = 'sandoria', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:current'] = { area_key = 'aht_urhgan', mode = 'current', words = words_with(100, 180), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
     ['aht_urhgan:completed'] = { area_key = 'aht_urhgan', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    -- quest:jeuno:128 'In Defiant Challenge' -- the 2026-09-19 limit break report.
+    ['jeuno:current'] = { area_key = 'jeuno', mode = 'current', words = words_with(128), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
+    ['jeuno:completed'] = { area_key = 'jeuno', mode = 'completed', words = words_with(), source = 'packet_in_056', identity = current_identity, session_epoch = current_session_epoch },
 }
 
 local function deep_copy(value)
@@ -479,10 +488,11 @@ accessxi = {
             raw_identity = 'lsb:npc_list:17555989' },
     },
     quests_menu_data = {
-        quest_log_order = T{ 'sandoria', 'aht_urhgan' },
+        quest_log_order = T{ 'sandoria', 'aht_urhgan', 'jeuno' },
         quest_log_resources = {
             sandoria = { label = "San d'Oria" },
             aht_urhgan = { label = 'Aht Urhgan' },
+            jeuno = { label = 'Jeuno' },
         },
     },
     missions_menu_category_labels = T{
@@ -5010,7 +5020,7 @@ accessxi.mission_packet_main.nation_mission = 1
 
 -- Quest rows come from every set current bit and change with packet state.
 local quests = accessxi.nav_mission_quest_active_items('quest')
-assert(#quests == 4)
+assert(#quests == 5) -- +1: quest:jeuno:128 'In Defiant Challenge' is now in the fixture set.
 for _, quest in ipairs(quests) do
     assert(quest.quest_availability ~= 'available-to-start')
 end
@@ -5032,14 +5042,14 @@ quest_entries['sandoria:completed'].words = words_with(2)
 local completed_overlap = accessxi.nav_mission_quest_active_items('quest')
 assert(find(completed_overlap, 'The Pickpocket') == nil,
     'a completed quest must not remain in the active Quest browser')
-assert(#completed_overlap == 3,
+assert(#completed_overlap == 4, -- +1: quest:jeuno:128 'In Defiant Challenge' is now in the fixture set.
     'a completed quest must contribute no duplicate J/L navigation rows')
 quest_entries['sandoria:completed'].words = words_with()
 
 accessxi.quest_packet_source = 'cache'
 for _, entry in pairs(quest_entries) do entry.source = 'cache' end
 quests = accessxi.nav_mission_quest_active_items('quest')
-assert(#quests == 4)
+assert(#quests == 5) -- +1: quest:jeuno:128 'In Defiant Challenge' is now in the fixture set.
 local cached_pickpocket = assert(find(quests, 'The Pickpocket'))
 assert(find(quests, 'Safe Aht Urhgan Quest') ~= nil)
 cached_target, cached_message, cached_mode = accessxi.nav_mission_quest_prepare_route(cached_pickpocket, { zone = 106 })
@@ -5084,7 +5094,7 @@ assert(#accessxi.nav_mission_quest_active_items('quest') == 0)
 quest_entries['sandoria:current'].identity = current_identity
 quest_entries['sandoria:current'].words = words_with(2)
 quests = accessxi.nav_mission_quest_active_items('quest')
-assert(#quests == 2 and find(quests, 'A Long Current Quest') == nil)
+assert(#quests == 3 and find(quests, 'A Long Current Quest') == nil) -- +1: quest:jeuno:128 'In Defiant Challenge' is now in the fixture set.
 quest_entries['sandoria:current'].words = words_with(2, 200)
 assert(#accessxi.nav_mission_quest_active_items('all') == 0)
 
@@ -5520,6 +5530,69 @@ accessxi.objective_guides.progression_actions = task2_original_progression_actio
 assert(#task2_red_failures == 0,
     'Task 2 complete wiki-authoritative progression REDs:\n- '
         .. table.concat(task2_red_failures, '\n- '))
+end)()
+
+-- THE ACTIVE QUESTS COMPLAINT, AT THE LAYER THE PLAYER USES.
+--
+-- 2026-09-19: the reporter was on "In Defiant Challenge" (quest:jeuno:128, the
+-- level 55 limit break) and said it did not appear under Active Quests, or was
+-- useless when it did. active_quests() builds its rows from the CLIENT's ROM
+-- quest log plus the 0x056 current-quest bit -- guide data supplies the route,
+-- never the row -- so the listing must survive a quest whose guide steps cannot
+-- all resolve. An active quest the player cannot route is still an active quest
+-- they need to read.
+--
+-- The 0x055/identity gates are exercised, not bypassed: the row only appears
+-- because quest_state_ready() is satisfied for this character and session.
+;(function ()
+    local rows = accessxi.nav_mission_quest_active_items('quest')
+    local defiant = nil
+    for _, row in ipairs(rows) do
+        if tostring(row.objective_native_key or '') == 'quest:jeuno:128' then
+            defiant = row
+        end
+    end
+    assert(defiant ~= nil,
+        'In Defiant Challenge is absent from the active Quests list (rows=' .. #rows .. ')')
+    assert(tostring(defiant.name) == 'In Defiant Challenge',
+        'the active row must carry the client quest-log label, got ' .. tostring(defiant.name))
+    assert(tostring(defiant.objective_kind) == 'quest'
+        and tostring(defiant.quest_area_key) == 'jeuno'
+        and tonumber(defiant.quest_id) == 128,
+        'the active row lost its native quest identity')
+    assert(tostring(defiant.confidence) == 'native',
+        'the active row must be sourced from native quest state')
+
+    -- NO ANONYMOUS ??? DESTINATION. The 2026-09-19 failure spoke
+    -- "Destination: West Ronfaure ??? in West Ronfaure" and committed to zone
+    -- 100 for a Crawler's Nest step. Whatever this row offers, it may not be a
+    -- bare "???" row, and it may not name a zone the guide never stated.
+    local offered = tostring(defiant.objective_destination_name
+        or defiant.objective_target or '')
+    assert(offered ~= '???',
+        'the active quest offered a bare ??? destination: ' .. offered)
+    local zone = tonumber(defiant.zone) or 0
+    assert(zone ~= 100,
+        'the active quest still routes to West Ronfaure (zone 100)')
+
+    -- The 0x055/identity gate must still be able to withhold the row.
+    local saved_identity = accessxi.quest_packet_identity
+    accessxi.quest_packet_identity = 'someone-else:999'
+    local gated = accessxi.nav_mission_quest_active_items('quest')
+    local leaked = false
+    for _, row in ipairs(gated) do
+        if tostring(row.objective_native_key or '') == 'quest:jeuno:128' then
+            leaked = true
+        end
+    end
+    accessxi.quest_packet_identity = saved_identity
+    assert(not leaked,
+        'a foreign packet identity must not publish this character\'s active quests')
+
+    print(('ACTIVE-QUESTS rows=%d listed=%s label=%s area=%s id=%s zone=%s'):format(
+        #rows, tostring(defiant.objective_native_key), tostring(defiant.name),
+        tostring(defiant.quest_area_key), tostring(defiant.quest_id),
+        tostring(defiant.zone)))
 end)()
 
 os.remove(objective_progress_path)

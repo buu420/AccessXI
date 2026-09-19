@@ -131,6 +131,16 @@ check(logs[1]:find('collision_cumulative_turn=424.6', 1, true) ~= nil
     and logs[1]:find('hybrid_cumulative_turn=319.2', 1, true) ~= nil,
     'the Upper Jeuno hybrid did not prove its cumulative curvature reduction')
 
+-- Crawler's Nest uses floor support and player contact checks beyond a capsule
+-- sweep. A capsule-only hybrid must not replace that validated terrain route.
+mesh_calls = 0
+validated = nil
+player.zone = 197
+local cave = accessxi.nav_collision_smoother_route(player, destination, collision)
+check(cave == collision and mesh_calls == 0 and validated == nil,
+    'a capsule-only hybrid replaced the Crawler\'s Nest player-contact route')
+player.zone = 244
+
 -- If even one final segment fails the direct DAT capsule sweep, the native
 -- collision route remains authoritative.
 mesh_calls = 0

@@ -6,8 +6,26 @@ local LOAD_READY = 2
 local LOAD_FAILED = 3
 local LOAD_CANCELED = 4
 local PATH_READY = 1
+local PATH_PENDING = 2
 local RESULT_OK = 0
 local MAX_POINTS = 512
+
+-- ZONES WHOSE PATH QUERIES MUST NOT RUN ON THE CALLING THREAD.
+--
+-- Crawler's Nest validates every candidate segment against the client's own
+-- contact body on the original collision triangles. Measured queries there took
+-- up to 12 seconds, and AXI_FindPath runs on the thread that calls it -- for the
+-- reader, the render thread. These zones use AXI_FindPathAsync and report
+-- 'pending' until the worker finishes. Every other zone keeps the synchronous
+-- call unchanged.
+local ASYNC_ZONES = { [197] = true }
+
+-- How far the player may drift before an answer computed for the old position is
+-- no longer the answer to the question they are now asking. The route starts at
+-- the player's projected position, so a completion from far away would steer
+-- them back to where they were standing when they asked.
+local ASYNC_RESTART_DISTANCE = 2.0
+local ASYNC_RESTART_HEIGHT = 0.5
 local ZONELINE_SUPPORT_NORMAL_Y = 0.50
 local ZONELINE_BOUNDARY_NORMAL_Y = 0.25
 local ZONELINE_BOUNDARY_HORIZONTAL_NORMAL = 0.95
@@ -15,7 +33,7 @@ local ZONELINE_SUPPORT_ADVANCE = 0.10
 local ZONELINE_MAX_SWEEPS = 64
 local DLL_RELATIVE_PATH = 'third_party/collision/accessxi_collision_native.dll'
 local MANIFEST_HEADER = 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit'
-local SETTINGS_SHA256 = 'a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32'
+local SETTINGS_SHA256 = 'fbd9d83386f631a523850365dc2ab5921759d17949408c8d70d2398c6bb5aae1'
 module.settings_sha256 = SETTINGS_SHA256
 local RECAST_COMMIT = '9f4ce64458dfae86e1239c525ddc219c4e9e06f1'
 local BULLET_COMMIT = '63c4d67e337017f9d8b298c900e9aabdb69296e7'
@@ -158,6 +176,11 @@ local function declare_ffi(ffi)
             AXICollisionVec3 start, AXICollisionVec3 destination, float arrival_radius,
             AXICollisionVec3* points, unsigned int capacity,
             AXICollisionPathResult* result);
+        int __cdecl AXI_FindPathAsync(void* context, unsigned long long generation,
+            AXICollisionVec3 start, AXICollisionVec3 destination, float arrival_radius,
+            AXICollisionVec3* points, unsigned int capacity,
+            AXICollisionPathResult* result);
+        int __cdecl AXI_CancelFindPath(void* context, unsigned long long generation);
     ]])
     if not ok then
         return nil, 'Collision native FFI declaration failed: ' .. tostring(reason)
@@ -290,6 +313,48 @@ local function real_native(deps)
             reason = ffi.string(result[0].reason),
         }, copied
     end
+
+    -- Present only when the installed native library exports the asynchronous
+    -- pair. An older library simply lacks them, and the zones that require them
+    -- refuse rather than quietly blocking the game thread instead.
+    native.supports_async = pcall(function()
+        return library.AXI_FindPathAsync ~= nil and library.AXI_CancelFindPath ~= nil
+    end)
+
+    function native:find_path_async(
+        context, generation, start, destination, arrival_radius, capacity)
+        local points = ffi.new('AXICollisionVec3[?]', capacity)
+        local result = ffi.new('AXICollisionPathResult[1]')
+        result[0].struct_size = ffi.sizeof('AXICollisionPathResult')
+        local native_start = ffi.new('AXICollisionVec3', start)
+        local native_destination = ffi.new('AXICollisionVec3', destination)
+        local code = tonumber(library.AXI_FindPathAsync(
+            context, generation, native_start, native_destination, arrival_radius,
+            points, capacity, result))
+        if code ~= RESULT_OK then return code end
+        local status = tonumber(result[0].status)
+        local count = tonumber(result[0].point_count)
+        local copied = {}
+        if status ~= PATH_PENDING and count >= 0 and count <= capacity then
+            for index = 0, count - 1 do
+                copied[#copied + 1] = {
+                    x = tonumber(points[index].x),
+                    y = tonumber(points[index].y),
+                    z = tonumber(points[index].z),
+                }
+            end
+        end
+        return code, {
+            status = status,
+            point_count = count,
+            total_length = tonumber(result[0].total_length),
+            reason = ffi.string(result[0].reason),
+        }, copied
+    end
+
+    function native:cancel_find_path(context, generation)
+        return tonumber(library.AXI_CancelFindPath(context, generation))
+    end
     return native
 end
 
@@ -316,7 +381,62 @@ function State:_pending_message(zone)
     return ('Mapping terrain for %s. Navigation will start automatically.'):format(name)
 end
 
+function State:_planning_message(zone)
+    local name = ''
+    if type(self.zone_name) == 'function' then
+        local ok, value = pcall(self.zone_name, zone)
+        if ok then name = tostring(value or '') end
+    end
+    if name == '' then name = 'this area' end
+    return ('Planning a route through %s. Navigation will start automatically.'):format(name)
+end
+
+function State:_async_abandon()
+    if self.async_query ~= nil
+        and self.context ~= nil
+        and self.generation ~= nil
+        and type(self.native.cancel_find_path) == 'function' then
+        pcall(self.native.cancel_find_path, self.native, self.context, self.generation)
+    end
+    self.async_query = nil
+end
+
+-- One in-flight question, frozen. The native side keys its worker on the exact
+-- floats it was handed, so the same values must be repeated on every tick until
+-- the answer arrives; recomputing them from the live player position would start
+-- a fresh query every frame and never finish one.
+function State:_async_frozen_query(player, destination, query_radius)
+    local frozen = self.async_query
+    if frozen ~= nil then
+        local moved = math.sqrt(
+            (player.x - frozen.player.x) ^ 2 + (player.z - frozen.player.z) ^ 2)
+        if frozen.generation ~= self.generation
+            or frozen.zone ~= self.zone
+            or frozen.radius ~= query_radius
+            or frozen.destination.x ~= destination.x
+            or frozen.destination.y ~= destination.y
+            or frozen.destination.z ~= destination.z
+            or moved > ASYNC_RESTART_DISTANCE
+            or math.abs(player.y - frozen.player.y) > ASYNC_RESTART_HEIGHT then
+            self:_async_abandon()
+            frozen = nil
+        end
+    end
+    if frozen == nil then
+        frozen = {
+            generation = self.generation,
+            zone = self.zone,
+            radius = query_radius,
+            player = { x = player.x, y = player.y, z = player.z },
+            destination = { x = destination.x, y = destination.y, z = destination.z },
+        }
+        self.async_query = frozen
+    end
+    return frozen
+end
+
 function State:_cancel_generation()
+    self:_async_abandon()
     if self.context ~= nil and self.generation ~= nil then
         pcall(self.native.cancel_load, self.native, self.context, self.generation)
     end
@@ -391,6 +511,63 @@ function State:preload(zone)
     return true, 'ready', ''
 end
 
+-- Asynchronous variant for the zones in ASYNC_ZONES. Returns nil,'pending' while
+-- the worker runs, so the reader speaks its planning line instead of falling
+-- back to a raw bearing. pending_destination is deliberately left in place until
+-- a final answer arrives.
+function State:_query_async(player, destination, query_radius)
+    if not self.native.supports_async
+        or type(self.native.find_path_async) ~= 'function' then
+        -- No silent synchronous fallback here: running this zone's query on the
+        -- calling thread is the defect being fixed, not an acceptable degraded
+        -- mode. Say so instead.
+        self:_async_abandon()
+        return nil, 'error',
+            'Collision terrain in this area needs a newer native library for background routing.'
+    end
+
+    local frozen = self:_async_frozen_query(player, destination, query_radius)
+    local ok, code, result, native_points = pcall(
+        self.native.find_path_async,
+        self.native,
+        self.context,
+        self.generation,
+        -- FFXI exposes vertical position with the opposite sign from the MZB
+        -- collision coordinate system.  X and horizontal Z are unchanged.
+        { x = frozen.player.x, y = -frozen.player.y, z = frozen.player.z },
+        { x = frozen.destination.x, y = -frozen.destination.y, z = frozen.destination.z },
+        frozen.radius,
+        MAX_POINTS)
+    if not ok then
+        self:_async_abandon()
+        return nil, 'error', 'Collision terrain pathfinding raised an error: ' .. tostring(code)
+    end
+    if code ~= RESULT_OK then
+        self:_async_abandon()
+        return nil, 'error', native_error('pathfinding', code)
+    end
+    if type(result) ~= 'table' then
+        self:_async_abandon()
+        return nil, 'error', 'Collision terrain returned a malformed path result.'
+    end
+    if result.status == PATH_PENDING then
+        return nil, 'pending', self:_planning_message(self.zone)
+    end
+
+    -- Any answer reaching here was computed for a position the player is still
+    -- near: _async_frozen_query above abandons and restarts the query the moment
+    -- they drift past ASYNC_RESTART_DISTANCE, so a completion for an abandoned
+    -- position is discarded before it is ever collected.
+    self.async_query = nil
+
+    if result.status ~= PATH_READY then
+        local reason = tostring(result.reason or '')
+        if reason == '' then reason = 'No collision-safe path reaches this destination.' end
+        return nil, 'error', reason
+    end
+    return self:_accept_native_points(result, native_points)
+end
+
 function State:_query(player, destination, arrival_radius)
     local query_radius = arrival_radius
     if query_radius ~= nil then
@@ -400,6 +577,9 @@ function State:_query(player, destination, arrival_radius)
         end
     else
         query_radius = self.arrival_radius(destination)
+    end
+    if ASYNC_ZONES[self.zone] then
+        return self:_query_async(player, destination, query_radius)
     end
     local ok, code, result, native_points = pcall(
         self.native.find_path,
@@ -419,6 +599,10 @@ function State:_query(player, destination, arrival_radius)
         if reason == '' then reason = 'No collision-safe path reaches this destination.' end
         return nil, 'error', reason
     end
+    return self:_accept_native_points(result, native_points)
+end
+
+function State:_accept_native_points(result, native_points)
     if type(native_points) ~= 'table'
         or result.point_count ~= #native_points
         or #native_points < 2
@@ -759,6 +943,7 @@ function module.new(deps)
         generation = nil,
         zone = 0,
         pending_destination = nil,
+        async_query = nil,
         shutdown_complete = false,
     }, State)
     return state

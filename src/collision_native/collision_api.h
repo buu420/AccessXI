@@ -37,6 +37,10 @@ enum : std::int32_t
 {
     AXI_PATH_UNREACHABLE = 0,
     AXI_PATH_READY = 1,
+    // Only AXI_FindPathAsync reports this. The synchronous AXI_FindPath never
+    // returns it, so an ABI 3 caller that only knows the first two values keeps
+    // working unchanged.
+    AXI_PATH_PENDING = 2,
 };
 
 struct AXIVec3 final
@@ -121,5 +125,39 @@ AXI_COLLISION_API std::int32_t AXI_COLLISION_CALL AXI_FindPath(
     AXIVec3* points,
     std::uint32_t capacity,
     AXIPathResult* result) noexcept;
+
+// ASYNCHRONOUS PATH QUERY.
+//
+// The zone 197 contact profile can spend seconds inside one query, and
+// AXI_FindPath runs it on the calling thread -- which for the addon is the
+// render thread. This starts the same query on one background worker per
+// context and returns AXI_PATH_PENDING with no points written until it
+// finishes; call it again with the SAME arguments to collect the result.
+//
+// Additive only: struct layouts and every existing export are unchanged, so the
+// ABI version stays at 3 and a caller that never calls this sees no difference.
+//
+// Contract:
+//   * A request whose (generation, start, destination, radius, capacity) differs
+//     from the one in flight cancels that one and starts the new one. It can
+//     never receive the older answer.
+//   * At most one worker exists per context.
+//   * Nothing is written through `points` until the result is collected, so the
+//     buffer does not need to outlive the call that returns pending.
+AXI_COLLISION_API std::int32_t AXI_COLLISION_CALL AXI_FindPathAsync(
+    void* context,
+    std::uint64_t generation,
+    AXIVec3 start,
+    AXIVec3 destination,
+    float arrival_radius,
+    AXIVec3* points,
+    std::uint32_t capacity,
+    AXIPathResult* result) noexcept;
+
+// Abandons any in-flight asynchronous query for this generation. Safe to call
+// when nothing is running.
+AXI_COLLISION_API std::int32_t AXI_COLLISION_CALL AXI_CancelFindPath(
+    void* context,
+    std::uint64_t generation) noexcept;
 
 }

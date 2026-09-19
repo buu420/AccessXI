@@ -54,6 +54,234 @@ void wait_for_ready(
     throw std::runtime_error("Collision worker did not become ready within 90 seconds.");
 }
 
+// ASYNCHRONOUS PATH QUERY CONTRACT.
+//
+// AXI_FindPathAsync exists because the zone 197 contact profile can spend
+// seconds inside one query and AXI_FindPath runs it on the caller's thread. The
+// checks below are about the contract rather than the route: pending before
+// ready, a different question never receiving the old answer, and -- the one
+// that would be a memory bug rather than a wrong route -- nothing written
+// through a caller buffer that has already gone away.
+AXIPathResult make_path_result()
+{
+    AXIPathResult result{};
+    result.struct_size = sizeof(result);
+    return result;
+}
+
+// Collects an asynchronous query, asserting it reported pending at least once.
+AXIPathResult await_async_path(
+    void* context,
+    const std::uint64_t generation,
+    const AXIVec3 start,
+    const AXIVec3 destination,
+    const float radius,
+    std::vector<AXIVec3>& points,
+    bool& saw_pending)
+{
+    saw_pending = false;
+    for (int attempt = 0; attempt < 6000; ++attempt)
+    {
+        AXIPathResult result = make_path_result();
+        const std::int32_t code = AXI_FindPathAsync(
+            context, generation, start, destination, radius,
+            points.data(), static_cast<std::uint32_t>(points.size()), &result);
+        CHECK(code == AXI_RESULT_OK);
+        if (result.status == AXI_PATH_PENDING)
+        {
+            saw_pending = true;
+            CHECK(result.point_count == 0u);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+        }
+        CHECK(result.status == AXI_PATH_READY || result.status == AXI_PATH_UNREACHABLE);
+        return result;
+    }
+    throw std::runtime_error("asynchronous path query never completed");
+}
+
+void run_async_path_tests(const wchar_t* ffxi_root)
+{
+    void* context = AXI_CreateContext();
+    CHECK(context != nullptr);
+    std::uint64_t generation = 0u;
+    const fs::path cache_root = fs::temp_directory_path() / L"accessxi-collision-async-test";
+    CHECK(AXI_BeginLoadZone(context, 190u, ffxi_root, cache_root.c_str(), &generation)
+        == AXI_RESULT_OK);
+    wait_for_ready(context, generation, 190u);
+
+    const AXIVec3 start{-115.008f, -0.051f, 218.328f};
+    const AXIVec3 destination{1.000f, -1.419f, -103.608f};
+    std::vector<AXIVec3> points(512u);
+
+    // A stale generation is refused before any worker is considered.
+    {
+        AXIPathResult result = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation + 1000u, start, destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &result)
+            == AXI_RESULT_STALE_GENERATION);
+    }
+
+    // Invalid arguments are refused the same way the synchronous export does.
+    {
+        AXIPathResult result = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, destination, 8.0f, nullptr, 8u, &result)
+            == AXI_RESULT_INVALID_ARGUMENT);
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, destination, 8.0f, points.data(), 0u, &result)
+            == AXI_RESULT_INVALID_ARGUMENT);
+        CHECK(AXI_FindPathAsync(
+            nullptr, generation, start, destination, 8.0f, points.data(), 8u, &result)
+            == AXI_RESULT_INVALID_ARGUMENT);
+    }
+
+    // Pending, then ready, with the points only appearing at the end.
+    bool saw_pending = false;
+    const AXIPathResult ready = await_async_path(
+        context, generation, start, destination, 8.0f, points, saw_pending);
+    CHECK(saw_pending);
+    CHECK(ready.status == AXI_PATH_READY);
+    CHECK(ready.point_count >= 2u);
+    CHECK(ready.total_length > 0.0f);
+
+    // The same route asked synchronously must agree, and must never report
+    // pending -- ABI 3 callers only understand the first two status values.
+    {
+        AXIPathResult synchronous = make_path_result();
+        std::vector<AXIVec3> synchronous_points(512u);
+        CHECK(AXI_FindPath(
+            context, generation, start, destination, 8.0f,
+            synchronous_points.data(),
+            static_cast<std::uint32_t>(synchronous_points.size()), &synchronous)
+            == AXI_RESULT_OK);
+        CHECK(synchronous.status == AXI_PATH_READY);
+        CHECK(synchronous.status != AXI_PATH_PENDING);
+        CHECK(synchronous.point_count == ready.point_count);
+    }
+
+    // NOTHING IS WRITTEN THROUGH A BUFFER THE CALLER HAS FINISHED WITH.
+    //
+    // The first call hands over a buffer and gets pending back; the result is
+    // then collected through a DIFFERENT buffer. The first must still hold its
+    // sentinels, or the worker captured a pointer it had no right to keep.
+    {
+        const AXIVec3 sentinel{-12345.0f, -23456.0f, -34567.0f};
+        std::vector<AXIVec3> abandoned(512u, sentinel);
+        AXIPathResult first = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, AXIVec3{1.0f, -1.419f, -100.0f}, 8.0f,
+            abandoned.data(), static_cast<std::uint32_t>(abandoned.size()), &first)
+            == AXI_RESULT_OK);
+        CHECK(first.status == AXI_PATH_PENDING);
+
+        std::vector<AXIVec3> collected(512u);
+        bool pending_again = false;
+        const AXIPathResult second = await_async_path(
+            context, generation, start, AXIVec3{1.0f, -1.419f, -100.0f}, 8.0f,
+            collected, pending_again);
+        CHECK(second.status == AXI_PATH_READY || second.status == AXI_PATH_UNREACHABLE);
+        for (const AXIVec3& value : abandoned)
+        {
+            CHECK(value.x == sentinel.x && value.y == sentinel.y && value.z == sentinel.z);
+        }
+    }
+
+    // A DIFFERENT QUESTION NEVER RECEIVES THE OLD ANSWER.
+    //
+    // Start one query, immediately ask for a different destination, and confirm
+    // the second reports pending rather than handing back the first's result.
+    {
+        const AXIVec3 first_destination{1.000f, -1.419f, -103.608f};
+        const AXIVec3 second_destination{-115.0f, -0.051f, 200.0f};
+        AXIPathResult first = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, first_destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &first)
+            == AXI_RESULT_OK);
+        CHECK(first.status == AXI_PATH_PENDING);
+
+        AXIPathResult second = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, second_destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &second)
+            == AXI_RESULT_OK);
+        CHECK(second.status == AXI_PATH_PENDING);
+        CHECK(second.point_count == 0u);
+
+        std::vector<AXIVec3> second_points(512u);
+        bool pending_again = false;
+        const AXIPathResult finished = await_async_path(
+            context, generation, start, second_destination, 8.0f,
+            second_points, pending_again);
+        // Whatever it answers, it is an answer about the SECOND destination.
+        if (finished.status == AXI_PATH_READY)
+        {
+            const AXIVec3& last = second_points[finished.point_count - 1u];
+            const float dx = last.x - second_destination.x;
+            const float dz = last.z - second_destination.z;
+            CHECK(std::sqrt(dx * dx + dz * dz) <= 40.0f);
+        }
+    }
+
+    // Cancellation leaves the context usable, and the next request starts over.
+    {
+        AXIPathResult result = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &result)
+            == AXI_RESULT_OK);
+        CHECK(result.status == AXI_PATH_PENDING);
+        CHECK(AXI_CancelFindPath(context, generation) == AXI_RESULT_OK);
+        CHECK(AXI_CancelFindPath(context, generation) == AXI_RESULT_OK);
+        CHECK(AXI_CancelFindPath(context, generation + 1000u) == AXI_RESULT_STALE_GENERATION);
+
+        AXIPathResult restarted = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &restarted)
+            == AXI_RESULT_OK);
+        CHECK(restarted.status == AXI_PATH_PENDING);
+    }
+
+    // A ZONE CHANGE WHILE A QUERY IS IN FLIGHT.
+    //
+    // The old generation must be refused rather than answered, and the worker
+    // must have been stopped and joined rather than left holding the old zone.
+    {
+        std::uint64_t next_generation = 0u;
+        CHECK(AXI_BeginLoadZone(context, 101u, ffxi_root, cache_root.c_str(), &next_generation)
+            == AXI_RESULT_OK);
+        CHECK(next_generation != generation);
+        AXIPathResult stale = make_path_result();
+        CHECK(AXI_FindPathAsync(
+            context, generation, start, destination, 8.0f,
+            points.data(), static_cast<std::uint32_t>(points.size()), &stale)
+            == AXI_RESULT_STALE_GENERATION);
+        CHECK(AXI_CancelFindPath(context, generation) == AXI_RESULT_STALE_GENERATION);
+    }
+
+    // Destroying a context with a query in flight must not hang or crash.
+    AXI_DestroyContext(context);
+
+    void* doomed = AXI_CreateContext();
+    CHECK(doomed != nullptr);
+    std::uint64_t doomed_generation = 0u;
+    CHECK(AXI_BeginLoadZone(doomed, 190u, ffxi_root, cache_root.c_str(), &doomed_generation)
+        == AXI_RESULT_OK);
+    wait_for_ready(doomed, doomed_generation, 190u);
+    AXIPathResult doomed_result = make_path_result();
+    std::vector<AXIVec3> doomed_points(512u);
+    CHECK(AXI_FindPathAsync(
+        doomed, doomed_generation, start, destination, 8.0f,
+        doomed_points.data(), static_cast<std::uint32_t>(doomed_points.size()), &doomed_result)
+        == AXI_RESULT_OK);
+    CHECK(doomed_result.status == AXI_PATH_PENDING);
+    AXI_DestroyContext(doomed);
+}
+
+
 } // namespace
 
 int wmain(const int argc, wchar_t** argv)
@@ -84,6 +312,8 @@ int wmain(const int argc, wchar_t** argv)
             const auto cancel_elapsed = std::chrono::steady_clock::now() - cancel_start;
             CHECK(cancel_elapsed < std::chrono::seconds(2));
         }
+
+        run_async_path_tests(argv[1]);
 
         void* context = AXI_CreateContext();
         CHECK(context != nullptr);

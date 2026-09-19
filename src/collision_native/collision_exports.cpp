@@ -145,3 +145,53 @@ extern "C" std::int32_t AXI_COLLISION_CALL AXI_FindPath(
         return AXI_RESULT_FAILED;
     }
 }
+
+
+extern "C" std::int32_t AXI_COLLISION_CALL AXI_FindPathAsync(
+    void* context,
+    const std::uint64_t generation,
+    const AXIVec3 start,
+    const AXIVec3 destination,
+    const float arrival_radius,
+    AXIVec3* points,
+    const std::uint32_t capacity,
+    AXIPathResult* result) noexcept
+{
+    if (context == nullptr || result == nullptr || result->struct_size != sizeof(AXIPathResult))
+    {
+        return AXI_RESULT_INVALID_ARGUMENT;
+    }
+    try
+    {
+        return checked_context(context)->find_path_async(
+            generation,
+            start,
+            destination,
+            arrival_radius,
+            points,
+            capacity,
+            *result);
+    }
+    catch (...)
+    {
+        return AXI_RESULT_FAILED;
+    }
+}
+
+extern "C" std::int32_t AXI_COLLISION_CALL AXI_CancelFindPath(
+    void* context,
+    const std::uint64_t generation) noexcept
+{
+    if (context == nullptr)
+    {
+        return AXI_RESULT_INVALID_ARGUMENT;
+    }
+    try
+    {
+        return checked_context(context)->cancel_find_path(generation);
+    }
+    catch (...)
+    {
+        return AXI_RESULT_FAILED;
+    }
+}

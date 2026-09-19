@@ -302,6 +302,7 @@ add_library(accessxi_collision_core STATIC
     src/collision_native/collision_world.cpp
     src/collision_native/file_snapshot.cpp
     src/collision_native/mzb_parser.cpp
+    src/collision_native/player_contact.cpp
     src/collision_native/recast_zone.cpp
     src/collision_native/rom_resolver.cpp
     "${ACCESSXI_RECAST_ROOT}/RecastDemo/Source/PartitionedMesh.cpp"
@@ -426,6 +427,25 @@ add_test(
     NAME collision_world_tests
     COMMAND collision_world_tests
         "C:/Program Files (x86)/PlayOnline/SquareEnix/FINAL FANTASY XI"
+)
+
+add_executable(collision_player_contact_tests
+    tests/collision_player_contact_tests.cpp
+)
+target_compile_features(collision_player_contact_tests PRIVATE cxx_std_20)
+target_include_directories(collision_player_contact_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(collision_player_contact_tests PRIVATE accessxi_collision_core)
+set_target_properties(collision_player_contact_tests PROPERTIES
+    DEBUG_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+# Pass a local client-derived fixture table directly to the executable for
+# additional comparison. Ordinary CTest requires no proprietary game bytes.
+add_test(
+    NAME collision_player_contact_tests
+    COMMAND collision_player_contact_tests
 )
 
 add_executable(collision_recast_tests

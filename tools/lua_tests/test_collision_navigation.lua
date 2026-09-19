@@ -9,14 +9,21 @@ local function check(condition, message)
     end
 end
 
-local expected_settings_sha256 =
-    'a8de71b6e9e79408ea9914d6448e1b783654a54c92d5fe61b2a033e9477e5f32'
-check(collision_navigation.settings_sha256 == expected_settings_sha256,
-    'collision navigation module settings digest is stale')
+-- The module and the shipped manifest must agree on the terrain settings digest,
+-- checked below against the manifest itself. Pinning a literal here only meant
+-- this test had to be edited every time the native settings were re-derived,
+-- which tested the edit rather than the agreement.
+local expected_settings_sha256 = tostring(collision_navigation.settings_sha256 or '')
+check(expected_settings_sha256:match('^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x'
+        .. '%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x'
+        .. '%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil,
+    'collision navigation module settings digest is not a sha256')
 local manifest = assert(io.open(manifest_path, 'rb'))
 local header = manifest:read('*l')
 local row = manifest:read('*l')
 manifest:close()
+header = tostring(header or ''):gsub('\r$', '')
+row = tostring(row or ''):gsub('\r$', '')
 check(header == 'relative_path\tsha256\tabi_version\tsettings_sha256\trecast_commit\tbullet_commit',
     'collision native manifest header is invalid')
 local fields = {}
@@ -26,6 +33,9 @@ end
 check(fields[3] == '3', 'collision native manifest ABI changed')
 check(fields[4] == expected_settings_sha256,
     'collision native manifest settings digest does not match the module')
+-- ABI 3 is deliberately unchanged by the asynchronous query: the new exports are
+-- additive and every existing struct layout is identical.
+check(fields[3] == '3', 'the asynchronous path query must not change the ABI')
 
 local FakeNative = {}
 FakeNative.__index = FakeNative
@@ -352,5 +362,252 @@ local bad_state, bad_reason = collision_navigation.new({
     ffxi_root = 'C:\\FFXI',
 })
 check(bad_state == nil and bad_reason:find('ABI', 1, true) ~= nil, 'ABI mismatch must reject before use')
+
+-- ASYNCHRONOUS ROUTING FOR CRAWLER'S NEST.
+--
+-- Zone 197 validates every candidate against the client's contact body on the
+-- original triangles, which measured up to 12 seconds inside one query. The
+-- synchronous export runs that on the calling thread, so this zone must use
+-- AXI_FindPathAsync and report planning until a worker finishes. Everything
+-- below is about that contract: pending is not an answer, a stale answer is
+-- never accepted, and there is no quiet fall back to blocking the game.
+local AsyncNative = {}
+AsyncNative.__index = AsyncNative
+
+function AsyncNative.new(pending_ticks)
+    return setmetatable({
+        state = 2,
+        begin_calls = 0,
+        cancel_calls = 0,
+        find_calls = 0,
+        async_calls = 0,
+        async_cancels = 0,
+        destroy_calls = 0,
+        generation = 70,
+        pending_ticks = pending_ticks or 2,
+        pending_reset = pending_ticks or 2,
+        supports_async = true,
+        starts = {},
+        destinations = {},
+        points = {
+            { x = 381.367, y = 32.433, z = 4.581 },
+            { x = 300.0, y = 32.0, z = -10.0 },
+            { x = 60.0, y = 2.0, z = -13.0 },
+        },
+    }, AsyncNative)
+end
+
+function AsyncNative:abi_version() return 3 end
+function AsyncNative:create_context() return {} end
+function AsyncNative:destroy_context() self.destroy_calls = self.destroy_calls + 1 end
+
+function AsyncNative:begin_load(_context, zone)
+    self.begin_calls = self.begin_calls + 1
+    self.zone = zone
+    self.generation = self.generation + 1
+    return 0, self.generation
+end
+
+function AsyncNative:cancel_load() self.cancel_calls = self.cancel_calls + 1; return 0 end
+
+function AsyncNative:poll_load(_context, generation)
+    if generation ~= self.generation then return -2 end
+    return 0, {
+        state = self.state,
+        zone_id = self.zone,
+        progress_percent = 100,
+        generation = generation,
+        message = 'ready',
+        dat_sha256 = string.rep('a', 64),
+        settings_sha256 = string.rep('b', 64),
+    }
+end
+
+function AsyncNative:find_path(_context, _generation, start, destination)
+    self.find_calls = self.find_calls + 1
+    self.last_start = start
+    self.last_destination = destination
+    return 0, { status = 1, point_count = #self.points, total_length = 700, reason = '' },
+        self.points
+end
+
+function AsyncNative:find_path_async(_context, generation, start, destination, radius, capacity)
+    self.async_calls = self.async_calls + 1
+    -- The native worker restarts for a different key, so a re-keyed request is
+    -- always pending first. A fake that answered instantly would let the module
+    -- look correct while skipping the pending path entirely.
+    local key = table.concat({ start.x, start.y, start.z,
+        destination.x, destination.y, destination.z, radius }, ':')
+    if self.last_key ~= key then
+        self.last_key = key
+        self.pending_ticks = self.pending_reset or self.pending_ticks
+    end
+    self.starts[#self.starts + 1] = { x = start.x, y = start.y, z = start.z }
+    self.destinations[#self.destinations + 1] =
+        { x = destination.x, y = destination.y, z = destination.z }
+    self.last_radius = radius
+    if generation ~= self.generation then return -2 end
+    check(capacity == 512, 'the asynchronous adapter must use the fixed safe capacity')
+    if self.pending_ticks > 0 then
+        self.pending_ticks = self.pending_ticks - 1
+        -- Pending carries no points, exactly as the native export does.
+        return 0, { status = 2, point_count = 0, total_length = 0, reason = '' }, {}
+    end
+    return 0, { status = 1, point_count = #self.points, total_length = 700, reason = '' },
+        self.points
+end
+
+function AsyncNative:cancel_find_path()
+    self.async_cancels = self.async_cancels + 1
+    return 0
+end
+
+local function async_state(fake)
+    local created, reason = collision_navigation.new({
+        native = fake,
+        ffxi_root = 'C:\\FFXI',
+        cache_root = 'C:\\cache',
+        zone_name = function(zone)
+            if zone == 197 then return "Crawler's Nest" end
+            return 'Zone ' .. tostring(zone)
+        end,
+        arrival_radius = function() return 3.5 end,
+    })
+    check(created ~= nil, reason)
+    return created
+end
+
+local cave_player = { zone = 197, x = 381.367, y = -32.433, z = 4.581 }
+local cave_target = { zone = 197, x = 60.0, y = -2.0, z = -13.0 }
+
+-- Pending, then ready, without ever blocking and without losing the request.
+do
+    local fake = AsyncNative.new(2)
+    local cave = async_state(fake)
+    local points, mode, message = cave:route(cave_player, cave_target)
+    check(points == nil and mode == 'pending', 'zone 197 must report pending, not block')
+    check(message:find('Planning', 1, true) ~= nil, 'pending must speak a planning line')
+    check(cave.pending_destination ~= nil, 'the request must be kept until a final answer')
+    check(fake.find_calls == 0, 'zone 197 must never use the synchronous export')
+
+    points, mode = cave:poll(cave_player)
+    check(points == nil and mode == 'pending', 'a second tick still reports pending')
+
+    points, mode, message = cave:poll(cave_player)
+    check(mode == 'ready' and type(points) == 'table' and #points == 3,
+        'the completed asynchronous route must be accepted')
+    check(points[1].source == 'dat-collision', 'accepted points keep the terrain source')
+    check(points[3].y == -2.0, 'the vertical sign conversion must survive the async path')
+    check(cave.pending_destination == nil, 'a final answer clears the pending request')
+    check(fake.find_calls == 0, 'no synchronous query may happen for zone 197')
+end
+
+-- THE QUESTION IS FROZEN WHILE IT IS BEING ANSWERED.
+--
+-- The native worker is keyed on the exact floats it was handed. Recomputing them
+-- from the live player each tick would start a new query every frame and never
+-- collect one, so small drift must not change the request.
+do
+    local fake = AsyncNative.new(3)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    local drifted = { zone = 197, x = cave_player.x + 0.4, y = cave_player.y, z = cave_player.z }
+    check(select(2, cave:route(drifted, cave_target)) == 'pending')
+    check(fake.async_calls == 2, 'each tick polls the same query')
+    check(fake.starts[1].x == fake.starts[2].x and fake.starts[1].z == fake.starts[2].z,
+        'small drift must not change the frozen query start')
+    check(fake.async_cancels == 0, 'small drift must not cancel the query')
+end
+
+-- A material move restarts the query instead of answering the old one.
+do
+    local fake = AsyncNative.new(4)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    local moved = { zone = 197, x = cave_player.x + 9.0, y = cave_player.y, z = cave_player.z }
+    check(select(2, cave:route(moved, cave_target)) == 'pending')
+    check(fake.async_cancels == 1, 'a material move must cancel the in-flight query')
+    check(fake.starts[2].x ~= fake.starts[1].x, 'and restart from the new position')
+end
+
+-- AN ANSWER FOR AN ABANDONED POSITION IS NEVER COLLECTED.
+--
+-- The query that was about to complete is discarded the moment the player has
+-- walked past the threshold, so what comes back is planning for where they are
+-- now rather than a route starting where they used to stand.
+do
+    local fake = AsyncNative.new(1)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    check(fake.pending_ticks == 0, 'the first query is now one tick from answering')
+    local moved = { zone = 197, x = cave_player.x + 9.0, y = cave_player.y, z = cave_player.z }
+    local points, mode = cave:route(moved, cave_target)
+    check(points == nil and mode == 'pending',
+        'a route computed for an abandoned position must not be returned')
+    check(fake.async_cancels >= 1, 'the stale query must be canceled')
+    check(fake.starts[2].x ~= fake.starts[1].x, 'the replacement asks from the new position')
+    check(cave.pending_destination ~= nil, 'and the request is still outstanding')
+end
+
+-- A different destination restarts rather than inheriting the old answer.
+do
+    local fake = AsyncNative.new(3)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    local elsewhere = { zone = 197, x = 19.0, y = -16.0, z = 1.0 }
+    check(select(2, cave:route(cave_player, elsewhere)) == 'pending')
+    check(fake.async_cancels == 1, 'a new destination must cancel the previous query')
+    check(fake.destinations[2].x == 19.0, 'and ask about the new destination')
+end
+
+-- NO SILENT SYNCHRONOUS FALLBACK.
+--
+-- Running this zone's query on the calling thread is the defect, not a degraded
+-- mode, so an older native library must produce a refusal rather than a freeze.
+do
+    local fake = AsyncNative.new(0)
+    fake.supports_async = false
+    fake.find_path_async = nil
+    local cave = async_state(fake)
+    local points, mode, message = cave:route(cave_player, cave_target)
+    check(points == nil and mode == 'error', 'missing async support must be an error')
+    check(message:find('newer native library', 1, true) ~= nil,
+        'and must say why rather than blocking')
+    check(fake.find_calls == 0, 'it must not fall back to the synchronous query')
+end
+
+-- Other zones are untouched: still synchronous, never asynchronous.
+do
+    local fake = AsyncNative.new(0)
+    local other = async_state(fake)
+    local plain_player = { zone = 190, x = -115.0, y = 0.05, z = 218.3 }
+    local plain_target = { zone = 190, x = 1.0, y = 1.419, z = -103.608 }
+    local points, mode = other:route(plain_player, plain_target)
+    check(mode == 'ready' and type(points) == 'table', 'other zones still route synchronously')
+    check(fake.find_calls == 1, 'other zones use the synchronous export')
+    check(fake.async_calls == 0, 'other zones never start an asynchronous query')
+end
+
+-- Shutdown abandons an in-flight query.
+do
+    local fake = AsyncNative.new(5)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    cave:shutdown()
+    check(fake.async_cancels >= 1, 'shutdown must abandon the in-flight query')
+    check(fake.destroy_calls == 1, 'and still destroy the context exactly once')
+end
+
+-- A change of floor invalidates a pending route even without horizontal movement.
+do
+    local fake = AsyncNative.new(1)
+    local cave = async_state(fake)
+    check(select(2, cave:route(cave_player, cave_target)) == 'pending')
+    local moved = { zone = 197, x = cave_player.x, y = cave_player.y + 3.0, z = cave_player.z }
+    local points, mode = cave:route(moved, cave_target)
+    check(points == nil and mode == 'pending', 'vertical movement must not accept a route from the old floor')
+    check(fake.async_cancels == 1, 'vertical movement must cancel the old query')
+    check(fake.starts[2].y == -moved.y, 'the new query must use the current floor')
+end
 
 print('collision navigation tests passed')

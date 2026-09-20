@@ -41,6 +41,7 @@ $projectRoot = Join-Path $RepoRoot 'installer\AccessXIInstaller'
 $projectFile = Join-Path $projectRoot 'AccessXIInstaller.csproj'
 $programFile = Join-Path $projectRoot 'Program.cs'
 $updaterFile = Join-Path $projectRoot 'ReleasePayloadUpdater.cs'
+$locatorFile = Join-Path $projectRoot 'PlayOnlineLocator.cs'
 $manifestFile = Join-Path $projectRoot 'app.manifest'
 $buildScript = Join-Path $RepoRoot 'tools\build_accessxi_installer_exe.ps1'
 $publicGuide = Join-Path $RepoRoot 'README.md'
@@ -48,6 +49,7 @@ $publicGuide = Join-Path $RepoRoot 'README.md'
 Assert-True (Test-Path -LiteralPath $projectFile) "Missing installer exe project: $projectFile"
 Assert-True (Test-Path -LiteralPath $programFile) "Missing installer exe Program.cs: $programFile"
 Assert-True (Test-Path -LiteralPath $updaterFile) "Missing installer release payload updater: $updaterFile"
+Assert-True (Test-Path -LiteralPath $locatorFile) "Missing installer PlayOnline locator: $locatorFile"
 Assert-True (Test-Path -LiteralPath $manifestFile) "Missing installer exe manifest: $manifestFile"
 Assert-True (Test-Path -LiteralPath $buildScript) "Missing installer exe build script: $buildScript"
 Assert-True (Test-Path -LiteralPath $publicGuide) "Missing public setup guide: $publicGuide"
@@ -55,6 +57,7 @@ Assert-True (Test-Path -LiteralPath $publicGuide) "Missing public setup guide: $
 $projectSource = Get-Content -LiteralPath $projectFile -Raw
 $programSource = Get-Content -LiteralPath $programFile -Raw
 $updaterSource = Get-Content -LiteralPath $updaterFile -Raw
+$locatorSource = Get-Content -LiteralPath $locatorFile -Raw
 $manifestSource = Get-Content -LiteralPath $manifestFile -Raw
 $buildSource = Get-Content -LiteralPath $buildScript -Raw
 
@@ -68,9 +71,10 @@ Assert-Contains $manifestSource 'requestedExecutionLevel\s+level="requireAdminis
 
 Assert-Contains $programSource 'FolderBrowserDialog' 'Installer exe must let users choose the AccessXI installation destination.'
 Assert-Contains $programSource 'OpenFileDialog' 'Installer exe must let users choose PlayOnline pol.exe when auto-detection is wrong.'
-Assert-Contains $programSource 'GetDefaultPolExeCandidates' 'Installer exe must derive default PlayOnline candidates from this machine.'
+Assert-Contains $programSource 'PlayOnlineLocator\.FindDefaultPolExe' 'Installer exe must derive default PlayOnline candidates from this machine.'
 Assert-Contains $programSource 'playOnlineDetectedOnLaunch' 'Installer exe must remember whether PlayOnline was detected at startup.'
-Assert-Contains $programSource 'ExitBecausePlayOnlineMissing' 'Installer exe must exit when PlayOnline is not detected.'
+Assert-Contains $programSource 'WarnPlayOnlineNotDetected' 'Installer exe must warn, not close, when PlayOnline is not auto-detected so the user can browse to pol.exe.'
+Assert-NotContains $programSource 'ExitBecausePlayOnlineMissing' 'Installer exe must not close itself when auto-detection misses an unusual PlayOnline layout.'
 Assert-Contains $programSource 'Install PlayOnline Viewer and Final Fantasy XI first' 'Installer exe must tell users to install PlayOnline before AccessXI.'
 Assert-Contains $programSource 'DetectPlayOnlineViewerVersion' 'Installer exe must recognize both updated and pre-update PlayOnline Viewer installs.'
 Assert-Contains $programSource 'PlayOnlineViewerState' 'Installer exe must classify PlayOnline as updated or update-needed instead of blocking unknown versions.'
@@ -80,7 +84,12 @@ Assert-NotContains $programSource 'ValidatePlayOnlineUpdatedBeforeInstall' 'Inst
 Assert-Contains $programSource 'KnownUpdatedPlayOnlineAppDllSize\s*=\s*4335104' 'Installer exe must document the validated updated PlayOnline app.dll size.'
 Assert-Contains $programSource 'KnownUpdatedPlayOnlineAppDllFnv64\s*=\s*0x07E88E8067FEF6CCUL' 'Installer exe must document the validated updated PlayOnline app.dll fingerprint.'
 Assert-Contains $programSource 'PlayOnlineViewer.*viewer.*com.*app\.dll' 'Installer exe must validate the updated viewer/com/app.dll beside pol.exe.'
-Assert-Contains $programSource 'SpecialFolder\.ProgramFilesX86' 'Installer exe must use Windows known folders for default PlayOnline candidates.'
+Assert-Contains $locatorSource 'SpecialFolder\.ProgramFilesX86' 'Installer exe must use Windows known folders for default PlayOnline candidates.'
+Assert-Contains $locatorSource 'PlayOnlineUS' 'PlayOnline detection must read the registry so Steam installs outside Program Files are found.'
+Assert-Contains $locatorSource 'InstallFolder' 'PlayOnline detection must read the InstallFolder key the PlayOnline installer writes.'
+Assert-Contains $locatorSource 'FFXINA' 'PlayOnline detection must probe the Steam FFXI depot layout.'
+Assert-Contains $locatorSource 'steamapps' 'PlayOnline detection must probe Steam library folders.'
+Assert-Contains $locatorSource 'libraryfolders\.vdf' 'PlayOnline detection must follow Steam libraries on other drives.'
 Assert-NotContains $programSource '@"C:\\Program Files' 'Installer exe must not hard-code Program Files PlayOnline candidates.'
 Assert-Contains $programSource 'Payload\.AccessXI-Ashita-Installer\.zip' 'Installer exe must extract its embedded payload zip.'
 Assert-Contains $programSource 'install_accessxi\.ps1' 'Installer exe must invoke the existing installer script.'

@@ -284,7 +284,7 @@ internal sealed class InstallerForm : Form
 
         if (!playOnlineDetectedOnLaunch)
         {
-            ExitBecausePlayOnlineMissing();
+            WarnPlayOnlineNotDetected();
         }
     }
 
@@ -338,7 +338,7 @@ internal sealed class InstallerForm : Form
 
         if (!File.Exists(polExe))
         {
-            ExitBecausePlayOnlineMissing();
+            WarnPlayOnlineNotDetected();
             return;
         }
 
@@ -700,38 +700,7 @@ internal sealed class InstallerForm : Form
 
     private static string FindDefaultPolExe()
     {
-        return GetDefaultPolExeCandidates().FirstOrDefault(File.Exists) ?? string.Empty;
-    }
-
-    private static IEnumerable<string> GetDefaultPolExeCandidates()
-    {
-        var roots = new[]
-        {
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            Environment.GetEnvironmentVariable("ProgramW6432") ?? string.Empty,
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-        };
-        var relativeCandidates = new[]
-        {
-            new[] { "PlayOnline", "SquareEnix", "PlayOnlineViewer", "pol.exe" },
-            new[] { "SquareEnix", "PlayOnlineViewer", "pol.exe" },
-        };
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var root in roots.Where(root => !string.IsNullOrWhiteSpace(root)))
-        {
-            foreach (var relativeCandidate in relativeCandidates)
-            {
-                var parts = new string[relativeCandidate.Length + 1];
-                parts[0] = root;
-                relativeCandidate.CopyTo(parts, 1);
-                var candidate = Path.Combine(parts);
-                if (seen.Add(candidate))
-                {
-                    yield return candidate;
-                }
-            }
-        }
+        return PlayOnlineLocator.FindDefaultPolExe();
     }
 
     private void AppendLog(string message)
@@ -806,11 +775,21 @@ internal sealed class InstallerForm : Form
         }
     }
 
-    private void ExitBecausePlayOnlineMissing()
+    /// <summary>
+    /// Detection covers the standalone, Steam, and registry-recorded layouts, but an unusual
+    /// install still has to be reachable, so keep the window open and let the user point at pol.exe
+    /// instead of closing the installer out from under them.
+    /// </summary>
+    private void WarnPlayOnlineNotDetected()
     {
-        AppendLog("PlayOnline Viewer was not detected. Closing installer.");
-        MessageBox.Show(this, "PlayOnline Viewer was not detected. Install PlayOnline Viewer and Final Fantasy XI first, then run the AccessXI installer again.", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        Close();
+        AppendLog("PlayOnline Viewer was not detected automatically. Use Browse next to the PlayOnline pol.exe box to select pol.exe.");
+        MessageBox.Show(
+            this,
+            "PlayOnline Viewer was not detected automatically. If Final Fantasy XI is already installed, use the Browse button beside \"PlayOnline pol.exe\" to select pol.exe inside the PlayOnlineViewer folder, then choose Install. Otherwise install PlayOnline Viewer and Final Fantasy XI first, then run the AccessXI installer again.",
+            Text,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+        polExeText.Focus();
     }
 
     private void SetInstallState(InstallState state)

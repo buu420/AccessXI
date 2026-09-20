@@ -21,9 +21,12 @@ function Join-PathParts {
         [string[]]$Parts
     )
 
+    # [System.IO.Path]::Combine instead of Join-Path: candidate paths are built before anything is
+    # known to exist, and Join-Path fails outright on a drive letter that is not currently mounted
+    # (for example a Steam library on a disconnected drive).
     $path = $Root
     foreach ($part in $Parts) {
-        $path = Join-Path $path $part
+        $path = [System.IO.Path]::Combine($path, $part)
     }
     return $path
 }
@@ -50,19 +53,264 @@ function Get-DefaultProgramFilesRoots {
     }
 }
 
-function Find-DefaultPolExe {
-    $relativeCandidates = @(
+function Get-PlayOnlineViewerRootsFromRegistry {
+    # The PlayOnline installer records the viewer folder under InstallFolder\1000 whether it ran
+    # from the Square Enix download or from the Steam depot, so this is the one probe that covers
+    # both. FFXI is 32-bit, so the value normally lives in the WOW6432Node view.
+    foreach ($view in @([Microsoft.Win32.RegistryView]::Registry32, [Microsoft.Win32.RegistryView]::Registry64)) {
+        $baseKey = $null
+        try {
+            $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, $view)
+        } catch {
+            continue
+        }
+
+        try {
+            foreach ($product in @('PlayOnlineUS', 'PlayOnlineEU', 'PlayOnlineJP', 'PlayOnline')) {
+                $installFolderKey = $baseKey.OpenSubKey("SOFTWARE\$product\InstallFolder")
+                if ($null -eq $installFolderKey) {
+                    continue
+                }
+
+                try {
+                    $viewerRoot = $installFolderKey.GetValue('1000')
+                    if ($viewerRoot -is [string] -and -not [string]::IsNullOrWhiteSpace($viewerRoot)) {
+                        $viewerRoot.Trim()
+                    }
+                } finally {
+                    $installFolderKey.Dispose()
+                }
+            }
+        } finally {
+            $baseKey.Dispose()
+        }
+    }
+}
+
+function Get-SteamInstallRoots {
+    $roots = New-Object System.Collections.Generic.List[string]
+
+    $currentUserKey = $null
+    try {
+        $currentUserKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\Valve\Steam')
+        if ($null -ne $currentUserKey) {
+            $steamPath = $currentUserKey.GetValue('SteamPath')
+            if ($steamPath -is [string] -and -not [string]::IsNullOrWhiteSpace($steamPath)) {
+                # HKCU stores the Steam path with forward slashes.
+                $roots.Add($steamPath.Trim().Replace('/', '\'))
+            }
+        }
+    } catch {
+    } finally {
+        if ($null -ne $currentUserKey) {
+            $currentUserKey.Dispose()
+        }
+    }
+
+    foreach ($view in @([Microsoft.Win32.RegistryView]::Registry32, [Microsoft.Win32.RegistryView]::Registry64)) {
+        $baseKey = $null
+        try {
+            $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, $view)
+        } catch {
+            continue
+        }
+
+        try {
+            $steamKey = $baseKey.OpenSubKey('SOFTWARE\Valve\Steam')
+            if ($null -ne $steamKey) {
+                try {
+                    $installPath = $steamKey.GetValue('InstallPath')
+                    if ($installPath -is [string] -and -not [string]::IsNullOrWhiteSpace($installPath)) {
+                        $roots.Add($installPath.Trim().Replace('/', '\'))
+                    }
+                } finally {
+                    $steamKey.Dispose()
+                }
+            }
+        } finally {
+            $baseKey.Dispose()
+        }
+    }
+
+    foreach ($programFilesRoot in Get-DefaultProgramFilesRoots) {
+        $roots.Add((Join-PathParts -Root $programFilesRoot -Parts @('Steam')))
+    }
+
+    return $roots.ToArray()
+}
+
+function Get-SteamLibraryRootsFromVdf {
+    param([string]$LibraryFoldersVdf)
+
+    $roots = New-Object System.Collections.Generic.List[string]
+    if ([string]::IsNullOrEmpty($LibraryFoldersVdf)) {
+        return $roots.ToArray()
+    }
+
+    $seen = @{}
+    foreach ($match in [regex]::Matches($LibraryFoldersVdf, '"path"\s*"([^"]*)"', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        # Steam escapes path separators inside VDF, so "D:\\Games" means D:\Games.
+        $libraryRoot = $match.Groups[1].Value.Replace('\\', '\').Trim()
+        if ($libraryRoot -eq '') {
+            continue
+        }
+
+        $key = $libraryRoot.TrimEnd('\').ToLowerInvariant()
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $roots.Add($libraryRoot)
+        }
+    }
+
+    return $roots.ToArray()
+}
+
+function Get-SteamLibraryRoots {
+    param([string[]]$SteamInstallRoots = @())
+
+    $roots = New-Object System.Collections.Generic.List[string]
+    $seen = @{}
+
+    foreach ($steamRoot in $SteamInstallRoots) {
+        if ([string]::IsNullOrWhiteSpace($steamRoot)) {
+            continue
+        }
+
+        $key = $steamRoot.TrimEnd('\').ToLowerInvariant()
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $roots.Add($steamRoot)
+        }
+
+        $libraryFoldersPath = Join-PathParts -Root $steamRoot -Parts @('steamapps', 'libraryfolders.vdf')
+        if (-not (Test-Path -LiteralPath $libraryFoldersPath -PathType Leaf)) {
+            continue
+        }
+
+        try {
+            $libraryFoldersVdf = Get-Content -LiteralPath $libraryFoldersPath -Raw
+        } catch {
+            continue
+        }
+
+        foreach ($libraryRoot in (Get-SteamLibraryRootsFromVdf -LibraryFoldersVdf $libraryFoldersVdf)) {
+            $libraryKey = $libraryRoot.TrimEnd('\').ToLowerInvariant()
+            if (-not $seen.ContainsKey($libraryKey)) {
+                $seen[$libraryKey] = $true
+                $roots.Add($libraryRoot)
+            }
+        }
+    }
+
+    return $roots.ToArray()
+}
+
+function Get-DefaultPolExeCandidates {
+    param(
+        [string[]]$RegistryViewerRoots = @(),
+        [string[]]$SteamLibraryRoots = @(),
+        [string[]]$ProgramFilesRoots = @()
+    )
+
+    # Depot folder names Steam uses for the regional FFXI releases.
+    $steamGameFolders = @('FFXINA', 'FFXIEU', 'FFXIJP')
+    $programFilesRelativeCandidates = @(
         @('PlayOnline', 'SquareEnix', 'PlayOnlineViewer', 'pol.exe'),
         @('SquareEnix', 'PlayOnlineViewer', 'pol.exe')
     )
 
-    foreach ($root in Get-DefaultProgramFilesRoots) {
-        foreach ($relativeCandidate in $relativeCandidates) {
-            $candidate = Join-PathParts -Root $root -Parts $relativeCandidate
-            if (Test-Path -LiteralPath $candidate) {
-                return $candidate
+    $candidates = New-Object System.Collections.Generic.List[string]
+
+    foreach ($viewerRoot in $RegistryViewerRoots) {
+        if ([string]::IsNullOrWhiteSpace($viewerRoot)) {
+            continue
+        }
+        $candidates.Add((Join-PathParts -Root $viewerRoot.Trim() -Parts @('pol.exe')))
+    }
+
+    foreach ($libraryRoot in $SteamLibraryRoots) {
+        if ([string]::IsNullOrWhiteSpace($libraryRoot)) {
+            continue
+        }
+        foreach ($gameFolder in $steamGameFolders) {
+            $candidates.Add((Join-PathParts -Root $libraryRoot.Trim() -Parts @('steamapps', 'common', $gameFolder, 'SquareEnix', 'PlayOnlineViewer', 'pol.exe')))
+        }
+    }
+
+    foreach ($programFilesRoot in $ProgramFilesRoots) {
+        if ([string]::IsNullOrWhiteSpace($programFilesRoot)) {
+            continue
+        }
+        foreach ($relativeCandidate in $programFilesRelativeCandidates) {
+            $candidates.Add((Join-PathParts -Root $programFilesRoot.Trim() -Parts $relativeCandidate))
+        }
+    }
+
+    $seen = @{}
+    $ordered = New-Object System.Collections.Generic.List[string]
+    foreach ($candidate in $candidates) {
+        $key = $candidate.ToLowerInvariant()
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $ordered.Add($candidate)
+        }
+    }
+
+    return $ordered.ToArray()
+}
+
+function Get-SteamCommonPolExe {
+    param([string[]]$SteamLibraryRoots = @())
+
+    foreach ($libraryRoot in $SteamLibraryRoots) {
+        if ([string]::IsNullOrWhiteSpace($libraryRoot)) {
+            continue
+        }
+
+        $commonRoot = Join-PathParts -Root $libraryRoot.Trim() -Parts @('steamapps', 'common')
+        if (-not (Test-Path -LiteralPath $commonRoot -PathType Container)) {
+            continue
+        }
+
+        foreach ($gameFolder in (Get-ChildItem -LiteralPath $commonRoot -Directory -ErrorAction SilentlyContinue)) {
+            $candidate = Join-PathParts -Root $gameFolder.FullName -Parts @('SquareEnix', 'PlayOnlineViewer', 'pol.exe')
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $candidate
             }
         }
+    }
+}
+
+function Find-DefaultPolExe {
+    param(
+        [string[]]$RegistryViewerRoots,
+        [string[]]$SteamLibraryRoots,
+        [string[]]$ProgramFilesRoots
+    )
+
+    if ($null -eq $RegistryViewerRoots) {
+        $RegistryViewerRoots = @(Get-PlayOnlineViewerRootsFromRegistry)
+    }
+    if ($null -eq $SteamLibraryRoots) {
+        $SteamLibraryRoots = @(Get-SteamLibraryRoots -SteamInstallRoots (Get-SteamInstallRoots))
+    }
+    if ($null -eq $ProgramFilesRoots) {
+        $ProgramFilesRoots = @(Get-DefaultProgramFilesRoots)
+    }
+
+    $candidates = Get-DefaultPolExeCandidates `
+        -RegistryViewerRoots $RegistryViewerRoots `
+        -SteamLibraryRoots $SteamLibraryRoots `
+        -ProgramFilesRoots $ProgramFilesRoots
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return $candidate
+        }
+    }
+
+    # Last resort for a Steam depot folder name we do not know about.
+    foreach ($candidate in (Get-SteamCommonPolExe -SteamLibraryRoots $SteamLibraryRoots)) {
+        return $candidate
     }
 
     return ''

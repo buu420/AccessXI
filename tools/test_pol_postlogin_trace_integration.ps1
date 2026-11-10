@@ -107,10 +107,10 @@ Assert-Before $captureBase 'set_masked_snapshot' 'g_pol_ui_trace.enqueue' 'Secre
 Assert-Before $captureBase 'g_pol_ui_trace_state_lock' 'g_pol_ui_trace.enqueue' 'Callback enqueue must occur under the short capture-state handoff lock.'
 
 $traceCandidates = Get-FunctionBody $source 'void collect_pol_ui_trace_candidates('
-Assert-Contains $traceCandidates '0x11Cu' 'Opt-in capture must include the Ghidra-proven primary CPmlImage alt field.'
-Assert-Contains $traceCandidates '0x138u' 'Opt-in capture must include the paired CPmlImage alternate-state field for diagnosis.'
+Assert-Contains $traceCandidates '0x10Cu' 'Opt-in capture must include the Ghidra-proven primary CPmlImage alt field.'
+Assert-Contains $traceCandidates '0x124u' 'Opt-in capture must include the paired CPmlImage alternate-state field for diagnosis.'
 
-Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability' 'Crash-prone PML text-setter hook must remain disabled.'
+Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled reason=crash-stability' 'Crash-prone PML text-setter hook must remain disabled.'
 Assert-NotContains $trace 'Prism|dispatch_speech|speech_sink|speak_prelogin' 'Pure trace module must never depend on speech.'
 Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_hook[\s\S]*?src/pol_trace/postlogin_trace\.cpp' 'Native hook DLL must link the trace implementation.'
 
@@ -127,7 +127,7 @@ Assert-Contains $maskedPoll 'secret_control_role\s*\(\s*retained\.role\s*\)' 'Ma
 Assert-Contains $maskedPoll 'observe_tracked_native_value\s*\(' 'Masked-field polling must require a verified value transition.'
 Assert-Contains $maskedPoll 'masked_delta_speech\s*\(' 'Masked-field changes must report accepted character insertion.'
 Assert-NotContains $maskedPoll 'GetAsyncKeyState|GetKeyboardState|ToUnicode' 'Secret-field speech must be derived from displayed native state, not keystrokes.'
-Assert-NotContains $maskedPoll 'PmlGlobalFocusManagerRva|manager_value|\+\s*0x164' 'Masked-field polling must not treat CPolWinApp as a focus manager.'
+Assert-NotContains $maskedPoll 'PmlGlobalFocusManagerRva|manager_value|\+\s*0x14C' 'Masked-field polling must not treat CPolWinApp as a focus manager.'
 
 $focusCandidate = Get-FunctionBody $source 'void remember_focus_candidate'
 Assert-Contains $focusCandidate 'native_object_has_password_field_vtable' 'Generic focus speech must keep password fields out of text discovery.'

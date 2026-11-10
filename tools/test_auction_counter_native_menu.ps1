@@ -892,8 +892,8 @@ Assert-Match `
 
 Assert-Match `
     -Text $source `
-    -Pattern "(?s)auction_item_list_packet_display_rows.*?display_rows:append\(T\{.*?listing_kind\s*=\s*'single'.*?if\s*\(stack_count\s*>\s*0\).*?display_rows:append\(T\{.*?listing_kind\s*=\s*'stack'" `
-    -Message 'Auction item list packet expansion should keep separate visual rows for single and stack listings.'
+    -Pattern "(?s)auction_item_list_packet_display_rows.*?display_rows:append\(T\{.*?listing_kind\s*=\s*'single'.*?if\s*\(stack_count\s*>=\s*0\).*?display_rows:append\(T\{.*?listing_kind\s*=\s*'stack'" `
+    -Message 'Auction item list packet expansion should retain the visible stack row even when its listing count is zero.'
 
 Assert-Match `
     -Text $source `

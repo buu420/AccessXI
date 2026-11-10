@@ -67,6 +67,8 @@ namespace
         }
     };
 
+    // Layout fixture: app.dll SHA256 97F99A0A..., reviewed 2026-11-10 in Ghidra.
+    // Literal addresses and fields deliberately do not derive from production constants.
     constexpr uintptr_t AppBase = 0x04000000u;
     constexpr uintptr_t Owner = 0x10000000u;
     constexpr uintptr_t Label1 = 0x10001000u;
@@ -239,11 +241,11 @@ namespace
         const std::u16string& value,
         bool terminate = true)
     {
-        memory.write<uintptr_t>(label, AppBase + CLabelVtableRva);
-        memory.write<uint8_t>(label + 0x18, 0x0C);
-        memory.write<uintptr_t>(label + 0x184, text);
-        memory.write<uintptr_t>(label + 0x188, text + (value.size() + 1) * sizeof(char16_t));
-        memory.write<int16_t>(label + 0x21A, static_cast<int16_t>(value.size()));
+        memory.write<uintptr_t>(label, AppBase + 0x003CF080u);
+        memory.write<uint8_t>(label + 0x14, 0x0C);
+        memory.write<uintptr_t>(label + 0x168, text);
+        memory.write<uintptr_t>(label + 0x16C, text + (value.size() + 1) * sizeof(char16_t));
+        memory.write<int16_t>(label + 0x1FA, static_cast<int16_t>(value.size()));
         memory.write_utf16(text, value, terminate);
     }
 
@@ -254,7 +256,7 @@ namespace
     {
         FakeMemory memory;
         memory.write<uintptr_t>(Owner, AppBase + owner_vtable_rva);
-        memory.write<uint8_t>(Owner + 0x18, 0x0C);
+        memory.write<uint8_t>(Owner + 0x14, 0x0C);
         memory.write<uintptr_t>(Owner + body_slot, Label1);
         write_label(memory, Label1, Text1, text);
         return memory;
@@ -288,18 +290,18 @@ namespace
             uint32_t slot;
         };
         constexpr Case cases[] = {
-            { ModalOkVtableRva, PopupOwnerKind::modal_ok, 0x2B8 },
-            { ModalYesNoVtableRva, PopupOwnerKind::modal_yes_no, 0x2BC },
-            { ModalYesNoCancelVtableRva, PopupOwnerKind::modal_yes_no_cancel, 0x2C0 },
-            { ModalOkCancelVtableRva, PopupOwnerKind::modal_ok_cancel, 0x2BC },
-            { ModalRetryFailVtableRva, PopupOwnerKind::modal_retry_fail, 0x2BC },
+            { 0x0040FC20u, PopupOwnerKind::modal_ok, 0x290 },
+            { 0x0040FE78u, PopupOwnerKind::modal_yes_no, 0x294 },
+            { 0x004100D0u, PopupOwnerKind::modal_yes_no_cancel, 0x298 },
+            { 0x00411820u, PopupOwnerKind::modal_ok_cancel, 0x294 },
+            { 0x00411F28u, PopupOwnerKind::modal_retry_fail, 0x294 },
         };
 
         for (const auto& value : cases)
         {
             auto memory = modal(value.vtable, value.slot, u"Are you sure?");
-            memory.write<uintptr_t>(Owner + 0x2B4, Button);
-            memory.write<uintptr_t>(Button, AppBase + CButtonVtableRva);
+            memory.write<uintptr_t>(Owner + 0x28C, Button);
+            memory.write<uintptr_t>(Button, AppBase + 0x003CCB14u);
             require_one(
                 inspect_popup_text(memory.view(), Owner, AppBase),
                 value.kind,
@@ -321,35 +323,35 @@ namespace
             size_t slot_count;
         };
         constexpr Case cases[] = {
-            { 0x00323D24u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x00336434u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x0033829Cu, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003C816Cu, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003CA074u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003CA2D4u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003CB0F4u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003D492Cu, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
-            { 0x003E7F54u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x2B8, 1 },
+            { 0x461D94u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x3C3514u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x3C53C0u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x465D68u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x467EC8u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x468128u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x467C68u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x48EA38u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
+            { 0x4A3E84u, PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, 0x290, 1 },
 
-            { 0x00322394u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x00338524u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x003D3F54u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x003DCBC4u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x003E2A9Cu, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x003E81BCu, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x2BC, 1 },
+            { 0x461FF4u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x3C562Cu, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x48E290u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x49780Cu, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x49D83Cu, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x4A40E8u, PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, 0x294, 1 },
 
-            { 0x003283D4u, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x2C0, 1 },
-            { 0x003387A4u, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x2C0, 1 },
-            { 0x003E8424u, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x2C0, 1 },
+            { 0x462254u, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x298, 1 },
+            { 0x3C5898u, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x298, 1 },
+            { 0x4A434Cu, PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, 0x298, 1 },
 
-            { 0x003E868Cu, PopupOwnerKind::modal_ok_cancel, PopupSpeechMode::interrupt, 0x2BC, 1 },
+            { 0x4A45B0u, PopupOwnerKind::modal_ok_cancel, PopupSpeechMode::interrupt, 0x294, 1 },
 
-            { 0x00324744u, PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, 0x2BC, 1 },
-            { 0x003CA534u, PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, 0x2BC, 1 },
+            { 0x4B5578u, PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, 0x294, 1 },
+            { 0x468388u, PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, 0x294, 1 },
 
-            { 0x003CE96Cu, PopupOwnerKind::notice, PopupSpeechMode::queued, 0x2A8, 3 },
-            { 0x003CF074u, PopupOwnerKind::notice, PopupSpeechMode::queued, 0x2A8, 3 },
-            { 0x003CF2CCu, PopupOwnerKind::important_notice, PopupSpeechMode::queued, 0x2AC, 2 },
+            { 0x46C574u, PopupOwnerKind::notice, PopupSpeechMode::queued, 0x280, 3 },
+            { 0x46CC80u, PopupOwnerKind::notice, PopupSpeechMode::queued, 0x280, 3 },
+            { 0x46CED8u, PopupOwnerKind::important_notice, PopupSpeechMode::queued, 0x284, 2 },
         };
 
         for (const auto& value : cases)
@@ -374,62 +376,62 @@ namespace
     void test_notice_classes_use_only_proven_label_slots()
     {
         FakeMemory memory;
-        memory.write<uintptr_t>(Owner, AppBase + NoticeWindowVtableRva);
-        memory.write<uint8_t>(Owner + 0x18, 0x0C);
-        memory.write<uintptr_t>(Owner + 0x2A8, Label1);
-        memory.write<uintptr_t>(Owner + 0x2AC, Label2);
-        memory.write<uintptr_t>(Owner + 0x2B0, Label3);
+        memory.write<uintptr_t>(Owner, AppBase + 0x003E2140u);
+        memory.write<uint8_t>(Owner + 0x14, 0x0C);
+        memory.write<uintptr_t>(Owner + 0x280, Label1);
+        memory.write<uintptr_t>(Owner + 0x284, Label2);
+        memory.write<uintptr_t>(Owner + 0x288, Label3);
         write_label(memory, Label1, Text1, u"Friend");
         write_label(memory, Label2, Text2, u"Longrodvonhugen");
         write_label(memory, Label3, Text3, u"is now online.");
-        memory.write<uintptr_t>(Owner + 0x2B4, Button);
-        memory.write<uintptr_t>(Button, AppBase + CButtonVtableRva);
+        memory.write<uintptr_t>(Owner + 0x28C, Button);
+        memory.write<uintptr_t>(Button, AppBase + 0x003CCB14u);
 
         auto snapshot = inspect_popup_text(memory.view(), Owner, AppBase);
         require(snapshot.matched, "CNotice_Window was not recognized");
         require(snapshot.owner_kind == PopupOwnerKind::notice, "wrong notice owner kind");
         require(snapshot.speech_mode == PopupSpeechMode::queued, "notice must not interrupt focus speech");
         require(snapshot.candidate_count == 3, "notice did not retain its three exact label slots");
-        require(snapshot.candidates[0].slot_offset == 0x2A8 &&
+        require(snapshot.candidates[0].slot_offset == 0x280 &&
                 snapshot.candidates[0].state == PopupTextCandidateState::present &&
                 snapshot.candidates[0].text == u"Friend",
             "first notice label was not retained");
-        require(snapshot.candidates[1].slot_offset == 0x2AC &&
+        require(snapshot.candidates[1].slot_offset == 0x284 &&
                 snapshot.candidates[1].state == PopupTextCandidateState::present &&
                 snapshot.candidates[1].text == u"Longrodvonhugen",
             "second notice label was not retained");
-        require(snapshot.candidates[2].slot_offset == 0x2B0 &&
+        require(snapshot.candidates[2].slot_offset == 0x288 &&
                 snapshot.candidates[2].state == PopupTextCandidateState::present &&
                 snapshot.candidates[2].text == u"is now online.",
             "third notice label was not retained");
 
         memory = FakeMemory{};
-        memory.write<uintptr_t>(Owner, AppBase + ImportantNoticeVtableRva);
-        memory.write<uint8_t>(Owner + 0x18, 0x0C);
-        memory.write<uintptr_t>(Owner + 0x2AC, Label1);
-        memory.write<uintptr_t>(Owner + 0x2B0, Label2);
-        memory.write<uintptr_t>(Owner + 0x2B4, Button);
+        memory.write<uintptr_t>(Owner, AppBase + 0x003E281Cu);
+        memory.write<uint8_t>(Owner + 0x14, 0x0C);
+        memory.write<uintptr_t>(Owner + 0x284, Label1);
+        memory.write<uintptr_t>(Owner + 0x288, Label2);
+        memory.write<uintptr_t>(Owner + 0x28C, Button);
         write_label(memory, Label1, Text1, u"Important");
         write_label(memory, Label2, Text2, u"Maintenance begins soon.");
-        memory.write<uintptr_t>(Button, AppBase + CScrollTextAreaVtableRva);
+        memory.write<uintptr_t>(Button, AppBase + 0x003D1590u);
 
         snapshot = inspect_popup_text(memory.view(), Owner, AppBase);
         require(snapshot.matched, "CNotice_Important_Wnd was not recognized");
         require(snapshot.owner_kind == PopupOwnerKind::important_notice, "wrong important-notice kind");
         require(snapshot.candidate_count == 2, "unsupported rich component was treated as a label");
-        require(snapshot.candidates[0].slot_offset == 0x2AC, "important notice first label slot changed");
-        require(snapshot.candidates[1].slot_offset == 0x2B0, "important notice second label slot changed");
+        require(snapshot.candidates[0].slot_offset == 0x284, "important notice first label slot changed");
+        require(snapshot.candidates[1].slot_offset == 0x288, "important notice second label slot changed");
     }
 
     void test_unknown_or_mismatched_native_ownership_stays_silent()
     {
-        auto memory = modal(ModalYesNoVtableRva, 0x2BC, u"Exit PlayOnline?");
-        memory.write<uintptr_t>(Owner, AppBase + CButtonVtableRva);
+        auto memory = modal(0x0040FE78u, 0x294, u"Exit PlayOnline?");
+        memory.write<uintptr_t>(Owner, AppBase + 0x003CCB14u);
         require(!inspect_popup_text(memory.view(), Owner, AppBase).matched,
             "unknown owner vtable must not produce popup text");
 
-        memory = modal(ModalYesNoVtableRva, 0x2BC, u"Exit PlayOnline?");
-        memory.write<uintptr_t>(Label1, AppBase + CButtonVtableRva);
+        memory = modal(0x0040FE78u, 0x294, u"Exit PlayOnline?");
+        memory.write<uintptr_t>(Label1, AppBase + 0x003CCB14u);
         const auto snapshot = inspect_popup_text(memory.view(), Owner, AppBase);
         require(snapshot.matched && snapshot.candidate_count == 1,
             "recognized modal ownership should retain its known body slot");
@@ -440,16 +442,16 @@ namespace
 
     void test_hidden_owner_or_label_stays_silent()
     {
-        auto memory = modal(ModalYesNoVtableRva, 0x2BC, u"Exit PlayOnline?");
-        memory.write<uint8_t>(Owner + 0x18, 0x08);
+        auto memory = modal(0x0040FE78u, 0x294, u"Exit PlayOnline?");
+        memory.write<uint8_t>(Owner + 0x14, 0x08);
         auto snapshot = inspect_popup_text(memory.view(), Owner, AppBase);
         require(snapshot.matched &&
                 snapshot.candidates[0].state == PopupTextCandidateState::absent &&
                 snapshot.candidates[0].text.empty(),
             "a hidden modal body must stay silent");
 
-        memory = modal(ModalYesNoVtableRva, 0x2BC, u"Exit PlayOnline?");
-        memory.write<uint8_t>(Label1 + 0x18, 0x04);
+        memory = modal(0x0040FE78u, 0x294, u"Exit PlayOnline?");
+        memory.write<uint8_t>(Label1 + 0x14, 0x04);
         snapshot = inspect_popup_text(memory.view(), Owner, AppBase);
         require(snapshot.matched &&
                 snapshot.candidates[0].state == PopupTextCandidateState::absent &&
@@ -469,46 +471,46 @@ namespace
             require(snapshot.candidates[0].text.empty(), message);
         };
 
-        auto memory = modal(ModalOkVtableRva, 0x2B8, u"Continue?");
+        auto memory = modal(0x0040FC20u, 0x290, u"Continue?");
         memory.erase(Text1 + std::u16string(u"Continue?").size() * 2, 2);
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "unterminated label text must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, u"Continue?");
-        memory.write<uintptr_t>(Label1 + 0x188, Text1 + 2);
+        memory = modal(0x0040FC20u, 0x290, u"Continue?");
+        memory.write<uintptr_t>(Label1 + 0x16C, Text1 + 2);
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "undersized label allocation must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, u"Continue?");
-        memory.write<int16_t>(Label1 + 0x21A, 513);
+        memory = modal(0x0040FC20u, 0x290, u"Continue?");
+        memory.write<int16_t>(Label1 + 0x1FA, 513);
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "overlong label text must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, std::u16string{ u'O', u'K', u'\x0001' });
+        memory = modal(0x0040FC20u, 0x290, std::u16string{ u'O', u'K', u'\x0001' });
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "control-containing label text must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, std::u16string{ u'\xD800', u'A' });
+        memory = modal(0x0040FC20u, 0x290, std::u16string{ u'\xD800', u'A' });
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "malformed surrogate pair must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, u"http://example.invalid/popup.pml");
+        memory = modal(0x0040FC20u, 0x290, u"http://example.invalid/popup.pml");
         check_empty(std::move(memory), PopupTextCandidateState::unknown,
             "resource or URL text must stay silent");
 
-        memory = modal(ModalOkVtableRva, 0x2B8, u" \t\r\n ");
+        memory = modal(0x0040FC20u, 0x290, u" \t\r\n ");
         check_empty(std::move(memory), PopupTextCandidateState::absent,
             "whitespace-only label text must stay silent");
     }
 
     void test_visible_multiline_text_is_normalized_without_guessing()
     {
-        auto memory = modal(ModalYesNoVtableRva, 0x2BC, u"Exit PlayOnline?\r\nUnsaved changes will be lost.");
+        auto memory = modal(0x0040FE78u, 0x294, u"Exit PlayOnline?\r\nUnsaved changes will be lost.");
         require_one(
             inspect_popup_text(memory.view(), Owner, AppBase),
             PopupOwnerKind::modal_yes_no,
             PopupSpeechMode::interrupt,
-            0x2BC,
+            0x294,
             u"Exit PlayOnline? Unsaved changes will be lost.",
             "visible modal whitespace was not normalized");
     }
@@ -517,15 +519,15 @@ namespace
     {
         PopupTextTracker tracker;
         require(
-            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x2BC, u"Exit PlayOnline?") ==
+            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x294, u"Exit PlayOnline?") ==
                 PopupObservation::none,
             "first modal poll must wait for stability");
         require(
-            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x2BC, u"Exit PlayOnline?") ==
+            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x294, u"Exit PlayOnline?") ==
                 PopupObservation::speak_interrupt,
             "second identical modal poll did not emit interrupting speech");
         require(
-            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x2BC, u"Exit PlayOnline?") ==
+            tracker.observe(1, PopupOwnerKind::modal_yes_no, 0x294, u"Exit PlayOnline?") ==
                 PopupObservation::none,
             "unchanged stable modal text repeated");
     }
@@ -534,19 +536,19 @@ namespace
     {
         PopupTextTracker tracker;
         require(
-            tracker.observe(7, PopupOwnerKind::notice, 0x2B0, u"Zaltar is now online.") ==
+            tracker.observe(7, PopupOwnerKind::notice, 0x288, u"Zaltar is now online.") ==
                 PopupObservation::none,
             "first notice poll must wait for stability");
         require(
-            tracker.observe(7, PopupOwnerKind::notice, 0x2B0, u"Zaltar is now online.") ==
+            tracker.observe(7, PopupOwnerKind::notice, 0x288, u"Zaltar is now online.") ==
                 PopupObservation::speak_queued,
             "stable notice did not emit queued speech");
         require(
-            tracker.observe(7, PopupOwnerKind::notice, 0x2B0, u"Zaltar is now offline.") ==
+            tracker.observe(7, PopupOwnerKind::notice, 0x288, u"Zaltar is now offline.") ==
                 PopupObservation::none,
             "changed notice must wait for stability");
         require(
-            tracker.observe(7, PopupOwnerKind::notice, 0x2B0, u"Zaltar is now offline.") ==
+            tracker.observe(7, PopupOwnerKind::notice, 0x288, u"Zaltar is now offline.") ==
                 PopupObservation::speak_queued,
             "changed stable notice did not emit without a focus event");
     }
@@ -554,9 +556,9 @@ namespace
     void test_tracker_preserves_dedup_across_unknown_or_one_absent_poll()
     {
         PopupTextTracker tracker;
-        tracker.observe(8, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.");
+        tracker.observe(8, PopupOwnerKind::notice, 0x288, u"Friend is now online.");
         require(
-            tracker.observe(8, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(8, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::speak_queued,
             "initial notice did not emit");
 
@@ -564,12 +566,12 @@ namespace
             tracker.observe(
                 8,
                 PopupOwnerKind::notice,
-                0x2B0,
+                0x288,
                 PopupTextCandidateState::unknown,
                 {}) == PopupObservation::none,
             "an unknown read must stay silent");
         require(
-            tracker.observe(8, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(8, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::none,
             "a transient unreadable poll cleared deduplication");
 
@@ -577,12 +579,12 @@ namespace
             tracker.observe(
                 8,
                 PopupOwnerKind::notice,
-                0x2B0,
+                0x288,
                 PopupTextCandidateState::absent,
                 {}) == PopupObservation::none,
             "one confirmed-absent poll must stay silent");
         require(
-            tracker.observe(8, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(8, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::none,
             "one absent poll caused unchanged visible text to repeat");
     }
@@ -590,39 +592,39 @@ namespace
     void test_tracker_reset_empty_and_new_generation_allow_real_reappearance()
     {
         PopupTextTracker tracker;
-        tracker.observe(9, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.");
+        tracker.observe(9, PopupOwnerKind::notice, 0x288, u"Friend is now online.");
         require(
-            tracker.observe(9, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(9, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::speak_queued,
             "initial notice did not emit");
 
         require(
-            tracker.observe(9, PopupOwnerKind::notice, 0x2B0, {}) == PopupObservation::none,
+            tracker.observe(9, PopupOwnerKind::notice, 0x288, {}) == PopupObservation::none,
             "first empty notice poll must not emit");
         require(
-            tracker.observe(9, PopupOwnerKind::notice, 0x2B0, {}) == PopupObservation::none,
+            tracker.observe(9, PopupOwnerKind::notice, 0x288, {}) == PopupObservation::none,
             "second empty notice poll must clear without emitting");
         require(
-            tracker.observe(9, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(9, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::none,
             "repopulated notice must restabilize");
         require(
-            tracker.observe(9, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(9, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::speak_queued,
             "repopulated notice was incorrectly deduplicated forever");
 
         require(
-            tracker.observe(10, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(10, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::none,
             "new generation must restabilize");
         require(
-            tracker.observe(10, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(10, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::speak_queued,
             "same text on a new owner generation did not emit");
 
         tracker.reset();
         require(
-            tracker.observe(10, PopupOwnerKind::notice, 0x2B0, u"Friend is now online.") ==
+            tracker.observe(10, PopupOwnerKind::notice, 0x288, u"Friend is now online.") ==
                 PopupObservation::none,
             "reset did not clear pending stability");
     }

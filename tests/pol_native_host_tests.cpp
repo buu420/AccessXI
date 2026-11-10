@@ -140,8 +140,12 @@ namespace
 
         FileFingerprint installed{};
         require(fingerprint_file(artifacts.installed_app, installed), "installed app.dll fingerprint failed");
-        require(installed.size == 4335104ull, "installed app.dll size is not the reviewed build");
-        require(installed.fnv64 == 0x07E88E8067FEF6CCull, "installed app.dll FNV is not the reviewed build");
+        require(installed.size == 6560512ull, "installed app.dll size is not the reviewed build");
+        require(installed.fnv64 == 0xF50D04B5FDA154A5ull, "installed app.dll FNV is not the reviewed build");
+        const NativeHostConfiguration production_defaults;
+        require(production_defaults.expected_app_size == installed.size &&
+                production_defaults.expected_app_fnv64 == installed.fnv64,
+            "production host still rejects the reviewed November build");
     }
 
     void test_success_order_and_callback_copy(const Artifacts& artifacts, const std::filesystem::path& root)

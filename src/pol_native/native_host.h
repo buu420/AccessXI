@@ -29,8 +29,8 @@ namespace accessxi::pol_native
         HMODULE asi_module = nullptr;
         std::filesystem::path asi_path_override;
         std::filesystem::path app_path_override;
-        uint64_t expected_app_size = 4335104ull;
-        uint64_t expected_app_fnv64 = 0x07E88E8067FEF6CCull;
+        uint64_t expected_app_size = 6560512ull;
+        uint64_t expected_app_fnv64 = 0xF50D04B5FDA154A5ull;
         bool show_failure_dialog = true;
         std::chrono::milliseconds app_wait_timeout = std::chrono::seconds(30);
         std::chrono::milliseconds speech_ready_timeout = std::chrono::seconds(20);

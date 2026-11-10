@@ -69,7 +69,7 @@ foreach ($required in @($polExe, $appDll, $asiProxy, $stageAsi, $stageHook, $sta
 
 $appInfo = Get-Item -LiteralPath $appDll
 $appFnv64 = [AccessXiPolNativeFingerprint]::Compute($appDll)
-if ($appInfo.Length -ne 4335104 -or $appFnv64 -ne [UInt64]0x07E88E8067FEF6CC) {
+if ($appInfo.Length -ne 6560512 -or $appFnv64 -ne [Convert]::ToUInt64('F50D04B5FDA154A5', 16)) {
     throw ('PlayOnline app.dll is not the reviewed supported build. size={0} fnv64={1:X16}' -f $appInfo.Length, $appFnv64)
 }
 

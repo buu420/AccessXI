@@ -6,28 +6,29 @@
 
 namespace accessxi::pol_pml
 {
-    constexpr uintptr_t CpmlImageVtableRva = 0x003DB00Cu;
-    constexpr uintptr_t CpmlSheetVtableRva = 0x003E177Cu;
-    constexpr uintptr_t CpmlTextVtableRva = 0x003E40ECu;
-    constexpr uintptr_t CpmlFormSelectEditorVtableRva = 0x003D907Cu;
-    constexpr uintptr_t CButtonVtableRva = 0x0032DC2Cu;
-    constexpr uintptr_t CPulldownVtableRva = 0x0032F0ECu;
-    constexpr uintptr_t CComboBoxListVtableRva = 0x0032EA6Cu;
-    constexpr uintptr_t CListVtableRva = 0x003306CCu;
-    constexpr uintptr_t CDefaultListSelectionModelVtableRva = 0x0031DC7Cu;
+    // Layout of app.dll SHA256 97F99A0A... (November 2026), reviewed in Ghidra.
+    constexpr uintptr_t CpmlImageVtableRva = 0x00495224u;
+    constexpr uintptr_t CpmlSheetVtableRva = 0x0049BD94u;
+    constexpr uintptr_t CpmlTextVtableRva = 0x0049EDC4u;
+    constexpr uintptr_t CpmlFormSelectEditorVtableRva = 0x004940B0u;
+    constexpr uintptr_t CButtonVtableRva = 0x003CCB14u;
+    constexpr uintptr_t CPulldownVtableRva = 0x003CDB74u;
+    constexpr uintptr_t CComboBoxListVtableRva = 0x003CD578u;
+    constexpr uintptr_t CListVtableRva = 0x003CF5ACu;
+    constexpr uintptr_t CDefaultListSelectionModelVtableRva = 0x004AB6E8u;
 
-    constexpr uintptr_t NativePulldownListOffset = 0x1DCu;
-    constexpr uintptr_t NativePulldownComboBoxListOffset = 0x1E0u;
-    constexpr uintptr_t NativeComboBoxListOwnedListOffset = 0x220u;
-    constexpr uintptr_t NativeListDataModelOffset = 0x208u;
-    constexpr uintptr_t NativeListSelectionModelOffset = 0x210u;
-    constexpr uintptr_t NativeListHighlightIndexOffset = 0x21Au;
-    constexpr uintptr_t NativeListSelectionFirstIndexOffset = 0x18u;
-    constexpr uintptr_t NativeListSelectionLastIndexOffset = 0x1Cu;
+    constexpr uintptr_t NativePulldownListOffset = 0x1BCu;
+    constexpr uintptr_t NativePulldownComboBoxListOffset = 0x1C0u;
+    constexpr uintptr_t NativeComboBoxListOwnedListOffset = 0x200u;
+    constexpr uintptr_t NativeListDataModelOffset = 0x1E0u;
+    constexpr uintptr_t NativeListSelectionModelOffset = 0x1E8u;
+    constexpr uintptr_t NativeListHighlightIndexOffset = 0x1F2u;
+    constexpr uintptr_t NativeListSelectionFirstIndexOffset = 0x14u;
+    constexpr uintptr_t NativeListSelectionLastIndexOffset = 0x18u;
     constexpr uintptr_t NativeListSelectionMaximumSlotOffset = 0x24u;
     constexpr uintptr_t NativeListSelectionMinimumSlotOffset = 0x28u;
-    constexpr uintptr_t NativeListSelectionMaximumGetterRva = 0x00004740u;
-    constexpr uintptr_t NativeListSelectionMinimumGetterRva = 0x0000474Du;
+    constexpr uintptr_t NativeListSelectionMaximumGetterRva = 0x00289D39u;
+    constexpr uintptr_t NativeListSelectionMinimumGetterRva = 0x00289D44u;
 
     using ReadMemory = bool(*)(void* context, uintptr_t address, void* output, size_t size) noexcept;
 
@@ -55,6 +56,9 @@ namespace accessxi::pol_pml
         uint32_t other_child_count = 0;
         uintptr_t image = 0;
         uintptr_t image_vtable_rva = 0;
+        // Despite the historical names, these are the caption lengths the
+        // native getter tests for emptiness: the fields once read at +0x130
+        // and +0x14C were the old strings' sizes, now at +0x11C and +0x134.
         uint32_t primary_capacity_130 = 0;
         uint32_t alternate_capacity_14c = 0;
         uintptr_t linked_label_object = 0;
@@ -124,7 +128,7 @@ namespace accessxi::pol_pml
 
     // Reads the live row cursor used while the Add Member Set Password
     // CPulldown is open. Ghidra proves CList navigation writes a signed
-    // 16-bit row at +0x21A before Enter copies that row into the separate
+    // 16-bit row at +0x1F2 before Enter copies that row into the separate
     // selection model. Only the two values proven for this control are
     // accepted; closed, malformed, or changed layouts stay silent.
     NativePulldownHighlightSnapshot read_native_pulldown_highlight(

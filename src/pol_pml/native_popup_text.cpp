@@ -31,49 +31,49 @@ namespace accessxi::pol_pml
 
         constexpr std::array<uintptr_t, 10> ModalOkOwnerVtableRvas{
             ModalOkVtableRva,
-            0x00323D24u,
-            0x00336434u,
-            0x0033829Cu,
-            0x003C816Cu,
-            0x003CA074u,
-            0x003CA2D4u,
-            0x003CB0F4u,
-            0x003D492Cu,
-            0x003E7F54u,
+            0x00461D94u,
+            0x003C3514u,
+            0x003C53C0u,
+            0x00465D68u,
+            0x00467EC8u,
+            0x00468128u,
+            0x00467C68u,
+            0x0048EA38u,
+            0x004A3E84u,
         };
         constexpr std::array<uintptr_t, 7> ModalYesNoOwnerVtableRvas{
             ModalYesNoVtableRva,
-            0x00322394u,
-            0x00338524u,
-            0x003D3F54u,
-            0x003DCBC4u,
-            0x003E2A9Cu,
-            0x003E81BCu,
+            0x00461FF4u,
+            0x003C562Cu,
+            0x0048E290u,
+            0x0049780Cu,
+            0x0049D83Cu,
+            0x004A40E8u,
         };
         constexpr std::array<uintptr_t, 4>
             ModalYesNoCancelOwnerVtableRvas{
                 ModalYesNoCancelVtableRva,
-                0x003283D4u,
-                0x003387A4u,
-                0x003E8424u,
+                0x00462254u,
+                0x003C5898u,
+                0x004A434Cu,
             };
         constexpr std::array<uintptr_t, 2> ModalOkCancelOwnerVtableRvas{
             ModalOkCancelVtableRva,
-            0x003E868Cu,
+            0x004A45B0u,
         };
         constexpr std::array<uintptr_t, 3> ModalRetryFailOwnerVtableRvas{
             ModalRetryFailVtableRva,
-            0x00324744u,
-            0x003CA534u,
+            0x004B5578u,
+            0x00468388u,
         };
         constexpr std::array<uintptr_t, 3> NoticeOwnerVtableRvas{
             NoticeWindowVtableRva,
-            0x003CE96Cu,
-            0x003CF074u,
+            0x0046C574u,
+            0x0046CC80u,
         };
         constexpr std::array<uintptr_t, 2> ImportantNoticeOwnerVtableRvas{
             ImportantNoticeVtableRva,
-            0x003CF2CCu,
+            0x0046CED8u,
         };
 
         enum class ComponentVisibility : uint8_t
@@ -112,7 +112,7 @@ namespace accessxi::pol_pml
         {
             uintptr_t flags_field = 0;
             uint8_t flags = 0;
-            if (!add_address(object, 0x18, flags_field) ||
+            if (!add_address(object, 0x14, flags_field) ||
                 !read_value(memory, flags_field, flags))
             {
                 return ComponentVisibility::unknown;
@@ -139,47 +139,47 @@ namespace accessxi::pol_pml
         {
             if (contains_vtable(ModalOkOwnerVtableRvas, vtable_rva))
             {
-                result = { PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, { 0x2B8, 0, 0 }, 1 };
+                result = { PopupOwnerKind::modal_ok, PopupSpeechMode::interrupt, { 0x290, 0, 0 }, 1 };
                 return true;
             }
             if (contains_vtable(
                     ModalYesNoOwnerVtableRvas,
                     vtable_rva))
             {
-                result = { PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
+                result = { PopupOwnerKind::modal_yes_no, PopupSpeechMode::interrupt, { 0x294, 0, 0 }, 1 };
                 return true;
             }
             if (contains_vtable(
                     ModalYesNoCancelOwnerVtableRvas,
                     vtable_rva))
             {
-                result = { PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, { 0x2C0, 0, 0 }, 1 };
+                result = { PopupOwnerKind::modal_yes_no_cancel, PopupSpeechMode::interrupt, { 0x298, 0, 0 }, 1 };
                 return true;
             }
             if (contains_vtable(
                     ModalOkCancelOwnerVtableRvas,
                     vtable_rva))
             {
-                result = { PopupOwnerKind::modal_ok_cancel, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
+                result = { PopupOwnerKind::modal_ok_cancel, PopupSpeechMode::interrupt, { 0x294, 0, 0 }, 1 };
                 return true;
             }
             if (contains_vtable(
                     ModalRetryFailOwnerVtableRvas,
                     vtable_rva))
             {
-                result = { PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, { 0x2BC, 0, 0 }, 1 };
+                result = { PopupOwnerKind::modal_retry_fail, PopupSpeechMode::interrupt, { 0x294, 0, 0 }, 1 };
                 return true;
             }
             if (contains_vtable(NoticeOwnerVtableRvas, vtable_rva))
             {
-                result = { PopupOwnerKind::notice, PopupSpeechMode::queued, { 0x2A8, 0x2AC, 0x2B0 }, 3 };
+                result = { PopupOwnerKind::notice, PopupSpeechMode::queued, { 0x280, 0x284, 0x288 }, 3 };
                 return true;
             }
             if (contains_vtable(
                     ImportantNoticeOwnerVtableRvas,
                     vtable_rva))
             {
-                result = { PopupOwnerKind::important_notice, PopupSpeechMode::queued, { 0x2AC, 0x2B0, 0 }, 2 };
+                result = { PopupOwnerKind::important_notice, PopupSpeechMode::queued, { 0x284, 0x288, 0 }, 2 };
                 return true;
             }
             return false;
@@ -266,9 +266,9 @@ namespace accessxi::pol_pml
             uintptr_t begin_field = 0;
             uintptr_t end_field = 0;
             uintptr_t length_field = 0;
-            if (!add_address(label, 0x184, begin_field) ||
-                !add_address(label, 0x188, end_field) ||
-                !add_address(label, 0x21A, length_field))
+            if (!add_address(label, 0x168, begin_field) ||
+                !add_address(label, 0x16C, end_field) ||
+                !add_address(label, 0x1FA, length_field))
             {
                 return result;
             }

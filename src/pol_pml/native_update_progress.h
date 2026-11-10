@@ -9,7 +9,7 @@
 
 namespace accessxi::pol_pml
 {
-    constexpr uintptr_t UpgradeProgressWindowVtableRva = 0x003D1DB4u;
+    constexpr uintptr_t UpgradeProgressWindowVtableRva = 0x004706F0u;
 
     enum class UpdateProgressInspectionState : uint8_t
     {

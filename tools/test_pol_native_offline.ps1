@@ -9,6 +9,11 @@ $repo = [System.IO.Path]::GetFullPath($RepoRoot)
 $build = Join-Path $repo 'build'
 $env:ASHITA4_SDK_PATH = [System.IO.Path]::GetFullPath($AshitaSdk)
 
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\test_pol_native_build.ps1') -RepoRoot $repo
+if ($LASTEXITCODE -ne 0) {
+    throw "Native binary ABI fixture failed with exit $LASTEXITCODE"
+}
+
 cmake -S $repo -B $build -A Win32
 if ($LASTEXITCODE -ne 0) {
     throw "Win32 CMake configuration failed with exit $LASTEXITCODE"
@@ -25,6 +30,11 @@ if ($LASTEXITCODE -ne 0) {
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\test_pol_native_hook_abi.ps1') -RepoRoot $repo
 if ($LASTEXITCODE -ne 0) {
     throw "Native hook ABI regression failed with exit $LASTEXITCODE"
+}
+
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\test_pol_prelogin_native_focus.ps1') -SourcePath (Join-Path $repo 'src\accessxi_pol.cpp')
+if ($LASTEXITCODE -ne 0) {
+    throw "Native login focus regression failed with exit $LASTEXITCODE"
 }
 
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\test_pol_postlogin_trace_integration.ps1') -RepoRoot $repo

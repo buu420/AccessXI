@@ -62,13 +62,13 @@ Assert-Contains $cmake 'add_library\s*\(\s*accessxi_pol_hook[\s\S]*?src/pol_pml/
     'The production hook DLL must link the strict popup reader.'
 
 $constants = @{
-    ModalOkConstructorRva = '000D1842'
-    ModalYesNoConstructorRva = '000D1B45'
-    ModalYesNoCancelConstructorRva = '000D1E5E'
-    ModalOkCancelConstructorRva = '000D2B16'
-    ModalRetryFailConstructorRva = '000D32FB'
-    NoticeWindowConstructorRva = '000A6485'
-    ImportantNoticeConstructorRva = '000A9CCB'
+    ModalOkConstructorRva = '000DAD07'
+    ModalYesNoConstructorRva = '000DB573'
+    ModalYesNoCancelConstructorRva = '000DB849'
+    ModalOkCancelConstructorRva = '000DAFC7'
+    ModalRetryFailConstructorRva = '000DB29D'
+    NoticeWindowConstructorRva = '000B5DAB'
+    ImportantNoticeConstructorRva = '000B5A74'
 }
 foreach ($entry in $constants.GetEnumerator()) {
     Assert-Contains $source (
@@ -79,21 +79,21 @@ Assert-Contains $source 'PopupConstructorPatchSize\s*=\s*7' `
     'Popup constructors must steal only the two complete non-relative entry instructions.'
 
 $destructorConstants = @{
-    ModalOkBaseDestructorRva = '000BD4F0'
-    ModalYesNoBaseDestructorRva = '000BD55E'
-    ModalYesNoCancelBaseDestructorRva = '000BD5CC'
-    ModalOkCancelBaseDestructorRva = '000BDA4E'
-    ModalRetryFailBaseDestructorRva = '000BDB2A'
-    NoticeWindowBaseDestructorRva = '000A6668'
-    ImportantNoticeBaseDestructorRva = '000A6AC0'
+    ModalOkBaseDestructorRva = '000EC6E1'
+    ModalYesNoBaseDestructorRva = '000EC798'
+    ModalYesNoCancelBaseDestructorRva = '000EC7D5'
+    ModalOkCancelBaseDestructorRva = '000EC71E'
+    ModalRetryFailBaseDestructorRva = '000EC75B'
+    NoticeWindowBaseDestructorRva = '000C020D'
+    ImportantNoticeBaseDestructorRva = '000C01E4'
 }
 foreach ($entry in $destructorConstants.GetEnumerator()) {
     Assert-Contains $source (
         [regex]::Escape($entry.Key) + '\s*=\s*0x' + $entry.Value + 'u'
     ) "Missing Ghidra-proven popup base-destructor constant $($entry.Key)."
 }
-Assert-Contains $source 'PopupEhBaseDestructorPatchSize\s*=\s*7' `
-    'EH-prologue popup base destructors must steal their complete seven-byte prefix.'
+Assert-Contains $source 'PopupModalBaseDestructorPatchSize\s*=\s*10' `
+    'Modal base destructors must steal their complete ten-byte prefix.'
 Assert-Contains $source 'PopupNoticeBaseDestructorPatchSize\s*=\s*6' `
     'The notice base destructor must steal only its complete first six-byte instruction.'
 
@@ -275,7 +275,7 @@ Assert-Contains $iteration 'process_popup_notice_text\s*\(' `
 Assert-Before $iteration 'process_popup_notice_text' 'process_queued_current_child_candidate' `
     'Popup bodies must be processed before ordinary queued focus speech.'
 
-Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability' `
+Assert-Contains $source 'PRELOGIN_TEXTSETTER hook-disabled reason=crash-stability' `
     'The crash-prone generic PML text-setter hook must remain disabled.'
 Assert-NotContains $module 'OCR|DrawText|best_native_pml_text_from_object' `
     'The pure popup reader must not acquire guessed or rendered global text.'

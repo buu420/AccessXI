@@ -16,7 +16,31 @@ namespace accessxi::pol_pml
         constexpr size_t MaximumLabelCharacters = 120;
         constexpr size_t MaximumRenderedLines = 8;
         constexpr size_t MaximumRenderedFragmentsPerLine = 32;
-        constexpr uintptr_t RenderedTextFragmentVtableRva = 0x003E4A1Cu;
+
+        // November 2026 layout; the Ghidra RVA beside each value proves it.
+        constexpr uintptr_t RenderedTextFragmentVtableRva = 0x0049EA7Cu;    // 2459ab
+        constexpr uintptr_t PmlTextLiteralModelOffset = 0x214u;             // 2207cb
+        constexpr uintptr_t PmlTextModelStreamOffset = 0x04u;               // 249992
+        constexpr uintptr_t PmlTextRenderedLinesOffset = 0x1ACu;            // 24934e
+        constexpr uintptr_t RenderedLineFragmentsOffset = 0x20u;            // 246176, 249426
+        constexpr uintptr_t RenderedFragmentCharactersOffset = 0x28u;       // 2459ab, 246d65
+        constexpr uintptr_t RenderedFragmentLengthOffset = 0x2Cu;
+        // std::list: head node then size; each node is { next, previous, value }.
+        constexpr uintptr_t NativeListHeadOffset = 0x00u;                   // 24ba50
+        constexpr uintptr_t NativeListSizeOffset = 0x04u;
+        constexpr uintptr_t ContainerChildrenBeginOffset = 0x170u;          // 82c4c, 83024
+        constexpr uintptr_t ContainerChildrenEndOffset = 0x174u;
+        // The captions behind CComponent's virtual getter at vtable +0x124.
+        constexpr uintptr_t ComponentPrimaryTextOffset = 0x10Cu;            // 289cbc
+        constexpr uintptr_t ComponentAlternateTextOffset = 0x124u;
+        constexpr uintptr_t ComponentLinkedLabelOffset = 0x13Cu;
+        // std::wstring: inline buffer or heap pointer, then size and capacity.
+        constexpr uintptr_t WideStringSizeOffset = 0x10u;                   // 289cbc
+        constexpr uintptr_t WideStringCapacityOffset = 0x14u;
+        // CButton inherits CLabel's text vector and signed visible length.
+        constexpr uintptr_t LabelTextBeginOffset = 0x168u;                  // 8d574, 7fcc9
+        constexpr uintptr_t LabelTextEndOffset = 0x16Cu;
+        constexpr uintptr_t LabelTextLengthOffset = 0x1FAu;
 
         bool address_range_fits(uintptr_t address, size_t size) noexcept
         {
@@ -60,7 +84,7 @@ namespace accessxi::pol_pml
             uintptr_t object) noexcept
         {
             uintptr_t model_field = 0;
-            if (!add_address(object, 0x244, model_field))
+            if (!add_address(object, PmlTextLiteralModelOffset, model_field))
                 return {};
 
             uintptr_t model = 0;
@@ -68,7 +92,7 @@ namespace accessxi::pol_pml
                 return {};
 
             uintptr_t stream_field = 0;
-            if (!add_address(model, 4, stream_field))
+            if (!add_address(model, PmlTextModelStreamOffset, stream_field))
                 return {};
 
             uintptr_t stream = 0;
@@ -140,8 +164,8 @@ namespace accessxi::pol_pml
 
             uintptr_t head_field = 0;
             uintptr_t count_field = 0;
-            if (!add_address(container, 4, head_field) ||
-                !add_address(container, 8, count_field))
+            if (!add_address(container, NativeListHeadOffset, head_field) ||
+                !add_address(container, NativeListSizeOffset, count_field))
             {
                 return false;
             }
@@ -213,8 +237,8 @@ namespace accessxi::pol_pml
         {
             uintptr_t characters_field = 0;
             uintptr_t length_field = 0;
-            if (!add_address(fragment, 0x28, characters_field) ||
-                !add_address(fragment, 0x2C, length_field))
+            if (!add_address(fragment, RenderedFragmentCharactersOffset, characters_field) ||
+                !add_address(fragment, RenderedFragmentLengthOffset, length_field))
             {
                 return false;
             }
@@ -279,8 +303,8 @@ namespace accessxi::pol_pml
         {
             uintptr_t length_field = 0;
             uintptr_t capacity_field = 0;
-            if (!add_address(field, 0x10, length_field) ||
-                !add_address(field, 0x14, capacity_field))
+            if (!add_address(field, WideStringSizeOffset, length_field) ||
+                !add_address(field, WideStringCapacityOffset, capacity_field))
             {
                 return {};
             }
@@ -357,7 +381,7 @@ namespace accessxi::pol_pml
             uintptr_t image) noexcept
         {
             uintptr_t alt_field = 0;
-            if (!add_address(image, 0x11C, alt_field))
+            if (!add_address(image, ComponentPrimaryTextOffset, alt_field))
                 return {};
             return read_native_wide_string_field(memory, alt_field);
         }
@@ -368,7 +392,7 @@ namespace accessxi::pol_pml
             uintptr_t app_base) noexcept
         {
             uintptr_t lines_container = 0;
-            if (!add_address(object, 0x1CC, lines_container))
+            if (!add_address(object, PmlTextRenderedLinesOffset, lines_container))
                 return {};
 
             std::vector<uintptr_t> lines;
@@ -379,7 +403,7 @@ namespace accessxi::pol_pml
             for (const uintptr_t line : lines)
             {
                 uintptr_t fragments_container = 0;
-                if (!add_address(line, 0x20, fragments_container))
+                if (!add_address(line, RenderedLineFragmentsOffset, fragments_container))
                     return {};
 
                 std::vector<uintptr_t> fragments;
@@ -427,8 +451,8 @@ namespace accessxi::pol_pml
             children.clear();
             uintptr_t begin_field = 0;
             uintptr_t end_field = 0;
-            if (!add_address(sheet, 0x18C, begin_field) ||
-                !add_address(sheet, 0x190, end_field))
+            if (!add_address(sheet, ContainerChildrenBeginOffset, begin_field) ||
+                !add_address(sheet, ContainerChildrenEndOffset, end_field))
             {
                 return {};
             }
@@ -547,9 +571,9 @@ namespace accessxi::pol_pml
             uintptr_t begin_field = 0;
             uintptr_t end_field = 0;
             uintptr_t length_field = 0;
-            if (!add_address(button, 0x184, begin_field) ||
-                !add_address(button, 0x188, end_field) ||
-                !add_address(button, 0x21A, length_field))
+            if (!add_address(button, LabelTextBeginOffset, begin_field) ||
+                !add_address(button, LabelTextEndOffset, end_field) ||
+                !add_address(button, LabelTextLengthOffset, length_field))
             {
                 return {};
             }
@@ -664,11 +688,11 @@ namespace accessxi::pol_pml
         inspection.matched = true;
 
         uintptr_t field = 0;
-        if (add_address(inspection.image, 0x130, field))
+        if (add_address(inspection.image, ComponentPrimaryTextOffset + WideStringSizeOffset, field))
             read_value(memory, field, inspection.primary_capacity_130);
-        if (add_address(inspection.image, 0x14C, field))
+        if (add_address(inspection.image, ComponentAlternateTextOffset + WideStringSizeOffset, field))
             read_value(memory, field, inspection.alternate_capacity_14c);
-        if (add_address(inspection.image, 0x154, field))
+        if (add_address(inspection.image, ComponentLinkedLabelOffset, field))
             read_value(memory, field, inspection.linked_label_object);
         if (inspection.linked_label_object >= MinimumObjectAddress)
         {
@@ -679,9 +703,9 @@ namespace accessxi::pol_pml
                 inspection.linked_label_vtable_rva);
         }
 
-        if (add_address(inspection.image, 0x11C, field))
+        if (add_address(inspection.image, ComponentPrimaryTextOffset, field))
             inspection.primary_alt = read_native_wide_string_field(memory, field);
-        if (add_address(inspection.image, 0x138, field))
+        if (add_address(inspection.image, ComponentAlternateTextOffset, field))
             inspection.alternate_alt = read_native_wide_string_field(memory, field);
         return inspection;
     }

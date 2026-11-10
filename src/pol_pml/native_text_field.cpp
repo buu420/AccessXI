@@ -82,6 +82,65 @@ namespace accessxi::pol_pml
             return true;
         }
 
+        // Reads the control an owner holds at a proven offset and identifies
+        // its exact class.
+        bool read_owned_control(
+            const MemoryView& memory,
+            uintptr_t owner,
+            uintptr_t offset,
+            uintptr_t app_base,
+            uintptr_t& control,
+            uintptr_t& control_rva) noexcept
+        {
+            uintptr_t control_field = 0;
+            return add_address(owner, offset, control_field) &&
+                read_value(memory, control_field, control) &&
+                object_vtable_rva(memory, control, app_base, control_rva);
+        }
+
+        // Every scroll wrapper owns its field at +0x208 (9994c). A plain
+        // CScrollTextField may own either field class; each PML wrapper is
+        // built around exactly one (21c961, 21c8e4).
+        bool resolve_scroll_wrapper(
+            const MemoryView& memory,
+            uintptr_t wrapper,
+            uintptr_t wrapper_rva,
+            uintptr_t app_base,
+            uintptr_t& field,
+            NativeTextFieldKind& kind) noexcept
+        {
+            uintptr_t field_rva = 0;
+            if (!read_owned_control(
+                    memory,
+                    wrapper,
+                    NativeScrollTextFieldInnerControlOffset,
+                    app_base,
+                    field,
+                    field_rva))
+            {
+                return false;
+            }
+
+            const bool plain_wrapper = wrapper_rva == CScrollTextFieldVtableRva;
+            if (field_rva == CTextFieldVtableRva &&
+                (plain_wrapper || wrapper_rva == CpmlFcScrollTextVtableRva))
+            {
+                kind = NativeTextFieldKind::text;
+                return true;
+            }
+            if (field_rva == CPasswordFieldVtableRva &&
+                (plain_wrapper || wrapper_rva == CpmlFcScrollPasswordVtableRva))
+            {
+                kind = NativeTextFieldKind::password;
+                return true;
+            }
+            return false;
+        }
+
+        // A field is reached in at most two proven links: from itself, from
+        // a scroll wrapper, or from a PML form through the scroll wrapper its
+        // constructor built (21d309, 21d099). A form never owns a bare field;
+        // the only other write to that link clears it (21d662).
         bool resolve_exact_field(
             const MemoryView& memory,
             uintptr_t object,
@@ -106,65 +165,44 @@ namespace accessxi::pol_pml
                 return true;
             }
 
-            uintptr_t expected_inner_rva = 0;
-            uintptr_t inner_control_offset =
-                NativeFormFieldInnerControlOffset;
-            if (object_rva == CScrollTextFieldVtableRva)
+            if (object_rva == CScrollTextFieldVtableRva ||
+                object_rva == CpmlFcScrollTextVtableRva ||
+                object_rva == CpmlFcScrollPasswordVtableRva)
             {
-                inner_control_offset =
-                    NativeScrollTextFieldInnerControlOffset;
-            }
-            else if (object_rva == CpmlFormTextVtableRva)
-            {
-                expected_inner_rva = CTextFieldVtableRva;
-                kind = NativeTextFieldKind::text;
-            }
-            else if (object_rva == CpmlFormPasswordVtableRva)
-            {
-                expected_inner_rva = CPasswordFieldVtableRva;
-                kind = NativeTextFieldKind::password;
-            }
-            else
-            {
-                return false;
-            }
-
-            uintptr_t inner_field_address = 0;
-            if (!add_address(
-                    object,
-                    inner_control_offset,
-                    inner_field_address) ||
-                !read_value(memory, inner_field_address, field) ||
-                field < MinimumObjectAddress)
-            {
-                return false;
-            }
-
-            uintptr_t inner_rva = 0;
-            if (!object_vtable_rva(
+                return resolve_scroll_wrapper(
                     memory,
-                    field,
+                    object,
+                    object_rva,
                     app_base,
-                    inner_rva))
-            {
-                return false;
+                    field,
+                    kind);
             }
 
-            if (object_rva == CScrollTextFieldVtableRva)
-            {
-                if (inner_rva == CTextFieldVtableRva)
-                {
-                    kind = NativeTextFieldKind::text;
-                    return true;
-                }
-                if (inner_rva == CPasswordFieldVtableRva)
-                {
-                    kind = NativeTextFieldKind::password;
-                    return true;
-                }
+            uintptr_t expected_wrapper_rva = 0;
+            if (object_rva == CpmlFormTextVtableRva)
+                expected_wrapper_rva = CpmlFcScrollTextVtableRva;
+            else if (object_rva == CpmlFormPasswordVtableRva)
+                expected_wrapper_rva = CpmlFcScrollPasswordVtableRva;
+            else
                 return false;
-            }
-            return inner_rva == expected_inner_rva;
+
+            uintptr_t wrapper = 0;
+            uintptr_t wrapper_rva = 0;
+            return read_owned_control(
+                    memory,
+                    object,
+                    NativeFormFieldInnerControlOffset,
+                    app_base,
+                    wrapper,
+                    wrapper_rva) &&
+                wrapper_rva == expected_wrapper_rva &&
+                resolve_scroll_wrapper(
+                    memory,
+                    wrapper,
+                    wrapper_rva,
+                    app_base,
+                    field,
+                    kind);
         }
 
         bool read_exact_model(

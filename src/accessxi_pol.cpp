@@ -28,42 +28,42 @@ namespace
     constexpr const wchar_t* DefaultLogFileName = L"pol-monitor.log";
     constexpr const wchar_t* DefaultPolUiTraceFileName = L"pol-ui-native-trace.tsv";
 
-    constexpr uintptr_t AppRuntimeBase = 0x04810000u;
-    constexpr uintptr_t PmlSharedFocusEventRva = 0x0005BBF5u;
-    constexpr uintptr_t PmlSelectFocusEventRva = 0x00081D59u;
-    constexpr uintptr_t NativeSelectionRegisterRva = 0x00009E62u;
-    constexpr uintptr_t SelectedIndexSetterRva = 0x001DD903u;
-    constexpr uintptr_t PmlIndexedChildAtRva = 0x00102B3Bu;
-    constexpr uintptr_t PmlCurrentChildSetterRva = 0x000044F1u;
-    constexpr uintptr_t PmlTextSetterRva = 0x00064156u;
-    constexpr uintptr_t ModalOkConstructorRva = 0x000D1842u;
-    constexpr uintptr_t ModalYesNoConstructorRva = 0x000D1B45u;
-    constexpr uintptr_t ModalYesNoCancelConstructorRva = 0x000D1E5Eu;
-    constexpr uintptr_t ModalOkCancelConstructorRva = 0x000D2B16u;
-    constexpr uintptr_t ModalRetryFailConstructorRva = 0x000D32FBu;
-    constexpr uintptr_t NoticeWindowConstructorRva = 0x000A6485u;
-    constexpr uintptr_t ImportantNoticeConstructorRva = 0x000A9CCBu;
-    constexpr uintptr_t ModalOkBaseDestructorRva = 0x000BD4F0u;
-    constexpr uintptr_t ModalYesNoBaseDestructorRva = 0x000BD55Eu;
-    constexpr uintptr_t ModalYesNoCancelBaseDestructorRva = 0x000BD5CCu;
-    constexpr uintptr_t ModalOkCancelBaseDestructorRva = 0x000BDA4Eu;
-    constexpr uintptr_t ModalRetryFailBaseDestructorRva = 0x000BDB2Au;
-    constexpr uintptr_t NoticeWindowBaseDestructorRva = 0x000A6668u;
-    constexpr uintptr_t ImportantNoticeBaseDestructorRva = 0x000A6AC0u;
+    constexpr uintptr_t PmlSharedFocusEventRva = 0x00083442u;
+    constexpr uintptr_t PmlSelectFocusEventRva = 0x000AB3D9u;
+    constexpr uintptr_t SelectedIndexSetterRva = 0x0022AD04u;
+    constexpr uintptr_t PmlCurrentChildSetterRva = 0x00289924u;
+    constexpr uintptr_t ModalOkConstructorRva = 0x000DAD07u;
+    constexpr uintptr_t ModalYesNoConstructorRva = 0x000DB573u;
+    constexpr uintptr_t ModalYesNoCancelConstructorRva = 0x000DB849u;
+    constexpr uintptr_t ModalOkCancelConstructorRva = 0x000DAFC7u;
+    constexpr uintptr_t ModalRetryFailConstructorRva = 0x000DB29Du;
+    constexpr uintptr_t NoticeWindowConstructorRva = 0x000B5DABu;
+    constexpr uintptr_t ImportantNoticeConstructorRva = 0x000B5A74u;
+    constexpr uintptr_t ModalOkBaseDestructorRva = 0x000EC6E1u;
+    constexpr uintptr_t ModalYesNoBaseDestructorRva = 0x000EC798u;
+    constexpr uintptr_t ModalYesNoCancelBaseDestructorRva = 0x000EC7D5u;
+    constexpr uintptr_t ModalOkCancelBaseDestructorRva = 0x000EC71Eu;
+    constexpr uintptr_t ModalRetryFailBaseDestructorRva = 0x000EC75Bu;
+    constexpr uintptr_t NoticeWindowBaseDestructorRva = 0x000C020Du;
+    constexpr uintptr_t ImportantNoticeBaseDestructorRva = 0x000C01E4u;
     constexpr size_t PopupConstructorPatchSize = 7;
-    constexpr size_t PopupEhBaseDestructorPatchSize = 7;
+    constexpr size_t PopupModalBaseDestructorPatchSize = 10;
+    constexpr size_t PopupImportantBaseDestructorPatchSize = 9;
+    constexpr size_t FocusEventPatchSize = 6;
+    constexpr size_t CurrentChildPatchSize = 7;
+    constexpr size_t SelectedIndexPatchSize = 7;
     constexpr size_t PopupNoticeBaseDestructorPatchSize = 6;
     constexpr size_t PopupOwnerKindCount = 8;
-    constexpr uintptr_t PmlGlobalFocusManagerRva = 0x004E13C8u;
-    constexpr uintptr_t CPolTableVtableRva = 0x0033219Cu;
-    constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x003CF8E4u;
-    constexpr uintptr_t CLoginMemberDataVtableRva = 0x003CF800u;
-    constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x001AF193u;
-    constexpr uintptr_t PreloginMemberNameAccessorRva = 0x0001CFB1u;
-    constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0048E592u;
-    constexpr uintptr_t UpgradeProgressOwnerGlobalRva = 0x005074E0u;
-    constexpr unsigned long long KnownUpdatedAppDllSize = 4335104ull;
-    constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0x07E88E8067FEF6CCull;
+    constexpr uintptr_t PmlGlobalFocusManagerRva = 0x00695F9Cu;
+    constexpr uintptr_t CPolTableVtableRva = 0x003D135Cu;
+    constexpr uintptr_t CLoginMemberListDataModelVtableRva = 0x0046D54Cu;
+    constexpr uintptr_t CLoginMemberDataVtableRva = 0x0046D488u;
+    constexpr uintptr_t CLoginMemberListGetValueAtRva = 0x00141F1Eu;
+    constexpr uintptr_t PreloginMemberNameAccessorRva = 0x002A1926u;
+    constexpr uintptr_t PreloginMemberNameWideGlobalRva = 0x0056F182u;
+    constexpr uintptr_t UpgradeProgressOwnerGlobalRva = 0x0062C770u;
+    constexpr unsigned long long KnownUpdatedAppDllSize = 6560512ull;
+    constexpr unsigned long long KnownUpdatedAppDllFnv64 = 0xF50D04B5FDA154A5ull;
     constexpr DWORD AddMemberContextCacheTtlMs = 60000;
 
     using AccessXiPolSpeechSinkV1 = void (__stdcall *)(
@@ -445,7 +445,7 @@ namespace
             std::snprintf(hash_text, sizeof(hash_text), "%016llX", fingerprint);
             line += hash_text;
             line += " expectedSize=" + std::to_string(KnownUpdatedAppDllSize);
-            line += " expectedFnv64=07E88E8067FEF6CC path=\"";
+            line += " expectedFnv64=F50D04B5FDA154A5 path=\"";
             line += narrow_from_wide(path);
             line += "\" action=skip-native-hooks update=finish-playonline-update";
             log_line(line.c_str());
@@ -972,15 +972,15 @@ namespace
             return false;
 
         uintptr_t child = 0;
-        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &child) && child == reinterpret_cast<uintptr_t>(focused_object))
+        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x14C, &child) && child == reinterpret_cast<uintptr_t>(focused_object))
             return true;
 
         uintptr_t focus160 = 0;
-        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x160, &focus160) && focus160 == reinterpret_cast<uintptr_t>(focused_object))
+        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x148, &focus160) && focus160 == reinterpret_cast<uintptr_t>(focused_object))
             return true;
 
         uintptr_t focus1c0 = 0;
-        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1c0, &focus1c0) && focus1c0 == reinterpret_cast<uintptr_t>(focused_object))
+        if (read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1A0, &focus1c0) && focus1c0 == reinterpret_cast<uintptr_t>(focused_object))
             return true;
 
         return false;
@@ -995,10 +995,10 @@ namespace
         uint32_t top = 0;
         uint32_t right = 0;
         uint32_t bottom = 0;
-        if (!read_u32_safely(static_cast<const uint8_t*>(object) + 0x54, &left) ||
-            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x58, &top) ||
-            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x5C, &right) ||
-            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x60, &bottom))
+        if (!read_u32_safely(static_cast<const uint8_t*>(object) + 0x4C, &left) ||
+            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x50, &top) ||
+            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x54, &right) ||
+            !read_u32_safely(static_cast<const uint8_t*>(object) + 0x58, &bottom))
         {
             return false;
         }
@@ -1093,8 +1093,8 @@ namespace
         roots.push_back(base);
 
         static const uintptr_t same_rect_child_offsets[] = {
-            0x154u,
-            0x158u
+            0x13Cu,
+            0x140u
         };
 
         PreloginRect base_rect{};
@@ -1232,7 +1232,7 @@ namespace
             return false;
         if (static_label != "Member List")
             return false;
-        if (label_source_offset != 0x114)
+        if (label_source_offset != 0x10C)
             return false;
         if (atlas_resource != 0)
             return false;
@@ -1456,8 +1456,8 @@ namespace
             {
                 const uintptr_t node = candidates[index];
                 uintptr_t parents[] = { 0, 0 };
-                read_ptr_safely(reinterpret_cast<const void*>(node + 0x154), &parents[0]);
-                read_ptr_safely(reinterpret_cast<const void*>(node + 0x158), &parents[1]);
+                read_ptr_safely(reinterpret_cast<const void*>(node + 0x13C), &parents[0]);
+                read_ptr_safely(reinterpret_cast<const void*>(node + 0x140), &parents[1]);
 
                 for (uintptr_t parent : parents)
                 {
@@ -1683,10 +1683,10 @@ namespace
         PreloginRect rect{};
         const bool have_rect = read_prelogin_object_rect(current_child_object, &rect);
         uint32_t f154 = 0, f158 = 0, f160 = 0, f164 = 0, f188 = 0, f18c = 0, f190 = 0, f194 = 0, f198 = 0, f19c = 0;
-        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x154, &f154);
-        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x158, &f158);
-        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x160, &f160);
-        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x164, &f164);
+        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x13C, &f154);
+        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x140, &f158);
+        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x148, &f160);
+        read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x14C, &f164);
         read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x188, &f188);
         read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x18C, &f18c);
         read_u32_safely(static_cast<const uint8_t*>(current_child_object) + 0x190, &f190);
@@ -1748,7 +1748,7 @@ namespace
         if (!snapshot_current_child &&
             manager != nullptr &&
             focused_object != nullptr &&
-            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &real_current_child) &&
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x14C, &real_current_child) &&
             real_current_child != 0 &&
             real_current_child != reinterpret_cast<uintptr_t>(focused_object))
         {
@@ -1840,7 +1840,7 @@ namespace
 
         auto* manager = reinterpret_cast<void*>(manager_value);
         uintptr_t current_child = 0;
-        if (!read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &current_child) || current_child == 0)
+        if (!read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x14C, &current_child) || current_child == 0)
         {
             g_last_sampled_prelogin_focus_manager = manager_value;
             g_last_sampled_prelogin_focus_child = 0;
@@ -2013,7 +2013,10 @@ namespace
                    accessxi::pol_pml::CPasswordFieldVtableRva) ||
             native_object_has_vtable_rva(
                    object,
-                   accessxi::pol_pml::CpmlFormPasswordVtableRva))
+                accessxi::pol_pml::CpmlFormPasswordVtableRva) ||
+            native_object_has_vtable_rva(
+                object,
+                accessxi::pol_pml::CpmlFcScrollPasswordVtableRva))
         {
             return true;
         }
@@ -2107,6 +2110,19 @@ namespace
             return {};
 
         const accessxi::pol_pml::MemoryView memory{ read_pol_pml_memory, nullptr };
+        const auto inspection = accessxi::pol_pml::inspect_selected_image_path(
+            memory,
+            reinterpret_cast<uintptr_t>(object),
+            reinterpret_cast<uintptr_t>(app),
+            captured_nested_child);
+        if (inspection.matched &&
+            (!inspection.object_is_sheet || inspection.text_child_count == 0))
+        {
+            // November's modern string layout makes the raw image caption
+            // readable. Keep image speech on the native getter path below:
+            // it checks both states and removes the PML formatting marker.
+            return {};
+        }
         const std::u16string native_text = accessxi::pol_pml::read_selected_control_text(
             memory,
             reinterpret_cast<uintptr_t>(object),
@@ -2302,8 +2318,8 @@ namespace
         PreloginRect base_rect{};
         const bool have_base_rect = read_prelogin_object_rect(object, &base_rect);
         static const uintptr_t same_rect_child_offsets[] = {
-            0x154u,
-            0x158u
+            0x13Cu,
+            0x140u
         };
 
         for (const uintptr_t same_rect_child_offset : same_rect_child_offsets)
@@ -2387,9 +2403,8 @@ namespace
                 0x114u,
                 0x124u,
                 0x128u,
+                0x13Cu,
                 0x140u,
-                0x154u,
-                0x158u,
                 0x18Cu,
                 0x190u,
                 0x194u,
@@ -3189,9 +3204,8 @@ namespace
         add_pol_ui_trace_candidate(snapshot, 0, "inline-this-w", read_pol_ui_pml_inline_wide_text(base));
 
         static constexpr uintptr_t offsets[] = {
-            0x004u, 0x014u, 0x018u, 0x0C4u, 0x114u, 0x11Cu, 0x124u, 0x128u,
-            0x138u,
-            0x154u, 0x158u, 0x160u, 0x164u, 0x188u, 0x18Cu,
+            0x004u, 0x014u, 0x018u, 0x0C4u, 0x10Cu, 0x124u, 0x128u,
+            0x13Cu, 0x140u, 0x148u, 0x14Cu, 0x188u, 0x18Cu,
             0x190u, 0x194u, 0x198u, 0x19Cu
         };
 
@@ -3258,9 +3272,9 @@ namespace
 
         if (manager != nullptr)
         {
-            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x160, &snapshot.focus_160);
-            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &snapshot.focus_164);
-            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1C0, &snapshot.focus_1c0);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x148, &snapshot.focus_160);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x14C, &snapshot.focus_164);
+            read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x1A0, &snapshot.focus_1c0);
         }
 
         if (object != nullptr)
@@ -4130,7 +4144,45 @@ namespace
             prefix[1] == 0x01 &&
             prefix[6] == 0xC7 &&
             prefix[7] == 0x41 &&
-            prefix[8] == 0x20;
+            prefix[8] == 0x1C;
+    }
+
+    template<size_t Size>
+    bool native_prefix_ready_or_installed(
+        const uint8_t* target,
+        const uint8_t (&expected)[Size],
+        const void* trampoline) noexcept
+    {
+        if (trampoline != nullptr)
+            return true;
+        uint8_t actual[Size]{};
+        return target != nullptr &&
+            copy_memory_safely(actual, target, Size) &&
+            std::memcmp(actual, expected, Size) == 0;
+    }
+
+    bool popup_modal_base_destructor_ready_or_installed(
+        const uint8_t* app_base,
+        uintptr_t target_rva,
+        const void* trampoline) noexcept
+    {
+        // push esi; mov esi,ecx; push edi; mov ecx,[esi+284].
+        // The November compiler removed the former seven-byte EH prologue.
+        constexpr uint8_t prefix[]{ 0x56, 0x8B, 0xF1, 0x57, 0x8B, 0x8E, 0x84, 0x02, 0, 0 };
+        static_assert(sizeof(prefix) == PopupModalBaseDestructorPatchSize);
+        return app_base != nullptr && native_prefix_ready_or_installed(
+            app_base + target_rva, prefix, trampoline);
+    }
+
+    bool popup_important_base_destructor_ready_or_installed(
+        const uint8_t* app_base,
+        const void* trampoline) noexcept
+    {
+        // push esi; mov esi,ecx; lea ecx,[esi+280]. No relative instruction.
+        constexpr uint8_t prefix[]{ 0x56, 0x8B, 0xF1, 0x8D, 0x8E, 0x80, 0x02, 0, 0 };
+        static_assert(sizeof(prefix) == PopupImportantBaseDestructorPatchSize);
+        return app_base != nullptr && native_prefix_ready_or_installed(
+            app_base + ImportantNoticeBaseDestructorRva, prefix, trampoline);
     }
 
     bool popup_lifecycle_prologues_ready(const uint8_t* app_base) noexcept
@@ -4175,47 +4227,40 @@ namespace
             popup_eh_target_ready_or_installed(
                 app_base,
                 ImportantNoticeConstructorRva,
-                0x20,
+                0x24,
                 g_important_notice_constructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_modal_base_destructor_ready_or_installed(
                 app_base,
                 ModalOkBaseDestructorRva,
-                0x04,
                 g_modal_ok_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_modal_base_destructor_ready_or_installed(
                 app_base,
                 ModalYesNoBaseDestructorRva,
-                0x04,
                 g_modal_yes_no_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_modal_base_destructor_ready_or_installed(
                 app_base,
                 ModalYesNoCancelBaseDestructorRva,
-                0x04,
                 g_modal_yes_no_cancel_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_modal_base_destructor_ready_or_installed(
                 app_base,
                 ModalOkCancelBaseDestructorRva,
-                0x04,
                 g_modal_ok_cancel_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_modal_base_destructor_ready_or_installed(
                 app_base,
                 ModalRetryFailBaseDestructorRva,
-                0x04,
                 g_modal_retry_fail_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
             popup_notice_base_destructor_ready_or_installed(
                 app_base,
                 g_notice_window_base_destructor_trampoline.load(
                     std::memory_order_acquire)) &&
-            popup_eh_target_ready_or_installed(
+            popup_important_base_destructor_ready_or_installed(
                 app_base,
-                ImportantNoticeBaseDestructorRva,
-                0x04,
                 g_important_notice_base_destructor_trampoline.load(
                     std::memory_order_acquire));
     }
@@ -4245,27 +4290,27 @@ namespace
         destructors_ready = install_inline_jump_atomic(
             app_base + ModalOkBaseDestructorRva,
             reinterpret_cast<void*>(&hook_modal_ok_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupModalBaseDestructorPatchSize,
             g_modal_ok_base_destructor_trampoline) && destructors_ready;
         destructors_ready = install_inline_jump_atomic(
             app_base + ModalYesNoBaseDestructorRva,
             reinterpret_cast<void*>(&hook_modal_yes_no_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupModalBaseDestructorPatchSize,
             g_modal_yes_no_base_destructor_trampoline) && destructors_ready;
         destructors_ready = install_inline_jump_atomic(
             app_base + ModalYesNoCancelBaseDestructorRva,
             reinterpret_cast<void*>(&hook_modal_yes_no_cancel_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupModalBaseDestructorPatchSize,
             g_modal_yes_no_cancel_base_destructor_trampoline) && destructors_ready;
         destructors_ready = install_inline_jump_atomic(
             app_base + ModalOkCancelBaseDestructorRva,
             reinterpret_cast<void*>(&hook_modal_ok_cancel_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupModalBaseDestructorPatchSize,
             g_modal_ok_cancel_base_destructor_trampoline) && destructors_ready;
         destructors_ready = install_inline_jump_atomic(
             app_base + ModalRetryFailBaseDestructorRva,
             reinterpret_cast<void*>(&hook_modal_retry_fail_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupModalBaseDestructorPatchSize,
             g_modal_retry_fail_base_destructor_trampoline) && destructors_ready;
         destructors_ready = install_inline_jump_atomic(
             app_base + NoticeWindowBaseDestructorRva,
@@ -4275,7 +4320,7 @@ namespace
         destructors_ready = install_inline_jump_atomic(
             app_base + ImportantNoticeBaseDestructorRva,
             reinterpret_cast<void*>(&hook_important_notice_base_destructor),
-            PopupEhBaseDestructorPatchSize,
+            PopupImportantBaseDestructorPatchSize,
             g_important_notice_base_destructor_trampoline) && destructors_ready;
 
         // Every derived owner reaches one of these base destructors. Do not
@@ -4335,9 +4380,9 @@ namespace
 
         log_line(
             "POL_POPUP hooks-installed "
-            "constructors=000D1842,000D1B45,000D1E5E,000D2B16,000D32FB,000A6485,000A9CCB "
-            "base-destructors=000BD4F0,000BD55E,000BD5CC,000BDA4E,000BDB2A,000A6668,000A6AC0 "
-            "patch=7,6");
+            "constructors=000DAD07,000DB573,000DB849,000DAFC7,000DB29D,000B5DAB,000B5A74 "
+            "base-destructors=000EC6E1,000EC798,000EC7D5,000EC71E,000EC75B,000C020D,000C01E4 "
+            "patch=7,10,6,9");
     }
 
     bool native_post_login_surface_active()
@@ -4724,7 +4769,6 @@ namespace
         record_native_selection_interval(model, first, last);
     }
 
-    using PmlIndexedChildAt_t = uintptr_t(__thiscall*)(void*, uint32_t);
     using CLoginMemberListGetValueAt_t = uintptr_t(__thiscall*)(void*, uint32_t, uint32_t);
 
     uintptr_t call_login_member_get_value_at(
@@ -4751,28 +4795,21 @@ namespace
         if (model == nullptr || stored_index > 10000u)
             return 0;
 
-        HMODULE app = GetModuleHandleA("app.dll");
-        if (app == nullptr)
-            return 0;
-
-        auto* app_base = reinterpret_cast<uint8_t*>(app);
-        const auto lookup = reinterpret_cast<PmlIndexedChildAt_t>(app_base + PmlIndexedChildAtRva);
-        uintptr_t slot = 0;
-
-        __try
-        {
-            slot = lookup(static_cast<uint8_t*>(model) + 0x294, stored_index);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        // CPmlFrame::setSelectedIndex (RVA 22AD04) uses this exact vector.
+        // Read its bounds before the element; do not call an obsolete STL helper.
+        uintptr_t begin = 0;
+        uintptr_t end = 0;
+        if (!read_ptr_safely(static_cast<const uint8_t*>(model) + 0x268, &begin) ||
+            !read_ptr_safely(static_cast<const uint8_t*>(model) + 0x26C, &end) ||
+            begin < 0x10000 || end < begin || (end - begin) % sizeof(uintptr_t) != 0 ||
+            stored_index >= (end - begin) / sizeof(uintptr_t))
         {
             return 0;
         }
-
-        if (slot == 0)
-            return 0;
-
         uintptr_t selected_child = 0;
-        if (!read_ptr_safely(reinterpret_cast<const void*>(slot), &selected_child))
+        if (!read_ptr_safely(
+                reinterpret_cast<const void*>(begin + stored_index * sizeof(uintptr_t)),
+                &selected_child))
             return 0;
         return selected_child;
     }
@@ -4789,12 +4826,12 @@ namespace
         const char* stage,
         void* focused_table,
         uint32_t row_read_mask,
-        int16_t row264,
-        int16_t row266,
-        int16_t row26A,
-        int16_t row26C,
-        int16_t row1B4,
-        int16_t row1B6,
+        int16_t row230,
+        int16_t row232,
+        int16_t row236,
+        int16_t row238,
+        int16_t row194,
+        int16_t row196,
         uintptr_t data_model,
         uintptr_t data_model_vtable_rva,
         uintptr_t member_data,
@@ -4808,16 +4845,16 @@ namespace
         std::snprintf(
             line,
             sizeof(line) - 1,
-            "PRELOGIN_FOCUSEDMEMBER stage=%s table=0x%p rowMask=%02X row264=%d row266=%d row26A=%d row26C=%d row1B4=%d row1B6=%d dataModel=0x%p dataVtableRva=%08llX memberData=0x%p memberVtableRva=%08llX candidate=%s",
+            "PRELOGIN_FOCUSEDMEMBER stage=%s table=0x%p rowMask=%02X row230=%d row232=%d row236=%d row238=%d row194=%d row196=%d dataModel=0x%p dataVtableRva=%08llX memberData=0x%p memberVtableRva=%08llX candidate=%s",
             stage == nullptr ? "" : stage,
             focused_table,
             static_cast<unsigned>(row_read_mask),
-            static_cast<int>(row264),
-            static_cast<int>(row266),
-            static_cast<int>(row26A),
-            static_cast<int>(row26C),
-            static_cast<int>(row1B4),
-            static_cast<int>(row1B6),
+            static_cast<int>(row230),
+            static_cast<int>(row232),
+            static_cast<int>(row236),
+            static_cast<int>(row238),
+            static_cast<int>(row194),
+            static_cast<int>(row196),
             reinterpret_cast<void*>(data_model),
             static_cast<unsigned long long>(data_model_vtable_rva),
             reinterpret_cast<void*>(member_data),
@@ -4834,7 +4871,7 @@ namespace
             return resolution;
 
         read_u32_safely(
-            static_cast<const uint8_t*>(model) + 0x2A4,
+            static_cast<const uint8_t*>(model) + 0x274,
             &resolution.stored_index);
         resolution.selected_child = reinterpret_cast<void*>(
             selected_child_from_native_index(model, resolution.stored_index));
@@ -4873,54 +4910,54 @@ namespace
             return resolution;
 
         // CPolTable owns the row state directly. Ghidra and the live trace
-        // distinguish +0x266 (pointer hit row), +0x26A (keyboard-selected row),
-        // and +0x26C (focus-restoration anchor). The +0x218 field is only an
+        // distinguish +0x232 (pointer hit row), +0x236 (keyboard-selected row),
+        // and +0x238 (focus-restoration anchor). The +0x1EC field is only an
         // embedded CDefaultListSelectionModel.
-        int16_t row264 = -32768;
+        int16_t row230 = -32768;
         int16_t selected_row = -1;
-        int16_t row26A = -32768;
-        int16_t row26C = -32768;
-        int16_t row1B4 = -32768;
-        int16_t row1B6 = -32768;
+        int16_t row236 = -32768;
+        int16_t row238 = -32768;
+        int16_t row194 = -32768;
+        int16_t row196 = -32768;
         uint32_t row_read_mask = 0;
         if (copy_memory_safely(
-                &row264,
-                static_cast<const uint8_t*>(focused_table) + 0x264,
-                sizeof(row264)))
+                &row230,
+                static_cast<const uint8_t*>(focused_table) + 0x230,
+                sizeof(row230)))
         {
             row_read_mask |= 0x01u;
         }
         const bool selected_row_read = copy_memory_safely(
                 &selected_row,
-                static_cast<const uint8_t*>(focused_table) + 0x266,
+                static_cast<const uint8_t*>(focused_table) + 0x232,
                 sizeof(selected_row));
         if (selected_row_read)
             row_read_mask |= 0x02u;
         if (copy_memory_safely(
-                &row26A,
-                static_cast<const uint8_t*>(focused_table) + 0x26A,
-                sizeof(row26A)))
+                &row236,
+                static_cast<const uint8_t*>(focused_table) + 0x236,
+                sizeof(row236)))
         {
             row_read_mask |= 0x04u;
         }
         if (copy_memory_safely(
-                &row26C,
-                static_cast<const uint8_t*>(focused_table) + 0x26C,
-                sizeof(row26C)))
+                &row238,
+                static_cast<const uint8_t*>(focused_table) + 0x238,
+                sizeof(row238)))
         {
             row_read_mask |= 0x08u;
         }
         if (copy_memory_safely(
-                &row1B4,
-                static_cast<const uint8_t*>(focused_table) + 0x1B4,
-                sizeof(row1B4)))
+                &row194,
+                static_cast<const uint8_t*>(focused_table) + 0x194,
+                sizeof(row194)))
         {
             row_read_mask |= 0x10u;
         }
         if (copy_memory_safely(
-                &row1B6,
-                static_cast<const uint8_t*>(focused_table) + 0x1B6,
-                sizeof(row1B6)))
+                &row196,
+                static_cast<const uint8_t*>(focused_table) + 0x196,
+                sizeof(row196)))
         {
             row_read_mask |= 0x20u;
         }
@@ -4936,12 +4973,12 @@ namespace
                 stage,
                 focused_table,
                 row_read_mask,
-                row264,
+                row230,
                 selected_row,
-                row26A,
-                row26C,
-                row1B4,
-                row1B6,
+                row236,
+                row238,
+                row194,
+                row196,
                 data_model_pointer,
                 data_model_vtable_rva,
                 member_data_pointer,
@@ -4952,7 +4989,7 @@ namespace
 
         const auto row_decision =
             accessxi::pol_accessibility::decide_focused_member_row(
-                { selected_row, row26A, row26C });
+                { selected_row, row236, row238 });
         if (!row_decision.resolved)
         {
             return finish("row-unresolved");
@@ -4960,7 +4997,7 @@ namespace
         resolution.stored_index = row_decision.row;
 
         if (!read_ptr_safely(
-                static_cast<const uint8_t*>(focused_table) + 0x20C,
+                static_cast<const uint8_t*>(focused_table) + 0x1E0,
                 &data_model_pointer) ||
             data_model_pointer < 0x10000)
         {
@@ -5006,7 +5043,7 @@ namespace
         int16_t confirmed_row = -1;
         if (!copy_memory_safely(
                 &confirmed_row,
-                static_cast<const uint8_t*>(focused_table) + 0x26A,
+                static_cast<const uint8_t*>(focused_table) + 0x236,
                 sizeof(confirmed_row)) ||
             !accessxi::pol_accessibility::focused_member_row_still_selected(
                 row_decision.row,
@@ -5149,7 +5186,7 @@ namespace
             return;
 
         uintptr_t current_child = reinterpret_cast<uintptr_t>(requested_child);
-        read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x164, &current_child);
+        read_ptr_safely(static_cast<const uint8_t*>(manager) + 0x14C, &current_child);
         capture_pol_ui_current_child(
             manager,
             requested_child,
@@ -5424,7 +5461,7 @@ namespace
             (native_prelogin_add_member_button_object_tree_label(current_child_object, label) ||
              (label == "Register" &&
               current_child_is_tiny &&
-              label_source_offset == 0x114 &&
+              label_source_offset == 0x10C &&
               native_prelogin_add_member_form_root_has_required_rects(manager)));
         if (add_member_value_focus)
             label_source = "add-member";
@@ -5442,7 +5479,7 @@ namespace
                 (native_prelogin_add_member_button_object_tree_label(current_child_object, label) ||
                  (label == "Register" &&
                   current_child_is_tiny &&
-                  label_source_offset == 0x114 &&
+                  label_source_offset == 0x10C &&
                   native_prelogin_add_member_form_root_has_required_rects(manager)));
             if (add_member_value_focus)
                 label_source = "add-member";
@@ -5638,29 +5675,41 @@ namespace
             return;
 
         auto* app_base = reinterpret_cast<uint8_t*>(app);
-        auto* register_target = app_base + 0x00009E62u;
-        UNREFERENCED_PARAMETER(register_target);
         auto* current_child_target = app_base + PmlCurrentChildSetterRva;
         auto* selected_index_target = app_base + SelectedIndexSetterRva;
 
-        if (!install_inline_jump(current_child_target, reinterpret_cast<void*>(&hook_pml_current_child_setter), 7, &g_pml_current_child_setter_trampoline))
+        constexpr uint8_t selected_prefix[]{ 0x55, 0x8B, 0xEC, 0x56, 0x8B, 0x75, 0x08 };
+        static_assert(sizeof(selected_prefix) == SelectedIndexPatchSize);
+        if (!popup_eh_target_ready_or_installed(
+                app_base, PmlCurrentChildSetterRva, 0x40,
+                g_pml_current_child_setter_trampoline) ||
+            !native_prefix_ready_or_installed(
+                selected_index_target, selected_prefix,
+                g_selected_index_setter_trampoline))
         {
             g_native_selection_truth_hooks_installed.store(false);
-            log_line("PRELOGIN_CURRENTCHILD hook-install-failed rva=000044F1");
+            log_line("PRELOGIN_CURRENTCHILD native-prologue-mismatch");
             return;
         }
 
-        if (!install_inline_jump(selected_index_target, reinterpret_cast<void*>(&hook_selected_index_setter), 7, &g_selected_index_setter_trampoline))
+        if (!install_inline_jump(current_child_target, reinterpret_cast<void*>(&hook_pml_current_child_setter), CurrentChildPatchSize, &g_pml_current_child_setter_trampoline))
         {
             g_native_selection_truth_hooks_installed.store(false);
-            log_line("PRELOGIN_SELECTEDINDEX hook-install-failed rva=001DD903");
+            log_line("PRELOGIN_CURRENTCHILD hook-install-failed rva=00289924");
+            return;
+        }
+
+        if (!install_inline_jump(selected_index_target, reinterpret_cast<void*>(&hook_selected_index_setter), SelectedIndexPatchSize, &g_selected_index_setter_trampoline))
+        {
+            g_native_selection_truth_hooks_installed.store(false);
+            log_line("PRELOGIN_SELECTEDINDEX hook-install-failed rva=0022AD04");
             return;
         }
 
         log_line("SELTRUTHREG install native-selection-register-only");
-        log_line("PRELOGIN_CURRENTCHILD hook-installed rva=000044F1");
-        log_line("PRELOGIN_SELECTEDINDEX hook-installed rva=001DD903 child-lookup-rva=00102B3B");
-        log_line("PRELOGIN_TEXTSETTER hook-disabled rva=00064156 reason=crash-stability");
+        log_line("PRELOGIN_CURRENTCHILD hook-installed rva=00289924");
+        log_line("PRELOGIN_SELECTEDINDEX hook-installed rva=0022AD04 child-vector=268,26C");
+        log_line("PRELOGIN_TEXTSETTER hook-disabled reason=crash-stability");
     }
 
     using PmlFocusEvent_t = void(__thiscall*)(void*, void*);
@@ -5690,9 +5739,9 @@ namespace
             return false;
 
         uintptr_t value = 0;
-        if (read_ptr_safely(static_cast<const uint8_t*>(self) + 0x160, &value) && value == reinterpret_cast<uintptr_t>(focused_object))
+        if (read_ptr_safely(static_cast<const uint8_t*>(self) + 0x148, &value) && value == reinterpret_cast<uintptr_t>(focused_object))
             return true;
-        if (read_ptr_safely(static_cast<const uint8_t*>(self) + 0x1c0, &value) && value == reinterpret_cast<uintptr_t>(focused_object))
+        if (read_ptr_safely(static_cast<const uint8_t*>(self) + 0x1A0, &value) && value == reinterpret_cast<uintptr_t>(focused_object))
             return true;
         return false;
     }
@@ -5749,9 +5798,24 @@ namespace
             return;
 
         auto* app_base = reinterpret_cast<uint8_t*>(app);
+        constexpr uint8_t shared_prefix[]{ 0x55, 0x8B, 0xEC, 0x8B, 0x45, 0x08 };
+        constexpr uint8_t select_prefix[]{ 0x55, 0x8B, 0xEC, 0x8B, 0x55, 0x08 };
+        static_assert(sizeof(shared_prefix) == FocusEventPatchSize);
+        static_assert(sizeof(select_prefix) == FocusEventPatchSize);
+        if (!native_prefix_ready_or_installed(
+                app_base + PmlSharedFocusEventRva, shared_prefix,
+                g_pml_shared_focus_event_trampoline) ||
+            !native_prefix_ready_or_installed(
+                app_base + PmlSelectFocusEventRva, select_prefix,
+                g_pml_select_focus_event_trampoline))
+        {
+            g_pml_focus_event_hook_installed.store(false);
+            log_line("PRELOGIN_PMLFOCUSGAIN native-prologue-mismatch");
+            return;
+        }
         bool ok = true;
-        ok = install_inline_jump(app_base + PmlSharedFocusEventRva, reinterpret_cast<void*>(&hook_pml_shared_focus_event), 11, &g_pml_shared_focus_event_trampoline) && ok;
-        ok = install_inline_jump(app_base + PmlSelectFocusEventRva, reinterpret_cast<void*>(&hook_pml_select_focus_event), 11, &g_pml_select_focus_event_trampoline) && ok;
+        ok = install_inline_jump(app_base + PmlSharedFocusEventRva, reinterpret_cast<void*>(&hook_pml_shared_focus_event), FocusEventPatchSize, &g_pml_shared_focus_event_trampoline) && ok;
+        ok = install_inline_jump(app_base + PmlSelectFocusEventRva, reinterpret_cast<void*>(&hook_pml_select_focus_event), FocusEventPatchSize, &g_pml_select_focus_event_trampoline) && ok;
 
         if (!ok)
         {
@@ -5760,7 +5824,7 @@ namespace
             return;
         }
 
-        log_line("PRELOGIN_PMLFOCUSGAIN hook-installed rva=0005BBF5,00081D59");
+        log_line("PRELOGIN_PMLFOCUSGAIN hook-installed rva=00083442,000AB3D9");
     }
 
     void install_native_focus_event_dispatch_hooks_once()

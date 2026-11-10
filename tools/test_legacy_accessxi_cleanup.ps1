@@ -28,7 +28,10 @@ if (-not (Get-Command Remove-LegacyAccessXiInstall -ErrorAction SilentlyContinue
     throw 'Legacy Reloaded cleanup library must export Remove-LegacyAccessXiInstall.'
 }
 
-$testRoot = Join-Path $env:TEMP "accessxi-legacy-reloaded-cleanup-$PID"
+$tempRoot = [System.IO.Path]::GetFullPath($env:TEMP).TrimEnd('\')
+$testRoot = [System.IO.Path]::GetFullPath((Join-Path $tempRoot "accessxi-legacy-reloaded-cleanup-$PID"))
+Assert-True ($testRoot.StartsWith($tempRoot + '\', [System.StringComparison]::OrdinalIgnoreCase) -and
+    [System.IO.Path]::GetFileName($testRoot) -eq "accessxi-legacy-reloaded-cleanup-$PID") 'Legacy cleanup test must remain inside its exact temporary directory.'
 if (Test-Path -LiteralPath $testRoot) {
     Remove-Item -LiteralPath $testRoot -Recurse -Force
 }

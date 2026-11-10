@@ -57,19 +57,21 @@ namespace
         }
     };
 
+    // Layout fixture: app.dll SHA256 97F99A0A..., reviewed 2026-11-10 in Ghidra.
+    // Literal addresses and fields deliberately do not derive from production constants.
     constexpr uintptr_t AppBase = 0x04000000u;
     constexpr uintptr_t Owner = 0x10000000u;
     constexpr uintptr_t LabelBase = 0x11000000u;
     constexpr uintptr_t TextBase = 0x12000000u;
 
     constexpr std::array<uint32_t, UpdateProgressFieldCount> OwnerSlots{
-        0x2ACu, 0x2B0u, 0x2B4u, 0x2B8u, 0x2BCu, 0x2C0u,
-        0x2C4u, 0x2C8u, 0x2CCu, 0x2D0u
+        0x284u, 0x288u, 0x28Cu, 0x290u, 0x294u, 0x298u,
+        0x29Cu, 0x2A0u, 0x2A4u, 0x2A8u
     };
 
     void write_visible_component(FakeMemory& memory, uintptr_t object)
     {
-        memory.write<uint8_t>(object + 0x18, 0x0Cu);
+        memory.write<uint8_t>(object + 0x14, 0x0Cu);
     }
 
     void write_label(
@@ -80,20 +82,20 @@ namespace
         const uintptr_t label = LabelBase + index * 0x1000u;
         const uintptr_t characters = TextBase + index * 0x1000u;
         memory.write<uintptr_t>(Owner + OwnerSlots[index], label);
-        memory.write<uintptr_t>(label, AppBase + CLabelVtableRva);
+        memory.write<uintptr_t>(label, AppBase + 0x003CF080u);
         write_visible_component(memory, label);
-        memory.write<uintptr_t>(label + 0x184, characters);
+        memory.write<uintptr_t>(label + 0x168, characters);
         memory.write<uintptr_t>(
-            label + 0x188,
+            label + 0x16C,
             characters + (text.size() + 1) * sizeof(char16_t));
-        memory.write<int16_t>(label + 0x21A, static_cast<int16_t>(text.size()));
+        memory.write<int16_t>(label + 0x1FA, static_cast<int16_t>(text.size()));
         memory.write_utf16(characters, text);
     }
 
     FakeMemory make_progress_memory()
     {
         FakeMemory memory;
-        memory.write<uintptr_t>(Owner, AppBase + UpgradeProgressWindowVtableRva);
+        memory.write<uintptr_t>(Owner, AppBase + 0x004706F0u);
         write_visible_component(memory, Owner);
         for (size_t index = 0; index < OwnerSlots.size(); ++index)
             memory.write<uintptr_t>(Owner + OwnerSlots[index], 0);
@@ -132,20 +134,20 @@ namespace
                 u"Time remaining 22:49",
             "native remaining time did not survive");
 
-        memory.write<uintptr_t>(Owner, AppBase + UpgradeProgressWindowVtableRva + 4);
+        memory.write<uintptr_t>(Owner, AppBase + 0x004706F0u + 4);
         require(inspect_update_progress(memory.view(), Owner, AppBase).state ==
                 UpdateProgressInspectionState::absent,
             "another native window was accepted as update progress");
 
-        memory.write<uintptr_t>(Owner, AppBase + UpgradeProgressWindowVtableRva);
-        memory.write<uint8_t>(Owner + 0x18, 0);
+        memory.write<uintptr_t>(Owner, AppBase + 0x004706F0u);
+        memory.write<uint8_t>(Owner + 0x14, 0);
         require(inspect_update_progress(memory.view(), Owner, AppBase).state ==
                 UpdateProgressInspectionState::absent,
             "a hidden update window remained active");
 
         write_visible_component(memory, Owner);
         const size_t title = static_cast<size_t>(UpdateProgressField::title);
-        memory.write<uintptr_t>(LabelBase + title * 0x1000u, AppBase + CLabelVtableRva + 4);
+        memory.write<uintptr_t>(LabelBase + title * 0x1000u, AppBase + 0x003CF080u + 4);
         require(inspect_update_progress(memory.view(), Owner, AppBase).state ==
                 UpdateProgressInspectionState::unknown,
             "a changed native label layout was trusted");

@@ -71,6 +71,9 @@ Require-Match $resolver 'native_password_object[\s\S]*prelogin_add_member_passwo
     "A geometry-owned Add Member password wrapper must speak its exact label and seed the safe count tracker."
 Require-Match $resolver 'if\s*\(\s*!native_password_object\s*\)[\s\S]*read_native_selected_control_text' `
     "Password controls must bypass generic selected-text discovery."
+$passwordClass = Function-Body $source "bool native_object_has_password_field_vtable"
+Require-Match $passwordClass 'CpmlFcScrollPasswordVtableRva' `
+    "Focused PML scroll-password controls must bypass generic text discovery even when their inner model is unavailable."
 $addMemberGeometry = Function-Body $source "std::string native_prelogin_add_member_label_from_geometry"
 Require-Match $addMemberGeometry '\{\s*315,\s*155,\s*461,\s*187,\s*"PlayOnline Password"' `
     "The conditionally revealed PlayOnline Password field must retain its exact Add Member geometry label."
@@ -115,6 +118,9 @@ Require-Match $imageGetterCall '__try[\s\S]*__except' `
     "The diagnostic virtual getter must be protected against invalid live objects."
 
 $imageCaption = Function-Body $source "std::string read_native_selected_image_caption"
+$selectedControl = Function-Body $source "std::string read_native_selected_control_text"
+Require-Match $selectedControl 'inspect_selected_image_path[\s\S]*inspection\.matched[\s\S]*inspection\.text_child_count\s*==\s*0[\s\S]*return\s*\{\s*\}[\s\S]*read_selected_control_text' `
+    "Direct image captions must defer to the native getter agreement and marker checks; text-bearing sheets keep their rendered-text path."
 Require-Match $imageCaption 'inspect_selected_image_path' `
     "Native image speech must retain the unit-tested exact sheet-to-image hierarchy proof."
 Require-Match $imageCaption 'read_native_selected_image_getter_text\s*\([^,]+,\s*0\s*\)' `
@@ -157,7 +163,7 @@ Require-Match $maskedPoll 'retained\.state\.object[\s\S]*read_native_text_field_
     "Password edits must reread the exact retained CPasswordField and reject a changed native owner."
 Require-Match $maskedPoll 'observe_tracked_native_value[\s\S]*masked_delta_speech' `
     "Password edits must speak only verified count transitions."
-if ($maskedPoll -match 'PmlGlobalFocusManagerRva|manager_value|\+\s*0x164') {
+if ($maskedPoll -match 'PmlGlobalFocusManagerRva|manager_value|\+\s*0x14C') {
     throw "Password polling must not use the CPolWinApp global as a focus manager."
 }
 

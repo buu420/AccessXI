@@ -14,8 +14,8 @@ namespace accessxi::pol_pml
         constexpr uint32_t ProgressHeartbeatMs = 60000;
 
         constexpr std::array<uint32_t, UpdateProgressFieldCount> OwnerSlots{
-            0x2ACu, 0x2B0u, 0x2B4u, 0x2B8u, 0x2BCu, 0x2C0u,
-            0x2C4u, 0x2C8u, 0x2CCu, 0x2D0u
+            0x284u, 0x288u, 0x28Cu, 0x290u, 0x294u, 0x298u,
+            0x29Cu, 0x2A0u, 0x2A4u, 0x2A8u
         };
 
         enum class ComponentVisibility : uint8_t
@@ -72,7 +72,7 @@ namespace accessxi::pol_pml
         {
             uintptr_t flags_field = 0;
             uint8_t flags = 0;
-            if (!add_address(object, 0x18, flags_field) ||
+            if (!add_address(object, 0x14, flags_field) ||
                 !read_value(memory, flags_field, flags))
             {
                 return ComponentVisibility::unknown;
@@ -146,9 +146,9 @@ namespace accessxi::pol_pml
             uintptr_t begin_field = 0;
             uintptr_t end_field = 0;
             uintptr_t length_field = 0;
-            if (!add_address(label, 0x184, begin_field) ||
-                !add_address(label, 0x188, end_field) ||
-                !add_address(label, 0x21A, length_field))
+            if (!add_address(label, 0x168, begin_field) ||
+                !add_address(label, 0x16C, end_field) ||
+                !add_address(label, 0x1FA, length_field))
             {
                 return result;
             }

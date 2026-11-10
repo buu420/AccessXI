@@ -33,7 +33,10 @@ Assert-True (Test-Path -LiteralPath $deployScript -PathType Leaf) "Deployment sc
 Assert-True (Test-Path -LiteralPath $rollbackScript -PathType Leaf) "Rollback script is missing: $rollbackScript"
 Assert-True (Test-Path -LiteralPath (Join-Path $stage 'AccessXI.PolNative.asi') -PathType Leaf) 'Build the native prototype stage before testing deployment.'
 
-$testRoot = Join-Path $env:TEMP "accessxi-pol-native-deployment-$PID"
+$tempRoot = [System.IO.Path]::GetFullPath($env:TEMP).TrimEnd('\')
+$testRoot = [System.IO.Path]::GetFullPath((Join-Path $tempRoot "accessxi-pol-native-deployment-$PID"))
+Assert-True ($testRoot.StartsWith($tempRoot + '\', [System.StringComparison]::OrdinalIgnoreCase) -and
+    [System.IO.Path]::GetFileName($testRoot) -eq "accessxi-pol-native-deployment-$PID") 'Deployment test cleanup must remain inside its exact temporary directory.'
 if (Test-Path -LiteralPath $testRoot) {
     Remove-Item -LiteralPath $testRoot -Recurse -Force
 }

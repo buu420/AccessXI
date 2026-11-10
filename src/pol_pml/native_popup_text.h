@@ -11,15 +11,15 @@
 
 namespace accessxi::pol_pml
 {
-    constexpr uintptr_t CLabelVtableRva = 0x003300A4u;
-    constexpr uintptr_t ModalOkVtableRva = 0x00368CA4u;
-    constexpr uintptr_t ModalYesNoVtableRva = 0x00368EFCu;
-    constexpr uintptr_t ModalYesNoCancelVtableRva = 0x00369154u;
-    constexpr uintptr_t ModalOkCancelVtableRva = 0x00369CF4u;
-    constexpr uintptr_t ModalRetryFailVtableRva = 0x0036A1A4u;
-    constexpr uintptr_t NoticeWindowVtableRva = 0x0033FCDCu;
-    constexpr uintptr_t ImportantNoticeVtableRva = 0x0034069Cu;
-    constexpr uintptr_t CScrollTextAreaVtableRva = 0x003325D4u;
+    constexpr uintptr_t CLabelVtableRva = 0x003CF080u;
+    constexpr uintptr_t ModalOkVtableRva = 0x0040FC20u;
+    constexpr uintptr_t ModalYesNoVtableRva = 0x0040FE78u;
+    constexpr uintptr_t ModalYesNoCancelVtableRva = 0x004100D0u;
+    constexpr uintptr_t ModalOkCancelVtableRva = 0x00411820u;
+    constexpr uintptr_t ModalRetryFailVtableRva = 0x00411F28u;
+    constexpr uintptr_t NoticeWindowVtableRva = 0x003E2140u;
+    constexpr uintptr_t ImportantNoticeVtableRva = 0x003E281Cu;
+    constexpr uintptr_t CScrollTextAreaVtableRva = 0x003D1590u;
 
     enum class PopupOwnerKind : uint8_t
     {

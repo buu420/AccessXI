@@ -20,8 +20,8 @@ internal sealed class InstallerForm : Form
 {
     private const string PayloadResourceName = "Payload.AccessXI-Ashita-Installer.zip";
     private const string CompletionMessage = "AccessXI was installed. Use the AccessXI Ashita desktop shortcut to start the game. Advanced: from the Ashita folder, run Ashita-cli.exe accessxi-retail.ini. PlayOnline diagnostics are written to %USERPROFILE%\\AccessXI\\logs.";
-    private const long KnownUpdatedPlayOnlineAppDllSize = 4335104;
-    private const ulong KnownUpdatedPlayOnlineAppDllFnv64 = 0x07E88E8067FEF6CCUL;
+    private const long KnownUpdatedPlayOnlineAppDllSize = 6560512;
+    private const ulong KnownUpdatedPlayOnlineAppDllFnv64 = 0xF50D04B5FDA154A5UL;
     private const string UpdatedPlayOnlineAppDllRelativePathForDiagnostics = @"PlayOnlineViewer\viewer\com\app.dll";
 
     private readonly TextBox installRootText;
